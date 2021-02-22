@@ -1,0 +1,10 @@
+# we will need pytest to run the tests
+pytest >= 6.2.2
+
+# setuptools, testresources, and wheel are needed for generating the installable pip package
+setuptools >= 53.0
+testresources >= 2.0.1
+wheel >= 0.36.2
+
+# sphinx for generating documentation
+sphinx >= 3.4.3
