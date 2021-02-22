@@ -1,3 +1,5 @@
+[![make build](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml/badge.svg)](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml)
+
 # moptipy: Metaheuristic Optimization in Python
 
 This will be a library with implementations of metaheuristic optimization methods in Python.

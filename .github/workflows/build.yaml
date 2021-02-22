@@ -1,4 +1,4 @@
-name: Python Package Build via make
+name: make build
 
 on: [push]
 
