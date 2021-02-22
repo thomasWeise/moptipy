@@ -2,13 +2,13 @@ from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union
 
-from ._process_no_ss import _ProcessNoSS
-from .component import Component
-from .objective import Objective
-from .mapping import Mapping
-from .space import Space
-from ..utils.logger import KeyValues, Logger
-from ..utils import logging
+from moptipy.api._process_no_ss import _ProcessNoSS
+from moptipy.api.component import Component
+from moptipy.api.objective import Objective
+from moptipy.api.mapping import Mapping
+from moptipy.api.space import Space
+from moptipy.utils.logger import KeyValuesSection, Logger
+from moptipy.utils import logging
 
 
 class _ProcessSS(_ProcessNoSS):
@@ -34,12 +34,14 @@ class _ProcessSS(_ProcessNoSS):
                          goal_f=goal_f)
 
         if not isinstance(search_space, Space):
-            raise ValueError("search_space should be instance of Space, but is "
+            raise ValueError("search_space should be instance of Space, "
+                             "but is "
                              + str(type(search_space)) + ".")
         self._search_space = search_space
 
         if not isinstance(representation_mapping, Mapping):
-            raise ValueError("representation_mapping should be instance of Mapping, but is "
+            raise ValueError("representation_mapping should be instance of "
+                             "Mapping, but is "
                              + str(type(representation_mapping)) + ".")
         self._representation_mapping = representation_mapping
 
@@ -49,7 +51,8 @@ class _ProcessSS(_ProcessNoSS):
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and the algorithm knows it.')
+                raise ValueError('The process has been terminated and the '
+                                 'algorithm knows it.')
             return inf
 
         self._representation_mapping.map(x, self._current_y)
@@ -66,7 +69,8 @@ class _ProcessSS(_ProcessNoSS):
             self._current_best_f = result
             self._search_space.x_copy(x, self._current_best_x)
             self._solution_space.x_copy(self._current_y, self._current_best_y)
-            self._current_time_millis = int((monotonic_ns() + 999_999) // 1_000_000)
+            self._current_time_millis = int((monotonic_ns() + 999_999)
+                                            // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
@@ -107,7 +111,7 @@ class _ProcessSS(_ProcessNoSS):
     def get_copy_of_current_best_y(self, y):
         return self._solution_space.x_copy(self._current_best_y, y)
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_SEARCH_SPACE) as sc:
             self._search_space.log_parameters_to(sc)

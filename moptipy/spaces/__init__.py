@@ -1,8 +1,10 @@
+"""
+In this package, some pre-defined search spaces are provided.
+"""
 # noinspection PyUnresolvedReferences
-from ..version import __version__
+from moptipy.version import __version__
+from moptipy.spaces.vectorspace import VectorSpace
+from moptipy.spaces.intspace import IntSpace
 
-__ALL__ = ["IntSpace",
+__all__ = ["IntSpace",
            "VectorSpace"]
-
-from .vectorspace import VectorSpace
-from .intspace import IntSpace

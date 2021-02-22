@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from ..utils.logger import KeyValues
-from ..utils import logging
+from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils import logging
 from typing import Callable
 
 
@@ -16,7 +16,7 @@ class Component(ABC):
     def get_name(self):
         raise NotImplementedError
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         logger.key_value(logging.KEY_NAME, self.get_name())
         logger.key_value(logging.KEY_TYPE, str(type(self)))
 
@@ -47,6 +47,6 @@ class _CallableComponent(Component):
     def get_name(self):
         return self.__name
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_INNER_TYPE, str(type(self._inner)))

@@ -2,22 +2,24 @@ from abc import abstractmethod
 from math import inf
 from typing import Union, Callable
 
-from ..utils.logger import KeyValues
-from ..utils import logging
-from .component import _CallableComponent, Component
+from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils import logging
+from moptipy.api.component import _CallableComponent, Component
 
 
 class Objective(Component):
     """
-    A class to represent an objective function, i.e., an criterion rating the quality of a solution.
+    An objective function: a criterion rating the solution quality.
     """
 
     @abstractmethod
     def evaluate(self, x) -> Union[float, int]:
         """
-        Evaluate a candidate solution x and return its objective value as either integer or float.
+        Evaluate a solution `x` and return its objective value.
 
-        Smaller objective values are better, i.e., all objective functions are subject to minimization.
+        The return value is either an integer or a float.
+        Smaller objective values are better, i.e., all objective
+        functions are subject to minimization.
 
         :param x: the candidate solution
         :return: the objective value
@@ -27,7 +29,9 @@ class Objective(Component):
 
     def lower_bound(self) -> Union[float, int]:
         """
-        The lower bound of the objective value - a theoretically limit for how good a solution could be at best
+        The lower bound of the objective value.
+         This function returns a theoretically limit for how good a
+         solution could be at best
 
         :return: the lower bound of the objective value
         :rtype: Union[float, int]
@@ -36,7 +40,9 @@ class Objective(Component):
 
     def upper_bound(self) -> Union[float, int]:
         """
-        The upper bound of the objective value - a theoretical limit for how bad a solution could be at worst
+        The upper bound of the objective value.
+        This function returns a theoretical limit for how bad a
+        solution could be at worst
 
         :return: the upper bound of the objective value
         :rtype: Union[float, int]
@@ -45,7 +51,7 @@ class Objective(Component):
 
 
 class CallableObjective(_CallableComponent, Objective):
-    """An class for wrapping a Callable such as a lambda into an objective function."""
+    """Wrapping a Callable such as a lambda into an objective function."""
 
     def __init__(self,
                  function: Callable,
@@ -55,25 +61,30 @@ class CallableObjective(_CallableComponent, Objective):
         """
         Create a wrapper mapping a Callable to an objective function
 
-        :param Callable function: the function to wrap, can be a lambda expression
-        :param Union[float, int] lower_bound: the lower bound of the objective function
-        :param Union[float, int] upper_bound: the upper bound of the objective function
+        :param Callable function: the function to wrap,
+            can be a lambda expression
+        :param Union[float, int] lower_bound:
+            the lower bound of the objective function
+        :param Union[float, int] upper_bound:
+            the upper bound of the objective function
         :param str name: the name of the objective function
         """
         super().__init__(inner=function,
                          name="unnamed_function" if (name is None) else name)
 
-        if not (isinstance(lower_bound, int) or isinstance(lower_bound, float)):
-            raise ValueError("lower_bound must be either int or float, but is "
-                             + str(type(lower_bound)))
+        if not (isinstance(lower_bound, int)
+                or isinstance(lower_bound, float)):
+            raise ValueError("lower_bound must be either int or float, "
+                             "but is " + str(type(lower_bound)))
 
-        if not (isinstance(upper_bound, int) or isinstance(upper_bound, float)):
-            raise ValueError("upper_bound must be either int or float, but is "
-                             + str(type(upper_bound)))
+        if not (isinstance(upper_bound, int)
+                or isinstance(upper_bound, float)):
+            raise ValueError("upper_bound must be either int or float, "
+                             "but is " + str(type(upper_bound)))
 
         if lower_bound >= upper_bound:
-            raise ValueError("lower_bound " + str(lower_bound) +
-                             "must be less than upper_bound "
+            raise ValueError("lower_bound " + str(lower_bound)
+                             + "must be less than upper_bound "
                              + str(upper_bound) + " but is not.")
 
         self.__lower_bound = lower_bound
@@ -88,7 +99,7 @@ class CallableObjective(_CallableComponent, Objective):
     def upper_bound(self) -> Union[float, int]:
         return self.__upper_bound
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_F_LOWER_BOUND, self.__lower_bound)
         logger.key_value(logging.KEY_F_UPPER_BOUND, self.__upper_bound)

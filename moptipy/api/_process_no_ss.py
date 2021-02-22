@@ -5,12 +5,12 @@ from time import monotonic_ns
 from numpy.random import Generator
 from numpy.random import default_rng
 
-from ._process_base import _ProcessBase
-from .component import Component
-from .objective import Objective
-from .space import Space
-from ..utils import logging
-from ..utils.logger import KeyValues, Logger
+from moptipy.api._process_base import _ProcessBase
+from moptipy.api.component import Component
+from moptipy.api.objective import Objective
+from moptipy.api.space import Space
+from moptipy.utils import logging
+from moptipy.utils.logger import KeyValuesSection, Logger
 
 
 class _ProcessNoSS(_ProcessBase):
@@ -55,10 +55,10 @@ class _ProcessNoSS(_ProcessBase):
                              + str(type(self.__rand_seed)) + ".")
         if (self.__rand_seed < _ProcessNoSS.__MIN_RAND_SEED) or \
                 (self.__rand_seed > _ProcessNoSS.__MAX_RAND_SEED):
-            raise ValueError("rand_seed must be in " +
-                             str(_ProcessNoSS.__MIN_RAND_SEED) +
-                             ".." +
-                             str(_ProcessNoSS.__MAX_RAND_SEED))
+            raise ValueError("rand_seed must be in "
+                             + str(_ProcessNoSS.__MIN_RAND_SEED)
+                             + ".."
+                             + str(_ProcessNoSS.__MAX_RAND_SEED))
         self.__random = default_rng(self.__rand_seed)
 
         self._current_best_y = self._solution_space.x_create()
@@ -123,7 +123,7 @@ class _ProcessNoSS(_ProcessBase):
     def x_is_equal(self, x1, x2) -> bool:
         return self._solution_space.x_is_equal(x1, x2)
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_BBP_RAND_SEED, self.__rand_seed,
                          also_hex=True)
@@ -139,15 +139,15 @@ class _ProcessNoSS(_ProcessBase):
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:
             kv.key_value(logging.KEY_ES_TOTAL_FES, self._current_fes)
             kv.key_value(logging.KEY_ES_TOTAL_TIME_MILLIS,
-                         self._current_time_millis -
-                         self._start_time_millis)
+                         self._current_time_millis
+                         - self._start_time_millis)
             if self._has_current_best:
                 kv.key_value(logging.KEY_ES_BEST_F, self._current_best_f)
                 kv.key_value(logging.KEY_ES_LAST_IMPROVEMENT_FE,
                              self._last_improvement_fe)
                 kv.key_value(logging.KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS,
-                             self._last_improvement_time_millis -
-                             self._start_time_millis)
+                             self._last_improvement_time_millis
+                             - self._start_time_millis)
 
         with logger.key_values(logging.SECTION_SETUP) as kv:
             self.log_parameters_to(kv)

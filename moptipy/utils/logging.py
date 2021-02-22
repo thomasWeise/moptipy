@@ -1,6 +1,6 @@
 from re import sub
 
-from typing import Final, Union
+from typing import List, Final, Union
 from math import isfinite, isnan
 
 #: the separator used in CSV files to separate columns
@@ -67,6 +67,12 @@ SCOPE_OBJECTIVE_FUNCTION: Final = "f"
 SCOPE_REPRESENTATION_MAPPING: Final = "g"
 #: the scope of the optimization algorithm
 SCOPE_ALGORITHM: Final = "a"
+#: the scope of the nullary search operator
+SCOPE_OP0: Final = "op0"
+#: the scope of the unary search operator
+SCOPE_OP1: Final = "op1"
+#: the scope of the binary search operator
+SCOPE_OP2: Final = "op2"
 
 #: the resulting point in the solution space
 SECTION_RESULT_Y: Final = "RESULT_Y"
@@ -153,6 +159,22 @@ def sanitize_name(name: str) -> str:
                          + orig_name + "' does.")
 
     return name
+
+
+def sanitize_names(names: List[str]) -> str:
+    """
+    Sanitize a set of names.
+
+    >>> sanitize_names(["", " sdf ", "", "5-3"])
+    'sdf_5-3'
+    >>> sanitize_names([" a ", " b", " c", "", "6", ""])
+    'a_b_c_6'
+
+    :param names: the list of names.
+    :return: the sanitized name
+    :retype: str
+    """
+    return PART_SEPARATOR.join([sanitize_name(name) for name in names if len(name) > 0])
 
 
 def format_float(x: Union[complex, float]) -> str:

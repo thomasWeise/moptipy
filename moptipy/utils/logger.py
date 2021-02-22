@@ -5,7 +5,7 @@ from os.path import realpath
 from re import sub
 from typing import Optional, List, Union
 
-from . import logging
+from moptipy.utils import logging
 
 
 class Logger:
@@ -20,8 +20,8 @@ class Logger:
         :param str path: the path to the log file
         """
         if not isinstance(path, str):
-            raise ValueError("Path must be string but is '" +
-                             str(type(path)) + "'.")
+            raise ValueError("Path must be string but is '"
+                             + str(type(path)) + "'.")
         path = realpath(path)
 
         self.__file = open(file=path,
@@ -105,8 +105,8 @@ class Logger:
     def _comment(self, comment: str) -> None:
         if self.__section is None:
             self._error(["Cannot write if not inside section"])
-        self.__file.write(logging.COMMENT_CHAR + " " +
-                          sub(r"\s+", " ", comment.strip())
+        self.__file.write(logging.COMMENT_CHAR + " "
+                          + sub(r"\s+", " ", comment.strip())
                           + "\n")
         self.__starts_new_line = True
 
@@ -126,13 +126,13 @@ class Logger:
         self.__file.write(text)
         self.__starts_new_line = text.endswith("\n")
 
-    def key_values(self, title: str) -> 'KeyValues':
+    def key_values(self, title: str) -> 'KeyValuesSection':
         """
         Create a log section for key-value pairs.
 
         :param str title: the title of the new section
         :return: the new logger
-        :rtype: KeyValues
+        :rtype: KeyValuesSection
 
         >>> from moptipy.utils.logger import Logger
         >>> from moptipy.utils.temp import TempFile
@@ -147,17 +147,17 @@ class Logger:
         ...     print(open(str(t), "r").read().splitlines())
         ['BEGIN_B', 'a:b', 'c.d:12', 'c.e:True', 'f:3.3', 'f(hex):0x1.a666666666666p+1', 'END_B']
         """
-        return KeyValues(title=title, logger=self, prefix="",
-                         done=None)
+        return KeyValuesSection(title=title, logger=self, prefix="",
+                                done=None)
 
-    def csv(self, title: str, header: List[str]) -> 'Csv':
+    def csv(self, title: str, header: List[str]) -> 'CsvSection':
         """
         Create a log section for CSV data.
 
         :param str title: the title of the new section
         :param List[str] header: the list of column titles
         :return: the new logger
-        :rtype: Csv
+        :rtype: CsvSection
 
         >>> from moptipy.utils.logger import Logger
         >>> from moptipy.utils.temp import TempFile
@@ -170,15 +170,15 @@ class Logger:
         ...     print(open(str(t), "r").read().splitlines())
         ['BEGIN_A', 'x;y', '1;2', '3;4', ';12', 'END_A']
         """
-        return Csv(title=title, logger=self, header=header)
+        return CsvSection(title=title, logger=self, header=header)
 
-    def text(self, title: str) -> 'Text':
+    def text(self, title: str) -> 'TextSection':
         """
         Create a log section for unstructured text.
 
         :param str title: the title of the new section
         :return: the new logger
-        :rtype: Text
+        :rtype: TextSection
 
         >>> from moptipy.utils.logger import Logger
         >>> from moptipy.utils.temp import TempFile
@@ -192,7 +192,7 @@ class Logger:
         ...     print(open(str(t), "r").read().splitlines())
         ['BEGIN_C', 'aaaaaabbbbb', 'ccccc', 'END_C']
         """
-        return Text(title=title, logger=self)
+        return TextSection(title=title, logger=self)
 
 
 class _Section(ABC):
@@ -224,7 +224,7 @@ class _Section(ABC):
         self._logger._comment(comment)
 
 
-class Csv(_Section):
+class CsvSection(_Section):
     """
     A logger that is designed to output CSV data.
     """
@@ -272,7 +272,7 @@ class Csv(_Section):
         self._logger._write(logging.CSV_SEPARATOR.join(row) + "\n")
 
 
-class KeyValues(_Section):
+class KeyValuesSection(_Section):
     """
     A logger for key-value pairs.
     """
@@ -329,22 +329,23 @@ class KeyValues(_Section):
         # noinspection PyProtectedMember
         self._logger._write(txt)
 
-    def scope(self, prefix: str) -> 'KeyValues':
+    def scope(self, prefix: str) -> 'KeyValuesSection':
         """
         Create a new scope for key prefixes
 
         :param str prefix: the key prefix
         :return: the new logger
-        :rtype: KeyValues
+        :rtype: KeyValuesSection
         """
-        return KeyValues(title=None, logger=self._logger,
-                         prefix=((prefix if (self._prefix is None)
-                                  else (self._prefix +
-                                        logging.sanitize_name(prefix))) + "."),
-                         done=self.__done)
+        return KeyValuesSection(title=None, logger=self._logger,
+                                prefix=((prefix if (self._prefix is None)
+                                        else (self._prefix
+                                        + logging.sanitize_name(prefix)))
+                                        + "."),
+                                done=self.__done)
 
 
-class Text(_Section):
+class TextSection(_Section):
     """
     A logger for raw, unprocessed text.
     """

@@ -2,18 +2,21 @@
 import os
 import sys
 
-root_path = os.path.abspath(os.path.sep.join([os.path.dirname(__file__), "..", ".."]))
+root_path = os.path.abspath(os.path.sep.join([
+    os.path.dirname(__file__), "..", ".."]))
 sys.path.insert(0, root_path)
 
 # project information
 
 project = 'moptipy'
 author = 'Thomas Weise'
+# noinspection PyShadowingBuiltins
 copyright = '2021, ' + author
 
 # The full version, including alpha/beta/rc tags
 release = {}
-with open(os.path.abspath(os.path.sep.join([root_path, "moptipy", "version.py"]))) as fp:
+with open(os.path.abspath(os.path.sep.join([
+        root_path, "moptipy", "version.py"]))) as fp:
     exec(fp.read(), release)
 release = release["__version__"]
 

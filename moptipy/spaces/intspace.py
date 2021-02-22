@@ -1,9 +1,9 @@
-from ..api.space import Space
+from moptipy.api.space import Space
 import numpy as np
 from typing import Final
 
-from ..utils.logger import KeyValues
-from ..utils import logging
+from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils import logging
 
 
 class IntSpace(Space):
@@ -31,8 +31,8 @@ class IntSpace(Space):
             ValueError("Dimension must be positive integer, but got '"
                        + str(dimension) + "'.")
         if (not (isinstance(min_value, int) and isinstance(max_value, int))) or (min_value >= max_value):
-            ValueError("min_value (" + str(min_value) +
-                       ") must be an int smaller than the int max_value ("
+            ValueError("min_value (" + str(min_value)
+                       + ") must be an int smaller than the int max_value ("
                        + str(max_value) + ") but is not.")
 
         if min_value >= 0:
@@ -58,8 +58,8 @@ class IntSpace(Space):
                 dtype = np.dtype(np.int64)
             else:
                 raise ValueError("Signed integer range cannot exceed -9223372036854775808..9223372036854775807, but "
-                                 + str(min_value) + ".." + str(max_value) +
-                                 " specified.")
+                                 + str(min_value) + ".." + str(max_value)
+                                 + " specified.")
 
         if (not isinstance(dtype, np.dtype)) or \
            (not isinstance(dtype.char, str)) or \
@@ -93,7 +93,7 @@ class IntSpace(Space):
                "[" + str(self.min_value) + "," + \
                str(self.max_value) + "]"
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(IntSpace.KEY_NUMPY_TYPE, self.dtype.char)

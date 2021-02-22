@@ -1,5 +1,6 @@
 from moptipy.api import CallableObjective, Objective, Component
 from math import inf
+# noinspection PyPackageRequirements
 from pytest import raises
 from moptipy.utils import TempFile, Logger
 
@@ -16,9 +17,11 @@ def test_pure_callable_objective_function():
     assert f.lower_bound() == -inf
 
     with raises(ValueError):
+        # noinspection PyTypeChecker
         CallableObjective(None)
 
     with raises(ValueError):
+        # noinspection PyTypeChecker
         CallableObjective("blabla")
 
 
@@ -57,9 +60,11 @@ def test_callable_objective_function_bounds():
         CallableObjective(lambda x: -3, upper_bound=-3, lower_bound=4)
 
     with raises(ValueError):
+        # noinspection PyTypeChecker
         CallableObjective(lambda x: -3, lower_bound="x")
 
     with raises(ValueError):
+        # noinspection PyTypeChecker
         CallableObjective(lambda x: -3, upper_bound="x")
 
 

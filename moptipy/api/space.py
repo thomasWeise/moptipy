@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from .component import Component
+from moptipy.api.component import Component
 
 
 class Space(Component):

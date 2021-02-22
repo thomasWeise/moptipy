@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 from numpy.random import Generator
 
-from .component import Component
+from moptipy.api.component import Component
 
 
 class Op0(Component):

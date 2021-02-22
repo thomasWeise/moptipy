@@ -3,8 +3,8 @@ from typing import Optional, Union
 
 from numpy.random import Generator
 
-from .objective import Objective
-from .space import Space
+from moptipy.api.objective import Objective
+from moptipy.api.space import Space
 
 
 class Process(Space, Objective):

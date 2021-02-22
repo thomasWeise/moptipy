@@ -4,9 +4,9 @@ from threading import Lock, Timer
 from time import monotonic_ns
 from typing import Optional, Union
 
-from .process import Process
-from ..utils.logger import KeyValues
-from ..utils import logging
+from moptipy.api.process import Process
+from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils import logging
 
 
 class _ProcessBase(Process, ABC):
@@ -54,7 +54,8 @@ class _ProcessBase(Process, ABC):
         else:
             self._max_time_millis = int(max_time_millis)
             if self._max_time_millis <= 0:
-                raise ValueError("Maximum time in milliseconds must be positive, but is "
+                raise ValueError("Maximum time in milliseconds must be "
+                                 "positive, but is "
                                  + str(self._max_time_millis) + ".")
             self._end_time_millis = int(self._start_time_millis + self._max_time_millis)
             self._timer = Timer(interval=self._max_time_millis / 1_000.0,
@@ -110,12 +111,13 @@ class _ProcessBase(Process, ABC):
     def get_copy_of_current_best_y(self, y):
         return self.get_copy_of_current_best_x(y)
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         if not (self._max_fes is None):
             logger.key_value(logging.KEY_BBP_MAX_FES, self._max_fes)
         if not (self._max_time_millis is None):
-            logger.key_value(logging.KEY_BBP_MAX_TIME_MILLIS, self._max_time_millis)
+            logger.key_value(logging.KEY_BBP_MAX_TIME_MILLIS,
+                             self._max_time_millis)
         if not (self._goal_f is None):
             logger.key_value(logging.KEY_BBP_GOAL_F, self._goal_f)
 

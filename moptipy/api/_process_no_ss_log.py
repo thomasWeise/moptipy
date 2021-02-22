@@ -2,12 +2,12 @@ from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union
 
-from ._process_no_ss import _ProcessNoSS
-from .component import Component
-from .objective import Objective
-from .space import Space
-from ..utils import logging
-from ..utils.logger import Logger
+from moptipy.api._process_no_ss import _ProcessNoSS
+from moptipy.api.component import Component
+from moptipy.api.objective import Objective
+from moptipy.api.space import Space
+from moptipy.utils import logging
+from moptipy.utils.logger import Logger
 
 
 class _ProcessNoSSLog(_ProcessNoSS):
@@ -33,11 +33,11 @@ class _ProcessNoSSLog(_ProcessNoSS):
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
         if not isinstance(log_all_fes, bool):
-            raise ValueError("log_all must be boolean, but is '" +
-                             str(log_all_fes) + "'.")
+            raise ValueError("log_all must be boolean, but is '"
+                             + str(log_all_fes) + "'.")
         if not isinstance(log_improvements, bool):
-            raise ValueError("log_improvements must be boolean, but is '" +
-                             str(log_improvements) + "'.")
+            raise ValueError("log_improvements must be boolean, but is '"
+                             + str(log_improvements) + "'.")
         self.__log_all = log_all_fes
         self.__log_improvements = log_improvements or log_all_fes
         self.__log = list()
@@ -126,9 +126,10 @@ class _ProcessNoSSLog(_ProcessNoSS):
         if (not (entry[idx] is None)) and (entry[idx] != value):
             ValueError("Entry for key'" + key
                        + "' already defined to be '"
-                       + str(entry[idx]) +
-                       "' and cannot be assigned again to '"
+                       + str(entry[idx])
+                       + "' and cannot be assigned again to '"
                        + str(value) + "'.")
+        # noinspection PyTypeChecker
         entry[idx] = value
 
     def _write_log(self, logger: Logger):

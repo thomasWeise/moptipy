@@ -1,9 +1,9 @@
-from ..api.space import Space
+from moptipy.api.space import Space
 import numpy as np
 from typing import Final
 
-from ..utils.logger import KeyValues
-from ..utils import logging
+from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils import logging
 
 
 class VectorSpace(Space):
@@ -45,7 +45,7 @@ class VectorSpace(Space):
     def get_name(self):
         return "vector" + str(self.dimension) + self.dtype.char
 
-    def log_parameters_to(self, logger: KeyValues):
+    def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(VectorSpace.KEY_NUMPY_TYPE, self.dtype.char)
