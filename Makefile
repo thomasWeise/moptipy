@@ -3,7 +3,7 @@
 
 clean:
 	echo "Cleaning up by first uninstalling moptipy (if installed) and then deleting all auto-generated stuff." && \
-	pip uninstall -y moptipy moptipy.* || true && \
+	pip uninstall -y moptipy || true && \
 	echo "Moptipy is no longer installed; now deleting auto-generated stuff." && \
     rm -rf moptity.egg-info && \
     rm -rf .pytest_cache && \
