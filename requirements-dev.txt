@@ -8,3 +8,6 @@ wheel >= 0.36.2
 
 # sphinx for generating documentation
 sphinx >= 3.4.3
+
+# flake8 is used for checking the style
+flake8 >= 3.8.3
