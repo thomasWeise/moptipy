@@ -11,9 +11,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+# first set up python
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+# then execute the actual build process
     - name: Execute the make Build
       run: make
+# the remove mopitpy
+    - name: Purge local moptipy installation
+      run: |
+        pip uninstall -y moptipy
+# and attempt to install it again from github
+    - name: Install moptipy from github
+      run: |
+        pip install git+https://github.com/thomasWeise/moptipy.git
+        python -c "import moptipy"
