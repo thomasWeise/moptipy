@@ -50,9 +50,9 @@ KEY_ES_TOTAL_FES: Final = "totalFEs"
 KEY_ES_TOTAL_TIME_MILLIS: Final = "totalTimeMillis"
 #: the best encountered objective value
 KEY_ES_BEST_F: Final = "bestF"
-#: the FE when the last / best objective value was encountered
+#: the FE when the best objective value was reached
 KEY_ES_LAST_IMPROVEMENT_FE: Final = "lastImprovementFE"
-#: the time in milliseconds when the last / best objective value was encountered
+#: the time in milliseconds when the best objective value was reached
 KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS: Final = "lastImprovementTimeMillis"
 #: the number of decision variables
 KEY_SPACE_NUM_VARS: Final = "nvars"
@@ -136,8 +136,8 @@ def sanitize_name(name: str) -> str:
         raise ValueError("Name string must not be None.")
     name = str(name)
     if not isinstance(name, str):
-        raise ValueError("String representation of name must be instance of str, but is "
-                         + str(type(name)))
+        raise ValueError("String representation of name must be instance "
+                         "of str, but is " + str(type(name)))
     orig_name = name
     name = name.strip()
     name = __replace_double("-", name)
@@ -174,7 +174,8 @@ def sanitize_names(names: List[str]) -> str:
     :return: the sanitized name
     :retype: str
     """
-    return PART_SEPARATOR.join([sanitize_name(name) for name in names if len(name) > 0])
+    return PART_SEPARATOR.join([
+        sanitize_name(name) for name in names if len(name) > 0])
 
 
 def format_float(x: Union[complex, float]) -> str:

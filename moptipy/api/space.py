@@ -11,9 +11,9 @@ class Space(Component):
     possible solutions to an optimization problem. All of them are instances of
     one data structure. An optimization as well as a black-box process needs to
     be able to create and copy such instances. In order to store the solutions
-    we found in a log file, we must further be able to translate them to strings.
-    Finally, it is also important to detect whether two instances are the same.
-    All of this functionality is offered by the Space class.
+    we found in a log file, we must further be able to translate them to
+    strings. Finally, it is also important to detect whether two instances are
+    the same. All of this functionality is offered by the Space class.
     """
 
     @abstractmethod
@@ -30,10 +30,12 @@ class Space(Component):
     @abstractmethod
     def x_copy(self, source, dest):
         """
-        Copy one instance (source) of the data structure to another one (dest).
+        Copy one instance of the data structure to another one.
 
-        :param source: the source data structure, which will remain unchanged and whose contents will be copied to dest
-        :param dest: the destination data structure, whose contents will be overwritten with those from source
+        :param source: the source data structure, which remains
+            unchanged and whose contents will be copied to `dest`
+        :param dest: the destination data structure,
+            whose contents will be overwritten with those from `source`
         """
         raise NotImplementedError
 

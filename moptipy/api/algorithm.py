@@ -262,18 +262,19 @@ def solve(algorithm: Algorithm,
                                    goal_f=goal_f)
     else:
         if log_improvements or log_all_fes or log_state:
-            process = _ProcessSSLog(solution_space=solution_space,
-                                    objective_function=objective_function,
-                                    algorithm=algorithm,
-                                    search_space=search_space,
-                                    representation_mapping=representation_mapping,
-                                    log_file=log_file,
-                                    rand_seed=rand_seed,
-                                    max_fes=max_fes,
-                                    max_time_millis=max_time_millis,
-                                    goal_f=goal_f,
-                                    log_improvements=log_improvements,
-                                    log_all_fes=log_all_fes)
+            process = _ProcessSSLog(
+                solution_space=solution_space,
+                objective_function=objective_function,
+                algorithm=algorithm,
+                search_space=search_space,
+                representation_mapping=representation_mapping,
+                log_file=log_file,
+                rand_seed=rand_seed,
+                max_fes=max_fes,
+                max_time_millis=max_time_millis,
+                goal_f=goal_f,
+                log_improvements=log_improvements,
+                log_all_fes=log_all_fes)
         else:
             process = _ProcessSS(solution_space=solution_space,
                                  objective_function=objective_function,

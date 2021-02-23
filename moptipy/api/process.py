@@ -9,7 +9,11 @@ from moptipy.api.space import Space
 
 class Process(Space, Objective):
     """
-    A black-box optimization process provides an optimization algorithm access to a problem instance.
+    A `Process` provides an optimization algorithm access to a problem
+    as well as information about the best-so-far results and how much
+    runtime was consumed.
+    It also lets the user access the final result of optimization and
+    can be implemented to write log files.
     """
 
     def __init__(self):
@@ -44,7 +48,8 @@ class Process(Space, Objective):
     @abstractmethod
     def get_consumed_fes(self) -> int:
         """
-        Obtain the number consumed objective function evaluations, i.e., the number of calls to evaluate(...)
+        Obtain the number consumed objective function evaluations,
+        i.e., the number of calls to evaluate(...)
 
         :return: the number of objective function evaluations so far
         :rtype: int
@@ -64,9 +69,11 @@ class Process(Space, Objective):
     @abstractmethod
     def get_max_fes(self) -> Optional[int]:
         """
-        Obtain the maximum number of objective function evaluations, or None if no limit is specified.
+        Obtain the maximum number of objective function evaluations,
+        or `None` if no limit is specified.
 
-        :return: the maximum number of objective function evaluations, or None if no limit is specified.
+        :return: the maximum number of objective function evaluations,
+            or `None` if no limit is specified.
         :rtype: Optional[int]
         """
         raise NotImplementedError
@@ -74,9 +81,11 @@ class Process(Space, Objective):
     @abstractmethod
     def get_max_time_millis(self) -> Optional[int]:
         """
-        Obtain the maximum runtime permitted in milliseconds, or None if no limit is specified.
+        Obtain the maximum runtime permitted in milliseconds,
+        or `None` if no limit is specified.
 
-        :return: the maximum runtime permitted in milliseconds, or None if no limit is specified.
+        :return: the maximum runtime permitted in milliseconds,
+            or `None` if no limit is specified.
         :rtype: Optional[int]
         """
         raise NotImplementedError
@@ -110,7 +119,7 @@ class Process(Space, Objective):
         """
         Get a copy of the current best point in the search space.
 
-        :param x: the destination data structure to be overwritten by that point
+        :param x: the destination data structure to be overwritten
         """
         raise NotImplementedError
 
@@ -119,18 +128,20 @@ class Process(Space, Objective):
         """
         Get a copy of the current best point in the solution space.
 
-        :param y: the destination data structure to be overwritten by that point
+        :param y: the destination data structure to be overwritten
         """
         raise NotImplementedError
 
     @abstractmethod
     def get_last_improvement_fe(self) -> int:
-        """ The the function evaluation at which the last improvement was made. """
+        """ The the function evaluation at which the last improvement
+        was made. """
         raise NotImplementedError
 
     @abstractmethod
     def get_last_improvement_time_millis(self) -> int:
-        """ The the consumed milliseconds since the start at which the last improvement was made. """
+        """ The the consumed milliseconds since the start
+        at which the last improvement was made. """
         raise NotImplementedError
 
     @abstractmethod

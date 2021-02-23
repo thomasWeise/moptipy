@@ -15,7 +15,7 @@ class IntSpace(Space):
     KEY_MAX_VALUE: Final = "max"
 
     """
-    A vector-based space where each element is a one-dimensional numpy integer array.
+    A space where each element is a one-dimensional numpy integer array.
     """
 
     def __init__(self, dimension: int,
@@ -23,14 +23,16 @@ class IntSpace(Space):
                  max_value: int):
         """
         Create the vector-based search space
-        :param int dimension: The dimension of the search space, i.e., the number of decision variables.
+        :param int dimension: The dimension of the search space,
+            i.e., the number of decision variables.
         :param int min_value: the minimum value
         :param int max_value: the maximum value
         """
         if (not isinstance(dimension, int)) or (dimension < 1):
             ValueError("Dimension must be positive integer, but got '"
                        + str(dimension) + "'.")
-        if (not (isinstance(min_value, int) and isinstance(max_value, int))) or (min_value >= max_value):
+        if (not (isinstance(min_value, int) and isinstance(max_value, int))) \
+                or (min_value >= max_value):
             ValueError("min_value (" + str(min_value)
                        + ") must be an int smaller than the int max_value ("
                        + str(max_value) + ") but is not.")
@@ -45,7 +47,8 @@ class IntSpace(Space):
             elif max_value <= 18446744073709551615:
                 dtype = np.dtype(np.uint64)
             else:
-                raise ValueError("max_value for unsigned integers must be less than 18446744073709551616, but is"
+                raise ValueError("max_value for unsigned integers must be "
+                                 "less than 18446744073709551616, but is"
                                  + str(max_value))
         else:
             if (min_value >= -128) and (max_value <= 127):
@@ -54,12 +57,14 @@ class IntSpace(Space):
                 dtype = np.dtype(np.int16)
             elif (min_value >= -2147483648) and (max_value <= 2147483647):
                 dtype = np.dtype(np.int32)
-            elif (min_value >= -9223372036854775808) and (max_value <= 9223372036854775807):
+            elif (min_value >= -9223372036854775808) and \
+                    (max_value <= 9223372036854775807):
                 dtype = np.dtype(np.int64)
             else:
-                raise ValueError("Signed integer range cannot exceed -9223372036854775808..9223372036854775807, but "
-                                 + str(min_value) + ".." + str(max_value)
-                                 + " specified.")
+                raise ValueError("Signed integer range cannot exceed "
+                                 "-9223372036854775808..9223372036854775807, "
+                                 "but " + str(min_value) + ".."
+                                 + str(max_value) + " specified.")
 
         if (not isinstance(dtype, np.dtype)) or \
            (not isinstance(dtype.char, str)) or \
@@ -71,10 +76,10 @@ class IntSpace(Space):
         self.max_value = max_value
         """The maximum permitted value."""
         self.dimension = dimension
-        """The dimension of the search space, i.e., the number of decision variables."""
+        """The dimension, i.e., the number of elements of the vectors."""
 
         self.dtype = dtype
-        """The basic data type of the vector space, i.e., the type of the decision variables."""
+        """The basic data type of the vector space elements."""
 
     def x_create(self) -> np.ndarray:
         return np.zeros(shape=self.dimension, dtype=self.dtype)

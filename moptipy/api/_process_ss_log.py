@@ -57,7 +57,8 @@ class _ProcessSSLog(_ProcessSS):
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and the algorithm knows it.')
+                raise ValueError('The process has been terminated and the '
+                                 'algorithm knows it.')
             return inf
 
         self._representation_mapping.map(x, self._current_y)
@@ -77,7 +78,8 @@ class _ProcessSSLog(_ProcessSS):
             needs_time_millis = False
             self._search_space.x_copy(x, self._current_best_x)
             self._solution_space.x_copy(self._current_y, self._current_best_y)
-            self._current_time_millis = int((monotonic_ns() + 999_999) // 1_000_000)
+            self._current_time_millis = int((monotonic_ns() + 999_999)
+                                            // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
@@ -92,11 +94,13 @@ class _ProcessSSLog(_ProcessSS):
 
         if do_log and (not (self.__log is None)):
             if needs_time_millis:
-                self._current_time_millis = int((monotonic_ns() + 999_999) // 1_000_000)
+                self._current_time_millis = int((monotonic_ns() + 999_999)
+                                                // 1_000_000)
                 if self._current_time_millis >= self._end_time_millis:
                     do_term = True
             self.__log.append([self._current_fes,
-                               self._current_time_millis - self._start_time_millis,
+                               self._current_time_millis
+                               - self._start_time_millis,
                                result])
 
         if do_term:
@@ -144,7 +148,8 @@ class _ProcessSSLog(_ProcessSS):
     def _write_log(self, logger: Logger):
         if len(self.__log) > 0:
             list_len = len(self.__log_header)
-            with logger.csv(logging.SECTION_PROGRESS, self.__log_header) as csv:
+            with logger.csv(logging.SECTION_PROGRESS,
+                            self.__log_header) as csv:
                 for row in self.__log:
                     if len(row) < list_len:
                         row = row + [None] * (list_len - len(row))

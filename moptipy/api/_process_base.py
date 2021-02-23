@@ -57,12 +57,14 @@ class _ProcessBase(Process, ABC):
                 raise ValueError("Maximum time in milliseconds must be "
                                  "positive, but is "
                                  + str(self._max_time_millis) + ".")
-            self._end_time_millis = int(self._start_time_millis + self._max_time_millis)
+            self._end_time_millis = int(self._start_time_millis
+                                        + self._max_time_millis)
             self._timer = Timer(interval=self._max_time_millis / 1_000.0,
                                 function=self.terminate)
 
     def _after_init(self):
-        """This (internal) method must be called after the __init__ method is completed."""
+        """This (internal) method must be called after __init__
+        is completed."""
         if not (self._timer is None):
             self._timer.start()
 
@@ -71,7 +73,8 @@ class _ProcessBase(Process, ABC):
 
     def get_consumed_time_millis(self) -> int:
         if not self._terminated:
-            self._current_time_millis = int((monotonic_ns() + 999_999) // 1_000_000)
+            self._current_time_millis = int((monotonic_ns() + 999_999)
+                                            // 1_000_000)
             if self._current_time_millis >= self._end_time_millis:
                 self.terminate()
         return self._current_time_millis - self._start_time_millis
@@ -84,12 +87,14 @@ class _ProcessBase(Process, ABC):
 
     def get_last_improvement_fe(self) -> int:
         if self._last_improvement_fe < 0:
-            raise ValueError("Did not perform FE yet, cannot query last improvement FE.")
+            raise ValueError("Did not perform FE yet, cannot query "
+                             "last improvement FE.")
         return self._last_improvement_fe
 
     def get_last_improvement_time_millis(self) -> int:
         if self._last_improvement_time_millis < 0:
-            raise ValueError("Did not perform FE yet, cannot query last improvement time.")
+            raise ValueError("Did not perform FE yet, cannot query "
+                             "last improvement time.")
         return self._last_improvement_time_millis - self._start_time_millis
 
     def _perform_termination(self):
@@ -105,7 +110,8 @@ class _ProcessBase(Process, ABC):
             if not (self._timer is None):
                 self._timer.cancel()
                 self._timer = None
-            self._current_time_millis = int((monotonic_ns() + 999_999) // 1_000_000)
+            self._current_time_millis = int((monotonic_ns() + 999_999)
+                                            // 1_000_000)
             self._perform_termination()
 
     def get_copy_of_current_best_y(self, y):

@@ -53,7 +53,9 @@ class TempFile:
         :param prefix: an optional prefix
         :param suffix: an optional suffix, e.g., `.txt`
         """
-        (handle, path) = mkstemp(suffix=suffix, prefix=prefix, dir=None if (directory is None) else str(directory))
+        (handle, path) = mkstemp(suffix=suffix, prefix=prefix,
+                                 dir=None if (directory is None)
+                                 else str(directory))
         close(handle)
         self.__path = realpath(path)
 

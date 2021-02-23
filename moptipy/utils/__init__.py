@@ -1,6 +1,7 @@
 # noinspection PyUnresolvedReferences
 from moptipy.version import __version__
-from moptipy.utils.logger import CsvSection, KeyValuesSection, Logger, TextSection
+from moptipy.utils.logger import CsvSection, KeyValuesSection, Logger,\
+    TextSection
 from moptipy.utils.logging import format_float, sanitize_name, sanitize_names
 from moptipy.utils.temp import TempDir, TempFile
 

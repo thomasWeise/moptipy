@@ -30,7 +30,8 @@ class Op1(Component):
     @abstractmethod
     def op1(self, random: Generator, x, dest):
         """
-        Apply the unary search operator to fill object `dest` with a modified version of the source `x`.
+        Apply the unary search operator to fill object `dest`
+        with a modified version of the source `x`.
         Afterwards `dest` will hold a valid point in the search space.
 
         :param Generator random: the random number generator
@@ -48,7 +49,8 @@ class Op2(Component):
     @abstractmethod
     def op2(self, random: Generator, x0, x1, dest):
         """
-        Apply the binary search operator to fill object `dest` with a combination of the contents of `x0` and `x1`.
+        Apply the binary search operator to fill object `dest` with
+        a combination of the contents of `x0` and `x1`.
         Afterwards `dest` will hold a valid point in the search space.
 
         :param Generator random: the random number generator

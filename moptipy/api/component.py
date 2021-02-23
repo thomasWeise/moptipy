@@ -22,7 +22,8 @@ class Component(ABC):
 
 
 class _CallableComponent(Component):
-    """An inner base class for wrapping a Callable such as a lambda into an objective function."""
+    """An internal base class for wrapping a Callable
+    such as a lambda into an objective function."""
 
     def __init__(self,
                  inner: Callable,
@@ -30,13 +31,13 @@ class _CallableComponent(Component):
         """
         Create a wrapper mapping a Callable to an component
 
-        :param Callable inner: the function to wrap, can be a lambda expression
+        :param Callable inner: the function to wrap, e.g., a lambda
         :param str name: the name of the component
         """
 
         if not isinstance(inner, Callable):
-            raise ValueError("Inner function must be instance of Callable, but is instance of "
-                             + str(type(inner)))
+            raise ValueError("Inner function must be instance of Callable, "
+                             "but is instance of " + str(type(inner)))
 
         self._inner = inner
 

@@ -31,7 +31,7 @@ test: init
 	echo "Running py.test with doctests." && \
 	py.test --doctest-modules && \
     echo "Finished running py.test tests, now applying flake8." && \
-    flake8 . --ignore=E501,F401,W503 && \
+    flake8 . --ignore=F401,W503 && \
     echo "Finished running flake8."
 
 create_documentation: test

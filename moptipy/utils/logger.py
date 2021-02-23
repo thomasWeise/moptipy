@@ -38,7 +38,8 @@ class Logger:
         return self
 
     def _error(self, message):
-        message = [(f if isinstance(f, str) else "'" + str(f) + "'") for f in message]
+        message = [(f if isinstance(f, str) else "'" + str(f) + "'")
+                   for f in message]
         if self.__section is None:
             message[len(message):] = [" in logger '", self.__orig_path, "'."]
         else:
@@ -143,9 +144,9 @@ class Logger:
         ...             with kv.scope("c") as kvc:
         ...                 kvc.key_value("d", 12)
         ...                 kvc.key_value("e", True)
-        ...             kv.key_value("f", 3.3)
+        ...             kv.key_value("f", 3)
         ...     print(open(str(t), "r").read().splitlines())
-        ['BEGIN_B', 'a:b', 'c.d:12', 'c.e:True', 'f:3.3', 'f(hex):0x1.a666666666666p+1', 'END_B']
+        ['BEGIN_B', 'a:b', 'c.d:12', 'c.e:True', 'f:3', 'END_B']
         """
         return KeyValuesSection(title=title, logger=self, prefix="",
                                 done=None)
@@ -277,7 +278,8 @@ class KeyValuesSection(_Section):
     A logger for key-value pairs.
     """
 
-    def __init__(self, title: Optional[str], logger: Logger, prefix: str, done):
+    def __init__(self, title: Optional[str],
+                 logger: Logger, prefix: str, done):
         super().__init__(title=title, logger=logger)
         self._prefix = prefix
         if done is None:

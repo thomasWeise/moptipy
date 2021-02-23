@@ -17,8 +17,10 @@ class VectorSpace(Space):
     def __init__(self, dimension: int, dtype=np.dtype(np.float64)):
         """
         Create the vector-based search space
-        :param int dimension: The dimension of the search space, i.e., the number of decision variables.
-        :param dtype: The basic data type of the vector space, i.e., the type of the decision variables
+        :param int dimension: The dimension of the search space,
+            i.e., the number of decision variables.
+        :param dtype: The basic data type of the vector space,
+            i.e., the type of the decision variables
         """
         if (not isinstance(dimension, int)) or (dimension < 1):
             ValueError("Dimension must be positive integer, but got '"
@@ -26,9 +28,9 @@ class VectorSpace(Space):
         if not (isinstance(dtype, np.dtype) and (dtype.char in "efdgFDG")):
             ValueError("Invalid data type '" + str(dtype) + "'.")
         self.dimension = dimension
-        """The dimension of the search space, i.e., the number of decision variables."""
+        """The dimension of the space, i.e., the vectors."""
         self.dtype = dtype
-        """The basic data type of the vector space, i.e., the type of the decision variables."""
+        """The basic data type of the vector elements."""
 
     def x_create(self) -> np.ndarray:
         return np.zeros(shape=self.dimension, dtype=self.dtype)

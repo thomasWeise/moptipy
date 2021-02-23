@@ -28,20 +28,23 @@ class _ProcessNoSS(_ProcessBase):
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None):
 
-        super().__init__(max_fes=max_fes, max_time_millis=max_time_millis, goal_f=goal_f)
+        super().__init__(max_fes=max_fes, max_time_millis=max_time_millis,
+                         goal_f=goal_f)
 
         if not isinstance(solution_space, Space):
-            raise ValueError("solution_space should be instance of Space, but is "
-                             + str(type(solution_space)) + ".")
+            raise ValueError("solution_space should be instance of Space, "
+                             "but is " + str(type(solution_space)) + ".")
         self._solution_space = solution_space
 
         if not isinstance(objective_function, Objective):
-            raise ValueError("objective_function should be instance of Objective, but is "
+            raise ValueError("objective_function should be instance of "
+                             "Objective, but is "
                              + str(type(objective_function)) + ".")
         self._objective_function = objective_function
 
         if not isinstance(algorithm, Component):
-            raise ValueError("Algorithm must be instance of Component, but is instance of '"
+            raise ValueError("Algorithm must be instance of Component, "
+                             "but is instance of '"
                              + str(type(algorithm)) + "'.")
         self.__algorithm = algorithm
 
@@ -72,7 +75,8 @@ class _ProcessNoSS(_ProcessBase):
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and the algorithm knows it.')
+                raise ValueError('The process has been terminated and '
+                                 'the algorithm knows it.')
             return inf
 
         result = self._objective_function.evaluate(x)
@@ -86,7 +90,8 @@ class _ProcessNoSS(_ProcessBase):
         if (self._current_fes <= 1) or (result < self._current_best_f):
             self._last_improvement_fe = self._current_fes
             self._current_best_f = result
-            self._current_time_millis = int((monotonic_ns() + 999_999) // 1_000_000)
+            self._current_time_millis = int((monotonic_ns() + 999_999)
+                                            // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
@@ -127,7 +132,8 @@ class _ProcessNoSS(_ProcessBase):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_BBP_RAND_SEED, self.__rand_seed,
                          also_hex=True)
-        logger.key_value(logging.KEY_BBP_RAND_GENERATOR_TYPE, str(type(self.__random)))
+        logger.key_value(logging.KEY_BBP_RAND_GENERATOR_TYPE,
+                         str(type(self.__random)))
         with logger.scope(logging.SCOPE_ALGORITHM) as sc:
             self.__algorithm.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_SOLUTION_SPACE) as sc:
