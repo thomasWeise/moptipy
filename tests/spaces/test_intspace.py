@@ -8,7 +8,7 @@ import numpy as np
 def test_int():
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
-    assert f.get_name() == "ints12B[3,32]"
+    assert f.get_name() == "ints12b[3,32]"
 
     a = f.x_create()
     assert isinstance(a, np.ndarray)
@@ -33,10 +33,17 @@ def test_int():
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()
     assert result == ["BEGIN_F",
-                      "name:ints12B[3,32]",
+                      "name:ints12b[3,32]",
                       "type:<class 'moptipy.spaces.intspace.IntSpace'>",
                       "nvars:12",
-                      "dtype:B",
+                      "dtype:b",
                       "min:3",
                       "max:32",
                       "END_F"]
+
+    text = f.x_to_str(b)
+    assert isinstance(text, str)
+    assert len(text) > 0
+
+    a = f.x_from_str(text)
+    assert f.x_is_equal(a, b)

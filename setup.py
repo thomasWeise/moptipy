@@ -13,11 +13,13 @@ setup(
     version=version["__version__"],
     license='GPL 3.0',
     packages=find_packages(include=['moptipy', 'moptipy.*']),
+    package_data={"moptipy.examples.jssp": ["*.txt"]},
     long_description="\n".join([line.strip() for line in
                                 open("README.md", "rt").readlines()]),
     long_description_content_type="text/markdown",
     install_requires=[line.strip() for line in
                       open("requirements.txt", "rt").readlines()],
+    include_package_data=True,
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Education',

@@ -5,6 +5,8 @@ In this package, some pre-defined search spaces are provided.
 from moptipy.version import __version__
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.spaces.intspace import IntSpace
+from moptipy.spaces.bitstrings import BitStrings
 
-__all__ = ["IntSpace",
+__all__ = ["BitStrings",
+           "IntSpace",
            "VectorSpace"]

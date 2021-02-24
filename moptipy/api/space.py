@@ -61,3 +61,14 @@ class Space(Component):
         :rtype: bool
         """
         raise NotImplementedError
+
+    def x_from_str(self, text: str):
+        """
+        Transform a string `text` to one element of the space.
+        This method should be implemented as inverse to
+        :py:meth:x_to_str:.
+        It may not always be possible to implement this method.
+        :param text: the input string
+        :return: the element in the space corresponding to `text`
+        """
+        raise NotImplementedError

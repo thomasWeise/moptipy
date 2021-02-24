@@ -7,12 +7,13 @@ from moptipy.utils import logging
 
 
 class VectorSpace(Space):
-    #: the character identifying the numpy data type backing the space
-    KEY_NUMPY_TYPE: Final = "dtype"
-
     """
     A vector-based space where each element is a one-dimensional numpy array.
+    Such spaces are useful for continuous optimization.
     """
+
+    #: the character identifying the numpy data type backing the space
+    KEY_NUMPY_TYPE: Final = "dtype"
 
     def __init__(self, dimension: int, dtype=np.dtype(np.float64)):
         """
@@ -43,6 +44,13 @@ class VectorSpace(Space):
 
     def x_is_equal(self, x1, x2) -> bool:
         return np.array_equal(x1, x2)
+
+    def x_from_str(self, text: str):
+        x = np.fromstring(text, dtype=self.dtype, sep=",")
+        if len(x) != self.dimension:
+            raise ValueError("'" + text + "' does not have dimension "
+                             + str(self.dimension))
+        return x
 
     def get_name(self):
         return "vector" + str(self.dimension) + self.dtype.char
