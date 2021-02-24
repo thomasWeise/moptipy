@@ -40,37 +40,44 @@ class JSSPInstance(Component):
 
         if not isinstance(machines, int) or (machines < 1):
             ValueError("There must be at least one machine, but '"
-                       + str(machines) + "' were specified.")
+                       + str(machines) + "' were specified in instance '"
+                       + name + "'.")
         self.machines = machines
         """The number of machines in this JSSP instance."""
 
         if not isinstance(jobs, int) or (jobs < 1):
             ValueError("There must be at least one job, but '"
-                       + str(jobs) + "' were specified.")
+                       + str(jobs) + "' were specified in instance '"
+                       + name + "'.")
         self.jobs = jobs
         """The number of jobs in this JSSP instance."""
 
         if not isinstance(matrix, np.ndarray):
             ValueError("The matrix must be an numpy.ndarray, but is a '"
-                       + str(type(matrix)) + "'.")
+                       + str(type(matrix)) + "' in instance '"
+                       + name + "'.")
 
         if len(matrix.shape) != 2:
             ValueError("JSSP instance data matrix must have two dimensions, "
-                       "but has " + str(len(matrix.shape)) + ".")
+                       "but has '" + str(len(matrix.shape))
+                       + "' in instance '" + name + "'.")
 
         if matrix.shape[0] != jobs:
             ValueError("Invalid shape '" + str(matrix.shape)
                        + "' of matrix: must have jobs=" + str(jobs)
-                       + " rows, but has " + str(matrix.shape[0]) + ".")
+                       + " rows, but has " + str(matrix.shape[0])
+                       + " in instance '" + name + "'.")
 
         if matrix.shape[1] != 2 * machines:
             ValueError("Invalid shape '" + str(matrix.shape)
                        + "' of matrix: must have 2*machines="
                        + str(2 * machines) + " columns, but has "
-                       + str(matrix.shape[0]) + ".")
+                       + str(matrix.shape[0]) + " in instance '"
+                       + name + "'.")
         if not np.issubdtype(matrix.dtype, np.integer):
             ValueError("Matrix must have an integer type, but is of type '"
-                       + str(matrix.dtype) + "'.")
+                       + str(matrix.dtype) + "' in instance '"
+                       + name + "'.")
         self.matrix = matrix
         """
         The matrix with the operations of the jobs and their durations.
@@ -79,17 +86,72 @@ class JSSPInstance(Component):
         sequence, i.e., 2*machine numbers.
         """
 
-        if not (makespan_lower_bound is None):
+        i64 = np.dtype(np.int64)
+        usedmachines = np.zeros(machines, np.dtype(np.bool_))
+        jobtimes = np.zeros(jobs, i64)
+        machinetimes = np.zeros(machines, i64)
+        machine1 = np.zeros(machines, i64)
+        machine2 = np.zeros(machines, i64)
+
+        jobidx = 0
+        for row in matrix:
+            usedmachines.fill(False)
+            j = 0
+            jobtime = 0
+            for i in range(machines):
+                machine = row[j]
+                time = row[j + 1]
+                if usedmachines[i]:
+                    ValueError("Machine " + str(machine)
+                               + " occurs more than once for instance '"
+                               + name + "'.")
+                usedmachines[i] = True
+                if time < 0:
+                    ValueError("Invalid time '" + str(time)
+                               + "' for instance '"
+                               + name + "'.")
+                machinetimes[machine] += time
+                machine1[machine] = min(machine1[machine], jobtime)
+                jobtime += time
+                j += 2
+
+            jobtimes[jobidx] = jobtime
+            j = 0
+            for i in range(machines):
+                machine = row[j]
+                time = row[j + 1]
+                machine2[machine] = min(machine2[machine], jobtime)
+                jobtime -= time
+                j += 2
+
+            if not all(usedmachines):
+                ValueError("Some machines not used in a job in instance '"
+                           + name + "'.")
+            jobidx += 1
+
+        ms_bound = max(int(jobtimes.max()),
+                       int((machine1 + machine2 + machinetimes).max()))
+        if ms_bound <= 0:
+            ValueError("Computed bound must not be <= 0, but is '"
+                       + str(ms_bound) + "'.")
+
+        if makespan_lower_bound is None:
+            makespan_lower_bound = ms_bound
+        else:
             if (not isinstance(makespan_lower_bound, int)) or \
                     (makespan_lower_bound <= 0):
                 ValueError("If specified, makespan_lower_bound must be "
                            "positive integer, but is "
-                           + str(makespan_lower_bound) + ".")
+                           + str(makespan_lower_bound) + " in instance '"
+                           + name + "'.")
+            if makespan_lower_bound < ms_bound:
+                ValueError("If specified, makespan_lower_bound must be >= "
+                           + str(ms_bound) + ", but is "
+                           + str(makespan_lower_bound) + " in instance '"
+                           + name + "'.")
+
         self.makespan_lower_bound = makespan_lower_bound
-        """
-        The lower bound of the makespan for the JSSP instance, or
-        None if unknown / not provided.
-        """
+        """The lower bound of the makespan for the JSSP instance."""
 
     def get_name(self):
         return self.name
