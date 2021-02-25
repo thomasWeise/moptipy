@@ -5,6 +5,7 @@ from moptipy.api import Component
 from moptipy.utils.logger import KeyValuesSection
 from moptipy.utils.nputils import int_range_to_dtype
 from typing import Final, List
+from moptipy.utils import nputils
 
 
 class JSSPInstance(Component):
@@ -86,12 +87,13 @@ class JSSPInstance(Component):
         sequence, i.e., 2*machine numbers.
         """
 
-        i64 = np.dtype(np.int64)
+# We now compute the lower bound for the makespan based on the algorithm
+# by Taillard
         usedmachines = np.zeros(machines, np.dtype(np.bool_))
-        jobtimes = np.zeros(jobs, i64)
-        machinetimes = np.zeros(machines, i64)
-        machine1 = np.zeros(machines, i64)
-        machine2 = np.zeros(machines, i64)
+        jobtimes = np.zeros(jobs, nputils.DEFAULT_INT)
+        machinetimes = np.zeros(machines, nputils.DEFAULT_INT)
+        machine1 = nputils.intmax(machines, nputils.DEFAULT_INT)
+        machine2 = nputils.intmax(machines, nputils.DEFAULT_INT)
 
         jobidx = 0
         for row in matrix:
@@ -116,13 +118,15 @@ class JSSPInstance(Component):
                 j += 2
 
             jobtimes[jobidx] = jobtime
-            j = 0
+            jobremaining = jobtime
+            j = len(row)
             for i in range(machines):
+                j -= 2
                 machine = row[j]
                 time = row[j + 1]
-                machine2[machine] = min(machine2[machine], jobtime)
-                jobtime -= time
-                j += 2
+                machine2[machine] = min(machine2[machine],
+                                        jobtime - jobremaining)
+                jobremaining -= time
 
             if not all(usedmachines):
                 ValueError("Some machines not used in a job in instance '"
