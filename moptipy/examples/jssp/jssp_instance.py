@@ -87,8 +87,8 @@ class JSSPInstance(Component):
         sequence, i.e., 2*machine numbers.
         """
 
-# We now compute the lower bound for the makespan based on the algorithm
-# by Taillard
+        # We now compute the lower bound for the makespan based on the
+        # algorithm by Taillard
         usedmachines = np.zeros(machines, np.dtype(np.bool_))
         jobtimes = np.zeros(jobs, nputils.DEFAULT_INT)
         machinetimes = np.zeros(machines, nputils.DEFAULT_INT)
@@ -133,14 +133,19 @@ class JSSPInstance(Component):
                            + name + "'.")
             jobidx += 1
 
-        ms_bound = max(int(jobtimes.max()),
-                       int((machine1 + machine2 + machinetimes).max()))
-        if ms_bound <= 0:
-            ValueError("Computed bound must not be <= 0, but is '"
-                       + str(ms_bound) + "'.")
+        ms_lower_bound = max(int(jobtimes.max()),
+                             int((machine1 + machine2 + machinetimes).max()))
+        if ms_lower_bound <= 0:
+            ValueError("Computed makespan lower bound must not be <= 0, "
+                       "but is '" + str(ms_lower_bound) + "'.")
+        ms_upper_bound = int(jobtimes.sum())
+        if ms_upper_bound < ms_lower_bound:
+            ValueError("Computed makespan upper bound " + str(ms_upper_bound)
+                       + "must be <= than computed lower bound"
+                       + str(ms_lower_bound) + ".")
 
         if makespan_lower_bound is None:
-            makespan_lower_bound = ms_bound
+            makespan_lower_bound = ms_lower_bound
         else:
             if (not isinstance(makespan_lower_bound, int)) or \
                     (makespan_lower_bound <= 0):
@@ -148,14 +153,22 @@ class JSSPInstance(Component):
                            "positive integer, but is "
                            + str(makespan_lower_bound) + " in instance '"
                            + name + "'.")
-            if makespan_lower_bound < ms_bound:
+            if makespan_lower_bound < ms_lower_bound:
                 ValueError("If specified, makespan_lower_bound must be >= "
-                           + str(ms_bound) + ", but is "
+                           + str(ms_lower_bound) + ", but is "
+                           + str(makespan_lower_bound) + " in instance '"
+                           + name + "'.")
+            if makespan_lower_bound > ms_upper_bound:
+                ValueError("If specified, makespan_lower_bound must be <= "
+                           + str(ms_upper_bound) + ", but is "
                            + str(makespan_lower_bound) + " in instance '"
                            + name + "'.")
 
         self.makespan_lower_bound = makespan_lower_bound
         """The lower bound of the makespan for the JSSP instance."""
+
+        self.makespan_upper_bound = ms_upper_bound
+        """The upper bound of the makespan for the JSSP instance."""
 
     def get_name(self):
         return self.name
