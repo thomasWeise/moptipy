@@ -13,7 +13,7 @@ class Component(ABC):
         return self.get_name()
 
     @abstractmethod
-    def get_name(self):
+    def get_name(self) -> str:
         raise NotImplementedError
 
     def log_parameters_to(self, logger: KeyValuesSection):
@@ -45,7 +45,7 @@ class _CallableComponent(Component):
             ValueError("Name must not be None.")
         self.__name = logging.sanitize_name(name)
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.__name
 
     def log_parameters_to(self, logger: KeyValuesSection):

@@ -75,7 +75,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
-            self._solution_space.x_copy(x, self._current_best_y)
+            self._solution_space.copy(x, self._current_best_y)
             self._has_current_best = True
             do_log = do_log or self.__log_improvements
             if result <= self._end_f:

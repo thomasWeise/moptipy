@@ -26,16 +26,17 @@ def test_load_demo_from_resource():
     assert i.makespan_lower_bound == 180
 
 
-def __check_seq(prefix: str, end: int, start: int = 1):
+def __check_seq(prefix: str, end: int, start: int = 1,
+                min_len=2):
     for i in range(start, end + 1):
         s = str(i)
-        if len(s) < 2:
+        if len(s) < min_len:
             s = "0" + s
         __check_load_inst(prefix + s)
 
 
 def test_load_orlib_from_resource():
-    __check_seq("abz", 5, 10)
+    __check_seq("abz", 9, 5, 1)
     __check_seq("dmu", 80)
     __check_load_inst("ft06")
     __check_load_inst("ft10")
@@ -44,7 +45,4 @@ def test_load_orlib_from_resource():
     __check_seq("orb", 10)
     __check_seq("swv", 20)
     __check_seq("ta", 80)
-    __check_load_inst("yn1")
-    __check_load_inst("yn2")
-    __check_load_inst("yn3")
-    __check_load_inst("yn4")
+    __check_seq("yn", 4, min_len=1)

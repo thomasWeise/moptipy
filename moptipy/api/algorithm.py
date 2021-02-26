@@ -6,7 +6,7 @@ from typing import Union, Optional, Callable
 from moptipy.api.process import Process
 from moptipy.api.component import Component
 from moptipy.api.objective import Objective, _CallableComponent
-from moptipy.api.mapping import Mapping
+from moptipy.api.encoding import Encoding
 from moptipy.api.space import Space
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api._process_ss import _ProcessSS
@@ -165,7 +165,7 @@ def solve(algorithm: Algorithm,
           solution_space: Space,
           objective_function: Objective,
           search_space: Space = None,
-          representation_mapping: Mapping = None,
+          encoding: Encoding = None,
           rand_seed: Optional[int] = None,
           max_time_millis: Optional[int] = None,
           max_fes: Optional[int] = None,
@@ -186,7 +186,7 @@ def solve(algorithm: Algorithm,
     :param solution_space: the solution space
     :param objective_function: the objective function
     :param search_space: the optional search space
-    :param representation_mapping: the representation mapping
+    :param encoding: the representation mapping
     :param rand_seed: the random seed
     :param max_time_millis: the maximum runtime permitted, in
     milliseconds
@@ -209,15 +209,15 @@ def solve(algorithm: Algorithm,
                          + str(type(algorithm)) + "'.")
 
     if search_space is None:
-        if not (representation_mapping is None):
+        if not (encoding is None):
             raise ValueError("If search_space is not provided, neither can "
-                             "representation_mapping.")
-    elif representation_mapping is None:
+                             "encoding.")
+    elif encoding is None:
         if search_space == solution_space:
             search_space = None
         else:
             raise ValueError("If a search_space != solution_space is "
-                             "provided, representation_mapping must be "
+                             "provided, encoding must be "
                              "provided, too.")
 
     if log_file is None:
@@ -267,7 +267,7 @@ def solve(algorithm: Algorithm,
                 objective_function=objective_function,
                 algorithm=algorithm,
                 search_space=search_space,
-                representation_mapping=representation_mapping,
+                encoding=encoding,
                 log_file=log_file,
                 rand_seed=rand_seed,
                 max_fes=max_fes,
@@ -280,7 +280,7 @@ def solve(algorithm: Algorithm,
                                  objective_function=objective_function,
                                  algorithm=algorithm,
                                  search_space=search_space,
-                                 representation_mapping=representation_mapping,
+                                 encoding=encoding,
                                  log_file=log_file,
                                  rand_seed=rand_seed,
                                  max_fes=max_fes,

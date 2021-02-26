@@ -13,7 +13,7 @@ best_f = worst_f - max_fes + 1
 
 
 def myalgorithm(process: Process):
-    x = process.x_create()
+    x = process.create()
     assert isinstance(x, np.ndarray)
     g = process.get_random()
     assert isinstance(g, Generator)
@@ -29,7 +29,7 @@ def myalgorithm(process: Process):
 
 
 def myalgorithm2(process: Process):
-    x = process.x_create()
+    x = process.create()
     assert isinstance(x, np.ndarray)
     g = process.get_random()
     assert isinstance(g, Generator)
@@ -61,7 +61,7 @@ def myobjective2(x):
 
 def test_process_noss_no_log():
     v = VectorSpace(10)
-    x = v.x_create()
+    x = v.create()
     with solve(algorithm=CallableAlgorithm(myalgorithm),
                solution_space=v,
                objective_function=CallableObjective(myobjective),
@@ -76,7 +76,7 @@ def test_process_noss_no_log():
 
 def test_process_noss_log():
     v = VectorSpace(10)
-    x = v.x_create()
+    x = v.create()
     with TempFile() as log:
         path = str(log)
         with solve(algorithm=CallableAlgorithm(myalgorithm),
@@ -99,7 +99,7 @@ def test_process_noss_log():
 
 def test_process_noss_timed_log():
     v = VectorSpace(10)
-    x = v.x_create()
+    x = v.create()
     with TempFile() as log:
         path = str(log)
         with solve(algorithm=CallableAlgorithm(myalgorithm),

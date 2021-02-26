@@ -11,12 +11,17 @@ from moptipy.utils import nputils
 class JSSPInstance(Component):
     """An instance of the Job Shop Scheduling Problem."""
 
+    #: the recommended scope under which instance data should be stored
+    SCOPE_INSTANCE: Final = "inst"
+
     #: The number of machines in the instance.
     MACHINES: Final = "machines"
     #: The number of jobs in the instance.
     JOBS: Final = "jobs"
     #: The lower bound of the makespan of the instance.
     MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
+    #: The upper bound of the makespan of the instance.
+    MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
     def __init__(self,
                  name: str,
@@ -177,9 +182,10 @@ class JSSPInstance(Component):
         super().log_parameters_to(logger)
         logger.key_value(JSSPInstance.MACHINES, self.machines)
         logger.key_value(JSSPInstance.JOBS, self.jobs)
-        if not (self.makespan_lower_bound is None):
-            logger.key_value(JSSPInstance.MAKESPAN_LOWER_BOUND,
-                             self.makespan_lower_bound)
+        logger.key_value(JSSPInstance.MAKESPAN_LOWER_BOUND,
+                         self.makespan_lower_bound)
+        logger.key_value(JSSPInstance.MAKESPAN_UPPER_BOUND,
+                         self.makespan_upper_bound)
 
     @staticmethod
     def from_text(name: str,

@@ -22,29 +22,40 @@ class BitStrings(Space):
             i.e., the number of decision variables.
         """
         if (not isinstance(dimension, int)) or (dimension < 1):
-            ValueError("Dimension must be positive integer, but got '"
-                       + str(dimension) + "'.")
+            raise ValueError("Dimension must be positive integer, but got '"
+                             + str(dimension) + "'.")
         self.dimension = dimension
         """The dimension, i.e., the number of elements of the vectors."""
 
-    def x_create(self) -> np.ndarray:
+    def create(self) -> np.ndarray:
         return np.zeros(shape=self.dimension, dtype=BitStrings.__DTYPE)
 
-    def x_copy(self, source: np.ndarray, dest: np.ndarray):
+    def copy(self, source: np.ndarray, dest: np.ndarray):
         np.copyto(dest, source)
 
-    def x_to_str(self, x) -> str:
+    def to_str(self, x: np.ndarray) -> str:
         return "".join([('1' if xx else '0') for xx in x])
 
-    def x_is_equal(self, x1, x2) -> bool:
+    def is_equal(self, x1, x2) -> bool:
         return np.array_equal(x1, x2)
 
-    def x_from_str(self, text: str):
-        x = self.x_create()
+    def from_str(self, text: str) -> np.ndarray:
+        x = self.create()
         x[:] = [(t == '1') for t in text]
         return x
 
-    def get_name(self):
+    def validate(self, x: np.ndarray):
+        if not (isinstance(x, np.ndarray)):
+            raise ValueError("x must be an numpy.ndarray, but is a '"
+                             + str(type(x)) + ".")
+        if x.dtype != BitStrings.__DTYPE:
+            raise ValueError("x must be of type '" + str(BitStrings.__DTYPE)
+                             + "' but is of type '" + str(x.dtype) + "'.")
+        if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
+            raise ValueError("x must be of shape (" + str(self.dimension)
+                             + ") but is of shape " + str(x.shape) + ".")
+
+    def get_name(self) -> str:
         return "bits" + str(self.dimension)
 
     def log_parameters_to(self, logger: KeyValuesSection):

@@ -17,7 +17,7 @@ class Space(Component):
     """
 
     @abstractmethod
-    def x_create(self):
+    def create(self):
         """
         Generate an instance of the data structure managed by the space.
 
@@ -28,7 +28,7 @@ class Space(Component):
         raise NotImplementedError
 
     @abstractmethod
-    def x_copy(self, source, dest):
+    def copy(self, source, dest):
         """
         Copy one instance of the data structure to another one.
 
@@ -40,7 +40,7 @@ class Space(Component):
         raise NotImplementedError
 
     @abstractmethod
-    def x_to_str(self, x) -> str:
+    def to_str(self, x) -> str:
         """
         Obtain a textual representation of an instance of the data structure.
 
@@ -51,7 +51,7 @@ class Space(Component):
         raise NotImplementedError
 
     @abstractmethod
-    def x_is_equal(self, x1, x2) -> bool:
+    def is_equal(self, x1, x2) -> bool:
         """
         Check if the contents of two instances of the data structure are equal.
 
@@ -62,7 +62,7 @@ class Space(Component):
         """
         raise NotImplementedError
 
-    def x_from_str(self, text: str):
+    def from_str(self, text: str):
         """
         Transform a string `text` to one element of the space.
         This method should be implemented as inverse to
@@ -72,3 +72,11 @@ class Space(Component):
         :return: the element in the space corresponding to `text`
         """
         raise NotImplementedError
+
+    def validate(self, x):
+        """
+        Check whether a given point in the space is valid
+        :param x: the point
+        :raises ValueError: if the point `x` is invalid
+        """
+        raise ValueError()

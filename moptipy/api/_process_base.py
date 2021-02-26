@@ -10,20 +10,40 @@ from moptipy.utils import logging
 
 
 class _ProcessBase(Process, ABC):
+    """
+    This is the internal base class for implementing black-box processes.
+    """
 
     def __init__(self,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None):
+        """
+        Initialize information that every black-box process must have
+        :param Optional[int] max_fes: the maximum permitted function
+        evaluations
+        :param Optional[int] max_time_millis: the maximum runtime in
+        milliseconds
+        :param Union[int, float, None] goal_f: the goal objective
+        value: if it is reached, the process is terminated
+        """
         super().__init__()
-        self._start_time_millis = int(monotonic_ns() // 1_000_000)
-        self.lock = Lock()
+        self._start_time_millis: int = int(monotonic_ns() // 1_000_000)
+        """The time when the process was started, in milliseconds."""
+        self.__lock: Lock = Lock()
+        """
+        The internal lock, needed because terminate() may be invoked from
+        another process.
+        """
 
         if max_fes is None:
             self._max_fes = None
             self._end_fes = inf
         else:
-            self._max_fes = int(max_fes)
+            if not isinstance(max_fes, int):
+                raise ValueError("max_fes must be int, but is '"
+                                 + str(type(max_fes)) + "'.")
+            self._max_fes = max_fes
             if self._max_fes <= 0:
                 raise ValueError("Maximum FEs must be positive, but are "
                                  + str(self._max_fes) + ".")
@@ -36,37 +56,45 @@ class _ProcessBase(Process, ABC):
             if isinstance(goal_f, int) or isinstance(goal_f, float):
                 self._goal_f = goal_f
             else:
-                self._goal_f = float(goal_f)
+                raise ValueError("goal_f must be int or float, but is '"
+                                 + str(type(goal_f)) + "'.")
             if isnan(self._goal_f):
                 raise ValueError("Goal F must not be NaN, but is"
                                  + str(self._goal_f) + ".")
             self._end_f = self._goal_f
 
         self._current_time_millis = 0
+        """The currently consumed milliseconds."""
         self._current_fes = 0
+        """The currently consumed objective function evaluations (FEs)."""
         self._last_improvement_time_millis = -1
+        """The time (in milliseconds) when the last improvement was made."""
         self._last_improvement_fe = -1
+        """The FE when the last improvement was made."""
 
         if max_time_millis is None:
             self._max_time_millis = None
             self._end_time_millis = inf
-            self._timer = None
+            self.__timer = None
         else:
-            self._max_time_millis = int(max_time_millis)
+            if not isinstance(max_time_millis, int):
+                raise ValueError("max_time_millis must be int, but is '"
+                                 + str(type(max_time_millis)) + "'.")
+            self._max_time_millis = max_time_millis
             if self._max_time_millis <= 0:
                 raise ValueError("Maximum time in milliseconds must be "
                                  "positive, but is "
                                  + str(self._max_time_millis) + ".")
             self._end_time_millis = int(self._start_time_millis
                                         + self._max_time_millis)
-            self._timer = Timer(interval=self._max_time_millis / 1_000.0,
-                                function=self.terminate)
+            self.__timer = Timer(interval=self._max_time_millis / 1_000.0,
+                                 function=self.terminate)
 
     def _after_init(self):
         """This (internal) method must be called after __init__
         is completed."""
-        if not (self._timer is None):
-            self._timer.start()
+        if not (self.__timer is None):
+            self.__timer.start()
 
     def get_consumed_fes(self) -> int:
         return self._current_fes
@@ -102,14 +130,14 @@ class _ProcessBase(Process, ABC):
 
     def terminate(self):
         # we guarantee that _perform_termination is called at most once
-        with self.lock:
+        with self.__lock:
             old_terminated = self._terminated
             self._terminated = True
             if old_terminated:
                 return
-            if not (self._timer is None):
-                self._timer.cancel()
-                self._timer = None
+            if not (self.__timer is None):
+                self.__timer.cancel()
+                self.__timer = None
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._perform_termination()

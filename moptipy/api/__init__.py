@@ -21,7 +21,7 @@ from moptipy.version import __version__
 from moptipy.api.component import Component
 from moptipy.api.algorithm import Algorithm, Algorithm0, Algorithm1, \
     Algorithm2, CallableAlgorithm, solve
-from moptipy.api.mapping import Mapping
+from moptipy.api.encoding import Encoding
 from moptipy.api.objective import CallableObjective, Objective
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
@@ -34,7 +34,7 @@ __all__ = ["Algorithm",
            "CallableAlgorithm",
            "CallableObjective",
            "Component",
-           "Mapping",
+           "Encoding",
            "Objective",
            "Op0",
            "Op1",

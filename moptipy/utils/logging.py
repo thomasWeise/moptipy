@@ -63,8 +63,8 @@ SCOPE_SOLUTION_SPACE: Final = "y"
 SCOPE_SEARCH_SPACE: Final = "x"
 #: the scope of the objective function
 SCOPE_OBJECTIVE_FUNCTION: Final = "f"
-#: the scope of the representation mapping
-SCOPE_REPRESENTATION_MAPPING: Final = "g"
+#: the scope of the encoding
+SCOPE_ENCODING: Final = "g"
 #: the scope of the optimization algorithm
 SCOPE_ALGORITHM: Final = "a"
 #: the scope of the nullary search operator

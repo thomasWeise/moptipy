@@ -4,7 +4,7 @@ from typing import Optional, Union
 
 from moptipy.api._process_ss import _ProcessSS
 from moptipy.api.component import Component
-from moptipy.api.mapping import Mapping
+from moptipy.api.encoding import Encoding
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils import logging
@@ -19,7 +19,7 @@ class _ProcessSSLog(_ProcessSS):
                  algorithm: Component,
                  log_file: str = None,
                  search_space: Space = None,
-                 representation_mapping: Mapping = None,
+                 encoding: Encoding = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
@@ -32,7 +32,7 @@ class _ProcessSSLog(_ProcessSS):
                          algorithm=algorithm,
                          log_file=log_file,
                          search_space=search_space,
-                         representation_mapping=representation_mapping,
+                         encoding=encoding,
                          rand_seed=rand_seed,
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
@@ -61,7 +61,7 @@ class _ProcessSSLog(_ProcessSS):
                                  'algorithm knows it.')
             return inf
 
-        self._representation_mapping.map(x, self._current_y)
+        self._encoding.map(x, self._current_y)
         result = self._objective_function.evaluate(self._current_y)
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
@@ -76,8 +76,8 @@ class _ProcessSSLog(_ProcessSS):
             self._last_improvement_fe = self._current_fes
             self._current_best_f = result
             needs_time_millis = False
-            self._search_space.x_copy(x, self._current_best_x)
-            self._solution_space.x_copy(self._current_y, self._current_best_y)
+            self._search_space.copy(x, self._current_best_x)
+            self._solution_space.copy(self._current_y, self._current_best_y)
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis

@@ -2,10 +2,10 @@ from abc import abstractmethod
 from moptipy.api.component import Component
 
 
-class Mapping(Component):
+class Encoding(Component):
     """
-    A class to implement representation mappings,
-    i.e., functions translating a search space to a solution space.
+    A class to implement encodings, i.e., functions translating a
+    search space to a solution space.
     """
 
     @abstractmethod

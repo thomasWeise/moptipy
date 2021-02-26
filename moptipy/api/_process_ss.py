@@ -5,7 +5,7 @@ from typing import Optional, Union
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.component import Component
 from moptipy.api.objective import Objective
-from moptipy.api.mapping import Mapping
+from moptipy.api.encoding import Encoding
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValuesSection, Logger
 from moptipy.utils import logging
@@ -18,7 +18,7 @@ class _ProcessSS(_ProcessNoSS):
                  algorithm: Component,
                  log_file: str = None,
                  search_space: Space = None,
-                 representation_mapping: Mapping = None,
+                 encoding: Encoding = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
@@ -39,14 +39,14 @@ class _ProcessSS(_ProcessNoSS):
                              + str(type(search_space)) + ".")
         self._search_space = search_space
 
-        if not isinstance(representation_mapping, Mapping):
-            raise ValueError("representation_mapping should be instance of "
-                             "Mapping, but is "
-                             + str(type(representation_mapping)) + ".")
-        self._representation_mapping = representation_mapping
+        if not isinstance(encoding, Encoding):
+            raise ValueError("encoding should be instance of "
+                             "Encoding, but is "
+                             + str(type(encoding)) + ".")
+        self._encoding = encoding
 
-        self._current_y = self._solution_space.x_create()
-        self._current_best_x = self._search_space.x_create()
+        self._current_y = self._solution_space.create()
+        self._current_best_x = self._search_space.create()
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
@@ -55,7 +55,7 @@ class _ProcessSS(_ProcessNoSS):
                                  'algorithm knows it.')
             return inf
 
-        self._representation_mapping.map(x, self._current_y)
+        self._encoding.map(x, self._current_y)
         result = self._objective_function.evaluate(self._current_y)
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
@@ -67,8 +67,8 @@ class _ProcessSS(_ProcessNoSS):
             # noinspection PyAttributeOutsideInit
             self._last_improvement_fe = self._current_fes
             self._current_best_f = result
-            self._search_space.x_copy(x, self._current_best_x)
-            self._solution_space.x_copy(self._current_y, self._current_best_y)
+            self._search_space.copy(x, self._current_best_x)
+            self._solution_space.copy(self._current_y, self._current_best_y)
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis
@@ -93,30 +93,36 @@ class _ProcessSS(_ProcessNoSS):
 
     def get_copy_of_current_best_x(self, x):
         if self._has_current_best:
-            return self._search_space.x_copy(self._current_best_x, x)
+            return self._search_space.copy(self._current_best_x, x)
         raise ValueError('No current best available.')
 
-    def x_create(self):
-        return self._search_space.x_create()
+    def create(self):
+        return self._search_space.create()
 
-    def x_copy(self, source, dest):
-        self._search_space.x_copy(source, dest)
+    def copy(self, source, dest):
+        self._search_space.copy(source, dest)
 
-    def x_to_str(self, x) -> str:
-        return self._search_space.x_to_str(x)
+    def to_str(self, x) -> str:
+        return self._search_space.to_str(x)
 
-    def x_is_equal(self, x1, x2) -> bool:
-        return self._search_space.x_is_equal(x1, x2)
+    def from_str(self, text: str):
+        return self._search_space.from_str(text)
+
+    def is_equal(self, x1, x2) -> bool:
+        return self._search_space.is_equal(x1, x2)
+
+    def validate(self, x):
+        self._search_space.validate(x)
 
     def get_copy_of_current_best_y(self, y):
-        return self._solution_space.x_copy(self._current_best_y, y)
+        return self._solution_space.copy(self._current_best_y, y)
 
     def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_SEARCH_SPACE) as sc:
             self._search_space.log_parameters_to(sc)
-        with logger.scope(logging.SCOPE_REPRESENTATION_MAPPING) as sc:
-            self._representation_mapping.log_parameters_to(sc)
+        with logger.scope(logging.SCOPE_ENCODING) as sc:
+            self._encoding.log_parameters_to(sc)
 
     def _write_log(self, logger: Logger):
         # noinspection PyProtectedMember
@@ -124,7 +130,12 @@ class _ProcessSS(_ProcessNoSS):
 
         if self._has_current_best:
             with logger.text(logging.SECTION_RESULT_X) as txt:
-                txt.write(self._search_space.x_to_str(self._current_best_x))
+                txt.write(self._search_space.to_str(self._current_best_x))
+
+    def _perform_termination(self):
+        # noinspection PyProtectedMember
+        super()._perform_termination()
+        self._search_space.validate(self._current_best_x)
 
     def get_name(self):
         return "ProcessWithSearchSpace"

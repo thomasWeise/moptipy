@@ -64,7 +64,7 @@ class _ProcessNoSS(_ProcessBase):
                              + str(_ProcessNoSS.__MAX_RAND_SEED))
         self.__random = default_rng(self.__rand_seed)
 
-        self._current_best_y = self._solution_space.x_create()
+        self._current_best_y = self._solution_space.create()
         self._current_best_f = inf
         self._has_current_best = False
         self.__log_file = log_file
@@ -95,7 +95,7 @@ class _ProcessNoSS(_ProcessBase):
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
-            self._solution_space.x_copy(x, self._current_best_y)
+            self._solution_space.copy(x, self._current_best_y)
             self._has_current_best = True
             if result <= self._end_f:
                 do_term = True
@@ -113,20 +113,26 @@ class _ProcessNoSS(_ProcessBase):
 
     def get_copy_of_current_best_x(self, x):
         if self._has_current_best:
-            return self._solution_space.x_copy(self._current_best_y, x)
+            return self._solution_space.copy(self._current_best_y, x)
         raise ValueError('No current best available.')
 
-    def x_create(self):
-        return self._solution_space.x_create()
+    def create(self):
+        return self._solution_space.create()
 
-    def x_copy(self, source, dest):
-        self._solution_space.x_copy(source, dest)
+    def copy(self, source, dest):
+        self._solution_space.copy(source, dest)
 
-    def x_to_str(self, x) -> str:
-        return self._solution_space.x_to_str(x)
+    def to_str(self, x) -> str:
+        return self._solution_space.to_str(x)
 
-    def x_is_equal(self, x1, x2) -> bool:
-        return self._solution_space.x_is_equal(x1, x2)
+    def from_str(self, text: str):
+        return self._solution_space.from_str(text)
+
+    def is_equal(self, x1, x2) -> bool:
+        return self._solution_space.is_equal(x1, x2)
+
+    def validate(self, x):
+        self._solution_space.validate(x)
 
     def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
@@ -160,7 +166,7 @@ class _ProcessNoSS(_ProcessBase):
 
         if self._has_current_best:
             with logger.text(logging.SECTION_RESULT_Y) as txt:
-                txt.write(self._solution_space.x_to_str(self._current_best_y))
+                txt.write(self._solution_space.to_str(self._current_best_y))
 
     def _perform_termination(self):
         # noinspection PyProtectedMember
@@ -169,6 +175,7 @@ class _ProcessNoSS(_ProcessBase):
             with Logger(self.__log_file) as logger:
                 self._write_log(logger)
             self.__log_file = None
+        self._solution_space.validate(self._current_best_y)
 
     def log_state(self, key: str, value: Union[bool, int, float]):
         pass

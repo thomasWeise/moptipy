@@ -32,8 +32,8 @@ class IntSpace(Space):
         :param int max_value: the maximum value
         """
         if (not isinstance(dimension, int)) or (dimension < 1):
-            ValueError("Dimension must be positive integer, but got '"
-                       + str(dimension) + "'.")
+            raise ValueError("Dimension must be positive integer, but got '"
+                             + str(dimension) + "'.")
 
         self.dtype = int_range_to_dtype(min_value=min_value,
                                         max_value=max_value)
@@ -41,8 +41,8 @@ class IntSpace(Space):
 
         if (not isinstance(self.dtype, np.dtype)) or \
                 (not isinstance(self.dtype.char, str)) or \
-                (len(self.dtype.char) == 1):
-            ValueError("Strange error: " + str(self.dtype))
+                (len(self.dtype.char) != 1):
+            raise ValueError("Strange error: " + str(self.dtype))
 
         self.min_value = min_value
         """The minimum permitted value."""
@@ -51,19 +51,21 @@ class IntSpace(Space):
         self.dimension = dimension
         """The dimension, i.e., the number of elements of the vectors."""
 
-    def x_create(self) -> np.ndarray:
-        return np.zeros(shape=self.dimension, dtype=self.dtype)
+    def create(self) -> np.ndarray:
+        return np.full(shape=self.dimension,
+                       fill_value=self.min_value,
+                       dtype=self.dtype)
 
-    def x_copy(self, source: np.ndarray, dest: np.ndarray):
+    def copy(self, source: np.ndarray, dest: np.ndarray):
         np.copyto(dest, source)
 
-    def x_to_str(self, x) -> str:
+    def to_str(self, x: np.ndarray) -> str:
         return ",".join([str(xx) for xx in x])
 
-    def x_is_equal(self, x1, x2) -> bool:
+    def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         return np.array_equal(x1, x2)
 
-    def x_from_str(self, text: str):
+    def from_str(self, text: str) -> np.ndarray:
         x = np.fromstring(text, dtype=self.dtype, sep=",")
         if len(x) != self.dimension:
             raise ValueError("'" + text + "' does not have dimension "
@@ -75,7 +77,26 @@ class IntSpace(Space):
                            + ".." + str(self.max_value))
         return x
 
-    def get_name(self):
+    def validate(self, x: np.ndarray):
+        if not (isinstance(x, np.ndarray)):
+            raise ValueError("x must be an numpy.ndarray, but is a '"
+                             + str(type(x)) + ".")
+        if x.dtype != self.dtype:
+            raise ValueError("x must be of type '" + str(self.dtype)
+                             + "' but is of type '" + str(x.dtype) + "'.")
+        if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
+            raise ValueError("x must be of shape (" + str(self.dimension)
+                             + ") but is of shape " + str(x.shape) + ".")
+        if not all(x >= self.min_value):
+            raise ValueError("All elements of x must be >= "
+                             + str(self.min_value) + ", but "
+                             + str(x.min()) + " was encountered.")
+        if not all(x <= self.max_value):
+            raise ValueError("All elements of x must be <= "
+                             + str(self.max_value) + ", but "
+                             + str(x.max()) + " was encountered.")
+
+    def get_name(self) -> str:
         return "ints" + str(self.dimension) + self.dtype.char + \
                "[" + str(self.min_value) + "," + \
                str(self.max_value) + "]"

@@ -5,6 +5,12 @@ Here we provide a set of benchmark instances and examples for solving this
 problem.
 """
 
-from moptipy.examples.jssp.jssp_instance import JSSPInstance
+from moptipy.examples.jssp.instance import JSSPInstance
+from moptipy.examples.jssp.gantt import Gantt
+from moptipy.examples.jssp.gantt_space import GanttSpace
+from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 
-__all__ = ["JSSPInstance"]
+__all__ = ["Gantt",
+           "GanttSpace",
+           "JSSPInstance",
+           "OperationBasedEncoding"]

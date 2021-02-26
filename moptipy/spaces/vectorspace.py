@@ -24,35 +24,48 @@ class VectorSpace(Space):
             i.e., the type of the decision variables
         """
         if (not isinstance(dimension, int)) or (dimension < 1):
-            ValueError("Dimension must be positive integer, but got '"
-                       + str(dimension) + "'.")
+            raise ValueError("Dimension must be positive integer, but got '"
+                             + str(dimension) + "'.")
         if not (isinstance(dtype, np.dtype) and (dtype.char in "efdgFDG")):
-            ValueError("Invalid data type '" + str(dtype) + "'.")
+            raise ValueError("Invalid data type '" + str(dtype) + "'.")
         self.dimension = dimension
         """The dimension of the space, i.e., the vectors."""
         self.dtype = dtype
         """The basic data type of the vector elements."""
 
-    def x_create(self) -> np.ndarray:
+    def create(self) -> np.ndarray:
         return np.zeros(shape=self.dimension, dtype=self.dtype)
 
-    def x_copy(self, source: np.ndarray, dest: np.ndarray):
+    def copy(self, source: np.ndarray, dest: np.ndarray):
         np.copyto(dest, source)
 
-    def x_to_str(self, x) -> str:
+    def to_str(self, x: np.ndarray) -> str:
         return ",".join([logging.format_float(xx) for xx in x])
 
-    def x_is_equal(self, x1, x2) -> bool:
+    def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         return np.array_equal(x1, x2)
 
-    def x_from_str(self, text: str):
+    def from_str(self, text: str) -> np.ndarray:
         x = np.fromstring(text, dtype=self.dtype, sep=",")
         if len(x) != self.dimension:
             raise ValueError("'" + text + "' does not have dimension "
                              + str(self.dimension))
         return x
 
-    def get_name(self):
+    def validate(self, x: np.ndarray):
+        if not (isinstance(x, np.ndarray)):
+            raise ValueError("x must be an numpy.ndarray, but is a '"
+                             + str(type(x)) + ".")
+        if x.dtype != self.dtype:
+            raise ValueError("x must be of type '" + str(self.dtype)
+                             + "' but is of type '" + str(x.dtype) + "'.")
+        if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
+            raise ValueError("x must be of shape (" + str(self.dimension)
+                             + ") but is of shape " + str(x.shape) + ".")
+        if any(np.isnan(x)):
+            raise ValueError("No element must be NaN.")
+
+    def get_name(self) -> str:
         return "vector" + str(self.dimension) + self.dtype.char
 
     def log_parameters_to(self, logger: KeyValuesSection):

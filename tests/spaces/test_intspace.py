@@ -10,21 +10,21 @@ def test_int():
     assert isinstance(f, Space)
     assert f.get_name() == "ints12b[3,32]"
 
-    a = f.x_create()
+    a = f.create()
     assert isinstance(a, np.ndarray)
     assert len(a) == 12
     assert a.dtype == f.dtype
 
     for i in range(len(a)):
         a[i] = i
-    b = f.x_create()
-    assert not f.x_is_equal(a, b)
+    b = f.create()
+    assert not f.is_equal(a, b)
 
-    f.x_copy(a, b)
-    assert f.x_is_equal(a, b)
+    f.copy(a, b)
+    assert f.is_equal(a, b)
 
     b[0] = 5
-    assert not f.x_is_equal(a, b)
+    assert not f.is_equal(a, b)
 
     with TempFile() as tmp:
         path = str(tmp)
@@ -41,9 +41,9 @@ def test_int():
                       "max:32",
                       "END_F"]
 
-    text = f.x_to_str(b)
+    text = f.to_str(b)
     assert isinstance(text, str)
     assert len(text) > 0
 
-    a = f.x_from_str(text)
-    assert f.x_is_equal(a, b)
+    a = f.from_str(text)
+    assert f.is_equal(a, b)
