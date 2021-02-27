@@ -114,16 +114,16 @@ class GanttSpace(Space):
             raise ValueError("Cached makespan " + str(x.makespan)
                              + " not equal to actual makespan "
                              + str(maxtime) + ".")
-        if x.makespan < x.instance.makespan_lower_bound:
+        if maxtime < x.instance.makespan_lower_bound:
             raise ValueError(
-                "Makespan " + str(x.makespan)
+                "Makespan " + str(maxtime)
                 + " computed, which is smaller than the lower bound "
                 + str(x.instance.makespan_lower_bound)
                 + " of the JSSP instance '"
                 + x.instance.get_name() + "'.")
-        if x.makespan > x.instance.makespan_upper_bound:
+        if maxtime > x.instance.makespan_upper_bound:
             raise ValueError(
-                "Makespan " + str(x.makespan)
+                "Makespan " + str(maxtime)
                 + " computed, which is larger than the upper bound "
                 + str(x.instance.makespan_upper_bound)
                 + " of the JSSP instance '"

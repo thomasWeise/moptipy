@@ -27,7 +27,7 @@ from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.api.space import Space
 
-__all__ = ["Algorithm",
+__all__ = ("Algorithm",
            "Algorithm0",
            "Algorithm1",
            "Algorithm2",
@@ -41,4 +41,4 @@ __all__ = ["Algorithm",
            "Op2",
            "Process",
            "solve",
-           "Space"]
+           "Space")

@@ -1,5 +1,5 @@
 from abc import ABC
-from io import open
+from io import open, StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
@@ -8,30 +8,33 @@ from typing import Optional, List, Union
 from moptipy.utils import logging
 
 
-class Logger:
+class Logger(ABC):
     """
-    A class for logging data a text file.
+    An abstract base class for logging data in a structured way.
+    There are two implementations of this, :class:`InMemoryLogger`, which logs
+    data in memory and is mainly there for testing and debugging, an
+    :class:`FileLogger` which logs to a text file and is to be used in
+    experiments with `moptipy`.
     """
 
-    def __init__(self, path: str):
+    def __init__(self, stream, name: str):
         """
         Create a new logger.
 
-        :param str path: the path to the log file
+        :param stream: the stream to which we will log, will be closed when
+        the logger is closed
+        :param name: the name of the logger
         """
-        if not isinstance(path, str):
-            raise ValueError("Path must be string but is '"
-                             + str(type(path)) + "'.")
-        path = realpath(path)
+        if not isinstance(name, str):
+            raise ValueError("Name must be string but is '"
+                             + str(type(name)) + "'.")
+        if stream is None:
+            raise ValueError("stream must be valid strean but is None.")
 
-        self.__file = open(file=path,
-                           mode="wt",
-                           encoding="utf-8",
-                           errors="strict")
-
+        self._stream = stream
         self.__section = None
         self.__starts_new_line = True
-        self.__orig_path = path
+        self.__log_name = name
         self.__sections = set()
 
     def __enter__(self):
@@ -41,20 +44,20 @@ class Logger:
         message = [(f if isinstance(f, str) else "'" + str(f) + "'")
                    for f in message]
         if self.__section is None:
-            message[len(message):] = [" in logger '", self.__orig_path, "'."]
+            message[len(message):] = [" in logger '", self.__log_name, "'."]
         else:
             message[len(message):] = [" in section '", self.__section,
-                                      "' of logger '", self.__orig_path + "'."]
+                                      "' of logger '", self.__log_name + "'."]
         raise ValueError("".join(message))
 
     def __exit__(self, exception_type, exception_value, traceback):
         if not (self.__section is None):
             self._error(["Cannot close logger, because section still open"])
-        if not (self.__file is None):
+        if not (self._stream is None):
             if not self.__starts_new_line:
-                self.__file.write("\n")
-            self.__file.close()
-            self.__file = None
+                self._stream.write("\n")
+            self._stream.close()
+            self._stream = None
 
     def _open_section(self, title: str) -> None:
         """
@@ -62,7 +65,7 @@ class Logger:
 
         :param str title: the section title
         """
-        if self.__file is None:
+        if self._stream is None:
             self._error(["Cannot open section '",
                          title, "' because logger already closed"])
 
@@ -80,7 +83,7 @@ class Logger:
         else:
             self.__sections.add(title)
 
-        self.__file.write(logging.SECTION_START + title + "\n")
+        self._stream.write(logging.SECTION_START + title + "\n")
         self.__closer = logging.SECTION_END + title + "\n"
         self.__starts_new_line = True
         self.__section = title
@@ -98,7 +101,7 @@ class Logger:
         if not self.__starts_new_line:
             printer = "\n" + printer
 
-        self.__file.write(printer)
+        self._stream.write(printer)
         self.__closer = None
         self.__starts_new_line = True
         self.__section = None
@@ -106,9 +109,9 @@ class Logger:
     def _comment(self, comment: str) -> None:
         if self.__section is None:
             self._error(["Cannot write if not inside section"])
-        self.__file.write(logging.COMMENT_CHAR + " "
-                          + sub(r"\s+", " ", comment.strip())
-                          + "\n")
+        self._stream.write(logging.COMMENT_CHAR + " "
+                           + sub(r"\s+", " ", comment.strip())
+                           + "\n")
         self.__starts_new_line = True
 
     def _write(self, text: str) -> None:
@@ -124,7 +127,7 @@ class Logger:
             self._error(["String '", self.__closer,
                          "' must not be contained in output"])
 
-        self.__file.write(text)
+        self._stream.write(text)
         self.__starts_new_line = text.endswith("\n")
 
     def key_values(self, title: str) -> 'KeyValuesSection':
@@ -135,10 +138,10 @@ class Logger:
         :return: the new logger
         :rtype: KeyValuesSection
 
-        >>> from moptipy.utils.logger import Logger
+        >>> from moptipy.utils.logger import FileLogger
         >>> from moptipy.utils.temp import TempFile
         >>> with TempFile() as t:
-        ...     with Logger(str(t)) as l:
+        ...     with FileLogger(str(t)) as l:
         ...         with l.key_values("B") as kv:
         ...             kv.key_value("a", "b")
         ...             with kv.scope("c") as kvc:
@@ -160,10 +163,10 @@ class Logger:
         :return: the new logger
         :rtype: CsvSection
 
-        >>> from moptipy.utils.logger import Logger
+        >>> from moptipy.utils.logger import FileLogger
         >>> from moptipy.utils.temp import TempFile
         >>> with TempFile() as t:
-        ...     with Logger(str(t)) as l:
+        ...     with FileLogger(str(t)) as l:
         ...         with l.csv("A", ["x", "y"]) as csv:
         ...             csv.row([1,2])
         ...             csv.row([3,4])
@@ -181,19 +184,54 @@ class Logger:
         :return: the new logger
         :rtype: TextSection
 
-        >>> from moptipy.utils.logger import Logger
+        >>> from moptipy.utils.logger import InMemoryLogger
         >>> from moptipy.utils.temp import TempFile
-        >>> with TempFile() as t:
-        ...     with Logger(str(t)) as l:
-        ...         with l.text("C") as tx:
-        ...             tx.write("aaaaaa")
-        ...             tx.write("bbbbb")
-        ...             tx.write("\\n")
-        ...             tx.write("ccccc")
-        ...     print(open(str(t), "r").read().splitlines())
+        >>> with InMemoryLogger() as l:
+        ...     with l.text("C") as tx:
+        ...         tx.write("aaaaaa")
+        ...         tx.write("bbbbb")
+        ...         tx.write("\\n")
+        ...         tx.write("ccccc")
+        ...     print(l.get_log())
         ['BEGIN_C', 'aaaaaabbbbb', 'ccccc', 'END_C']
         """
         return TextSection(title=title, logger=self)
+
+
+class FileLogger(Logger):
+    """A logger logging to a file."""
+
+    def __init__(self, path: str):
+        """
+        Initialize the logger
+        :param str path: the path to the file to open
+        """
+        if not isinstance(path, str):
+            raise ValueError("Path must be string but is '"
+                             + str(type(path)) + "'.")
+        name = path
+        path = realpath(path)
+        super().__init__(stream=open(file=path, mode="wt",
+                                     encoding="utf-8",
+                                     errors="strict"),
+                         name=name)
+
+
+class InMemoryLogger(Logger):
+    """A logger logging to a string in memory."""
+
+    def __init__(self):
+        """Initialize the logger"""
+        super().__init__(stream=StringIO(),
+                         name="in-memory-logger")
+
+    def get_log(self) -> List[str]:
+        """
+        Obtain all the lines logged to this logger
+        :return: a list of strings with the logged lines
+        :rtype: List[str]
+        """
+        return self._stream.getvalue().splitlines()
 
 
 class _Section(ABC):
@@ -339,12 +377,11 @@ class KeyValuesSection(_Section):
         :return: the new logger
         :rtype: KeyValuesSection
         """
-        return KeyValuesSection(title=None, logger=self._logger,
-                                prefix=((prefix if (self._prefix is None)
-                                        else (self._prefix
-                                        + logging.sanitize_name(prefix)))
-                                        + "."),
-                                done=self.__done)
+        return KeyValuesSection(
+            title=None, logger=self._logger,
+            prefix=((prefix if (self._prefix is None) else
+                     (self._prefix + logging.sanitize_name(prefix))) + "."),
+            done=self.__done)
 
 
 class TextSection(_Section):

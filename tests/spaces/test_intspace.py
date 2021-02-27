@@ -1,7 +1,7 @@
 from moptipy.spaces import IntSpace
 from moptipy.api import Space
 
-from moptipy.utils import TempFile, Logger
+from moptipy.utils import TempFile, FileLogger
 import numpy as np
 
 
@@ -28,7 +28,7 @@ def test_int():
 
     with TempFile() as tmp:
         path = str(tmp)
-        with Logger(path) as log:
+        with FileLogger(path) as log:
             with log.key_values("F") as kv:
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()

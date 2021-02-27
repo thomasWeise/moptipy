@@ -1,13 +1,13 @@
 from io import open
 from os.path import isfile, exists
 
-from moptipy.utils import TempFile, Logger
+from moptipy.utils import TempFile, FileLogger
 
 
 def test_log_files():
     with TempFile() as t:
         path = str(t)
-        with Logger(path) as log:
+        with FileLogger(path) as log:
             with log.csv("A", ["x", "y"]) as csv:
                 csv.row([1, 2])
                 csv.row([3.3, 12])

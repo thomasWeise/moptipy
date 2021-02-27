@@ -10,7 +10,7 @@ from moptipy.api.component import Component
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils import logging
-from moptipy.utils.logger import KeyValuesSection, Logger
+from moptipy.utils.logger import KeyValuesSection, FileLogger, Logger
 
 
 class _ProcessNoSS(_ProcessBase):
@@ -172,7 +172,7 @@ class _ProcessNoSS(_ProcessBase):
         # noinspection PyProtectedMember
         super()._perform_termination()
         if not (self.__log_file is None):
-            with Logger(self.__log_file) as logger:
+            with FileLogger(self.__log_file) as logger:
                 self._write_log(logger)
             self.__log_file = None
         self._solution_space.validate(self._current_best_y)
