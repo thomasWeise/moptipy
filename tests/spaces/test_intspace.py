@@ -3,12 +3,13 @@ from moptipy.api import Space
 
 from moptipy.utils import TempFile, FileLogger
 import numpy as np
+from moptipy.tests.space import check_space
 
 
 def test_int():
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
-    assert f.get_name() == "ints12b[3,32]"
+    assert f.get_name() == "ints12b3-32"
 
     a = f.create()
     assert isinstance(a, np.ndarray)
@@ -33,7 +34,7 @@ def test_int():
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()
     assert result == ["BEGIN_F",
-                      "name:ints12b[3,32]",
+                      "name:ints12b3-32",
                       "type:<class 'moptipy.spaces.intspace.IntSpace'>",
                       "nvars:12",
                       "dtype:b",
@@ -47,3 +48,5 @@ def test_int():
 
     a = f.from_str(text)
     assert f.is_equal(a, b)
+
+    check_space(f)

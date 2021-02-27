@@ -97,9 +97,8 @@ class IntSpace(Space):
                              + str(x.max()) + " was encountered.")
 
     def get_name(self) -> str:
-        return "ints" + str(self.dimension) + self.dtype.char + \
-               "[" + str(self.min_value) + "," + \
-               str(self.max_value) + "]"
+        return "ints" + str(self.dimension) + self.dtype.char\
+               + str(self.min_value) + "-" + str(self.max_value)
 
     def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)

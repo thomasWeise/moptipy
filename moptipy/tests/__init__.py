@@ -10,6 +10,8 @@ here will be helpful.
 from moptipy.version import __version__
 from moptipy.tests.component import check_component
 from moptipy.tests.objective import check_objective
+from moptipy.tests.space import check_space
 
 __all__ = ("check_component",
-           "check_objective")
+           "check_objective",
+           "check_space")

@@ -3,6 +3,7 @@ from moptipy.api import Space
 
 from moptipy.utils import TempFile, FileLogger
 import numpy as np
+from moptipy.tests.space import check_space
 
 
 def test_vectors():
@@ -45,3 +46,5 @@ def test_vectors():
 
     a = f.from_str(text)
     assert f.is_equal(a, b)
+
+    check_space(f)
