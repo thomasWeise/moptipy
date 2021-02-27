@@ -43,6 +43,18 @@ class PermutationsWithRepetitions(IntSpace):
                          self.repetitions)
 
     def create(self) -> np.ndarray:
+        """
+        This method creates a permutation with repetitions, which is of the
+        form [0, 1, 2, ..., 0, 1, 2...]
+        :return: the permutation with repetitions
+
+        >>> from moptipy.spaces.permutationswr import \
+        PermutationsWithRepetitions
+        >>> pwr = PermutationsWithRepetitions(4, 3)
+        >>> perm = pwr.create()
+        >>> print(pwr.to_str(perm))
+        0,1,2,3,0,1,2,3,0,1,2,3
+        """
         return self.__blueprint.copy()
 
     def validate(self, x: np.ndarray):

@@ -4,6 +4,7 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 import numpy.random as rnd
+from moptipy.tests.encoding import check_encoding
 
 
 def __check_for_instance(instance: str,
@@ -12,6 +13,7 @@ def __check_for_instance(instance: str,
     x_space = PermutationsWithRepetitions(inst.jobs, inst.machines)
     g = OperationBasedEncoding(inst)
     y_space = GanttSpace(inst)
+    check_encoding(g, x_space, y_space)
 
     x = x_space.create()
     x_space.validate(x)

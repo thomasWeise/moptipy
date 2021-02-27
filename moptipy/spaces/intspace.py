@@ -52,6 +52,18 @@ class IntSpace(Space):
         """The dimension, i.e., the number of elements of the vectors."""
 
     def create(self) -> np.ndarray:
+        """
+        This method creates a integer vector filled with the minimal value.
+        :return: the vector
+
+        >>> from moptipy.spaces.intspace import IntSpace
+        >>> s = IntSpace(dimension=12, min_value=5, max_value=332)
+        >>> v = s.create()
+        >>> print(s.to_str(v))
+        5,5,5,5,5,5,5,5,5,5,5,5
+        >>> print(v.dtype)
+        int16
+        """
         return np.full(shape=self.dimension,
                        fill_value=self.min_value,
                        dtype=self.dtype)

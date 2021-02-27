@@ -20,6 +20,16 @@ class Permutations(IntSpace):
         self.__blueprint[0:n] = list(range(n))
 
     def create(self) -> np.ndarray:
+        """
+        This method creates a permutation of the form [0, 1, 2, 4, 5, ...]
+        :return: the permutation
+
+        >>> from moptipy.spaces.permutations import Permutations
+        >>> p = Permutations(12)
+        >>> perm = p.create()
+        >>> print(p.to_str(perm))
+        0,1,2,3,4,5,6,7,8,9,10,11
+        """
         return self.__blueprint.copy()
 
     def validate(self, x: np.ndarray):
@@ -27,10 +37,10 @@ class Permutations(IntSpace):
         counts = np.zeros(self.dimension, np.dtype(np.int32))
         for xx in x:
             counts[xx] += 1
-        if any(x != 1):
+        if any(counts != 1):
             raise ValueError("Each element in 0.." + str(self.dimension - 1)
                              + " must occur exactly once, but encountered "
-                             + super().to_str(x[x != 1])
+                             + super().to_str(counts[counts != 1])
                              + " occurrences.")
 
     def get_name(self) -> str:

@@ -28,6 +28,18 @@ class BitStrings(Space):
         """The dimension, i.e., the number of elements of the vectors."""
 
     def create(self) -> np.ndarray:
+        """
+        This method creates a bit string filled with False
+        :return: the string
+
+        >>> from moptipy.spaces.bitstrings import BitStrings
+        >>> s = BitStrings(8)
+        >>> v = s.create()
+        >>> print(s.to_str(v))
+        00000000
+        >>> print(v.dtype)
+        bool
+        """
         return np.zeros(shape=self.dimension, dtype=BitStrings.__DTYPE)
 
     def copy(self, source: np.ndarray, dest: np.ndarray):

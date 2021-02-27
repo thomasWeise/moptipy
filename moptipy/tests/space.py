@@ -42,7 +42,7 @@ def check_space(space: Space = None,
                          "space.is_equal(x1, x2).")
 
     if not (make_valid is None):
-        make_valid(x1)
+        x1 = make_valid(x1)
         space.validate(x1)
 
     strstr = space.to_str(x1)
