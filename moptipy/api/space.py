@@ -62,6 +62,7 @@ class Space(Component):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def from_str(self, text: str):
         """
         Transform a string `text` to one element of the space.
@@ -73,10 +74,20 @@ class Space(Component):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def validate(self, x):
         """
         Check whether a given point in the space is valid
         :param x: the point
         :raises ValueError: if the point `x` is invalid
         """
-        raise ValueError()
+        raise NotImplementedError
+
+    @abstractmethod
+    def scale(self) -> int:
+        """
+        The approximate size of the space, i.e., the approximate number of
+        different points it contains
+        :return: the approximate scale of the space
+        """
+        raise NotImplementedError

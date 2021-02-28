@@ -3,6 +3,7 @@ from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import JSSPInstance
 from moptipy.utils.logger import KeyValuesSection
 import numpy as np
+from math import factorial
 
 
 class GanttSpace(Space):
@@ -128,6 +129,9 @@ class GanttSpace(Space):
                 + str(x.instance.makespan_upper_bound)
                 + " of the JSSP instance '"
                 + x.instance.get_name() + "'.")
+
+    def scale(self) -> int:
+        return factorial(self.instance.jobs) ** self.instance.machines
 
     def get_name(self):
         return "gantt:" + self.instance.get_name()

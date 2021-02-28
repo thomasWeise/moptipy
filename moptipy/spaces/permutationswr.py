@@ -2,6 +2,7 @@ from moptipy.spaces.intspace import IntSpace
 from typing import Final
 from moptipy.utils.logger import KeyValuesSection
 import numpy as np
+from math import factorial
 
 
 class PermutationsWithRepetitions(IntSpace):
@@ -56,6 +57,10 @@ class PermutationsWithRepetitions(IntSpace):
         0,1,2,3,0,1,2,3,0,1,2,3
         """
         return self.__blueprint.copy()
+
+    def scale(self) -> int:
+        return factorial(self.n * self.repetitions) // \
+            (factorial(self.repetitions) ** self.n)
 
     def validate(self, x: np.ndarray):
         super().validate(x)

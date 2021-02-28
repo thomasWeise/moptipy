@@ -65,6 +65,9 @@ class VectorSpace(Space):
         if any(np.isnan(x)):
             raise ValueError("No element must be NaN.")
 
+    def scale(self) -> int:
+        return (2 ** self.dtype.itemsize) ** self.dimension
+
     def get_name(self) -> str:
         return "vector" + str(self.dimension) + self.dtype.char
 

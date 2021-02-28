@@ -117,6 +117,9 @@ class _ProcessSS(_ProcessNoSS):
     def get_copy_of_current_best_y(self, y):
         return self._solution_space.copy(self._current_best_y, y)
 
+    def scale(self) -> int:
+        return self._search_space.scale()
+
     def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_SEARCH_SPACE) as sc:

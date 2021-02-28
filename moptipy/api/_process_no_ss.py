@@ -134,6 +134,9 @@ class _ProcessNoSS(_ProcessBase):
     def validate(self, x):
         self._solution_space.validate(x)
 
+    def scale(self) -> int:
+        return self._solution_space.scale()
+
     def log_parameters_to(self, logger: KeyValuesSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_BBP_RAND_SEED, self.__rand_seed,

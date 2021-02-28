@@ -67,6 +67,9 @@ class BitStrings(Space):
             raise ValueError("x must be of shape (" + str(self.dimension)
                              + ") but is of shape " + str(x.shape) + ".")
 
+    def scale(self) -> int:
+        return 2 ** self.dimension
+
     def get_name(self) -> str:
         return "bits" + str(self.dimension)
 

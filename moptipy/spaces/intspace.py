@@ -108,8 +108,11 @@ class IntSpace(Space):
                              + str(self.max_value) + ", but "
                              + str(x.max()) + " was encountered.")
 
+    def scale(self) -> int:
+        return (self.max_value - self.min_value + 1) ** self.dimension
+
     def get_name(self) -> str:
-        return "ints" + str(self.dimension) + self.dtype.char\
+        return "ints" + str(self.dimension) + self.dtype.char \
                + str(self.min_value) + "-" + str(self.max_value)
 
     def log_parameters_to(self, logger: KeyValuesSection):

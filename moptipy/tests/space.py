@@ -67,3 +67,11 @@ def check_space(space: Space = None,
 
     if not (make_valid is None):
         space.validate(x3)
+
+    scale = space.scale()
+    if not isinstance(scale, int):
+        raise ValueError("The scale of a space must always be a int, "
+                         "but is a '" + str(type(scale)) + "'.")
+    if scale <= 0:
+        raise ValueError("The scale of a space must be positive, but was "
+                         + str(scale) + ".")

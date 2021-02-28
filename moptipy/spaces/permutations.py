@@ -1,6 +1,7 @@
 import numpy as np
 
 from moptipy.spaces.intspace import IntSpace
+from math import factorial
 
 
 class Permutations(IntSpace):
@@ -31,6 +32,9 @@ class Permutations(IntSpace):
         0,1,2,3,4,5,6,7,8,9,10,11
         """
         return self.__blueprint.copy()
+
+    def scale(self) -> int:
+        return factorial(self.dimension)
 
     def validate(self, x: np.ndarray):
         super().validate(x)
