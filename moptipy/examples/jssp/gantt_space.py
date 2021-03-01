@@ -30,7 +30,7 @@ class GanttSpace(Space):
         if dest.instance != source.instance:
             raise ValueError("Instances of source and dest must be the same.")
         np.copyto(dest.times, source.times)
-        dest.makespan = source.instance
+        dest.makespan = source.makespan
 
     def to_str(self, x: Gantt) -> str:
         return ",".join([str(xx) for xx in x.times.flatten()])

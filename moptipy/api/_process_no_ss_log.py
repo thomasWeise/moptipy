@@ -14,7 +14,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
 
     def __init__(self,
                  solution_space: Space,
-                 objective_function: Objective,
+                 objective: Objective,
                  algorithm: Component,
                  log_file: str = None,
                  rand_seed: Optional[int] = None,
@@ -25,7 +25,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  log_all_fes: bool = False):
 
         super().__init__(solution_space=solution_space,
-                         objective_function=objective_function,
+                         objective=objective,
                          algorithm=algorithm,
                          log_file=log_file,
                          rand_seed=rand_seed,
@@ -56,7 +56,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
                                  'the algorithm knows it.')
             return inf
 
-        result = self._objective_function.evaluate(x)
+        result = self._objective.evaluate(x)
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
 
@@ -96,6 +96,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
 
         if do_term:
             self.terminate()
+
+        return result
 
     def log_state(self, key: str, value: Union[bool, int, float]):
         if self.__log is None:

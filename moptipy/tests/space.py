@@ -41,9 +41,19 @@ def check_space(space: Space = None,
         raise ValueError("space.copy(x1, x2) did not lead to "
                          "space.is_equal(x1, x2).")
 
-    if not (make_valid is None):
-        x1 = make_valid(x1)
-        space.validate(x1)
+    scale = space.scale()
+    if not isinstance(scale, int):
+        raise ValueError("The scale of a space must always be a int, "
+                         "but is a '" + str(type(scale)) + "'.")
+    if scale <= 0:
+        raise ValueError("The scale of a space must be positive, but was "
+                         + str(scale) + ".")
+
+    if make_valid is None:
+        return
+
+    x1 = make_valid(x1)
+    space.validate(x1)
 
     strstr = space.to_str(x1)
     if not isinstance(strstr, str):
@@ -65,13 +75,4 @@ def check_space(space: Space = None,
         raise ValueError("to_str(from_str(to_str())) must return same "
                          "string.")
 
-    if not (make_valid is None):
-        space.validate(x3)
-
-    scale = space.scale()
-    if not isinstance(scale, int):
-        raise ValueError("The scale of a space must always be a int, "
-                         "but is a '" + str(type(scale)) + "'.")
-    if scale <= 0:
-        raise ValueError("The scale of a space must be positive, but was "
-                         + str(scale) + ".")
+    space.validate(x3)

@@ -28,6 +28,6 @@ class HillClimber(Algorithm1):
                 best_f = new_f
                 process.copy(new_x, best_x)
 
-    def get_name(self):
-        strstr = super().get_name()
-        return ("hc_" + strstr) if (len(strstr) > 0) else "hc"
+    def get_name(self) -> str:
+        name = super().get_name()
+        return ("hc_" + name) if (len(name) > 0) else "hc"

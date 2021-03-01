@@ -20,7 +20,7 @@ dynamic parameters.
 from moptipy.version import __version__
 from moptipy.api.component import Component
 from moptipy.api.algorithm import Algorithm, Algorithm0, Algorithm1, \
-    Algorithm2, CallableAlgorithm, solve
+    Algorithm2, CallableAlgorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.objective import CallableObjective, Objective
 from moptipy.api.operators import Op0, Op1, Op2
@@ -40,5 +40,4 @@ __all__ = ("Algorithm",
            "Op1",
            "Op2",
            "Process",
-           "solve",
            "Space")

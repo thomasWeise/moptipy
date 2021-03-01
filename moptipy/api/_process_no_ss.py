@@ -20,7 +20,7 @@ class _ProcessNoSS(_ProcessBase):
 
     def __init__(self,
                  solution_space: Space,
-                 objective_function: Objective,
+                 objective: Objective,
                  algorithm: Component,
                  log_file: str = None,
                  rand_seed: Optional[int] = None,
@@ -36,11 +36,11 @@ class _ProcessNoSS(_ProcessBase):
                              "but is " + str(type(solution_space)) + ".")
         self._solution_space = solution_space
 
-        if not isinstance(objective_function, Objective):
-            raise ValueError("objective_function should be instance of "
+        if not isinstance(objective, Objective):
+            raise ValueError("objective should be instance of "
                              "Objective, but is "
-                             + str(type(objective_function)) + ".")
-        self._objective_function = objective_function
+                             + str(type(objective)) + ".")
+        self._objective = objective
 
         if not isinstance(algorithm, Component):
             raise ValueError("Algorithm must be instance of Component, "
@@ -72,6 +72,12 @@ class _ProcessNoSS(_ProcessBase):
     def get_random(self) -> Generator:
         return self.__random
 
+    def lower_bound(self) -> Union[float, int]:
+        return self._objective.lower_bound()
+
+    def upper_bound(self) -> Union[float, int]:
+        return self._objective.upper_bound()
+
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
             if self._knows_that_terminated:
@@ -79,7 +85,7 @@ class _ProcessNoSS(_ProcessBase):
                                  'the algorithm knows it.')
             return inf
 
-        result = self._objective_function.evaluate(x)
+        result = self._objective.evaluate(x)
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
 
@@ -102,6 +108,8 @@ class _ProcessNoSS(_ProcessBase):
 
         if do_term:
             self.terminate()
+
+        return result
 
     def has_current_best(self) -> bool:
         return self._has_current_best
@@ -148,7 +156,7 @@ class _ProcessNoSS(_ProcessBase):
         with logger.scope(logging.SCOPE_SOLUTION_SPACE) as sc:
             self._solution_space.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_OBJECTIVE_FUNCTION) as sc:
-            self._objective_function.log_parameters_to(sc)
+            self._objective.log_parameters_to(sc)
 
     def _write_log(self, logger: Logger):
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:

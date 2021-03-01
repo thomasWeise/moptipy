@@ -14,7 +14,7 @@ from moptipy.utils import logging
 class _ProcessSS(_ProcessNoSS):
     def __init__(self,
                  solution_space: Space,
-                 objective_function: Objective,
+                 objective: Objective,
                  algorithm: Component,
                  log_file: str = None,
                  search_space: Space = None,
@@ -25,7 +25,7 @@ class _ProcessSS(_ProcessNoSS):
                  goal_f: Union[int, float, None] = None):
 
         super().__init__(solution_space=solution_space,
-                         objective_function=objective_function,
+                         objective=objective,
                          algorithm=algorithm,
                          log_file=log_file,
                          rand_seed=rand_seed,
@@ -56,7 +56,7 @@ class _ProcessSS(_ProcessNoSS):
             return inf
 
         self._encoding.map(x, self._current_y)
-        result = self._objective_function.evaluate(self._current_y)
+        result = self._objective.evaluate(self._current_y)
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
         self._current_fes += 1
@@ -82,6 +82,8 @@ class _ProcessSS(_ProcessNoSS):
 
         if do_term:
             self.terminate()
+
+        return result
 
     def has_current_best(self) -> bool:
         return self._has_current_best

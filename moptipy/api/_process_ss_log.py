@@ -15,7 +15,7 @@ class _ProcessSSLog(_ProcessSS):
 
     def __init__(self,
                  solution_space: Space,
-                 objective_function: Objective,
+                 objective: Objective,
                  algorithm: Component,
                  log_file: str = None,
                  search_space: Space = None,
@@ -28,7 +28,7 @@ class _ProcessSSLog(_ProcessSS):
                  log_all_fes: bool = False):
 
         super().__init__(solution_space=solution_space,
-                         objective_function=objective_function,
+                         objective=objective,
                          algorithm=algorithm,
                          log_file=log_file,
                          search_space=search_space,
@@ -62,7 +62,7 @@ class _ProcessSSLog(_ProcessSS):
             return inf
 
         self._encoding.map(x, self._current_y)
-        result = self._objective_function.evaluate(self._current_y)
+        result = self._objective.evaluate(self._current_y)
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
         self.__last_res = result
@@ -105,6 +105,8 @@ class _ProcessSSLog(_ProcessSS):
 
         if do_term:
             self.terminate()
+
+        return result
 
     def log_state(self, key: str, value: Union[bool, int, float]):
         if self.__log is None:

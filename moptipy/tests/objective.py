@@ -33,18 +33,20 @@ def check_objective(objective: Objective = None,
                          "upper_bound(), but got " + str(lower)
                          + " vs." + str(upper) + ".")
 
-    if not (create_valid is None):
-        x = create_valid()
-        if x is None:
-            raise ValueError("create_valid() produced None.")
+    if create_valid is None:
+        return
 
-        res = objective.evaluate(x)
-        if not (isinstance(res, int) or isinstance(res, float)):
-            raise ValueError("evaluate(x) must return an int or float, but "
-                             "returned a '" + str(type(res)) + "'.")
+    x = create_valid()
+    if x is None:
+        raise ValueError("create_valid() produced None.")
 
-        if (res < lower) or (res > upper):
-            raise ValueError("evaluate(x) must return a value in"
-                             "[lower_bound(), upper_bound()], but returned "
-                             + str(res) + " vs. [" + str(lower) + ","
-                             + str(upper) + "].")
+    res = objective.evaluate(x)
+    if not (isinstance(res, int) or isinstance(res, float)):
+        raise ValueError("evaluate(x) must return an int or float, but "
+                         "returned a '" + str(type(res)) + "'.")
+
+    if (res < lower) or (res > upper):
+        raise ValueError("evaluate(x) must return a value in"
+                         "[lower_bound(), upper_bound()], but returned "
+                         + str(res) + " vs. [" + str(lower) + ","
+                         + str(upper) + "].")

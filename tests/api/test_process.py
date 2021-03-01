@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.api import CallableAlgorithm, solve, CallableObjective, Process
+from moptipy.api import Algorithm, CallableAlgorithm, CallableObjective,\
+    Process
 from moptipy.spaces import VectorSpace
 from moptipy.utils import TempFile
 from os.path import isfile, getsize
@@ -62,10 +63,10 @@ def myobjective2(x):
 def test_process_noss_no_log():
     v = VectorSpace(10)
     x = v.create()
-    with solve(algorithm=CallableAlgorithm(myalgorithm),
-               solution_space=v,
-               objective_function=CallableObjective(myobjective),
-               max_fes=max_fes) as p:
+    with Algorithm.apply(algorithm=CallableAlgorithm(myalgorithm),
+                         solution_space=v,
+                         objective=CallableObjective(myobjective),
+                         max_fes=max_fes) as p:
         assert p.has_current_best()
         assert p.get_current_best_f() == best_f
         p.get_copy_of_current_best_x(x)
@@ -79,12 +80,12 @@ def test_process_noss_log():
     x = v.create()
     with TempFile() as log:
         path = str(log)
-        with solve(algorithm=CallableAlgorithm(myalgorithm),
-                   solution_space=v,
-                   objective_function=CallableObjective(myobjective),
-                   max_fes=max_fes,
-                   log_file=path,
-                   overwrite_log=True) as p:
+        with Algorithm.apply(algorithm=CallableAlgorithm(myalgorithm),
+                             solution_space=v,
+                             objective=CallableObjective(myobjective),
+                             max_fes=max_fes,
+                             log_file=path,
+                             overwrite_log=True) as p:
             assert p.has_current_best()
             assert p.get_current_best_f() == best_f
             p.get_copy_of_current_best_x(x)
@@ -102,12 +103,12 @@ def test_process_noss_timed_log():
     x = v.create()
     with TempFile() as log:
         path = str(log)
-        with solve(algorithm=CallableAlgorithm(myalgorithm),
-                   solution_space=v,
-                   objective_function=CallableObjective(myobjective),
-                   max_time_millis=20,
-                   log_file=path,
-                   overwrite_log=True) as p:
+        with Algorithm.apply(algorithm=CallableAlgorithm(myalgorithm),
+                             solution_space=v,
+                             objective=CallableObjective(myobjective),
+                             max_time_millis=20,
+                             log_file=path,
+                             overwrite_log=True) as p:
             assert p.has_current_best()
             lll = p.get_current_best_f()
             assert lll < worst_f
@@ -125,13 +126,13 @@ def test_process_noss_maxfes_log_state():
     v = VectorSpace(4)
     with TempFile() as log:
         path = str(log)
-        with solve(algorithm=CallableAlgorithm(myalgorithm2),
-                   solution_space=v,
-                   objective_function=CallableObjective(myobjective2),
-                   max_fes=500,
-                   log_file=path,
-                   log_improvements=True,
-                   overwrite_log=True) as p:
+        with Algorithm.apply(algorithm=CallableAlgorithm(myalgorithm2),
+                             solution_space=v,
+                             objective=CallableObjective(myobjective2),
+                             max_fes=500,
+                             log_file=path,
+                             log_improvements=True,
+                             overwrite_log=True) as p:
             assert p.has_current_best()
         assert isfile(path)
         assert getsize(path) > 10

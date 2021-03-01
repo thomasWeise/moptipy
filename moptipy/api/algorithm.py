@@ -29,6 +29,137 @@ class Algorithm(Component):
         """
         raise NotImplementedError
 
+    @staticmethod
+    def apply(algorithm: 'Algorithm',
+              solution_space: Space,
+              objective: Objective,
+              search_space: Space = None,
+              encoding: Encoding = None,
+              rand_seed: Optional[int] = None,
+              max_time_millis: Optional[int] = None,
+              max_fes: Optional[int] = None,
+              goal_f: Union[int, float, None] = None,
+              log_file: Optional[str] = None,
+              log_improvements: bool = False,
+              log_all_fes: bool = False,
+              log_state: bool = False,
+              overwrite_log: bool = False) -> Process:
+        """
+        Apply an optimization algorithm to the given problem description.
+        This means that an instance :class:`~moptipy.api.Process` will be
+        constructed. Then the method :func:`~moptipy.api.Algorithm.solve`
+        will be invoked. It may optionally log the progress and results to
+        a file ``log_file``. Finally, the :class:`~moptipy.api.Process`
+        instance will be returned.
+        :param Algorithm algorithm: the algorithm to apply
+        :param solution_space: the solution space
+        :param objective: the objective function
+        :param search_space: the optional search space
+        :param encoding: the representation mapping
+        :param rand_seed: the random seed
+        :param max_time_millis: the maximum runtime permitted, in
+        milliseconds
+        :param max_fes: the maximum objective function evaluations
+        permitted
+        :param goal_f: the goal objective value
+        :param log_file: the optional log file
+        :param bool log_improvements: should we log improvements?
+        :param bool log_all_fes: should we log all fes
+        :param bool log_state: should we be able to log dynamic state?
+        :param bool overwrite_log: can the log file be overwritten
+        if it exists?
+        :return: the :class:`~moptipy.api.Process` instance which can be
+        queried for the final result
+        """
+
+        if not (isinstance(algorithm, Algorithm)):
+            raise ValueError("Optimization algorithm needs to be specified, "
+                             "but found '"
+                             + str(type(algorithm)) + "'.")
+
+        if search_space is None:
+            if not (encoding is None):
+                raise ValueError("If search_space is not provided, neither"
+                                 "can encoding.")
+        elif encoding is None:
+            if search_space == solution_space:
+                search_space = None
+            else:
+                raise ValueError("If a search_space != solution_space is "
+                                 "provided, encoding must be "
+                                 "provided, too.")
+
+        if log_file is None:
+            if log_all_fes or log_improvements or log_state:
+                raise ValueError("Can only log stuff if log file is specified")
+        else:
+            log_file = realpath(log_file)
+            try:
+                os.close(os.open(log_file,
+                                 os.O_CREAT if overwrite_log else
+                                 (os.O_CREAT | os.O_EXCL)))
+            except FileExistsError as err:
+                raise ValueError("Log file '" + log_file
+                                 + "' already exists.") from err
+            except Exception as err:
+                raise ValueError("Error when creating log file'"
+                                 + log_file + "'.") from err
+            if not isfile(log_file):
+                raise ValueError("Creation of file '"
+                                 + log_file + "' did not produce file?")
+
+        if search_space is None:
+            if log_improvements or log_all_fes or log_state:
+                process = _ProcessNoSSLog(solution_space=solution_space,
+                                          objective=objective,
+                                          algorithm=algorithm,
+                                          log_file=log_file,
+                                          rand_seed=rand_seed,
+                                          max_fes=max_fes,
+                                          max_time_millis=max_time_millis,
+                                          goal_f=goal_f,
+                                          log_improvements=log_improvements,
+                                          log_all_fes=log_all_fes)
+            else:
+                process = _ProcessNoSS(solution_space=solution_space,
+                                       objective=objective,
+                                       algorithm=algorithm,
+                                       log_file=log_file,
+                                       rand_seed=rand_seed,
+                                       max_fes=max_fes,
+                                       max_time_millis=max_time_millis,
+                                       goal_f=goal_f)
+        else:
+            if log_improvements or log_all_fes or log_state:
+                process = _ProcessSSLog(
+                    solution_space=solution_space,
+                    objective=objective,
+                    algorithm=algorithm,
+                    search_space=search_space,
+                    encoding=encoding,
+                    log_file=log_file,
+                    rand_seed=rand_seed,
+                    max_fes=max_fes,
+                    max_time_millis=max_time_millis,
+                    goal_f=goal_f,
+                    log_improvements=log_improvements,
+                    log_all_fes=log_all_fes)
+            else:
+                process = _ProcessSS(solution_space=solution_space,
+                                     objective=objective,
+                                     algorithm=algorithm,
+                                     search_space=search_space,
+                                     encoding=encoding,
+                                     log_file=log_file,
+                                     rand_seed=rand_seed,
+                                     max_fes=max_fes,
+                                     max_time_millis=max_time_millis,
+                                     goal_f=goal_f)
+        # noinspection PyProtectedMember
+        process._after_init()
+        algorithm.solve(process)
+        return process
+
 
 class Algorithm0(Algorithm, ABC):
     """An algorithm implementation with a nullary search operator."""
@@ -48,7 +179,7 @@ class Algorithm0(Algorithm, ABC):
         self.op0 = op0
         self._op0_is_default = op0_is_default
 
-    def get_name(self):
+    def get_name(self) -> str:
         return "" if self._op0_is_default else self.op0.get_name()
 
     def log_parameters_to(self, logger: KeyValueSection):
@@ -82,7 +213,7 @@ class Algorithm1(Algorithm0, ABC):
         self.op1 = op1
         self._op1_is_default = op1_is_default
 
-    def get_name(self):
+    def get_name(self) -> str:
         return logging.sanitize_names([
             "" if self._op0_is_default else self.op0.get_name(),
             "" if self._op1_is_default else self.op1.get_name()])
@@ -127,7 +258,7 @@ class Algorithm2(Algorithm1, ABC):
         self.op2 = op2
         self._op2_is_default = op2_is_default
 
-    def get_name(self):
+    def get_name(self) -> str:
         return logging.sanitize_names([
             "" if self._op0_is_default else self.op0.get_name(),
             "" if self._op1_is_default else self.op1.get_name(),
@@ -148,10 +279,10 @@ class CallableAlgorithm(_CallableComponent, Algorithm):
                  algorithm: Callable,
                  name: str = None):
         """
-        Create a wrapper mapping a Callable to an objective function
+        Create a wrapper mapping a Callable to an optimization algorithm
 
-        :param Callable algorithm: the function to wrap, can be a
-            lambda expression
+        :param Callable algorithm: the algorithm implementation to wrap,
+        can be a lambda expression
         :param str name: the name of the algorithm
         """
         super().__init__(inner=algorithm,
@@ -159,134 +290,3 @@ class CallableAlgorithm(_CallableComponent, Algorithm):
 
     def solve(self, process: Process) -> None:
         self._inner(process)
-
-
-def solve(algorithm: Algorithm,
-          solution_space: Space,
-          objective_function: Objective,
-          search_space: Space = None,
-          encoding: Encoding = None,
-          rand_seed: Optional[int] = None,
-          max_time_millis: Optional[int] = None,
-          max_fes: Optional[int] = None,
-          goal_f: Union[int, float, None] = None,
-          log_file: Optional[str] = None,
-          log_improvements: bool = False,
-          log_all_fes: bool = False,
-          log_state: bool = False,
-          overwrite_log: bool = False) -> Process:
-    """
-    Apply an optimization algorithm to the given problem description.
-    This means that an instance :class:`~moptipy.api.Process` will be
-    constructed. Then the method :func:`~moptipy.api.Algorithm.solve`
-    will be invoked. It may optionally log the progress and results to
-    a file ``log_file``. Finally, the :class:`~moptipy.api.Process`
-    instance will be returned.
-    :param Algorithm algorithm: the algorithm to apply
-    :param solution_space: the solution space
-    :param objective_function: the objective function
-    :param search_space: the optional search space
-    :param encoding: the representation mapping
-    :param rand_seed: the random seed
-    :param max_time_millis: the maximum runtime permitted, in
-    milliseconds
-    :param max_fes: the maximum objective function evaluations
-    permitted
-    :param goal_f: the goal objective value
-    :param log_file: the optional log file
-    :param bool log_improvements: should we log improvements?
-    :param bool log_all_fes: should we log all fes
-    :param bool log_state: should we be able to log dynamic state?
-    :param bool overwrite_log: can the log file be overwritten
-    if it exists?
-    :return: the :class:`~moptipy.api.Process` instance which can be
-    queried for the final result
-    """
-
-    if not (isinstance(algorithm, Algorithm)):
-        raise ValueError("Optimization algorithm needs to be specified, "
-                         "but found '"
-                         + str(type(algorithm)) + "'.")
-
-    if search_space is None:
-        if not (encoding is None):
-            raise ValueError("If search_space is not provided, neither can "
-                             "encoding.")
-    elif encoding is None:
-        if search_space == solution_space:
-            search_space = None
-        else:
-            raise ValueError("If a search_space != solution_space is "
-                             "provided, encoding must be "
-                             "provided, too.")
-
-    if log_file is None:
-        if log_all_fes or log_improvements or log_state:
-            raise ValueError("Can only log stuff if log file is specified")
-    else:
-        log_file = realpath(log_file)
-        try:
-            os.close(os.open(log_file,
-                             os.O_CREAT if overwrite_log else
-                             (os.O_CREAT | os.O_EXCL)))
-        except FileExistsError as err:
-            raise ValueError("Log file '" + log_file
-                             + "' already exists.") from err
-        except Exception as err:
-            raise ValueError("Error when creating log file'"
-                             + log_file + "'.") from err
-        if not isfile(log_file):
-            raise ValueError("Creation of file '"
-                             + log_file + "' did not produce file?")
-
-    if search_space is None:
-        if log_improvements or log_all_fes or log_state:
-            process = _ProcessNoSSLog(solution_space=solution_space,
-                                      objective_function=objective_function,
-                                      algorithm=algorithm,
-                                      log_file=log_file,
-                                      rand_seed=rand_seed,
-                                      max_fes=max_fes,
-                                      max_time_millis=max_time_millis,
-                                      goal_f=goal_f,
-                                      log_improvements=log_improvements,
-                                      log_all_fes=log_all_fes)
-        else:
-            process = _ProcessNoSS(solution_space=solution_space,
-                                   objective_function=objective_function,
-                                   algorithm=algorithm,
-                                   log_file=log_file,
-                                   rand_seed=rand_seed,
-                                   max_fes=max_fes,
-                                   max_time_millis=max_time_millis,
-                                   goal_f=goal_f)
-    else:
-        if log_improvements or log_all_fes or log_state:
-            process = _ProcessSSLog(
-                solution_space=solution_space,
-                objective_function=objective_function,
-                algorithm=algorithm,
-                search_space=search_space,
-                encoding=encoding,
-                log_file=log_file,
-                rand_seed=rand_seed,
-                max_fes=max_fes,
-                max_time_millis=max_time_millis,
-                goal_f=goal_f,
-                log_improvements=log_improvements,
-                log_all_fes=log_all_fes)
-        else:
-            process = _ProcessSS(solution_space=solution_space,
-                                 objective_function=objective_function,
-                                 algorithm=algorithm,
-                                 search_space=search_space,
-                                 encoding=encoding,
-                                 log_file=log_file,
-                                 rand_seed=rand_seed,
-                                 max_fes=max_fes,
-                                 max_time_millis=max_time_millis,
-                                 goal_f=goal_f)
-    # noinspection PyProtectedMember
-    process._after_init()
-    algorithm.solve(process)
-    return process
