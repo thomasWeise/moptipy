@@ -2,7 +2,7 @@ from importlib import resources
 import numpy as np
 from moptipy.utils import logging
 from moptipy.api import Component
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 from typing import Final, List
 from moptipy.utils import nputils
@@ -178,7 +178,7 @@ class JSSPInstance(Component):
     def get_name(self):
         return self.name
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(JSSPInstance.MACHINES, self.machines)
         logger.key_value(JSSPInstance.JOBS, self.jobs)

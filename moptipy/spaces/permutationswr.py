@@ -1,6 +1,6 @@
 from moptipy.spaces.intspace import IntSpace
 from typing import Final
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 import numpy as np
 from math import factorial
 
@@ -38,7 +38,7 @@ class PermutationsWithRepetitions(IntSpace):
         self.__blueprint = super().create()
         self.__blueprint[0:self.dimension] = list(range(n)) * repetitions
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(PermutationsWithRepetitions.KEY_REPETITIONS,
                          self.repetitions)

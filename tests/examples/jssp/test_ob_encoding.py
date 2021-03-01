@@ -5,14 +5,20 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 import numpy.random as rnd
 from moptipy.tests.encoding import check_encoding
+from moptipy.tests.space import check_space
 
 
 def __check_for_instance(instance: str,
                          random: rnd.Generator = rnd.default_rng()):
     inst = JSSPInstance.from_resource(instance)
+
     x_space = PermutationsWithRepetitions(inst.jobs, inst.machines)
-    g = OperationBasedEncoding(inst)
+    check_space(x_space)
+
     y_space = GanttSpace(inst)
+    check_space(y_space, make_valid=None)
+
+    g = OperationBasedEncoding(inst)
     check_encoding(g, x_space, y_space)
 
     x = x_space.create()

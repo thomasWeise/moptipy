@@ -19,8 +19,8 @@ DECIMAL_DOT_REPLACEMENT: Final = "d"
 PART_SEPARATOR: Final = "_"
 #: the replacement for special characters
 SPECIAL_CHAR_REPLACEMENT: Final = "_"
-#: the separator between a key and a value
-KEY_VALUE_SEPARATOR: Final = ":"
+#: the YAML-conform separator between a key and a value
+KEY_VALUE_SEPARATOR: Final = ": "
 #: the hexadecimal version of a value
 KEY_HEX_VALUE: Final = "(hex)"
 

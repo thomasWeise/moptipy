@@ -2,7 +2,7 @@ from moptipy.api.space import Space
 import numpy as np
 from typing import Final
 
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
 
 
@@ -73,6 +73,6 @@ class BitStrings(Space):
     def get_name(self) -> str:
         return "bits" + str(self.dimension)
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)

@@ -1,7 +1,7 @@
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import JSSPInstance
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 import numpy as np
 from math import factorial
 
@@ -134,9 +134,9 @@ class GanttSpace(Space):
         return factorial(self.instance.jobs) ** self.instance.machines
 
     def get_name(self):
-        return "gantt:" + self.instance.get_name()
+        return "gantt_" + self.instance.get_name()
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         with logger.scope(JSSPInstance.SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

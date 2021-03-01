@@ -13,7 +13,7 @@ from moptipy.api._process_ss import _ProcessSS
 from moptipy.api._process_no_ss_log import _ProcessNoSSLog
 from moptipy.api._process_ss_log import _ProcessSSLog
 from moptipy.api.operators import Op0, Op1, Op2
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
 
 
@@ -51,7 +51,7 @@ class Algorithm0(Algorithm, ABC):
     def get_name(self):
         return "" if self._op0_is_default else self.op0.get_name()
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_OP0) as sc:
             self.op0.log_parameters_to(sc)
@@ -87,7 +87,7 @@ class Algorithm1(Algorithm0, ABC):
             "" if self._op0_is_default else self.op0.get_name(),
             "" if self._op1_is_default else self.op1.get_name()])
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_OP1) as sc:
             self.op1.log_parameters_to(sc)
@@ -133,7 +133,7 @@ class Algorithm2(Algorithm1, ABC):
             "" if self._op1_is_default else self.op1.get_name(),
             "" if self._op2_is_default else self.op2.get_name()])
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_OP2) as sc:
             self.op2.log_parameters_to(sc)

@@ -130,13 +130,18 @@ class Logger(ABC):
         self._stream.write(text)
         self.__starts_new_line = text.endswith("\n")
 
-    def key_values(self, title: str) -> 'KeyValuesSection':
+    def key_values(self, title: str) -> 'KeyValueSection':
         """
         Create a log section for key-value pairs.
+        The contents of such a section will be valid YAML mappings, i.w.,
+        conform to
+        https://yaml.org/spec/1.2/spec.html#mapping//.
+        This means they can be parsed with a YAML parser (after removing the
+        section start and end marker, of course).
 
         :param str title: the title of the new section
         :return: the new logger
-        :rtype: KeyValuesSection
+        :rtype: KeyValueSection
 
         >>> from moptipy.utils.logger import FileLogger
         >>> from moptipy.utils.temp import TempFile
@@ -148,15 +153,21 @@ class Logger(ABC):
         ...                 kvc.key_value("d", 12)
         ...                 kvc.key_value("e", True)
         ...             kv.key_value("f", 3)
-        ...     print(open(str(t), "r").read().splitlines())
-        ['BEGIN_B', 'a:b', 'c.d:12', 'c.e:True', 'f:3', 'END_B']
+        ...     text = open(str(t), "r").read().splitlines()
+        >>> print(text)
+        ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: True', 'f: 3', 'END_B']
+        >>> import yaml
+        >>> dic = yaml.safe_load("\\n".join(text[1:5]))
+        >>> print(list(dic.keys()))
+        ['a', 'c.d', 'c.e', 'f']
         """
-        return KeyValuesSection(title=title, logger=self, prefix="",
-                                done=None)
+        return KeyValueSection(title=title, logger=self, prefix="",
+                               done=None)
 
     def csv(self, title: str, header: List[str]) -> 'CsvSection':
         """
-        Create a log section for CSV data.
+        Create a log section for CSV data with `;` as column separator
+        and the first line as headline with the column names.
 
         :param str title: the title of the new section
         :param List[str] header: the list of column titles
@@ -171,8 +182,16 @@ class Logger(ABC):
         ...             csv.row([1,2])
         ...             csv.row([3,4])
         ...             csv.row([None, 12])
-        ...     print(open(str(t), "r").read().splitlines())
+        ...     text = open(str(t), "r").read().splitlines()
+        ...     print(text)
         ['BEGIN_A', 'x;y', '1;2', '3;4', ';12', 'END_A']
+        >>> import csv
+        >>> for r in csv.reader(text[1:5], delimiter=";"):
+        ...     print(r)
+        ['x', 'y']
+        ['1', '2']
+        ['3', '4']
+        ['', '12']
         """
         return CsvSection(title=title, logger=self, header=header)
 
@@ -311,7 +330,7 @@ class CsvSection(_Section):
         self._logger._write(logging.CSV_SEPARATOR.join(row) + "\n")
 
 
-class KeyValuesSection(_Section):
+class KeyValueSection(_Section):
     """
     A logger for key-value pairs.
     """
@@ -369,15 +388,15 @@ class KeyValuesSection(_Section):
         # noinspection PyProtectedMember
         self._logger._write(txt)
 
-    def scope(self, prefix: str) -> 'KeyValuesSection':
+    def scope(self, prefix: str) -> 'KeyValueSection':
         """
         Create a new scope for key prefixes
 
         :param str prefix: the key prefix
         :return: the new logger
-        :rtype: KeyValuesSection
+        :rtype: KeyValueSection
         """
-        return KeyValuesSection(
+        return KeyValueSection(
             title=None, logger=self._logger,
             prefix=((prefix if (self._prefix is None) else
                      (self._prefix + logging.sanitize_name(prefix))) + "."),

@@ -2,7 +2,7 @@ from moptipy.api.space import Space
 import numpy as np
 from typing import Final
 
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
 
 
@@ -66,12 +66,46 @@ class VectorSpace(Space):
             raise ValueError("No element must be NaN.")
 
     def scale(self) -> int:
-        return (2 ** self.dtype.itemsize) ** self.dimension
+        if self.dtype.char == "e":
+            exponent = 5
+            mantissa = 10
+            is_complex = False
+        elif self.dtype.char == "f":
+            exponent = 8
+            mantissa = 23
+            is_complex = False
+        elif self.dtype == "d":
+            exponent = 11
+            mantissa = 52
+            is_complex = False
+        elif self.dtype == "g":
+            exponent = 15
+            mantissa = 112
+            is_complex = False
+        elif self.dtype == "F":
+            exponent = 8
+            mantissa = 23
+            is_complex = True
+        elif self.dtype == "D":
+            exponent = 11
+            mantissa = 52
+            is_complex = True
+        elif self.dtype == "G":
+            exponent = 15
+            mantissa = 112
+            is_complex = True
+        else:
+            raise ValueError("Invalid dtype " + str(self.dtype))
+
+        base = 2 * ((2 ** exponent) - 1) * (2 ** mantissa) - 1
+        if is_complex:
+            base = base * base
+        return base ** self.dimension
 
     def get_name(self) -> str:
         return "vector" + str(self.dimension) + self.dtype.char
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(VectorSpace.KEY_NUMPY_TYPE, self.dtype.char)

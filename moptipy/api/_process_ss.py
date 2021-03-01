@@ -7,7 +7,7 @@ from moptipy.api.component import Component
 from moptipy.api.objective import Objective
 from moptipy.api.encoding import Encoding
 from moptipy.api.space import Space
-from moptipy.utils.logger import KeyValuesSection, Logger
+from moptipy.utils.logger import KeyValueSection, Logger
 from moptipy.utils import logging
 
 
@@ -120,7 +120,7 @@ class _ProcessSS(_ProcessNoSS):
     def scale(self) -> int:
         return self._search_space.scale()
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_SEARCH_SPACE) as sc:
             self._search_space.log_parameters_to(sc)

@@ -10,7 +10,7 @@ from moptipy.api.component import Component
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils import logging
-from moptipy.utils.logger import KeyValuesSection, FileLogger, Logger
+from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
 
 
 class _ProcessNoSS(_ProcessBase):
@@ -137,7 +137,7 @@ class _ProcessNoSS(_ProcessBase):
     def scale(self) -> int:
         return self._solution_space.scale()
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_BBP_RAND_SEED, self.__rand_seed,
                          also_hex=True)

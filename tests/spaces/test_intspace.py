@@ -34,12 +34,12 @@ def test_int():
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()
     assert result == ["BEGIN_F",
-                      "name:ints12b3-32",
-                      "type:<class 'moptipy.spaces.intspace.IntSpace'>",
-                      "nvars:12",
-                      "dtype:b",
-                      "min:3",
-                      "max:32",
+                      "name: ints12b3-32",
+                      "type: <class 'moptipy.spaces.intspace.IntSpace'>",
+                      "nvars: 12",
+                      "dtype: b",
+                      "min: 3",
+                      "max: 32",
                       "END_F"]
 
     text = f.to_str(b)

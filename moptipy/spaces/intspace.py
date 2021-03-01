@@ -2,7 +2,7 @@ from moptipy.api.space import Space
 import numpy as np
 from typing import Final
 
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
 from moptipy.utils.nputils import int_range_to_dtype
 
@@ -115,7 +115,7 @@ class IntSpace(Space):
         return "ints" + str(self.dimension) + self.dtype.char \
                + str(self.min_value) + "-" + str(self.max_value)
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(IntSpace.KEY_NUMPY_TYPE, self.dtype.char)

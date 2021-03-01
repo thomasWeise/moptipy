@@ -104,10 +104,11 @@ def test_logged_args():
             with log.key_values("F") as kv:
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()
-    assert result == ["BEGIN_F",
-                      "name:hello",
-                      "type:<class 'moptipy.api.objective.CallableObjective'>",
-                      "innerType:<class 'function'>",
-                      "lowerBound:-5",
-                      "upperBound:11",
-                      "END_F"]
+    assert result == [
+        "BEGIN_F",
+        "name: hello",
+        "type: <class 'moptipy.api.objective.CallableObjective'>",
+        "innerType: <class 'function'>",
+        "lowerBound: -5",
+        "upperBound: 11",
+        "END_F"]

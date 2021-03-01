@@ -2,7 +2,7 @@ from abc import abstractmethod
 from math import inf
 from typing import Union, Callable
 
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
 from moptipy.api.component import _CallableComponent, Component
 
@@ -99,7 +99,7 @@ class CallableObjective(_CallableComponent, Objective):
     def upper_bound(self) -> Union[float, int]:
         return self.__upper_bound
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_F_LOWER_BOUND, self.__lower_bound)
         logger.key_value(logging.KEY_F_UPPER_BOUND, self.__upper_bound)

@@ -5,7 +5,7 @@ from time import monotonic_ns
 from typing import Optional, Union
 
 from moptipy.api.process import Process
-from moptipy.utils.logger import KeyValuesSection
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
 
 
@@ -145,7 +145,7 @@ class _ProcessBase(Process, ABC):
     def get_copy_of_current_best_y(self, y):
         return self.get_copy_of_current_best_x(y)
 
-    def log_parameters_to(self, logger: KeyValuesSection):
+    def log_parameters_to(self, logger: KeyValueSection):
         super().log_parameters_to(logger)
         if not (self._max_fes is None):
             logger.key_value(logging.KEY_BBP_MAX_FES, self._max_fes)

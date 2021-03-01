@@ -34,10 +34,10 @@ def test_vectors():
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()
     assert result == ["BEGIN_F",
-                      "name:vector12d",
-                      "type:<class 'moptipy.spaces.vectorspace.VectorSpace'>",
-                      "nvars:12",
-                      "dtype:d",
+                      "name: vector12d",
+                      "type: <class 'moptipy.spaces.vectorspace.VectorSpace'>",
+                      "nvars: 12",
+                      "dtype: d",
                       "END_F"]
 
     text = f.to_str(b)

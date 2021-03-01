@@ -34,9 +34,9 @@ def test_int():
                 f.log_parameters_to(kv)
         result = open(path, "r").read().splitlines()
     assert result == ["BEGIN_F",
-                      "name:bits12",
-                      "type:<class 'moptipy.spaces.bitstrings.BitStrings'>",
-                      "nvars:12",
+                      "name: bits12",
+                      "type: <class 'moptipy.spaces.bitstrings.BitStrings'>",
+                      "nvars: 12",
                       "END_F"]
 
     text = f.to_str(b)
