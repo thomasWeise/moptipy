@@ -6,6 +6,7 @@ from re import sub
 from typing import Optional, List, Union
 
 from moptipy.utils import logging
+from moptipy.utils.cache import is_new
 
 
 class Logger(ABC):
@@ -35,7 +36,7 @@ class Logger(ABC):
         self.__section = None
         self.__starts_new_line = True
         self.__log_name = name
-        self.__sections = set()
+        self.__sections = is_new()
 
     def __enter__(self):
         return self
@@ -78,10 +79,8 @@ class Logger(ABC):
             self._error(["Cannot open section '",
                          title, "' because title is invalid"])
 
-        if title in self.__sections:
+        if not self.__sections(title):
             self._error(["Section '", title, "' already done"])
-        else:
-            self.__sections.add(title)
 
         self._stream.write(logging.SECTION_START + title + "\n")
         self.__closer = logging.SECTION_END + title + "\n"
@@ -144,7 +143,7 @@ class Logger(ABC):
         :rtype: KeyValueSection
 
         >>> from moptipy.utils.logger import FileLogger
-        >>> from moptipy.utils.temp import TempFile
+        >>> from moptipy.utils.io import TempFile
         >>> with TempFile() as t:
         ...     with FileLogger(str(t)) as l:
         ...         with l.key_values("B") as kv:
@@ -175,7 +174,7 @@ class Logger(ABC):
         :rtype: CsvSection
 
         >>> from moptipy.utils.logger import FileLogger
-        >>> from moptipy.utils.temp import TempFile
+        >>> from moptipy.utils.io import TempFile
         >>> with TempFile() as t:
         ...     with FileLogger(str(t)) as l:
         ...         with l.csv("A", ["x", "y"]) as csv:
@@ -204,7 +203,7 @@ class Logger(ABC):
         :rtype: TextSection
 
         >>> from moptipy.utils.logger import InMemoryLogger
-        >>> from moptipy.utils.temp import TempFile
+        >>> from moptipy.utils.io import TempFile
         >>> with InMemoryLogger() as l:
         ...     with l.text("C") as tx:
         ...         tx.write("aaaaaa")
@@ -340,14 +339,13 @@ class KeyValueSection(_Section):
         super().__init__(title=title, logger=logger)
         self._prefix = prefix
         if done is None:
-            self.__done = set(prefix)
+            self.__done = is_new()
+            self.__done(prefix)
         else:
             self.__done = done
-            if prefix in done:
+            if not done(prefix):
                 # noinspection PyProtectedMember
                 logger._error(["Prefix '", prefix, "' already done"])
-            else:
-                done.add(prefix)
 
     def key_value(self, key: str, value,
                   also_hex: bool = False) -> None:
@@ -359,11 +357,9 @@ class KeyValueSection(_Section):
         :param bool also_hex: also store the value as hexadecimal version
         """
         key = self._prefix + logging.sanitize_name(key)
-        if key in self.__done:
+        if not self.__done(key):
             # noinspection PyProtectedMember
             self._logger._error(["Key '", key, "' already used"])
-        else:
-            self.__done.add(key)
 
         the_hex = None
         if isinstance(value, float):

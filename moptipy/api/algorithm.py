@@ -1,20 +1,19 @@
-import os
 from abc import ABC, abstractmethod
-from os.path import realpath, isfile
 from typing import Union, Optional, Callable
 
-from moptipy.api.process import Process
-from moptipy.api.component import Component
-from moptipy.api.objective import Objective, _CallableComponent
-from moptipy.api.encoding import Encoding
-from moptipy.api.space import Space
 from moptipy.api._process_no_ss import _ProcessNoSS
-from moptipy.api._process_ss import _ProcessSS
 from moptipy.api._process_no_ss_log import _ProcessNoSSLog
+from moptipy.api._process_ss import _ProcessSS
 from moptipy.api._process_ss_log import _ProcessSSLog
+from moptipy.api.component import Component
+from moptipy.api.encoding import Encoding
+from moptipy.api.objective import Objective, _CallableComponent
 from moptipy.api.operators import Op0, Op1, Op2
-from moptipy.utils.logger import KeyValueSection
+from moptipy.api.process import Process
+from moptipy.api.space import Space
 from moptipy.utils import logging
+from moptipy.utils.io import file_create_or_fail, file_create_or_truncate
+from moptipy.utils.logger import KeyValueSection
 
 
 class Algorithm(Component):
@@ -93,20 +92,8 @@ class Algorithm(Component):
             if log_all_fes or log_improvements or log_state:
                 raise ValueError("Can only log stuff if log file is specified")
         else:
-            log_file = realpath(log_file)
-            try:
-                os.close(os.open(log_file,
-                                 os.O_CREAT if overwrite_log else
-                                 (os.O_CREAT | os.O_EXCL)))
-            except FileExistsError as err:
-                raise ValueError("Log file '" + log_file
-                                 + "' already exists.") from err
-            except Exception as err:
-                raise ValueError("Error when creating log file'"
-                                 + log_file + "'.") from err
-            if not isfile(log_file):
-                raise ValueError("Creation of file '"
-                                 + log_file + "' did not produce file?")
+            log_file = file_create_or_truncate(log_file) \
+                if overwrite_log else file_create_or_fail(log_file)
 
         if search_space is None:
             if log_improvements or log_all_fes or log_state:
