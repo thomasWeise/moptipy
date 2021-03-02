@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from moptipy.api.component import Component
+from typing import Optional
 
 
 class Encoding(Component):
@@ -19,3 +20,25 @@ class Encoding(Component):
             solution space, whose contents will be overwritten
         """
         raise NotImplementedError
+
+
+def _check_encoding(encoding: Optional[Encoding],
+                    none_is_ok: bool = True) -> Optional[Encoding]:
+    """
+    An internal method used for checking whether an object is a valid instance
+    of :class:`Encoding`
+    :param encoding: the object
+    :param bool none_is_ok: is it ok if `None` is passed in?
+    :return: the object
+    :raises ValueError: if `encoding` is not an instance of
+    :class:`Encoding`
+    """
+    if encoding is None:
+        if none_is_ok:
+            return None
+        raise ValueError("This encoding must not be None.")
+    if not isinstance(encoding, Encoding):
+        raise ValueError(
+            "An encoding must be instance of Encoding, but is "
+            + str(type(encoding)) + ".")
+    return encoding

@@ -1,27 +1,25 @@
 from math import inf, isnan
-from typing import Final, Optional, Union
 from time import monotonic_ns
+from typing import Optional, Union
 
 from numpy.random import Generator
-from numpy.random import default_rng
 
 from moptipy.api._process_base import _ProcessBase
-from moptipy.api.component import Component
-from moptipy.api.objective import Objective
-from moptipy.api.space import Space
+from moptipy.api.objective import Objective, _check_objective
+from moptipy.api.space import Space, _check_space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
+from moptipy.utils.nputils import rand_generator, rand_seed_generate,\
+    rand_seed_check
+from moptipy.api.algorithm import Algorithm, _check_algorithm
 
 
 class _ProcessNoSS(_ProcessBase):
-    __SEED_BYTES: Final = 8
-    __MIN_RAND_SEED: Final = 0
-    __MAX_RAND_SEED: Final = int((1 << (__SEED_BYTES * 8)) - 1)
 
     def __init__(self,
                  solution_space: Space,
                  objective: Objective,
-                 algorithm: Component,
+                 algorithm: Algorithm,
                  log_file: str = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
@@ -31,38 +29,13 @@ class _ProcessNoSS(_ProcessBase):
         super().__init__(max_fes=max_fes, max_time_millis=max_time_millis,
                          goal_f=goal_f)
 
-        if not isinstance(solution_space, Space):
-            raise ValueError("solution_space should be instance of Space, "
-                             "but is " + str(type(solution_space)) + ".")
-        self._solution_space = solution_space
+        self._solution_space = _check_space(solution_space)
+        self._objective = _check_objective(objective)
+        self.__algorithm = _check_algorithm(algorithm)
 
-        if not isinstance(objective, Objective):
-            raise ValueError("objective should be instance of "
-                             "Objective, but is "
-                             + str(type(objective)) + ".")
-        self._objective = objective
-
-        if not isinstance(algorithm, Component):
-            raise ValueError("Algorithm must be instance of Component, "
-                             "but is instance of '"
-                             + str(type(algorithm)) + "'.")
-        self.__algorithm = algorithm
-
-        if rand_seed is None:
-            self.__rand_seed = int.from_bytes(default_rng().bytes(
-                _ProcessNoSS.__SEED_BYTES),
-                byteorder='big', signed=False)
-
-        if not isinstance(self.__rand_seed, int):
-            raise ValueError("rand_seed should be instance of int, but is "
-                             + str(type(self.__rand_seed)) + ".")
-        if (self.__rand_seed < _ProcessNoSS.__MIN_RAND_SEED) or \
-                (self.__rand_seed > _ProcessNoSS.__MAX_RAND_SEED):
-            raise ValueError("rand_seed must be in "
-                             + str(_ProcessNoSS.__MIN_RAND_SEED)
-                             + ".."
-                             + str(_ProcessNoSS.__MAX_RAND_SEED))
-        self.__random = default_rng(self.__rand_seed)
+        self.__rand_seed = rand_seed_generate() if rand_seed is None \
+            else rand_seed_check(rand_seed)
+        self.__random = rand_generator(self.__rand_seed)
 
         self._current_best_y = self._solution_space.create()
         self._current_best_f = inf

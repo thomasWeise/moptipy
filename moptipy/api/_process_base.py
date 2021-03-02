@@ -2,11 +2,84 @@ from abc import ABC
 from math import inf, isnan
 from threading import Lock, Timer
 from time import monotonic_ns
-from typing import Optional, Union
+from typing import Optional
+from typing import Union
 
 from moptipy.api.process import Process
-from moptipy.utils.logger import KeyValueSection
 from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection
+
+
+def _check_max_fes(max_fes: Optional[int],
+                   none_is_ok: bool = False) -> Optional[int]:
+    """
+    Check the maximum FEs.
+    :param Optional[int] max_fes: the maximum FEs
+    :param bool none_is_ok: is None ok?
+    :return: the maximum fes, or None
+    :rtype: Optional[int]
+    """
+    if max_fes is None:
+        if none_is_ok:
+            return None
+        raise ValueError("Maximum FEs must not be None.")
+
+    if not isinstance(max_fes, int):
+        raise ValueError("Maximum number of function evaluations must be "
+                         "int, but is " + str(type(max_fes)) + ".")
+    if max_fes <= 0:
+        raise ValueError("Maximum FEs must be positive, but are "
+                         + str(max_fes) + ".")
+    return max_fes
+
+
+def _check_max_time_millis(max_time_millis: Optional[int],
+                           none_is_ok: bool = False) -> Optional[int]:
+    """
+    Check the maximum time in milliseconds.
+    :param Optional[int] max_time_millis: the maximum time in milliseconds
+    :param bool none_is_ok: is None ok?
+    :return: the maximum time in millseconds, or None
+    :rtype: Optional[int]
+    """
+    if max_time_millis is None:
+        if none_is_ok:
+            return None
+        raise ValueError("Maximum time in milliseconds must not be None.")
+
+    if not isinstance(max_time_millis, int):
+        raise ValueError("Maximum time in milliseconds must be int, but is "
+                         + str(type(max_time_millis)) + ".")
+    if max_time_millis <= 0:
+        raise ValueError("Maximum time in milliseconds must be positive, "
+                         "but is " + str(max_time_millis) + ".")
+    return max_time_millis
+
+
+def _check_goal_f(goal_f: Union[int, float, None],
+                  none_is_ok: bool = False) -> Union[int, float, None]:
+    """
+    Check the goal objective value.
+    :param Optional[int] max_time_millis: the maximum time in milliseconds
+    :param bool none_is_ok: is None ok?
+    :return: the goal objective value, or None
+    :rtype: Union[int, float, None]
+    """
+    if goal_f is None:
+        if none_is_ok:
+            return None
+        raise ValueError("Goal objective value cannot be None.")
+
+    if not (isinstance(goal_f, int) or isinstance(goal_f, float)):
+        raise ValueError("Goal objective value must be int or float, but is "
+                         + str(type(goal_f)) + ".")
+    if isnan(goal_f):
+        raise ValueError("Goal objective value must not be NaN, but is"
+                         + str(goal_f) + ".")
+    if goal_f >= inf:
+        raise ValueError("Goal objective value must be less than positive "
+                         "infinity, but is " + str(goal_f) + ".")
+    return goal_f
 
 
 class _ProcessBase(Process, ABC):
@@ -36,31 +109,16 @@ class _ProcessBase(Process, ABC):
         another process.
         """
 
-        if max_fes is None:
-            self._max_fes = None
+        self._max_fes = _check_max_fes(max_fes, True)
+        if self._max_fes is None:
             self._end_fes = inf
         else:
-            if not isinstance(max_fes, int):
-                raise ValueError("max_fes must be int, but is '"
-                                 + str(type(max_fes)) + "'.")
-            self._max_fes = max_fes
-            if self._max_fes <= 0:
-                raise ValueError("Maximum FEs must be positive, but are "
-                                 + str(self._max_fes) + ".")
             self._end_fes = self._max_fes
 
-        if goal_f is None:
-            self._goal_f = None
+        self._goal_f = _check_goal_f(goal_f, True)
+        if self._goal_f is None:
             self._end_f = -inf
         else:
-            if isinstance(goal_f, int) or isinstance(goal_f, float):
-                self._goal_f = goal_f
-            else:
-                raise ValueError("goal_f must be int or float, but is '"
-                                 + str(type(goal_f)) + "'.")
-            if isnan(self._goal_f):
-                raise ValueError("Goal F must not be NaN, but is"
-                                 + str(self._goal_f) + ".")
             self._end_f = self._goal_f
 
         self._current_time_millis = 0
@@ -72,19 +130,11 @@ class _ProcessBase(Process, ABC):
         self._last_improvement_fe = -1
         """The FE when the last improvement was made."""
 
-        if max_time_millis is None:
-            self._max_time_millis = None
+        self._max_time_millis = _check_max_time_millis(max_time_millis, True)
+        if self._max_time_millis is None:
             self._end_time_millis = inf
             self.__timer = None
         else:
-            if not isinstance(max_time_millis, int):
-                raise ValueError("max_time_millis must be int, but is '"
-                                 + str(type(max_time_millis)) + "'.")
-            self._max_time_millis = max_time_millis
-            if self._max_time_millis <= 0:
-                raise ValueError("Maximum time in milliseconds must be "
-                                 "positive, but is "
-                                 + str(self._max_time_millis) + ".")
             self._end_time_millis = int(self._start_time_millis
                                         + self._max_time_millis)
             self.__timer = Timer(interval=self._max_time_millis / 1_000.0,

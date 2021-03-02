@@ -3,7 +3,7 @@ from time import monotonic_ns
 from typing import Optional, Union
 
 from moptipy.api._process_no_ss import _ProcessNoSS
-from moptipy.api.component import Component
+from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils import logging
@@ -15,7 +15,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
     def __init__(self,
                  solution_space: Space,
                  objective: Objective,
-                 algorithm: Component,
+                 algorithm: Algorithm,
                  log_file: str = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from moptipy.api.component import Component
+from typing import Optional
 
 
 class Space(Component):
@@ -91,3 +92,24 @@ class Space(Component):
         :return: the approximate scale of the space
         """
         raise NotImplementedError
+
+
+def _check_space(space: Optional[Space],
+                 none_is_ok: bool = False) -> Optional[Space]:
+    """
+    An internal method used for checking whether an object is a valid instance
+    of :class:`Space`
+    :param space: the object
+    :param bool none_is_ok: is it ok if `None` is passed in?
+    :return: the object
+    :raises ValueError: if `space` is not an instance of
+    :class:`Space`
+    """
+    if space is None:
+        if none_is_ok:
+            return None
+        raise ValueError("This space must not be None.")
+    if not isinstance(space, Space):
+        raise ValueError("A space must be instance of Space, but is "
+                         + str(type(space)) + ".")
+    return space

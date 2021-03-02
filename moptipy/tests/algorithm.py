@@ -3,6 +3,7 @@ from typing import Callable, Optional
 
 import numpy.random as rnd
 
+from moptipy.api.experiment import Experiment
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.objective import Objective
@@ -26,13 +27,12 @@ def check_algorithm(algorithm: Algorithm = None,
                     max_fes: int = 100):
     """
     Check whether an algorithm follows the moptipy API specification.
-    :param algorithm:
-    :param solution_space:
-    :param objective:
-    :param search_space:
-    :param encoding:
-    :param max_fes:
-    :return:
+    :param algorithm: the algorithm to test
+    :param solution_space: the solution space
+    :param objective: the objective function
+    :param search_space: the optional search space
+    :param encoding: the optional encoding
+    :param max_fes: the maximum number of FEs
     """
 
     if not isinstance(algorithm, Algorithm):
@@ -51,12 +51,16 @@ def check_algorithm(algorithm: Algorithm = None,
     if max_fes <= 0:
         raise ValueError("max_fes must be > 0, but is" + str(max_fes) + ".")
 
-    with Algorithm.apply(algorithm=algorithm,
-                         solution_space=solution_space,
-                         objective=objective,
-                         search_space=search_space,
-                         encoding=encoding,
-                         max_fes=max_fes) as process:
+    exp = Experiment()
+    exp.set_algorithm(algorithm)
+    exp.set_max_fes(max_fes)
+    exp.set_solution_space(solution_space)
+    exp.set_objective(objective)
+    if not (search_space is None):
+        exp.set_search_space(search_space)
+        exp.set_encoding(encoding)
+
+    with exp.execute() as process:
 
         if not process.has_current_best():
             raise ValueError("The algorithm did not produce any solution.")

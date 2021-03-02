@@ -31,7 +31,7 @@ class OperationBasedEncoding(Encoding):
             raise ValueError("instance must be valid JSSPInstance, but is '"
                              + str(type(instance)) + "'.")
         dtype = int_range_to_dtype(instance.makespan_lower_bound,
-                                   instance.makespan_lower_bound)
+                                   instance.makespan_upper_bound)
         self.__machine_time = np.zeros(instance.machines, dtype)
         self.__job_time = np.zeros(instance.jobs, dtype)
         self.__job_idx = np.zeros(instance.jobs,

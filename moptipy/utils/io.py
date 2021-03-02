@@ -1,7 +1,7 @@
 from tempfile import mkstemp, mkdtemp
 from shutil import rmtree
 import os
-from os.path import realpath, isfile
+from os.path import realpath, isfile, isdir
 from typing import Optional, Union, Tuple
 
 
@@ -25,14 +25,28 @@ def canonicalize_path(path: str) -> str:
     return path
 
 
-def _enforce_file(path: str) -> str:
+def enforce_file(path: str) -> str:
     """
-    An internal method which enforces that a file exists
+    A method which enforces that a path references an existing file
     :param path: the path identifying the file
     :return: the path
     :rtype: str
+    :raises ValueError:  if `path` does not reference an existing file
     """
     if not isfile(path):
+        raise ValueError("Path '" + path + "' does not identify file.")
+    return path
+
+
+def enforce_dir(path: str) -> str:
+    """
+    A method which enforces that a path references an existing directory
+    :param path: the path identifying the directory
+    :return: the path
+    :rtype: str
+    :raises ValueError:  if `path` does not reference an existing directory
+    """
+    if not isdir(path):
         raise ValueError("Path '" + path + "' does not identify file.")
     return path
 
@@ -49,7 +63,7 @@ class TempDir:
         Create the temporary directory.
         :param str directory: an optional root directory
         """
-        self.__path = canonicalize_path(mkdtemp(dir=directory))
+        self.__path = enforce_dir(canonicalize_path(mkdtemp(dir=directory)))
 
     def __enter__(self):
         return self
@@ -89,7 +103,7 @@ class TempFile:
                                  dir=None if (directory is None)
                                  else str(directory))
         os.close(handle)
-        self.__path = _enforce_file(canonicalize_path(path))
+        self.__path = enforce_file(canonicalize_path(path))
 
     def __enter__(self):
         return self
@@ -127,7 +141,7 @@ def file_create_or_fail(path: str) -> str:
     except Exception as err:
         raise ValueError("Error when trying to create  file'"
                          + path + "'.") from err
-    return _enforce_file(path)
+    return enforce_file(path)
 
 
 def file_create_or_truncate(path: str) -> str:
@@ -146,7 +160,7 @@ def file_create_or_truncate(path: str) -> str:
     except Exception as err:
         raise ValueError("Error when trying to create  file'"
                          + path + "'.") from err
-    return _enforce_file(path)
+    return enforce_file(path)
 
 
 def file_ensure_exists(path: str) -> Tuple[str, bool]:
@@ -169,4 +183,4 @@ def file_ensure_exists(path: str) -> Tuple[str, bool]:
     except Exception as err:
         raise ValueError("Error when trying to create  file'"
                          + path + "'.") from err
-    return _enforce_file(path), existed
+    return enforce_file(path), existed

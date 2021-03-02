@@ -3,10 +3,10 @@ from time import monotonic_ns
 from typing import Optional, Union
 
 from moptipy.api._process_no_ss import _ProcessNoSS
-from moptipy.api.component import Component
+from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective
-from moptipy.api.encoding import Encoding
-from moptipy.api.space import Space
+from moptipy.api.encoding import Encoding, _check_encoding
+from moptipy.api.space import Space, _check_space
 from moptipy.utils.logger import KeyValueSection, Logger
 from moptipy.utils import logging
 
@@ -15,7 +15,7 @@ class _ProcessSS(_ProcessNoSS):
     def __init__(self,
                  solution_space: Space,
                  objective: Objective,
-                 algorithm: Component,
+                 algorithm: Algorithm,
                  log_file: str = None,
                  search_space: Space = None,
                  encoding: Encoding = None,
@@ -33,18 +33,8 @@ class _ProcessSS(_ProcessNoSS):
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
 
-        if not isinstance(search_space, Space):
-            raise ValueError("search_space should be instance of Space, "
-                             "but is "
-                             + str(type(search_space)) + ".")
-        self._search_space = search_space
-
-        if not isinstance(encoding, Encoding):
-            raise ValueError("encoding should be instance of "
-                             "Encoding, but is "
-                             + str(type(encoding)) + ".")
-        self._encoding = encoding
-
+        self._search_space = _check_space(search_space)
+        self._encoding = _check_encoding(encoding)
         self._current_y = self._solution_space.create()
         self._current_best_x = self._search_space.create()
 

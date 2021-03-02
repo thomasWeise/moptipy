@@ -103,3 +103,21 @@ class CallableObjective(_CallableComponent, Objective):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_F_LOWER_BOUND, self.__lower_bound)
         logger.key_value(logging.KEY_F_UPPER_BOUND, self.__upper_bound)
+
+
+def _check_objective(objective: Objective) -> Objective:
+    """
+    An internal method used for checking whether an object is a valid instance
+    of :class:`Objective`
+    :param objective: the object
+    :return: the object
+    :raises ValueError: if `objective` is not an instance of
+    :class:`Objective`
+    """
+    if objective is None:
+        raise ValueError("An objective function must not be None.")
+    if not isinstance(objective, Objective):
+        raise ValueError(
+            "An objective function must be instance of Objective, but is "
+            + str(type(objective)) + ".")
+    return objective
