@@ -1,7 +1,7 @@
 from typing import Callable, Optional
-
 from moptipy.api.space import Space
-from moptipy.api.encoding import Encoding
+# noinspection PyProtectedMember
+from moptipy.api.encoding import Encoding, _check_encoding
 from moptipy.tests.component import check_component
 
 
@@ -21,6 +21,7 @@ def check_encoding(encoding: Encoding = None,
     if not isinstance(encoding, Encoding):
         raise ValueError("Expected to receive an instance of Encoding, but "
                          "got a '" + str(type(encoding)) + "'.")
+    _check_encoding(encoding)
     check_component(component=encoding)
 
     if (search_space is None) \

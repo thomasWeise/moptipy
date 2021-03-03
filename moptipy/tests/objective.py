@@ -1,6 +1,6 @@
 from typing import Callable, Optional
-
-from moptipy.api.objective import Objective
+# noinspection PyProtectedMember
+from moptipy.api.objective import Objective, _check_objective
 from moptipy.tests.component import check_component
 
 
@@ -16,6 +16,7 @@ def check_objective(objective: Objective = None,
     if not isinstance(objective, Objective):
         raise ValueError("Expected to receive an instance of Objective, but "
                          "got a '" + str(type(objective)) + "'.")
+    _check_objective(objective)
     check_component(component=objective)
 
     lower = objective.lower_bound()

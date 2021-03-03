@@ -1,6 +1,6 @@
 from typing import Callable, Optional
-
-from moptipy.api.space import Space
+# noinspection PyProtectedMember
+from moptipy.api.space import Space, _check_space
 from moptipy.tests.component import check_component
 
 
@@ -16,6 +16,7 @@ def check_space(space: Space = None,
     if not isinstance(space, Space):
         raise ValueError("Expected to receive an instance of Space, but "
                          "got a '" + str(type(space)) + "'.")
+    _check_space(space)
     check_component(component=space)
 
     x1 = space.create()

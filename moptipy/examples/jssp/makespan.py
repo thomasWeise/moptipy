@@ -14,7 +14,7 @@ class Makespan(Objective):
         self.__instance = instance
 
     def evaluate(self, x: Gantt) -> int:
-        return x.makespan
+        return int(x.makespan)
 
     def lower_bound(self) -> int:
         return self.__instance.makespan_lower_bound

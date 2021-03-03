@@ -10,8 +10,10 @@ from moptipy.examples.jssp.instance import JSSPInstance
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.examples.jssp.makespan import Makespan
 
 __all__ = ("Gantt",
            "GanttSpace",
            "JSSPInstance",
+           "Makespan",
            "OperationBasedEncoding")

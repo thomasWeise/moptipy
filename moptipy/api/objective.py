@@ -117,7 +117,7 @@ def _check_objective(objective: Objective) -> Objective:
     if objective is None:
         raise ValueError("An objective function must not be None.")
     if not isinstance(objective, Objective):
-        raise ValueError(
+        raise TypeError(
             "An objective function must be instance of Objective, but is "
             + str(type(objective)) + ".")
     return objective

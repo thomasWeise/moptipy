@@ -38,7 +38,7 @@ def _check_encoding(encoding: Optional[Encoding],
             return None
         raise ValueError("This encoding must not be None.")
     if not isinstance(encoding, Encoding):
-        raise ValueError(
+        raise TypeError(
             "An encoding must be instance of Encoding, but is "
             + str(type(encoding)) + ".")
     return encoding

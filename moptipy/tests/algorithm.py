@@ -1,10 +1,9 @@
 from math import isfinite
 from typing import Callable, Optional
-
 import numpy.random as rnd
-
 from moptipy.api.experiment import Experiment
-from moptipy.api.algorithm import Algorithm
+# noinspection PyProtectedMember
+from moptipy.api.algorithm import Algorithm, _check_algorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
@@ -38,6 +37,9 @@ def check_algorithm(algorithm: Algorithm = None,
     if not isinstance(algorithm, Algorithm):
         raise ValueError("Expected to receive an instance of Space, but "
                          "got a '" + str(type(algorithm)) + "'.")
+
+    _check_algorithm(algorithm)
+
     check_component(component=algorithm)
     check_space(solution_space, make_valid=None)
     check_objective(objective, create_valid=None)

@@ -26,6 +26,7 @@ from moptipy.api.objective import CallableObjective, Objective
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.api.space import Space
+from moptipy.api.experiment import Experiment, run_experiment
 
 __all__ = ("Algorithm",
            "Algorithm0",
@@ -35,9 +36,11 @@ __all__ = ("Algorithm",
            "CallableObjective",
            "Component",
            "Encoding",
+           "Experiment",
            "Objective",
            "Op0",
            "Op1",
            "Op2",
            "Process",
+           "run_experiment",
            "Space")

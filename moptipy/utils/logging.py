@@ -39,7 +39,7 @@ KEY_BBP_MAX_FES: Final = "maxFEs"
 #: the maximum runtime in milliseconds of a black-box process
 KEY_BBP_MAX_TIME_MILLIS: Final = "maxTimeMillis"
 #: the goal objective value of a black-box process
-KEY_BBP_GOAL_F: Final = "maxTimeMillis"
+KEY_BBP_GOAL_F: Final = "goalF"
 #: the random seed
 KEY_BBP_RAND_SEED: Final = "randSeed"
 #: the random generator type

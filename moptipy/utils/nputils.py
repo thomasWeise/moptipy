@@ -1,5 +1,5 @@
 from hashlib import sha512
-from typing import Final, Optional, Tuple
+from typing import Final, Optional, List
 
 import numpy as np
 from numpy.random import default_rng, Generator, PCG64
@@ -140,14 +140,14 @@ def rand_generator(seed: int) -> Generator:
 
 
 def rand_seeds_from_str(string: str,
-                        n_seeds: int) -> Tuple[int]:
+                        n_seeds: int) -> List[int]:
     """
     In a reproducible fashion, generate `n_seeds` unique random number
     seeds from a `string`
     :param str string: the string
     :param int n_seeds: the number of seeds
     :return: a tuple of random seeds
-    :rtype: Tuple[int]
+    :rtype: List[int]
     """
     if not isinstance(string, str):
         raise ValueError(
@@ -182,7 +182,6 @@ def rand_seeds_from_str(string: str,
 
     result = list(generated)
     result.sort()
-    result = tuple(result)
 
     if len(result) != n_seeds:
         raise ValueError("Failed to generate " + str(n_seeds)
