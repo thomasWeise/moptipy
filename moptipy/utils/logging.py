@@ -24,6 +24,30 @@ KEY_VALUE_SEPARATOR: Final = ": "
 #: the hexadecimal version of a value
 KEY_HEX_VALUE: Final = "(hex)"
 
+#: the progress csv section
+SECTION_PROGRESS: Final = "PROGRESS"
+#: the FEs column for the progress CSV
+PROGRESS_FES: Final = "fes"
+#: the time millis column for the progress CSV
+PROGRESS_TIME_MILLIS: Final = "timeMS"
+#: the current objective value column for the progress CSV
+PROGRESS_CURRENT_F: Final = "f"
+
+#: the end state
+SECTION_FINAL_STATE: Final = "STATE"
+#: the total number of consumed FEs
+KEY_ES_TOTAL_FES: Final = "totalFEs"
+#: the total number of consumed milliseconds
+KEY_ES_TOTAL_TIME_MILLIS: Final = "totalTimeMillis"
+#: the best encountered objective value
+KEY_ES_BEST_F: Final = "bestF"
+#: the FE when the best objective value was reached
+KEY_ES_LAST_IMPROVEMENT_FE: Final = "lastImprovementFE"
+#: the time in milliseconds when the best objective value was reached
+KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS: Final = "lastImprovementTimeMillis"
+
+#: the setup section
+SECTION_SETUP: Final = "SETUP"
 #: the default log key for names of objects
 KEY_NAME: Final = "name"
 #: the type of an object
@@ -44,16 +68,6 @@ KEY_BBP_GOAL_F: Final = "goalF"
 KEY_BBP_RAND_SEED: Final = "randSeed"
 #: the random generator type
 KEY_BBP_RAND_GENERATOR_TYPE: Final = "randGenType"
-#: the total number of consumed FEs
-KEY_ES_TOTAL_FES: Final = "totalFEs"
-#: the total number of consumed milliseconds
-KEY_ES_TOTAL_TIME_MILLIS: Final = "totalTimeMillis"
-#: the best encountered objective value
-KEY_ES_BEST_F: Final = "bestF"
-#: the FE when the best objective value was reached
-KEY_ES_LAST_IMPROVEMENT_FE: Final = "lastImprovementFE"
-#: the time in milliseconds when the best objective value was reached
-KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS: Final = "lastImprovementTimeMillis"
 #: the number of decision variables
 KEY_SPACE_NUM_VARS: Final = "nvars"
 
@@ -74,23 +88,45 @@ SCOPE_OP1: Final = "op1"
 #: the scope of the binary search operator
 SCOPE_OP2: Final = "op2"
 
+#: the automatically generated system info section
+SECTION_SYS_INFO: Final = "SYS_INFO"
+#: information about the current session
+SCOPE_SESSION: Final = "session"
+#: the time when the session was started
+KEY_SESSION_START: Final = "start"
+#: the versions scope in the sys-info section
+SCOPE_VERSIONS: Final = "version"
+#: the moptipy version key
+KEY_MOPTIPY_VERSION: Final = "moptipy"
+#: the numpy version key
+KEY_NUMPY_VERSION: Final = "numpy"
+#: the hardware scope in the sys-info section
+SCOPE_HARDWARE: Final = "hardware"
+#: the number of CPUs
+KEY_HW_N_CPUS: Final = "n_cpus"
+#: the key for the byte order
+KEY_HW_BYTE_ORDER: Final = "byteorder"
+#: the key for the machine
+KEY_HW_MACHINE: Final = "machine"
+#: the key for the cpu name
+KEY_HW_CPU_NAME: Final = "cpu"
+#: the operating system in the sys-info section
+SCOPE_OS: Final = "os"
+#: the operating system name
+KEY_OS_NAME: Final = "name"
+#: the operating system version
+KEY_OS_VERSION: Final = "version"
+#: the python scope in the sys-info section
+SCOPE_PYTHON: Final = "python"
+#: the python version
+KEY_PYTHON_VERSION: Final = "version"
+#: the python implementation
+KEY_PYTHON_IMPLEMENTATION: Final = "implementation"
+
 #: the resulting point in the solution space
 SECTION_RESULT_Y: Final = "RESULT_Y"
 #: the resulting point in the search space
 SECTION_RESULT_X: Final = "RESULT_X"
-#: the end state
-SECTION_FINAL_STATE: Final = "STATE"
-#: the setup
-SECTION_SETUP: Final = "SETUP"
-#: the progress csv section
-SECTION_PROGRESS: Final = "PROGRESS"
-
-#: the FEs column for the progress CSV
-PROGRESS_FES: Final = "fes"
-#: the time millis column for the progress CSV
-PROGRESS_TIME_MILLIS: Final = "timeMS"
-#: the current objective value column for the progress CSV
-PROGRESS_CURRENT_F: Final = "f"
 
 
 def __recursive_replace(find: str, replace: str, src: str) -> str:

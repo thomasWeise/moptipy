@@ -9,9 +9,10 @@ from moptipy.api.objective import Objective, _check_objective
 from moptipy.api.space import Space, _check_space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
-from moptipy.utils.nputils import rand_generator, rand_seed_generate,\
+from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
 from moptipy.api.algorithm import Algorithm, _check_algorithm
+from moptipy.utils.sys_info import log_sys_info
 
 
 class _ProcessNoSS(_ProcessBase):
@@ -147,6 +148,8 @@ class _ProcessNoSS(_ProcessBase):
 
         with logger.key_values(logging.SECTION_SETUP) as kv:
             self.log_parameters_to(kv)
+
+        log_sys_info(logger)
 
         if self._has_current_best:
             with logger.text(logging.SECTION_RESULT_Y) as txt:
