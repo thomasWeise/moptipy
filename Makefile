@@ -43,10 +43,7 @@ static_analysis: init
     echo "Done with pylint, now trying mypy." &&\
     mypy moptipy --no-strict-optional &&\
     echo "Done with mypy, now doing pyflakes." &&\
-    if   [ -x /usr/bin/pyflakes  ]; then echo "Running pyflakes."  && pyflakes . ; \
-    elif [ -x /usr/bin/pyflakes3 ]; then echo "Running pyflakes3." && pyflakes3 . ; \
-    else echo "What a pity: pyflakes not installed!" ; \
-	fi &&\
+    python3 -m pyflakes . &&\
     echo "Done applying flake8, pylint, and mypy - all static checks passed."
 
 # We use sphinx to generate the documentation.
