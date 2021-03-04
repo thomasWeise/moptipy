@@ -37,13 +37,16 @@ test: init
 # Perform static code analysis.
 static_analysis: init
 	echo "Runnning static code analysis, starting with flake8." && \
-    flake8 . --ignore=F401,W503 && \
+    flake8 . --ignore=W503 && \
     echo "Finished running flake8, now applying pylint to package." &&\
     pylint moptipy --disable=C0103,C0325,R0201,R0801,R0901,R0902,R0903,R0912,R0913,R0914,R0915,R1728,W0212,W0703 &&\
     echo "Done with pylint, now trying mypy." &&\
     mypy moptipy --no-strict-optional &&\
     echo "Done with mypy, now doing pyflakes." &&\
-    pyflakes3 . && \
+    if   [ -x /usr/bin/pyflakes  ]; then echo "Running pyflakes."  && pyflakes . ; \
+    elif [ -x /usr/bin/pyflakes3 ]; then echo "Running pyflakes3." && pyflakes3 . ; \
+    else echo "pyflakes not installed!" ; exit 1 ; \
+	fi &&\
     echo "Done applying flake8, pylint, and mypy - all static checks passed."
 
 # We use sphinx to generate the documentation.
