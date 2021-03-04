@@ -16,6 +16,9 @@ It also permits logging of the algorithm progress or even the change of
 dynamic parameters.
 """
 
+from typing import Final, Tuple
+
+import moptipy.version
 from moptipy.api.algorithm import Algorithm, Algorithm0, Algorithm1, \
     Algorithm2, CallableAlgorithm
 from moptipy.api.component import Component
@@ -25,22 +28,23 @@ from moptipy.api.objective import CallableObjective, Objective
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.api.space import Space
-# noinspection PyUnresolvedReferences
-from moptipy.version import __version__
 
-__all__ = ("Algorithm",
-           "Algorithm0",
-           "Algorithm1",
-           "Algorithm2",
-           "CallableAlgorithm",
-           "CallableObjective",
-           "Component",
-           "Encoding",
-           "Experiment",
-           "Objective",
-           "Op0",
-           "Op1",
-           "Op2",
-           "Process",
-           "run_experiment",
-           "Space")
+__version__: Final[str] = moptipy.version.__version__
+
+__all__: Final[Tuple[str, ...]] = (
+    "Algorithm",
+    "Algorithm0",
+    "Algorithm1",
+    "Algorithm2",
+    "CallableAlgorithm",
+    "CallableObjective",
+    "Component",
+    "Encoding",
+    "Experiment",
+    "Objective",
+    "Op0",
+    "Op1",
+    "Op2",
+    "Process",
+    "run_experiment",
+    "Space")

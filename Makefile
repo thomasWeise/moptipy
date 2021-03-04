@@ -42,6 +42,8 @@ static_analysis: init
     pylint moptipy --disable=C0103,C0325,R0201,R0801,R0901,R0902,R0903,R0912,R0913,R0914,R0915,R1728,W0212,W0703 &&\
     echo "Done with pylint, now trying mypy." &&\
     mypy moptipy --no-strict-optional &&\
+    echo "Done with mypy, now doing pyflakes." &&\
+    pyflakes3 . && \
     echo "Done applying flake8, pylint, and mypy - all static checks passed."
 
 # We use sphinx to generate the documentation.

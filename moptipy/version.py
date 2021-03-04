@@ -1,2 +1,4 @@
 """An internal file with the version of the moptipy package."""
-__version__ = "0.8.0"
+from typing import Final
+
+__version__: Final[str] = "0.8.0"

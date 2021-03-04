@@ -10,4 +10,8 @@ It provides several sub-packages:
 * :py:mod:`moptipy.utils` utility classes for, e.g., logging
   and naming
 """
-from moptipy.version import __version__
+from typing import Final
+
+import moptipy.version
+
+__version__: Final[str] = moptipy.version.__version__
