@@ -1,11 +1,13 @@
+"""Functions that can be used to test objective functions."""
 from typing import Callable, Optional
+
 # noinspection PyProtectedMember
 from moptipy.api.objective import Objective, _check_objective
 from moptipy.tests.component import check_component
 
 
-def check_objective(objective: Objective = None,
-                    create_valid: Optional[Callable] = None):
+def check_objective(objective: Objective,
+                    create_valid: Optional[Callable] = None) -> None:
     """
     Check whether an object is a moptipy objective function.
     :param objective: the objective function to test
@@ -20,12 +22,12 @@ def check_objective(objective: Objective = None,
     check_component(component=objective)
 
     lower = objective.lower_bound()
-    if not (isinstance(lower, int) or isinstance(lower, float)):
+    if not (isinstance(lower, (int, float))):
         raise ValueError("lower_bound() must return an int or float, but "
                          "returned a '" + str(type(lower)) + "'.")
 
     upper = objective.upper_bound()
-    if not (isinstance(upper, int) or isinstance(upper, float)):
+    if not (isinstance(upper, (int, float))):
         raise ValueError("upper_bound() must return an int or float, but "
                          "returned a '" + str(type(upper)) + "'.")
 
@@ -42,7 +44,7 @@ def check_objective(objective: Objective = None,
         raise ValueError("create_valid() produced None.")
 
     res = objective.evaluate(x)
-    if not (isinstance(res, int) or isinstance(res, float)):
+    if not (isinstance(res, (int, float))):
         raise ValueError("evaluate(x) must return an int or float, but "
                          "returned a '" + str(type(res)) + "'.")
 

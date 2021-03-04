@@ -1,3 +1,4 @@
+"""Test the Process API."""
 from math import sin, log2
 from os.path import isfile, getsize
 

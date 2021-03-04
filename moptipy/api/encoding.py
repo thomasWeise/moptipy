@@ -1,6 +1,8 @@
+"""This module provides the base class for implementing encodings."""
 from abc import abstractmethod
-from moptipy.api.component import Component
 from typing import Optional
+
+from moptipy.api.component import Component
 
 
 class Encoding(Component):
@@ -10,7 +12,7 @@ class Encoding(Component):
     """
 
     @abstractmethod
-    def map(self, x, y):
+    def map(self, x, y) -> None:
         """
         Map a point `x` from the search space to a point `y`
         in the solution space.
@@ -30,13 +32,13 @@ def _check_encoding(encoding: Optional[Encoding],
     :param encoding: the object
     :param bool none_is_ok: is it ok if `None` is passed in?
     :return: the object
-    :raises ValueError: if `encoding` is not an instance of
+    :raises TypeError: if `encoding` is not an instance of
     :class:`Encoding`
     """
     if encoding is None:
         if none_is_ok:
             return None
-        raise ValueError("This encoding must not be None.")
+        raise TypeError("This encoding must not be None.")
     if not isinstance(encoding, Encoding):
         raise TypeError(
             "An encoding must be instance of Encoding, but is "

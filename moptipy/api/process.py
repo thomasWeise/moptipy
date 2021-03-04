@@ -1,3 +1,8 @@
+"""
+Processes are the basic abstraction of the information about the search and
+its current state as handed to the optimization algorithm and, after the
+algorithm has finished, to the user.
+"""
 from abc import abstractmethod
 from typing import Optional, Union
 
@@ -9,14 +14,14 @@ from moptipy.api.space import Space
 
 class Process(Space, Objective):
     """
-    A `Process` provides an optimization algorithm access to a problem
+    A :class:`Process` provides an optimization algorithm access to a problem
     as well as information about the best-so-far results and how much
     runtime was consumed.
     It also lets the user access the final result of optimization and
     can be implemented to write log files.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._terminated = False
         self._knows_that_terminated = False
 
@@ -115,7 +120,7 @@ class Process(Space, Objective):
         raise NotImplementedError
 
     @abstractmethod
-    def get_copy_of_current_best_x(self, x):
+    def get_copy_of_current_best_x(self, x) -> None:
         """
         Get a copy of the current best point in the search space.
 
@@ -124,7 +129,7 @@ class Process(Space, Objective):
         raise NotImplementedError
 
     @abstractmethod
-    def get_copy_of_current_best_y(self, y):
+    def get_copy_of_current_best_y(self, y) -> None:
         """
         Get a copy of the current best point in the solution space.
 
@@ -145,24 +150,23 @@ class Process(Space, Objective):
         raise NotImplementedError
 
     @abstractmethod
-    def log_state(self, key: str, value: Union[bool, int, float]):
+    def log_state(self, key: str, value: Union[bool, int, float]) -> None:
         """
         Log a dynamic state value for a specific key.
 
         :param str key: the key which should be logged
         :param Union[bool, int, float] value: the value to be logged
         """
-        pass
 
-    def get_name(self):
+    def get_name(self) -> str:
         return "Process"
 
-    def terminate(self):
+    def terminate(self) -> None:
         """ Terminate this process. """
         self._terminated = True
 
-    def __enter__(self):
+    def __enter__(self) -> 'Process':
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
         self.terminate()

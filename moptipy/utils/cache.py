@@ -1,4 +1,11 @@
-def is_new():
+"""
+A factory for functions that check whether an argument has been passed to them
+for the first time.
+"""
+from typing import Any, Callable, Dict
+
+
+def is_new() -> Callable:
     """
     Creates a function which returns `True` only the first time it receives a
     given argument and `False` all subsequent times.
@@ -6,7 +13,7 @@ def is_new():
     :return: a function `is_new(xx)` that will return `True` the first time it
     encounters any value `xx` and `False` for all values it has already seen
     """
-    s = {}
+    s: Dict[Any, int] = {}
     setdefault = s.setdefault
     n = 0
 

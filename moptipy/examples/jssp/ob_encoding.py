@@ -1,7 +1,12 @@
+"""
+The operation-based encoding for JSSPs represents solutions as permutations
+with repetitions that can be translated to :class:`Gantt` charts.
+"""
+import numpy as np
+
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import JSSPInstance
-import numpy as np
 from moptipy.utils.nputils import int_range_to_dtype
 
 
@@ -22,7 +27,7 @@ class OperationBasedEncoding(Encoding):
     and so on.
     """
 
-    def __init__(self, instance: JSSPInstance):
+    def __init__(self, instance: JSSPInstance) -> None:
         """
         Instantiate the operation based encoding.
         :param JSSPInstance instance: the JSSP instance
@@ -38,7 +43,7 @@ class OperationBasedEncoding(Encoding):
                                   int_range_to_dtype(0, instance.jobs))
         self.__matrix = instance.matrix
 
-    def map(self, x: np.ndarray, y: Gantt):
+    def map(self, x: np.ndarray, y: Gantt) -> None:
         machine_time = self.__machine_time
         machine_time.fill(0)
         job_time = self.__job_time
@@ -60,7 +65,7 @@ class OperationBasedEncoding(Encoding):
             machine_time[machine] = end
             job_time[job] = end
 
-        y.makespan = job_time.max()
+        y.makespan = int(job_time.max())
 
     def get_name(self) -> str:
         return "operation_based_encoding"

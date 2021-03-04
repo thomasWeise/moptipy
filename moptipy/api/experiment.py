@@ -1,15 +1,17 @@
-import os.path
-from os import makedirs
+"""The experiment execution API."""
 import multiprocessing as mp
-from typing import Iterable, Union, Callable, Tuple, List
-from typing import Optional
+import os.path
 from datetime import datetime
+from math import isfinite
+from os import makedirs
+from typing import Iterable, Union, Callable, Tuple, List, ContextManager
+from typing import Optional
 
 from numpy.random import default_rng
 
-from math import isfinite
 from moptipy.api._process_base import _check_max_fes, _check_max_time_millis, \
     _check_goal_f
+from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api._process_no_ss_log import _ProcessNoSSLog
 from moptipy.api._process_ss import _ProcessSS
@@ -47,22 +49,22 @@ class Experiment:
     then to execute it.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.__algorithm = None
-        self.__solution_space = None
-        self.__objective = None
-        self.__search_space = None
-        self.__encoding = None
-        self.__rand_seed = None
-        self.__max_fes = None
-        self.__max_time_millis = None
-        self.__goal_f = None
-        self.__log_file = None
-        self.__log_improvements = False
-        self.__log_all_fes = False
+        self.__algorithm: Optional[Algorithm] = None
+        self.__solution_space: Optional[Space] = None
+        self.__objective: Optional[Objective] = None
+        self.__search_space: Optional[Space] = None
+        self.__encoding: Optional[Encoding] = None
+        self.__rand_seed: Optional[int] = None
+        self.__max_fes: Optional[int] = None
+        self.__max_time_millis: Optional[int] = None
+        self.__goal_f: Union[None, int, float] = None
+        self.__log_file: Optional[str] = None
+        self.__log_improvements: bool = False
+        self.__log_all_fes: bool = False
 
-    def set_algorithm(self, algorithm: Algorithm):
+    def set_algorithm(self, algorithm: Algorithm) -> None:
         """
         Set the algorithm to be used for this experiment.
         :param Algorithm algorithm: the algorithm
@@ -78,7 +80,7 @@ class Experiment:
         """
         return _check_algorithm(self.__algorithm)
 
-    def set_solution_space(self, solution_space: Space):
+    def set_solution_space(self, solution_space: Space) -> None:
         """
         Set the solution space to be used for this experiment, i.e., the space
         managing the data structure holding the candidate solutions.
@@ -86,7 +88,7 @@ class Experiment:
         """
         self.__solution_space = _check_space(solution_space)
 
-    def set_objective(self, objective: Objective):
+    def set_objective(self, objective: Objective) -> None:
         """
         Set the objective function to be used for this experiment, i.e., the
         function rating the quality of candidate solutions.
@@ -94,7 +96,7 @@ class Experiment:
         """
         self.__objective = _check_objective(objective)
 
-    def set_search_space(self, search_space: Optional[Space]):
+    def set_search_space(self, search_space: Optional[Space]) -> None:
         """
         Set the search space to be used for this experiment, i.e., the
         space from which the algorithm samples points.
@@ -103,7 +105,7 @@ class Experiment:
         """
         self.__search_space = _check_space(search_space, none_is_ok=True)
 
-    def set_encoding(self, encoding: Optional[Encoding]):
+    def set_encoding(self, encoding: Optional[Encoding]) -> None:
         """
         Set the encoding to be used for this experiment, i.e., the function
         translating from the search_space to the solution_space.
@@ -112,7 +114,7 @@ class Experiment:
         """
         self.__encoding = _check_encoding(encoding, none_is_ok=True)
 
-    def set_rand_seed(self, rand_seed: Optional[int]):
+    def set_rand_seed(self, rand_seed: Optional[int]) -> None:
         """
         Set the random seed to be used for initializing the random number
         generator in the experiment.
@@ -122,7 +124,7 @@ class Experiment:
         self.__rand_seed = None if rand_seed is None \
             else rand_seed_check(rand_seed)
 
-    def set_max_fes(self, max_fes: int):
+    def set_max_fes(self, max_fes: int) -> None:
         """
         Set the maximum FEs, i.e., the number of candidate solutions an
         optimization is allowed to evaluate. If this method is called
@@ -135,7 +137,7 @@ class Experiment:
                 return
         self.__max_fes = max_fes
 
-    def set_max_time_millis(self, max_time_millis: int):
+    def set_max_time_millis(self, max_time_millis: int) -> None:
         """
         Set the maximum time in milliseconds that the process is allowed to
         run. If this method is called multiple times, the shortest time is
@@ -148,7 +150,7 @@ class Experiment:
                 return
         self.__max_time_millis = max_time_millis
 
-    def set_goal_f(self, goal_f: Union[int, float]):
+    def set_goal_f(self, goal_f: Union[int, float]) -> None:
         """
         Set the goal objective value after which the process can stop. If this
         method is called multiple times, then the largest value is retained.
@@ -160,7 +162,7 @@ class Experiment:
                 return
         self.__goal_f = goal_f
 
-    def set_log_file(self, log_file: str):
+    def set_log_file(self, log_file: str) -> None:
         """
         Set the log file to write to. This method can be called arbitrarily
         often.
@@ -168,7 +170,7 @@ class Experiment:
         """
         self.__log_file = _check_log_file(log_file, True)
 
-    def set_log_improvements(self, log_improvements: bool = True):
+    def set_log_improvements(self, log_improvements: bool = True) -> None:
         """
         Set whether improvements should be logged
         :param bool log_improvements: if improvements should be logged?
@@ -178,7 +180,7 @@ class Experiment:
                              + str(type(log_improvements)) + ".")
         self.__log_improvements = log_improvements
 
-    def set_log_all_fes(self, log_all_fes: bool = True):
+    def set_log_all_fes(self, log_all_fes: bool = True) -> None:
         """
         Set whether all FEs should be logged
         :param bool log_all_fes: if all FEs should be logged?
@@ -228,6 +230,7 @@ class Experiment:
         else:
             log_file = file_create_or_truncate(log_file)
 
+        process: _ProcessBase
         if search_space is None:
             if log_improvements or log_all_fes:
                 process = _ProcessNoSSLog(solution_space=solution_space,
@@ -288,24 +291,25 @@ def __ensure_dir(dir_name: str) -> str:
 
 
 class __DummyLock:
-    def __enter__(self):
+    def __enter__(self) -> '__DummyLock':
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
         pass
 
 
-def __log(string: str, note: str, stdio_lock: Union[mp.Lock, __DummyLock]):
+def __log(string: str, note: str,
+          stdio_lock: ContextManager) -> None:
     text = str(datetime.now()) + note + ": " + string
     with stdio_lock:
         print(text)
 
 
 def __run_experiment(base_dir: str,
-                     experiments: List[Tuple],
-                     n_runs: Tuple[int],
-                     file_lock: Union[mp.Lock, __DummyLock],
-                     stdio_lock: Union[mp.Lock, __DummyLock],
+                     experiments: List[Tuple[Callable, Callable]],
+                     n_runs: Tuple[int, ...],
+                     file_lock: ContextManager,
+                     stdio_lock: ContextManager,
                      cache,
                      note: str) -> None:
     random = default_rng()
@@ -385,18 +389,18 @@ def run_experiment(base_dir: str,
     if len(instances) <= 0:
         raise ValueError("Instance enumeration is empty.")
     for instance in instances:
-        if not isinstance(instance, Callable):
-            raise ValueError(
-                "All instances must be Callables, but encountered a "
+        if not callable(instance):
+            raise TypeError(
+                "All instances must be callables, but encountered a "
                 + str(type(instance)) + ".")
 
     setups = list(setups)
     if len(setups) <= 0:
         raise ValueError("Setup enumeration is empty.")
     for setup in setups:
-        if not isinstance(setup, Callable):
-            raise ValueError("All setups must be Callables, but encountered a "
-                             + str(type(setup)) + ".")
+        if not callable(setup):
+            raise TypeError("All setups must be callables, but encountered a "
+                            + str(type(setup)) + ".")
 
     experiments = [(ii, ss) for ii in instances for ss in setups]
 
@@ -411,20 +415,22 @@ def run_experiment(base_dir: str,
     else:
         n_runs = tuple(n_runs)
     last = 0
-    for r in n_runs:
-        if r is None:
+    for run in n_runs:
+        if run is None:
             raise ValueError("n_runs must not be None.")
-        if r <= last:
+        if run <= last:
             raise ValueError("n_runs sequence must not be increasing and "
-                             "positive, we cannot have " + str(r)
+                             "positive, we cannot have " + str(run)
                              + " follow " + str(last) + ".")
-        last = r
+        last = run
 
     cache = is_new()
     base_dir = __ensure_dir(base_dir)
 
+    stdio_lock: ContextManager
+
     if n_threads > 1:
-        file_lock = mp.Lock()
+        file_lock: ContextManager = mp.Lock()
         stdio_lock = mp.Lock()
         __log("starting experiment with " + str(n_threads) + " threads.",
               "", stdio_lock)

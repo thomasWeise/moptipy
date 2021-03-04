@@ -1,11 +1,13 @@
+"""Functions that can be used to test spaces."""
 from typing import Callable, Optional
+
 # noinspection PyProtectedMember
 from moptipy.api.space import Space, _check_space
 from moptipy.tests.component import check_component
 
 
-def check_space(space: Space = None,
-                make_valid: Optional[Callable] = lambda x: x):
+def check_space(space: Space,
+                make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy space.
     :param space: the space to test
@@ -32,7 +34,7 @@ def check_space(space: Space = None,
                          "instances when invoked twice, but returned the "
                          "same object.")
 
-    if type(x1) != type(x2):
+    if not (type(x1) is type(x2)):
         raise ValueError("The create() method must produce instances of "
                          "the same type, but got '" + str(type(x1))
                          + "' and '" + str(type(x2)) + "'.")

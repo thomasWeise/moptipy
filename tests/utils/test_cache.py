@@ -1,3 +1,4 @@
+"""Test the simple cache."""
 from moptipy.utils.cache import is_new
 
 

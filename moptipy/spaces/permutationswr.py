@@ -1,8 +1,13 @@
-from moptipy.spaces.intspace import IntSpace
-from typing import Final
-from moptipy.utils.logger import KeyValueSection
-import numpy as np
+"""
+An implementation of a search space for permutations with repetitions.
+"""
 from math import factorial
+from typing import Final
+
+import numpy as np
+
+from moptipy.spaces.intspace import IntSpace
+from moptipy.utils.logger import KeyValueSection
 
 
 class PermutationsWithRepetitions(IntSpace):
@@ -14,7 +19,7 @@ class PermutationsWithRepetitions(IntSpace):
     #: the number of times each value must occur
     KEY_REPETITIONS: Final = "repetitions"
 
-    def __init__(self, n: int, repetitions: int = 1):
+    def __init__(self, n: int, repetitions: int = 1) -> None:
         super().__init__(dimension=n * repetitions,
                          min_value=0,
                          max_value=n - 1)
@@ -38,7 +43,7 @@ class PermutationsWithRepetitions(IntSpace):
         self.__blueprint = super().create()
         self.__blueprint[0:self.dimension] = list(range(n)) * repetitions
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(PermutationsWithRepetitions.KEY_REPETITIONS,
                          self.repetitions)
@@ -62,7 +67,7 @@ class PermutationsWithRepetitions(IntSpace):
         return factorial(self.n * self.repetitions) // \
             (factorial(self.repetitions) ** self.n)
 
-    def validate(self, x: np.ndarray):
+    def validate(self, x: np.ndarray) -> None:
         super().validate(x)
         counts = np.zeros(self.n, np.dtype(np.int32))
         for xx in x:

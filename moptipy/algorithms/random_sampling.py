@@ -1,5 +1,6 @@
-from moptipy.api.process import Process
+"""The random sampling algorithm."""
 from moptipy.api.algorithm import Algorithm0
+from moptipy.api.process import Process
 
 
 class RandomSampling(Algorithm0):

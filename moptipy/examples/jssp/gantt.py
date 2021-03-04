@@ -1,6 +1,10 @@
+"""
+Here we provide an implementation for representing Gantt charts as objects.
+"""
 import numpy as np
-from moptipy.utils import nputils
+
 from moptipy.examples.jssp.instance import JSSPInstance
+from moptipy.utils import nputils
 
 
 class Gantt:
@@ -12,14 +16,14 @@ class Gantt:
     the job on the machine.
     """
 
-    def __init__(self, instance: JSSPInstance):
+    def __init__(self, instance: JSSPInstance) -> None:
         """
         Create a Gantt chart record to hold a solution for a JSSP instance.
         :param JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
-            ValueError("Must provide valid JSSP instance, but passed in a '"
-                       + str(type(instance)) + "'.")
+            TypeError("Must provide valid JSSP instance, but passed in a '"
+                      + str(type(instance)) + "'.")
         self.instance = instance
         """The JSSP Instance to which this Gantt record applies."""
         self.times = np.zeros(
@@ -32,10 +36,10 @@ class Gantt:
         self.makespan = 0
         """The makespan of the chart."""
 
-    def compute_statistics(self):
+    def compute_statistics(self) -> None:
         """
         Re-compute all statistics of the Gantt chart.
         This currently only includes the makespan, which simply is the largest
         recorded number in `self.times`.
         """
-        self.makespan = self.times.max()
+        self.makespan = int(self.times.max())

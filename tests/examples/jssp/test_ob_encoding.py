@@ -1,9 +1,11 @@
+"""Test the operation-based encoding for the JSSP."""
+import numpy.random as rnd
+
+from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import JSSPInstance
 # from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
-import numpy.random as rnd
 from moptipy.tests.encoding import check_encoding
 from moptipy.tests.space import check_space
 

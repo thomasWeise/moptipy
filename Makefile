@@ -1,6 +1,8 @@
 # the default goal is build
 .DEFAULT_GOAL := build
 
+# Cleaning means that the package is uninstalled if it is installed.
+# Also, all build artifacts are deleted (as they will be later re-created).
 clean:
 	echo "Cleaning up by first uninstalling moptipy (if installed) and then deleting all auto-generated stuff." && \
 	pip uninstall -y moptipy || true && \
@@ -16,7 +18,7 @@ clean:
     mv docs/source/index.x docs/source/index.rst && \
     echo "Done cleaning up, moptipy is uninstalled and auto-generated stuff is deleted."
 
-# Initialization: Install all requirements
+# Initialization: Install all requirements, both for executing the library and for the tests.
 init: clean
 	echo "Initialization: first install required packages from requirements.txt." && \
 	pip install -r requirements.txt && \
@@ -24,17 +26,27 @@ init: clean
 	pip install -r requirements-dev.txt && \
 	echo "Finished installing requirements from requirements-dev.txt."
 
-# Test: Run py.test
+# Run the unit tests.
 test: init
 	echo "Running py.test tests." && \
 	py.test tests && \
 	echo "Running py.test with doctests." && \
 	py.test --doctest-modules && \
-    echo "Finished running py.test tests, now applying flake8." && \
-    flake8 . --ignore=F401,W503 && \
-    echo "Finished running flake8."
+    echo "Finished running py.test tests."
 
-create_documentation: test
+# Perform static code analysis.
+static_analysis: init
+	echo "Runnning static code analysis, starting with flake8." && \
+    flake8 . --ignore=F401,W503 && \
+    echo "Finished running flake8, now applying pylint to package." &&\
+    pylint moptipy --disable=C0103,C0325,R0201,R0801,R0901,R0902,R0903,R0912,R0913,R0914,R0915,R1728,W0212,W0703 &&\
+    echo "Done with pylint, now trying mypy." &&\
+    mypy moptipy --no-strict-optional &&\
+    echo "Done applying flake8, pylint, and mypy - all static checks passed."
+
+# We use sphinx to generate the documentation.
+# This automatically checks the docstrings and such and such.
+create_documentation: static_analysis test
 	echo "First creating the .rst files from the source code." && \
 	sphinx-apidoc -M --ext-autodoc -o docs/source ./moptipy && \
 	echo "Now creating the documentation build folder and building the documentation." && \
@@ -45,22 +57,24 @@ create_documentation: test
     mv docs/source/index.tmp docs/source/index.rst && \
     echo "Done creating the documentation."
 
-create_distribution: test
+# Create different distribution formats, also to check if there is any error.
+create_distribution: static_analysis test create_documentation
 	echo "Now building distribution files and folders." && \
 	python3 setup.py check && \
 	python3 setup.py sdist && \
 	python3 setup.py bdist_wheel && \
 	echo "Successfully finished building distribution files and folders."
 
+# We install the package and see if that works out.
 install: create_distribution
 	echo "Now installing moptipy." && \
 	pip -v install . && \
 	echo "Successfully installed moptipy."
 
 # The meta-goal for a full build
-build: clean init test create_documentation create_distribution install
+build: clean init test static_analysis create_documentation create_distribution install
 	echo "The build has completed."
 
 # .PHONY means that the targets init and test are not associated with files.
 # see https://stackoverflow.com/questions/2145590
-.PHONY: build clean create_distribution create_documentation init install test
+.PHONY: build clean create_distribution create_documentation init install static_analysis test

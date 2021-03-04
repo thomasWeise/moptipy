@@ -1,9 +1,13 @@
-from moptipy.api.space import Space
-import numpy as np
+"""
+An implementation of an unconstrained n-dimensional continuous space.
+"""
 from typing import Final
 
-from moptipy.utils.logger import KeyValueSection
+import numpy as np
+
+from moptipy.api.space import Space
 from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection
 
 
 class VectorSpace(Space):
@@ -15,7 +19,7 @@ class VectorSpace(Space):
     #: the character identifying the numpy data type backing the space
     KEY_NUMPY_TYPE: Final = "dtype"
 
-    def __init__(self, dimension: int, dtype=np.dtype(np.float64)):
+    def __init__(self, dimension: int, dtype=np.dtype(np.float64)) -> None:
         """
         Create the vector-based search space
         :param int dimension: The dimension of the search space,
@@ -32,15 +36,18 @@ class VectorSpace(Space):
         """The dimension of the space, i.e., the vectors."""
         self.dtype = dtype
         """The basic data type of the vector elements."""
+        self.__formatter = logging.format_complex if dtype.char in "FDG" \
+            else logging.format_float
+        """The internal formatter for the to_string method"""
 
     def create(self) -> np.ndarray:
         return np.zeros(shape=self.dimension, dtype=self.dtype)
 
-    def copy(self, source: np.ndarray, dest: np.ndarray):
+    def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
         np.copyto(dest, source)
 
     def to_str(self, x: np.ndarray) -> str:
-        return ",".join([logging.format_float(xx) for xx in x])
+        return ",".join([self.__formatter(xx) for xx in x])
 
     def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         return np.array_equal(x1, x2)
@@ -52,7 +59,7 @@ class VectorSpace(Space):
                              + str(self.dimension))
         return x
 
-    def validate(self, x: np.ndarray):
+    def validate(self, x: np.ndarray) -> None:
         if not (isinstance(x, np.ndarray)):
             raise ValueError("x must be an numpy.ndarray, but is a '"
                              + str(type(x)) + ".")
@@ -105,7 +112,7 @@ class VectorSpace(Space):
     def get_name(self) -> str:
         return "vector" + str(self.dimension) + self.dtype.char
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(VectorSpace.KEY_NUMPY_TYPE, self.dtype.char)

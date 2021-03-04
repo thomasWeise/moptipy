@@ -1,7 +1,8 @@
+"""Shared constants and functions for dealing with logs."""
+import cmath
+import math
 from re import sub
-
-from typing import List, Final, Union
-from math import isfinite, isnan
+from typing import List, Final
 
 #: the separator used in CSV files to separate columns
 CSV_SEPARATOR: Final = ";"
@@ -110,6 +111,8 @@ KEY_HW_BYTE_ORDER: Final = "byteorder"
 KEY_HW_MACHINE: Final = "machine"
 #: the key for the cpu name
 KEY_HW_CPU_NAME: Final = "cpu"
+#: the key for the memory size
+KEY_HW_MEM_SIZE: Final = "mem_size"
 #: the operating system in the sys-info section
 SCOPE_OS: Final = "os"
 #: the operating system name
@@ -166,14 +169,15 @@ def sanitize_name(name: str) -> str:
     :param str name: the name that should be sanitized
     :return: the sanitized name
     :rtype: str
-    :raises ValueError: if the name is either None or otherwise invalid
+    :raises ValueError: if the name is invalid or empty
+    :raises TypeError: if the name is None or not a string
     """
     if name is None:
-        raise ValueError("Name string must not be None.")
+        raise TypeError("Name string must not be None.")
     name = str(name)
     if not isinstance(name, str):
-        raise ValueError("String representation of name must be instance "
-                         "of str, but is " + str(type(name)))
+        raise TypeError("String representation of name must be instance "
+                        "of str, but is " + str(type(name)))
     orig_name = name
     name = name.strip()
     name = __replace_double("-", name)
@@ -214,10 +218,10 @@ def sanitize_names(names: List[str]) -> str:
         sanitize_name(name) for name in names if len(name) > 0])
 
 
-def format_float(x: Union[complex, float]) -> str:
+def format_float(x: float) -> str:
     """
-    Convert float-like to a string.
-    :param Union[complex, float] x: the floating point value
+    Convert float to a string.
+    :param float x: the floating point value
     :return: the string representation
     >>> format_float(1.3)
     '1.3'
@@ -226,16 +230,38 @@ def format_float(x: Union[complex, float]) -> str:
     """
     if x == 0:
         return "0"
-
     s = repr(x)
-    if isfinite(x):
+    if math.isfinite(x):
+        if s.endswith(".0"):
+            return s[:(len(s) - 2)]
+        return s
+    if math.isnan(x):
+        ValueError("'" + s + "' not permitted.")
+    return s
+
+
+def format_complex(x: complex) -> str:
+    """
+    Convert complex number to a string.
+    :param complex x: the complex floating point value
+    :return: the string representation
+    >>> format_complex(1.3+3j)
+    '1.3+3j'
+    >>> format_complex(1.0+0j)
+    '1'
+    """
+    if x == 0:
+        return "0"
+    y = abs(x)
+    if y == x:
+        return format_float(y)
+    s = repr(x)[1:-1]
+    if cmath.isfinite(x):
         if s.endswith(".0"):
             return s[:(len(s) - 2)]
         if s.endswith("+0j)"):
             return s[1:len(s) - 4]
         return s
-
-    if isnan(x):
+    if cmath.isnan(x):
         ValueError("'" + s + "' not permitted.")
-
     return s

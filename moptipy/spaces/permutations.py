@@ -1,7 +1,11 @@
+"""
+An implementation of a search space for permutations.
+"""
+from math import factorial
+
 import numpy as np
 
 from moptipy.spaces.intspace import IntSpace
-from math import factorial
 
 
 class Permutations(IntSpace):
@@ -10,7 +14,7 @@ class Permutations(IntSpace):
     and represents a permutation.
     """
 
-    def __init__(self, n: int):
+    def __init__(self, n: int) -> None:
         """
         Create the space of permutations of n elements
         :param int n: the length of the permutations
@@ -36,7 +40,7 @@ class Permutations(IntSpace):
     def scale(self) -> int:
         return factorial(self.dimension)
 
-    def validate(self, x: np.ndarray):
+    def validate(self, x: np.ndarray) -> None:
         super().validate(x)
         counts = np.zeros(self.dimension, np.dtype(np.int32))
         for xx in x:

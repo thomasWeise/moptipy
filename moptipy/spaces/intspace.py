@@ -1,9 +1,13 @@
-from moptipy.api.space import Space
-import numpy as np
+"""
+An implementation of an integer string based search space.
+"""
 from typing import Final
 
-from moptipy.utils.logger import KeyValueSection
+import numpy as np
+
+from moptipy.api.space import Space
 from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 
 
@@ -23,7 +27,7 @@ class IntSpace(Space):
 
     def __init__(self, dimension: int,
                  min_value: int,
-                 max_value: int):
+                 max_value: int) -> None:
         """
         Create the integer-based search space
         :param int dimension: The dimension of the search space,
@@ -68,7 +72,7 @@ class IntSpace(Space):
                        fill_value=self.min_value,
                        dtype=self.dtype)
 
-    def copy(self, source: np.ndarray, dest: np.ndarray):
+    def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
         np.copyto(dest, source)
 
     def to_str(self, x: np.ndarray) -> str:
@@ -89,7 +93,7 @@ class IntSpace(Space):
                            + ".." + str(self.max_value))
         return x
 
-    def validate(self, x: np.ndarray):
+    def validate(self, x: np.ndarray) -> None:
         if not (isinstance(x, np.ndarray)):
             raise ValueError("x must be an numpy.ndarray, but is a '"
                              + str(type(x)) + ".")
@@ -115,7 +119,7 @@ class IntSpace(Space):
         return "ints" + str(self.dimension) + self.dtype.char \
                + str(self.min_value) + "-" + str(self.max_value)
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(IntSpace.KEY_NUMPY_TYPE, self.dtype.char)

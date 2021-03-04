@@ -1,6 +1,11 @@
-from moptipy.api import operators
-from numpy.random import Generator
+"""
+Here we implement a unary operator that swaps two different elements in a
+permutation with repetitions.
+"""
 import numpy as np
+from numpy.random import Generator
+
+from moptipy.api import operators
 
 
 class Op1Swap2(operators.Op1):
@@ -10,7 +15,7 @@ class Op1Swap2(operators.Op1):
     It spans a neighborhood of a rather limited size but is easy and fast.
     """
 
-    def op1(self, random: Generator, x: np.ndarray, dest: np.ndarray):
+    def op1(self, random: Generator, x: np.ndarray, dest: np.ndarray) -> None:
         """
         Create a modified copy of `x` and store it in `dest` by swapping two
         values.

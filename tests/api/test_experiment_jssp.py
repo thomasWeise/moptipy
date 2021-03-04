@@ -1,10 +1,11 @@
+"""Test the execution of an experiment on the JSSP."""
 import os.path as pt
 from os import listdir
 
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
 from moptipy.api import Experiment, run_experiment
-from moptipy.examples.jssp import JSSPInstance, Makespan,\
+from moptipy.examples.jssp import JSSPInstance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
 from moptipy.utils.io import TempDir
@@ -17,7 +18,7 @@ instances = [lambda: JSSPInstance.from_resource("dmu01"),
 def algo_1(inst) -> Experiment:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0()
+    op0 = pwr.Op0Shuffle()
     op1 = pwr.Op1Swap2()
     algo = HillClimber(op0, op1)
     ex = Experiment()
@@ -34,7 +35,7 @@ def algo_1(inst) -> Experiment:
 def algo_2(inst) -> Experiment:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0()
+    op0 = pwr.Op0Shuffle()
     algo = RandomSampling(op0)
     ex = Experiment()
     ex.set_algorithm(algo)

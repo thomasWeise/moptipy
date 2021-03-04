@@ -1,24 +1,26 @@
+"""Functions that can be used to test search operators."""
+from math import isqrt
+from typing import Optional, Callable
+
 from numpy.random import default_rng
 
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.space import Space
 from moptipy.tests.component import check_component
-from math import isqrt
-from typing import Optional, Callable
 
 
-def check_op0(op0: Op0 = None,
+def check_op0(op0: Op0,
               space: Space = None,
-              make_valid: Optional[Callable] = lambda x: x):
+              make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy nullary operator.
     :param op0: the operator
     :param space: the space
     :param make_valid: make a point in the search space valid
-    :raises ValueError: if `op0` is not a valid `Op0`
+    :raises ValueError: if `op0` is not a valid `Op0Shuffle`
     """
     if not isinstance(op0, Op0):
-        raise ValueError("Expected to receive an instance of Op0, but "
+        raise ValueError("Expected to receive an instance of Op0Shuffle, but "
                          "got a '" + str(type(op0)) + "'.")
     check_component(component=op0)
 
@@ -38,11 +40,11 @@ def check_op0(op0: Op0 = None,
     seen = set()
     max_count = 100
 
-    for i in range(max_count):
+    for _ in range(max_count):
         op0.op0(random, x)
         space.validate(x)
         strstr = space.to_str(x)
-        if (not isinstance(strstr, str)) or (len(str) <= 0):
+        if (not isinstance(strstr, str)) or (len(strstr) <= 0):
             raise ValueError("to_str produces either no string or "
                              "empty string, namely '" + str(strstr) + "'.")
         seen.add(strstr)
@@ -56,9 +58,9 @@ def check_op0(op0: Op0 = None,
                          + str(len(seen)) + " different points.")
 
 
-def check_op1(op1: Op1 = None,
+def check_op1(op1: Op1,
               space: Space = None,
-              make_valid: Optional[Callable] = lambda x: x):
+              make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy unary operator.
     :param op1: the operator
@@ -88,7 +90,7 @@ def check_op1(op1: Op1 = None,
     max_count = 100
 
     strstr = space.to_str(x1)
-    if (not isinstance(strstr, str)) or (len(str) <= 0):
+    if (not isinstance(strstr, str)) or (len(strstr) <= 0):
         raise ValueError("to_str produces either no string or "
                          "empty string, namely '" + str(strstr) + "'.")
     seen.add(strstr)
@@ -97,11 +99,11 @@ def check_op1(op1: Op1 = None,
     if x2 is None:
         raise ValueError("Space must not return None.")
 
-    for i in range(max_count):
+    for _ in range(max_count):
         op1.op1(random, x1, x2)
         space.validate(x2)
         strstr = space.to_str(x2)
-        if (not isinstance(strstr, str)) or (len(str) <= 0):
+        if (not isinstance(strstr, str)) or (len(strstr) <= 0):
             raise ValueError("to_str produces either no string or "
                              "empty string, namely '" + str(strstr) + "'.")
         seen.add(strstr)

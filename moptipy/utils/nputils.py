@@ -1,24 +1,26 @@
+"""Utilities for interaction with numpy."""
 from hashlib import sha512
 from typing import Final, Optional, List
+from typing import Set, Dict, Tuple, cast
 
 import numpy as np
 from numpy.random import default_rng, Generator, PCG64
 
-__NP_INTS: Final = \
+__NP_INTS: Final[Tuple[Tuple[np.dtype, int, int], ...]] = \
     tuple([(t[0], int(t[1].min), int(t[1].max))
            for t in ((tt, np.iinfo(tt))
-                     for tt in (np.dtype(ttt)
+                     for tt in (cast(np.dtype, np.dtype(ttt))
                                 for ttt in [np.int8, np.uint8,
                                             np.int16, np.uint16,
                                             np.int32, np.uint32,
                                             np.int64, np.uint64]))])
 
-DEFAULT_INT: Final = (__NP_INTS[len(__NP_INTS) - 2])[0]
+DEFAULT_INT: Final[np.dtype] = (__NP_INTS[len(__NP_INTS) - 2])[0]
 
-__NP_INT_MAX: Final = {}
+__NP_INT_MAX: Final[Dict[np.dtype, int]] = {}
 for i in __NP_INTS:
     __NP_INT_MAX[i[0]] = i[2]
-__NP_INT_MIN: Final = {}
+__NP_INT_MIN: Final[Dict[np.dtype, int]] = {}
 for i in __NP_INTS:
     __NP_INT_MIN[i[0]] = i[1]
 
@@ -161,10 +163,11 @@ def rand_seeds_from_str(string: str,
         raise ValueError(
             "n_seeds must be positive, but is " + str(n_seeds) + ".")
 
-    seeds = bytearray(sha512(string.encode("utf8")).digest())
-    seeds = [int.from_bytes(seeds[ii:(ii + 16)],
+    seeds1 = bytearray(sha512(string.encode("utf8")).digest())
+    seeds = [int.from_bytes(seeds1[ii:(ii + 16)],
                             byteorder='big', signed=False)
-             for ii in range(0, len(seeds), 16)]
+             for ii in range(0, len(seeds1), 16)]
+    del seeds1
     if len(seeds) != 4:
         raise ValueError("Did not produce 4 numbers of 128 bit from string?")
 
@@ -173,11 +176,9 @@ def rand_seeds_from_str(string: str,
     g1 = Generator(PCG64(seeds[0:2]))
     g2 = Generator(PCG64(seeds[2:4]))
 
-    generated = set()
+    generated: Set[int] = set()
     while len(generated) < n_seeds:
-        a = g1
-        g1 = g2
-        g2 = a
+        g1, g2 = g2, g1
         generated.add(rand_seed_generate(g1))
 
     result = list(generated)

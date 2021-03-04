@@ -1,7 +1,9 @@
-from tempfile import mkstemp, mkdtemp
-from shutil import rmtree
+"""A set of utilities interactions with the file system."""
 import os
-from os.path import realpath, isfile, isdir
+from os.path import realpath, isfile, isdir, abspath, expanduser, \
+    expandvars, normcase
+from shutil import rmtree
+from tempfile import mkstemp, mkdtemp
 from typing import Optional, Union, Tuple
 
 
@@ -12,15 +14,17 @@ def canonicalize_path(path: str) -> str:
     :return: the canonicalized path
     :rtype: str
     """
-    if (not isinstance(path, str)) or (len(path) <= 0):
-        raise ValueError("Path must be non-empty string, but is "
-                         + str(type(path)) + " with value '"
-                         + str(path) + "'.")
-    path = realpath(path)
+    if not isinstance(path, str):
+        raise TypeError("path must be instance of str, but is "
+                        + str(type(path)))
+    if len(path) <= 0:
+        raise ValueError("Path must not be empty.")
+
+    path = normcase(abspath(realpath(expanduser(expandvars(path)))))
     if (not isinstance(path, str)) or (len(path) <= 0):
         raise ValueError(
-            "Result of real_path must be non-empty string, but is "
-            + str(type(path)) + " with value '"
+            "Result of path canonicalization must be non-empty string, "
+            "but is " + str(type(path)) + " with value '"
             + str(path) + "'.")
     return path
 
@@ -58,26 +62,28 @@ class TempDir:
     You can obtain its absolute/real path via str(..)
     """
 
-    def __init__(self, directory: Optional[str] = None):
+    def __init__(self, directory: Optional[str] = None) -> None:
         """
         Create the temporary directory.
         :param str directory: an optional root directory
         """
         self.__path = enforce_dir(canonicalize_path(mkdtemp(dir=directory)))
+        self.__open = True
 
-    def __enter__(self):
+    def __enter__(self) -> 'TempDir':
         return self
 
-    def close(self):
+    def close(self) -> None:
         """ Delete the temporary directory and everything in it."""
-        if not (self.__path is None):
+        opn = self.__open
+        self.__open = False
+        if opn:
             rmtree(self.__path, ignore_errors=True, onerror=None)
-            self.__path = None
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
         self.close()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__path
 
     __repr__ = __str__
@@ -92,7 +98,7 @@ class TempFile:
 
     def __init__(self, directory: Union[TempDir, Optional[str]] = None,
                  prefix: Optional[str] = None,
-                 suffix: Optional[str] = None):
+                 suffix: Optional[str] = None) -> None:
         """
         Create a temporary file
         :param directory: a root directory or `TempDir` instance
@@ -104,20 +110,22 @@ class TempFile:
                                  else str(directory))
         os.close(handle)
         self.__path = enforce_file(canonicalize_path(path))
+        self.__open = True
 
-    def __enter__(self):
+    def __enter__(self) -> 'TempFile':
         return self
 
-    def close(self):
+    def close(self) -> None:
         """Delete the temporary file."""
-        if not (self.__path is None):
+        opn = self.__open
+        self.__open = False
+        if opn:
             os.remove(self.__path)
-            self.__path = None
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
         self.close()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__path
 
     __repr__ = __str__

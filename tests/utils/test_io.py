@@ -1,9 +1,12 @@
-from moptipy.utils import TempFile, TempDir, file_create_or_fail, \
-    file_create_or_truncate, canonicalize_path, file_ensure_exists
-from os.path import isfile, isdir, exists, dirname, sep, basename, getsize
+"""Test the interaction with the file system."""
 from io import open
+from os.path import isfile, isdir, exists, dirname, sep, basename, getsize
+
 # noinspection PyPackageRequirements
 from pytest import raises
+
+from moptipy.utils import TempFile, TempDir, file_create_or_fail, \
+    file_create_or_truncate, canonicalize_path, file_ensure_exists
 
 
 def test_temp_file():

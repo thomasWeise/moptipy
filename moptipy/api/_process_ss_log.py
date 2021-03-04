@@ -1,6 +1,10 @@
+"""
+An internal module providing a process with explicit logging and different
+search and solution space.
+"""
 from math import inf, isnan
 from time import monotonic_ns
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from moptipy.api._process_ss import _ProcessSS
 from moptipy.api.algorithm import Algorithm
@@ -12,6 +16,9 @@ from moptipy.utils.logger import Logger
 
 
 class _ProcessSSLog(_ProcessSS):
+    """
+    A process with explicit logging and different search and solution space.
+    """
 
     def __init__(self,
                  solution_space: Space,
@@ -25,7 +32,7 @@ class _ProcessSSLog(_ProcessSS):
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None,
                  log_improvements: bool = False,
-                 log_all_fes: bool = False):
+                 log_all_fes: bool = False) -> None:
 
         super().__init__(solution_space=solution_space,
                          objective=objective,
@@ -38,21 +45,21 @@ class _ProcessSSLog(_ProcessSS):
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
         if not isinstance(log_all_fes, bool):
-            raise ValueError("log_all must be boolean, but is '"
-                             + str(log_all_fes) + "'.")
+            raise TypeError("log_all must be boolean, but is '"
+                            + str(log_all_fes) + "'.")
         if not isinstance(log_improvements, bool):
-            raise ValueError("log_improvements must be boolean, but is '"
-                             + str(log_improvements) + "'.")
+            raise TypeError("log_improvements must be boolean, but is '"
+                            + str(log_improvements) + "'.")
         self.__log_all = log_all_fes
         self.__log_improvements = log_improvements or log_all_fes
-        self.__log = list()
+        self.__log: List[List[Union[None, bool, int, float]]] = list()
         self.__log_header = [logging.PROGRESS_FES,
                              logging.PROGRESS_TIME_MILLIS,
                              logging.PROGRESS_CURRENT_F]
         self.__log_dict = {logging.PROGRESS_FES: 0,
                            logging.PROGRESS_TIME_MILLIS: 1,
                            logging.PROGRESS_CURRENT_F: 2}
-        self.__last_res = None
+        self.__last_res: Union[None, int, float] = None
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
@@ -108,7 +115,7 @@ class _ProcessSSLog(_ProcessSS):
 
         return result
 
-    def log_state(self, key: str, value: Union[bool, int, float]):
+    def log_state(self, key: str, value: Union[bool, int, float]) -> None:
         if self.__log is None:
             return
 
@@ -147,7 +154,7 @@ class _ProcessSSLog(_ProcessSS):
         # noinspection PyTypeChecker
         entry[idx] = value
 
-    def _write_log(self, logger: Logger):
+    def _write_log(self, logger: Logger) -> None:
         if len(self.__log) > 0:
             list_len = len(self.__log_header)
             with logger.csv(logging.SECTION_PROGRESS,
@@ -161,5 +168,5 @@ class _ProcessSSLog(_ProcessSS):
         self.__log_dict = None
         super()._write_log(logger)
 
-    def get_name(self):
+    def get_name(self) -> str:
         return "LoggingProcessWithSearchSpace"

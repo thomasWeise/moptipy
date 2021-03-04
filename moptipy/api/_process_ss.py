@@ -1,17 +1,25 @@
+"""
+An internal module implementing processes with different search and
+solution spaces.
+"""
 from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union
 
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
-from moptipy.api.objective import Objective
 from moptipy.api.encoding import Encoding, _check_encoding
+from moptipy.api.objective import Objective
 from moptipy.api.space import Space, _check_space
-from moptipy.utils.logger import KeyValueSection, Logger
 from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection, Logger
 
 
 class _ProcessSS(_ProcessNoSS):
+    """
+    An internal class implementing a stand-alone process with different
+    search and solution space.
+    """
     def __init__(self,
                  solution_space: Space,
                  objective: Objective,
@@ -22,7 +30,7 @@ class _ProcessSS(_ProcessNoSS):
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None):
+                 goal_f: Union[int, float, None] = None) -> None:
 
         super().__init__(solution_space=solution_space,
                          objective=objective,
@@ -83,7 +91,7 @@ class _ProcessSS(_ProcessNoSS):
             return self._current_best_f
         raise ValueError('No current best available.')
 
-    def get_copy_of_current_best_x(self, x):
+    def get_copy_of_current_best_x(self, x) -> None:
         if self._has_current_best:
             return self._search_space.copy(self._current_best_x, x)
         raise ValueError('No current best available.')
@@ -103,7 +111,7 @@ class _ProcessSS(_ProcessNoSS):
     def is_equal(self, x1, x2) -> bool:
         return self._search_space.is_equal(x1, x2)
 
-    def validate(self, x):
+    def validate(self, x) -> None:
         self._search_space.validate(x)
 
     def get_copy_of_current_best_y(self, y):
@@ -112,14 +120,14 @@ class _ProcessSS(_ProcessNoSS):
     def scale(self) -> int:
         return self._search_space.scale()
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_SEARCH_SPACE) as sc:
             self._search_space.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_ENCODING) as sc:
             self._encoding.log_parameters_to(sc)
 
-    def _write_log(self, logger: Logger):
+    def _write_log(self, logger: Logger) -> None:
         # noinspection PyProtectedMember
         super()._write_log(logger)
 
@@ -127,10 +135,10 @@ class _ProcessSS(_ProcessNoSS):
             with logger.text(logging.SECTION_RESULT_X) as txt:
                 txt.write(self._search_space.to_str(self._current_best_x))
 
-    def _perform_termination(self):
+    def _perform_termination(self) -> None:
         # noinspection PyProtectedMember
         super()._perform_termination()
         self._search_space.validate(self._current_best_x)
 
-    def get_name(self):
+    def get_name(self) -> str:
         return "ProcessWithSearchSpace"

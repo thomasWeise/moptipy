@@ -1,9 +1,10 @@
-from moptipy.spaces import IntSpace
-from moptipy.api import Space
-
-from moptipy.utils import TempFile, FileLogger
+"""Test the integer-string space."""
 import numpy as np
+
+from moptipy.api import Space
+from moptipy.spaces import IntSpace
 from moptipy.tests.space import check_space
+from moptipy.utils import TempFile, FileLogger
 
 
 def test_int():

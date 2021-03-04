@@ -1,3 +1,4 @@
+"""Test the space of permutations."""
 from moptipy.spaces import Permutations
 
 from moptipy.tests.space import check_space

@@ -1,10 +1,12 @@
+"""Test the structured logger."""
+import csv
 from io import open
 from os.path import isfile, exists
 
-from moptipy.utils import TempFile, FileLogger
-import csv
 # noinspection PyPackageRequirements
 import yaml
+
+from moptipy.utils import TempFile, FileLogger
 
 
 def test_log_files():

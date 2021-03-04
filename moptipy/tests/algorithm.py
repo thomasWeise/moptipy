@@ -1,10 +1,13 @@
+"""Functions that can be used to test algorithm implementations."""
 from math import isfinite
 from typing import Callable, Optional
+
 import numpy.random as rnd
-from moptipy.api.experiment import Experiment
+
 # noinspection PyProtectedMember
 from moptipy.api.algorithm import Algorithm, _check_algorithm
 from moptipy.api.encoding import Encoding
+from moptipy.api.experiment import Experiment
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -18,12 +21,12 @@ from moptipy.tests.objective import check_objective
 from moptipy.tests.space import check_space
 
 
-def check_algorithm(algorithm: Algorithm = None,
-                    solution_space: Space = None,
-                    objective: Objective = None,
+def check_algorithm(algorithm: Algorithm,
+                    solution_space: Optional[Space] = None,
+                    objective: Optional[Objective] = None,
                     search_space: Optional[Space] = None,
                     encoding: Optional[Encoding] = None,
-                    max_fes: int = 100):
+                    max_fes: int = 100) -> None:
     """
     Check whether an algorithm follows the moptipy API specification.
     :param algorithm: the algorithm to test
@@ -137,11 +140,18 @@ def check_algorithm(algorithm: Algorithm = None,
                              + " from objective function.")
 
 
-def check_algorithm_on_jssp(algorithm: Callable = None,
+def check_algorithm_on_jssp(algorithm: Callable,
                             instance: Optional[str] = None,
-                            max_fes: int = 100):
-    if not isinstance(algorithm, Callable):
-        raise ValueError(
+                            max_fes: int = 100) -> None:
+    """
+    Check the validity of a black-box algorithm on the JSSP
+    :param Callable algorithm: the algorithm factory
+    :param Optional[str] instance: the instance name, or None to randomly
+    pick one
+    :param int max_fes: the maximum number of FEs
+    """
+    if not callable(algorithm):
+        raise TypeError(
             "Must 'algorithm' parameter must be a callable that instantiates"
             "an algorithm for a given JSSP instance, but got a '"
             + str(type(algorithm)) + "' instead.")
@@ -151,23 +161,24 @@ def check_algorithm_on_jssp(algorithm: Callable = None,
     if not isinstance(instance, str):
         raise ValueError("JSSP instance must either be a string or none, "
                          "but is a '" + str(type(instance)) + "'.")
-    instance = JSSPInstance.from_resource(instance)
-    if not isinstance(instance, JSSPInstance):
-        raise ValueError("Error when loading JSSP instance, obtained '"
-                         + str(type(instance)) + "' instead.")
+    inst = JSSPInstance.from_resource(instance)
+    if not isinstance(inst, JSSPInstance):
+        raise ValueError("Error when loading JSSP instance '"
+                         + instance + "', obtained '"
+                         + str(type(inst)) + "' instead.")
 
-    algorithm = algorithm(instance)
+    algorithm = algorithm(inst)
     if not isinstance(algorithm, Algorithm):
         raise ValueError(
             "Must 'algorithm' parameter must be a callable that instantiates"
-            "an algorithm for a given JSSP instance, but it created a '"
-            + str(type(algorithm)) + "' instead.")
+            "an algorithm for JSSP instance '" + instance
+            + "', but it created a '" + str(type(algorithm)) + "' instead.")
 
-    search_space = PermutationsWithRepetitions(instance.jobs,
-                                               instance.machines)
-    solution_space = GanttSpace(instance)
-    encoding = OperationBasedEncoding(instance)
-    objective = Makespan(instance)
+    search_space = PermutationsWithRepetitions(inst.jobs,
+                                               inst.machines)
+    solution_space = GanttSpace(inst)
+    encoding = OperationBasedEncoding(inst)
+    objective = Makespan(inst)
 
     check_algorithm(algorithm=algorithm,
                     solution_space=solution_space,

@@ -1,15 +1,20 @@
-from moptipy.api import operators
-from numpy.random import Generator
+"""
+In this module, we implement a nullary operator shuffling the contents of a
+permutation with repetition randomly.
+"""
 import numpy as np
+from numpy.random import Generator
+
+from moptipy.api import operators
 
 
-class Op0(operators.Op0):
+class Op0Shuffle(operators.Op0):
     """
     The nullary search operation for permutations with repetitions shuffles
     them randomly.
     """
 
-    def op0(self, random: Generator, dest: np.ndarray):
+    def op0(self, random: Generator, dest: np.ndarray) -> None:
         """
         Shuffle the array `dest` randomly.
         :param random: the random number generator

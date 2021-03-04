@@ -1,9 +1,10 @@
+"""Classes for writing structured log files."""
 from abc import ABC
 from io import open, StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
-from typing import Optional, List, Union
+from typing import Optional, List, Union, cast
 
 from moptipy.utils import logging
 from moptipy.utils.cache import is_new
@@ -18,7 +19,7 @@ class Logger(ABC):
     experiments with `moptipy`.
     """
 
-    def __init__(self, stream, name: str):
+    def __init__(self, stream, name: str) -> None:
         """
         Create a new logger.
 
@@ -33,15 +34,16 @@ class Logger(ABC):
             raise ValueError("stream must be valid strean but is None.")
 
         self._stream = stream
-        self.__section = None
+        self.__section: Optional[str] = None
         self.__starts_new_line = True
         self.__log_name = name
         self.__sections = is_new()
+        self.__closer: Optional[str] = None
 
     def __enter__(self):
         return self
 
-    def _error(self, message):
+    def _error(self, message) -> None:
         message = [(f if isinstance(f, str) else "'" + str(f) + "'")
                    for f in message]
         if self.__section is None:
@@ -51,7 +53,7 @@ class Logger(ABC):
                                       "' of logger '", self.__log_name + "'."]
         raise ValueError("".join(message))
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
         if not (self.__section is None):
             self._error(["Cannot close logger, because section still open"])
         if not (self._stream is None):
@@ -219,7 +221,7 @@ class Logger(ABC):
 class FileLogger(Logger):
     """A logger logging to a file."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         """
         Initialize the logger
         :param str path: the path to the file to open
@@ -238,7 +240,7 @@ class FileLogger(Logger):
 class InMemoryLogger(Logger):
     """A logger logging to a string in memory."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the logger"""
         super().__init__(stream=StringIO(),
                          name="in-memory-logger")
@@ -254,7 +256,7 @@ class InMemoryLogger(Logger):
 
 class _Section(ABC):
 
-    def __init__(self, title: Optional[str], logger: Logger):
+    def __init__(self, title: Optional[str], logger: Logger) -> None:
         self._logger = logger
         self._title = title
         if not (title is None):
@@ -264,7 +266,7 @@ class _Section(ABC):
     def __enter__(self):
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
         if not (self._title is None):
             # noinspection PyProtectedMember
             self._logger._close_section(self._title)
@@ -286,7 +288,7 @@ class CsvSection(_Section):
     A logger that is designed to output CSV data.
     """
 
-    def __init__(self, title: str, logger: Logger, header: List[str]):
+    def __init__(self, title: str, logger: Logger, header: List[str]) -> None:
         super().__init__(title, logger)
 
         self.__header_len = len(header)
@@ -318,15 +320,15 @@ class CsvSection(_Section):
                                  " has ", str(len(row))])
 
         # noinspection PyProtectedMember
-        row = ["" if c is None else
-               str(c) if (isinstance(c, int) or isinstance(c, bool))
-               else (logging.format_float(c) if isinstance(c, float)
-                     else self._logger._error(["Invalid log value ", c,
-                                               " in row ", row]))
+        txt = ["" if c is None else
+               str(c) if (isinstance(c, (int, bool)))
+               else (logging.format_float(c) if isinstance(c, float) else
+                     cast(None, self._logger._error(["Invalid log value ",
+                                                     c, " in row ", row])))
                for c in row]
 
         # noinspection PyProtectedMember
-        self._logger._write(logging.CSV_SEPARATOR.join(row) + "\n")
+        self._logger._write(logging.CSV_SEPARATOR.join(txt) + "\n")
 
 
 class KeyValueSection(_Section):
@@ -335,7 +337,7 @@ class KeyValueSection(_Section):
     """
 
     def __init__(self, title: Optional[str],
-                 logger: Logger, prefix: str, done):
+                 logger: Logger, prefix: str, done) -> None:
         super().__init__(title=title, logger=logger)
         self._prefix = prefix
         if done is None:
@@ -369,7 +371,7 @@ class KeyValueSection(_Section):
                     the_hex = float.hex(value)
         else:
             if isinstance(value, complex):
-                txt = logging.format_float(value)
+                txt = logging.format_complex(value)
             else:
                 txt = str(value)
                 if also_hex and isinstance(value, int):
@@ -404,7 +406,7 @@ class TextSection(_Section):
     A logger for raw, unprocessed text.
     """
 
-    def __init__(self, title: str, logger: Logger):
+    def __init__(self, title: str, logger: Logger) -> None:
         super().__init__(title, logger)
 
     def write(self, string: str) -> None:

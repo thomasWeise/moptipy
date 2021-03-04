@@ -1,9 +1,13 @@
-from moptipy.api.space import Space
-import numpy as np
+"""
+An implementation of a bit string based search space.
+"""
 from typing import Final
 
-from moptipy.utils.logger import KeyValueSection
+import numpy as np
+
+from moptipy.api.space import Space
 from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection
 
 
 class BitStrings(Space):
@@ -15,7 +19,7 @@ class BitStrings(Space):
     #: the internal type for but strings
     __DTYPE: Final = np.dtype(np.bool_)
 
-    def __init__(self, dimension: int):
+    def __init__(self, dimension: int) -> None:
         """
         Create the vector-based search space
         :param int dimension: The dimension of the search space,
@@ -42,13 +46,13 @@ class BitStrings(Space):
         """
         return np.zeros(shape=self.dimension, dtype=BitStrings.__DTYPE)
 
-    def copy(self, source: np.ndarray, dest: np.ndarray):
+    def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
         np.copyto(dest, source)
 
     def to_str(self, x: np.ndarray) -> str:
         return "".join([('1' if xx else '0') for xx in x])
 
-    def is_equal(self, x1, x2) -> bool:
+    def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         return np.array_equal(x1, x2)
 
     def from_str(self, text: str) -> np.ndarray:
@@ -56,7 +60,7 @@ class BitStrings(Space):
         x[:] = [(t == '1') for t in text]
         return x
 
-    def validate(self, x: np.ndarray):
+    def validate(self, x: np.ndarray) -> None:
         if not (isinstance(x, np.ndarray)):
             raise ValueError("x must be an numpy.ndarray, but is a '"
                              + str(type(x)) + ".")
@@ -73,6 +77,6 @@ class BitStrings(Space):
     def get_name(self) -> str:
         return "bits" + str(self.dimension)
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)

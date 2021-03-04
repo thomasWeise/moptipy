@@ -1,3 +1,6 @@
+"""
+The base classes for implementing search operators.
+"""
 from abc import abstractmethod
 
 from numpy.random import Generator
@@ -11,7 +14,7 @@ class Op0(Component):
     """
 
     @abstractmethod
-    def op0(self, random: Generator, dest):
+    def op0(self, random: Generator, dest) -> None:
         """
         Apply the nullary search operator to fill object `dest`.
         Afterwards `dest` will hold a valid point in the search space.
@@ -28,7 +31,7 @@ class Op1(Component):
     """
 
     @abstractmethod
-    def op1(self, random: Generator, x, dest):
+    def op1(self, random: Generator, x, dest) -> None:
         """
         Apply the unary search operator to fill object `dest`
         with a modified version of the source `x`.
@@ -47,7 +50,7 @@ class Op2(Component):
     """
 
     @abstractmethod
-    def op2(self, random: Generator, x0, x1, dest):
+    def op2(self, random: Generator, x0, x1, dest) -> None:
         """
         Apply the binary search operator to fill object `dest` with
         a combination of the contents of `x0` and `x1`.

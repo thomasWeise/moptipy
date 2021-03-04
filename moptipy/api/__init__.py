@@ -16,17 +16,17 @@ It also permits logging of the algorithm progress or even the change of
 dynamic parameters.
 """
 
-# noinspection PyUnresolvedReferences
-from moptipy.version import __version__
-from moptipy.api.component import Component
 from moptipy.api.algorithm import Algorithm, Algorithm0, Algorithm1, \
     Algorithm2, CallableAlgorithm
+from moptipy.api.component import Component
 from moptipy.api.encoding import Encoding
+from moptipy.api.experiment import Experiment, run_experiment
 from moptipy.api.objective import CallableObjective, Objective
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.api.space import Space
-from moptipy.api.experiment import Experiment, run_experiment
+# noinspection PyUnresolvedReferences
+from moptipy.version import __version__
 
 __all__ = ("Algorithm",
            "Algorithm0",

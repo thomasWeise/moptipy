@@ -1,3 +1,7 @@
+"""
+This module provides the base classes for implementing optimization
+algorithms.
+"""
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -27,7 +31,7 @@ class Algorithm0(Algorithm, ABC):
 
     def __init__(self,
                  op0: Op0,
-                 op0_is_default: bool = True):
+                 op0_is_default: bool = True) -> None:
         """
         Create the algorithm with nullary search operator
         :param moptipy.api.Op0 op0: the nullary search operator
@@ -35,7 +39,7 @@ class Algorithm0(Algorithm, ABC):
             if yes, it will not be included in the name
         """
         if (op0 is None) or (not isinstance(op0, Op0)):
-            ValueError("op0 must be instance of Op0, but is '"
+            ValueError("op0 must be instance of Op0Shuffle, but is '"
                        + str(type(op0)) + "'")
         self.op0 = op0
         if not isinstance(op0_is_default, bool):
@@ -46,7 +50,7 @@ class Algorithm0(Algorithm, ABC):
     def get_name(self) -> str:
         return "" if self._op0_is_default else self.op0.get_name()
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_OP0) as sc:
             self.op0.log_parameters_to(sc)
@@ -59,7 +63,7 @@ class Algorithm1(Algorithm0, ABC):
                  op0: Op0,
                  op1: Op1,
                  op0_is_default: bool = True,
-                 op1_is_default: bool = False):
+                 op1_is_default: bool = False) -> None:
         """
         Create the algorithm with nullary and unary search operator
         :param moptipy.api.Op0 op0: the nullary search operator
@@ -102,7 +106,7 @@ class Algorithm2(Algorithm1, ABC):
                  op2: Op2,
                  op0_is_default: bool = True,
                  op1_is_default: bool = False,
-                 op2_is_default: bool = False):
+                 op2_is_default: bool = False) -> None:
         """
         Create the algorithm with nullary and unary search operator
         :param moptipy.api.Op0 op0: the nullary search operator
@@ -147,7 +151,7 @@ class CallableAlgorithm(_CallableComponent, Algorithm):
 
     def __init__(self,
                  algorithm: Callable,
-                 name: str = None):
+                 name: str = None) -> None:
         """
         Create a wrapper mapping a Callable to an optimization algorithm
 
@@ -168,11 +172,11 @@ def _check_algorithm(algorithm: Algorithm) -> Algorithm:
     of :class:`Algorithm`
     :param algorithm: the object
     :return: the object
-    :raises ValueError: if `algorithm` is not an instance of
+    :raises TypeError: if `algorithm` is not an instance of
     :class:`Algorithm`
     """
     if algorithm is None:
-        raise ValueError("An algorithm must not be None.")
+        raise TypeError("An algorithm must not be None.")
     if not isinstance(algorithm, Algorithm):
         raise TypeError(
             "An algorithm must be instance of Algorithm, but is "

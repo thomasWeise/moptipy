@@ -1,9 +1,10 @@
+"""Functions that can be used to test component implementations."""
 from moptipy.api.component import Component
 from moptipy.utils import logging
 from moptipy.utils.logger import InMemoryLogger
 
 
-def check_component(component: Component = None):
+def check_component(component: Component) -> None:
     """
     Check whether an object is a moptipy component.
     :param component: the component to test

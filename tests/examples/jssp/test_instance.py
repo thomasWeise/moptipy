@@ -1,5 +1,7 @@
-from moptipy.examples.jssp import JSSPInstance
+"""Test loading and validity of JSSP instances."""
 import numpy as np
+
+from moptipy.examples.jssp import JSSPInstance
 
 
 def __check_load_inst(inst: str) -> JSSPInstance:

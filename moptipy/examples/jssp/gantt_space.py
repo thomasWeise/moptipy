@@ -1,9 +1,14 @@
+"""
+Here we implement a search space implementation for :class:`Gantt` charts.
+"""
+from math import factorial
+
+import numpy as np
+
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import JSSPInstance
 from moptipy.utils.logger import KeyValueSection
-import numpy as np
-from math import factorial
 
 
 class GanttSpace(Space):
@@ -12,7 +17,7 @@ class GanttSpace(Space):
     :py:class:`~moptipy.examples.jssp.gantt.Gantt` charts.
     """
 
-    def __init__(self, instance: JSSPInstance):
+    def __init__(self, instance: JSSPInstance) -> None:
         """
         Create a Gantt chart space
         :param JSSPInstance instance: the JSSP instance
@@ -23,10 +28,10 @@ class GanttSpace(Space):
         self.instance = instance
         """The JSSP Instance to which the Gantt record apply."""
 
-    def create(self):
+    def create(self) -> Gantt:
         return Gantt(self.instance)
 
-    def copy(self, source: Gantt, dest: Gantt):
+    def copy(self, source: Gantt, dest: Gantt) -> None:
         if dest.instance != source.instance:
             raise ValueError("Instances of source and dest must be the same.")
         np.copyto(dest.times, source.times)
@@ -47,7 +52,7 @@ class GanttSpace(Space):
         x.compute_statistics()
         return x
 
-    def validate(self, x: Gantt):
+    def validate(self, x: Gantt) -> None:
         if not isinstance(x.instance, JSSPInstance):
             raise ValueError("Invalid instance, not a JSSP instance, but a '"
                              + str(type(x.instance)) + "'.")
@@ -133,10 +138,10 @@ class GanttSpace(Space):
     def scale(self) -> int:
         return factorial(self.instance.jobs) ** self.instance.machines
 
-    def get_name(self):
+    def get_name(self) -> str:
         return "gantt_" + self.instance.get_name()
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         with logger.scope(JSSPInstance.SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

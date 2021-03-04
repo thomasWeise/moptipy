@@ -1,5 +1,6 @@
-from moptipy.api.process import Process
+"""A random walk allgorithm implmentation."""
 from moptipy.api.algorithm import Algorithm1
+from moptipy.api.process import Process
 
 
 class RandomWalk(Algorithm1):

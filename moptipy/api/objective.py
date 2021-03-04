@@ -1,10 +1,14 @@
+"""
+This module provides the base class for implementing objective functions,
+i.e., the criteria rating how good solutions are.
+"""
 from abc import abstractmethod
 from math import inf
 from typing import Union, Callable
 
-from moptipy.utils.logger import KeyValueSection
-from moptipy.utils import logging
 from moptipy.api.component import _CallableComponent, Component
+from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection
 
 
 class Objective(Component):
@@ -57,7 +61,7 @@ class CallableObjective(_CallableComponent, Objective):
                  function: Callable,
                  lower_bound: Union[float, int] = -inf,
                  upper_bound: Union[float, int] = inf,
-                 name: str = None):
+                 name: str = None) -> None:
         """
         Create a wrapper mapping a Callable to an objective function
 
@@ -72,15 +76,13 @@ class CallableObjective(_CallableComponent, Objective):
         super().__init__(inner=function,
                          name="unnamed_function" if (name is None) else name)
 
-        if not (isinstance(lower_bound, int)
-                or isinstance(lower_bound, float)):
-            raise ValueError("lower_bound must be either int or float, "
-                             "but is " + str(type(lower_bound)))
+        if not (isinstance(lower_bound, (int, float))):
+            raise TypeError("lower_bound must be either int or float, "
+                            "but is " + str(type(lower_bound)))
 
-        if not (isinstance(upper_bound, int)
-                or isinstance(upper_bound, float)):
-            raise ValueError("upper_bound must be either int or float, "
-                             "but is " + str(type(upper_bound)))
+        if not (isinstance(upper_bound, (int, float))):
+            raise TypeError("upper_bound must be either int or float, "
+                            "but is " + str(type(upper_bound)))
 
         if lower_bound >= upper_bound:
             raise ValueError("lower_bound " + str(lower_bound)
@@ -99,7 +101,7 @@ class CallableObjective(_CallableComponent, Objective):
     def upper_bound(self) -> Union[float, int]:
         return self.__upper_bound
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_F_LOWER_BOUND, self.__lower_bound)
         logger.key_value(logging.KEY_F_UPPER_BOUND, self.__upper_bound)
@@ -111,11 +113,11 @@ def _check_objective(objective: Objective) -> Objective:
     of :class:`Objective`
     :param objective: the object
     :return: the object
-    :raises ValueError: if `objective` is not an instance of
+    :raises TypeError: if `objective` is not an instance of
     :class:`Objective`
     """
     if objective is None:
-        raise ValueError("An objective function must not be None.")
+        raise TypeError("An objective function must not be None.")
     if not isinstance(objective, Objective):
         raise TypeError(
             "An objective function must be instance of Objective, but is "

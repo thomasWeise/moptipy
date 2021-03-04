@@ -1,12 +1,16 @@
+"""
+Here an objective function for minimizing the makespan of Gantt charts is
+implemented.
+"""
 from moptipy.api.objective import Objective
-from moptipy.examples.jssp.instance import JSSPInstance
 from moptipy.examples.jssp.gantt import Gantt
+from moptipy.examples.jssp.instance import JSSPInstance
 
 
 class Makespan(Objective):
     """This objective function returns the makespan of a Gantt chart."""
 
-    def __init__(self, instance: JSSPInstance):
+    def __init__(self, instance: JSSPInstance) -> None:
         super().__init__()
         if not isinstance(instance, JSSPInstance):
             raise ValueError("Must provide JSSPInstance, but got '"

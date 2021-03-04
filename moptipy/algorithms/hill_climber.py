@@ -1,5 +1,6 @@
-from moptipy.api.process import Process
+"""The hill climbing algorithm implementation."""
 from moptipy.api.algorithm import Algorithm1
+from moptipy.api.process import Process
 
 
 class HillClimber(Algorithm1):

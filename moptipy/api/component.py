@@ -1,10 +1,16 @@
+"""
+This module provides :class:`Component`, the base class for all components
+of the moptipy API.
+"""
 from abc import ABC, abstractmethod
-from moptipy.utils.logger import KeyValueSection
-from moptipy.utils import logging
 from typing import Callable
+
+from moptipy.utils import logging
+from moptipy.utils.logger import KeyValueSection
 
 
 class Component(ABC):
+    """The base class for all components of the moptipy API."""
 
     def __str__(self):
         return self.get_name()
@@ -14,9 +20,19 @@ class Component(ABC):
 
     @abstractmethod
     def get_name(self) -> str:
+        """
+        Get a canonical name of this component.
+        :return: the canonical name of this component
+        :rtype: str
+        """
         raise NotImplementedError
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
+        """
+        Log all parameters of this component as key-value pairs to the given
+        logger.
+        :param KeyValueSection logger:
+        """
         logger.key_value(logging.KEY_NAME, self.get_name())
         logger.key_value(logging.KEY_TYPE, str(type(self)))
 
@@ -27,27 +43,26 @@ class _CallableComponent(Component):
 
     def __init__(self,
                  inner: Callable,
-                 name: str):
+                 name: str) -> None:
         """
         Create a wrapper mapping a Callable to an component
 
         :param Callable inner: the function to wrap, e.g., a lambda
         :param str name: the name of the component
+        :raises TypeError: if `inner` is not callable
+        :raises ValueError: if name is `None`
         """
 
-        if not isinstance(inner, Callable):
-            raise ValueError("Inner function must be instance of Callable, "
-                             "but is instance of " + str(type(inner)))
+        if not callable(inner):
+            raise TypeError("Inner function must be callable, but is a "
+                            + str(type(inner)))
 
         self._inner = inner
-
-        if name is None:
-            ValueError("Name must not be None.")
         self.__name = logging.sanitize_name(name)
 
     def get_name(self) -> str:
         return self.__name
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_INNER_TYPE, str(type(self._inner)))

@@ -1,3 +1,7 @@
+"""
+A module providing a process without explicit logging where the search
+and solution space are the same.
+"""
 from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union
@@ -5,17 +9,21 @@ from typing import Optional, Union
 from numpy.random import Generator
 
 from moptipy.api._process_base import _ProcessBase
+from moptipy.api.algorithm import Algorithm, _check_algorithm
 from moptipy.api.objective import Objective, _check_objective
 from moptipy.api.space import Space, _check_space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
 from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
-from moptipy.api.algorithm import Algorithm, _check_algorithm
 from moptipy.utils.sys_info import log_sys_info
 
 
 class _ProcessNoSS(_ProcessBase):
+    """
+    An internal class implementing a stand-alone process without explicit
+    logging where the search and solution space are the same.
+    """
 
     def __init__(self,
                  solution_space: Space,
@@ -25,7 +33,7 @@ class _ProcessNoSS(_ProcessBase):
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None):
+                 goal_f: Union[int, float, None] = None) -> None:
 
         super().__init__(max_fes=max_fes, max_time_millis=max_time_millis,
                          goal_f=goal_f)
@@ -93,7 +101,7 @@ class _ProcessNoSS(_ProcessBase):
             return self._current_best_f
         raise ValueError('No current best available.')
 
-    def get_copy_of_current_best_x(self, x):
+    def get_copy_of_current_best_x(self, x) -> None:
         if self._has_current_best:
             return self._solution_space.copy(self._current_best_y, x)
         raise ValueError('No current best available.')
@@ -101,7 +109,7 @@ class _ProcessNoSS(_ProcessBase):
     def create(self):
         return self._solution_space.create()
 
-    def copy(self, source, dest):
+    def copy(self, source, dest) -> None:
         self._solution_space.copy(source, dest)
 
     def to_str(self, x) -> str:
@@ -113,13 +121,13 @@ class _ProcessNoSS(_ProcessBase):
     def is_equal(self, x1, x2) -> bool:
         return self._solution_space.is_equal(x1, x2)
 
-    def validate(self, x):
+    def validate(self, x) -> None:
         self._solution_space.validate(x)
 
     def scale(self) -> int:
         return self._solution_space.scale()
 
-    def log_parameters_to(self, logger: KeyValueSection):
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_BBP_RAND_SEED, self.__rand_seed,
                          also_hex=True)
@@ -132,7 +140,7 @@ class _ProcessNoSS(_ProcessBase):
         with logger.scope(logging.SCOPE_OBJECTIVE_FUNCTION) as sc:
             self._objective.log_parameters_to(sc)
 
-    def _write_log(self, logger: Logger):
+    def _write_log(self, logger: Logger) -> None:
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:
             kv.key_value(logging.KEY_ES_TOTAL_FES, self._current_fes)
             kv.key_value(logging.KEY_ES_TOTAL_TIME_MILLIS,
@@ -155,7 +163,7 @@ class _ProcessNoSS(_ProcessBase):
             with logger.text(logging.SECTION_RESULT_Y) as txt:
                 txt.write(self._solution_space.to_str(self._current_best_y))
 
-    def _perform_termination(self):
+    def _perform_termination(self) -> None:
         # noinspection PyProtectedMember
         super()._perform_termination()
         if not (self.__log_file is None):
@@ -164,8 +172,8 @@ class _ProcessNoSS(_ProcessBase):
             self.__log_file = None
         self._solution_space.validate(self._current_best_y)
 
-    def log_state(self, key: str, value: Union[bool, int, float]):
+    def log_state(self, key: str, value: Union[bool, int, float]) -> None:
         pass
 
-    def get_name(self):
+    def get_name(self) -> str:
         return "ProcessWithoutSearchSpace"
