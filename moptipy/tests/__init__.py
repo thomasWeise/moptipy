@@ -1,4 +1,6 @@
 """
+Code for testing of implementations of different parts of the moptipy API.
+
 In this package, we provide code that can be used to test different parts of
 the moptipy API and implementation. These are not unit tests, but rather code
 that can be used to build unit tests. If you want to use moptipy in your code,
@@ -6,7 +8,7 @@ then likely you will implement own algorithms and operators. If you want to
 test whether they comply with the moptipy specifications, then the functions
 here will be helpful.
 """
-from typing import Final, Tuple
+from typing import Final
 
 import moptipy.version
 from moptipy.tests.algorithm import check_algorithm
@@ -18,7 +20,7 @@ from moptipy.tests.space import check_space
 
 __version__: Final[str] = moptipy.version.__version__
 
-__all__: Final[Tuple[str, ...]] = (
+__all__ = (
     "check_algorithm",
     "check_component",
     "check_encoding",

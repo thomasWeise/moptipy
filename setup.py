@@ -1,3 +1,4 @@
+"""The setup and installation script."""
 from setuptools import find_packages, setup
 
 version = {}

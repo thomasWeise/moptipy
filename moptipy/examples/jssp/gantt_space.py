@@ -1,6 +1,4 @@
-"""
-Here we implement a search space implementation for :class:`Gantt` charts.
-"""
+"""Here we implement a space implementation for :class:`Gantt` charts."""
 from math import factorial
 
 import numpy as np
@@ -12,15 +10,13 @@ from moptipy.utils.logger import KeyValueSection
 
 
 class GanttSpace(Space):
-    """
-    An implementation of :py:class:`~moptipy.api.space.Space` for
-    :py:class:`~moptipy.examples.jssp.gantt.Gantt` charts.
-    """
+    """A space implementation of for `Gantt` charts."""
 
     def __init__(self, instance: JSSPInstance) -> None:
         """
-        Create a Gantt chart space
-        :param JSSPInstance instance: the JSSP instance
+        Create a Gantt chart space.
+
+        :param moptipy.examples.jssp.JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
             ValueError("Must provide valid JSSP instance, but passed in a '"
@@ -29,33 +25,99 @@ class GanttSpace(Space):
         """The JSSP Instance to which the Gantt record apply."""
 
     def create(self) -> Gantt:
+        """
+        Create a Gantt chart object without assigning jobs to machines.
+
+        :return: the Gantt chart
+        :rtype: moptipy.examples.jssp.Gantt
+        """
         return Gantt(self.instance)
 
     def copy(self, source: Gantt, dest: Gantt) -> None:
+        """
+        Copy the contents of one Gantt chart to another.
+
+        :param source: the source chart
+        :param dest: the destination chart
+        """
         if dest.instance != source.instance:
             raise ValueError("Instances of source and dest must be the same.")
         np.copyto(dest.times, source.times)
         dest.makespan = source.makespan
 
     def to_str(self, x: Gantt) -> str:
+        """
+        Convert a Gantt chart to a string.
+
+        :param moptipy.examples.jssp.Gantt x: the Gantt chart
+        :return: a string corresponding to the flattened
+            :py:attr:`~Gantt.times` array
+        :rtype: str
+        """
         return ",".join([str(xx) for xx in x.times.flatten()])
 
     def is_equal(self, x1: Gantt, x2: Gantt) -> bool:
+        """
+        Check if two Gantt charts have the same contents.
+
+        :param moptipy.examples.jssp.Gantt x1: the first chart
+        :param moptipy.examples.jssp.Gantt x2: the second chart
+        :return: `True` if both charts are for the same instance and have the
+            same structure
+        :rtype: bool
+        """
         return (x1.instance == x2.instance) and \
             np.array_equal(x1.times, x2.times)
 
     def from_str(self, text: str) -> Gantt:
+        """
+        Convert a string to a Gantt chart.
+
+        :param str text: the string
+        :return: the Gantt chart
+        :rtype: moptipy.examples.jssp.Gantt
+        """
+        if not (isinstance(text, str)):
+            raise TypeError("text must be str, but is "
+                            + str(type(text)) + ".")
         x = self.create()
         np.copyto(x.times,
                   np.fromstring(text, dtype=x.times.dtype, sep=",")
                   .reshape(x.times.shape))
         x.compute_statistics()
+        self.validate(x)
         return x
 
     def validate(self, x: Gantt) -> None:
+        """
+        Validate a Gantt chart `x` and raise errors if it is invalid.
+
+        :param moptipy.examples.jssp.Gantt x: the Gantt chart
+        :raises TypeError: if any component of the chart is of the wrong type
+        :raises ValueError: if the Gantt chart is not feasible or the makespan
+            is wrong
+        """
         if not isinstance(x.instance, JSSPInstance):
-            raise ValueError("Invalid instance, not a JSSP instance, but a '"
-                             + str(type(x.instance)) + "'.")
+            raise TypeError("Invalid instance, not a JSSP instance, but a '"
+                            + str(type(x.instance)) + "'.")
+        if not isinstance(x.times, np.ndarray):
+            raise TypeError("x.times must be numpy.ndarray, but is "
+                            + str(type(x.times)) + ",")
+        if not isinstance(x.makespan, int):
+            raise TypeError("x.makespan must be int, but is "
+                            + str(type(x.makespan)) + ".")
+        if not isinstance(x.instance, JSSPInstance):
+            raise TypeError("x.instance must be JSSPInstance, but is "
+                            + str(type(x.instance)) + ".")
+        if not isinstance(x.instance.matrix, np.ndarray):
+            raise TypeError("x.instance.matrix must be numpy.ndarray, but is "
+                            + str(type(x.instance.matrix)) + ",")
+        if not isinstance(x.instance.jobs, int):
+            raise TypeError("x.instance.jobs must be int, but is "
+                            + str(type(x.instance.jobs)) + ".")
+        if not isinstance(x.instance.machines, int):
+            raise TypeError("x.instance.machines must be int, but is "
+                            + str(type(x.instance.machines)) + ".")
 
         if x.times.shape[0] != x.instance.jobs:
             raise ValueError("times matrix must have "
@@ -136,12 +198,36 @@ class GanttSpace(Space):
                 + x.instance.get_name() + "'.")
 
     def scale(self) -> int:
+        """
+        Get the number of possible Gantt charts without useless delays.
+
+        :return: `factorial(jobs) ** machines`
+        :rtype: int
+
+        >>> print(GanttSpace(JSSPInstance.from_resource("demo")).scale())
+        7962624
+        """
         return factorial(self.instance.jobs) ** self.instance.machines
 
     def get_name(self) -> str:
+        """
+        The name of the Gantt space.
+
+        :return: the name
+        :rtype: str
+
+        >>> space = GanttSpace(JSSPInstance.from_resource("abz7"))
+        >>> print(space.get_name())
+        gantt_abz7
+        """
         return "gantt_" + self.instance.get_name()
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
+        """
+        Log the parameters of the Gantt space to the given logger.
+
+        :param moptipy.utils.KeyValueSection logger: the logger
+        """
         super().log_parameters_to(logger)
         with logger.scope(JSSPInstance.SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

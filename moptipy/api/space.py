@@ -1,4 +1,6 @@
 """
+Provide the functionality to access search and solution spaces.
+
 A :class:`Space` is the abstraction of the data structures for solutions and
 points in the search space that need to be generated, copied, and stored
 during the optimization process.
@@ -73,9 +75,11 @@ class Space(Component):
     def from_str(self, text: str):
         """
         Transform a string `text` to one element of the space.
-        This method should be implemented as inverse to
-        :py:meth:x_to_str:.
+
+        This method should be implemented as inverse to :py:meth:x_to_str:.
+        It should check the validity of the result before returning it.
         It may not always be possible to implement this method.
+
         :param text: the input string
         :return: the element in the space corresponding to `text`
         """
@@ -84,7 +88,8 @@ class Space(Component):
     @abstractmethod
     def validate(self, x) -> None:
         """
-        Check whether a given point in the space is valid
+        Check whether a given point in the space is valid.
+
         :param x: the point
         :raises ValueError: if the point `x` is invalid
         """
@@ -93,9 +98,10 @@ class Space(Component):
     @abstractmethod
     def scale(self) -> int:
         """
-        The approximate size of the space, i.e., the approximate number of
-        different points it contains
+        Get the approximate number of different elements in the space.
+
         :return: the approximate scale of the space
+        :rtype: int
         """
         raise NotImplementedError
 
@@ -103,8 +109,8 @@ class Space(Component):
 def _check_space(space: Optional[Space],
                  none_is_ok: bool = False) -> Optional[Space]:
     """
-    An internal method used for checking whether an object is a valid instance
-    of :class:`Space`
+    Check whether an object is a valid instance of :class:`Space`.
+
     :param space: the object
     :param bool none_is_ok: is it ok if `None` is passed in?
     :return: the object

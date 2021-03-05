@@ -1,7 +1,4 @@
-"""
-The operation-based encoding for JSSPs represents solutions as permutations
-with repetitions that can be translated to :class:`Gantt` charts.
-"""
+"""An implementation of the operation-based encoding for JSSPs."""
 import numpy as np
 
 from moptipy.api.encoding import Encoding
@@ -12,7 +9,9 @@ from moptipy.utils.nputils import int_range_to_dtype
 
 class OperationBasedEncoding(Encoding):
     """
-    An operation-based encoding for the Job Shop Scheduling Problem (JSSP)
+    An operation-based encoding for the Job Shop Scheduling Problem (JSSP).
+
+    The operation-based encoding for the Job Shop Scheduling Problem (JSSP)
     maps permutations with repetitions to Gantt charts.
     In the operation-based encoding, the search space consists of permutations
     with repetitions of length `n*m`, where `n` is the number of jobs in the
@@ -30,7 +29,8 @@ class OperationBasedEncoding(Encoding):
     def __init__(self, instance: JSSPInstance) -> None:
         """
         Instantiate the operation based encoding.
-        :param JSSPInstance instance: the JSSP instance
+
+        :param moptipy.examples.jssp.JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
             raise ValueError("instance must be valid JSSPInstance, but is '"
@@ -44,6 +44,12 @@ class OperationBasedEncoding(Encoding):
         self.__matrix = instance.matrix
 
     def map(self, x: np.ndarray, y: Gantt) -> None:
+        """
+        Map an operation-based encoded array to a Gantt chart.
+
+        :param np.array x: the array
+        :param moptipy.examples.jssp.Gantt y: the Gantt chart
+        """
         machine_time = self.__machine_time
         machine_time.fill(0)
         job_time = self.__job_time
@@ -68,4 +74,10 @@ class OperationBasedEncoding(Encoding):
         y.makespan = int(job_time.max())
 
     def get_name(self) -> str:
+        """
+        Get the name of this encoding.
+
+        :return: `"operation_based_encoding"`
+        :rtype: str
+        """
         return "operation_based_encoding"

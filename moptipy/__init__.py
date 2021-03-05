@@ -1,5 +1,5 @@
 """
-moptipy is the *Metaheuristic Optimization in Python* Package
+moptipy is the *Metaheuristic Optimization in Python* Package.
 
 This is the basic package of our moptipy project.
 It provides several sub-packages:

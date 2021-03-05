@@ -1,6 +1,9 @@
 """Test the integer-string space."""
 import numpy as np
 
+# noinspection PyPackageRequirements
+from pytest import raises
+
 from moptipy.api import Space
 from moptipy.spaces import IntSpace
 from moptipy.tests.space import check_space
@@ -16,13 +19,17 @@ def test_int():
     assert isinstance(a, np.ndarray)
     assert len(a) == 12
     assert a.dtype == f.dtype
+    assert all(a == 3)
 
     for i in range(len(a)):
         a[i] = i
+    with raises(ValueError):
+        f.validate(a)
+
     b = f.create()
     assert not f.is_equal(a, b)
 
-    f.copy(a, b)
+    f.copy(b, a)
     assert f.is_equal(a, b)
 
     b[0] = 5

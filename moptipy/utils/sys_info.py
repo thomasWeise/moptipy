@@ -2,7 +2,6 @@
 import os
 import platform
 import re
-import subprocess
 import sys
 from datetime import datetime
 from typing import Optional
@@ -29,16 +28,8 @@ def __make_sys_info() -> str:
         try:
             if platform.system() == "Windows":
                 return platform.processor()
-            if platform.system() == "Darwin":
-                os.environ['PATH'] = os.environ['PATH'] + os.pathsep \
-                    + '/usr/sbin'
-                command = "sysctl -n machdep.cpu.brand_string"
-                return subprocess.check_output(command).decode().strip()
             if platform.system() == "Linux":
-                command = "cat /proc/cpuinfo"
-                all_info = subprocess.check_output(command, shell=True) \
-                    .decode().strip()
-                for line in all_info.split("\n"):
+                for line in open('/proc/cpuinfo').readlines():
                     if "model name" in line:
                         return re.sub(".*model name.*:", "", line, 1).strip()
         except BaseException:
@@ -130,7 +121,8 @@ del __make_sys_info
 
 def log_sys_info(logger: Logger) -> None:
     """
-    The method for writing the system information section to a logger
+    Write the system information section to a logger.
+
     :param logger: the logger
     """
     with logger.text(logging.SECTION_SYS_INFO) as txt:

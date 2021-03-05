@@ -1,6 +1,4 @@
-"""
-A package with example problems and operators.
-"""
+"""A package with example problems and operators."""
 from typing import Final
 
 import moptipy.version

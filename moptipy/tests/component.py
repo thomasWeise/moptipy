@@ -7,6 +7,7 @@ from moptipy.utils.logger import InMemoryLogger
 def check_component(component: Component) -> None:
     """
     Check whether an object is a moptipy component.
+
     :param component: the component to test
     :raises ValueError: if `component` is not a valid Component
     """

@@ -1,3 +1,4 @@
+"""The configuration for sphinx to generate the documentation."""
 # path setup
 import os
 import sys

@@ -10,9 +10,10 @@ def check_objective(objective: Objective,
                     create_valid: Optional[Callable] = None) -> None:
     """
     Check whether an object is a moptipy objective function.
+
     :param objective: the objective function to test
     :param create_valid: a method that can produce one valid element,
-    or `None` if the `evaluate` function should not be tested
+        or `None` if the `evaluate` function should not be tested
     :raises ValueError: if `objective` is not a valid Objective
     """
     if not isinstance(objective, Objective):

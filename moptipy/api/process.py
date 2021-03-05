@@ -1,7 +1,9 @@
 """
-Processes are the basic abstraction of the information about the search and
-its current state as handed to the optimization algorithm and, after the
-algorithm has finished, to the user.
+Processes offer data to both the user and the optimization algorithm.
+
+They provide the information about the optimization process and its current
+state as handed to the optimization algorithm and, after the algorithm has
+finished, to the user.
 """
 from abc import abstractmethod
 from typing import Optional, Union
@@ -14,6 +16,8 @@ from moptipy.api.space import Space
 
 class Process(Space, Objective):
     """
+    Processes offer data to both the user and the optimization algorithm.
+
     A :class:`Process` provides an optimization algorithm access to a problem
     as well as information about the best-so-far results and how much
     runtime was consumed.
@@ -22,6 +26,7 @@ class Process(Space, Objective):
     """
 
     def __init__(self) -> None:
+        """Internal method to initialize the process. Do not call directly."""
         self._terminated = False
         self._knows_that_terminated = False
 
@@ -37,10 +42,13 @@ class Process(Space, Objective):
 
     def should_terminate(self) -> bool:
         """
-        Should the optimization process terminate?
+        Check whether the optimization process should terminate.
 
-        If this function returns false, the optimization process must
+        If this function returns `True`, the optimization process must
         not perform any objective function evaluations anymore.
+        It will automatically become `True` when a termination criterion
+        is hit or if anyone calls :meth:`terminate`, which happens also
+        at the end of a `with` statement.
 
         :return: True if the process should terminate, False if not
         :rtype: Generator
@@ -53,8 +61,9 @@ class Process(Space, Objective):
     @abstractmethod
     def get_consumed_fes(self) -> int:
         """
-        Obtain the number consumed objective function evaluations,
-        i.e., the number of calls to evaluate(...)
+        Obtain the number consumed objective function evaluations.
+
+        This is the number of calls to :meth:`evaluate`.
 
         :return: the number of objective function evaluations so far
         :rtype: int
@@ -64,7 +73,7 @@ class Process(Space, Objective):
     @abstractmethod
     def get_consumed_time_millis(self) -> int:
         """
-        Obtain the consumed runtime measured in milliseconds.
+        Obtain an approximation of the consumed runtime in milliseconds.
 
         :return: the consumed runtime measured in milliseconds.
         :rtype: int
@@ -74,8 +83,9 @@ class Process(Space, Objective):
     @abstractmethod
     def get_max_fes(self) -> Optional[int]:
         """
-        Obtain the maximum number of objective function evaluations,
-        or `None` if no limit is specified.
+        Obtain the maximum number of permitted objective function evaluations.
+
+        If no limit is set, `None` is returned.
 
         :return: the maximum number of objective function evaluations,
             or `None` if no limit is specified.
@@ -86,8 +96,9 @@ class Process(Space, Objective):
     @abstractmethod
     def get_max_time_millis(self) -> Optional[int]:
         """
-        Obtain the maximum runtime permitted in milliseconds,
-        or `None` if no limit is specified.
+        Obtain the maximum runtime permitted in milliseconds.
+
+        If no limit is set, `None` is returned.
 
         :return: the maximum runtime permitted in milliseconds,
             or `None` if no limit is specified.
@@ -98,7 +109,7 @@ class Process(Space, Objective):
     @abstractmethod
     def has_current_best(self) -> bool:
         """
-        Is a current best solution available?
+        Check whethers a current best solution is available.
 
         As soon as one objective function evaluation has been performed,
         the black-box process can provide a best-so-far solution. Then,
@@ -139,14 +150,24 @@ class Process(Space, Objective):
 
     @abstractmethod
     def get_last_improvement_fe(self) -> int:
-        """ The the function evaluation at which the last improvement
-        was made. """
+        """
+        Get the FE at which the last improvement was made.
+
+        :return: the function evaluation when the last improvement was made
+        :rtype: int
+        :raises ValueError: if no FE was performed yet
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_last_improvement_time_millis(self) -> int:
-        """ The the consumed milliseconds since the start
-        at which the last improvement was made. """
+        """
+        Get the FE at which the last improvement was made.
+
+        :return: the function evaluation when the last improvement was made
+        :rtype: int
+        :raises ValueError: if no FE was performed yet
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -159,14 +180,41 @@ class Process(Space, Objective):
         """
 
     def get_name(self) -> str:
-        return "Process"
+        """
+        Get the name of this process implementation.
+
+        :return: "process"
+        """
+        return "process"
 
     def terminate(self) -> None:
-        """ Terminate this process. """
+        """
+        Terminate this process.
+
+        This function is automatically called at the end of the `with`
+        statement, but can also be called by the algorithm when it is
+        finished and is also invoked automatically when a termination
+        criterion is hit.
+        After the first time this method is invoked, :meth:should_terminate`
+        becomes `True`.
+        """
         self._terminated = True
 
     def __enter__(self) -> 'Process':
+        """
+        Begin a `with` statement.
+
+        :return: this process itself
+        :rtype: Process
+        """
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
+        """
+        End a `with` statement.
+
+        :param exception_type: ignored
+        :param exception_value: ignored
+        :param traceback: ignored
+        """
         self.terminate()

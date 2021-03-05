@@ -1,6 +1,4 @@
-"""
-An implementation of an integer string based search space.
-"""
+"""An implementation of an integer string based search space."""
 from typing import Final
 
 import numpy as np
@@ -14,6 +12,7 @@ from moptipy.utils.nputils import int_range_to_dtype
 class IntSpace(Space):
     """
     A space where each element is a one-dimensional numpy integer array.
+
     Such spaces can serve as basis for implementing combinatorial
     optimization and can be extended to host permutations.
     """
@@ -29,15 +28,19 @@ class IntSpace(Space):
                  min_value: int,
                  max_value: int) -> None:
         """
-        Create the integer-based search space
+        Create the integer-based search space.
+
         :param int dimension: The dimension of the search space,
             i.e., the number of decision variables.
         :param int min_value: the minimum value
         :param int max_value: the maximum value
         """
-        if (not isinstance(dimension, int)) or (dimension < 1):
-            raise ValueError("Dimension must be positive integer, but got '"
-                             + str(dimension) + "'.")
+        if not isinstance(dimension, int):
+            raise TypeError("dimension must be integer, but got '"
+                            + str(type(dimension)) + "'.")
+        if (dimension < 1) or (dimension > 1_000_000_000):
+            raise ValueError("dimension must be in 1..1_000_000_000, but got "
+                             + str(dimension) + ".")
 
         self.dtype = int_range_to_dtype(min_value=min_value,
                                         max_value=max_value)
@@ -57,8 +60,10 @@ class IntSpace(Space):
 
     def create(self) -> np.ndarray:
         """
-        This method creates a integer vector filled with the minimal value.
+        Create a integer vector filled with the minimal value.
+
         :return: the vector
+        :rtype: np.ndarray
 
         >>> from moptipy.spaces.intspace import IntSpace
         >>> s = IntSpace(dimension=12, min_value=5, max_value=332)
@@ -73,33 +78,68 @@ class IntSpace(Space):
                        dtype=self.dtype)
 
     def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
+        """
+        Copy the contents of one integer string to another.
+
+        :param np.ndarray source: the source string
+        :param np.ndarray dest: the target string
+        """
         np.copyto(dest, source)
 
     def to_str(self, x: np.ndarray) -> str:
+        """
+        Convert an integer string to a string, using `,` as separator.
+
+        :param np.ndarray x: the integer string
+        :return: the string
+        :rtype: str
+        """
         return ",".join([str(xx) for xx in x])
 
     def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
+        """
+        Check if two integer vectors are equal.
+
+        :param np.ndarray x1: the first int vector
+        :param np.ndarray x2: the second
+        :return: `True` if the contents of both int vectors are equal,
+            `False` otherwise
+        :rtype: bool
+        """
         return np.array_equal(x1, x2)
 
     def from_str(self, text: str) -> np.ndarray:
+        """
+        Convert a string to an integer string.
+
+        :param str text: the text
+        :return: the vector
+        :rtype: np.ndarray
+        :raises TypeError: if `text` is not a `str`
+        :raises ValueError: if `text` cannot be converted to a valid vector
+        """
+        if not (isinstance(text, str)):
+            raise TypeError("text must be str, but is "
+                            + str(type(text)) + ".")
         x = np.fromstring(text, dtype=self.dtype, sep=",")
-        if len(x) != self.dimension:
-            raise ValueError("'" + text + "' does not have dimension "
-                             + str(self.dimension))
-        for xx in x:
-            if (xx < self.min_value) or (xx > self.max_value):
-                ValueError("Value '" + str(xx) + "' in '" + text
-                           + "' outside of range '" + str(self.min_value)
-                           + ".." + str(self.max_value))
+        self.validate(x)
         return x
 
     def validate(self, x: np.ndarray) -> None:
+        """
+        Validate an integer string.
+
+        :param np.ndarray x: the integer string
+        :raises TypeError: if the string is not an element of this space.
+        :raises ValueError: if the shape of the vector is wrong or any of its
+            element is not finite.
+        """
         if not (isinstance(x, np.ndarray)):
-            raise ValueError("x must be an numpy.ndarray, but is a '"
-                             + str(type(x)) + ".")
+            raise TypeError("x must be an numpy.ndarray, but is a '"
+                            + str(type(x)) + ".")
         if x.dtype != self.dtype:
-            raise ValueError("x must be of type '" + str(self.dtype)
-                             + "' but is of type '" + str(x.dtype) + "'.")
+            raise TypeError("x must be of type '" + str(self.dtype)
+                            + "' but is of type '" + str(x.dtype) + "'.")
         if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
             raise ValueError("x must be of shape (" + str(self.dimension)
                              + ") but is of shape " + str(x.shape) + ".")
@@ -113,13 +153,30 @@ class IntSpace(Space):
                              + str(x.max()) + " was encountered.")
 
     def scale(self) -> int:
+        """
+        Get the number of possible different integer strings.
+
+        :return: (max_value - min_value + 1) ** dimension
+        :rtype: int
+        """
         return (self.max_value - self.min_value + 1) ** self.dimension
 
     def get_name(self) -> str:
+        """
+        Get the name of this integer space.
+
+        :return: "ints" + dimension + dtype.char + min_value + "-" + max_value
+        :rtype: int
+        """
         return "ints" + str(self.dimension) + self.dtype.char \
                + str(self.min_value) + "-" + str(self.max_value)
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
+        """
+        Log the parameters of this space to the given logger.
+
+        :param KeyValueLogger logger: the logger
+        """
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(IntSpace.KEY_NUMPY_TYPE, self.dtype.char)

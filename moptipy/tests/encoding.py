@@ -14,10 +14,11 @@ def check_encoding(encoding: Encoding,
                    Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a proper moptipy encoding.
+
     :param encoding: the encoding to test
     :param search_space: the search space
     :param make_search_space_valid: a method that can turn a point from the
-    space into a valid point
+        space into a valid point
     :param solution_space: the solution space
     :raises ValueError: if `encoding` is not a valid :class:`Space`
     """

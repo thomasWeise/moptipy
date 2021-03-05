@@ -1,6 +1,4 @@
-"""
-Here we provide an implementation for representing Gantt charts as objects.
-"""
+"""A class for representing Gantt charts as objects."""
 import numpy as np
 
 from moptipy.examples.jssp.instance import JSSPInstance
@@ -9,6 +7,8 @@ from moptipy.utils import nputils
 
 class Gantt:
     """
+    A class representing Gantt charts.
+
     A Gantt chart is a diagram that visualizes when a job on a given machine
     begins or ends. We here represent it as a three-dimensional matrix
     `self.times`. This matrix has one row for each job and one column for each
@@ -19,6 +19,7 @@ class Gantt:
     def __init__(self, instance: JSSPInstance) -> None:
         """
         Create a Gantt chart record to hold a solution for a JSSP instance.
+
         :param JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
@@ -39,6 +40,7 @@ class Gantt:
     def compute_statistics(self) -> None:
         """
         Re-compute all statistics of the Gantt chart.
+
         This currently only includes the makespan, which simply is the largest
         recorded number in `self.times`.
         """

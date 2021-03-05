@@ -7,7 +7,7 @@ import numpy.random as rnd
 # noinspection PyProtectedMember
 from moptipy.api.algorithm import Algorithm, _check_algorithm
 from moptipy.api.encoding import Encoding
-from moptipy.api.experiment import Experiment
+from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -29,17 +29,19 @@ def check_algorithm(algorithm: Algorithm,
                     max_fes: int = 100) -> None:
     """
     Check whether an algorithm follows the moptipy API specification.
+
     :param algorithm: the algorithm to test
     :param solution_space: the solution space
     :param objective: the objective function
     :param search_space: the optional search space
     :param encoding: the optional encoding
     :param max_fes: the maximum number of FEs
+    :raises TypeError: if `algorithm` is not an Algorithm instance
+    :raises ValueError: if `algorithm` does not behave like it should
     """
-
     if not isinstance(algorithm, Algorithm):
-        raise ValueError("Expected to receive an instance of Space, but "
-                         "got a '" + str(type(algorithm)) + "'.")
+        raise TypeError("Expected to receive an instance of Space, but "
+                        "got a '" + str(type(algorithm)) + "'.")
 
     _check_algorithm(algorithm)
 
@@ -56,7 +58,7 @@ def check_algorithm(algorithm: Algorithm,
     if max_fes <= 0:
         raise ValueError("max_fes must be > 0, but is" + str(max_fes) + ".")
 
-    exp = Experiment()
+    exp = Execution()
     exp.set_algorithm(algorithm)
     exp.set_max_fes(max_fes)
     exp.set_solution_space(solution_space)
@@ -144,10 +146,11 @@ def check_algorithm_on_jssp(algorithm: Callable,
                             instance: Optional[str] = None,
                             max_fes: int = 100) -> None:
     """
-    Check the validity of a black-box algorithm on the JSSP
+    Check the validity of a black-box algorithm on the JSSP.
+
     :param Callable algorithm: the algorithm factory
-    :param Optional[str] instance: the instance name, or None to randomly
-    pick one
+    :param Optional[str] instance: the instance name, or `None` to randomly
+        pick one
     :param int max_fes: the maximum number of FEs
     """
     if not callable(algorithm):

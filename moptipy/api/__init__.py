@@ -16,14 +16,15 @@ It also permits logging of the algorithm progress or even the change of
 dynamic parameters.
 """
 
-from typing import Final, Tuple
+from typing import Final
 
 import moptipy.version
 from moptipy.api.algorithm import Algorithm, Algorithm0, Algorithm1, \
     Algorithm2, CallableAlgorithm
 from moptipy.api.component import Component
 from moptipy.api.encoding import Encoding
-from moptipy.api.experiment import Experiment, run_experiment
+from moptipy.api.execution import Execution
+from moptipy.api.experiment import run_experiment
 from moptipy.api.objective import CallableObjective, Objective
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
@@ -31,7 +32,7 @@ from moptipy.api.space import Space
 
 __version__: Final[str] = moptipy.version.__version__
 
-__all__: Final[Tuple[str, ...]] = (
+__all__ = (
     "Algorithm",
     "Algorithm0",
     "Algorithm1",
@@ -40,7 +41,7 @@ __all__: Final[Tuple[str, ...]] = (
     "CallableObjective",
     "Component",
     "Encoding",
-    "Experiment",
+    "Execution",
     "Objective",
     "Op0",
     "Op1",

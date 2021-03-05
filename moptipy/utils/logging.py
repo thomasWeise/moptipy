@@ -134,7 +134,7 @@ SECTION_RESULT_X: Final = "RESULT_X"
 
 def __recursive_replace(find: str, replace: str, src: str) -> str:
     """
-    an internal function which performs a recursive replacement of strings
+    An internal function which performs a recursive replacement of strings.
 
     :param str find: the string to find
     :param str replace: the string with which it will be replaced
@@ -157,7 +157,7 @@ def __replace_double(replace: str, src: str) -> str:
 
 def sanitize_name(name: str) -> str:
     """
-    sanitizes a name in such a way that it can be used as path component.
+    Sanitize a name in such a way that it can be used as path component.
 
     >>> sanitize_name(" hello world ")
     'hello_world'
@@ -221,8 +221,11 @@ def sanitize_names(names: List[str]) -> str:
 def format_float(x: float) -> str:
     """
     Convert float to a string.
+
     :param float x: the floating point value
     :return: the string representation
+    :rtype: str
+
     >>> format_float(1.3)
     '1.3'
     >>> format_float(1.0)
@@ -231,37 +234,47 @@ def format_float(x: float) -> str:
     if x == 0:
         return "0"
     s = repr(x)
-    if math.isfinite(x):
-        if s.endswith(".0"):
-            return s[:(len(s) - 2)]
-        return s
     if math.isnan(x):
-        ValueError("'" + s + "' not permitted.")
+        raise ValueError("'" + s + "' not permitted.")
+    if s.endswith(".0"):
+        return s[:-2]
     return s
 
 
 def format_complex(x: complex) -> str:
     """
     Convert complex number to a string.
+
     :param complex x: the complex floating point value
     :return: the string representation
+    :rtype: str
+
     >>> format_complex(1.3+3j)
     '1.3+3j'
     >>> format_complex(1.0+0j)
     '1'
+    >>> format_complex(1+0.2j)
+    '1+0.2j'
+    >>> format_complex(0+1j)
+    '1j'
+    >>> format_complex(0+0j)
+    '0'
+    >>> format_complex(-3j)
+    '-3j'
     """
     if x == 0:
         return "0"
     y = abs(x)
     if y == x:
         return format_float(y)
-    s = repr(x)[1:-1]
-    if cmath.isfinite(x):
-        if s.endswith(".0"):
-            return s[:(len(s) - 2)]
-        if s.endswith("+0j)"):
-            return s[1:len(s) - 4]
-        return s
+    s = repr(x)
     if cmath.isnan(x):
-        ValueError("'" + s + "' not permitted.")
+        raise ValueError("'" + s + "' not permitted.")
+    if s[0] == '(':
+        s = s[1:-1]
+    if s.endswith("+0j"):
+        return s[:-3]
+    if s.startswith("-0"):
+        return s[(3 if s.startswith("-0+") else
+                  2 if s.startswith("-0-") else 1):]
     return s

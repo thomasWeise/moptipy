@@ -1,6 +1,6 @@
-"""Utilities used in other moptipy modules"""
+"""Utilities used in other moptipy modules."""
 
-from typing import Final, Tuple
+from typing import Final
 
 import moptipy.version
 from moptipy.utils.cache import is_new
@@ -15,7 +15,7 @@ from moptipy.utils.nputils import int_range_to_dtype, rand_seed_check, \
 
 __version__: Final[str] = moptipy.version.__version__
 
-__all__: Final[Tuple[str, ...]] = (
+__all__ = (
     "canonicalize_path",
     "CsvSection",
     "enforce_dir",

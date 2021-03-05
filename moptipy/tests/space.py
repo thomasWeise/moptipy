@@ -10,9 +10,10 @@ def check_space(space: Space,
                 make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy space.
+
     :param space: the space to test
     :param make_valid: a method that can turn a point from the space into
-    a valid point
+        a valid point
     :raises ValueError: if `space` is not a valid Space
     """
     if not isinstance(space, Space):

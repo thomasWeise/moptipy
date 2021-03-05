@@ -1,7 +1,5 @@
-"""
-In this package, some pre-defined search spaces are provided.
-"""
-from typing import Final, Tuple
+"""In this package, some pre-defined search spaces are provided."""
+from typing import Final
 
 import moptipy.version
 from moptipy.spaces.bitstrings import BitStrings
@@ -12,7 +10,7 @@ from moptipy.spaces.vectorspace import VectorSpace
 
 __version__: Final[str] = moptipy.version.__version__
 
-__all__: Final[Tuple[str, ...]] = (
+__all__ = (
     "BitStrings",
     "IntSpace",
     "Permutations",

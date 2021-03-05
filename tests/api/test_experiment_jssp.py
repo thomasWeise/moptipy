@@ -4,7 +4,7 @@ from os import listdir
 
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
-from moptipy.api import Experiment, run_experiment
+from moptipy.api import Execution, run_experiment
 from moptipy.examples.jssp import JSSPInstance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
@@ -15,13 +15,13 @@ instances = [lambda: JSSPInstance.from_resource("dmu01"),
              lambda: JSSPInstance.from_resource("demo")]
 
 
-def algo_1(inst) -> Experiment:
+def algo_1(inst) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = pwr.Op0Shuffle()
     op1 = pwr.Op1Swap2()
     algo = HillClimber(op0, op1)
-    ex = Experiment()
+    ex = Execution()
     ex.set_algorithm(algo)
     ex.set_search_space(ss)
     ex.set_solution_space(sos)
@@ -32,12 +32,12 @@ def algo_1(inst) -> Experiment:
     return ex
 
 
-def algo_2(inst) -> Experiment:
+def algo_2(inst) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = pwr.Op0Shuffle()
     algo = RandomSampling(op0)
-    ex = Experiment()
+    ex = Execution()
     ex.set_algorithm(algo)
     ex.set_search_space(ss)
     ex.set_solution_space(sos)

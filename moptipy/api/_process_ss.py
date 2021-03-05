@@ -1,7 +1,4 @@
-"""
-An internal module implementing processes with different search and
-solution spaces.
-"""
+"""An implementation of processes with different search and solution spaces."""
 from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union
@@ -16,10 +13,8 @@ from moptipy.utils.logger import KeyValueSection, Logger
 
 
 class _ProcessSS(_ProcessNoSS):
-    """
-    An internal class implementing a stand-alone process with different
-    search and solution space.
-    """
+    """A class implementing a process with search and solution space."""
+
     def __init__(self,
                  solution_space: Space,
                  objective: Objective,

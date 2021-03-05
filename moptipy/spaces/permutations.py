@@ -1,6 +1,4 @@
-"""
-An implementation of a search space for permutations.
-"""
+"""An implementation of a search space for permutations."""
 from math import factorial
 
 import numpy as np
@@ -9,14 +7,12 @@ from moptipy.spaces.intspace import IntSpace
 
 
 class Permutations(IntSpace):
-    """
-    A space where each element is a one-dimensional numpy integer array
-    and represents a permutation.
-    """
+    """A space of permutations represented as 1-dimensional int arrays."""
 
     def __init__(self, n: int) -> None:
         """
-        Create the space of permutations of n elements
+        Create the space of permutations of n elements.
+
         :param int n: the length of the permutations
         """
         super().__init__(dimension=n, min_value=0, max_value=n - 1)
@@ -26,8 +22,10 @@ class Permutations(IntSpace):
 
     def create(self) -> np.ndarray:
         """
-        This method creates a permutation of the form [0, 1, 2, 4, 5, ...]
+        Create a permutation of the form [0, 1, 2, 4, 5, ...].
+
         :return: the permutation
+        :rtype: np.ndarray
 
         >>> from moptipy.spaces.permutations import Permutations
         >>> p = Permutations(12)
@@ -38,9 +36,23 @@ class Permutations(IntSpace):
         return self.__blueprint.copy()
 
     def scale(self) -> int:
+        """
+        Get the number of different permutations.
+
+        :return: factorial(dimension)
+        :rtype: int
+        """
         return factorial(self.dimension)
 
     def validate(self, x: np.ndarray) -> None:
+        """
+        Validate a permutation.
+
+        :param np.ndarray x: the integer string
+        :raises TypeError: if the string is not an element of this space.
+        :raises ValueError: if the shape of the vector is wrong or any of its
+            element is not finite.
+        """
         super().validate(x)
         counts = np.zeros(self.dimension, np.dtype(np.int32))
         for xx in x:
@@ -52,4 +64,10 @@ class Permutations(IntSpace):
                              + " occurrences.")
 
     def get_name(self) -> str:
+        """
+        Get the name of this permutation space.
+
+        :return: "perm" + dimension
+        :rtype: str
+        """
         return "perm" + str(self.dimension)

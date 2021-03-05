@@ -7,7 +7,7 @@ from numpy.random import Generator
 
 from moptipy.api import CallableAlgorithm, CallableObjective, \
     Process
-from moptipy.api.experiment import Experiment
+from moptipy.api.execution import Execution
 from moptipy.spaces import VectorSpace
 from moptipy.utils import TempFile
 
@@ -66,7 +66,7 @@ def myobjective2(x):
 def test_process_noss_no_log():
     v = VectorSpace(10)
     x = v.create()
-    exp = Experiment()
+    exp = Execution()
     exp.set_algorithm(CallableAlgorithm(myalgorithm))
     exp.set_solution_space(v)
     exp.set_objective(CallableObjective(myobjective))
@@ -85,7 +85,7 @@ def test_process_noss_log():
     x = v.create()
     with TempFile() as log:
         path = str(log)
-        exp = Experiment()
+        exp = Execution()
         exp.set_algorithm(CallableAlgorithm(myalgorithm))
         exp.set_solution_space(v)
         exp.set_objective(CallableObjective(myobjective))
@@ -109,7 +109,7 @@ def test_process_noss_timed_log():
     x = v.create()
     with TempFile() as log:
         path = str(log)
-        exp = Experiment()
+        exp = Execution()
         exp.set_algorithm(CallableAlgorithm(myalgorithm))
         exp.set_solution_space(v)
         exp.set_objective(CallableObjective(myobjective))
@@ -134,7 +134,7 @@ def test_process_noss_maxfes_log_state():
     with TempFile() as log:
         path = str(log)
 
-        exp = Experiment()
+        exp = Execution()
         exp.set_algorithm(CallableAlgorithm(myalgorithm2))
         exp.set_solution_space(v)
         exp.set_objective(CallableObjective(myobjective2))

@@ -13,6 +13,7 @@ from moptipy.utils.cache import is_new
 class Logger(ABC):
     """
     An abstract base class for logging data in a structured way.
+
     There are two implementations of this, :class:`InMemoryLogger`, which logs
     data in memory and is mainly there for testing and debugging, an
     :class:`FileLogger` which logs to a text file and is to be used in
@@ -41,9 +42,21 @@ class Logger(ABC):
         self.__closer: Optional[str] = None
 
     def __enter__(self):
+        """
+        Enter the logger in a `with` statement.
+
+        :return: `self`
+        """
         return self
 
-    def _error(self, message) -> None:
+    def _error(self, message: List) -> None:
+        """
+        Internal method for raising an :class:`ValueError` with context infos.
+
+        :param List message: the message elements to merge
+        :raises ValueError: an error with the message and some context
+        information
+        """
         message = [(f if isinstance(f, str) else "'" + str(f) + "'")
                    for f in message]
         if self.__section is None:
@@ -54,6 +67,13 @@ class Logger(ABC):
         raise ValueError("".join(message))
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
+        """
+        Close the logger after leaving the `with` statement.
+
+        :param exception_type: ignored
+        :param exception_value: ignored
+        :param traceback: ignored
+        """
         if not (self.__section is None):
             self._error(["Cannot close logger, because section still open"])
         if not (self._stream is None):
@@ -64,7 +84,7 @@ class Logger(ABC):
 
     def _open_section(self, title: str) -> None:
         """
-        internal method for opening a new section.
+        An internal method for opening a new section.
 
         :param str title: the section title
         """
@@ -91,7 +111,7 @@ class Logger(ABC):
 
     def _close_section(self, title: str) -> None:
         """
-        internal method for closing a section.
+        An internal method for closing a section.
 
         :param str title: the section title
         """
@@ -108,8 +128,15 @@ class Logger(ABC):
         self.__section = None
 
     def _comment(self, comment: str) -> None:
+        """
+        An internal method for writing a comment.
+
+        :param str comment: the comment
+        """
         if self.__section is None:
             self._error(["Cannot write if not inside section"])
+        if len(comment) <= 0:
+            return
         self._stream.write(logging.COMMENT_CHAR + " "
                            + sub(r"\s+", " ", comment.strip())
                            + "\n")
@@ -117,12 +144,15 @@ class Logger(ABC):
 
     def _write(self, text: str) -> None:
         """
-        internal method for writing a string.
+        Internal method for writing a string.
 
         :param str text: the text to write
         """
         if self.__section is None:
             self._error(["Cannot write if not inside section"])
+
+        if len(text) <= 0:
+            return
 
         if self.__closer in text:
             self._error(["String '", self.__closer,
@@ -132,8 +162,9 @@ class Logger(ABC):
         self.__starts_new_line = text.endswith("\n")
 
     def key_values(self, title: str) -> 'KeyValueSection':
-        """
+        r"""
         Create a log section for key-value pairs.
+
         The contents of such a section will be valid YAML mappings, i.w.,
         conform to
         https://yaml.org/spec/1.2/spec.html#mapping//.
@@ -158,7 +189,7 @@ class Logger(ABC):
         >>> print(text)
         ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: True', 'f: 3', 'END_B']
         >>> import yaml
-        >>> dic = yaml.safe_load("\\n".join(text[1:5]))
+        >>> dic = yaml.safe_load("\n".join(text[1:5]))
         >>> print(list(dic.keys()))
         ['a', 'c.d', 'c.e', 'f']
         """
@@ -167,8 +198,9 @@ class Logger(ABC):
 
     def csv(self, title: str, header: List[str]) -> 'CsvSection':
         """
-        Create a log section for CSV data with `;` as column separator
-        and the first line as headline with the column names.
+        Create a log section for CSV data with `;` as column separator.
+
+        The first line will be the headline with the column names.
 
         :param str title: the title of the new section
         :param List[str] header: the list of column titles
@@ -197,7 +229,7 @@ class Logger(ABC):
         return CsvSection(title=title, logger=self, header=header)
 
     def text(self, title: str) -> 'TextSection':
-        """
+        r"""
         Create a log section for unstructured text.
 
         :param str title: the title of the new section
@@ -210,7 +242,7 @@ class Logger(ABC):
         ...     with l.text("C") as tx:
         ...         tx.write("aaaaaa")
         ...         tx.write("bbbbb")
-        ...         tx.write("\\n")
+        ...         tx.write("\n")
         ...         tx.write("ccccc")
         ...     print(l.get_log())
         ['BEGIN_C', 'aaaaaabbbbb', 'ccccc', 'END_C']
@@ -223,7 +255,8 @@ class FileLogger(Logger):
 
     def __init__(self, path: str) -> None:
         """
-        Initialize the logger
+        Initialize the logger.
+
         :param str path: the path to the file to open
         """
         if not isinstance(path, str):
@@ -241,13 +274,14 @@ class InMemoryLogger(Logger):
     """A logger logging to a string in memory."""
 
     def __init__(self) -> None:
-        """Initialize the logger"""
+        """Initialize the logger."""
         super().__init__(stream=StringIO(),
                          name="in-memory-logger")
 
     def get_log(self) -> List[str]:
         """
-        Obtain all the lines logged to this logger
+        Obtain all the lines logged to this logger.
+
         :return: a list of strings with the logged lines
         :rtype: List[str]
         """
@@ -257,6 +291,12 @@ class InMemoryLogger(Logger):
 class _Section(ABC):
 
     def __init__(self, title: Optional[str], logger: Logger) -> None:
+        """
+        Internal constructor. Do not call directly.
+
+        :param Optional[str] title: the section title
+        :param Logger logger: the logger
+        """
         self._logger = logger
         self._title = title
         if not (title is None):
@@ -264,9 +304,22 @@ class _Section(ABC):
             logger._open_section(title)
 
     def __enter__(self):
+        """
+        The enter method needed for the `with` statement.
+
+        :return: `self`
+        """
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
+        """
+        The exit method needed for the `with` statement.
+
+        :param exception_type: ignored
+        :param exception_value: ignored
+        :param traceback: ignored
+        :return: ignored
+        """
         if not (self._title is None):
             # noinspection PyProtectedMember
             self._logger._close_section(self._title)
@@ -284,11 +337,16 @@ class _Section(ABC):
 
 
 class CsvSection(_Section):
-    """
-    A logger that is designed to output CSV data.
-    """
+    """A logger that is designed to output CSV data."""
 
     def __init__(self, title: str, logger: Logger, header: List[str]) -> None:
+        """
+        Internal constructor. Do not call directly.
+
+        :param str title: the title
+        :param Logger logger: the owning logger
+        :param List[str] header: the header
+        """
         super().__init__(title, logger)
 
         self.__header_len = len(header)
@@ -332,12 +390,22 @@ class CsvSection(_Section):
 
 
 class KeyValueSection(_Section):
-    """
-    A logger for key-value pairs.
-    """
+    """A logger for key-value pairs."""
 
     def __init__(self, title: Optional[str],
                  logger: Logger, prefix: str, done) -> None:
+        """
+        Internal constructor, do not call directly.
+
+        :param Optional[str] title: the section title, or `None` for nested
+        scopes.
+        :param Logger logger: the owning logger
+        :param str prefix: the prefix
+        :param done: the set of already done keys and prefixes
+        """
+        if not isinstance(prefix, str):
+            raise TypeError("prefix must be str but is "
+                            + str(type(prefix)))
         super().__init__(title=title, logger=logger)
         self._prefix = prefix
         if done is None:
@@ -352,7 +420,7 @@ class KeyValueSection(_Section):
     def key_value(self, key: str, value,
                   also_hex: bool = False) -> None:
         """
-        Write a key-value pair
+        Write a key-value pair.
 
         :param str key: the key
         :param value: the value
@@ -388,7 +456,7 @@ class KeyValueSection(_Section):
 
     def scope(self, prefix: str) -> 'KeyValueSection':
         """
-        Create a new scope for key prefixes
+        Create a new scope for key prefixes.
 
         :param str prefix: the key prefix
         :return: the new logger
@@ -402,11 +470,15 @@ class KeyValueSection(_Section):
 
 
 class TextSection(_Section):
-    """
-    A logger for raw, unprocessed text.
-    """
+    """A logger for raw, unprocessed text."""
 
     def __init__(self, title: str, logger: Logger) -> None:
+        """
+        Internal constructor, do not call it directly.
+
+        :param str title: the title
+        :param Logger logger: the logger
+        """
         super().__init__(title, logger)
 
     def write(self, string: str) -> None:

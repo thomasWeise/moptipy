@@ -10,11 +10,13 @@ wheel >= 0.36.2
 # sphinx is needed for generating the documentation.
 sphinx >= 3.4.3
 
-# static code analysis: flake8, pylint, mypy, and pyflakes
+# static code analysis tools
+bandit >= 1.7.0
 flake8 >= 3.8.3
-pylint >= 2.7.2
 mypy >= 0.812
+pep257 >= 0.7.0
 pyflakes >= 2.2.0
+pylint >= 2.7.2
 
 # yaml is currently used only in tests and examples and therefore not
 # strictly needed. However, it may be needed later on, namely when adding

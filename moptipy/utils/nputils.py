@@ -28,22 +28,25 @@ for i in __NP_INTS:
 def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
     """
     Convert an integer range to an appropriate numpy data type.
+
     The returned type is as compact as possible and signed types are
     preferred over unsigned types.
-    The returned dtype will allow accommodating all values in the
-    inclusive interval min_value..max_value.
+    The returned :class:`np.dtype` will allow accommodating all values in the
+    inclusive interval `min_value..max_value`.
 
     :param int min_value: the minimum value
     :param int max_value: the maximum value
-    :return np.dtype: the numpy integer range
+    :return: the numpy integer range
+    :rtype: np.dtype
+    :raises TypeError: if the parameters are not integers
+    :raises ValueError: if the range is invalid
     """
-
     if not isinstance(min_value, int):
-        raise ValueError("min_value must be int, but is '"
-                         + str(type(min_value)) + "'.")
+        raise TypeError("min_value must be int, but is '"
+                        + str(type(min_value)) + "'.")
     if not isinstance(max_value, int):
-        raise ValueError("max_value must be int, but is '"
-                         + str(type(max_value)) + "'.")
+        raise TypeError("max_value must be int, but is '"
+                        + str(type(max_value)) + "'.")
     if min_value > max_value:
         raise ValueError("min_value must be <>>= max_value, but min_value="
                          + str(min_value) + " and max_value="
@@ -69,10 +72,12 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
 
 def intmax(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
-    Create an integer array of the given length filled with the maximum value
+    Create an integer array of the given length filled with the maximum value.
+
     :param shape: the requested shape
     :param dtype: the data type (defaults to 64 bit integers)
     :return: the new array
+    :rtype: np.ndarray
     """
     return np.full(shape=shape,
                    fill_value=__NP_INT_MAX[dtype],
@@ -81,10 +86,12 @@ def intmax(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
 
 def intmin(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
-    Create an integer array of the given length filled with the minimum value
+    Create an integer array of the given length filled with the minimum value.
+
     :param shape: the requested shape
     :param dtype: the data type (defaults to 64 bit integers)
     :return: the new array
+    :rtype: np.ndarray
     """
     return np.full(shape=shape,
                    fill_value=__NP_INT_MIN[dtype],
@@ -99,16 +106,19 @@ __MAX_RAND_SEED: Final = int((1 << (__SEED_BYTES * 8)) - 1)
 def rand_seed_generate(random: Optional[Generator] = None) -> int:
     """
     Generate a random seed.
+
     :param Optional[Generator] random: the random number generator to be used
-    to generate the seed
+        to generate the seed
     :return: the random seed
     :rtype: int
+    :raises TypeError: if `random` is specified but is not an instance of
+        `Generator`
     """
     if random is None:
         random = default_rng()
     if not isinstance(random, Generator):
-        raise ValueError("random must be instance of Generator, but is "
-                         + str(type(random)) + ".")
+        raise TypeError("random must be instance of Generator, but is "
+                        + str(type(random)) + ".")
     return int.from_bytes(random.bytes(__SEED_BYTES),
                           byteorder='big', signed=False)
 
@@ -116,14 +126,17 @@ def rand_seed_generate(random: Optional[Generator] = None) -> int:
 def rand_seed_check(rand_seed: int) -> int:
     """
     Make sure that a random seed is valid.
+
     :param int rand_seed: the random seed to check
     :return: the rand seed
     :rtype: int
+
+    :raises TypeError: if the random seed is not an `int`
     :raises ValueError: if the random seed is not valid
     """
     if not isinstance(rand_seed, int):
-        raise ValueError("rand_seed should be instance of int, but is "
-                         + str(type(rand_seed)) + ".")
+        raise TypeError("rand_seed should be instance of int, but is "
+                        + str(type(rand_seed)) + ".")
     if (rand_seed < __MIN_RAND_SEED) or (rand_seed > __MAX_RAND_SEED):
         raise ValueError("rand_seed must be in " + str(__MIN_RAND_SEED)
                          + ".." + str(__MAX_RAND_SEED) + ", but is "
@@ -133,7 +146,8 @@ def rand_seed_check(rand_seed: int) -> int:
 
 def rand_generator(seed: int) -> Generator:
     """
-    Instantiate a random number generator from a seed
+    Instantiate a random number generator from a seed.
+
     :param int seed: the random seed
     :return: the random number generator
     :rtype: Generator
@@ -144,20 +158,22 @@ def rand_generator(seed: int) -> Generator:
 def rand_seeds_from_str(string: str,
                         n_seeds: int) -> List[int]:
     """
-    In a reproducible fashion, generate `n_seeds` unique random number
-    seeds from a `string`
+    Reproducibly generate `n_seeds` unique random seeds from a `string`.
+
     :param str string: the string
     :param int n_seeds: the number of seeds
     :return: a tuple of random seeds
     :rtype: List[int]
+    :raises TypeError: if the parameters do not follow the type contract
+    :raises ValueError: if the parameter values are invalid
     """
     if not isinstance(string, str):
-        raise ValueError(
+        raise TypeError(
             "string must be a str, but is '" + str(type(string)) + "'.")
     if len(string) <= 0:
         raise ValueError("string must not be empty.")
     if not isinstance(n_seeds, int):
-        raise ValueError(
+        raise TypeError(
             "n_seeds must be an int, but is '" + str(type(string)) + "'.")
     if n_seeds <= 0:
         raise ValueError(

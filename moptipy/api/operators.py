@@ -1,6 +1,4 @@
-"""
-The base classes for implementing search operators.
-"""
+"""The base classes for implementing search operators."""
 from abc import abstractmethod
 
 from numpy.random import Generator
@@ -9,14 +7,13 @@ from moptipy.api.component import Component
 
 
 class Op0(Component):
-    """
-    A class to implement a nullary search operator.
-    """
+    """A class to implement a nullary search operator."""
 
     @abstractmethod
     def op0(self, random: Generator, dest) -> None:
         """
         Apply the nullary search operator to fill object `dest`.
+
         Afterwards `dest` will hold a valid point in the search space.
 
         :param Generator random: the random number generator
@@ -26,16 +23,12 @@ class Op0(Component):
 
 
 class Op1(Component):
-    """
-    A class to implement a unary search operator.
-    """
+    """A class to implement a unary search operator."""
 
     @abstractmethod
     def op1(self, random: Generator, x, dest) -> None:
         """
-        Apply the unary search operator to fill object `dest`
-        with a modified version of the source `x`.
-        Afterwards `dest` will hold a valid point in the search space.
+        Turn `dest` into a modified copy of `x`.
 
         :param Generator random: the random number generator
         :param x: the source point in the search space
@@ -45,16 +38,12 @@ class Op1(Component):
 
 
 class Op2(Component):
-    """
-    A class to implement a binary search operator.
-    """
+    """A class to implement a binary search operator."""
 
     @abstractmethod
     def op2(self, random: Generator, x0, x1, dest) -> None:
         """
-        Apply the binary search operator to fill object `dest` with
-        a combination of the contents of `x0` and `x1`.
-        Afterwards `dest` will hold a valid point in the search space.
+        Fill `dest` with a combination of the contents of `x0` and `x1`.
 
         :param Generator random: the random number generator
         :param x0: the first source point in the search space

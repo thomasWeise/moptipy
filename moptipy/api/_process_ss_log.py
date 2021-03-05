@@ -1,7 +1,4 @@
-"""
-An internal module providing a process with explicit logging and different
-search and solution space.
-"""
+"""A process with logging and different search and solution space."""
 from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union, List
@@ -16,9 +13,7 @@ from moptipy.utils.logger import Logger
 
 
 class _ProcessSSLog(_ProcessSS):
-    """
-    A process with explicit logging and different search and solution space.
-    """
+    """A process with logging and different search and solution space."""
 
     def __init__(self,
                  solution_space: Space,

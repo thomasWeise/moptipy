@@ -44,7 +44,11 @@ static_analysis: init
     mypy moptipy --no-strict-optional &&\
     echo "Done with mypy, now doing pyflakes." &&\
     python3 -m pyflakes . &&\
-    echo "Done applying flake8, pylint, and mypy - all static checks passed."
+    echo "Done with pyflakes, now doing bandit." &&\
+    bandit -r moptipy &&\
+    echo "Done with bandit, now doing pep257." &&\
+    pep257 . &&\
+    echo "Done: All static checks passed."
 
 # We use sphinx to generate the documentation.
 # This automatically checks the docstrings and such and such.

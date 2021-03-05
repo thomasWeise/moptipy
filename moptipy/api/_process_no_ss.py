@@ -1,7 +1,4 @@
-"""
-A module providing a process without explicit logging where the search
-and solution space are the same.
-"""
+"""Providing a process without explicit logging with a single space."""
 from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union
@@ -21,20 +18,36 @@ from moptipy.utils.sys_info import log_sys_info
 
 class _ProcessNoSS(_ProcessBase):
     """
-    An internal class implementing a stand-alone process without explicit
-    logging where the search and solution space are the same.
+    An internal class process implementation.
+
+    This class implements a stand-alone process without explicit logging where
+    the search and solution space are the same.
     """
 
     def __init__(self,
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: str = None,
+                 log_file: Optional[str] = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None) -> None:
+        """
+        The internal initialization method. Do not call directly.
 
+        :param Space solution_space: the search- and solution space.
+        :param Objective objective: the objective function
+        :param Algorithm algorithm: the optimization algorithm
+        :param Optional[str] log_file: the optional log file
+        :param Optional[int] rand_seed: the optional random seed
+        :param Optional[int] max_fes: the maximum permitted function
+        evaluations
+        :param Optional[int] max_time_millis: the maximum runtime in
+        milliseconds
+        :param Union[int, float, None] goal_f: the goal objective
+        value: if it is reached, the process is terminated
+        """
         super().__init__(max_fes=max_fes, max_time_millis=max_time_millis,
                          goal_f=goal_f)
 
@@ -52,15 +65,41 @@ class _ProcessNoSS(_ProcessBase):
         self.__log_file = log_file
 
     def get_random(self) -> Generator:
+        """
+        Obtain the random number generator.
+
+        :return: the random number generator
+        :rtype: Generator
+        """
         return self.__random
 
     def lower_bound(self) -> Union[float, int]:
+        """
+        Forward to :meth:`Objective.lower_bound` of :attr:`_objective`.
+
+        :return: the lower bound of the objective function.
+        """
         return self._objective.lower_bound()
 
     def upper_bound(self) -> Union[float, int]:
+        """
+        Forward to :meth:`Objective.upper_bound` of :attr:`_objective`.
+
+        :return: the upper bound of the objective function.
+        """
         return self._objective.upper_bound()
 
     def evaluate(self, x) -> Union[float, int]:
+        """
+        Evaluate a candidate solution.
+
+        This method internally forwards to :meth:`Objective.evaluate` of
+        :attr:`_objective` and keeps track of the best-so-far solution.
+
+        :param x: the candidate solution
+        :return: the objective value
+        :rtype: Union[float, int]
+        """
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
@@ -94,22 +133,54 @@ class _ProcessNoSS(_ProcessBase):
         return result
 
     def has_current_best(self) -> bool:
+        """
+        Check whether a current best solution is available.
+
+        As soon as one objective function evaluation has been performed,
+        the black-box process can provide a best-so-far solution. Then,
+        this method returns True. Otherwise, it returns False.
+
+        :return: True if the current-best solution can be queried.
+        :rtype: bool
+        """
         return self._has_current_best
 
-    def get_current_best_f(self) -> float:
+    def get_current_best_f(self) -> Union[int, float]:
+        """
+        Get the objective value of the current best solution.
+
+        :return: the objective value of the current best solution.
+        :rtype: Union[int,float]
+        """
         if self._has_current_best:
             return self._current_best_f
         raise ValueError('No current best available.')
 
     def get_copy_of_current_best_x(self, x) -> None:
+        """
+        Get a copy of the current best point in the search space.
+
+        :param x: the destination data structure to be overwritten
+        """
         if self._has_current_best:
             return self._solution_space.copy(self._current_best_y, x)
         raise ValueError('No current best available.')
 
     def create(self):
+        """
+        Forward to :meth:`Space.create` of :attr:`_solution_space`.
+
+        :return: a new point in the search space (and solution space)
+        """
         return self._solution_space.create()
 
     def copy(self, source, dest) -> None:
+        """
+        Forward to :meth:`Space.copy` of :attr:`_solution_space`.
+
+        :param source: the source
+        :param dest: the destination
+        """
         self._solution_space.copy(source, dest)
 
     def to_str(self, x) -> str:

@@ -14,6 +14,7 @@ def check_op0(op0: Op0,
               make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy nullary operator.
+
     :param op0: the operator
     :param space: the space
     :param make_valid: make a point in the search space valid
@@ -63,10 +64,11 @@ def check_op1(op1: Op1,
               make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy unary operator.
+
     :param op1: the operator
     :param space: the space
     :param make_valid: a method that can turn a point from the
-    space into a valid point
+        space into a valid point
     :raises ValueError: if `op1` is not a valid `Op1`
     """
     if not isinstance(op1, Op1):

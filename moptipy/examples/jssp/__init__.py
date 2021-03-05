@@ -1,10 +1,11 @@
 """
-The Job Shop Scheduling Problem is one of the most well-known combinatorial
-optimization tasks.
+The Job Shop Scheduling Problem is a good example for optimization tasks.
+
+The JSSP is one of the most well-known combinatorial optimization tasks.
 Here we provide a set of benchmark instances and examples for solving this
 problem.
 """
-from typing import Final, Tuple
+from typing import Final
 
 import moptipy.version
 from moptipy.examples.jssp.gantt import Gantt
@@ -15,7 +16,7 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 
 __version__: Final[str] = moptipy.version.__version__
 
-__all__: Final[Tuple[str, ...]] = (
+__all__ = (
     "Gantt",
     "GanttSpace",
     "JSSPInstance",
