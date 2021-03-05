@@ -44,10 +44,12 @@ static_analysis: init
     mypy moptipy --no-strict-optional &&\
     echo "Done with mypy, now doing pyflakes." &&\
     python3 -m pyflakes . &&\
-    echo "Done with pyflakes, now doing bandit." &&\
+    echo "Done with pyflakes, now applying bandit to find security issues." &&\
     bandit -r moptipy &&\
-    echo "Done with bandit, now doing pep257." &&\
+    echo "Done with bandit, now using pep257 to check comments and documentation." &&\
     pep257 . &&\
+    echo "Done with pep257, now using pyroma to check setup.py." &&\
+    pyroma . &&\
     echo "Done: All static checks passed."
 
 # We use sphinx to generate the documentation.
