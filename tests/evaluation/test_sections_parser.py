@@ -1,0 +1,76 @@
+"""Test the sections parser."""
+from typing import List
+
+from moptipy.evaluation import SectionsParser
+from moptipy.utils.io import TempFile
+from moptipy.utils.logger import FileLogger
+
+
+class _TestParser(SectionsParser):
+    def __init__(self, path: str):
+        self.__state = 0
+        self.__path = path
+
+    def start_file(self, path: str) -> bool:
+        assert self.__state == 0
+        assert path == self.__path
+        self.__state = 1
+        return True
+
+    def start_section(self, title: str) -> bool:
+        if self.__state == 1:
+            assert title == "TEXT"
+            self.__state = 2
+            return True
+        elif self.__state == 3:
+            assert title == "CSV"
+            self.__state = 4
+            return True
+        elif self.__state == 5:
+            assert title == "SKIP1"
+            self.__state = 6
+            return False
+        elif self.__state == 6:
+            assert title == "KV"
+            self.__state = 7
+            return True
+        raise AssertionError("Should never get here.")
+
+    def lines(self, lines: List[str]) -> bool:
+        if self.__state == 2:
+            assert lines == ["a", "b", "c"]
+            self.__state = 3
+            return True
+        elif self.__state == 4:
+            assert len(lines) == 101
+            self.__state = 5
+            return True
+        elif self.__state == 7:
+            assert lines == ["k: l", "m: n"]
+            self.__state = 8
+            return False
+        raise AssertionError("Should never get here.")
+
+    def end_file(self, file: str) -> bool:
+        assert self.__state == 8
+        assert file == self.__path
+        return True
+
+
+def test_sections_parser():
+    with TempFile() as tf:
+        with FileLogger(str(tf)) as logger:
+            with logger.text("TEXT") as txt:
+                txt.write("a\nb\nc")
+            with logger.csv("CSV", ["d", "e", "f"]) as csv:
+                for i in range(100):
+                    csv.row([1 + 3 * i, 2 + 3 * i, 3 + 3 * i])
+            with logger.key_values("SKIP1") as skip:
+                skip.key_value("h", "i")
+            with logger.key_values("KV") as kv:
+                kv.key_value("k", "l")
+                kv.key_value("m", "n")
+            with logger.key_values("SKIP2") as skip:
+                skip.key_value("x", "y")
+        parser = _TestParser(str(tf))
+        assert parser.parse_file(str(tf))
