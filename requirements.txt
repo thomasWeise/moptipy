@@ -1,3 +1,6 @@
 # We will need numpy for several reasons:
 #  - it provides the random number generators
 numpy >= 1.20.0
+
+# yaml is used as format for key-value sections in log files
+pyyaml >= 5.3.1

@@ -175,7 +175,6 @@ class Logger(ABC):
         :return: the new logger
         :rtype: KeyValueSection
 
-        >>> from moptipy.utils.logger import FileLogger
         >>> from moptipy.utils.io import TempFile
         >>> with TempFile() as t:
         ...     with FileLogger(str(t)) as l:
@@ -379,7 +378,8 @@ class CsvSection(_Section):
 
         # noinspection PyProtectedMember
         txt = ["" if c is None else
-               str(c) if (isinstance(c, (int, bool)))
+               str(c) if isinstance(c, int)
+               else ('T' if c else 'F') if isinstance(c, bool)
                else (logging.format_float(c) if isinstance(c, float) else
                      cast(None, self._logger._error(["Invalid log value ",
                                                      c, " in row ", row])))

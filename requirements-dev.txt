@@ -18,8 +18,3 @@ pep257 >= 0.7.0
 pyflakes >= 2.2.0
 pylint >= 2.7.2
 pyroma >= 3.0.1
-
-# yaml is currently used only in tests and examples and therefore not
-# strictly needed. However, it may be needed later on, namely when adding
-# components for parsing the log files.
-pyyaml >= 5.3.1
