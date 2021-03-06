@@ -1,7 +1,7 @@
 """A module for parsing the different section types of log files."""
 from typing import Dict, Iterable
 
-import yaml
+import moptipy.utils.logging as logging
 
 
 def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
@@ -24,13 +24,28 @@ def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
     >>> print(txt)
     ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: True', 'f: 3', 'END_B']
     >>> dic = parse_key_values(txt[1:5])
-    >>> print(list(dic.keys()))
+    >>> keys = list(dic.keys())
+    >>> keys.sort()
+    >>> print(keys)
     ['a', 'c.d', 'c.e', 'f']
     """
     if not isinstance(lines, Iterable):
         raise TypeError("lines must be Iterable of strings, but is "
                         + str(type(lines)) + ".")
-    text = "\n".join(lines)
-    if len(text) <= 0:
-        return {}
-    return yaml.safe_load(text)
+    dct = dict()
+    for line in lines:
+        splt = line.split(logging.KEY_VALUE_SEPARATOR)
+        if len(splt) != 2:
+            raise ValueError(
+                "Two strings separated by '" + logging.KEY_VALUE_SEPARATOR
+                + "' expected, but encountered " + str(len(splt))
+                + " in '" + line + "'.")
+        key = splt[0]
+        if len(key) <= 0:
+            raise ValueError("Empty key encountered in '" + line + "'.")
+        value = splt[1]
+        if len(value) <= 0:
+            raise ValueError("Empty value encountered in '" + line + "'.")
+        dct[key] = value
+
+    return dct

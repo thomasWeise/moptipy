@@ -18,3 +18,6 @@ pep257 >= 0.7.0
 pyflakes >= 2.2.0
 pylint >= 2.7.2
 pyroma >= 3.0.1
+
+# yaml is used only in tests and examples and therefore not strictly needed.
+pyyaml >= 5.3.1
