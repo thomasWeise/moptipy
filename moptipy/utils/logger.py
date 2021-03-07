@@ -186,7 +186,7 @@ class Logger(ABC):
         ...             kv.key_value("f", 3)
         ...     text = open(str(t), "r").read().splitlines()
         >>> print(text)
-        ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: True', 'f: 3', 'END_B']
+        ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: T', 'f: 3', 'END_B']
         >>> import yaml
         >>> dic = yaml.safe_load("\n".join(text[1:5]))
         >>> print(list(dic.keys()))
@@ -379,8 +379,8 @@ class CsvSection(_Section):
         # noinspection PyProtectedMember
         txt = ["" if c is None else
                str(c) if isinstance(c, int)
-               else ('T' if c else 'F') if isinstance(c, bool)
-               else (logging.format_float(c) if isinstance(c, float) else
+               else logging.bool_to_str(c) if isinstance(c, bool)
+               else (logging.float_to_str(c) if isinstance(c, float) else
                      cast(None, self._logger._error(["Invalid log value ",
                                                      c, " in row ", row])))
                for c in row]
@@ -433,17 +433,18 @@ class KeyValueSection(_Section):
 
         the_hex = None
         if isinstance(value, float):
-            txt = logging.format_float(value)
+            txt = logging.float_to_str(value)
             if isfinite(value):
                 if also_hex or (("e" in txt) or ("." in txt)):
                     the_hex = float.hex(value)
+        elif isinstance(value, bool):
+            txt = logging.bool_to_str(value)
+        elif isinstance(value, complex):
+            txt = logging.complex_to_str(value)
         else:
-            if isinstance(value, complex):
-                txt = logging.format_complex(value)
-            else:
-                txt = str(value)
-                if also_hex and isinstance(value, int):
-                    the_hex = hex(value)
+            txt = str(value)
+            if also_hex and isinstance(value, int):
+                the_hex = hex(value)
 
         txt = logging.KEY_VALUE_SEPARATOR.join([key, txt]) + "\n"
 

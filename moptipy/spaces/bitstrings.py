@@ -45,7 +45,7 @@ class BitStrings(Space):
         >>> s = BitStrings(8)
         >>> v = s.create()
         >>> print(s.to_str(v))
-        00000000
+        FFFFFFFF
         >>> print(v.dtype)
         bool
         """
@@ -62,13 +62,13 @@ class BitStrings(Space):
 
     def to_str(self, x: np.ndarray) -> str:
         """
-        Convert a bit string to a string, using `0` and `1` without separator.
+        Convert a bit string to a string, using `T` and `F` without separator.
 
         :param np.ndarray x: the bit string
         :return: the string
         :rtype: str
         """
-        return "".join([('1' if xx else '0') for xx in x])
+        return "".join([logging.bool_to_str(xx) for xx in x])
 
     def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         """
@@ -95,7 +95,7 @@ class BitStrings(Space):
             raise TypeError("text must be str, but is "
                             + str(type(text)) + ".")
         x = self.create()
-        x[:] = [(t == '1') for t in text]
+        x[:] = [logging.str_to_bool(t) for t in text]
         self.validate(x)
         return x
 

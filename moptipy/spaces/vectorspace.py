@@ -41,8 +41,8 @@ class VectorSpace(Space):
         """The dimension of the space, i.e., the vectors."""
         self.dtype = dtype
         """The basic data type of the vector elements."""
-        self.__formatter = logging.format_complex if dtype.char in "FDG" \
-            else logging.format_float
+        self.__formatter = logging.complex_to_str if dtype.char in "FDG" \
+            else logging.float_to_str
         """The internal formatter for the to_string method"""
 
     def create(self) -> np.ndarray:

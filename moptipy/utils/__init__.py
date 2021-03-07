@@ -9,7 +9,7 @@ from moptipy.utils.io import canonicalize_path, enforce_dir, enforce_file, \
     TempDir, TempFile
 from moptipy.utils.logger import CsvSection, FileLogger, InMemoryLogger, \
     KeyValueSection, Logger, TextSection
-from moptipy.utils.logging import format_float, sanitize_name, sanitize_names
+from moptipy.utils.logging import float_to_str, sanitize_name, sanitize_names
 from moptipy.utils.nputils import int_range_to_dtype, rand_seed_check, \
     rand_seed_generate, rand_generator, rand_seeds_from_str
 
@@ -24,7 +24,7 @@ __all__ = (
     "file_create_or_truncate",
     "file_ensure_exists",
     "FileLogger",
-    "format_float",
+    "float_to_str",
     "InMemoryLogger",
     "is_new",
     "KeyValueSection",

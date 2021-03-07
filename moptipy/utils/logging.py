@@ -218,7 +218,7 @@ def sanitize_names(names: List[str]) -> str:
         sanitize_name(name) for name in names if len(name) > 0])
 
 
-def format_float(x: float) -> str:
+def float_to_str(x: float) -> str:
     """
     Convert float to a string.
 
@@ -226,9 +226,9 @@ def format_float(x: float) -> str:
     :return: the string representation
     :rtype: str
 
-    >>> format_float(1.3)
+    >>> float_to_str(1.3)
     '1.3'
-    >>> format_float(1.0)
+    >>> float_to_str(1.0)
     '1'
     """
     if x == 0:
@@ -241,7 +241,7 @@ def format_float(x: float) -> str:
     return s
 
 
-def format_complex(x: complex) -> str:
+def complex_to_str(x: complex) -> str:
     """
     Convert complex number to a string.
 
@@ -249,24 +249,24 @@ def format_complex(x: complex) -> str:
     :return: the string representation
     :rtype: str
 
-    >>> format_complex(1.3+3j)
+    >>> complex_to_str(1.3+3j)
     '1.3+3j'
-    >>> format_complex(1.0+0j)
+    >>> complex_to_str(1.0+0j)
     '1'
-    >>> format_complex(1+0.2j)
+    >>> complex_to_str(1+0.2j)
     '1+0.2j'
-    >>> format_complex(0+1j)
+    >>> complex_to_str(0+1j)
     '1j'
-    >>> format_complex(0+0j)
+    >>> complex_to_str(0+0j)
     '0'
-    >>> format_complex(-3j)
+    >>> complex_to_str(-3j)
     '-3j'
     """
     if x == 0:
         return "0"
     y = abs(x)
     if y == x:
-        return format_float(y)
+        return float_to_str(y)
     s = repr(x)
     if cmath.isnan(x):
         raise ValueError("'" + s + "' not permitted.")
@@ -278,3 +278,44 @@ def format_complex(x: complex) -> str:
         return s[(3 if s.startswith("-0+") else
                   2 if s.startswith("-0-") else 1):]
     return s
+
+
+def bool_to_str(value: bool) -> str:
+    """
+    Convert a Boolean value to a string.
+
+    :param bool value: the Boolean value
+    :return: the string
+    :rtype: str
+
+    >>> print(bool_to_str(True))
+    T
+    >>> print(bool_to_str(False))
+    F
+    """
+    return 'T' if value else 'F'
+
+
+def str_to_bool(value: str) -> bool:
+    """
+    Convert a string to a boolean value.
+
+    :param str value: the string value
+    :return: the boolean value
+    :rtype: bool
+
+    >>> str_to_bool("T")
+    True
+    >>> str_to_bool("F")
+    False
+    >>> try:
+    ...     str_to_bool("x")
+    ... except ValueError as v:
+    ...     print(v)
+    Expected 'T' or 'F', but got 'x'.
+    """
+    if value == "T":
+        return True
+    if value == "F":
+        return False
+    raise ValueError("Expected 'T' or 'F', but got '" + value + "'.")
