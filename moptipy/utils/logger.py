@@ -213,17 +213,17 @@ class Logger(ABC):
         ...         with l.csv("A", ["x", "y"]) as csv:
         ...             csv.row([1,2])
         ...             csv.row([3,4])
-        ...             csv.row([None, 12])
+        ...             csv.row([4, 12])
         ...     text = open(str(t), "r").read().splitlines()
         ...     print(text)
-        ['BEGIN_A', 'x;y', '1;2', '3;4', ';12', 'END_A']
+        ['BEGIN_A', 'x;y', '1;2', '3;4', '4;12', 'END_A']
         >>> import csv
         >>> for r in csv.reader(text[1:5], delimiter=";"):
         ...     print(r)
         ['x', 'y']
         ['1', '2']
         ['3', '4']
-        ['', '12']
+        ['4', '12']
         """
         return CsvSection(title=title, logger=self, header=header)
 
@@ -363,7 +363,7 @@ class CsvSection(_Section):
         logger._write(logging.CSV_SEPARATOR.join(
             [c.strip() for c in header]) + "\n")
 
-    def row(self, row: List[Union[int, float, bool, None]]) -> None:
+    def row(self, row: List[Union[int, float, bool]]) -> None:
         """
         Write a row of csv data.
 
@@ -377,8 +377,7 @@ class CsvSection(_Section):
                                  " has ", str(len(row))])
 
         # noinspection PyProtectedMember
-        txt = ["" if c is None else
-               str(c) if isinstance(c, int)
+        txt = [str(c) if isinstance(c, int)
                else logging.bool_to_str(c) if isinstance(c, bool)
                else (logging.float_to_str(c) if isinstance(c, float) else
                      cast(None, self._logger._error(["Invalid log value ",

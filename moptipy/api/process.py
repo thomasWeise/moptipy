@@ -170,15 +170,6 @@ class Process(Space, Objective):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def log_state(self, key: str, value: Union[bool, int, float]) -> None:
-        """
-        Log a dynamic state value for a specific key.
-
-        :param str key: the key which should be logged
-        :param Union[bool, int, float] value: the value to be logged
-        """
-
     def get_name(self) -> str:
         """
         Get the name of this process implementation.

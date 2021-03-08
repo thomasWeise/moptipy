@@ -243,8 +243,5 @@ class _ProcessNoSS(_ProcessBase):
             self.__log_file = None
         self._solution_space.validate(self._current_best_y)
 
-    def log_state(self, key: str, value: Union[bool, int, float]) -> None:
-        pass
-
     def get_name(self) -> str:
         return "ProcessWithoutSearchSpace"

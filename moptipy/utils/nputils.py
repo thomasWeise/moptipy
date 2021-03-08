@@ -1,10 +1,12 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
-from typing import Final, Optional, List
+from typing import Final, Optional, List, Iterable
 from typing import Set, Dict, Tuple, cast
 
 import numpy as np
 from numpy.random import default_rng, Generator, PCG64
+
+from moptipy.utils import logging
 
 __NP_INTS: Final[Tuple[Tuple[np.dtype, int, int], ...]] = \
     tuple([(t[0], int(t[1].min), int(t[1].max))
@@ -15,7 +17,11 @@ __NP_INTS: Final[Tuple[Tuple[np.dtype, int, int], ...]] = \
                                             np.int32, np.uint32,
                                             np.int64, np.uint64]))])
 
+#: The default integer type: the signed 64 bit integer
 DEFAULT_INT: Final[np.dtype] = (__NP_INTS[len(__NP_INTS) - 2])[0]
+
+#: The default unsigned integer type: an unsigned 64 bit integer
+__DEFAULT_UNSIGNED_INT: Final[np.dtype] = (__NP_INTS[len(__NP_INTS) - 1])[0]
 
 __NP_INT_MAX: Final[Dict[np.dtype, int]] = {}
 for i in __NP_INTS:
@@ -160,12 +166,33 @@ def rand_seeds_from_str(string: str,
     """
     Reproducibly generate `n_seeds` unique random seeds from a `string`.
 
+    This function will produce a sorted sequence of `n_seeds`random seeds,
+    each of which being an unsigned 64 bit integer, from the string passed in.
+    The same string will always yield the same sequence reproducibly.
+    Running the function twice with different values of `n_seeds` will result
+    in the two sets of random seeds, where the larger one (for the larger
+    value of `n_seeds`) contains all elements of the smaller one.
+
     :param str string: the string
     :param int n_seeds: the number of seeds
     :return: a tuple of random seeds
     :rtype: List[int]
     :raises TypeError: if the parameters do not follow the type contract
     :raises ValueError: if the parameter values are invalid
+
+    >>> rand_seeds_from_str("hello world!", 1)
+    [11688012229199056962]
+    >>> rand_seeds_from_str("hello world!", 2)
+    [3727742416375614079, 11688012229199056962]
+    >>> rand_seeds_from_str("hello world!", 3)
+    [3727742416375614079, 11688012229199056962, 17315292100125916507]
+
+    >>> rand_seeds_from_str("metaheuristic optimization", 1)
+    [12323230366215963648]
+    >>> rand_seeds_from_str("metaheuristic optimization", 2)
+    [12323230366215963648, 13673960948036381176]
+    >>> rand_seeds_from_str("metaheuristic optimization", 3)
+    [12323230366215963648, 13673960948036381176, 18426184104943646060]
     """
     if not isinstance(string, str):
         raise TypeError(
@@ -179,18 +206,15 @@ def rand_seeds_from_str(string: str,
         raise ValueError(
             "n_seeds must be positive, but is " + str(n_seeds) + ".")
 
-    seeds1 = bytearray(sha512(string.encode("utf8")).digest())
-    seeds = [int.from_bytes(seeds1[ii:(ii + 16)],
-                            byteorder='big', signed=False)
-             for ii in range(0, len(seeds1), 16)]
-    del seeds1
-    if len(seeds) != 4:
-        raise ValueError("Did not produce 4 numbers of 128 bit from string?")
+    seeds = bytearray(sha512(string.encode("utf8")).digest())
+    seed1 = int.from_bytes(seeds[0:32], byteorder='big', signed=False)
+    seed2 = int.from_bytes(seeds[32:64], byteorder='big', signed=False)
+    del seeds
 
     # seed two PCG64 generators, each of which should use two 128 bit
     # numbers as seed
-    g1 = Generator(PCG64(seeds[0:2]))
-    g2 = Generator(PCG64(seeds[2:4]))
+    g1 = Generator(PCG64(seed1))
+    g2 = Generator(PCG64(seed2))
 
     generated: Set[int] = set()
     while len(generated) < n_seeds:
@@ -204,3 +228,68 @@ def rand_seeds_from_str(string: str,
         raise ValueError("Failed to generate " + str(n_seeds)
                          + " unique seeds.")
     return result
+
+
+#: The default boolean type
+__DEFAULT_BOOLS: Final[np.dtype] = np.dtype(np.bool_)
+
+
+def strs_to_bools(lines: Iterable[str]) -> np.ndarray:
+    """
+    Convert an array of strings to a boolean numpy array.
+
+    :param Iterable[str] lines: the lines
+    :return: the array
+    :rtype: np.ndarray
+
+    >>> strs_to_bools(["T", "F", "T"])
+    array([ True, False,  True])
+    """
+    return np.array([logging.str_to_bool(s) for s in lines],
+                    dtype=__DEFAULT_BOOLS)
+
+
+def strs_to_uints(lines: Iterable[str]) -> np.ndarray:
+    """
+    Convert an array of strings to a numpy array of unsigned ints.
+
+    :param Iterable[str] lines: the lines
+    :return: the array
+    :rtype: np.ndarray
+
+    >>> strs_to_uints(["1", "2", "3"])
+    array([1, 2, 3], dtype=uint64)
+    """
+    return np.array(lines, dtype=__DEFAULT_UNSIGNED_INT)
+
+
+def strs_to_ints(lines: Iterable[str]) -> np.ndarray:
+    """
+    Convert an array of strings to a numpy array of signed ints.
+
+    :param Iterable[str] lines: the lines
+    :return: the array
+    :rtype: np.ndarray
+
+    >>> strs_to_ints(["-1", "2", "3"])
+    array([-1,  2,  3])
+    """
+    return np.array(lines, dtype=DEFAULT_INT)
+
+
+#: The default float type
+__DEFAULT_FLOAT: Final[np.dtype] = np.dtype(np.float64)
+
+
+def strs_to_floats(lines: Iterable[str]) -> np.ndarray:
+    """
+    Convert an array of strings to a numpy array of floats.
+
+    :param Iterable[str] lines: the lines
+    :return: the array
+    :rtype: np.ndarray
+
+    >>> strs_to_floats(["-1.6", "2", "3"])
+    array([-1.6,  2. ,  3. ])
+    """
+    return np.array(lines, dtype=__DEFAULT_FLOAT)

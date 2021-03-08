@@ -1,7 +1,7 @@
 """A process with logging, where search and solution space are the same."""
 from math import inf, isnan
 from time import monotonic_ns
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
@@ -23,7 +23,6 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None,
-                 log_improvements: bool = False,
                  log_all_fes: bool = False) -> None:
 
         super().__init__(solution_space=solution_space,
@@ -37,19 +36,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
         if not isinstance(log_all_fes, bool):
             raise TypeError("log_all must be boolean, but is '"
                             + str(log_all_fes) + "'.")
-        if not isinstance(log_improvements, bool):
-            raise TypeError("log_improvements must be boolean, but is '"
-                            + str(log_improvements) + "'.")
         self.__log_all = log_all_fes
-        self.__log_improvements = log_improvements or log_all_fes
-        self.__log: List[List[Union[None, bool, int, float]]] = list()
-        self.__log_header = [logging.PROGRESS_FES,
-                             logging.PROGRESS_TIME_MILLIS,
-                             logging.PROGRESS_CURRENT_F]
-        self.__log_dict = {logging.PROGRESS_FES: 0,
-                           logging.PROGRESS_TIME_MILLIS: 1,
-                           logging.PROGRESS_CURRENT_F: 2}
-        self.__last_res: Union[None, int, float] = None
+        self.__log: List[Tuple[int, int, Union[int, float]]] = list()
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
@@ -62,7 +50,6 @@ class _ProcessNoSSLog(_ProcessNoSS):
         if isnan(result):
             raise ValueError("NaN invalid as objective value.")
 
-        self.__last_res = result
         self._current_fes += 1
 
         do_term = self._current_fes >= self._end_fes
@@ -79,7 +66,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
                 do_term = True
             self._solution_space.copy(x, self._current_best_y)
             self._has_current_best = True
-            do_log = do_log or self.__log_improvements
+            do_log = True
             if result <= self._end_f:
                 do_term = True
         else:
@@ -91,67 +78,25 @@ class _ProcessNoSSLog(_ProcessNoSS):
                                                 // 1_000_000)
                 if self._current_time_millis >= self._end_time_millis:
                     do_term = True
-            self.__log.append([self._current_fes,
+            self.__log.append((self._current_fes,
                                self._current_time_millis
                                - self._start_time_millis,
-                               result])
+                               result))
 
         if do_term:
             self.terminate()
 
         return result
 
-    def log_state(self, key: str, value: Union[bool, int, float]) -> None:
-        if self.__log is None:
-            return
-
-        list_len = len(self.__log_header)
-        idx = self.__log_dict.setdefault(key, -1)
-        if idx < 0:
-            idx = list_len
-            list_len += 1
-            self.__log_dict[key] = idx
-            self.__log_header.append(key)
-
-        log_len = len(self.__log)
-        if log_len > 0:
-            entry = self.__log[log_len - 1]
-            if entry[0] < self._current_fes:
-                entry = None
-            else:
-                elen = len(entry)
-                if elen < list_len:
-                    entry += [None] * (list_len - elen)
-        else:
-            entry = None
-
-        if entry is None:
-            entry = [None] * list_len
-            entry[0] = self._current_fes
-            entry[2] = self.__last_res
-            self.__log.append(entry)
-
-        if (not (entry[idx] is None)) and (entry[idx] != value):
-            ValueError("Entry for key'" + key
-                       + "' already defined to be '"
-                       + str(entry[idx])
-                       + "' and cannot be assigned again to '"
-                       + str(value) + "'.")
-        # noinspection PyTypeChecker
-        entry[idx] = value
-
     def _write_log(self, logger: Logger) -> None:
         if len(self.__log) > 0:
-            list_len = len(self.__log_header)
             with logger.csv(logging.SECTION_PROGRESS,
-                            self.__log_header) as csv:
+                            [logging.PROGRESS_FES,
+                             logging.PROGRESS_TIME_MILLIS,
+                             logging.PROGRESS_CURRENT_F]) as csv:
                 for row in self.__log:
-                    if len(row) < list_len:
-                        row = row + [None] * (list_len - len(row))
                     csv.row(row)
         self.__log = None
-        self.__log_header = None
-        self.__log_dict = None
         super()._write_log(logger)
 
     def get_name(self) -> str:

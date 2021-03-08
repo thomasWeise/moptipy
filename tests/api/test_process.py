@@ -1,5 +1,5 @@
 """Test the Process API."""
-from math import sin, log2
+from math import sin
 from os.path import isfile, getsize
 
 import numpy as np
@@ -39,20 +39,12 @@ def myalgorithm2(process: Process):
     assert isinstance(g, Generator)
     assert not process.has_current_best()
 
-    process.log_state("beta", 23)
-
     i = 1000
     while not process.should_terminate():
         x.fill(i)
         process.evaluate(x)
         i -= 1
         assert process.has_current_best()
-        if i % 3 == 0:
-            process.log_state("alpha", sin(i))
-        if i % 12 == 0:
-            process.log_state("beta", log2(i + sin(i)))
-        if i % 95 == 0:
-            process.log_state("gamma", sin(9 * log2(i + sin(i))))
 
 
 def myobjective(x):

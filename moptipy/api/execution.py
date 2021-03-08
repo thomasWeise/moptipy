@@ -266,7 +266,6 @@ class Execution:
                                           max_fes=max_fes,
                                           max_time_millis=max_time_millis,
                                           goal_f=goal_f,
-                                          log_improvements=log_improvements,
                                           log_all_fes=log_all_fes)
             else:
                 process = _ProcessNoSS(solution_space=solution_space,
@@ -290,7 +289,6 @@ class Execution:
                     max_fes=max_fes,
                     max_time_millis=max_time_millis,
                     goal_f=goal_f,
-                    log_improvements=log_improvements,
                     log_all_fes=log_all_fes)
             else:
                 process = _ProcessSS(solution_space=solution_space,
