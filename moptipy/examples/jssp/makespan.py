@@ -16,8 +16,8 @@ class Makespan(Objective):
         """
         super().__init__()
         if not isinstance(instance, JSSPInstance):
-            raise ValueError("Must provide JSSPInstance, but got '"
-                             + str(type(instance)) + "'.")
+            raise TypeError(
+                f"Must provide JSSPInstance, but got '{type(instance)}'.")
         self.__instance = instance
 
     def evaluate(self, x: Gantt) -> int:

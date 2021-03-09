@@ -41,7 +41,7 @@ def check_algorithm(algorithm: Algorithm,
     """
     if not isinstance(algorithm, Algorithm):
         raise TypeError("Expected to receive an instance of Space, but "
-                        "got a '" + str(type(algorithm)) + "'.")
+                        f"got a {type(algorithm)}.")
 
     _check_algorithm(algorithm)
 
@@ -54,9 +54,9 @@ def check_algorithm(algorithm: Algorithm,
 
     if not isinstance(max_fes, int):
         raise ValueError(
-            "max_fes must be int but is '" + str(type(max_fes)) + "'.")
+            f"max_fes must be int but is '{type(max_fes)}'.")
     if max_fes <= 0:
-        raise ValueError("max_fes must be > 0, but is" + str(max_fes) + ".")
+        raise ValueError(f"max_fes must be > 0, but is {max_fes}.")
 
     exp = Execution()
     exp.set_algorithm(algorithm)
@@ -78,68 +78,64 @@ def check_algorithm(algorithm: Algorithm,
 
         consumed_fes = process.get_consumed_fes()
         if not isinstance(consumed_fes, int):
-            raise ValueError("Consumed FEs must be int, but are '"
-                             + str(type(consumed_fes)) + "'.")
+            raise ValueError(
+                f"Consumed FEs must be int, but are {type(consumed_fes)}.")
         if (consumed_fes <= 0) or (consumed_fes > max_fes):
-            raise ValueError("Consumed FEs must be positive and <= "
-                             + str(max_fes) + ", but is "
-                             + str(consumed_fes) + ".")
+            raise ValueError(
+                f"Consumed FEs must be positive and <= {max_fes}, "
+                f"but is {consumed_fes}.")
 
         last_imp_fe = process.get_last_improvement_fe()
         if not isinstance(last_imp_fe, int):
-            raise ValueError("Last improvement FEs must be int, but are '"
-                             + str(type(last_imp_fe)) + "'.")
+            raise ValueError("Last improvement FEs must be int, "
+                             f"but are {type(last_imp_fe)}'.")
         if (last_imp_fe <= 0) or (last_imp_fe > consumed_fes):
-            raise ValueError("Last improvement FEs must be positive and <= "
-                             + str(consumed_fes) + ", but is "
-                             + str(last_imp_fe) + ".")
+            raise ValueError("Last improvement FEs must be positive and "
+                             f"<= {consumed_fes}, but is {last_imp_fe}.")
 
         consumed_time = process.get_consumed_time_millis()
         if not isinstance(consumed_time, int):
-            raise ValueError("Consumed time must be int, but is '"
-                             + str(type(consumed_time)) + "'.")
+            raise ValueError(
+                f"Consumed time must be int, but is {type(consumed_time)}.")
         if consumed_time < 0:
-            raise ValueError("Consumed time must be >= 0, but is "
-                             + str(consumed_time) + ".")
+            raise ValueError(
+                f"Consumed time must be >= 0, but is {consumed_time}.")
 
         last_imp_time = process.get_last_improvement_time_millis()
         if not isinstance(last_imp_time, int):
-            raise ValueError("Last improvement time must be int, but is '"
-                             + str(type(last_imp_time)) + "'.")
+            raise ValueError("Last improvement time must be int, "
+                             f"but is {type(last_imp_time)}.")
         if (last_imp_time < 0) or (last_imp_time > consumed_time):
-            raise ValueError("Consumed time must be >= 0 and <= "
-                             + str(consumed_time) + ", but is "
-                             + str(last_imp_time) + ".")
+            raise ValueError(
+                f"Consumed time must be >= 0 and <= {consumed_time}, but "
+                f"is {last_imp_time}.")
 
         lb = objective.lower_bound()
         if lb != process.lower_bound():
             raise ValueError(
-                "Inconsistent lower bounds between process ("
-                + str(process.lower_bound()) + ") and objective ("
-                + str(lb) + ").")
+                "Inconsistent lower bounds between process "
+                f"({process.lower_bound()}) and objective ({lb}).")
 
         ub = objective.upper_bound()
         if ub != process.upper_bound():
             raise ValueError(
-                "Inconsistent upper bounds between process ("
-                + str(process.upper_bound()) + ") and objective ("
-                + str(ub) + ").")
+                "Inconsistent upper bounds between process "
+                f"({process.upper_bound()}) and objective ({ub}).")
 
         res_f = process.get_current_best_f()
         if not isfinite(res_f):
             raise ValueError("Infinite objective value of result.")
         if (res_f < lb) or (res_f > ub):
-            raise ValueError("Objective value " + str(res_f)
-                             + " outside of bounds [" + str(lb) + ","
-                             + str(ub) + "].")
+            raise ValueError(
+                f"Objective value {res_f} outside of bounds [{lb},{ub}].")
 
         y = solution_space.create()
         process.get_copy_of_current_best_y(y)
         check_f = objective.evaluate(y)
         if check_f != res_f:
-            raise ValueError("Inconsistent objective value " + str(res_f)
-                             + " from process compared to " + str(check_f)
-                             + " from objective function.")
+            raise ValueError(
+                f"Inconsistent objective value {res_f} from process compared "
+                f"to {check_f} from objective function.")
 
 
 def check_algorithm_on_jssp(algorithm: Callable,
@@ -155,27 +151,27 @@ def check_algorithm_on_jssp(algorithm: Callable,
     """
     if not callable(algorithm):
         raise TypeError(
-            "Must 'algorithm' parameter must be a callable that instantiates"
-            "an algorithm for a given JSSP instance, but got a '"
-            + str(type(algorithm)) + "' instead.")
+            "'algorithm' parameter must be a callable that instantiates"
+            "an algorithm for a given JSSP instance, but got a "
+            f"{type(algorithm)} instead.")
 
     if instance is None:
         instance = str(rnd.default_rng().choice(JSSPInstance.list_resources()))
     if not isinstance(instance, str):
         raise ValueError("JSSP instance must either be a string or none, "
-                         "but is a '" + str(type(instance)) + "'.")
+                         f"but is a {type(instance)}.")
     inst = JSSPInstance.from_resource(instance)
     if not isinstance(inst, JSSPInstance):
-        raise ValueError("Error when loading JSSP instance '"
-                         + instance + "', obtained '"
-                         + str(type(inst)) + "' instead.")
+        raise ValueError(
+            f"Error when loading JSSP instance '{instance}', "
+            f"obtained {type(inst)} instead.")
 
     algorithm = algorithm(inst)
     if not isinstance(algorithm, Algorithm):
         raise ValueError(
             "Must 'algorithm' parameter must be a callable that instantiates"
-            "an algorithm for JSSP instance '" + instance
-            + "', but it created a '" + str(type(algorithm)) + "' instead.")
+            f"an algorithm for JSSP instance '{instance}', but it created a "
+            f"'{type(algorithm)}' instead.")
 
     search_space = PermutationsWithRepetitions(inst.jobs,
                                                inst.machines)

@@ -36,11 +36,11 @@ class IntSpace(Space):
         :param int max_value: the maximum value
         """
         if not isinstance(dimension, int):
-            raise TypeError("dimension must be integer, but got '"
-                            + str(type(dimension)) + "'.")
+            raise TypeError(
+                f"dimension must be integer, but got {type(dimension)}.")
         if (dimension < 1) or (dimension > 1_000_000_000):
-            raise ValueError("dimension must be in 1..1_000_000_000, but got "
-                             + str(dimension) + ".")
+            raise ValueError("dimension must be in 1..1_000_000_000, "
+                             f"but got {dimension}.")
 
         self.dtype = int_range_to_dtype(min_value=min_value,
                                         max_value=max_value)
@@ -49,7 +49,7 @@ class IntSpace(Space):
         if (not isinstance(self.dtype, np.dtype)) or \
                 (not isinstance(self.dtype.char, str)) or \
                 (len(self.dtype.char) != 1):
-            raise ValueError("Strange error: " + str(self.dtype))
+            raise ValueError(f"Strange error: {self.dtype} found.")
 
         self.min_value = min_value
         """The minimum permitted value."""
@@ -119,8 +119,7 @@ class IntSpace(Space):
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
         if not (isinstance(text, str)):
-            raise TypeError("text must be str, but is "
-                            + str(type(text)) + ".")
+            raise TypeError(f"text must be str, but is {type(text)}.")
         x = np.fromstring(text, dtype=self.dtype, sep=",")
         self.validate(x)
         return x
@@ -135,22 +134,22 @@ class IntSpace(Space):
             element is not finite.
         """
         if not (isinstance(x, np.ndarray)):
-            raise TypeError("x must be an numpy.ndarray, but is a '"
-                            + str(type(x)) + ".")
+            raise TypeError(
+                f"x must be an numpy.ndarray, but is a {type(x)}.")
         if x.dtype != self.dtype:
-            raise TypeError("x must be of type '" + str(self.dtype)
-                            + "' but is of type '" + str(x.dtype) + "'.")
+            raise TypeError(
+                f"x must be of type {self.dtype} but is of type {x.dtype}.")
         if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
-            raise ValueError("x must be of shape (" + str(self.dimension)
-                             + ") but is of shape " + str(x.shape) + ".")
+            raise ValueError(f"x must be of shape ({self.dimension}) but is "
+                             f"of shape {x.shape}.")
         if not all(x >= self.min_value):
-            raise ValueError("All elements of x must be >= "
-                             + str(self.min_value) + ", but "
-                             + str(x.min()) + " was encountered.")
+            raise ValueError(
+                f"All elements of x must be >= {self.min_value}, but "
+                f"{x.min()} was encountered.")
         if not all(x <= self.max_value):
-            raise ValueError("All elements of x must be <= "
-                             + str(self.max_value) + ", but "
-                             + str(x.max()) + " was encountered.")
+            raise ValueError(
+                f"All elements of x must be <= {self.max_value}, but "
+                f"{x.max()} was encountered.")
 
     def scale(self) -> int:
         """
@@ -168,8 +167,8 @@ class IntSpace(Space):
         :return: "ints" + dimension + dtype.char + min_value + "-" + max_value
         :rtype: int
         """
-        return "ints" + str(self.dimension) + self.dtype.char \
-               + str(self.min_value) + "-" + str(self.max_value)
+        return f"ints{self.dimension}{self.dtype.char}" \
+               f"{self.min_value}-{self.max_value}"
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """

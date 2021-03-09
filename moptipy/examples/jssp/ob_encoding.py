@@ -33,8 +33,8 @@ class OperationBasedEncoding(Encoding):
         :param moptipy.examples.jssp.JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
-            raise ValueError("instance must be valid JSSPInstance, but is '"
-                             + str(type(instance)) + "'.")
+            raise ValueError("instance must be valid JSSPInstance, "
+                             f"but is '{type(instance)}'.")
         dtype = int_range_to_dtype(instance.makespan_lower_bound,
                                    instance.makespan_upper_bound)
         self.__machine_time = np.zeros(instance.machines, dtype)

@@ -58,10 +58,10 @@ class Permutations(IntSpace):
         for xx in x:
             counts[xx] += 1
         if any(counts != 1):
-            raise ValueError("Each element in 0.." + str(self.dimension - 1)
-                             + " must occur exactly once, but encountered "
-                             + super().to_str(counts[counts != 1])
-                             + " occurrences.")
+            raise ValueError(
+                f"Each element in 0..{self.dimension - 1} must occur exactly "
+                f"once, but encountered {super().to_str(counts[counts != 1])} "
+                "occurrences.")
 
     def get_name(self) -> str:
         """
@@ -70,4 +70,4 @@ class Permutations(IntSpace):
         :return: "perm" + dimension
         :rtype: str
         """
-        return "perm" + str(self.dimension)
+        return f"perm{self.dimension}"

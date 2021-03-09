@@ -48,48 +48,46 @@ class JSSPInstance(Component):
         """The name of this JSSP instance."""
 
         if name != self.name:
-            ValueError("Name '" + name + "' is not a valid name.")
+            raise ValueError(f"Name '{name}' is not a valid name.")
 
         if (not isinstance(machines, int)) or (machines < 1):
-            ValueError("There must be at least one machine, but '"
-                       + str(machines) + "' were specified in instance '"
-                       + name + "'.")
+            raise ValueError("There must be at least one machine, "
+                             f"but '{machines}' were specified in "
+                             f"instance '{name}'.")
         self.machines = machines
         """The number of machines in this JSSP instance."""
 
         if not isinstance(jobs, int) or (jobs < 1):
-            ValueError("There must be at least one job, but '"
-                       + str(jobs) + "' were specified in instance '"
-                       + name + "'.")
+            raise ValueError("There must be at least one job, "
+                             f"but '{jobs}' were specified in "
+                             f"instance '{name}'.")
         self.jobs = jobs
         """The number of jobs in this JSSP instance."""
 
         if not isinstance(matrix, np.ndarray):
-            TypeError("The matrix must be an numpy.ndarray, but is a '"
-                      + str(type(matrix)) + "' in instance '"
-                      + name + "'.")
+            raise TypeError("The matrix must be an numpy.ndarray, but is a "
+                            f"'{type(matrix)}' in instance '{name}'.")
 
         if len(matrix.shape) != 2:
-            ValueError("JSSP instance data matrix must have two dimensions, "
-                       "but has '" + str(len(matrix.shape))
-                       + "' in instance '" + name + "'.")
+            raise ValueError(
+                "JSSP instance data matrix must have two dimensions, "
+                f"but has {len(matrix.shape)} in instance '{name}'.")
 
         if matrix.shape[0] != jobs:
-            ValueError("Invalid shape '" + str(matrix.shape)
-                       + "' of matrix: must have jobs=" + str(jobs)
-                       + " rows, but has " + str(matrix.shape[0])
-                       + " in instance '" + name + "'.")
+            raise ValueError(
+                f"Invalid shape '{matrix.shape}' of matrix: must have "
+                f"jobs={jobs} rows, but has {matrix.shape[0]} in "
+                f"instance '{name}'.")
 
         if matrix.shape[1] != 2 * machines:
-            ValueError("Invalid shape '" + str(matrix.shape)
-                       + "' of matrix: must have 2*machines="
-                       + str(2 * machines) + " columns, but has "
-                       + str(matrix.shape[0]) + " in instance '"
-                       + name + "'.")
+            raise ValueError(
+                f"Invalid shape '{matrix.shape}' of matrix: must have "
+                f"2*machines={2 * machines} columns, but has "
+                f"{matrix.shape[0]} in instance '{name}'.")
         if not np.issubdtype(matrix.dtype, np.integer):
-            ValueError("Matrix must have an integer type, but is of type '"
-                       + str(matrix.dtype) + "' in instance '"
-                       + name + "'.")
+            raise ValueError(
+                "Matrix must have an integer type, but is of type "
+                f"'{matrix.dtype}' in instance '{name}'.")
         self.matrix = matrix
         """
         The matrix with the operations of the jobs and their durations.
@@ -115,14 +113,13 @@ class JSSPInstance(Component):
                 machine = row[j]
                 time = row[j + 1]
                 if usedmachines[i]:
-                    ValueError("Machine " + str(machine)
-                               + " occurs more than once for instance '"
-                               + name + "'.")
+                    raise ValueError(
+                        f"Machine {machine} occurs more than once "
+                        f"for instance '{name}'.")
                 usedmachines[i] = True
                 if time < 0:
-                    ValueError("Invalid time '" + str(time)
-                               + "' for instance '"
-                               + name + "'.")
+                    raise ValueError(
+                        f"Invalid time '{time}' for instance '{name}'.")
                 machinetimes[machine] += time
                 machine1[machine] = min(machine1[machine], jobtime)
                 jobtime += time
@@ -140,40 +137,43 @@ class JSSPInstance(Component):
                 jobremaining -= time
 
             if not all(usedmachines):
-                ValueError("Some machines not used in a job in instance '"
-                           + name + "'.")
+                raise ValueError(
+                    f"Some machines not used in a job in instance '{name}'.")
             jobidx += 1
 
         ms_lower_bound = max(int(jobtimes.max()),
                              int((machine1 + machine2 + machinetimes).max()))
         if ms_lower_bound <= 0:
-            ValueError("Computed makespan lower bound must not be <= 0, "
-                       "but is '" + str(ms_lower_bound) + "'.")
+            raise ValueError(
+                "Computed makespan lower bound must not be <= 0, "
+                f"but is {ms_lower_bound}.")
         ms_upper_bound = int(jobtimes.sum())
         if ms_upper_bound < ms_lower_bound:
-            ValueError("Computed makespan upper bound " + str(ms_upper_bound)
-                       + "must be <= than computed lower bound"
-                       + str(ms_lower_bound) + ".")
+            raise ValueError(
+                f"Computed makespan upper bound {ms_upper_bound} must "
+                f"be less than computed lower bound {ms_lower_bound}.")
 
         if makespan_lower_bound is None:
             makespan_lower_bound = ms_lower_bound
         else:
-            if (not isinstance(makespan_lower_bound, int)) or \
-                    (makespan_lower_bound <= 0):
-                ValueError("If specified, makespan_lower_bound must be "
-                           "positive integer, but is "
-                           + str(makespan_lower_bound) + " in instance '"
-                           + name + "'.")
+            if not isinstance(makespan_lower_bound, int):
+                raise TypeError("Makespan lower bound, if provided, must int,"
+                                f" but is {type(makespan_lower_bound)} in "
+                                f"instance '{name}'.")
+            if makespan_lower_bound <= 0:
+                raise ValueError("If specified, makespan_lower_bound must be "
+                                 f"positive, but is {makespan_lower_bound} "
+                                 f"in instance '{name}'.")
             if makespan_lower_bound < ms_lower_bound:
-                ValueError("If specified, makespan_lower_bound must be >= "
-                           + str(ms_lower_bound) + ", but is "
-                           + str(makespan_lower_bound) + " in instance '"
-                           + name + "'.")
+                raise ValueError(
+                    "If specified, makespan_lower_bound must be >= "
+                    f"{ms_lower_bound}, but is {makespan_lower_bound} in "
+                    f"instance '{name}'.")
             if makespan_lower_bound > ms_upper_bound:
-                ValueError("If specified, makespan_lower_bound must be <= "
-                           + str(ms_upper_bound) + ", but is "
-                           + str(makespan_lower_bound) + " in instance '"
-                           + name + "'.")
+                raise ValueError(
+                    "If specified, makespan_lower_bound must be <= "
+                    f"{ms_upper_bound}, but is {makespan_lower_bound} in "
+                    f"instance '{name}'.")
 
         self.makespan_lower_bound = makespan_lower_bound
         """The lower bound of the makespan for the JSSP instance."""
@@ -216,34 +216,34 @@ class JSSPInstance(Component):
         :rtype: JSSPInstance
         """
         if not isinstance(rows, list):
-            raise TypeError("rows must be list of str, but are "
-                            + str(type(rows)) + ".")
+            raise TypeError(
+                f"rows must be list of str, but are {type(rows)}.")
         if len(rows) < 3:
-            raise ValueError("Must have at least 3 rows, but found "
-                             + str(rows))
+            raise ValueError(
+                f"Must have at least 3 rows, but found {rows}.")
         description = rows[0]
         if not isinstance(description, str):
-            raise TypeError("rows must be list of str, but are List["
-                            + str(type(description)) + "].")
+            raise TypeError("rows must be list of str, "
+                            f"but are List[{type(description)}].")
         jobs_machines_txt = rows[1]
 
         basetype = np.dtype(np.uint64)
         matrix = np.asanyarray([np.fromstring(row, dtype=basetype, sep=" ")
                                 for row in rows[2:]])
         if not np.issubdtype(matrix.dtype, np.integer):
-            ValueError("Error when converting array to matrix, got type '"
-                       + str(matrix.dtype) + "'.")
+            raise ValueError("Error when converting array to matrix, "
+                             f"got type '{matrix.dtype}'.")
 
         min_value = int(matrix.min())
         if min_value < 0:
-            ValueError("JSSP matrix can only contain values >= 0, but found"
-                       + str(min_value) + ".")
+            raise ValueError("JSSP matrix can only contain values >= 0, "
+                             f"but found {min_value}.")
 
         max_value = int(matrix.max())
         if max_value <= min_value:
-            ValueError("JSSP matrix must contain value larger than minimum "
-                       + str(min_value) + ", but maximum is "
-                       + str(max_value) + ".")
+            raise ValueError(
+                "JSSP matrix must contain value larger than minimum "
+                f"{min_value}, but maximum is {max_value}.")
 
         dtype = int_range_to_dtype(min_value=min_value, max_value=max_value)
         if dtype != matrix.dtype:
@@ -300,7 +300,7 @@ class JSSPInstance(Component):
                     state = 3
                     rows = []
                     continue
-                raise ValueError("Unexpected string '" + line + "'.")
+                raise ValueError(f"Unexpected string '{line}'.")
             elif state == 3:
                 if line.startswith("+++"):
                     return JSSPInstance.from_text(name=name,
@@ -310,12 +310,12 @@ class JSSPInstance(Component):
                 if line.startswith("+++"):
                     state = 5
                     continue
-                raise ValueError("Unexpected string '" + line + "'.")
+                raise ValueError(f"Unexpected string '{line}'.")
             elif state == 5:
                 if line.startswith("+++"):
                     state = 1
 
-        raise ValueError("Could not find instance '" + name + "'.")
+        raise ValueError(f"Could not find instance '{name}'.")
 
     @staticmethod
     def from_resource(name: str) -> 'JSSPInstance':

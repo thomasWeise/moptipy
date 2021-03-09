@@ -122,6 +122,6 @@ def _check_space(space: Optional[Space],
             return None
         raise TypeError("This space must not be None.")
     if not isinstance(space, Space):
-        raise TypeError("A space must be instance of Space, but is "
-                        + str(type(space)) + ".")
+        raise TypeError(
+            f"A space must be instance of Space, but is {type(space)}.")
     return space

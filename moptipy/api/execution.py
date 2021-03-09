@@ -200,7 +200,7 @@ class Execution:
         """
         if not isinstance(log_improvements, bool):
             raise ValueError("log improvements must be bool, but is "
-                             + str(type(log_improvements)) + ".")
+                             f"{type(log_improvements)}.")
         self.__log_improvements = log_improvements
 
     def set_log_all_fes(self, log_all_fes: bool = True) -> None:
@@ -210,8 +210,8 @@ class Execution:
         :param bool log_all_fes: if all FEs should be logged?
         """
         if not isinstance(log_all_fes, bool):
-            raise ValueError("log all FEs  must be bool, but is "
-                             + str(type(log_all_fes)) + ".")
+            raise ValueError(
+                "log all FEs must be bool, but is {type(log_all_fes)}.")
         self.__log_all_fes = log_all_fes
 
     def execute(self) -> Process:

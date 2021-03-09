@@ -22,7 +22,7 @@ def check_op0(op0: Op0,
     """
     if not isinstance(op0, Op0):
         raise ValueError("Expected to receive an instance of Op0Shuffle, but "
-                         "got a '" + str(type(op0)) + "'.")
+                         f"got a {type(op0)}.")
     check_component(component=op0)
 
     if (space is None) or (make_valid is None):
@@ -47,16 +47,16 @@ def check_op0(op0: Op0,
         strstr = space.to_str(x)
         if (not isinstance(strstr, str)) or (len(strstr) <= 0):
             raise ValueError("to_str produces either no string or "
-                             "empty string, namely '" + str(strstr) + "'.")
+                             f"empty string, namely '{strstr}'.")
         seen.add(strstr)
 
     expected = max(1, min(max_count // 2, isqrt(space.scale())))
     if len(seen) < expected:
-        raise ValueError("It is expected that at least " + str(expected)
-                         + " different elements will be created by "
-                           "nullary search operator from "
-                         + str(max_count) + " samples, but we only got "
-                         + str(len(seen)) + " different points.")
+        raise ValueError(
+            f"It is expected that at least {expected} different elements "
+            "will be created by nullary search operator from "
+            f"{max_count} samples, but we only got {len(seen)} "
+            "different points.")
 
 
 def check_op1(op1: Op1,
@@ -73,7 +73,7 @@ def check_op1(op1: Op1,
     """
     if not isinstance(op1, Op1):
         raise ValueError("Expected to receive an instance of Op1, but "
-                         "got a '" + str(type(op1)) + "'.")
+                         f"got a {type(op1)}.")
     check_component(component=op1)
 
     if (space is None) or (make_valid is None):
@@ -94,7 +94,7 @@ def check_op1(op1: Op1,
     strstr = space.to_str(x1)
     if (not isinstance(strstr, str)) or (len(strstr) <= 0):
         raise ValueError("to_str produces either no string or "
-                         "empty string, namely '" + str(strstr) + "'.")
+                         f"empty string, namely {strstr}.")
     seen.add(strstr)
 
     x2 = space.create()
@@ -107,13 +107,13 @@ def check_op1(op1: Op1,
         strstr = space.to_str(x2)
         if (not isinstance(strstr, str)) or (len(strstr) <= 0):
             raise ValueError("to_str produces either no string or "
-                             "empty string, namely '" + str(strstr) + "'.")
+                             f"empty string, namely '{strstr}'.")
         seen.add(strstr)
 
     expected = max(2, min(3, isqrt(space.scale())))
     if len(seen) < expected:
-        raise ValueError("It is expected that at least " + str(expected)
-                         + " different elements will be created by "
-                           "unary search operator from "
-                         + str(max_count) + " samples, but we only got "
-                         + str(len(seen)) + " different points.")
+        raise ValueError(
+            f"It is expected that at least {expected} different elements "
+            "will be created by unary search operator from "
+            f"{max_count} samples, but we only got {len(seen)} different "
+            "points.")

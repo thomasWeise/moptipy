@@ -1,6 +1,6 @@
 """A section consumer can load the sections from a log file."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List
 
 from moptipy.utils import logging
@@ -10,7 +10,22 @@ from moptipy.utils.io import canonicalize_path, enforce_file
 class SectionsParser(ABC):
     """A section consumer can parse a log file and separate the sections."""
 
-    @abstractmethod
+    # noinspection PyUnusedLocal
+    # noinspection PyMethodMayBeStatic
+    def start_dir(self, path: str) -> bool:
+        """
+        Enter a directory to parse all files inside.
+
+        :param str path: the path of the directory
+        :return: `True` if all the files and sub-directories inside the
+            directory should be processed, `False` otherwise
+        :rtype: bool
+        """
+        del path
+        return True
+
+    # noinspection PyUnusedLocal
+    # noinspection PyMethodMayBeStatic
     def start_file(self, path: str) -> bool:
         """
         Start parsing a file.
@@ -20,9 +35,11 @@ class SectionsParser(ABC):
             skipped and :meth:`parse` should return `True`.
         :rtype: bool
         """
-        raise NotImplementedError
+        del path
+        return True
 
-    @abstractmethod
+    # noinspection PyUnusedLocal
+    # noinspection PyMethodMayBeStatic
     def start_section(self, title: str) -> bool:
         """
         Start a section.
@@ -33,9 +50,11 @@ class SectionsParser(ABC):
             case, we will fast forward to the next :meth:`start_section`.
         :rtype: bool
         """
-        raise NotImplementedError
+        del title
+        return False
 
-    @abstractmethod
+    # noinspection PyUnusedLocal
+    # noinspection PyMethodMayBeStatic
     def lines(self, lines: List[str]) -> bool:
         """
         Consume all the lines from a section.
@@ -49,18 +68,28 @@ class SectionsParser(ABC):
             process can be terminated
         :rtype: bool
         """
-        raise NotImplementedError
+        del lines
+        return True
 
-    @abstractmethod
-    def end_file(self, file: str) -> bool:
+    # noinspection PyMethodMayBeStatic
+    def end_file(self) -> bool:
         """
         End a file.
 
-        :param str file: the file path
-        :return: the return value to be returned by :meth:`parse`
+        :return: the return value to be returned by :meth:`parse_file`
         :rtype: bool
         """
-        raise NotImplementedError
+        return True
+
+    # noinspection PyMethodMayBeStatic
+    def end_dir(self) -> bool:
+        """
+        End parsing a directory.
+
+        :return: `True` or `False`
+        :rtype: bool
+        """
+        return True
 
     def parse_file(self, file: str) -> bool:
         """
@@ -70,15 +99,13 @@ class SectionsParser(ABC):
         :return: the return value of :meth:`end_file`
         :rtype: bool
         """
-        file = canonicalize_path(file)
-        enforce_file(file)
+        file = enforce_file(canonicalize_path(file))
 
         try:
             if not self.start_file(file):
                 return True
         except BaseException as be:
-            raise ValueError("Error when starting file '"
-                             + file + "'") from be
+            raise ValueError(f"Error when starting file '{file}'") from be
 
         lines: List[str] = list()
         buffer: List[str] = []
@@ -97,10 +124,11 @@ class SectionsParser(ABC):
                         buffer = handle.readlines(128)
                     except BaseException as be:
                         raise ValueError(
-                            "Error when reading lines from file '"
-                            + file + (("' while in section '" + section)
-                                      if (state == 1) else "")
-                            + "'.") from be
+                            f"Error when reading lines from file '{file}' "
+                            f"while in section '{section}'."
+                            if state == 1 else
+                            f"Error when reading lines from file '{file}'.")\
+                            from be
                     if buffer is None:
                         break
                     index = 0
@@ -121,14 +149,13 @@ class SectionsParser(ABC):
 
                 if state in (0, 2):
                     if not cur.startswith(logging.SECTION_START):
-                        ValueError("Line should start with '"
-                                   + logging.SECTION_START + "' but is '"
-                                   + orig_cur + "' in file '" + file + "'.")
+                        ValueError("Line should start with "
+                                   f"'{logging.SECTION_START}' but is "
+                                   f"'{orig_cur}' in file '{file}'.")
                     section = cur[len(logging.SECTION_START):]
                     if len(section) <= 0:
-                        ValueError("Section title cannot be empty in '"
-                                   + file + "', but encountered '"
-                                   + orig_cur + "'.")
+                        ValueError("Section title cannot be empty in "
+                                   f"'{file}', but encountered '{orig_cur}'.")
                     state = 1
                     sec_end = logging.SECTION_END + section
                     wants_section = self.start_section(section)
@@ -140,9 +167,8 @@ class SectionsParser(ABC):
                                 do_next = self.lines(lines)
                             except BaseException as be:
                                 raise ValueError(
-                                    "Error when processing section '"
-                                    + section + "' in file '"
-                                    + file + "'.") from be
+                                    "Error when processing section "
+                                    f"'{section}' in file '{file}'.") from be
                             lines.clear()
                             if not do_next:
                                 break
@@ -150,14 +176,13 @@ class SectionsParser(ABC):
                         lines.append(cur)
 
         if state == 0:
-            raise ValueError("Log file '" + file + "' contains no section.")
+            raise ValueError(f"Log file '{file}' contains no section.")
         if state == 1:
-            raise ValueError("Log file '" + file
-                             + "' ended before encountering '"
-                             + sec_end + "'.")
+            raise ValueError(f"Log file '{file}' ended before"
+                             f"encountering '{sec_end}'.")
 
         try:
-            return self.end_file(file)
+            return self.end_file()
         except BaseException as be:
-            raise ValueError("Error when ending section parsing of file '"
-                             + file + "'.") from be
+            raise ValueError("Error when ending section parsing "
+                             f"of file '{file}'.") from be

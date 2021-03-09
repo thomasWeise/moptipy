@@ -48,15 +48,13 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
     :raises ValueError: if the range is invalid
     """
     if not isinstance(min_value, int):
-        raise TypeError("min_value must be int, but is '"
-                        + str(type(min_value)) + "'.")
+        raise TypeError(f"min_value must be int, but is {type(min_value)}.")
     if not isinstance(max_value, int):
-        raise TypeError("max_value must be int, but is '"
-                        + str(type(max_value)) + "'.")
+        raise TypeError(f"max_value must be int, but is {type(max_value)}.")
     if min_value > max_value:
-        raise ValueError("min_value must be <>>= max_value, but min_value="
-                         + str(min_value) + " and max_value="
-                         + str(max_value) + " was provided.")
+        raise ValueError(
+            f"min_value must be <= max_value, but min_value={min_value} "
+            f"and max_value={max_value} was provided.")
 
     for t in __NP_INTS:
         if (min_value >= t[1]) and (max_value <= t[2]):
@@ -64,16 +62,15 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
 
     ll = len(__NP_INTS) - 1
     if min_value >= 0:
-        raise ValueError("max_value for unsigned integers must be "
-                         "<=" + str((__NP_INTS[ll])[2]) + ", but is "
-                         + str(max_value) + " for min_value "
-                         + str(min_value) + ".")
+        raise ValueError(
+            "max_value for unsigned integers must be <="
+            f"{(__NP_INTS[ll])[2]}, but is {max_value} "
+            f" for min_value={min_value}.")
 
     ll = ll - 1
-    raise ValueError("Signed integer range cannot exceed "
-                     + str((__NP_INTS[ll])[1]) + ".." + str((__NP_INTS[ll])[2])
-                     + ", but " + str(min_value) + ".." + str(max_value)
-                     + " was specified.")
+    raise ValueError(
+        f"Signed integer range cannot exceed {(__NP_INTS[ll])[1]}.."
+        f"{(__NP_INTS[ll])[2]}, but {min_value}..{max_value} was specified.")
 
 
 def intmax(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
@@ -123,8 +120,8 @@ def rand_seed_generate(random: Optional[Generator] = None) -> int:
     if random is None:
         random = default_rng()
     if not isinstance(random, Generator):
-        raise TypeError("random must be instance of Generator, but is "
-                        + str(type(random)) + ".")
+        raise TypeError(
+            f"random must be instance of Generator, but is {type(random)}.")
     return int.from_bytes(random.bytes(__SEED_BYTES),
                           byteorder='big', signed=False)
 
@@ -141,12 +138,11 @@ def rand_seed_check(rand_seed: int) -> int:
     :raises ValueError: if the random seed is not valid
     """
     if not isinstance(rand_seed, int):
-        raise TypeError("rand_seed should be instance of int, but is "
-                        + str(type(rand_seed)) + ".")
+        raise TypeError(
+            f"rand_seed should be instance of int, but is {type(rand_seed)}.")
     if (rand_seed < __MIN_RAND_SEED) or (rand_seed > __MAX_RAND_SEED):
-        raise ValueError("rand_seed must be in " + str(__MIN_RAND_SEED)
-                         + ".." + str(__MAX_RAND_SEED) + ", but is "
-                         + str(rand_seed) + ".")
+        raise ValueError(f"rand_seed must be in {__MIN_RAND_SEED}.."
+                         f"{__MAX_RAND_SEED}, but is {rand_seed}.")
     return rand_seed
 
 
@@ -196,15 +192,15 @@ def rand_seeds_from_str(string: str,
     """
     if not isinstance(string, str):
         raise TypeError(
-            "string must be a str, but is '" + str(type(string)) + "'.")
+            f"string must be a str, but is {type(string)}.")
     if len(string) <= 0:
         raise ValueError("string must not be empty.")
     if not isinstance(n_seeds, int):
         raise TypeError(
-            "n_seeds must be an int, but is '" + str(type(string)) + "'.")
+            f"n_seeds must be an int, but is {type(string)}.")
     if n_seeds <= 0:
         raise ValueError(
-            "n_seeds must be positive, but is " + str(n_seeds) + ".")
+            f"n_seeds must be positive, but is {n_seeds}.")
 
     seeds = bytearray(sha512(string.encode("utf8")).digest())
     seed1 = int.from_bytes(seeds[0:32], byteorder='big', signed=False)
@@ -225,8 +221,7 @@ def rand_seeds_from_str(string: str,
     result.sort()
 
     if len(result) != n_seeds:
-        raise ValueError("Failed to generate " + str(n_seeds)
-                         + " unique seeds.")
+        raise ValueError("Failed to generate {n_seeds} unique seeds.")
     return result
 
 

@@ -37,4 +37,4 @@ class RandomWalk(Algorithm1):
         :rtype: str
         """
         name = super().get_name()
-        return ("rw_" + name) if (len(name) > 0) else "rw"
+        return f"rw_{name}" if (len(name) > 0) else "rw"

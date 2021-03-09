@@ -16,17 +16,18 @@ def canonicalize_path(path: str) -> str:
     :rtype: str
     """
     if not isinstance(path, str):
-        raise TypeError("path must be instance of str, but is "
-                        + str(type(path)))
+        raise TypeError(
+            f"path must be instance of str, but is {type(path)}.")
     if len(path) <= 0:
         raise ValueError("Path must not be empty.")
 
     path = normcase(abspath(realpath(expanduser(expandvars(path)))))
-    if (not isinstance(path, str)) or (len(path) <= 0):
-        raise ValueError(
-            "Result of path canonicalization must be non-empty string, "
-            "but is " + str(type(path)) + " with value '"
-            + str(path) + "'.")
+    if not isinstance(path, str):
+        raise TypeError("Path canonicalization should yield string, but "
+                        f"returned {type(path)}.")
+    if len(path) <= 0:
+        raise ValueError("Canonicalization must yield non-empty string, "
+                         f"but returned '{path}'.")
     return path
 
 
@@ -39,8 +40,10 @@ def enforce_file(path: str) -> str:
     :rtype: str
     :raises ValueError:  if `path` does not reference an existing file
     """
+    if not isinstance(path, str):
+        raise TypeError(f"path must be str, but is {type(path)}.")
     if not isfile(path):
-        raise ValueError("Path '" + path + "' does not identify file.")
+        raise ValueError(f"Path '{path}' does not identify a file.")
     return path
 
 
@@ -54,9 +57,9 @@ def enforce_dir(path: str) -> str:
     :raises ValueError:  if `path` does not reference an existing directory
     """
     if not isinstance(path, str):
-        raise TypeError("path must be str, but is " + str(type(path)) + ".")
+        raise TypeError(f"path must be str, but is {type(path)}.")
     if not isdir(path):
-        raise ValueError("Path '" + path + "' does not identify file.")
+        raise ValueError(f"Path '{path}' does not identify a directory.")
     return path
 
 
@@ -77,8 +80,8 @@ class TempDir:
         """
         if not (directory is None):
             if not isinstance(directory, str):
-                raise TypeError("directory must be str, but is "
-                                + str(type(directory)) + ".")
+                raise TypeError(
+                    f"directory must be str, but is {type(directory)}.")
             if len(directory) <= 0:
                 raise ValueError("directory must not be empty string.")
         self.__path = enforce_dir(canonicalize_path(mkdtemp(dir=directory)))
@@ -139,15 +142,13 @@ class TempFile:
         """
         if not (prefix is None):
             if not isinstance(prefix, str):
-                raise TypeError("prefix must be str, but is "
-                                + str(type(prefix)) + ".")
+                raise TypeError(f"prefix must be str, but is {type(prefix)}.")
             if len(prefix) <= 0:
                 raise ValueError("prefix must not be empty string.")
 
         if not (suffix is None):
             if not isinstance(suffix, str):
-                raise TypeError("suffix must be str, but is "
-                                + str(type(suffix)) + ".")
+                raise TypeError(f"suffix must be str, but is {type(suffix)}.")
             if len(suffix) <= 0:
                 raise ValueError("suffix must not be empty string.")
 
@@ -160,8 +161,8 @@ class TempFile:
             else:
                 usedir = directory
             if not isinstance(usedir, str):
-                raise TypeError("directory must translate to str, but is "
-                                + str(type(usedir)) + ".")
+                raise TypeError("directory must translate to str, "
+                                f"but is {type(usedir)}.")
             if len(usedir) <= 0:
                 raise ValueError("directory must not be empty string.")
 
@@ -218,10 +219,10 @@ def file_create_or_fail(path: str) -> str:
     try:
         os.close(os.open(path, os.O_CREAT | os.O_EXCL))
     except FileExistsError as err:
-        raise ValueError("File '" + path + "' already exists.") from err
+        raise ValueError(f"File '{path}' already exists.") from err
     except Exception as err:
-        raise ValueError("Error when trying to create  file'"
-                         + path + "'.") from err
+        raise ValueError(
+            f"Error when trying to create  file '{path}'.") from err
     return enforce_file(path)
 
 
@@ -238,10 +239,10 @@ def file_create_or_truncate(path: str) -> str:
     try:
         os.close(os.open(path, os.O_CREAT | os.O_TRUNC))
     except FileExistsError as err:
-        raise ValueError("File '" + path + "' already exists.") from err
+        raise ValueError(f"File '{path}' already exists.") from err
     except Exception as err:
-        raise ValueError("Error when trying to create  file'"
-                         + path + "'.") from err
+        raise ValueError(
+            f"Error when trying to create  file '{path}'.") from err
     return enforce_file(path)
 
 
@@ -263,6 +264,6 @@ def file_ensure_exists(path: str) -> Tuple[str, bool]:
     except FileExistsError:
         existed = True
     except Exception as err:
-        raise ValueError("Error when trying to create  file'"
-                         + path + "'.") from err
+        raise ValueError(
+            f"Error when trying to create file '{path}'.") from err
     return enforce_file(path), existed

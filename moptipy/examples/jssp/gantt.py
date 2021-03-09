@@ -23,8 +23,8 @@ class Gantt:
         :param JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
-            TypeError("Must provide valid JSSP instance, but passed in a '"
-                      + str(type(instance)) + "'.")
+            TypeError("Must provide valid JSSP instance, but passed "
+                      f"in a {type(instance)}.")
         self.instance = instance
         """The JSSP Instance to which this Gantt record applies."""
         self.times = np.zeros(

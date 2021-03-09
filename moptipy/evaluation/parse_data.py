@@ -35,22 +35,21 @@ def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
     ['a', 'c.d', 'c.e', 'f']
     """
     if not isinstance(lines, Iterable):
-        raise TypeError("lines must be Iterable of strings, but is "
-                        + str(type(lines)) + ".")
+        raise TypeError(
+            f"lines must be Iterable of strings, but is {type(lines)}.")
     dct = dict()
     for line in lines:
         splt = line.split(logging.KEY_VALUE_SEPARATOR)
         if len(splt) != 2:
             raise ValueError(
-                "Two strings separated by '" + logging.KEY_VALUE_SEPARATOR
-                + "' expected, but encountered " + str(len(splt))
-                + " in '" + line + "'.")
+                f"Two strings separated by '{logging.KEY_VALUE_SEPARATOR}' "
+                f"expected, but encountered {len(splt)} in '{line}'.")
         key = splt[0].strip()
         if len(key) <= 0:
-            raise ValueError("Empty key encountered in '" + line + "'.")
+            raise ValueError(f"Empty key encountered in '{line}'.")
         value = splt[1].strip()
         if len(value) <= 0:
-            raise ValueError("Empty value encountered in '" + line + "'.")
+            raise ValueError(f"Empty value encountered in '{line}'.")
         dct[key] = value
 
     return dct
@@ -129,36 +128,34 @@ def parse_csv(lines: List[str],
     array([0, 5, 7], dtype=uint64)
     """
     if not isinstance(lines, list):
-        raise TypeError("lines must be list of strings, but is "
-                        + str(type(lines)) + ".")
+        raise TypeError(
+            f"lines must be list of strings, but is {type(lines)}.")
 
     n_rows = len(lines)
     if n_rows < 2:
         raise ValueError("lines must contain at least two elements, but "
-                         "contains " + str(n_rows) + ".")
+                         f"contains {n_rows}.")
 
     columns = [c.strip() for c in lines[0].split(logging.CSV_SEPARATOR)]
     n_cols = len(columns)
     if n_cols < 1:
-        raise ValueError(
-            "There must be at least one column, but found none in '"
-            + lines[0] + "'.")
+        raise ValueError("There must be at least one column, but found none "
+                         f"in '{lines[0]}'.")
     cache = is_new()
     for col in columns:
         if len(col) <= 0:
-            raise ValueError("Encountered empty column name in '"
-                             + lines[0] + "'.")
+            raise ValueError(
+                f"Encountered empty column name in '{lines[0]}'.")
         if not cache(col):
-            raise ValueError("Column '" + col + "' appears twice.")
+            raise ValueError(f"Column '{col}' appears twice.")
     del cache
 
     matrix = list(zip(*[[c.strip() for c in line.split(logging.CSV_SEPARATOR)]
                         for line in lines[1:]]))
     n_rows = n_rows - 1
     if n_cols != len(matrix):
-        raise ValueError("Number of expected columns: " + str(n_cols)
-                         + ", number columns found: " + str(len(matrix))
-                         + ".")
+        raise ValueError(f"Number of expected columns: {n_cols}, "
+                         f"number columns found: {len(matrix)}.")
 
     result = {}
     for i, col in enumerate(columns):
@@ -167,8 +164,8 @@ def parse_csv(lines: List[str],
             continue
         cc = parser(matrix[i])
         if len(cc) != n_rows:
-            raise ValueError("Obtained incorrect length of row, should be "
-                             + str(n_rows) + ", but is " + str(len(cc)) + ".")
+            raise ValueError("Obtained incorrect length of row, "
+                             f"should be {n_rows}, but is {len(cc)}.")
         result[col] = cc
 
     return result

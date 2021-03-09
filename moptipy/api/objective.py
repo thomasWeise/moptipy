@@ -77,16 +77,16 @@ class CallableObjective(_CallableComponent, Objective):
 
         if not (isinstance(lower_bound, (int, float))):
             raise TypeError("lower_bound must be either int or float, "
-                            "but is " + str(type(lower_bound)))
+                            f"but is {type(lower_bound)}.")
 
         if not (isinstance(upper_bound, (int, float))):
             raise TypeError("upper_bound must be either int or float, "
-                            "but is " + str(type(upper_bound)))
+                            f"but is {type(upper_bound)}.")
 
         if lower_bound >= upper_bound:
-            raise ValueError("lower_bound " + str(lower_bound)
-                             + "must be less than upper_bound "
-                             + str(upper_bound) + " but is not.")
+            raise ValueError(f"lower_bound {lower_bound} "
+                             "must be less than upper_bound "
+                             f"{upper_bound} but is not.")
 
         self.__lower_bound = lower_bound
         self.__upper_bound = upper_bound
@@ -140,7 +140,6 @@ def _check_objective(objective: Objective) -> Objective:
     if objective is None:
         raise TypeError("An objective function must not be None.")
     if not isinstance(objective, Objective):
-        raise TypeError(
-            "An objective function must be instance of Objective, but is "
-            + str(type(objective)) + ".")
+        raise TypeError("An objective function must be instance of "
+                        f"Objective, but is {type(objective)}.")
     return objective

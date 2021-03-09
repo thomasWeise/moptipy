@@ -51,7 +51,8 @@ class _ProcessSS(_ProcessNoSS):
         self._encoding.map(x, self._current_y)
         result = self._objective.evaluate(self._current_y)
         if isnan(result):
-            raise ValueError("NaN invalid as objective value.")
+            raise ValueError(
+                f"NaN invalid as objective value, but got {result}.")
         self._current_fes += 1
 
         do_term = self._current_fes >= self._end_fes

@@ -177,7 +177,7 @@ def sanitize_name(name: str) -> str:
     name = str(name)
     if not isinstance(name, str):
         raise TypeError("String representation of name must be instance "
-                        "of str, but is " + str(type(name)))
+                        f"of str, but is {type(name)}.")
     orig_name = name
     name = name.strip()
     name = __replace_double("-", name)
@@ -195,8 +195,8 @@ def sanitize_name(name: str) -> str:
         name = name[:len(name) - 1]
 
     if len(name) <= 0:
-        raise ValueError("Sanitized name must not become empty, but '"
-                         + orig_name + "' does.")
+        raise ValueError(
+            f"Sanitized name must not become empty, but '{orig_name}' does.")
 
     return name
 
@@ -235,7 +235,7 @@ def float_to_str(x: float) -> str:
         return "0"
     s = repr(x)
     if math.isnan(x):
-        raise ValueError("'" + s + "' not permitted.")
+        raise ValueError(f"'{s}' not permitted.")
     if s.endswith(".0"):
         return s[:-2]
     return s
@@ -269,7 +269,7 @@ def complex_to_str(x: complex) -> str:
         return float_to_str(y)
     s = repr(x)
     if cmath.isnan(x):
-        raise ValueError("'" + s + "' not permitted.")
+        raise ValueError(f"'{s}' not permitted.")
     if s[0] == '(':
         s = s[1:-1]
     if s.endswith("+0j"):
@@ -318,4 +318,4 @@ def str_to_bool(value: str) -> bool:
         return True
     if value == "F":
         return False
-    raise ValueError("Expected 'T' or 'F', but got '" + value + "'.")
+    raise ValueError(f"Expected 'T' or 'F', but got '{value}'.")

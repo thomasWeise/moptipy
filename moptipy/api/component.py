@@ -55,8 +55,8 @@ class _CallableComponent(Component):
         :raises ValueError: if name is `None`
         """
         if not callable(inner):
-            raise TypeError("Inner function must be callable, but is a "
-                            + str(type(inner)))
+            raise TypeError(
+                f"Inner function must be callable, but is a {type(inner)}.")
 
         self._inner = inner
         self.__name = logging.sanitize_name(name)

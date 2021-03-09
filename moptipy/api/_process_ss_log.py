@@ -39,8 +39,8 @@ class _ProcessSSLog(_ProcessSS):
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
         if not isinstance(log_all_fes, bool):
-            raise TypeError("log_all must be boolean, but is '"
-                            + str(log_all_fes) + "'.")
+            raise TypeError(
+                f"log_all must be boolean, but is {type(log_all_fes)}.")
         self.__log_all = log_all_fes
         self.__log: List[Tuple[int, int, Union[int, float]]] = list()
 
@@ -54,7 +54,8 @@ class _ProcessSSLog(_ProcessSS):
         self._encoding.map(x, self._current_y)
         result = self._objective.evaluate(self._current_y)
         if isnan(result):
-            raise ValueError("NaN invalid as objective value.")
+            raise ValueError(
+                f"NaN invalid as objective value, but got {result}.")
         self._current_fes += 1
 
         do_term = self._current_fes >= self._end_fes

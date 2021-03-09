@@ -28,14 +28,14 @@ class VectorSpace(Space):
             i.e., the type of the decision variables
         """
         if not isinstance(dimension, int):
-            raise TypeError("dimension must be integer, but got '"
-                            + str(type(dimension)) + "'.")
+            raise TypeError(
+                f"dimension must be integer, but got {type(dimension)}.")
         if (dimension < 1) or (dimension > 1_000_000_000):
-            raise ValueError("dimension must be in 1..1_000_000_000, but got "
-                             + str(dimension) + ".")
+            raise ValueError("dimension must be in 1..1_000_000_000, "
+                             f"but got {dimension}.")
 
         if not (isinstance(dtype, np.dtype) and (dtype.char in "efdgFDG")):
-            raise TypeError("Invalid data type '" + str(dtype) + "'.")
+            raise TypeError(f"Invalid data type {dtype}.")
 
         self.dimension = dimension
         """The dimension of the space, i.e., the vectors."""
@@ -96,12 +96,8 @@ class VectorSpace(Space):
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
         if not (isinstance(text, str)):
-            raise TypeError("text must be str, but is "
-                            + str(type(text)) + ".")
+            raise TypeError(f"text must be str, but is {type(text)}.")
         x = np.fromstring(text, dtype=self.dtype, sep=",")
-        if len(x) != self.dimension:
-            raise ValueError("'" + text + "' does not have dimension "
-                             + str(self.dimension))
         self.validate(x)
         return x
 
@@ -115,14 +111,14 @@ class VectorSpace(Space):
             element is not finite.
         """
         if not (isinstance(x, np.ndarray)):
-            raise TypeError("x must be an numpy.ndarray, but is a '"
-                            + str(type(x)) + ".")
+            raise TypeError(
+                f"x must be an numpy.ndarray, but is a {type(x)}.")
         if x.dtype != self.dtype:
-            raise TypeError("x must be of type '" + str(self.dtype)
-                            + "' but is of type '" + str(x.dtype) + "'.")
+            raise TypeError(
+                f"x must be of type {self.dtype} but is of type {x.dtype}.")
         if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
-            raise ValueError("x must be of shape (" + str(self.dimension)
-                             + ") but is of shape " + str(x.shape) + ".")
+            raise ValueError(f"x must be of shape ({self.dimension}) but is "
+                             f"of shape {x.shape}.")
         if not all(np.isfinite(x)):
             raise ValueError("All elements must be finite.")
 
@@ -163,7 +159,7 @@ class VectorSpace(Space):
             mantissa = 112
             is_complex = True
         else:
-            raise ValueError("Invalid dtype " + str(self.dtype))
+            raise ValueError(f"Invalid dtype {self.dtype}.")
 
         base = 2 * ((2 ** exponent) - 1) * (2 ** mantissa) - 1
         if is_complex:
@@ -180,7 +176,7 @@ class VectorSpace(Space):
         >>> print(VectorSpace(3, np.dtype(np.float64)).get_name())
         vector3d
         """
-        return "vector" + str(self.dimension) + self.dtype.char
+        return f"vector{self.dimension}{self.dtype.char}"
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """

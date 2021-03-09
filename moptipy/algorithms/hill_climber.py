@@ -44,4 +44,4 @@ class HillClimber(Algorithm1):
         :rtype: str
         """
         name = super().get_name()
-        return ("hc_" + name) if (len(name) > 0) else "hc"
+        return f"hc_{name}" if (len(name) > 0) else "hc"

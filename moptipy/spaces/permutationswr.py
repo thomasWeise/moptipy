@@ -24,17 +24,15 @@ class PermutationsWithRepetitions(IntSpace):
         :raises ValueError: if the parameters have the wrong value
         """
         if not isinstance(n, int):
-            raise TypeError("n must be integer, but is '"
-                            + str(type(n)) + "'.")
+            raise TypeError(f"n must be integer, but is {type(n)}.")
         if (n <= 0) or (n > 1_000_000_000):
-            raise ValueError("n must be in 1..1_000_000_000, but is "
-                             + str(n) + ".")
+            raise ValueError(f"n must be in 1..1_000_000_000, but is {n}.")
         if not isinstance(repetitions, int):
-            raise TypeError("repetitions must be integer, but is '"
-                            + str(type(repetitions)) + "'.")
+            raise TypeError(
+                f"repetitions must be integer, but is {type(repetitions)}.")
         if (repetitions <= 0) or (repetitions > 1_000_000_000):
             raise ValueError("repetitions must be in 1..1_000_000_000, "
-                             "but is " + str(repetitions) + ".")
+                             f"but is {repetitions}.")
 
         super().__init__(dimension=n * repetitions,
                          min_value=0,
@@ -99,10 +97,10 @@ class PermutationsWithRepetitions(IntSpace):
             counts[xx] += 1
         if any(counts != self.repetitions):
             raise ValueError(
-                "Each element in 0.." + str(self.n - 1) + " must occur "
-                + str(self.repetitions) + " times, but encountered "
-                + super().to_str(counts[counts != self.repetitions])
-                + " occurrences.")
+                f"Each element in 0..{self.n - 1} must occur exactly "
+                f"{self.repetitions} times, but encountered "
+                f"{super().to_str(counts[counts != self.repetitions])}"
+                " occurrences.")
 
     def get_name(self) -> str:
         """
@@ -111,4 +109,4 @@ class PermutationsWithRepetitions(IntSpace):
         :return: "perm" + n + "w" + repetitions + "r"
         :rtype: str
         """
-        return ("perm" + str(self.n)) + "w" + (str(self.repetitions) + "r")
+        return f"perm{self.n}w{self.repetitions}r"

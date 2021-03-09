@@ -18,24 +18,23 @@ def check_objective(objective: Objective,
     """
     if not isinstance(objective, Objective):
         raise ValueError("Expected to receive an instance of Objective, but "
-                         "got a '" + str(type(objective)) + "'.")
+                         f"got a {type(objective)}.")
     _check_objective(objective)
     check_component(component=objective)
 
     lower = objective.lower_bound()
     if not (isinstance(lower, (int, float))):
         raise ValueError("lower_bound() must return an int or float, but "
-                         "returned a '" + str(type(lower)) + "'.")
+                         f"returned a {type(lower)}.")
 
     upper = objective.upper_bound()
     if not (isinstance(upper, (int, float))):
         raise ValueError("upper_bound() must return an int or float, but "
-                         "returned a '" + str(type(upper)) + "'.")
+                         f"returned a {type(upper)}.")
 
     if lower > upper:
         raise ValueError("Result of lower_bound() must be <= to "
-                         "upper_bound(), but got " + str(lower)
-                         + " vs." + str(upper) + ".")
+                         f"upper_bound(), but got {lower} vs. {upper}.")
 
     if create_valid is None:
         return
@@ -47,10 +46,9 @@ def check_objective(objective: Objective,
     res = objective.evaluate(x)
     if not (isinstance(res, (int, float))):
         raise ValueError("evaluate(x) must return an int or float, but "
-                         "returned a '" + str(type(res)) + "'.")
+                         f"returned a {type(res)}.")
 
     if (res < lower) or (res > upper):
         raise ValueError("evaluate(x) must return a value in"
                          "[lower_bound(), upper_bound()], but returned "
-                         + str(res) + " vs. [" + str(lower) + ","
-                         + str(upper) + "].")
+                         f"{res} vs. [{lower},{upper}].")

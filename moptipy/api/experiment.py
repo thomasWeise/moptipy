@@ -59,7 +59,7 @@ def __run_experiment(base_dir: str,
             if not isinstance(exp, Execution):
                 raise ValueError(
                     "Setup callable must produce instance of "
-                    "Execution, but generates " + str(type(exp)) + ".")
+                    f"Execution, but generates {type(exp)}.")
             algo_name = sanitize_name(exp.get_algorithm().get_name())
 
             cd = __ensure_dir(os.path.join(base_dir, algo_name, inst_name))
@@ -113,34 +113,31 @@ def run_experiment(base_dir: str,
     :rtype: str
     """
     if not isinstance(instances, Iterable):
-        raise TypeError("instances must be a iterable object, but is "
-                        + str(type(instances)) + ".")
+        raise TypeError(
+            f"instances must be a iterable object, but is {type(instances)}.")
     if not isinstance(setups, Iterable):
-        raise TypeError("setups must be a iterable object, but is "
-                        + str(type(setups)) + ".")
+        raise TypeError(
+            f"setups must be a iterable object, but is {type(setups)}.")
     if not isinstance(n_threads, int):
-        raise TypeError("n_threads must be int, but is "
-                        + str(type(n_threads)) + ".")
+        raise TypeError(f"n_threads must be int, but is {type(n_threads)}.")
     if n_threads <= 0:
-        raise ValueError("n_threads must be positive, but is "
-                         + str(n_threads) + ".")
+        raise ValueError(f"n_threads must be positive, but is {n_threads}.")
 
     instances = list(instances)
     if len(instances) <= 0:
         raise ValueError("Instance enumeration is empty.")
     for instance in instances:
         if not callable(instance):
-            raise TypeError(
-                "All instances must be callables, but encountered a "
-                + str(type(instance)) + ".")
+            raise TypeError("All instances must be callables, "
+                            f"but encountered a {type(instance)}.")
 
     setups = list(setups)
     if len(setups) <= 0:
         raise ValueError("Setup enumeration is empty.")
     for setup in setups:
         if not callable(setup):
-            raise TypeError("All setups must be callables, but encountered a "
-                            + str(type(setup)) + ".")
+            raise TypeError("All setups must be callables, "
+                            f"but encountered a {type(setup)}.")
 
     experiments = [(ii, ss) for ii in instances for ss in setups]
 
@@ -160,8 +157,7 @@ def run_experiment(base_dir: str,
             raise ValueError("n_runs must not be None.")
         if run <= last:
             raise ValueError("n_runs sequence must not be increasing and "
-                             "positive, we cannot have " + str(run)
-                             + " follow " + str(last) + ".")
+                             f"positive, we cannot have {run} follow {last}.")
         last = run
 
     cache = is_new()
@@ -172,7 +168,7 @@ def run_experiment(base_dir: str,
     if n_threads > 1:
         file_lock: ContextManager = mp.Lock()
         stdio_lock = mp.Lock()
-        __log("starting experiment with " + str(n_threads) + " threads.",
+        __log(f"starting experiment with {n_threads} threads.",
               "", stdio_lock)
 
         processes = [mp.Process(target=__run_experiment,
@@ -186,10 +182,10 @@ def run_experiment(base_dir: str,
                      for i in range(n_threads)]
         for i in range(n_threads):
             processes[i].start()
-            __log("started processes " + hex(i)[2:] + ".", "", stdio_lock)
+            __log("started processes {hex(i)[2:]}.", "", stdio_lock)
         for i in range(n_threads):
             processes[i].join()
-            __log("processes " + hex(i)[2:] + " terminated.", "", stdio_lock)
+            __log("processes {hex(i)[2:]} terminated.", "", stdio_lock)
 
     else:
         stdio_lock = __DummyLock()

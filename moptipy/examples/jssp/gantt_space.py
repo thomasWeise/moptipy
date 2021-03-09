@@ -19,8 +19,8 @@ class GanttSpace(Space):
         :param moptipy.examples.jssp.JSSPInstance instance: the JSSP instance
         """
         if not isinstance(instance, JSSPInstance):
-            ValueError("Must provide valid JSSP instance, but passed in a '"
-                       + str(type(instance)) + "'.")
+            ValueError("Must provide valid JSSP instance, "
+                       f"but passed in a {type(instance)}.")
         self.instance = instance
         """The JSSP Instance to which the Gantt record apply."""
 
@@ -78,8 +78,7 @@ class GanttSpace(Space):
         :rtype: moptipy.examples.jssp.Gantt
         """
         if not (isinstance(text, str)):
-            raise TypeError("text must be str, but is "
-                            + str(type(text)) + ".")
+            raise TypeError(f"text must be str, but is {type(text)}.")
         x = self.create()
         np.copyto(x.times,
                   np.fromstring(text, dtype=x.times.dtype, sep=",")
@@ -98,42 +97,38 @@ class GanttSpace(Space):
             is wrong
         """
         if not isinstance(x.instance, JSSPInstance):
-            raise TypeError("Invalid instance, not a JSSP instance, but a '"
-                            + str(type(x.instance)) + "'.")
+            raise TypeError("Invalid instance, not a JSSP instance, "
+                            f"but a {type(x.instance)}.")
         if not isinstance(x.times, np.ndarray):
-            raise TypeError("x.times must be numpy.ndarray, but is "
-                            + str(type(x.times)) + ",")
+            raise TypeError(
+                f"x.times must be numpy.ndarray, but is {type(x.times)}.")
         if not isinstance(x.makespan, int):
-            raise TypeError("x.makespan must be int, but is "
-                            + str(type(x.makespan)) + ".")
+            raise TypeError(
+                f"x.makespan must be int, but is {type(x.makespan)}.")
         if not isinstance(x.instance, JSSPInstance):
-            raise TypeError("x.instance must be JSSPInstance, but is "
-                            + str(type(x.instance)) + ".")
+            raise TypeError("x.instance must be a JSSPInstance, "
+                            f"but is {type(x.instance)}.")
         if not isinstance(x.instance.matrix, np.ndarray):
-            raise TypeError("x.instance.matrix must be numpy.ndarray, but is "
-                            + str(type(x.instance.matrix)) + ",")
+            raise TypeError("x.instance.matrix must be numpy.ndarray, "
+                            f"but is {type(x.instance.matrix)}.")
         if not isinstance(x.instance.jobs, int):
-            raise TypeError("x.instance.jobs must be int, but is "
-                            + str(type(x.instance.jobs)) + ".")
+            raise TypeError("x.instance.jobs must be int, "
+                            f"but is {type(x.instance.jobs)}.")
         if not isinstance(x.instance.machines, int):
-            raise TypeError("x.instance.machines must be int, but is "
-                            + str(type(x.instance.machines)) + ".")
+            raise TypeError("x.instance.machines must be int, "
+                            f"but is {type(x.instance.machines)}.")
 
         if x.times.shape[0] != x.instance.jobs:
-            raise ValueError("times matrix must have "
-                             + str(x.instance.jobs) + " rows, but has "
-                             + str(x.times.shape[0]) + ".")
+            raise ValueError(f"times matrix must have {x.instance.jobs} "
+                             f"rows, but has {x.times.shape[0]}.")
 
         if x.times.shape[1] != x.instance.machines:
-            raise ValueError("times matrix must have "
-                             + str(x.instance.machines)
-                             + " rows, but has " + str(x.times.shape[1])
-                             + ".")
+            raise ValueError(f"times matrix must have {x.instance.machines} "
+                             f"rows, but has {x.times.shape[1]}.")
 
         if x.times.shape[2] != 2:
-            raise ValueError(
-                "times matrix must have two values per cell, but has "
-                + str(x.times.shape[2]) + ".")
+            raise ValueError("times matrix must have two values per cell, "
+                             f"but has {x.times.shape[2]}.")
 
         for jobi in range(x.instance.jobs):
             row = x.times[jobi]
@@ -147,55 +142,43 @@ class GanttSpace(Space):
                 time = data[1 + (machinei * 2)]
                 if machine != (srow[machinei])[2]:
                     raise ValueError(
-                        "Machine at index " + str(machinei)
-                        + " of job " + str(jobi) + " must be "
-                        + str(machine) + ", but is "
-                        + str((srow[machinei])[2]) + ".")
+                        f"Machine at index {machinei} of job {jobi} "
+                        f"must be {machine}, but is {(srow[machinei])[2]}.")
                 start = (srow[machinei])[0]
                 end = (srow[machinei])[1]
                 needed = end - start
                 if needed != time:
                     raise ValueError(
-                        "Job " + str(jobi) + " must be processed on "
-                        + str(machine) + " for " + str(time)
-                        + " time units, but only " + str(needed)
-                        + " are used.")
+                        f"Job {jobi} must be processed on {machine} for "
+                        f"{time} time units, but only {needed} are used.")
                 if needed < 0:
                     raise ValueError(
-                        "Processing time of job " + str(jobi) + " on machine "
-                        + str(machine) + " cannot be < 0, but is "
-                        + str(needed) + ".")
+                        f"Processing time of job {jobi} on machine {machine} "
+                        f"cannot be < 0, but is {needed}.")
 
                 if start < last_end:
                     raise ValueError(
-                        "Processing time window [" + str(start) + ","
-                        + str(end) + "] on machine " + str(machine)
-                        + " intersects with last operation end "
-                        + str(last_end) + " on machine " + str(last_machine)
-                        + ".")
+                        f"Processing time window [{start},{end}] on "
+                        f"machine {machine} intersects with last operation "
+                        f"end {last_end} on machine {last_machine}.")
 
                 last_end = end
                 last_machine = machine
 
         maxtime = int(x.times.max())
         if x.makespan != maxtime:
-            raise ValueError("Cached makespan " + str(x.makespan)
-                             + " not equal to actual makespan "
-                             + str(maxtime) + ".")
+            raise ValueError(f"Cached makespan {x.makespan} not equal to "
+                             f"actual makespan {maxtime}.")
         if maxtime < x.instance.makespan_lower_bound:
             raise ValueError(
-                "Makespan " + str(maxtime)
-                + " computed, which is smaller than the lower bound "
-                + str(x.instance.makespan_lower_bound)
-                + " of the JSSP instance '"
-                + x.instance.get_name() + "'.")
+                f"Makespan {maxtime} computed, which is smaller than the "
+                f"lower bound {x.instance.makespan_lower_bound} of the JSSP "
+                f"instance '{x.instance.get_name()}'.")
         if maxtime > x.instance.makespan_upper_bound:
             raise ValueError(
-                "Makespan " + str(maxtime)
-                + " computed, which is larger than the upper bound "
-                + str(x.instance.makespan_upper_bound)
-                + " of the JSSP instance '"
-                + x.instance.get_name() + "'.")
+                f"Makespan {maxtime} computed, which is larger than the "
+                f"upper bound {x.instance.makespan_upper_bound} of the JSSP "
+                f"instance '{x.instance.get_name()}'.")
 
     def scale(self) -> int:
         """

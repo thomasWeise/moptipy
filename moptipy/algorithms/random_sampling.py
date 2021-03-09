@@ -27,4 +27,4 @@ class RandomSampling(Algorithm0):
         :rtype: str
         """
         name = super().get_name()
-        return ("rs_" + name) if (len(name) > 0) else "rs"
+        return f"rs_{name}" if (len(name) > 0) else "rs"

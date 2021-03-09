@@ -37,12 +37,11 @@ class Algorithm0(Algorithm, ABC):
             if `True`, it will not be included in the name suffix
         """
         if (op0 is None) or (not isinstance(op0, Op0)):
-            TypeError("op0 must be instance of Op0, but is '"
-                      + str(type(op0)) + "'")
+            TypeError(f"op0 must be instance of Op0, but is {type(op0)}.")
         self.op0 = op0
         if not isinstance(op0_is_default, bool):
             raise TypeError("op0_is_default must be bool, but is "
-                            + str(type(op0_is_default)) + ".")
+                            f"{type(op0_is_default)}.")
         self._op0_is_default = op0_is_default
 
     def get_name(self) -> str:
@@ -86,12 +85,11 @@ class Algorithm1(Algorithm0, ABC):
         super().__init__(op0=op0,
                          op0_is_default=op0_is_default)
         if (op1 is None) or (not isinstance(op1, Op1)):
-            TypeError("op1 must be instance of Op1, but is '"
-                      + str(type(op1)) + "'")
+            TypeError(f"op1 must be instance of Op1, but is {type(op1)}.")
         self.op1 = op1
         if not isinstance(op1_is_default, bool):
             raise TypeError("op1_is_default must be bool, but is "
-                            + str(type(op1_is_default)) + ".")
+                            f"{type(op1_is_default)}.")
         self._op1_is_default = op1_is_default
 
     def get_name(self) -> str:
@@ -144,12 +142,11 @@ class Algorithm2(Algorithm1, ABC):
                          op0_is_default=op0_is_default,
                          op1_is_default=op1_is_default)
         if (op2 is None) or (not isinstance(op2, Op2)):
-            TypeError("op2 must be instance of Op2, but is '"
-                      + str(type(op2)) + "'")
+            TypeError(f"op2 must be instance of Op2, but is {type(op2)}.")
         self.op2 = op2
         if not isinstance(op2_is_default, bool):
             raise TypeError("op2_is_default must be bool, but is "
-                            + str(type(op2_is_default)) + ".")
+                            f"{type(op2_is_default)}.")
         self._op2_is_default = op2_is_default
 
     def get_name(self) -> str:
@@ -211,7 +208,6 @@ def _check_algorithm(algorithm: Algorithm) -> Algorithm:
     if algorithm is None:
         raise TypeError("An algorithm must not be None.")
     if not isinstance(algorithm, Algorithm):
-        raise TypeError(
-            "An algorithm must be instance of Algorithm, but is "
-            + str(type(algorithm)) + ".")
+        raise TypeError("An algorithm must be instance of Algorithm, "
+                        f"but is {type(algorithm)}.")
     return algorithm

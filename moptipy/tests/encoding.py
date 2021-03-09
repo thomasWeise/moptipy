@@ -24,7 +24,7 @@ def check_encoding(encoding: Encoding,
     """
     if not isinstance(encoding, Encoding):
         raise ValueError("Expected to receive an instance of Encoding, but "
-                         "got a '" + str(type(encoding)) + "'.")
+                         f"got a {type(encoding)}.")
     _check_encoding(encoding)
     check_component(component=encoding)
 

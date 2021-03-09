@@ -34,8 +34,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
         if not isinstance(log_all_fes, bool):
-            raise TypeError("log_all must be boolean, but is '"
-                            + str(log_all_fes) + "'.")
+            raise TypeError(
+                f"log_all must be bool, but is {type(log_all_fes)}.")
         self.__log_all = log_all_fes
         self.__log: List[Tuple[int, int, Union[int, float]]] = list()
 
@@ -48,7 +48,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
 
         result = self._objective.evaluate(x)
         if isnan(result):
-            raise ValueError("NaN invalid as objective value.")
+            raise ValueError(
+                f"NaN invalid as objective value, but got {result}.")
 
         self._current_fes += 1
 

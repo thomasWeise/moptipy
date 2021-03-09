@@ -29,10 +29,9 @@ class Logger(ABC):
         :param name: the name of the logger
         """
         if not isinstance(name, str):
-            raise ValueError("Name must be string but is '"
-                             + str(type(name)) + "'.")
+            raise ValueError(f"Name must be string but is {type(name)}.")
         if stream is None:
-            raise ValueError("stream must be valid strean but is None.")
+            raise ValueError("stream must be valid stream but is None.")
 
         self._stream = stream
         self.__section: Optional[str] = None
@@ -49,22 +48,18 @@ class Logger(ABC):
         """
         return self
 
-    def _error(self, message: List) -> None:
+    def _error(self, message: str) -> None:
         """
         Internal method for raising an :class:`ValueError` with context infos.
 
-        :param List message: the message elements to merge
+        :param str message: the message elements to merge
         :raises ValueError: an error with the message and some context
         information
         """
-        message = [(f if isinstance(f, str) else "'" + str(f) + "'")
-                   for f in message]
-        if self.__section is None:
-            message[len(message):] = [" in logger '", self.__log_name, "'."]
-        else:
-            message[len(message):] = [" in section '", self.__section,
-                                      "' of logger '", self.__log_name + "'."]
-        raise ValueError("".join(message))
+        raise ValueError(f"{message} in logger '{self.__log_name}'."
+                         if self.__section is None else
+                         f"{message} in section '{self.__section}' "
+                         f"of logger '{self.__log_name}'.")
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """
@@ -75,7 +70,7 @@ class Logger(ABC):
         :param traceback: ignored
         """
         if not (self.__section is None):
-            self._error(["Cannot close logger, because section still open"])
+            self._error("Cannot close logger, because section still open")
         if not (self._stream is None):
             if not self.__starts_new_line:
                 self._stream.write("\n")
@@ -89,23 +84,23 @@ class Logger(ABC):
         :param str title: the section title
         """
         if self._stream is None:
-            self._error(["Cannot open section '",
-                         title, "' because logger already closed"])
+            self._error(f"Cannot open section '{title}' "
+                        "because logger already closed")
 
         if not (self.__section is None):
-            self._error(["Cannot open section '",
-                         title, "' because another one is open"])
+            self._error(f"Cannot open section '{title}' because "
+                        "another one is open")
 
         new_title = title.strip().upper()
         if new_title != title:
-            self._error(["Cannot open section '",
-                         title, "' because title is invalid"])
+            self._error(f"Cannot open section '{title}' because "
+                        "title is invalid")
 
         if not self.__sections(title):
-            self._error(["Section '", title, "' already done"])
+            self._error(f"Section '{title}' already done")
 
-        self._stream.write(logging.SECTION_START + title + "\n")
-        self.__closer = logging.SECTION_END + title + "\n"
+        self._stream.write(f"{logging.SECTION_START}{title}\n")
+        self.__closer = f"{logging.SECTION_END}{title}\n"
         self.__starts_new_line = True
         self.__section = title
 
@@ -116,8 +111,7 @@ class Logger(ABC):
         :param str title: the section title
         """
         if (self.__section is None) or (self.__section != title):
-            self._error(["Cannot open section '",
-                         title, "' since it is not open"])
+            self._error(f"Cannot open section '{title}' since it is not open")
         printer = self.__closer
         if not self.__starts_new_line:
             printer = "\n" + printer
@@ -134,12 +128,11 @@ class Logger(ABC):
         :param str comment: the comment
         """
         if self.__section is None:
-            self._error(["Cannot write if not inside section"])
+            self._error("Cannot write if not inside section")
         if len(comment) <= 0:
             return
-        self._stream.write(logging.COMMENT_CHAR + " "
-                           + sub(r"\s+", " ", comment.strip())
-                           + "\n")
+        comment = sub(r"\s+", " ", comment.strip())
+        self._stream.write(f"{logging.COMMENT_CHAR} {comment}\n")
         self.__starts_new_line = True
 
     def _write(self, text: str) -> None:
@@ -149,14 +142,14 @@ class Logger(ABC):
         :param str text: the text to write
         """
         if self.__section is None:
-            self._error(["Cannot write if not inside section"])
+            self._error("Cannot write if not inside section")
 
         if len(text) <= 0:
             return
 
         if self.__closer in text:
-            self._error(["String '", self.__closer,
-                         "' must not be contained in output"])
+            self._error(f"String '{self.__closer}' "
+                        "must not be contained in output")
 
         self._stream.write(text)
         self.__starts_new_line = text.endswith("\n")
@@ -259,8 +252,7 @@ class FileLogger(Logger):
         :param str path: the path to the file to open
         """
         if not isinstance(path, str):
-            raise ValueError("Path must be string but is '"
-                             + str(type(path)) + "'.")
+            raise ValueError("Path must be string but is {type(path)}.")
         name = path
         path = realpath(path)
         super().__init__(stream=open(file=path, mode="wt",
@@ -351,13 +343,12 @@ class CsvSection(_Section):
         self.__header_len = len(header)
         if self.__header_len <= 0:
             # noinspection PyProtectedMember
-            logger._error(["Empty header ", header,
-                           " invalid for a CSV section"])
+            logger._error(f"Empty header {header} invalid for a CSV section")
 
         for c in header:
             if (not (isinstance(c, str))) or logging.CSV_SEPARATOR in c:
                 # noinspection PyProtectedMember
-                logger._error(["Invalid column ", c])
+                logger._error(f"Invalid column {c}")
 
         # noinspection PyProtectedMember
         logger._write(logging.CSV_SEPARATOR.join(
@@ -371,21 +362,20 @@ class CsvSection(_Section):
         """
         if self.__header_len != len(row):
             # noinspection PyProtectedMember
-            self._logger._error(["Header of CSV section demands ",
-                                 str(self.__header_len),
-                                 " columns, but row ", row,
-                                 " has ", str(len(row))])
+            self._logger._error(
+                f"Header of CSV section demands {self.__header_len} columns, "
+                f"but row {row} has {len(row)}")
 
         # noinspection PyProtectedMember
         txt = [str(c) if isinstance(c, int)
                else logging.bool_to_str(c) if isinstance(c, bool)
                else (logging.float_to_str(c) if isinstance(c, float) else
-                     cast(None, self._logger._error(["Invalid log value ",
-                                                     c, " in row ", row])))
+                     cast(None, self._logger._error(
+                          f"Invalid log value {c} in row {row}")))
                for c in row]
 
         # noinspection PyProtectedMember
-        self._logger._write(logging.CSV_SEPARATOR.join(txt) + "\n")
+        self._logger._write(f"{logging.CSV_SEPARATOR.join(txt)}\n")
 
 
 class KeyValueSection(_Section):
@@ -403,8 +393,7 @@ class KeyValueSection(_Section):
         :param done: the set of already done keys and prefixes
         """
         if not isinstance(prefix, str):
-            raise TypeError("prefix must be str but is "
-                            + str(type(prefix)))
+            raise TypeError(f"prefix must be str but is {type(prefix)}")
         super().__init__(title=title, logger=logger)
         self._prefix = prefix
         if done is None:
@@ -414,7 +403,7 @@ class KeyValueSection(_Section):
             self.__done = done
             if not done(prefix):
                 # noinspection PyProtectedMember
-                logger._error(["Prefix '", prefix, "' already done"])
+                logger._error("Prefix '{prefix}' already done")
 
     def key_value(self, key: str, value,
                   also_hex: bool = False) -> None:
@@ -428,7 +417,7 @@ class KeyValueSection(_Section):
         key = self._prefix + logging.sanitize_name(key)
         if not self.__done(key):
             # noinspection PyProtectedMember
-            self._logger._error(["Key '", key, "' already used"])
+            self._logger._error("Key '{key}' already used")
 
         the_hex = None
         if isinstance(value, float):
@@ -445,11 +434,13 @@ class KeyValueSection(_Section):
             if also_hex and isinstance(value, int):
                 the_hex = hex(value)
 
-        txt = logging.KEY_VALUE_SEPARATOR.join([key, txt]) + "\n"
+        txt = logging.KEY_VALUE_SEPARATOR.join([key, txt])
+        txt = f"{txt}\n"
 
         if the_hex:
-            txt += logging.KEY_VALUE_SEPARATOR.join(
-                [key + logging.KEY_HEX_VALUE, the_hex]) + "\n"
+            tmp = logging.KEY_VALUE_SEPARATOR.join(
+                [key + logging.KEY_HEX_VALUE, the_hex])
+            txt = f"{txt}{tmp}\n"
 
         # noinspection PyProtectedMember
         self._logger._write(txt)
@@ -464,8 +455,8 @@ class KeyValueSection(_Section):
         """
         return KeyValueSection(
             title=None, logger=self._logger,
-            prefix=((prefix if (self._prefix is None) else
-                     (self._prefix + logging.sanitize_name(prefix))) + "."),
+            prefix=(prefix if (self._prefix is None) else
+                    f"{self._prefix}{logging.sanitize_name(prefix)}."),
             done=self.__done)
 
 

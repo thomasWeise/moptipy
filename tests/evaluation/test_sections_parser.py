@@ -51,9 +51,11 @@ class _TestParser(SectionsParser):
             return False
         raise AssertionError("Should never get here.")
 
-    def end_file(self, file: str) -> bool:
+    def end_file(self) -> bool:
         assert self.__state == 8
-        assert file == self.__path
+        assert isinstance(self.__path, str)
+        self.__path = None
+        self.__state = 0
         return True
 
 

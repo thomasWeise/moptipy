@@ -30,10 +30,9 @@ def _check_max_fes(max_fes: Optional[int],
 
     if not isinstance(max_fes, int):
         raise TypeError("Maximum number of function evaluations must be "
-                        "int, but is " + str(type(max_fes)) + ".")
+                        f"int, but is {type(max_fes)}.")
     if max_fes <= 0:
-        raise ValueError("Maximum FEs must be positive, but are "
-                         + str(max_fes) + ".")
+        raise ValueError(f"Maximum FEs must be positive, but are {max_fes}.")
     return max_fes
 
 
@@ -56,10 +55,10 @@ def _check_max_time_millis(max_time_millis: Optional[int],
 
     if not isinstance(max_time_millis, int):
         raise TypeError("Maximum time in milliseconds must be int, but is "
-                        + str(type(max_time_millis)) + ".")
+                        f"{type(max_time_millis)}.")
     if max_time_millis <= 0:
         raise ValueError("Maximum time in milliseconds must be positive, "
-                         "but is " + str(max_time_millis) + ".")
+                         f"but is {max_time_millis}.")
     return max_time_millis
 
 
@@ -82,13 +81,13 @@ def _check_goal_f(goal_f: Union[int, float, None],
 
     if not (isinstance(goal_f, (int, float))):
         raise TypeError("Goal objective value must be int or float, but is "
-                        + str(type(goal_f)) + ".")
+                        f"{type(goal_f)}.")
     if isnan(goal_f):
-        raise ValueError("Goal objective value must not be NaN, but is"
-                         + str(goal_f) + ".")
+        raise ValueError("Goal objective value must not be NaN, but is "
+                         f"{goal_f}.")
     if goal_f >= inf:
         raise ValueError("Goal objective value must be less than positive "
-                         "infinity, but is " + str(goal_f) + ".")
+                         f"infinity, but is {goal_f}.")
     return goal_f
 
 
