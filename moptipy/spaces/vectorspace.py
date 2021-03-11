@@ -1,5 +1,5 @@
 """An implementation of an unconstrained n-dimensional continuous space."""
-from typing import Final
+from typing import Final, Callable
 
 import numpy as np
 
@@ -37,13 +37,16 @@ class VectorSpace(Space):
         if not (isinstance(dtype, np.dtype) and (dtype.char in "efdgFDG")):
             raise TypeError(f"Invalid data type {dtype}.")
 
-        self.dimension = dimension
-        """The dimension of the space, i.e., the vectors."""
-        self.dtype = dtype
-        """The basic data type of the vector elements."""
-        self.__formatter = logging.complex_to_str if dtype.char in "FDG" \
+        #: The dimension of the space, i.e., the vectors.
+        self.dimension: Final[int] = dimension
+
+        #: The basic data type of the vector elements.
+        self.dtype: Final[np.dtype] = dtype
+
+        #: The internal formatter for the to_string method
+        self.__formatter: Final[Callable] = logging.complex_to_str \
+            if dtype.char in "FDG" \
             else logging.float_to_str
-        """The internal formatter for the to_string method"""
 
     def create(self) -> np.ndarray:
         """

@@ -1,7 +1,7 @@
 """An implementation of processes with different search and solution spaces."""
 from math import inf, isnan
 from time import monotonic_ns
-from typing import Optional, Union
+from typing import Optional, Union, Final
 
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
@@ -36,10 +36,17 @@ class _ProcessSS(_ProcessNoSS):
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
 
-        self._search_space = _check_space(search_space)
-        self._encoding = _check_encoding(encoding)
-        self._current_y = self._solution_space.create()
-        self._current_best_x = self._search_space.create()
+        #: The search space.
+        self._search_space: Final[Space] = _check_space(search_space)
+
+        #: The encoding.
+        self._encoding: Final[Encoding] = _check_encoding(encoding)
+
+        #: The holder for the currently de-coded solution.
+        self._current_y: Final = self._solution_space.create()
+
+        #: The current best point in the search space.
+        self._current_best_x: Final = self._search_space.create()
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
@@ -49,13 +56,13 @@ class _ProcessSS(_ProcessNoSS):
             return inf
 
         self._encoding.map(x, self._current_y)
-        result = self._objective.evaluate(self._current_y)
+        result: Union[int, float] = self._objective.evaluate(self._current_y)
         if isnan(result):
             raise ValueError(
                 f"NaN invalid as objective value, but got {result}.")
         self._current_fes += 1
 
-        do_term = self._current_fes >= self._end_fes
+        do_term: bool = self._current_fes >= self._end_fes
 
         if (self._current_fes <= 1) or (result < self._current_best_f):
             # noinspection PyAttributeOutsideInit

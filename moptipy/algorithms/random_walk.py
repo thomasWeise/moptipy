@@ -1,4 +1,8 @@
 """A random walk allgorithm implmentation."""
+from typing import Final
+
+from numpy.random import Generator
+
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.process import Process
 
@@ -17,8 +21,8 @@ class RandomWalk(Algorithm1):
 
         :param moptipy.api.Process process: the process object
         """
-        x = process.create()
-        random = process.get_random()
+        x: Final = process.create()
+        random: Final[Generator] = process.get_random()
 
         if process.has_current_best():
             process.get_copy_of_current_best_x(x)
@@ -36,5 +40,5 @@ class RandomWalk(Algorithm1):
         :return: "rw" + any non-standard operator suffixes
         :rtype: str
         """
-        name = super().get_name()
+        name: Final[str] = super().get_name()
         return f"rw_{name}" if (len(name) > 0) else "rw"

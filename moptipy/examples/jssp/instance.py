@@ -11,12 +11,11 @@ from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 
 
-class JSSPInstance(Component):
+class Instance(Component):
     """An instance of the Job Shop Scheduling Problem."""
 
     #: the recommended scope under which instance data should be stored
     SCOPE_INSTANCE: Final = "inst"
-
     #: The number of machines in the instance.
     MACHINES: Final = "machines"
     #: The number of jobs in the instance.
@@ -44,8 +43,8 @@ class JSSPInstance(Component):
             been solved to optimality or any other approximation. If `None` is
             provided, a lower bound will be computed.
         """
-        self.name = logging.sanitize_name(name)
-        """The name of this JSSP instance."""
+        #: The name of this JSSP instance.
+        self.name: Final[str] = logging.sanitize_name(name)
 
         if name != self.name:
             raise ValueError(f"Name '{name}' is not a valid name.")
@@ -54,15 +53,15 @@ class JSSPInstance(Component):
             raise ValueError("There must be at least one machine, "
                              f"but '{machines}' were specified in "
                              f"instance '{name}'.")
-        self.machines = machines
-        """The number of machines in this JSSP instance."""
+        #: The number of machines in this JSSP instance.
+        self.machines: Final[int] = machines
 
         if not isinstance(jobs, int) or (jobs < 1):
             raise ValueError("There must be at least one job, "
                              f"but '{jobs}' were specified in "
                              f"instance '{name}'.")
-        self.jobs = jobs
-        """The number of jobs in this JSSP instance."""
+        #: The number of jobs in this JSSP instance.
+        self.jobs: Final[int] = jobs
 
         if not isinstance(matrix, np.ndarray):
             raise TypeError("The matrix must be an numpy.ndarray, but is a "
@@ -88,13 +87,11 @@ class JSSPInstance(Component):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
-        self.matrix = matrix
-        """
-        The matrix with the operations of the jobs and their durations.
-        This matrix holds one row for each job.
-        In each row, it stores tuples of (machine, duration) in a consecutive
-        sequence, i.e., 2*machine numbers.
-        """
+        #: The matrix with the operations of the jobs and their durations. \
+        #: This matrix holds one row for each job. \
+        #: In each row, it stores tuples of (machine, duration) in a \
+        #: consecutive sequence, i.e., 2*machine numbers.
+        self.matrix: Final[np.ndarray] = matrix
 
         # We now compute the lower bound for the makespan based on the
         # algorithm by Taillard
@@ -175,11 +172,11 @@ class JSSPInstance(Component):
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
                     f"instance '{name}'.")
 
-        self.makespan_lower_bound = makespan_lower_bound
-        """The lower bound of the makespan for the JSSP instance."""
+        #: The lower bound of the makespan for the JSSP instance.
+        self.makespan_lower_bound: Final[int] = makespan_lower_bound
 
-        self.makespan_upper_bound = ms_upper_bound
-        """The upper bound of the makespan for the JSSP instance."""
+        #: The upper bound of the makespan for the JSSP instance.
+        self.makespan_upper_bound: Final[int] = ms_upper_bound
 
     def get_name(self) -> str:
         """
@@ -197,23 +194,23 @@ class JSSPInstance(Component):
         :param moptipy.utils.KeyValueSection logger: the logger
         """
         super().log_parameters_to(logger)
-        logger.key_value(JSSPInstance.MACHINES, self.machines)
-        logger.key_value(JSSPInstance.JOBS, self.jobs)
-        logger.key_value(JSSPInstance.MAKESPAN_LOWER_BOUND,
+        logger.key_value(Instance.MACHINES, self.machines)
+        logger.key_value(Instance.JOBS, self.jobs)
+        logger.key_value(Instance.MAKESPAN_LOWER_BOUND,
                          self.makespan_lower_bound)
-        logger.key_value(JSSPInstance.MAKESPAN_UPPER_BOUND,
+        logger.key_value(Instance.MAKESPAN_UPPER_BOUND,
                          self.makespan_upper_bound)
 
     @staticmethod
     def from_text(name: str,
-                  rows: List[str]) -> 'JSSPInstance':
+                  rows: List[str]) -> 'Instance':
         """
         Convert a name and a set of rows of text to an JSSP instance.
 
         :param str name: the name of the instance
         :param List[str] rows: the rows
         :return: the JSSP Instance
-        :rtype: JSSPInstance
+        :rtype: Instance
         """
         if not isinstance(rows, list):
             raise TypeError(
@@ -262,21 +259,21 @@ class JSSPInstance(Component):
                 j = len(description)
             makespan_lower_bound = int(description[i:j].strip())
 
-        return JSSPInstance(name=name,
-                            jobs=jobs,
-                            machines=machines,
-                            matrix=matrix,
-                            makespan_lower_bound=makespan_lower_bound)
+        return Instance(name=name,
+                        jobs=jobs,
+                        machines=machines,
+                        matrix=matrix,
+                        makespan_lower_bound=makespan_lower_bound)
 
     @staticmethod
-    def from_stream(name: str, stream) -> 'JSSPInstance':
+    def from_stream(name: str, stream) -> 'Instance':
         """
         Load an instance from a text stream.
 
         :param str name: the name of the instance to be loaded
         :param stream: the text stream
         :return: the instance
-        :rtype: JSSPInstance
+        :rtype: Instance
         """
         state = 0
         rows: Optional[List[str]] = None
@@ -303,8 +300,8 @@ class JSSPInstance(Component):
                 raise ValueError(f"Unexpected string '{line}'.")
             elif state == 3:
                 if line.startswith("+++"):
-                    return JSSPInstance.from_text(name=name,
-                                                  rows=rows)
+                    return Instance.from_text(name=name,
+                                              rows=rows)
                 rows.append(line)
             elif state == 4:
                 if line.startswith("+++"):
@@ -318,15 +315,15 @@ class JSSPInstance(Component):
         raise ValueError(f"Could not find instance '{name}'.")
 
     @staticmethod
-    def from_resource(name: str) -> 'JSSPInstance':
+    def from_resource(name: str) -> 'Instance':
         """
         Load the JSSP instances `name` provided as part of moptipy.
 
         :param str name: the instance name
         :return: the instance
-        :rtype: JSSPInstance
+        :rtype: Instance
 
-        >>> jssp = JSSPInstance.from_resource("demo")
+        >>> jssp = Instance.from_resource("demo")
         >>> print(jssp.jobs)
         4
         >>> print(jssp.machines)
@@ -337,7 +334,7 @@ class JSSPInstance(Component):
         with resources.open_text(package=str(__package__),
                                  resource="demo.txt" if (name == "demo")
                                  else "instances.txt") as stream:
-            return JSSPInstance.from_stream(name=name, stream=stream)
+            return Instance.from_stream(name=name, stream=stream)
 
     @staticmethod
     def list_resources() -> Tuple[str, ...]:
@@ -346,9 +343,9 @@ class JSSPInstance(Component):
         A tuple with all the JSSP instances provided in the moptipy resources.
 
         :return: a tuple with all instance names that are valid parameters
-            to :meth:`JSSPInstance.from_resource`
+            to :meth:`Instance.from_resource`
 
-        >>> print(JSSPInstance.list_resources()[0:3])
+        >>> print(Instance.list_resources()[0:3])
         ('abz5', 'abz6', 'abz7')
         """
         return 'abz5', 'abz6', 'abz7', 'abz8', 'abz9', \

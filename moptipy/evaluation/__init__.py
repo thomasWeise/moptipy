@@ -3,7 +3,7 @@
 from typing import Final
 
 import moptipy.version
-from moptipy.evaluation.sections_parser import SectionsParser
+from moptipy.evaluation.log_parser import LogParser
 from moptipy.evaluation.parse_data import parse_key_values, parse_csv, \
     strs_to_array
 
@@ -12,5 +12,5 @@ __version__: Final[str] = moptipy.version.__version__
 __all__ = (
     "parse_csv",
     "parse_key_values",
-    "SectionsParser",
+    "LogParser",
     "strs_to_array")

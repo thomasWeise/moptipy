@@ -1,6 +1,6 @@
 """The base classes for implementing optimization algorithms."""
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Final
 
 from moptipy.api.component import Component
 from moptipy.api.objective import _CallableComponent
@@ -38,11 +38,15 @@ class Algorithm0(Algorithm, ABC):
         """
         if (op0 is None) or (not isinstance(op0, Op0)):
             TypeError(f"op0 must be instance of Op0, but is {type(op0)}.")
-        self.op0 = op0
+
+        #: The nullary search operator.
+        self.op0: Final[Op0] = op0
+
         if not isinstance(op0_is_default, bool):
             raise TypeError("op0_is_default must be bool, but is "
                             f"{type(op0_is_default)}.")
-        self._op0_is_default = op0_is_default
+        #: If `False`, the nullary operator influences the name.
+        self._op0_is_default: Final[bool] = op0_is_default
 
     def get_name(self) -> str:
         """
@@ -86,11 +90,13 @@ class Algorithm1(Algorithm0, ABC):
                          op0_is_default=op0_is_default)
         if (op1 is None) or (not isinstance(op1, Op1)):
             TypeError(f"op1 must be instance of Op1, but is {type(op1)}.")
-        self.op1 = op1
+        #: The unary search operator.
+        self.op1: Final[Op1] = op1
         if not isinstance(op1_is_default, bool):
             raise TypeError("op1_is_default must be bool, but is "
                             f"{type(op1_is_default)}.")
-        self._op1_is_default = op1_is_default
+        #: If `False`, the unary operator influences the name.
+        self._op1_is_default: Final[bool] = op1_is_default
 
     def get_name(self) -> str:
         """
@@ -143,11 +149,13 @@ class Algorithm2(Algorithm1, ABC):
                          op1_is_default=op1_is_default)
         if (op2 is None) or (not isinstance(op2, Op2)):
             TypeError(f"op2 must be instance of Op2, but is {type(op2)}.")
-        self.op2 = op2
+        #: The binary search operator.
+        self.op2: Final[Op2] = op2
         if not isinstance(op2_is_default, bool):
             raise TypeError("op2_is_default must be bool, but is "
                             f"{type(op2_is_default)}.")
-        self._op2_is_default = op2_is_default
+        #: If `False`, the binary operator influences the name.
+        self._op2_is_default: Final[bool] = op2_is_default
 
     def get_name(self) -> str:
         """

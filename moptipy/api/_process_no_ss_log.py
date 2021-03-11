@@ -1,7 +1,7 @@
 """A process with logging, where search and solution space are the same."""
 from math import inf, isnan
 from time import monotonic_ns
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Final
 
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
@@ -36,7 +36,11 @@ class _ProcessNoSSLog(_ProcessNoSS):
         if not isinstance(log_all_fes, bool):
             raise TypeError(
                 f"log_all must be bool, but is {type(log_all_fes)}.")
-        self.__log_all = log_all_fes
+
+        #: `True` if all FEs are logged, `False` to only log improvements.
+        self.__log_all: Final[bool] = log_all_fes
+
+        #: The in-memory log
         self.__log: List[Tuple[int, int, Union[int, float]]] = list()
 
     def evaluate(self, x) -> Union[float, int]:
@@ -46,15 +50,15 @@ class _ProcessNoSSLog(_ProcessNoSS):
                                  'the algorithm knows it.')
             return inf
 
-        result = self._objective.evaluate(x)
+        result: Union[int, float] = self._objective.evaluate(x)
         if isnan(result):
             raise ValueError(
                 f"NaN invalid as objective value, but got {result}.")
 
         self._current_fes += 1
 
-        do_term = self._current_fes >= self._end_fes
-        do_log = self.__log_all
+        do_term: bool = self._current_fes >= self._end_fes
+        do_log: bool = self.__log_all
 
         if (self._current_fes <= 1) or (result < self._current_best_f):
             self._last_improvement_fe = self._current_fes

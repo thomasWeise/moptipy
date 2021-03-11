@@ -1,7 +1,7 @@
 """This module provides the class for implementing objective functions."""
 from abc import abstractmethod
 from math import inf
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Final
 
 from moptipy.api.component import _CallableComponent, Component
 from moptipy.utils import logging
@@ -88,8 +88,8 @@ class CallableObjective(_CallableComponent, Objective):
                              "must be less than upper_bound "
                              f"{upper_bound} but is not.")
 
-        self.__lower_bound = lower_bound
-        self.__upper_bound = upper_bound
+        self.__lower_bound: Final[Union[int, float]] = lower_bound
+        self.__upper_bound: Final[Union[int, float]] = upper_bound
 
     def evaluate(self, x) -> Union[float, int]:
         """

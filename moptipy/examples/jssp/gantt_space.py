@@ -1,28 +1,29 @@
 """Here we implement a space implementation for :class:`Gantt` charts."""
 from math import factorial
+from typing import Final
 
 import numpy as np
 
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
-from moptipy.examples.jssp.instance import JSSPInstance
+from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.logger import KeyValueSection
 
 
 class GanttSpace(Space):
     """A space implementation of for `Gantt` charts."""
 
-    def __init__(self, instance: JSSPInstance) -> None:
+    def __init__(self, instance: Instance) -> None:
         """
         Create a Gantt chart space.
 
-        :param moptipy.examples.jssp.JSSPInstance instance: the JSSP instance
+        :param moptipy.examples.jssp.Instance instance: the JSSP instance
         """
-        if not isinstance(instance, JSSPInstance):
+        if not isinstance(instance, Instance):
             ValueError("Must provide valid JSSP instance, "
                        f"but passed in a {type(instance)}.")
+        #: The JSSP Instance to which the Gantt record apply.
         self.instance = instance
-        """The JSSP Instance to which the Gantt record apply."""
 
     def create(self) -> Gantt:
         """
@@ -79,7 +80,7 @@ class GanttSpace(Space):
         """
         if not (isinstance(text, str)):
             raise TypeError(f"text must be str, but is {type(text)}.")
-        x = self.create()
+        x: Final[Gantt] = self.create()
         np.copyto(x.times,
                   np.fromstring(text, dtype=x.times.dtype, sep=",")
                   .reshape(x.times.shape))
@@ -96,7 +97,7 @@ class GanttSpace(Space):
         :raises ValueError: if the Gantt chart is not feasible or the makespan
             is wrong
         """
-        if not isinstance(x.instance, JSSPInstance):
+        if not isinstance(x.instance, Instance):
             raise TypeError("Invalid instance, not a JSSP instance, "
                             f"but a {type(x.instance)}.")
         if not isinstance(x.times, np.ndarray):
@@ -105,8 +106,8 @@ class GanttSpace(Space):
         if not isinstance(x.makespan, int):
             raise TypeError(
                 f"x.makespan must be int, but is {type(x.makespan)}.")
-        if not isinstance(x.instance, JSSPInstance):
-            raise TypeError("x.instance must be a JSSPInstance, "
+        if not isinstance(x.instance, Instance):
+            raise TypeError("x.instance must be a Instance, "
                             f"but is {type(x.instance)}.")
         if not isinstance(x.instance.matrix, np.ndarray):
             raise TypeError("x.instance.matrix must be numpy.ndarray, "
@@ -165,7 +166,7 @@ class GanttSpace(Space):
                 last_end = end
                 last_machine = machine
 
-        maxtime = int(x.times.max())
+        maxtime: Final[int] = int(x.times.max())
         if x.makespan != maxtime:
             raise ValueError(f"Cached makespan {x.makespan} not equal to "
                              f"actual makespan {maxtime}.")
@@ -187,7 +188,7 @@ class GanttSpace(Space):
         :return: `factorial(jobs) ** machines`
         :rtype: int
 
-        >>> print(GanttSpace(JSSPInstance.from_resource("demo")).scale())
+        >>> print(GanttSpace(Instance.from_resource("demo")).scale())
         7962624
         """
         return factorial(self.instance.jobs) ** self.instance.machines
@@ -199,11 +200,11 @@ class GanttSpace(Space):
         :return: the name
         :rtype: str
 
-        >>> space = GanttSpace(JSSPInstance.from_resource("abz7"))
+        >>> space = GanttSpace(Instance.from_resource("abz7"))
         >>> print(space.get_name())
         gantt_abz7
         """
-        return "gantt_" + self.instance.get_name()
+        return f"gantt_{self.instance.get_name()}"
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """
@@ -212,5 +213,5 @@ class GanttSpace(Space):
         :param moptipy.utils.KeyValueSection logger: the logger
         """
         super().log_parameters_to(logger)
-        with logger.scope(JSSPInstance.SCOPE_INSTANCE) as kv:
+        with logger.scope(Instance.SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

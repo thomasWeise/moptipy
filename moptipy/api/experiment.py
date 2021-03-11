@@ -12,7 +12,7 @@ from moptipy.api.execution import Execution
 from moptipy.utils.cache import is_new
 from moptipy.utils.io import canonicalize_path, enforce_dir
 from moptipy.utils.io import file_ensure_exists
-from moptipy.utils.logging import sanitize_name, sanitize_names
+from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.nputils import rand_seeds_from_str
 
 
@@ -32,7 +32,7 @@ class __DummyLock:
 
 def __log(string: str, note: str,
           stdio_lock: ContextManager) -> None:
-    text = str(datetime.now()) + note + ": " + string
+    text = f"{datetime.now()}{note}: {string}"
     with stdio_lock:
         print(text)
 
@@ -68,7 +68,7 @@ def __run_experiment(base_dir: str,
             random.shuffle(seeds)
             for seed in seeds:
                 filename = sanitize_names([algo_name, inst_name, hex(seed)])
-                log_file = os.path.join(cd, filename + ".txt")
+                log_file = os.path.join(cd, filename + FILE_SUFFIX)
 
                 skip = True
                 with file_lock:

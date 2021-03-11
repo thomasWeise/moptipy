@@ -5,14 +5,14 @@ from os import listdir
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
 from moptipy.api import Execution, run_experiment
-from moptipy.examples.jssp import JSSPInstance, Makespan, \
+from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
 from moptipy.utils.io import TempDir
 
-instances = [lambda: JSSPInstance.from_resource("dmu01"),
-             lambda: JSSPInstance.from_resource("abz7"),
-             lambda: JSSPInstance.from_resource("demo")]
+instances = [lambda: Instance.from_resource("dmu01"),
+             lambda: Instance.from_resource("abz7"),
+             lambda: Instance.from_resource("demo")]
 
 
 def algo_1(inst) -> Execution:

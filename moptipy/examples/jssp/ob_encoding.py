@@ -1,9 +1,11 @@
 """An implementation of the operation-based encoding for JSSPs."""
+from typing import Final
+
 import numpy as np
 
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.gantt import Gantt
-from moptipy.examples.jssp.instance import JSSPInstance
+from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.nputils import int_range_to_dtype
 
 
@@ -26,22 +28,28 @@ class OperationBasedEncoding(Encoding):
     and so on.
     """
 
-    def __init__(self, instance: JSSPInstance) -> None:
+    def __init__(self, instance: Instance) -> None:
         """
         Instantiate the operation based encoding.
 
-        :param moptipy.examples.jssp.JSSPInstance instance: the JSSP instance
+        :param moptipy.examples.jssp.Instance instance: the JSSP instance
         """
-        if not isinstance(instance, JSSPInstance):
-            raise ValueError("instance must be valid JSSPInstance, "
+        if not isinstance(instance, Instance):
+            raise ValueError("instance must be valid Instance, "
                              f"but is '{type(instance)}'.")
         dtype = int_range_to_dtype(instance.makespan_lower_bound,
                                    instance.makespan_upper_bound)
-        self.__machine_time = np.zeros(instance.machines, dtype)
-        self.__job_time = np.zeros(instance.jobs, dtype)
-        self.__job_idx = np.zeros(instance.jobs,
-                                  int_range_to_dtype(0, instance.jobs))
-        self.__matrix = instance.matrix
+
+        self.__machine_time: Final[np.ndarray] = \
+            np.zeros(instance.machines, dtype)
+
+        self.__job_time: Final[np.ndarray] = \
+            np.zeros(instance.jobs, dtype)
+
+        self.__job_idx: Final[np.ndarray] = \
+            np.zeros(instance.jobs, int_range_to_dtype(0, instance.jobs))
+
+        self.__matrix: Final[np.ndarray] = instance.matrix
 
     def map(self, x: np.ndarray, y: Gantt) -> None:
         """

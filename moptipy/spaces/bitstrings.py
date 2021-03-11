@@ -31,8 +31,9 @@ class BitStrings(Space):
         if (dimension < 1) or (dimension > 1_000_000_000):
             raise ValueError("dimension must be in 1..1_000_000_000, "
                              f"but got {dimension}.")
-        self.dimension = dimension
-        """The dimension, i.e., the number of elements of the vectors."""
+
+        #: The dimension, i.e., the number of elements of the vectors.
+        self.dimension: Final[int] = dimension
 
     def create(self) -> np.ndarray:
         """
@@ -93,7 +94,7 @@ class BitStrings(Space):
         """
         if not (isinstance(text, str)):
             raise TypeError(f"text must be str, but is {type(text)}.")
-        x = self.create()
+        x: Final[np.ndarray] = self.create()
         x[:] = [logging.str_to_bool(t) for t in text]
         self.validate(x)
         return x

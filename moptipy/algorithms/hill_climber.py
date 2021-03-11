@@ -1,4 +1,8 @@
 """The hill climbing algorithm implementation."""
+from typing import Final, Union
+
+from numpy.random import Generator
+
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.process import Process
 
@@ -18,10 +22,11 @@ class HillClimber(Algorithm1):
 
         :param moptipy.api.Process process: the process object
         """
-        best_x = process.create()
-        new_x = process.create()
-        random = process.get_random()
+        best_x: Final = process.create()
+        new_x: Final = process.create()
+        random: Final[Generator] = process.get_random()
 
+        best_f: Union[int, float]
         if process.has_current_best():
             process.get_copy_of_current_best_x(best_x)
             best_f = process.get_current_best_f()
@@ -31,7 +36,7 @@ class HillClimber(Algorithm1):
 
         while not process.should_terminate():
             self.op1.op1(random, best_x, new_x)
-            new_f = process.evaluate(new_x)
+            new_f: Union[int, float] = process.evaluate(new_x)
             if new_f < best_f:
                 best_f = new_f
                 process.copy(new_x, best_x)
@@ -43,5 +48,5 @@ class HillClimber(Algorithm1):
         :return: "hc" + any non-standard operator suffixes
         :rtype: str
         """
-        name = super().get_name()
+        name: Final[str] = super().get_name()
         return f"hc_{name}" if (len(name) > 0) else "hc"

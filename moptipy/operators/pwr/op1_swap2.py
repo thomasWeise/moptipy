@@ -1,4 +1,6 @@
 """An operator swapping two elements in a permutation with repetitions."""
+from typing import Final
+
 import numpy as np
 from numpy.random import Generator
 
@@ -23,11 +25,11 @@ class Op1Swap2(operators.Op1):
         :param np.ndarray dest: the array to be shuffled
         """
         np.copyto(dest, x)
-        length = len(dest)
-        i1 = random.integers(length)
-        v1 = dest[i1]
+        length: Final[int] = len(dest)
+        i1: Final[int] = random.integers(length)
+        v1: Final = dest[i1]
         while True:
-            i2 = random.integers(length)
+            i2: int = random.integers(length)
             v2 = dest[i2]
             if v1 != v2:
                 dest[i2] = v1

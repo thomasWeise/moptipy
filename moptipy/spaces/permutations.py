@@ -1,5 +1,6 @@
 """An implementation of a search space for permutations."""
 from math import factorial
+from typing import Final
 
 import numpy as np
 
@@ -17,7 +18,7 @@ class Permutations(IntSpace):
         """
         super().__init__(dimension=n, min_value=0, max_value=n - 1)
 
-        self.__blueprint = super().create()
+        self.__blueprint: Final[np.ndarray] = super().create()
         self.__blueprint[0:n] = list(range(n))
 
     def create(self) -> np.ndarray:

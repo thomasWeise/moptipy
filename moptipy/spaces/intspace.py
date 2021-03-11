@@ -42,21 +42,23 @@ class IntSpace(Space):
             raise ValueError("dimension must be in 1..1_000_000_000, "
                              f"but got {dimension}.")
 
-        self.dtype = int_range_to_dtype(min_value=min_value,
-                                        max_value=max_value)
-        """The basic data type of the vector space elements."""
+        #: The basic data type of the vector space elements.
+        self.dtype: Final[np.dtype] = \
+            int_range_to_dtype(min_value=min_value, max_value=max_value)
 
         if (not isinstance(self.dtype, np.dtype)) or \
                 (not isinstance(self.dtype.char, str)) or \
                 (len(self.dtype.char) != 1):
             raise ValueError(f"Strange error: {self.dtype} found.")
 
-        self.min_value = min_value
-        """The minimum permitted value."""
-        self.max_value = max_value
-        """The maximum permitted value."""
-        self.dimension = dimension
-        """The dimension, i.e., the number of elements of the vectors."""
+        #: The minimum permitted value.
+        self.min_value: Final[int] = min_value
+
+        #: The maximum permitted value.
+        self.max_value: Final[int] = max_value
+
+        #: The dimension, i.e., the number of elements of the vectors.
+        self.dimension: Final[int] = dimension
 
     def create(self) -> np.ndarray:
         """

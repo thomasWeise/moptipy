@@ -38,12 +38,13 @@ class PermutationsWithRepetitions(IntSpace):
                          min_value=0,
                          max_value=n - 1)
 
-        self.n = n
-        """n is the number of items, meaning the values are in [0, n-1]."""
-        self.repetitions = repetitions
-        """The number of times each value must occur."""
+        #: n is the number of items, meaning the values are in [0, n-1].
+        self.n: Final[int] = n
 
-        self.__blueprint = super().create()
+        #: The number of times each value must occur.
+        self.repetitions: Final[int] = repetitions
+
+        self.__blueprint: Final[np.ndarray] = super().create()
         self.__blueprint[0:self.dimension] = list(range(n)) * repetitions
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:

@@ -4,132 +4,134 @@ import math
 from re import sub
 from typing import List, Final
 
+#: the file suffix to be used for log files
+FILE_SUFFIX: Final[str] = ".txt"
 #: the separator used in CSV files to separate columns
-CSV_SEPARATOR: Final = ";"
+CSV_SEPARATOR: Final[str] = ";"
 #: the character indicating the begin of a comment
-COMMENT_CHAR: Final = "#"
+COMMENT_CHAR: Final[str] = "#"
 #: the character separating a scope prefix in a key-value section
-SCOPE_SEPARATOR: Final = "."
+SCOPE_SEPARATOR: Final[str] = "."
 #: the indicator of the start of a log section
-SECTION_START: Final = "BEGIN_"
+SECTION_START: Final[str] = "BEGIN_"
 #: the indicator of the end of a log section
-SECTION_END: Final = "END_"
+SECTION_END: Final[str] = "END_"
 #: the replacement for "." in a file name
-DECIMAL_DOT_REPLACEMENT: Final = "d"
+DECIMAL_DOT_REPLACEMENT: Final[str] = "d"
 #: the separator of different filename parts
-PART_SEPARATOR: Final = "_"
+PART_SEPARATOR: Final[str] = "_"
 #: the replacement for special characters
-SPECIAL_CHAR_REPLACEMENT: Final = "_"
+SPECIAL_CHAR_REPLACEMENT: Final[str] = "_"
 #: the YAML-conform separator between a key and a value
-KEY_VALUE_SEPARATOR: Final = ": "
+KEY_VALUE_SEPARATOR: Final[str] = ": "
 #: the hexadecimal version of a value
-KEY_HEX_VALUE: Final = "(hex)"
+KEY_HEX_VALUE: Final[str] = "(hex)"
 
 #: the progress csv section
-SECTION_PROGRESS: Final = "PROGRESS"
+SECTION_PROGRESS: Final[str] = "PROGRESS"
 #: the FEs column for the progress CSV
-PROGRESS_FES: Final = "fes"
+PROGRESS_FES: Final[str] = "fes"
 #: the time millis column for the progress CSV
-PROGRESS_TIME_MILLIS: Final = "timeMS"
+PROGRESS_TIME_MILLIS: Final[str] = "timeMS"
 #: the current objective value column for the progress CSV
-PROGRESS_CURRENT_F: Final = "f"
+PROGRESS_CURRENT_F: Final[str] = "f"
 
 #: the end state
-SECTION_FINAL_STATE: Final = "STATE"
+SECTION_FINAL_STATE: Final[str] = "STATE"
 #: the total number of consumed FEs
-KEY_ES_TOTAL_FES: Final = "totalFEs"
+KEY_ES_TOTAL_FES: Final[str] = "totalFEs"
 #: the total number of consumed milliseconds
-KEY_ES_TOTAL_TIME_MILLIS: Final = "totalTimeMillis"
+KEY_ES_TOTAL_TIME_MILLIS: Final[str] = "totalTimeMillis"
 #: the best encountered objective value
-KEY_ES_BEST_F: Final = "bestF"
+KEY_ES_BEST_F: Final[str] = "bestF"
 #: the FE when the best objective value was reached
-KEY_ES_LAST_IMPROVEMENT_FE: Final = "lastImprovementFE"
+KEY_ES_LAST_IMPROVEMENT_FE: Final[str] = "lastImprovementFE"
 #: the time in milliseconds when the best objective value was reached
-KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS: Final = "lastImprovementTimeMillis"
+KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
 
 #: the setup section
-SECTION_SETUP: Final = "SETUP"
+SECTION_SETUP: Final[str] = "SETUP"
 #: the default log key for names of objects
-KEY_NAME: Final = "name"
+KEY_NAME: Final[str] = "name"
 #: the type of an object
-KEY_TYPE: Final = "type"
+KEY_TYPE: Final[str] = "type"
 #: the inner type of an object
-KEY_INNER_TYPE: Final = "innerType"
+KEY_INNER_TYPE: Final[str] = "innerType"
 #: the default log key for the lower bound of objective function values
-KEY_F_LOWER_BOUND: Final = "lowerBound"
+KEY_F_LOWER_BOUND: Final[str] = "lowerBound"
 #: the default log key for the upper bound of objective function values
-KEY_F_UPPER_BOUND: Final = "upperBound"
+KEY_F_UPPER_BOUND: Final[str] = "upperBound"
 #: the maximum FEs of a black-box process
-KEY_BBP_MAX_FES: Final = "maxFEs"
+KEY_BBP_MAX_FES: Final[str] = "maxFEs"
 #: the maximum runtime in milliseconds of a black-box process
-KEY_BBP_MAX_TIME_MILLIS: Final = "maxTimeMillis"
+KEY_BBP_MAX_TIME_MILLIS: Final[str] = "maxTimeMillis"
 #: the goal objective value of a black-box process
-KEY_BBP_GOAL_F: Final = "goalF"
+KEY_BBP_GOAL_F: Final[str] = "goalF"
 #: the random seed
-KEY_BBP_RAND_SEED: Final = "randSeed"
+KEY_BBP_RAND_SEED: Final[str] = "randSeed"
 #: the random generator type
-KEY_BBP_RAND_GENERATOR_TYPE: Final = "randGenType"
+KEY_BBP_RAND_GENERATOR_TYPE: Final[str] = "randGenType"
 #: the number of decision variables
-KEY_SPACE_NUM_VARS: Final = "nvars"
+KEY_SPACE_NUM_VARS: Final[str] = "nvars"
 
 #: the scope of the solution space
-SCOPE_SOLUTION_SPACE: Final = "y"
+SCOPE_SOLUTION_SPACE: Final[str] = "y"
 #: the scope of the search space
-SCOPE_SEARCH_SPACE: Final = "x"
+SCOPE_SEARCH_SPACE: Final[str] = "x"
 #: the scope of the objective function
-SCOPE_OBJECTIVE_FUNCTION: Final = "f"
+SCOPE_OBJECTIVE_FUNCTION: Final[str] = "f"
 #: the scope of the encoding
-SCOPE_ENCODING: Final = "g"
+SCOPE_ENCODING: Final[str] = "g"
 #: the scope of the optimization algorithm
-SCOPE_ALGORITHM: Final = "a"
+SCOPE_ALGORITHM: Final[str] = "a"
 #: the scope of the nullary search operator
-SCOPE_OP0: Final = "op0"
+SCOPE_OP0: Final[str] = "op0"
 #: the scope of the unary search operator
-SCOPE_OP1: Final = "op1"
+SCOPE_OP1: Final[str] = "op1"
 #: the scope of the binary search operator
-SCOPE_OP2: Final = "op2"
+SCOPE_OP2: Final[str] = "op2"
 
 #: the automatically generated system info section
-SECTION_SYS_INFO: Final = "SYS_INFO"
+SECTION_SYS_INFO: Final[str] = "SYS_INFO"
 #: information about the current session
-SCOPE_SESSION: Final = "session"
+SCOPE_SESSION: Final[str] = "session"
 #: the time when the session was started
-KEY_SESSION_START: Final = "start"
+KEY_SESSION_START: Final[str] = "start"
 #: the versions scope in the sys-info section
-SCOPE_VERSIONS: Final = "version"
+SCOPE_VERSIONS: Final[str] = "version"
 #: the moptipy version key
-KEY_MOPTIPY_VERSION: Final = "moptipy"
+KEY_MOPTIPY_VERSION: Final[str] = "moptipy"
 #: the numpy version key
-KEY_NUMPY_VERSION: Final = "numpy"
+KEY_NUMPY_VERSION: Final[str] = "numpy"
 #: the hardware scope in the sys-info section
-SCOPE_HARDWARE: Final = "hardware"
+SCOPE_HARDWARE: Final[str] = "hardware"
 #: the number of CPUs
-KEY_HW_N_CPUS: Final = "n_cpus"
+KEY_HW_N_CPUS: Final[str] = "n_cpus"
 #: the key for the byte order
-KEY_HW_BYTE_ORDER: Final = "byteorder"
+KEY_HW_BYTE_ORDER: Final[str] = "byteorder"
 #: the key for the machine
-KEY_HW_MACHINE: Final = "machine"
+KEY_HW_MACHINE: Final[str] = "machine"
 #: the key for the cpu name
-KEY_HW_CPU_NAME: Final = "cpu"
+KEY_HW_CPU_NAME: Final[str] = "cpu"
 #: the key for the memory size
-KEY_HW_MEM_SIZE: Final = "mem_size"
+KEY_HW_MEM_SIZE: Final[str] = "mem_size"
 #: the operating system in the sys-info section
-SCOPE_OS: Final = "os"
+SCOPE_OS: Final[str] = "os"
 #: the operating system name
-KEY_OS_NAME: Final = "name"
+KEY_OS_NAME: Final[str] = "name"
 #: the operating system version
-KEY_OS_VERSION: Final = "version"
+KEY_OS_VERSION: Final[str] = "version"
 #: the python scope in the sys-info section
-SCOPE_PYTHON: Final = "python"
+SCOPE_PYTHON: Final[str] = "python"
 #: the python version
-KEY_PYTHON_VERSION: Final = "version"
+KEY_PYTHON_VERSION: Final[str] = "version"
 #: the python implementation
-KEY_PYTHON_IMPLEMENTATION: Final = "implementation"
+KEY_PYTHON_IMPLEMENTATION: Final[str] = "implementation"
 
 #: the resulting point in the solution space
-SECTION_RESULT_Y: Final = "RESULT_Y"
+SECTION_RESULT_Y: Final[str] = "RESULT_Y"
 #: the resulting point in the search space
-SECTION_RESULT_X: Final = "RESULT_X"
+SECTION_RESULT_X: Final[str] = "RESULT_X"
 
 
 def __recursive_replace(find: str, replace: str, src: str) -> str:

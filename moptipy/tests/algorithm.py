@@ -11,7 +11,7 @@ from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt_space import GanttSpace
-from moptipy.examples.jssp.instance import JSSPInstance
+from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
@@ -156,12 +156,12 @@ def check_algorithm_on_jssp(algorithm: Callable,
             f"{type(algorithm)} instead.")
 
     if instance is None:
-        instance = str(rnd.default_rng().choice(JSSPInstance.list_resources()))
+        instance = str(rnd.default_rng().choice(Instance.list_resources()))
     if not isinstance(instance, str):
         raise ValueError("JSSP instance must either be a string or none, "
                          f"but is a {type(instance)}.")
-    inst = JSSPInstance.from_resource(instance)
-    if not isinstance(inst, JSSPInstance):
+    inst = Instance.from_resource(instance)
+    if not isinstance(inst, Instance):
         raise ValueError(
             f"Error when loading JSSP instance '{instance}', "
             f"obtained {type(inst)} instead.")

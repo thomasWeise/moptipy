@@ -3,8 +3,7 @@ from abc import ABC
 from math import inf, isnan
 from threading import Lock, Timer
 from time import monotonic_ns
-from typing import Optional
-from typing import Union
+from typing import Optional, Final, Union
 
 from moptipy.api.process import Process
 from moptipy.utils import logging
@@ -109,44 +108,53 @@ class _ProcessBase(Process, ABC):
         value: if it is reached, the process is terminated
         """
         super().__init__()
-        self._start_time_millis: int = int(monotonic_ns() // 1_000_000)
-        """The time when the process was started, in milliseconds."""
-        self.__lock: Lock = Lock()
-        """
-        The internal lock, needed because terminate() may be invoked from
-        another process.
-        """
+        #: The time when the process was started, in milliseconds.
+        self._start_time_millis: Final[int] = int(monotonic_ns() // 1_000_000)
 
-        self._max_fes = _check_max_fes(max_fes, True)
-        if self._max_fes is None:
-            self._end_fes = inf
-        else:
-            self._end_fes = self._max_fes
+        #: The internal lock, needed to protect :meth:`terminate`.
+        self.__lock: Final[Lock] = Lock()
 
-        self._goal_f = _check_goal_f(goal_f, True)
-        if self._goal_f is None:
-            self._end_f = -inf
-        else:
-            self._end_f = self._goal_f
+        #: The maximum FEs.
+        self._max_fes: Final[Optional[int]] = _check_max_fes(max_fes, True)
 
-        self._current_time_millis = 0
-        """The currently consumed milliseconds."""
-        self._current_fes = 0
-        """The currently consumed objective function evaluations (FEs)."""
-        self._last_improvement_time_millis = -1
-        """The time (in milliseconds) when the last improvement was made."""
-        self._last_improvement_fe = -1
-        """The FE when the last improvement was made."""
+        #: A version of :attr:`_max_fes` that can be used in comparisons.
+        self._end_fes: Final[Union[int, float]] = inf \
+            if (self._max_fes is None) else self._max_fes
 
-        self._max_time_millis = _check_max_time_millis(max_time_millis, True)
-        if self._max_time_millis is None:
-            self._end_time_millis = inf
-            self.__timer = None
-        else:
-            self._end_time_millis = int(self._start_time_millis
-                                        + self._max_time_millis)
-            self.__timer = Timer(interval=self._max_time_millis / 1_000.0,
-                                 function=self.terminate)
+        #: The goal objective value.
+        self._goal_f: Final[Union[int, float, None]] = \
+            _check_goal_f(goal_f, True)
+
+        #: A comparable version of :attr:`self._goal_f`.
+        self._end_f: Final[Union[int, float]] = \
+            -inf if (self._goal_f is None) else self._goal_f
+
+        #: The currently consumed milliseconds.
+        self._current_time_millis: int = 0
+
+        #: The currently consumed objective function evaluations (FEs).
+        self._current_fes: int = 0
+
+        #: The time (in milliseconds) when the last improvement was made.
+        self._last_improvement_time_millis: int = -1
+
+        #: The FE when the last improvement was made.
+        self._last_improvement_fe: int = -1
+
+        #: The maximum runtime in milliseconds.
+        self._max_time_millis: Final[Optional[int]] = \
+            _check_max_time_millis(max_time_millis, True)
+
+        #: A comparable version of :attr:`_max_time_millis`.
+        self._end_time_millis: Final[Union[float, int]] = \
+            inf if (self._max_time_millis is None) else \
+            int(self._start_time_millis + self._max_time_millis)
+
+        #: The timer until the end-of-run, or `None` if there is no end time.
+        self.__timer: Final[Optional[Timer]] = None \
+            if (self._max_time_millis is None) else \
+            Timer(interval=self._max_time_millis / 1_000.0,
+                  function=self.terminate)
 
     def _after_init(self) -> None:
         """Internal method that must be called after __init__ is completed."""
@@ -252,7 +260,6 @@ class _ProcessBase(Process, ABC):
                 return
             if not (self.__timer is None):
                 self.__timer.cancel()
-                self.__timer = None
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._perform_termination()

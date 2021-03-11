@@ -4,7 +4,7 @@ from io import open, StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
-from typing import Optional, List, Union, cast
+from typing import Optional, List, Union, cast, Final, Callable
 
 from moptipy.utils import logging
 from moptipy.utils.cache import is_new
@@ -33,11 +33,12 @@ class Logger(ABC):
         if stream is None:
             raise ValueError("stream must be valid stream but is None.")
 
+        #: The internal stream
         self._stream = stream
         self.__section: Optional[str] = None
-        self.__starts_new_line = True
-        self.__log_name = name
-        self.__sections = is_new()
+        self.__starts_new_line: bool = True
+        self.__log_name: str = name
+        self.__sections: Callable = is_new()
         self.__closer: Optional[str] = None
 
     def __enter__(self):
@@ -288,8 +289,8 @@ class _Section(ABC):
         :param Optional[str] title: the section title
         :param Logger logger: the logger
         """
-        self._logger = logger
-        self._title = title
+        self._logger: Logger = logger
+        self._title: Optional[str] = title
         if not (title is None):
             # noinspection PyProtectedMember
             logger._open_section(title)
@@ -340,7 +341,7 @@ class CsvSection(_Section):
         """
         super().__init__(title, logger)
 
-        self.__header_len = len(header)
+        self.__header_len: Final[int] = len(header)
         if self.__header_len <= 0:
             # noinspection PyProtectedMember
             logger._error(f"Empty header {header} invalid for a CSV section")
@@ -371,7 +372,7 @@ class CsvSection(_Section):
                else logging.bool_to_str(c) if isinstance(c, bool)
                else (logging.float_to_str(c) if isinstance(c, float) else
                      cast(None, self._logger._error(
-                          f"Invalid log value {c} in row {row}")))
+                         f"Invalid log value {c} in row {row}")))
                for c in row]
 
         # noinspection PyProtectedMember
@@ -395,7 +396,8 @@ class KeyValueSection(_Section):
         if not isinstance(prefix, str):
             raise TypeError(f"prefix must be str but is {type(prefix)}")
         super().__init__(title=title, logger=logger)
-        self._prefix = prefix
+        self._prefix: Final[str] = prefix
+        self.__done: Callable
         if done is None:
             self.__done = is_new()
             self.__done(prefix)

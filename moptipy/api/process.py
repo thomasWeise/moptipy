@@ -27,8 +27,10 @@ class Process(Space, Objective):
 
     def __init__(self) -> None:
         """Internal method to initialize the process. Do not call directly."""
-        self._terminated = False
-        self._knows_that_terminated = False
+        #: This will be `True` after :meth:`terminate` has been called.
+        self._terminated: bool = False
+        #: This becomes `True` when :meth:`should_terminate` returned `True`.
+        self._knows_that_terminated: bool = False
 
     @abstractmethod
     def get_random(self) -> Generator:

@@ -1,12 +1,12 @@
 """Test loading and validity of JSSP instances."""
 import numpy as np
 
-from moptipy.examples.jssp import JSSPInstance
+from moptipy.examples.jssp import Instance
 
 
-def __check_load_inst(inst: str) -> JSSPInstance:
-    inst = JSSPInstance.from_resource(inst)
-    assert isinstance(inst, JSSPInstance)
+def __check_load_inst(inst: str) -> Instance:
+    inst = Instance.from_resource(inst)
+    assert isinstance(inst, Instance)
     assert isinstance(inst.machines, int)
     assert inst.machines > 0
     assert isinstance(inst.jobs, int)

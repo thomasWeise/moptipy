@@ -1,13 +1,14 @@
 """Test the sections parser."""
 from typing import List
 
-from moptipy.evaluation import SectionsParser
+from moptipy.evaluation import LogParser
 from moptipy.utils.io import TempFile
 from moptipy.utils.logger import FileLogger
 
 
-class _TestParser(SectionsParser):
+class _TestParser(LogParser):
     def __init__(self, path: str):
+        super().__init__()
         self.__state = 0
         self.__path = path
 

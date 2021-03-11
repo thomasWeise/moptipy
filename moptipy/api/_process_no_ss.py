@@ -1,7 +1,7 @@
 """Providing a process without explicit logging with a single space."""
 from math import inf, isnan
 from time import monotonic_ns
-from typing import Optional, Union
+from typing import Optional, Union, Final
 
 from numpy.random import Generator
 
@@ -51,18 +51,34 @@ class _ProcessNoSS(_ProcessBase):
         super().__init__(max_fes=max_fes, max_time_millis=max_time_millis,
                          goal_f=goal_f)
 
-        self._solution_space = _check_space(solution_space)
-        self._objective = _check_objective(objective)
-        self.__algorithm = _check_algorithm(algorithm)
+        #: The solution space, i.e., the data structure of possible solutions.
+        self._solution_space: Final[Space] = _check_space(solution_space)
 
-        self.__rand_seed = rand_seed_generate() if rand_seed is None \
+        #: The objective function rating candidate solutions.
+        self._objective: Final[Objective] = _check_objective(objective)
+
+        #: The algorithm to be applied.
+        self.__algorithm: Final[Algorithm] = _check_algorithm(algorithm)
+
+        #: The random seed.
+        self.__rand_seed: Final[int] = rand_seed_generate() \
+            if rand_seed is None \
             else rand_seed_check(rand_seed)
-        self.__random = rand_generator(self.__rand_seed)
 
-        self._current_best_y = self._solution_space.create()
-        self._current_best_f = inf
-        self._has_current_best = False
-        self.__log_file = log_file
+        #: The random number generator.
+        self.__random: Final[Generator] = rand_generator(self.__rand_seed)
+
+        #: The current best solution.
+        self._current_best_y: Final = self._solution_space.create()
+
+        #: The current best objective value
+        self._current_best_f: Union[int, float] = inf
+
+        #: Do we have a current-best solution?
+        self._has_current_best: bool = False
+
+        #: The log file, or `None` is needed
+        self.__log_file: Final[Optional[str]] = log_file
 
     def get_random(self) -> Generator:
         """
@@ -106,13 +122,13 @@ class _ProcessNoSS(_ProcessBase):
                                  'the algorithm knows it.')
             return inf
 
-        result = self._objective.evaluate(x)
+        result: Union[int, float] = self._objective.evaluate(x)
         if isnan(result):
             raise ValueError(
                 f"NaN invalid as objective value, but got {result}.")
         self._current_fes += 1
 
-        do_term = self._current_fes >= self._end_fes
+        do_term: bool = self._current_fes >= self._end_fes
 
         if (self._current_fes <= 1) or (result < self._current_best_f):
             self._last_improvement_fe = self._current_fes
@@ -240,7 +256,6 @@ class _ProcessNoSS(_ProcessBase):
         if not (self.__log_file is None):
             with FileLogger(self.__log_file) as logger:
                 self._write_log(logger)
-            self.__log_file = None
         self._solution_space.validate(self._current_best_y)
 
     def get_name(self) -> str:

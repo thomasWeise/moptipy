@@ -1,6 +1,6 @@
 """Provides the base class for all components of the moptipy API."""
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Final
 
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
@@ -58,8 +58,10 @@ class _CallableComponent(Component):
             raise TypeError(
                 f"Inner function must be callable, but is a {type(inner)}.")
 
-        self._inner = inner
-        self.__name = logging.sanitize_name(name)
+        #: the inner callable
+        self._inner: Final[Callable] = inner
+        #: the name of the component
+        self.__name: Final[str] = logging.sanitize_name(name)
 
     def get_name(self) -> str:
         """

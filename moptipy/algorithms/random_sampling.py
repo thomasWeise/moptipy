@@ -1,4 +1,8 @@
 """The random sampling algorithm."""
+from typing import Final
+
+from numpy.random import Generator
+
 from moptipy.api.algorithm import Algorithm0
 from moptipy.api.process import Process
 
@@ -12,8 +16,8 @@ class RandomSampling(Algorithm0):
 
         :param moptipy.api.Process process: the process object
         """
-        x = process.create()
-        random = process.get_random()
+        x: Final = process.create()
+        random: Final[Generator] = process.get_random()
 
         while not process.should_terminate():
             self.op0.op0(random, x)
@@ -26,5 +30,5 @@ class RandomSampling(Algorithm0):
         :return: "rs" + any non-standard operator suffixes
         :rtype: str
         """
-        name = super().get_name()
+        name: Final[str] = super().get_name()
         return f"rs_{name}" if (len(name) > 0) else "rs"
