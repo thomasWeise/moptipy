@@ -1,6 +1,5 @@
 """Test the integer-string space."""
 import numpy as np
-
 # noinspection PyPackageRequirements
 from pytest import raises
 

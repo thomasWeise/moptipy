@@ -2,9 +2,9 @@
 from typing import List
 
 from moptipy.evaluation import LogParser
+from moptipy.utils import logging
 from moptipy.utils.io import TempFile
 from moptipy.utils.logger import FileLogger
-from moptipy.utils import logging
 
 
 class _TestParser(LogParser):
