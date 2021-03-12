@@ -182,10 +182,10 @@ def run_experiment(base_dir: str,
                      for i in range(n_threads)]
         for i in range(n_threads):
             processes[i].start()
-            __log("started processes {hex(i)[2:]}.", "", stdio_lock)
+            __log(f"started processes {hex(i)[2:]}.", "", stdio_lock)
         for i in range(n_threads):
             processes[i].join()
-            __log("processes {hex(i)[2:]} terminated.", "", stdio_lock)
+            __log(f"processes {hex(i)[2:]} terminated.", "", stdio_lock)
 
     else:
         stdio_lock = __DummyLock()

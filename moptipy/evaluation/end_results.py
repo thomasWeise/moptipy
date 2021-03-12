@@ -1,13 +1,17 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
 from dataclasses import dataclass
+from datetime import datetime
 from math import isfinite, inf
 from os.path import dirname, basename
-from typing import Union, List, MutableSequence, Final, Optional
+from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
 from moptipy.evaluation.log_parser import LogParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
+from moptipy.utils.io import canonicalize_path, enforce_file
 from moptipy.utils.nputils import rand_seed_check
+from ._utils import _if_to_str, _ifn_to_str, _in_to_str, _str_to_if, \
+    _str_to_ifn, _str_to_in
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -293,8 +297,8 @@ class __InnerLogParser(LogParser):
             raise ValueError("Error when parsing data.")
 
         if (self.__state & 4) != 0:
-            if logging.KEY_BBP_GOAL_F in data:
-                goal_f = data[logging.KEY_BBP_GOAL_F]
+            if logging.KEY_GOAL_F in data:
+                goal_f = data[logging.KEY_GOAL_F]
                 if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
                     self.__goal_f = float(goal_f)
                 elif goal_f == "-inf":
@@ -304,13 +308,13 @@ class __InnerLogParser(LogParser):
             else:
                 self.__goal_f = None
 
-            if logging.KEY_BBP_MAX_FES in data:
-                self.__max_fes = int(data[logging.KEY_BBP_MAX_FES])
-            if logging.KEY_BBP_MAX_TIME_MILLIS in data:
+            if logging.KEY_MAX_FES in data:
+                self.__max_fes = int(data[logging.KEY_MAX_FES])
+            if logging.KEY_MAX_TIME_MILLIS in data:
                 self.__max_time_millis = \
-                    int(data[logging.KEY_BBP_MAX_TIME_MILLIS])
+                    int(data[logging.KEY_MAX_TIME_MILLIS])
 
-            seed_check = int(data[logging.KEY_BBP_RAND_SEED])
+            seed_check = int(data[logging.KEY_RAND_SEED])
             if seed_check != self.__rand_seed:
                 raise ValueError(
                     f"Found seed {seed_check} in log file, but file name "
@@ -320,20 +324,20 @@ class __InnerLogParser(LogParser):
             return self.__state != 3
 
         if (self.__state & 8) != 0:
-            self.__total_fes = int(data[logging.KEY_ES_TOTAL_FES])
+            self.__total_fes = int(data[logging.KEY_TOTAL_FES])
             self.__total_time_millis = \
-                int(data[logging.KEY_ES_TOTAL_TIME_MILLIS])
+                int(data[logging.KEY_TOTAL_TIME_MILLIS])
 
-            best_f = data[logging.KEY_ES_BEST_F]
+            best_f = data[logging.KEY_BEST_F]
             if ("e" in best_f) or ("E" in best_f) or ("." in best_f):
                 self.__best_f = float(best_f)
             else:
                 self.__best_f = int(best_f)
 
             self.__last_improvement_fe = \
-                int(data[logging.KEY_ES_LAST_IMPROVEMENT_FE])
+                int(data[logging.KEY_LAST_IMPROVEMENT_FE])
             self.__last_improvement_time_millis = \
-                int(data[logging.KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS])
+                int(data[logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS])
 
             self.__state = (self.__state | 2) & (~8)
             return self.__state != 3
@@ -355,3 +359,91 @@ def parse_logs(path: str, collector: MutableSequence[EndResult]) -> None:
     :param MutableSequence[EndResult] collector: the collector
     """
     __InnerLogParser(collector).parse(path)
+
+
+#: The internal CSV header
+__HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_INSTANCE}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_RAND_SEED}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_BEST_F}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_LAST_IMPROVEMENT_FE}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
+           f"{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_MAX_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
+           f"{logging.KEY_GOAL_F}\n"
+
+
+def end_results_to_csv(results: Iterable[EndResult],
+                       file: str) -> None:
+    """
+    Write a sequence of end results to a file in CSV format.
+
+    :param Iterable[EndResult] results: the end results
+    :param str file: the path
+    """
+    file = canonicalize_path(file)
+    print(f"{datetime.now()}: Writing end results to CSV file '{file}'.")
+
+    with open(file=file, mode="wt", encoding="utf-8", errors="strict") as out:
+        out.write(__HEADER)
+        for e in results:
+            out.write(
+                f"{e.algorithm}{logging.CSV_SEPARATOR}"
+                f"{e.instance}{logging.CSV_SEPARATOR}"
+                f"{hex(e.rand_seed)}{logging.CSV_SEPARATOR}"
+                f"{_if_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
+                f"{e.last_improvement_fe}{logging.CSV_SEPARATOR}"
+                f"{e.last_improvement_time_millis}{logging.CSV_SEPARATOR}"
+                f"{e.total_fes}{logging.CSV_SEPARATOR}"
+                f"{e.total_time_millis}{logging.CSV_SEPARATOR}"
+                f"{_ifn_to_str(e.goal_f)}{logging.CSV_SEPARATOR}"
+                f"{_in_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
+                f"{_in_to_str(e.max_time_millis)}\n")
+
+    print(f"{datetime.now()}: Done writing end results to CSV file '{file}'.")
+
+
+def csv_to_end_results(file: str,
+                       collector: MutableSequence[EndResult]) -> None:
+    """
+    Parse a given CSV file to get :class:`EndResult` Records.
+
+    :param str file: the path to parse
+    :param MutableSequence[EndResult] collector: the collector
+    """
+    if not isinstance(collector, MutableSequence):
+        raise TypeError("Collector must be mutable sequence, "
+                        f"but is {type(collector)}.")
+    file = enforce_file(canonicalize_path(file))
+    print(f"{datetime.now()}: Now reading CSV file '{file}'.")
+
+    with open(file=file, mode="rt", encoding="utf-8", errors="strict") as rd:
+        header = rd.readlines(1)
+        if (header is None) or (len(header) <= 0):
+            raise ValueError(f"No line in file '{file}'.")
+        if __HEADER != header[0]:
+            raise ValueError(f"Header '{header[0]}' should be {__HEADER}.")
+
+        while True:
+            lines = rd.readlines(100)
+            if (lines is None) or (len(lines) <= 0):
+                break
+            for line in lines:
+                splt = line.strip().split(logging.CSV_SEPARATOR)
+                collector.append(EndResult(
+                    splt[0].strip(),  # algorithm
+                    splt[1].strip(),  # instance
+                    int((splt[2])[2:], 16),  # rand seed
+                    _str_to_if(splt[3]),  # best_f
+                    int(splt[4]),  # last_improvement_fe
+                    int(splt[5]),  # last_improvement_time_millis
+                    int(splt[6]),  # total_fes
+                    int(splt[7]),  # total_time_millis
+                    _str_to_ifn(splt[8]),  # goal_f
+                    _str_to_in(splt[9]),  # max_fes
+                    _str_to_in(splt[10])))  # max_time_millis
+
+    print(f"{datetime.now()}: Done reading CSV file '{file}'.")

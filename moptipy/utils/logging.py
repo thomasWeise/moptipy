@@ -27,6 +27,12 @@ KEY_VALUE_SEPARATOR: Final[str] = ": "
 #: the hexadecimal version of a value
 KEY_HEX_VALUE: Final[str] = "(hex)"
 
+
+#: the key for algorithms
+KEY_ALGORITHM: Final[str] = "algorithm"
+#: the key for the instance
+KEY_INSTANCE: Final[str] = "instance"
+
 #: the progress csv section
 SECTION_PROGRESS: Final[str] = "PROGRESS"
 #: the FEs column for the progress CSV
@@ -39,15 +45,15 @@ PROGRESS_CURRENT_F: Final[str] = "f"
 #: the end state
 SECTION_FINAL_STATE: Final[str] = "STATE"
 #: the total number of consumed FEs
-KEY_ES_TOTAL_FES: Final[str] = "totalFEs"
+KEY_TOTAL_FES: Final[str] = "totalFEs"
 #: the total number of consumed milliseconds
-KEY_ES_TOTAL_TIME_MILLIS: Final[str] = "totalTimeMillis"
+KEY_TOTAL_TIME_MILLIS: Final[str] = "totalTimeMillis"
 #: the best encountered objective value
-KEY_ES_BEST_F: Final[str] = "bestF"
+KEY_BEST_F: Final[str] = "bestF"
 #: the FE when the best objective value was reached
-KEY_ES_LAST_IMPROVEMENT_FE: Final[str] = "lastImprovementFE"
+KEY_LAST_IMPROVEMENT_FE: Final[str] = "lastImprovementFE"
 #: the time in milliseconds when the best objective value was reached
-KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
+KEY_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
 
 #: the setup section
 SECTION_SETUP: Final[str] = "SETUP"
@@ -62,13 +68,13 @@ KEY_F_LOWER_BOUND: Final[str] = "lowerBound"
 #: the default log key for the upper bound of objective function values
 KEY_F_UPPER_BOUND: Final[str] = "upperBound"
 #: the maximum FEs of a black-box process
-KEY_BBP_MAX_FES: Final[str] = "maxFEs"
+KEY_MAX_FES: Final[str] = "maxFEs"
 #: the maximum runtime in milliseconds of a black-box process
-KEY_BBP_MAX_TIME_MILLIS: Final[str] = "maxTimeMillis"
+KEY_MAX_TIME_MILLIS: Final[str] = "maxTimeMillis"
 #: the goal objective value of a black-box process
-KEY_BBP_GOAL_F: Final[str] = "goalF"
+KEY_GOAL_F: Final[str] = "goalF"
 #: the random seed
-KEY_BBP_RAND_SEED: Final[str] = "randSeed"
+KEY_RAND_SEED: Final[str] = "randSeed"
 #: the random generator type
 KEY_BBP_RAND_GENERATOR_TYPE: Final[str] = "randGenType"
 #: the number of decision variables

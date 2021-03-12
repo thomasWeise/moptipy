@@ -285,12 +285,12 @@ class _ProcessBase(Process, ABC):
         """
         super().log_parameters_to(logger)
         if not (self._max_fes is None):
-            logger.key_value(logging.KEY_BBP_MAX_FES, self._max_fes)
+            logger.key_value(logging.KEY_MAX_FES, self._max_fes)
         if not (self._max_time_millis is None):
-            logger.key_value(logging.KEY_BBP_MAX_TIME_MILLIS,
+            logger.key_value(logging.KEY_MAX_TIME_MILLIS,
                              self._max_time_millis)
         if not (self._goal_f is None):
-            logger.key_value(logging.KEY_BBP_GOAL_F, self._goal_f)
+            logger.key_value(logging.KEY_GOAL_F, self._goal_f)
 
     def get_name(self) -> str:
         """

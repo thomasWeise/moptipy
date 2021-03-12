@@ -5,11 +5,13 @@ from typing import List
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
 from moptipy.api import Execution, run_experiment
-from moptipy.evaluation import EndResult, parse_logs
+from moptipy.evaluation import EndResult, parse_logs, end_results_to_csv, \
+    csv_to_end_results
 from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
-from moptipy.utils.io import TempDir
+from moptipy.utils import logging
+from moptipy.utils.io import TempDir, TempFile
 
 instances = [lambda: Instance.from_resource("dmu21"),
              lambda: Instance.from_resource("abz8"),
@@ -94,3 +96,13 @@ def test_experiment_jssp():
             assert e.best_f > 0
             assert e.goal_f > 0
             assert e.best_f > e.goal_f
+
+        with TempFile(directory=base_dir,
+                      suffix=logging.FILE_SUFFIX) as csv:
+            path = str(csv)
+            end_results_to_csv(results=results, file=path)
+
+            results2: List[EndResult] = list()
+            csv_to_end_results(file=path, collector=results2)
+
+            assert results == results2

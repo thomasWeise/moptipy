@@ -216,7 +216,7 @@ class _ProcessNoSS(_ProcessBase):
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
-        logger.key_value(logging.KEY_BBP_RAND_SEED, self.__rand_seed,
+        logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed,
                          also_hex=True)
         logger.key_value(logging.KEY_BBP_RAND_GENERATOR_TYPE,
                          str(type(self.__random)))
@@ -229,15 +229,15 @@ class _ProcessNoSS(_ProcessBase):
 
     def _write_log(self, logger: Logger) -> None:
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:
-            kv.key_value(logging.KEY_ES_TOTAL_FES, self._current_fes)
-            kv.key_value(logging.KEY_ES_TOTAL_TIME_MILLIS,
+            kv.key_value(logging.KEY_TOTAL_FES, self._current_fes)
+            kv.key_value(logging.KEY_TOTAL_TIME_MILLIS,
                          self._current_time_millis
                          - self._start_time_millis)
             if self._has_current_best:
-                kv.key_value(logging.KEY_ES_BEST_F, self._current_best_f)
-                kv.key_value(logging.KEY_ES_LAST_IMPROVEMENT_FE,
+                kv.key_value(logging.KEY_BEST_F, self._current_best_f)
+                kv.key_value(logging.KEY_LAST_IMPROVEMENT_FE,
                              self._last_improvement_fe)
-                kv.key_value(logging.KEY_ES_LAST_IMPROVEMENT_TIME_MILLIS,
+                kv.key_value(logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS,
                              self._last_improvement_time_millis
                              - self._start_time_millis)
 
