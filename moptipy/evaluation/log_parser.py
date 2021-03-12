@@ -4,7 +4,7 @@ from abc import ABC
 from datetime import datetime
 from os import listdir
 from os.path import isfile, isdir, join
-from typing import List
+from typing import List, Final
 
 from moptipy.utils import logging
 from moptipy.utils.io import canonicalize_path, enforce_file, enforce_dir
@@ -20,22 +20,27 @@ class LogParser(ABC):
     """
 
     def __init__(self,
+                 print_begin_end: bool = True,
                  print_file_start: bool = False,
                  print_file_end: bool = False,
                  print_dir_start: bool = True,
-                 print_dir_end=True):
+                 print_dir_end: bool = True):
         """
         Initialize the log parser.
 
+        :param bool print_begin_end: log to stdout when starting and ending
+            a recursive directory parsing process
         :param bool print_file_start: log to stdout when opening a file
         :param bool print_file_end: log to stdout when closing a file
         :param bool print_dir_start: log to stdout when entering a directory
         :param bool print_dir_end: log to stdout when leaving a directory
         """
-        self.__print_file_start = print_file_start
-        self.__print_file_end = print_file_end
-        self.__print_dir_start = print_dir_start
-        self.__print_dir_end = print_dir_end
+        self.__print_begin_end: Final[bool] = print_begin_end
+        self.__print_file_start: Final[bool] = print_file_start
+        self.__print_file_end: Final[bool] = print_file_end
+        self.__print_dir_start: Final[bool] = print_dir_start
+        self.__print_dir_end: Final[bool] = print_dir_end
+        self.__depth: int = 0
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
@@ -97,8 +102,7 @@ class LogParser(ABC):
             skipped (and :meth:`parse_file` should return `True`).
         :rtype: bool
         """
-        del path
-        return True
+        return path.endswith(logging.FILE_SUFFIX)
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
@@ -294,6 +298,16 @@ class LogParser(ABC):
         """
         path = enforce_dir(canonicalize_path(path))
 
+        if self.__depth <= 0:
+            if self.__depth == 0:
+                if self.__print_begin_end:
+                    print(f"{datetime.now()}: beginning recursive parsing "
+                          f"of directory '{path}'.")
+            else:
+                raise ValueError(
+                    f"Depth must be >= 0, but is {self.__depth}??")
+        self.__depth += 1
+
         if not self.start_dir(path):
             if self.__print_dir_start:
                 print(f"{datetime.now()}: skipping directory '{path}'.")
@@ -325,4 +339,36 @@ class LogParser(ABC):
         retval = self.end_dir(path)
         if self.__print_dir_end:
             print(f"{datetime.now()}: finished parsing directory '{path}'.")
+
+        self.__depth -= 1
+        if self.__depth <= 0:
+            if self.__depth == 0:
+                if self.__print_begin_end:
+                    print(f"{datetime.now()}: finished recursive parsing "
+                          f"of directory '{path}'.")
+            else:
+                raise ValueError(
+                    f"Depth must be >= 0, but is {self.__depth}??")
+
         return retval
+
+    def parse(self, path: str) -> bool:
+        """
+        Parse either a directory or a file.
+
+        If `path` identifies a file, :meth:`parse_file` is invoked and its
+        result is returned. If `path` identifies a directory, then
+        :meth:`parse_dir` is invoked and its result is returned.
+
+        :param str path: a path identifying either a directory or a file.
+        :return: the result of the appropriate parsing routing
+        :rtype: bool
+        :raises ValueError: if `path` does not identify a directory or file
+        """
+        path = canonicalize_path(path)
+        if isfile(path):
+            return self.parse_file(path)
+        if isdir(path):
+            return self.parse_dir(path)
+        raise ValueError(
+            f"Path {path} is neither a file nor a directory?")

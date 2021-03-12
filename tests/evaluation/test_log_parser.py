@@ -4,6 +4,7 @@ from typing import List
 from moptipy.evaluation import LogParser
 from moptipy.utils.io import TempFile
 from moptipy.utils.logger import FileLogger
+from moptipy.utils import logging
 
 
 class _TestParser(LogParser):
@@ -61,7 +62,7 @@ class _TestParser(LogParser):
 
 
 def test_sections_parser():
-    with TempFile() as tf:
+    with TempFile(suffix=logging.FILE_SUFFIX) as tf:
         with FileLogger(str(tf)) as logger:
             with logger.text("TEXT") as txt:
                 txt.write("a\nb\nc")
