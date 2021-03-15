@@ -181,6 +181,15 @@ class EndResult:
                     f"({total_time_millis}), but are not.")
         object.__setattr__(self, "max_time_millis", max_time_millis)
 
+    def success(self) -> bool:
+        """
+        A run is successful if `goal_f` is defined and `best_f <= goal_f`.
+
+        :return: True if `best_f<=goal_f`
+        :rtype: bool
+        """
+        return False if self.goal_f is None else self.best_f <= self.goal_f
+
 
 class __InnerLogParser(LogParser):
     """The internal log parser class."""
