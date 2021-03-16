@@ -5,10 +5,8 @@ from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast
 
-#: The positive limit for doubles that can be represent exactly as ints.
-_DBL_INT_LIMIT_P: Final[float] = 9007199254740992.0
-#: The negative  limit for doubles that can be represent exactly as ints.
-_DBL_INT_LIMIT_N: Final[float] = -_DBL_INT_LIMIT_P
+from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int
+
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(_DBL_INT_LIMIT_P))
 
@@ -159,49 +157,14 @@ class Statistics:
             stddev = 0  # set if to int 0
 
         # fix types to int where possible without loss of precision
-        if (not isinstance(maximum, int)) and \
-                (_DBL_INT_LIMIT_N <= maximum <= _DBL_INT_LIMIT_P):
-            a = int(maximum)
-            if a == maximum:
-                maximum = a
 
-        if (not isinstance(minimum, int)) and \
-                (_DBL_INT_LIMIT_N <= minimum <= _DBL_INT_LIMIT_P):
-            a = int(minimum)
-            if a == minimum:
-                minimum = a
-
-        if not isinstance(median, int) and \
-                (_DBL_INT_LIMIT_N <= median <= _DBL_INT_LIMIT_P):
-            a = int(median)
-            if a == median:
-                median = a
-
-        if not isinstance(mean_arith, int) and \
-                (_DBL_INT_LIMIT_N <= mean_arith <= _DBL_INT_LIMIT_P):
-            a = int(mean_arith)
-            if a == mean_arith:
-                mean_arith = a
-
-        if mean_geom is not None:
-            if not isinstance(mean_geom, int) and \
-                    (_DBL_INT_LIMIT_N <= mean_geom <= _DBL_INT_LIMIT_P):
-                a = int(mean_geom)
-                if a == mean_geom:
-                    mean_geom = a
-
-        if not isinstance(stddev, int) and \
-                (_DBL_INT_LIMIT_N <= stddev <= _DBL_INT_LIMIT_P):
-            a = int(stddev)
-            if a == stddev:
-                stddev = a
-
-        object.__setattr__(self, "minimum", minimum)
-        object.__setattr__(self, "median", median)
-        object.__setattr__(self, "maximum", maximum)
-        object.__setattr__(self, "mean_arith", mean_arith)
-        object.__setattr__(self, "mean_geom", mean_geom)
-        object.__setattr__(self, "stddev", stddev)
+        object.__setattr__(self, "minimum", _try_int(minimum))
+        object.__setattr__(self, "median", _try_int(median))
+        object.__setattr__(self, "maximum", _try_int(maximum))
+        object.__setattr__(self, "mean_arith", _try_int(mean_arith))
+        object.__setattr__(self, "mean_geom",
+                           None if mean_geom is None else _try_int(mean_geom))
+        object.__setattr__(self, "stddev", _try_int(stddev))
 
     def min_mean(self) -> Union[int, float]:
         """
@@ -259,20 +222,11 @@ class Statistics:
 
         for e in source:  # iterate over all data
             n = n + 1
+            e = _try_int(e)
 
             if can_int:  # can we do integers
                 if not isinstance(e, int):
-                    if not isfinite(e):
-                        raise ValueError("All elements must be finite, "
-                                         f"but encountered {e}.")
-                    if _DBL_INT_LIMIT_N <= e <= _DBL_INT_LIMIT_P:
-                        a = int(e)  # can we convert to integer?
-                        if a == e:
-                            e = a  # yes we can!
-                        else:
-                            can_int = False
-                    else:
-                        can_int = False
+                    can_int = False
             if can_int:  # so far, we only encountered ints
                 int_sum += cast(int, e)  # so we can sum exactly
                 int_prod *= cast(int, e)  # and can compute exact products

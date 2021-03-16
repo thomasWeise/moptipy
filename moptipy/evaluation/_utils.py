@@ -1,6 +1,7 @@
 """Some internal helper functions."""
 
-from typing import Union, Optional
+from math import isfinite
+from typing import Union, Optional, Final
 
 from moptipy.utils import logging
 
@@ -74,3 +75,31 @@ def _str_to_in(val: str) -> Optional[int]:
     :rtype: Optional[int, None]
     """
     return None if len(val) <= 0 else int(val)
+
+
+#: The positive limit for doubles that can be represent exactly as ints.
+_DBL_INT_LIMIT_P: Final[float] = 9007199254740992.0  # = 1 << 53
+#: The negative  limit for doubles that can be represent exactly as ints.
+_DBL_INT_LIMIT_N: Final[float] = -_DBL_INT_LIMIT_P
+
+
+def _try_int(val: Union[int, float]) -> Union[int, float]:
+    """
+    Attempt to convert a float to an integer.
+
+    :param Union[int, float] val: the input value
+    :return: an `int` if `val` can be represented as `int` without loss of
+        precision, `val` otherwise
+    :rtype: Union[int, float]
+    """
+    if isinstance(val, int):
+        return val
+    if isinstance(val, float):
+        if not isfinite(val):
+            raise ValueError(f"Value must be finite, but is {val}.")
+        if _DBL_INT_LIMIT_N <= val <= _DBL_INT_LIMIT_P:
+            a = int(val)
+            if a == val:
+                return a
+            return val
+    raise TypeError(f"Value must be int or float, but is {type(val)}.")

@@ -8,6 +8,7 @@ from moptipy.evaluation.end_results import EndResult, parse_logs, \
 from moptipy.evaluation.log_parser import LogParser
 from moptipy.evaluation.parse_data import parse_key_values, parse_csv, \
     strs_to_array
+from moptipy.evaluation.statistics import Statistics
 
 __version__: Final[str] = moptipy.version.__version__
 
@@ -19,4 +20,5 @@ __all__ = (
     "parse_csv",
     "parse_key_values",
     "parse_logs",
+    "Statistics",
     "strs_to_array")

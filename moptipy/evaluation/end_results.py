@@ -1,7 +1,7 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
 from dataclasses import dataclass
 from datetime import datetime
-from math import isfinite, inf
+from math import inf
 from os.path import dirname, basename
 from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
@@ -11,7 +11,7 @@ from moptipy.utils import logging
 from moptipy.utils.io import canonicalize_path, enforce_file
 from moptipy.utils.nputils import rand_seed_check
 from ._utils import _if_to_str, _ifn_to_str, _in_to_str, _str_to_if, \
-    _str_to_ifn, _str_to_in
+    _str_to_ifn, _str_to_in, _try_int
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -105,14 +105,7 @@ class EndResult:
                              f" white space, but {instance} is.")
 
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
-
-        if not isinstance(best_f, (int, float)):
-            raise TypeError(
-                f"best_f must be int or float, but is {type(best_f)}.")
-        if isinstance(best_f, float):
-            if not isfinite(best_f):
-                raise ValueError(f"best_f must be finite, but is {best_f}.")
-        object.__setattr__(self, "best_f", best_f)
+        object.__setattr__(self, "best_f", _try_int(best_f))
 
         if not isinstance(last_improvement_fe, int):
             raise TypeError("last_improvement_fe must be int, "
@@ -149,20 +142,14 @@ class EndResult:
                              f"{total_time_millis}.")
         object.__setattr__(self, "total_time_millis", total_time_millis)
 
-        if not (goal_f is None):
-            if not isinstance(goal_f, (int, float)):
-                raise TypeError(
-                    f"goal_f must be int or float, but is {type(goal_f)}.")
-            if isinstance(goal_f, float):
-                if not isfinite(goal_f):
-                    if goal_f <= (-inf):
-                        goal_f = None
-                    else:
-                        raise ValueError("goal_f must be finite or -inf, "
-                                         f"but is {goal_f}.")
+        if goal_f is not None:
+            if goal_f <= -inf:
+                goal_f = None
+            else:
+                goal_f = _try_int(goal_f)
         object.__setattr__(self, "goal_f", goal_f)
 
-        if not (max_fes is None):
+        if max_fes is not None:
             if not isinstance(max_fes, int):
                 raise TypeError(
                     f"max_fes must be int but are {type(max_fes)}.")
@@ -171,7 +158,7 @@ class EndResult:
                                  f"({total_fes}), but are not.")
         object.__setattr__(self, "max_fes", max_fes)
 
-        if not (max_time_millis is None):
+        if max_time_millis is not None:
             if not isinstance(max_time_millis, int):
                 raise TypeError(
                     f"max_fes must be int but are {type(max_time_millis)}.")
