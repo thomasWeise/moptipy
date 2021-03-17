@@ -5,8 +5,7 @@ from typing import List
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
 from moptipy.api import Execution, run_experiment
-from moptipy.evaluation import EndResult, parse_logs, end_results_to_csv, \
-    csv_to_end_results, EndStatistics
+from moptipy.evaluation import EndResult, EndStatistics
 from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
@@ -61,7 +60,7 @@ def test_experiment_jssp():
                        base_dir=base_dir)
 
         results: List[EndResult] = list()
-        parse_logs(base_dir, results)
+        EndResult.from_logs(base_dir, results)
 
         assert len(results) == (4 * 2 * 3)
         results.sort()
@@ -100,10 +99,10 @@ def test_experiment_jssp():
         with TempFile(directory=base_dir,
                       suffix=logging.FILE_SUFFIX) as csv:
             path = str(csv)
-            end_results_to_csv(results=results, file=path)
+            EndResult.to_csv(results=results, file=path)
 
             results2: List[EndResult] = list()
-            csv_to_end_results(file=path, collector=results2)
+            EndResult.from_csv(file=path, collector=results2)
 
             assert results == results2
 

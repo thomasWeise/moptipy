@@ -13,6 +13,20 @@ from moptipy.utils.nputils import rand_seed_check
 from ._utils import _if_to_str, _ifn_to_str, _in_to_str, _str_to_if, \
     _str_to_ifn, _str_to_in, _try_int
 
+#: The internal CSV header
+_HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_INSTANCE}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_RAND_SEED}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_BEST_F}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_LAST_IMPROVEMENT_FE}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
+          f"{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_MAX_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_GOAL_F}\n"
+
 
 @dataclass(frozen=True, init=False, order=True)
 class EndResult:
@@ -177,8 +191,100 @@ class EndResult:
         """
         return False if self.goal_f is None else self.best_f <= self.goal_f
 
+    @staticmethod
+    def from_logs(path: str, collector: MutableSequence['EndResult']) -> None:
+        """
+        Parse a given path and add all end results found  to the collector.
 
-class __InnerLogParser(LogParser):
+        If `path` identifies a file with suffix `.txt`, then this file is
+        parsed. The appropriate :class:`EndResult` is created and appended to
+        the `collector`. If `path` identifies a directory, then this directory
+        is parsed recursively for each log file found, one record is added to
+        the `collector`.
+
+        :param str path: the path to parse
+        :param MutableSequence[EndResult] collector: the collector
+        """
+        _InnerLogParser(collector).parse(path)
+
+    @staticmethod
+    def to_csv(results: Iterable['EndResult'],
+               file: str) -> None:
+        """
+        Write a sequence of end results to a file in CSV format.
+
+        :param Iterable[EndResult] results: the end results
+        :param str file: the path
+        """
+        file = canonicalize_path(file)
+        print(f"{datetime.now()}: Writing end results to CSV file '{file}'.")
+
+        with open(file=file, mode="wt", encoding="utf-8",
+                  errors="strict") as out:
+            out.write(_HEADER)
+            for e in results:
+                out.write(
+                    f"{e.algorithm}{logging.CSV_SEPARATOR}"
+                    f"{e.instance}{logging.CSV_SEPARATOR}"
+                    f"{hex(e.rand_seed)}{logging.CSV_SEPARATOR}"
+                    f"{_if_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
+                    f"{e.last_improvement_fe}{logging.CSV_SEPARATOR}"
+                    f"{e.last_improvement_time_millis}{logging.CSV_SEPARATOR}"
+                    f"{e.total_fes}{logging.CSV_SEPARATOR}"
+                    f"{e.total_time_millis}{logging.CSV_SEPARATOR}"
+                    f"{_ifn_to_str(e.goal_f)}{logging.CSV_SEPARATOR}"
+                    f"{_in_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
+                    f"{_in_to_str(e.max_time_millis)}\n")
+
+        print(f"{datetime.now()}: Done writing end "
+              f"results to CSV file '{file}'.")
+
+    @staticmethod
+    def from_csv(file: str,
+                 collector: MutableSequence['EndResult']) -> None:
+        """
+        Parse a given CSV file to get :class:`EndResult` Records.
+
+        :param str file: the path to parse
+        :param MutableSequence[EndResult] collector: the collector
+        """
+        if not isinstance(collector, MutableSequence):
+            raise TypeError("Collector must be mutable sequence, "
+                            f"but is {type(collector)}.")
+        file = enforce_file(canonicalize_path(file))
+        print(f"{datetime.now()}: Now reading CSV file '{file}'.")
+
+        with open(file=file, mode="rt", encoding="utf-8",
+                  errors="strict") as rd:
+            header = rd.readlines(1)
+            if (header is None) or (len(header) <= 0):
+                raise ValueError(f"No line in file '{file}'.")
+            if _HEADER != header[0]:
+                raise ValueError(f"Header '{header[0]}' should be {_HEADER}.")
+
+            while True:
+                lines = rd.readlines(100)
+                if (lines is None) or (len(lines) <= 0):
+                    break
+                for line in lines:
+                    splt = line.strip().split(logging.CSV_SEPARATOR)
+                    collector.append(EndResult(
+                        splt[0].strip(),  # algorithm
+                        splt[1].strip(),  # instance
+                        int((splt[2])[2:], 16),  # rand seed
+                        _str_to_if(splt[3]),  # best_f
+                        int(splt[4]),  # last_improvement_fe
+                        int(splt[5]),  # last_improvement_time_millis
+                        int(splt[6]),  # total_fes
+                        int(splt[7]),  # total_time_millis
+                        _str_to_ifn(splt[8]),  # goal_f
+                        _str_to_in(splt[9]),  # max_fes
+                        _str_to_in(splt[10])))  # max_time_millis
+
+        print(f"{datetime.now()}: Done reading CSV file '{file}'.")
+
+
+class _InnerLogParser(LogParser):
     """The internal log parser class."""
 
     def __init__(self, collector: MutableSequence[EndResult]):
@@ -339,107 +445,3 @@ class __InnerLogParser(LogParser):
             return self.__state != 3
 
         raise ValueError("Illegal state.")
-
-
-def parse_logs(path: str, collector: MutableSequence[EndResult]) -> None:
-    """
-    Parse a given path and add all end results encountered to the collector.
-
-    If `path` identifies a file with suffix `.txt`, then this file is parsed.
-    The appropriate :class:`EndResult` is created and appended to the
-    `collector`. If `path` identifies a directory, then this directory is
-    parsed recursively for each log file found, one record is added to the
-    `collector`.
-
-    :param str path: the path to parse
-    :param MutableSequence[EndResult] collector: the collector
-    """
-    __InnerLogParser(collector).parse(path)
-
-
-#: The internal CSV header
-__HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_INSTANCE}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_RAND_SEED}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_BEST_F}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_LAST_IMPROVEMENT_FE}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
-           f"{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_MAX_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
-           f"{logging.KEY_GOAL_F}\n"
-
-
-def end_results_to_csv(results: Iterable[EndResult],
-                       file: str) -> None:
-    """
-    Write a sequence of end results to a file in CSV format.
-
-    :param Iterable[EndResult] results: the end results
-    :param str file: the path
-    """
-    file = canonicalize_path(file)
-    print(f"{datetime.now()}: Writing end results to CSV file '{file}'.")
-
-    with open(file=file, mode="wt", encoding="utf-8", errors="strict") as out:
-        out.write(__HEADER)
-        for e in results:
-            out.write(
-                f"{e.algorithm}{logging.CSV_SEPARATOR}"
-                f"{e.instance}{logging.CSV_SEPARATOR}"
-                f"{hex(e.rand_seed)}{logging.CSV_SEPARATOR}"
-                f"{_if_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
-                f"{e.last_improvement_fe}{logging.CSV_SEPARATOR}"
-                f"{e.last_improvement_time_millis}{logging.CSV_SEPARATOR}"
-                f"{e.total_fes}{logging.CSV_SEPARATOR}"
-                f"{e.total_time_millis}{logging.CSV_SEPARATOR}"
-                f"{_ifn_to_str(e.goal_f)}{logging.CSV_SEPARATOR}"
-                f"{_in_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
-                f"{_in_to_str(e.max_time_millis)}\n")
-
-    print(f"{datetime.now()}: Done writing end results to CSV file '{file}'.")
-
-
-def csv_to_end_results(file: str,
-                       collector: MutableSequence[EndResult]) -> None:
-    """
-    Parse a given CSV file to get :class:`EndResult` Records.
-
-    :param str file: the path to parse
-    :param MutableSequence[EndResult] collector: the collector
-    """
-    if not isinstance(collector, MutableSequence):
-        raise TypeError("Collector must be mutable sequence, "
-                        f"but is {type(collector)}.")
-    file = enforce_file(canonicalize_path(file))
-    print(f"{datetime.now()}: Now reading CSV file '{file}'.")
-
-    with open(file=file, mode="rt", encoding="utf-8", errors="strict") as rd:
-        header = rd.readlines(1)
-        if (header is None) or (len(header) <= 0):
-            raise ValueError(f"No line in file '{file}'.")
-        if __HEADER != header[0]:
-            raise ValueError(f"Header '{header[0]}' should be {__HEADER}.")
-
-        while True:
-            lines = rd.readlines(100)
-            if (lines is None) or (len(lines) <= 0):
-                break
-            for line in lines:
-                splt = line.strip().split(logging.CSV_SEPARATOR)
-                collector.append(EndResult(
-                    splt[0].strip(),  # algorithm
-                    splt[1].strip(),  # instance
-                    int((splt[2])[2:], 16),  # rand seed
-                    _str_to_if(splt[3]),  # best_f
-                    int(splt[4]),  # last_improvement_fe
-                    int(splt[5]),  # last_improvement_time_millis
-                    int(splt[6]),  # total_fes
-                    int(splt[7]),  # total_time_millis
-                    _str_to_ifn(splt[8]),  # goal_f
-                    _str_to_in(splt[9]),  # max_fes
-                    _str_to_in(splt[10])))  # max_time_millis
-
-    print(f"{datetime.now()}: Done reading CSV file '{file}'.")
