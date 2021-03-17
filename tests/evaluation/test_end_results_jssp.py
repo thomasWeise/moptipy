@@ -65,9 +65,9 @@ def test_experiment_jssp():
         assert len(results) == (4 * 2 * 3)
         results.sort()
 
-        for i in range(0, 4 * 3):
+        for i in range(0, 12):
             assert results[i].algorithm == "hc_swap2"
-        for i in range(4 * 3, len(results)):
+        for i in range(12, 24):
             assert results[i].algorithm == "rs"
 
         for i in range(0, 4):
@@ -106,15 +106,65 @@ def test_experiment_jssp():
 
             assert results == results2
 
-        es = EndStatistics.create(results[0:4])
-        assert es.instance == "abz8"
-        assert es.algorithm == "hc_swap2"
-        assert es.goal_f == 648
-        assert es.best_f.minimum >= 648
-        assert es.total_fes.maximum <= 300
-        assert es.best_f_scaled.mean_geom >= 1
-        assert es.ert_fes > 0
-        assert es.ert_time_millis > 0
+        es_hc_a = EndStatistics.create(results[0:4])
+        assert es_hc_a.instance == "abz8"
+        assert es_hc_a.algorithm == "hc_swap2"
+        assert es_hc_a.goal_f == 648
+        assert es_hc_a.best_f.minimum >= 648
+        assert es_hc_a.total_fes.maximum <= 300
+        assert es_hc_a.best_f_scaled.mean_geom >= 1
+        assert es_hc_a.ert_fes > 0
+        assert es_hc_a.ert_time_millis > 0
+
+        es_hc_d = EndStatistics.create(results[4:8])
+        assert es_hc_d.instance == "dmu21"
+        assert es_hc_d.algorithm == "hc_swap2"
+        assert es_hc_d.goal_f == 4380
+        assert es_hc_d.best_f.minimum >= 4380
+        assert es_hc_d.total_fes.maximum <= 300
+        assert es_hc_d.best_f_scaled.mean_geom >= 1
+        assert es_hc_d.ert_fes > 0
+        assert es_hc_d.ert_time_millis > 0
+
+        es_hc_l = EndStatistics.create(results[8:12])
+        assert es_hc_l.instance == "la24"
+        assert es_hc_l.algorithm == "hc_swap2"
+        assert es_hc_l.goal_f == 935
+        assert es_hc_l.best_f.minimum >= 935
+        assert es_hc_l.total_fes.maximum <= 300
+        assert es_hc_l.best_f_scaled.mean_geom >= 1
+        assert es_hc_l.ert_fes > 0
+        assert es_hc_l.ert_time_millis > 0
+
+        es_rs_a = EndStatistics.create(results[12:16])
+        assert es_rs_a.instance == "abz8"
+        assert es_rs_a.algorithm == "rs"
+        assert es_rs_a.goal_f == 648
+        assert es_rs_a.best_f.minimum >= 648
+        assert es_rs_a.total_fes.maximum <= 300
+        assert es_rs_a.best_f_scaled.mean_geom >= 1
+        assert es_rs_a.ert_fes > 0
+        assert es_rs_a.ert_time_millis > 0
+
+        es_rs_d = EndStatistics.create(results[16:20])
+        assert es_rs_d.instance == "dmu21"
+        assert es_rs_d.algorithm == "rs"
+        assert es_rs_d.goal_f == 4380
+        assert es_rs_d.best_f.minimum >= 4380
+        assert es_rs_d.total_fes.maximum <= 300
+        assert es_rs_d.best_f_scaled.mean_geom >= 1
+        assert es_rs_d.ert_fes > 0
+        assert es_rs_d.ert_time_millis > 0
+
+        es_rs_l = EndStatistics.create(results[20:24])
+        assert es_rs_l.instance == "la24"
+        assert es_rs_l.algorithm == "rs"
+        assert es_rs_l.goal_f == 935
+        assert es_rs_l.best_f.minimum >= 935
+        assert es_rs_l.total_fes.maximum <= 300
+        assert es_rs_l.best_f_scaled.mean_geom >= 1
+        assert es_rs_l.ert_fes > 0
+        assert es_rs_l.ert_time_millis > 0
 
         es = EndStatistics.create(results[0:8])
         assert es.instance is None
@@ -128,14 +178,88 @@ def test_experiment_jssp():
         assert es.ert_fes > 0
         assert es.ert_time_millis > 0
 
-        es = EndStatistics.create(results[0:24])
-        assert es.instance is None
-        assert es.algorithm is None
-        assert es.goal_f.minimum == 648
-        assert es.goal_f.maximum == 4380
-        assert es.best_f.minimum >= 648
-        assert es.best_f.maximum >= 4380
-        assert es.total_fes.maximum <= 300
-        assert es.best_f_scaled.mean_geom >= 1
-        assert es.ert_fes > 0
-        assert es.ert_time_millis > 0
+        es_all = EndStatistics.create(results[0:24])
+        assert es_all.instance is None
+        assert es_all.algorithm is None
+        assert es_all.goal_f.minimum == 648
+        assert es_all.goal_f.maximum == 4380
+        assert es_all.best_f.minimum >= 648
+        assert es_all.best_f.maximum >= 4380
+        assert es_all.total_fes.maximum <= 300
+        assert es_all.best_f_scaled.mean_geom >= 1
+        assert es_all.ert_fes > 0
+        assert es_all.ert_time_millis > 0
+
+        es_hc = EndStatistics.create(results[0:12])
+        assert es_hc.instance is None
+        assert es_hc.algorithm == "hc_swap2"
+        assert es_hc.goal_f.minimum == 648
+        assert es_hc.goal_f.maximum == 4380
+        assert es_hc.best_f.minimum >= 648
+        assert es_hc.best_f.maximum >= 4380
+        assert es_hc.total_fes.maximum <= 300
+        assert es_hc.best_f_scaled.mean_geom >= 1
+        assert es_hc.ert_fes > 0
+        assert es_hc.ert_time_millis > 0
+
+        es_rs = EndStatistics.create(results[12:24])
+        assert es_rs.instance is None
+        assert es_rs.algorithm == "rs"
+        assert es_rs.goal_f.minimum == 648
+        assert es_rs.goal_f.maximum == 4380
+        assert es_rs.best_f.minimum >= 648
+        assert es_rs.best_f.maximum >= 4380
+        assert es_rs.total_fes.maximum <= 300
+        assert es_rs.best_f_scaled.mean_geom >= 1
+        assert es_rs.ert_fes > 0
+        assert es_rs.ert_time_millis > 0
+
+        es_a = EndStatistics.create(results[0:4] + results[12:16])
+        assert es_a.instance == "abz8"
+        assert es_a.algorithm is None
+        assert es_a.goal_f == 648
+        assert es_a.best_f.minimum >= 648
+        assert es_a.total_fes.maximum <= 300
+        assert es_a.best_f_scaled.mean_geom >= 1
+        assert es_a.ert_fes > 0
+        assert es_a.ert_time_millis > 0
+
+        es_d = EndStatistics.create(results[4:8] + results[16:20])
+        assert es_d.instance == "dmu21"
+        assert es_d.algorithm is None
+        assert es_d.goal_f == 4380
+        assert es_d.best_f.minimum >= 4380
+        assert es_d.total_fes.maximum <= 300
+        assert es_d.best_f_scaled.mean_geom >= 1
+        assert es_d.ert_fes > 0
+        assert es_d.ert_time_millis > 0
+
+        es_l = EndStatistics.create(results[8:12] + results[20:24])
+        assert es_l.instance == "la24"
+        assert es_l.algorithm is None
+        assert es_l.goal_f == 935
+        assert es_l.best_f.minimum >= 935
+        assert es_l.total_fes.maximum <= 300
+        assert es_l.best_f_scaled.mean_geom >= 1
+        assert es_l.ert_fes > 0
+        assert es_l.ert_time_millis > 0
+
+        es_algos = list()
+        EndStatistics.from_end_results(results, es_algos,
+                                       join_all_instances=True)
+        assert es_algos == [es_hc, es_rs]
+
+        es_insts = list()
+        EndStatistics.from_end_results(results, es_insts,
+                                       join_all_algorithms=True)
+        assert es_insts == [es_a, es_d, es_l]
+
+        es_sep = list()
+        EndStatistics.from_end_results(results, es_sep)
+        assert es_sep == [es_hc_a, es_hc_d, es_hc_l,
+                          es_rs_a, es_rs_d, es_rs_l]
+
+        es_one = list()
+        EndStatistics.from_end_results(results, es_one,
+                                       True, True)
+        assert es_one == [es_all]

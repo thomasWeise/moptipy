@@ -1,7 +1,7 @@
 """Statistics aggregated over multiple instances of :class:`EndResult`."""
 from dataclasses import dataclass
 from math import inf
-from typing import Optional, Union, Iterable, List
+from typing import Optional, Union, Iterable, List, MutableSequence, Dict
 
 from moptipy.evaluation._utils import _try_int, _try_div
 from moptipy.evaluation.end_results import EndResult
@@ -531,3 +531,64 @@ class EndStatistics:
             None if max_time_millis is None
             else (max_time_millis[0] if max_time_same
                   else Statistics.create(max_time_millis)))
+
+    @staticmethod
+    def from_end_results(source: Iterable[EndResult],
+                         collector: MutableSequence['EndStatistics'],
+                         join_all_algorithms: bool = False,
+                         join_all_instances: bool = False) -> None:
+        """
+        Aggregate statistics over a stream of end results.
+
+        :param Iterable[.moptipy.evaluation.EndResult] source: the stream
+            of end results
+        :param MutableSequence['EndStatistic'] collector: the destination
+            to which the new records will be appended
+        :param bool join_all_algorithms: should the statistics be aggregated
+            over all algorithms
+        :param bool join_all_instances: should the statistics be aggregated
+            over all algorithms
+        """
+        if not isinstance(source, Iterable):
+            raise TypeError(
+                f"source must be Iterable, but is {type(source)}.")
+        if not isinstance(collector, MutableSequence):
+            raise TypeError("collector must be MutableSequence, "
+                            f"but is {type(collector)}.")
+        if not isinstance(join_all_algorithms, bool):
+            raise TypeError("join_all_algorithms must be bool, "
+                            f"but is {type(join_all_algorithms)}.")
+        if not isinstance(join_all_instances, bool):
+            raise TypeError("join_all_instances must be bool, "
+                            f"but is {type(join_all_instances)}.")
+
+        if join_all_algorithms and join_all_instances:
+            collector.append(EndStatistics.create(source))
+            return
+
+        sorter: Dict[str, List[EndResult]] = dict()
+        for er in source:
+            if not isinstance(er, EndResult):
+                raise TypeError("source must contain only EndResults, but "
+                                f"found a {type(er)}.")
+            key = er.instance if join_all_algorithms else \
+                er.algorithm if join_all_instances else \
+                f"{er.algorithm}/{er.instance}"
+            if key in sorter:
+                lst = sorter[key]
+            else:
+                lst = list()
+                sorter[key] = lst
+            lst.append(er)
+
+        if len(sorter) <= 0:
+            raise ValueError("source must not be empty")
+        if len(sorter) <= 1:
+            collector.append(EndStatistics.create(source))
+            return
+
+        keys = list(sorter.keys())
+        keys.sort()
+
+        for key in keys:
+            collector.append(EndStatistics.create(sorter[key]))
