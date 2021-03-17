@@ -28,7 +28,7 @@ def _ifn_to_str(val: Union[int, float, None]) -> str:
     """
     return "" if val is None else \
         str(val) if isinstance(val, int) \
-            else logging.float_to_str(val)
+        else logging.float_to_str(val)
 
 
 def _in_to_str(val: Optional[int]) -> str:
