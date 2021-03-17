@@ -1,6 +1,6 @@
 """Some internal helper functions."""
 
-from math import isfinite
+from math import isfinite, inf, gcd
 from typing import Union, Optional, Final
 
 from moptipy.utils import logging
@@ -28,7 +28,7 @@ def _ifn_to_str(val: Union[int, float, None]) -> str:
     """
     return "" if val is None else \
         str(val) if isinstance(val, int) \
-        else logging.float_to_str(val)
+            else logging.float_to_str(val)
 
 
 def _in_to_str(val: Optional[int]) -> str:
@@ -101,5 +101,24 @@ def _try_int(val: Union[int, float]) -> Union[int, float]:
             a = int(val)
             if a == val:
                 return a
-            return val
+        return val
     raise TypeError(f"Value must be int or float, but is {type(val)}.")
+
+
+def _try_div(a: int, b: int) -> Union[int, float]:
+    """
+    Try to divide two integers at best precision.
+
+    :param int a: the first integer
+    :param int b: the second integer
+    :return: a/b
+    :rtype: Union[int, float]
+    """
+    if b == 0:
+        return inf
+    gc = gcd(a, b)
+    a //= gc
+    if b == gc:
+        return a
+    b //= gc
+    return _try_int(a / b)

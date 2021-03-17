@@ -6,7 +6,7 @@ import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
 from moptipy.api import Execution, run_experiment
 from moptipy.evaluation import EndResult, parse_logs, end_results_to_csv, \
-    csv_to_end_results
+    csv_to_end_results, EndStatistics
 from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
@@ -106,3 +106,37 @@ def test_experiment_jssp():
             csv_to_end_results(file=path, collector=results2)
 
             assert results == results2
+
+        es = EndStatistics.create(results[0:4])
+        assert es.instance == "abz8"
+        assert es.algorithm == "hc_swap2"
+        assert es.goal_f == 648
+        assert es.best_f.minimum >= 648
+        assert es.total_fes.maximum <= 300
+        assert es.best_f_scaled.mean_geom >= 1
+        assert es.ert_fes > 0
+        assert es.ert_time_millis > 0
+
+        es = EndStatistics.create(results[0:8])
+        assert es.instance is None
+        assert es.algorithm == "hc_swap2"
+        assert es.goal_f.minimum == 648
+        assert es.goal_f.maximum == 4380
+        assert es.best_f.minimum >= 648
+        assert es.best_f.maximum >= 4380
+        assert es.total_fes.maximum <= 300
+        assert es.best_f_scaled.mean_geom >= 1
+        assert es.ert_fes > 0
+        assert es.ert_time_millis > 0
+
+        es = EndStatistics.create(results[0:24])
+        assert es.instance is None
+        assert es.algorithm is None
+        assert es.goal_f.minimum == 648
+        assert es.goal_f.maximum == 4380
+        assert es.best_f.minimum >= 648
+        assert es.best_f.maximum >= 4380
+        assert es.total_fes.maximum <= 300
+        assert es.best_f_scaled.mean_geom >= 1
+        assert es.ert_fes > 0
+        assert es.ert_time_millis > 0

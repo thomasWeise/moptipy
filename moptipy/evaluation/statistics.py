@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast
 
-from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int
+from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int, _try_div
 
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(_DBL_INT_LIMIT_P))
+_ULP: Final[float] = 1 - (2 ** (-53))
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -245,13 +246,7 @@ class Statistics:
         mean_arith: Union[int, float]
 
         if can_int:  # if we get here, we have exact sums and product
-            i_gcd: int = gcd(n, int_sum)  # if we need to go to float, we
-            i_n: int = n // i_gcd  # first divide by gcd, so as to make the
-            i_sum = int_sum // i_gcd  # top and bottom of the fractions
-            if i_n == 1:  # smaller
-                mean_arith = i_sum  # cool, the mean is an integer
-            else:
-                mean_arith = i_sum / i_n  # do floating point division
+            mean_arith = _try_div(int_sum, n)
 
             if n > 1:  # standard deviation only defined for n > 1
                 int_sum2: int = (int_sum * int_sum)
@@ -261,15 +256,7 @@ class Statistics:
 
                 var: Union[int, float]  # the container for the variance
                 if i_n == 1:
-                    ss: int = int_sum_sqr - int_sum2
-                    i_n = n - 1
-                    i_gcd = gcd(ss, i_n)
-                    ss = ss // i_gcd
-                    i_n = i_n // i_gcd
-                    if i_n == 1:
-                        var = ss  # variance is integer
-                    else:  # variance is float
-                        var = ss / i_n  # float division
+                    var = _try_div(int_sum_sqr - int_sum2, n - 1)
                 else:  # variance is float
                     var = (int_sum_sqr - (int_sum2 / i_n)) / (n - 1)
 
@@ -316,6 +303,16 @@ class Statistics:
                 mean_geom = statistics.geometric_mean(source)
             if n > 1:
                 stddev = statistics.stdev(source)
+
+        if mean_geom is not None:
+            # Deal with errors that may have arisen due to
+            # numerical imprecision.
+            if mean_geom < minimum:
+                if (mean_geom / _ULP) >= (minimum * _ULP):
+                    mean_geom = minimum
+            if mean_geom > maximum:
+                if (maximum / _ULP) >= (mean_geom * _ULP):
+                    mean_geom = maximum
 
         return Statistics(n=n,
                           minimum=minimum,
