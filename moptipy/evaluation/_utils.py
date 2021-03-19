@@ -6,18 +6,6 @@ from typing import Union, Optional, Final
 from moptipy.utils import logging
 
 
-def _if_to_str(val: Union[int, float]) -> str:
-    """
-    Convert an integer ot float to a string.
-
-    :param Union[int, float] val: the value
-    :return: the string representation
-    :rtype: str
-    """
-    return str(val) if isinstance(val, int) \
-        else logging.float_to_str(val)
-
-
 def _ifn_to_str(val: Union[int, float, None]) -> str:
     """
     Convert an integer ot float or `None` to a string.
@@ -26,9 +14,7 @@ def _ifn_to_str(val: Union[int, float, None]) -> str:
     :return: the string representation
     :rtype: str
     """
-    return "" if val is None else \
-        str(val) if isinstance(val, int) \
-        else logging.float_to_str(val)
+    return "" if val is None else logging.num_to_str(val)
 
 
 def _in_to_str(val: Optional[int]) -> str:
@@ -50,9 +36,10 @@ def _str_to_if(val: str) -> Union[int, float]:
     :return: the int or float
     :rtype: Union[int, float]
     """
-    return float(val) if ("e" in val) or \
-                         ("E" in val) or \
-                         ("." in val) else int(val)
+    return inf if (val == "inf") else \
+        float(val) if ("e" in val) or \
+                      ("E" in val) or \
+                      ("." in val) else int(val)
 
 
 def _str_to_ifn(val: str) -> Union[int, float, None]:

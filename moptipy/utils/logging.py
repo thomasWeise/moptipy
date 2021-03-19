@@ -2,7 +2,7 @@
 import cmath
 import math
 from re import sub
-from typing import List, Final
+from typing import List, Final, Union
 
 #: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
@@ -26,7 +26,6 @@ SPECIAL_CHAR_REPLACEMENT: Final[str] = "_"
 KEY_VALUE_SEPARATOR: Final[str] = ": "
 #: the hexadecimal version of a value
 KEY_HEX_VALUE: Final[str] = "(hex)"
-
 
 #: the key for algorithms
 KEY_ALGORITHM: Final[str] = "algorithm"
@@ -327,3 +326,23 @@ def str_to_bool(value: str) -> bool:
     if value == "F":
         return False
     raise ValueError(f"Expected 'T' or 'F', but got '{value}'.")
+
+
+def num_to_str(value: Union[int, float, complex]) -> str:
+    """
+    Transform a numerical type to a string.
+
+    :param Union[int, float, complex] value: the value
+    :return: the string
+    :type: str
+
+    >>> num_to_str(1)
+    '1'
+    >>> num_to_str(1.5)
+    '1.5'
+    >>> num_to_str(1.0-2j)
+    '1-2j'
+    """
+    return str(value) if isinstance(value, int) else \
+        float_to_str(value) if isinstance(value, float) else \
+        complex_to_str(value)

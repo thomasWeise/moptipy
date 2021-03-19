@@ -248,18 +248,50 @@ def test_experiment_jssp():
         EndStatistics.from_end_results(results, es_algos,
                                        join_all_instances=True)
         assert es_algos == [es_hc, es_rs]
+        assert len(es_algos) == 2
 
         es_insts = list()
         EndStatistics.from_end_results(results, es_insts,
                                        join_all_algorithms=True)
         assert es_insts == [es_a, es_d, es_l]
+        assert len(es_insts) == 3
 
         es_sep = list()
         EndStatistics.from_end_results(results, es_sep)
         assert es_sep == [es_hc_a, es_hc_d, es_hc_l,
                           es_rs_a, es_rs_d, es_rs_l]
+        assert len(es_sep) == 6
 
         es_one = list()
         EndStatistics.from_end_results(results, es_one,
                                        True, True)
         assert es_one == [es_all]
+        assert len(es_one) == 1
+
+        with TempFile(directory=base_dir,
+                      suffix=logging.FILE_SUFFIX) as csv:
+            f = str(csv)
+
+            EndStatistics.to_csv(es_algos, f)
+            es_algos2 = list()
+            EndStatistics.from_csv(f, es_algos2)
+            assert es_algos2 == es_algos
+            assert len(es_algos2) == 2
+
+            EndStatistics.to_csv(es_insts, f)
+            es_insts2 = list()
+            EndStatistics.from_csv(f, es_insts2)
+            assert es_insts2 == es_insts
+            assert len(es_insts2) == 3
+
+            EndStatistics.to_csv(es_sep, f)
+            es_sep2 = list()
+            EndStatistics.from_csv(f, es_sep2)
+            assert es_sep2 == es_sep
+            assert len(es_sep2) == 6
+
+            EndStatistics.to_csv(es_one, f)
+            es_one2 = list()
+            EndStatistics.from_csv(f, es_one2)
+            assert es_one2 == es_one
+            assert len(es_one2) == 1

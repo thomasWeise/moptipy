@@ -1,12 +1,30 @@
 """Statistics aggregated over multiple instances of :class:`EndResult`."""
 from dataclasses import dataclass
+from datetime import datetime
 from math import inf
-from typing import Optional, Union, Iterable, List, MutableSequence, Dict
+from typing import Optional, Union, Iterable, List, MutableSequence, Dict, \
+    Final, Callable
 
-from moptipy.evaluation._utils import _try_int, _try_div
+from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.statistics import Statistics
-from moptipy.utils.logging import sanitize_name
+from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
+from moptipy.utils import logging as log
+from moptipy.utils.io import canonicalize_path, enforce_file
+
+#: The key for the total number of runs.
+KEY_N: Final[str] = "n"
+#: The key for the best F.
+KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
+#: The key for the number of successful runs.
+KEY_N_SUCCESS: Final[str] = "successN"
+#: The key for the success FEs.
+KEY_SUCCESS_FES: Final[str] = "successFEs"
+#: The key for the success time millis.
+KEY_SUCCESS_TIME_MILLIS: Final[str] = "successTimeMillis"
+#: The key for the ERT in FEs.
+KEY_ERT_FES: Final[str] = "ertFEs"
+#: The key for the ERT in milliseconds.
+KEY_ERT_TIME_MILLIS: Final[str] = "ertTimeMillis"
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -119,12 +137,12 @@ class EndStatistics:
             term of milliseconds
         """
         if algorithm is not None:
-            if algorithm != sanitize_name(algorithm):
+            if algorithm != log.sanitize_name(algorithm):
                 raise ValueError(f"Invalid algorithm '{algorithm}'.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if instance is not None:
-            if instance != sanitize_name(instance):
+            if instance != log.sanitize_name(instance):
                 raise ValueError(f"Invalid instance '{instance}'.")
         object.__setattr__(self, "instance", instance)
 
@@ -592,3 +610,529 @@ class EndStatistics:
 
         for key in keys:
             collector.append(EndStatistics.create(sorter[key]))
+
+    @staticmethod
+    def to_csv(data: Iterable['EndStatistics'], file: str) -> None:
+        """
+        Store a set of :class:`EndStatistics` in a CSV file.
+
+        :param Iterable['EndStatistics'] data: the data to store
+        :param str file: the file to generate
+        """
+        file = canonicalize_path(file)
+        print(f"{datetime.now()}: Writing end result statistics to "
+              f"CSV file '{file}'.")
+
+        has_algorithm: bool = False  # 1
+        has_instance: bool = False  # 2
+        has_goal_f: int = 0  # 4
+        has_best_f_scaled: bool = False  # 8
+        has_n_success: bool = False  # 16
+        has_success_fes: bool = False  # 32
+        has_success_time_millis: bool = False  # 64
+        has_ert_fes: bool = False  # 128
+        has_ert_time_millis: bool = False  # 256
+        has_max_fes: int = 0  # 512
+        has_max_time_millis: int = 0  # 1024
+        checker: int = 2047
+
+        for es in data:
+            if es.algorithm is not None:
+                has_algorithm = True
+                checker &= ~1
+            if es.instance is not None:
+                has_instance = True
+                checker &= ~2
+            if es.goal_f is not None:
+                if isinstance(es.goal_f, Statistics):
+                    has_goal_f = 2
+                    checker &= ~4
+                elif has_goal_f == 0:
+                    has_goal_f = 1
+            if es.best_f_scaled is not None:
+                has_best_f_scaled = True
+                checker &= ~8
+            if es.n_success is not None:
+                has_n_success = True
+                checker &= ~8
+            if es.success_fes is not None:
+                has_success_fes = True
+                checker &= ~32
+            if es.success_time_millis is not None:
+                has_success_time_millis = True
+                checker &= ~64
+            if es.ert_fes is not None:
+                has_ert_fes = True
+                checker &= ~128
+            if es.ert_time_millis is not None:
+                has_ert_time_millis = True
+                checker &= ~256
+            if es.max_fes is not None:
+                if isinstance(es.max_fes, Statistics):
+                    has_max_fes = 2
+                    checker &= ~512
+                elif has_max_fes == 0:
+                    has_max_fes = 1
+            if es.max_time_millis is not None:
+                if isinstance(es.max_time_millis, Statistics):
+                    has_max_time_millis = 2
+                    checker &= ~512
+                elif has_max_time_millis == 0:
+                    has_max_time_millis = 1
+            if checker == 0:
+                break
+
+        with open(file, "wt") as out:
+            wrt: Final[Callable] = out.write
+            sep: Final[str] = log.CSV_SEPARATOR
+            if has_algorithm:
+                wrt(log.KEY_ALGORITHM)
+                wrt(sep)
+            if has_instance:
+                wrt(log.KEY_INSTANCE)
+                wrt(sep)
+
+            def h(p):
+                wrt(sep.join(Statistics.csv_col_names(p)))
+
+            wrt(KEY_N)
+            wrt(sep)
+            h(log.KEY_BEST_F)
+            wrt(sep)
+            h(log.KEY_LAST_IMPROVEMENT_FE)
+            wrt(sep)
+            h(log.KEY_LAST_IMPROVEMENT_TIME_MILLIS)
+            wrt(sep)
+            h(log.KEY_TOTAL_FES)
+            wrt(sep)
+            h(log.KEY_TOTAL_TIME_MILLIS)
+            if has_goal_f == 1:
+                wrt(sep)
+                wrt(log.KEY_GOAL_F)
+            elif has_goal_f == 2:
+                wrt(sep)
+                h(log.KEY_GOAL_F)
+            if has_best_f_scaled:
+                wrt(sep)
+                h(KEY_BEST_F_SCALED)
+            if has_n_success:
+                wrt(sep)
+                wrt(KEY_N_SUCCESS)
+            if has_success_fes:
+                wrt(sep)
+                wrt(KEY_SUCCESS_FES)
+            if has_success_time_millis:
+                wrt(sep)
+                wrt(KEY_SUCCESS_TIME_MILLIS)
+            if has_ert_fes:
+                wrt(sep)
+                wrt(KEY_ERT_FES)
+            if has_ert_time_millis:
+                wrt(sep)
+                wrt(KEY_ERT_TIME_MILLIS)
+            if has_max_fes == 1:
+                wrt(sep)
+                wrt(log.KEY_MAX_FES)
+            elif has_max_fes == 2:
+                wrt(sep)
+                h(log.KEY_MAX_FES)
+            if has_max_time_millis == 1:
+                wrt(sep)
+                wrt(log.KEY_MAX_TIME_MILLIS)
+            elif has_max_time_millis == 2:
+                wrt(sep)
+                h(log.KEY_MAX_TIME_MILLIS)
+            out.write("\n")
+
+            csv: Final[Callable] = Statistics.value_to_csv
+            num: Final[Callable] = log.num_to_str
+
+            for er in data:
+                if has_algorithm:
+                    if er.algorithm is not None:
+                        wrt(er.algorithm)
+                    wrt(sep)
+                if has_instance:
+                    if er.instance is not None:
+                        wrt(er.instance)
+                    wrt(sep)
+                wrt(str(er.n))
+                wrt(sep)
+                wrt(er.best_f.to_csv())
+                wrt(sep)
+                wrt(er.last_improvement_fe.to_csv())
+                wrt(sep)
+                wrt(er.last_improvement_time_millis.to_csv())
+                wrt(sep)
+                wrt(er.total_fes.to_csv())
+                wrt(sep)
+                wrt(er.total_time_millis.to_csv())
+                if has_goal_f == 1:
+                    wrt(sep)
+                    if er.goal_f is not None:
+                        wrt(num(er.goal_f))
+                elif has_goal_f == 2:
+                    wrt(sep)
+                    if isinstance(er.goal_f, Statistics):
+                        wrt(er.goal_f.to_csv())
+                    elif isinstance(er.goal_f, (int, float)):
+                        wrt(csv(er.goal_f))
+                    else:
+                        wrt(EMPTY_CSV_ROW)
+                if has_best_f_scaled:
+                    wrt(sep)
+                    if er.best_f_scaled is None:
+                        wrt(EMPTY_CSV_ROW)
+                    else:
+                        wrt(er.best_f_scaled.to_csv())
+                if has_n_success:
+                    wrt(sep)
+                    if er.n_success is not None:
+                        wrt(str(er.n_success))
+                if has_success_fes:
+                    wrt(sep)
+                    if er.success_fes is None:
+                        wrt(EMPTY_CSV_ROW)
+                    else:
+                        wrt(er.success_fes.to_csv())
+                if has_success_time_millis:
+                    wrt(sep)
+                    if er.success_time_millis is None:
+                        wrt(EMPTY_CSV_ROW)
+                    else:
+                        wrt(er.success_time_millis.to_csv())
+                if has_ert_fes:
+                    wrt(sep)
+                    if er.ert_fes is not None:
+                        wrt(num(er.ert_fes))
+                if has_ert_time_millis:
+                    wrt(sep)
+                    if er.ert_time_millis is not None:
+                        wrt(num(er.ert_time_millis))
+                if has_max_fes == 1:
+                    wrt(sep)
+                    if er.max_fes is not None:
+                        wrt(str(er.max_fes))
+                elif has_max_fes == 2:
+                    wrt(sep)
+                    if isinstance(er.max_fes, Statistics):
+                        wrt(er.max_fes.to_csv())
+                    elif isinstance(er.max_fes, (int, float)):
+                        wrt(csv(er.max_fes))
+                    else:
+                        wrt(EMPTY_CSV_ROW)
+                if has_max_time_millis == 1:
+                    wrt(sep)
+                    if er.max_time_millis is not None:
+                        wrt(str(er.max_time_millis))
+                elif has_max_time_millis == 2:
+                    wrt(sep)
+                    if isinstance(er.max_time_millis, Statistics):
+                        wrt(er.max_time_millis.to_csv())
+                    elif isinstance(er.max_time_millis, (int, float)):
+                        wrt(csv(er.max_time_millis))
+                    else:
+                        wrt(EMPTY_CSV_ROW)
+                out.write("\n")
+
+        print(f"{datetime.now()}: Done writing end result statistics to "
+              f"CSV file '{file}'.")
+
+    @staticmethod
+    def from_csv(file: str,
+                 collector: MutableSequence['EndStatistics']) -> None:
+        """
+        Parse a CSV file and collect all encountered :class:`EndStatistics`.
+
+        :param str file: the file to parse
+        :param MutableSequence['EndStatistics'] collector: the collector to
+            receive all the parsed instances of :class:`EndStatistics`.
+        """
+        file = enforce_file(canonicalize_path(file))
+        print(f"{datetime.now()}: Begin reading end result statistics from "
+              f"CSV file '{file}'.")
+
+        sep: Final[str] = log.CSV_SEPARATOR
+        with open(file, "rt") as rd:
+            headerrow: Final[List[str]] = rd.readlines(1)
+            if (headerrow is None) or (len(headerrow) <= 0):
+                raise ValueError(f"No line in file '{file}'.")
+            headerstr: Final[str] = headerrow[0].strip()
+            header: Final[List[str]] = [ss.strip()
+                                        for ss in headerstr.split(sep)]
+            if len(header) <= 3:
+                raise ValueError(
+                    f"Invalid header '{headerstr}' in file '{file}'.")
+
+            idx = 0
+            has_algorithm: bool
+            if header[0] == log.KEY_ALGORITHM:
+                has_algorithm = True
+                idx = 1
+            else:
+                has_algorithm = False
+
+            has_instance: bool
+            if header[idx] == log.KEY_INSTANCE:
+                has_instance = True
+                idx += 1
+            else:
+                has_instance = False
+
+            csv: Final[Callable] = Statistics.csv_col_names
+
+            if header[idx] != KEY_N:
+                raise ValueError(
+                    f"Expected to find {KEY_N} at index {idx} "
+                    f"in header '{headerstr}' of file '{file}'.")
+            idx += 1
+
+            for key in [log.KEY_BEST_F, log.KEY_LAST_IMPROVEMENT_FE,
+                        log.KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                        log.KEY_TOTAL_FES, log.KEY_TOTAL_TIME_MILLIS]:
+                if csv(key) != header[idx:(idx + CSV_COLS)]:
+                    raise ValueError(
+                        f"Expected to find '{key}.*' keys from index "
+                        f"{idx} on in header "
+                        f"'{headerstr}' of file '{file}', expected "
+                        f"{csv(key)} but got {header[idx:(idx + CSV_COLS)]}.")
+                idx += CSV_COLS
+
+            has_goal_f: int = 0
+            has_best_f_scaled: bool = False
+            has_n_success: bool = False
+            has_success_fes: bool = False
+            has_success_time: bool = False
+            has_ert_fes: bool = False
+            has_ert_time: bool = False
+            has_max_fes: int = 0
+            has_max_time: int = 0
+            while idx <= len(header):
+                if header[idx] == log.KEY_GOAL_F:
+                    has_goal_f = 1
+                    idx += 1
+                elif header[idx].startswith(log.KEY_GOAL_F):
+                    has_goal_f = 2
+                    if csv(log.KEY_GOAL_F) != header[idx:(idx + CSV_COLS)]:
+                        raise ValueError(
+                            f"Expected to find '{log.KEY_GOAL_F}.*' keys from "
+                            f"index {idx} on in header "
+                            f"'{headerstr}' of file '{file}'.")
+                    idx += CSV_COLS
+
+                if idx >= len(header):
+                    break
+
+                if header[idx].startswith(KEY_BEST_F_SCALED):
+                    has_best_f_scaled = True
+                    if csv(KEY_BEST_F_SCALED) != \
+                            header[idx:(idx + CSV_COLS)]:
+                        raise ValueError(
+                            f"Expected to find '{KEY_BEST_F_SCALED}.*' "
+                            f"keys from index {idx} on in header "
+                            f"'{headerstr}' of file '{file}'.")
+                    idx += CSV_COLS
+
+                if idx >= len(header):
+                    break
+
+                if header[idx] == KEY_N_SUCCESS:
+                    has_n_success = True
+                    idx += 1
+
+                if idx >= len(header):
+                    break
+
+                if header[idx].startswith(KEY_SUCCESS_FES):
+                    has_success_fes = True
+                    if csv(KEY_SUCCESS_FES) != header[idx:(idx + CSV_COLS)]:
+                        raise ValueError(
+                            f"Expected to find '{KEY_SUCCESS_FES}.*' "
+                            f"keys from index {idx} on in header "
+                            f"'{headerstr}' of file '{file}'.")
+                    idx += CSV_COLS
+
+                if idx >= len(header):
+                    break
+
+                if header[idx].startswith(KEY_SUCCESS_TIME_MILLIS):
+                    has_success_fes = True
+                    if csv(KEY_SUCCESS_TIME_MILLIS) != \
+                            header[idx:(idx + CSV_COLS)]:
+                        raise ValueError(
+                            f"Expected to find '{KEY_SUCCESS_TIME_MILLIS}.*' "
+                            f"keys from index {idx} on in header "
+                            f"'{headerstr}' of file '{file}'.")
+                    idx += CSV_COLS
+
+                if idx >= len(header):
+                    break
+
+                if header[idx] == KEY_ERT_FES:
+                    has_ert_fes = True
+                    idx += 1
+
+                if idx >= len(header):
+                    break
+
+                if header[idx] == KEY_ERT_TIME_MILLIS:
+                    has_ert_time = True
+                    idx += 1
+
+                if idx >= len(header):
+                    break
+
+                if header[idx] == log.KEY_MAX_FES:
+                    has_max_fes = 1
+                    idx += 1
+                elif header[idx].startswith(log.KEY_MAX_FES):
+                    has_max_fes = 2
+                    if csv(log.KEY_MAX_FES) != header[idx:(idx + CSV_COLS)]:
+                        raise ValueError(
+                            f"Expected to find '{log.KEY_MAX_FES}.*' keys"
+                            f" from index {idx} on in header "
+                            f"'{headerstr}' of file '{file}'.")
+                    idx += CSV_COLS
+
+                if idx >= len(header):
+                    break
+
+                if header[idx] == log.KEY_MAX_TIME_MILLIS:
+                    has_max_time = 1
+                    idx += 1
+                elif header[idx].startswith(log.KEY_MAX_TIME_MILLIS):
+                    has_max_time = 2
+                    if csv(log.KEY_MAX_FES) != header[idx:(idx + CSV_COLS)]:
+                        raise ValueError(
+                            f"Expected to find '{log.KEY_MAX_TIME_MILLIS}.*' "
+                            f"keys from index {idx} on in header "
+                            f"'{headerstr}' of file '{file}'.")
+                    idx += CSV_COLS
+
+                break
+
+            if len(header) > idx:
+                raise ValueError(
+                    f"Unexpected item '{header[idx]}' in header "
+                    f"'{header}' of file '{file}'.")
+
+            while True:
+                lines = rd.readlines(100)
+                if (lines is None) or (len(lines) <= 0):
+                    break
+                for line in lines:
+                    row = [ss.strip() for ss in line.strip().split(sep)]
+
+                    idx = 0
+                    algo: Optional[str] = None
+                    inst: Optional[str] = None
+                    n: int
+                    goal_f: Union[None, int, float, Statistics] = None
+                    best_f_scaled: Optional[Statistics] = None
+                    n_success: Optional[int] = None
+                    success_fes: Optional[Statistics] = None
+                    success_time: Optional[Statistics] = None
+                    ert_fes: Union[int, float, None] = None
+                    ert_time: Union[int, float, None] = None
+                    max_fes: Union[int, Statistics, None] = None
+                    max_time: Union[int, Statistics, None] = None
+
+                    try:
+                        if has_algorithm:
+                            algo = log.sanitize_name(row[0])
+                            idx += 1
+
+                        if has_instance:
+                            inst = log.sanitize_name(row[idx])
+                            idx += 1
+
+                        n = int(row[idx])
+                        idx += 1
+
+                        best_f = Statistics.from_csv(
+                            n, row[idx:(idx + CSV_COLS)])
+                        idx += CSV_COLS
+
+                        last_improv_fe = Statistics.from_csv(
+                            n, row[idx:(idx + CSV_COLS)])
+                        idx += CSV_COLS
+
+                        last_improv_time = Statistics.from_csv(
+                            n, row[idx:(idx + CSV_COLS)])
+                        idx += CSV_COLS
+
+                        total_fes = Statistics.from_csv(
+                            n, row[idx:(idx + CSV_COLS)])
+                        idx += CSV_COLS
+
+                        total_time = Statistics.from_csv(
+                            n, row[idx:(idx + CSV_COLS)])
+                        idx += CSV_COLS
+
+                        if has_goal_f == 1:
+                            goal_f = _str_to_if(row[idx])
+                            idx += 1
+                        elif has_goal_f == 2:
+                            goal_f = Statistics.from_csv(
+                                n, row[idx:(idx + CSV_COLS)])
+                            idx += CSV_COLS
+
+                        if has_best_f_scaled:
+                            best_f_scaled = Statistics.from_csv(
+                                n, row[idx:(idx + CSV_COLS)])
+                            idx += CSV_COLS
+
+                        if has_n_success:
+                            n_success = int(row[idx])
+                            idx += 1
+
+                        if has_success_fes:
+                            success_fes = Statistics.from_csv(
+                                n_success, row[idx:(idx + CSV_COLS)])
+                            idx += CSV_COLS
+
+                        if has_success_time:
+                            success_time = Statistics.from_csv(
+                                n_success, row[idx:(idx + CSV_COLS)])
+                            idx += CSV_COLS
+
+                        if has_ert_fes:
+                            ert_fes = _str_to_if(row[idx])
+                            idx += 1
+
+                        if has_ert_time:
+                            ert_time = _str_to_if(row[idx])
+                            idx += 1
+
+                        if has_max_fes == 1:
+                            max_fes = int(row[idx])
+                            idx += 1
+                        elif has_max_fes == 2:
+                            max_fes = Statistics.from_csv(
+                                n, row[idx:(idx + CSV_COLS)])
+                            idx += CSV_COLS
+
+                        if has_max_time == 1:
+                            max_time = int(row[idx])
+                            idx += 1
+                        elif has_max_time == 2:
+                            max_time = Statistics.from_csv(
+                                n, row[idx:(idx + CSV_COLS)])
+                            idx += CSV_COLS
+
+                    except BaseException as be:
+                        raise ValueError(
+                            f"Invalid row '{line}' in file '{file}'.") from be
+
+                    if len(row) != idx:
+                        raise ValueError("Invalid number of columns in row "
+                                         f"'{line}' in file '{file}'.")
+                    collector.append(EndStatistics(
+                        algo, inst, n, best_f,
+                        last_improv_fe, last_improv_time, total_fes,
+                        total_time, goal_f, best_f_scaled, n_success,
+                        success_fes, success_time, ert_fes, ert_time,
+                        max_fes, max_time))
+
+        print(f"{datetime.now()}: Finished reading end result statistics "
+              f"from CSV file '{file}'.")

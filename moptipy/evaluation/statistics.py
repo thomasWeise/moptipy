@@ -6,10 +6,31 @@ from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast
 
 from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int, _try_div
+from moptipy.evaluation._utils import _str_to_if, _str_to_ifn
+from moptipy.utils import logging
 
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(_DBL_INT_LIMIT_P))
 _ULP: Final[float] = 1 - (2 ** (-53))
+
+#: The minimum value key.
+KEY_MINIMUM: Final[str] = "min"
+#: The median value key.
+KEY_MEDIAN: Final[str] = "med"
+#: The arithmetic mean value key.
+KEY_MEAN_ARITH: Final[str] = "mean"
+#: The geometric mean value key.
+KEY_MEAN_GEOM: Final[str] = "geom"
+#: The maximum value key.
+KEY_MAXIMUM: Final[str] = "max"
+#: The standard deviation value key.
+KEY_STDDEV: Final[str] = "sd"
+
+#: The number of CSV columns.
+CSV_COLS: Final[int] = 6
+
+#: The empty csv row of statistics
+EMPTY_CSV_ROW: Final[str] = logging.CSV_SEPARATOR * (CSV_COLS - 1)
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -241,6 +262,15 @@ class Statistics:
         if n <= 0:
             raise ValueError("source cannot be empty.")
 
+        if minimum >= maximum:
+            return Statistics(n=n,
+                              minimum=minimum,
+                              median=minimum,
+                              mean_arith=minimum,
+                              mean_geom=None if minimum <= 0 else minimum,
+                              maximum=maximum,
+                              stddev=0)
+
         stddev: Union[int, float] = 0
         mean_geom: Union[int, float, None] = None
         mean_arith: Union[int, float]
@@ -321,3 +351,70 @@ class Statistics:
                           mean_geom=mean_geom,
                           maximum=maximum,
                           stddev=stddev)
+
+    @staticmethod
+    def csv_col_names(prefix: str) -> Iterable[str]:
+        """
+        Make the column names suitable for a CSV-formatted file.
+
+        :param str prefix: the prefix name of the columns
+        :return: the column header strings
+        :rtype: Iterable[str]
+        """
+        return [f"{prefix}{logging.SCOPE_SEPARATOR}{b}"
+                for b in [KEY_MINIMUM, KEY_MEDIAN,
+                          KEY_MEAN_ARITH, KEY_MEAN_GEOM,
+                          KEY_MAXIMUM, KEY_STDDEV]]
+
+    @staticmethod
+    def value_to_csv(value: Union[int, float]) -> str:
+        """
+        Expand a single value to a CSV row.
+
+        :param Union[int, float] value: the value
+        :return: the CSV row.
+        :rtype: str
+        """
+        s: str = f"{logging.num_to_str(value)}{logging.CSV_SEPARATOR}"
+        return f"{s * 5}0"
+
+    def to_csv(self) -> str:
+        """
+        Generate a string with the data of this record in CSV format.
+
+        :return: the string
+        :rtype: str
+        """
+        q: Final[str] = "" if (self.mean_geom is None) \
+            else logging.num_to_str(self.mean_geom)
+        return f"{logging.num_to_str(self.minimum)}{logging.CSV_SEPARATOR}" \
+               f"{logging.num_to_str(self.median)}{logging.CSV_SEPARATOR}" \
+               f"{logging.num_to_str(self.mean_arith)}" \
+               f"{logging.CSV_SEPARATOR}" \
+               f"{q}" \
+               f"{logging.CSV_SEPARATOR}" \
+               f"{logging.num_to_str(self.maximum)}{logging.CSV_SEPARATOR}" \
+               f"{logging.num_to_str(self.stddev)}"
+
+    @staticmethod
+    def from_csv(n: int, row: Union[str, Iterable[str]]) -> 'Statistics':
+        """
+        Convert a CSV string (or separate CSV cells) to a Statistics object.
+
+        :param int n: the number of observations
+        :param Union[str, Iterable[str]] row: either the single string or
+            the iterable of separate strings
+        :return: the :class:`Statistics` instance
+        :rtype: Statistics
+        """
+        cells = row.split(logging.CSV_SEPARATOR) \
+            if isinstance(row, str) else row
+
+        mini, med, mean, geo, maxi, sd = cells
+        return Statistics(n,
+                          _str_to_if(mini),
+                          _str_to_if(med),
+                          _str_to_if(mean),
+                          _str_to_ifn(geo),
+                          _str_to_if(maxi),
+                          _str_to_if(sd))

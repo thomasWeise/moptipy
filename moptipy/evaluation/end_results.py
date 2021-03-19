@@ -10,7 +10,7 @@ from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
 from moptipy.utils.io import canonicalize_path, enforce_file
 from moptipy.utils.nputils import rand_seed_check
-from ._utils import _if_to_str, _ifn_to_str, _in_to_str, _str_to_if, \
+from ._utils import _ifn_to_str, _in_to_str, _str_to_if, \
     _str_to_ifn, _str_to_in, _try_int
 
 #: The internal CSV header
@@ -227,7 +227,7 @@ class EndResult:
                     f"{e.algorithm}{logging.CSV_SEPARATOR}"
                     f"{e.instance}{logging.CSV_SEPARATOR}"
                     f"{hex(e.rand_seed)}{logging.CSV_SEPARATOR}"
-                    f"{_if_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
+                    f"{logging.num_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
                     f"{e.last_improvement_fe}{logging.CSV_SEPARATOR}"
                     f"{e.last_improvement_time_millis}{logging.CSV_SEPARATOR}"
                     f"{e.total_fes}{logging.CSV_SEPARATOR}"
