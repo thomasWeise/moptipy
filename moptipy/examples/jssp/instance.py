@@ -98,8 +98,8 @@ class Instance(Component):
         usedmachines = np.zeros(machines, np.dtype(np.bool_))
         jobtimes = np.zeros(jobs, nputils.DEFAULT_INT)
         machinetimes = np.zeros(machines, nputils.DEFAULT_INT)
-        machine1 = nputils.intmax(machines, nputils.DEFAULT_INT)
-        machine2 = nputils.intmax(machines, nputils.DEFAULT_INT)
+        machine1 = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
+        machine2 = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
 
         jobidx = 0
         for row in matrix:

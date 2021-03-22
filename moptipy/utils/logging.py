@@ -1,5 +1,4 @@
 """Shared constants and functions for dealing with logs."""
-import cmath
 import math
 from re import sub
 from typing import List, Final, Union
@@ -248,45 +247,6 @@ def float_to_str(x: float) -> str:
     return s
 
 
-def complex_to_str(x: complex) -> str:
-    """
-    Convert complex number to a string.
-
-    :param complex x: the complex floating point value
-    :return: the string representation
-    :rtype: str
-
-    >>> complex_to_str(1.3+3j)
-    '1.3+3j'
-    >>> complex_to_str(1.0+0j)
-    '1'
-    >>> complex_to_str(1+0.2j)
-    '1+0.2j'
-    >>> complex_to_str(0+1j)
-    '1j'
-    >>> complex_to_str(0+0j)
-    '0'
-    >>> complex_to_str(-3j)
-    '-3j'
-    """
-    if x == 0:
-        return "0"
-    y = abs(x)
-    if y == x:
-        return float_to_str(y)
-    s = repr(x)
-    if cmath.isnan(x):
-        raise ValueError(f"'{s}' not permitted.")
-    if s[0] == '(':
-        s = s[1:-1]
-    if s.endswith("+0j"):
-        return s[:-3]
-    if s.startswith("-0"):
-        return s[(3 if s.startswith("-0+") else
-                  2 if s.startswith("-0-") else 1):]
-    return s
-
-
 def bool_to_str(value: bool) -> str:
     """
     Convert a Boolean value to a string.
@@ -328,11 +288,11 @@ def str_to_bool(value: str) -> bool:
     raise ValueError(f"Expected 'T' or 'F', but got '{value}'.")
 
 
-def num_to_str(value: Union[int, float, complex]) -> str:
+def num_to_str(value: Union[int, float]) -> str:
     """
     Transform a numerical type to a string.
 
-    :param Union[int, float, complex] value: the value
+    :param Union[int, float] value: the value
     :return: the string
     :type: str
 
@@ -340,9 +300,5 @@ def num_to_str(value: Union[int, float, complex]) -> str:
     '1'
     >>> num_to_str(1.5)
     '1.5'
-    >>> num_to_str(1.0-2j)
-    '1-2j'
     """
-    return str(value) if isinstance(value, int) else \
-        float_to_str(value) if isinstance(value, float) else \
-        complex_to_str(value)
+    return str(value) if isinstance(value, int) else float_to_str(value)

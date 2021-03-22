@@ -429,8 +429,6 @@ class KeyValueSection(_Section):
                     the_hex = float.hex(value)
         elif isinstance(value, bool):
             txt = logging.bool_to_str(value)
-        elif isinstance(value, complex):
-            txt = logging.complex_to_str(value)
         else:
             txt = str(value)
             if also_hex and isinstance(value, int):

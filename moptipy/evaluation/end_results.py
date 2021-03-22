@@ -105,18 +105,16 @@ class EndResult:
         if not isinstance(algorithm, str):
             raise TypeError(
                 f"algorithm must be str, but is {type(algorithm)}.")
-        object.__setattr__(self, "algorithm", algorithm.strip())
-        if len(self.algorithm) <= 0:
-            raise ValueError("algorithm must not be empty of composed of only"
-                             f" white space, but {algorithm} is.")
+        if algorithm != logging.sanitize_name(algorithm):
+            raise ValueError("In valid algorithm must name '{algorithm}'.")
+        object.__setattr__(self, "algorithm", algorithm)
 
         if not isinstance(instance, str):
             raise TypeError(
                 f"instance must be str, but is {type(instance)}.")
-        object.__setattr__(self, "instance", instance.strip())
-        if len(self.algorithm) <= 0:
-            raise ValueError("instance must not be empty of composed of only"
-                             f" white space, but {instance} is.")
+        if instance != logging.sanitize_name(instance):
+            raise ValueError("In valid instance must name '{instance}'.")
+        object.__setattr__(self, "instance", instance)
 
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
         object.__setattr__(self, "best_f", _try_int(best_f))

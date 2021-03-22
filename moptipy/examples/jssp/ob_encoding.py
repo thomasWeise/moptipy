@@ -1,12 +1,51 @@
 """An implementation of the operation-based encoding for JSSPs."""
 from typing import Final
 
+import numba  # type: ignore
 import numpy as np
 
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.nputils import int_range_to_dtype
+
+
+@numba.njit(nogil=True, cache=True)
+def _map(x: np.ndarray,
+         machine_time: np.ndarray,
+         job_time: np.ndarray,
+         job_idx: np.ndarray,
+         matrix: np.ndarray,
+         times: np.ndarray) -> np.number:
+    """
+    Map an operation-based encoded array to a Gantt chart.
+
+    :param np.ndarray x: the source array
+    :param np.ndarray machine_time: a scratch array for machine times
+    :param np.ndarray job_time: a scratch array for job times
+    :param np.ndarray job_idx: a scratch array for job indices
+    :param np.ndarray matrix: the instance matrix
+    :param np.ndarray times: the output times array
+    :return: the makespan
+    :rtype: np.integer
+    """
+    machine_time.fill(0)
+    job_time.fill(0)
+    job_idx.fill(0)
+
+    for job in x:
+        idx = job_idx[job]
+        job_idx[job] = idx + 2
+        machine = matrix[job, idx]
+        time = matrix[job, idx + 1]
+        start = max(job_time[job], machine_time[machine])
+        times[job, machine, 0] = start
+        end = start + time
+        times[job, machine, 1] = end
+        machine_time[machine] = end
+        job_time[job] = end
+
+    return job_time.max()
 
 
 class OperationBasedEncoding(Encoding):
@@ -58,28 +97,9 @@ class OperationBasedEncoding(Encoding):
         :param np.array x: the array
         :param moptipy.examples.jssp.Gantt y: the Gantt chart
         """
-        machine_time = self.__machine_time
-        machine_time.fill(0)
-        job_time = self.__job_time
-        job_time.fill(0)
-        job_idx = self.__job_idx
-        job_idx.fill(0)
-        matrix = self.__matrix
-        times = y.times
-
-        for job in x:
-            idx = job_idx[job]
-            job_idx[job] = idx + 2
-            machine = matrix[job, idx]
-            time = matrix[job, idx + 1]
-            start = max(job_time[job], machine_time[machine])
-            times[job, machine, 0] = start
-            end = start + time
-            times[job, machine, 1] = end
-            machine_time[machine] = end
-            job_time[job] = end
-
-        y.makespan = int(job_time.max())
+        y.makespan = int(_map(x, self.__machine_time,
+                              self.__job_time, self.__job_idx,
+                              self.__matrix, y.times))
 
     def get_name(self) -> str:
         """

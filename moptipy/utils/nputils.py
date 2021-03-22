@@ -1,34 +1,68 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
-from typing import Final, Optional, List, Iterable
-from typing import Set, Dict, Tuple, cast
+from typing import Final, Optional, List, Iterable, cast
+from typing import Set, Dict, Tuple
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import default_rng, Generator, PCG64
 
 from moptipy.utils import logging
 
-__NP_INTS: Final[Tuple[Tuple[np.dtype, int, int], ...]] = \
-    tuple([(t[0], int(t[1].min), int(t[1].max))
-           for t in ((tt, np.iinfo(tt))
-                     for tt in (cast(np.dtype, np.dtype(ttt))
-                                for ttt in [np.int8, np.uint8,
-                                            np.int16, np.uint16,
-                                            np.int32, np.uint32,
-                                            np.int64, np.uint64]))])
+#: A map associating all numpy integer types associated to tuples
+#: of their respective minimum and maximum value.
+__NP_INTS_MAP: Final[Dict[np.dtype, Tuple[int, int]]] = \
+    {t: (int(ti.min), int(ti.max)) for t, ti in
+     cast(List[Tuple[np.dtype, np.iinfo]],
+          ((dtt, np.iinfo(dtt)) for dtt in
+           cast(List[np.dtype], [np.dtype(dt) for dt in
+                                 cast(List[type],
+                                      [np.int8, np.uint8,
+                                       np.int16, np.uint16,
+                                       np.int32, np.uint32,
+                                       np.int64, np.uint64])])))}
 
-#: The default integer type: the signed 64 bit integer
-DEFAULT_INT: Final[np.dtype] = (__NP_INTS[len(__NP_INTS) - 2])[0]
+#: A tuple of integer types with their corresponding minimum and maximum
+#: values in increasing orders of size. The tuple contains alternating
+#: signed and unsigned types. It starts with the smallest signed type,
+#: `np.int8` and ends with the largest unsigned type `np.uint64`.
+#: If we have a range `[min..max]` of valids values, then we can look up this
+#: range and find the integer type with the smallest memory footprint to
+#: accommodate it. This is what :meth:`int_range_to_dtype` does.
+__NP_INTS_LIST: Final[Tuple[Tuple[np.dtype, int, int], ...]] = \
+    tuple([(a[3], a[1], a[2]) for a in
+           sorted([(t.itemsize, a[0], a[1], t)
+                   for t, a in __NP_INTS_MAP.items()])])
 
-#: The default unsigned integer type: an unsigned 64 bit integer
-__DEFAULT_UNSIGNED_INT: Final[np.dtype] = (__NP_INTS[len(__NP_INTS) - 1])[0]
+#: The default integer type: the signed 64 bit integer.
+DEFAULT_INT: Final[np.dtype] = (__NP_INTS_LIST[-2])[0]
 
-__NP_INT_MAX: Final[Dict[np.dtype, int]] = {}
-for i in __NP_INTS:
-    __NP_INT_MAX[i[0]] = i[2]
-__NP_INT_MIN: Final[Dict[np.dtype, int]] = {}
-for i in __NP_INTS:
-    __NP_INT_MIN[i[0]] = i[1]
+#: The default unsigned integer type: an unsigned 64 bit integer.
+__DEFAULT_UNSIGNED_INT: Final[np.dtype] = (__NP_INTS_LIST[-1])[0]
+
+#: The default boolean type.
+__DEFAULT_BOOLS: Final[np.dtype] = np.dtype(np.bool_)
+
+#: The default floating point type.
+__DEFAULT_FLOAT: Final[np.dtype] = np.dtype(np.float64)
+
+
+def is_np_int(dtype: np.dtype) -> bool:
+    """
+    Check whether a :class:`np.dtype` is an integer type.
+
+    :param np.dtype dtype: the type
+    """
+    return dtype.kind == 'i'
+
+
+def is_np_float(dtype: np.dtype) -> bool:
+    """
+    Check whether a :class:`np.dtype` is an floating point type.
+
+    :param np.dtype dtype: the type
+    """
+    return dtype.kind == 'f'
 
 
 def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
@@ -56,24 +90,23 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
             f"min_value must be <= max_value, but min_value={min_value} "
             f"and max_value={max_value} was provided.")
 
-    for t in __NP_INTS:
+    for t in __NP_INTS_LIST:
         if (min_value >= t[1]) and (max_value <= t[2]):
             return t[0]
 
-    ll = len(__NP_INTS) - 1
     if min_value >= 0:
         raise ValueError(
             "max_value for unsigned integers must be <="
-            f"{(__NP_INTS[ll])[2]}, but is {max_value} "
+            f"{(__NP_INTS_LIST[-1])[2]}, but is {max_value} "
             f" for min_value={min_value}.")
 
-    ll = ll - 1
     raise ValueError(
-        f"Signed integer range cannot exceed {(__NP_INTS[ll])[1]}.."
-        f"{(__NP_INTS[ll])[2]}, but {min_value}..{max_value} was specified.")
+        f"Signed integer range cannot exceed {__NP_INTS_LIST[-2][1]}.."
+        f"{__NP_INTS_LIST[-2][2]}, but {min_value}..{max_value} "
+        "was specified.")
 
 
-def intmax(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
+def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
     Create an integer array of the given length filled with the maximum value.
 
@@ -83,11 +116,11 @@ def intmax(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     :rtype: np.ndarray
     """
     return np.full(shape=shape,
-                   fill_value=__NP_INT_MAX[dtype],
+                   fill_value=__NP_INTS_MAP[dtype][1],
                    dtype=dtype)
 
 
-def intmin(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
+def np_ints_min(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
     Create an integer array of the given length filled with the minimum value.
 
@@ -97,7 +130,7 @@ def intmin(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     :rtype: np.ndarray
     """
     return np.full(shape=shape,
-                   fill_value=__NP_INT_MIN[dtype],
+                   fill_value=__NP_INTS_MAP[dtype][0],
                    dtype=dtype)
 
 
@@ -225,10 +258,6 @@ def rand_seeds_from_str(string: str,
     return result
 
 
-#: The default boolean type
-__DEFAULT_BOOLS: Final[np.dtype] = np.dtype(np.bool_)
-
-
 def strs_to_bools(lines: Iterable[str]) -> np.ndarray:
     """
     Convert an array of strings to a boolean numpy array.
@@ -272,10 +301,6 @@ def strs_to_ints(lines: Iterable[str]) -> np.ndarray:
     return np.array(lines, dtype=DEFAULT_INT)
 
 
-#: The default float type
-__DEFAULT_FLOAT: Final[np.dtype] = np.dtype(np.float64)
-
-
 def strs_to_floats(lines: Iterable[str]) -> np.ndarray:
     """
     Convert an array of strings to a numpy array of floats.
@@ -288,3 +313,18 @@ def strs_to_floats(lines: Iterable[str]) -> np.ndarray:
     array([-1.6,  2. ,  3. ])
     """
     return np.array(lines, dtype=__DEFAULT_FLOAT)
+
+
+@numba.njit(nogil=True)
+def is_all_finite(a: np.ndarray) -> bool:
+    """
+    Check if an array is all finite.
+
+    :param np.ndarray a: the input array
+    :return: `True` if all elements in the array are finite, `False` otherwise
+    :rtype: bool
+    """
+    for x in a:
+        if not np.isfinite(x):
+            return False
+    return True

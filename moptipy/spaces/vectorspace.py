@@ -1,16 +1,17 @@
 """An implementation of an unconstrained n-dimensional continuous space."""
-from typing import Final, Callable
+from typing import Final
 
 import numpy as np
 
 from moptipy.api.space import Space
-from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logging import float_to_str, KEY_SPACE_NUM_VARS
+from moptipy.utils.nputils import is_np_float, is_all_finite
 
 
 class VectorSpace(Space):
     """
-    A vector-based space where each element is a one-dimensional numpy array.
+    A vector space where each element is a one-dimensional numpy float array.
 
     Such spaces are useful for continuous optimization.
     """
@@ -34,7 +35,7 @@ class VectorSpace(Space):
             raise ValueError("dimension must be in 1..1_000_000_000, "
                              f"but got {dimension}.")
 
-        if not (isinstance(dtype, np.dtype) and (dtype.char in "efdgFDG")):
+        if not (isinstance(dtype, np.dtype) and is_np_float(dtype)):
             raise TypeError(f"Invalid data type {dtype}.")
 
         #: The dimension of the space, i.e., the vectors.
@@ -42,11 +43,6 @@ class VectorSpace(Space):
 
         #: The basic data type of the vector elements.
         self.dtype: Final[np.dtype] = dtype
-
-        #: The internal formatter for the to_string method
-        self.__formatter: Final[Callable] = logging.complex_to_str \
-            if dtype.char in "FDG" \
-            else logging.float_to_str
 
     def create(self) -> np.ndarray:
         """
@@ -74,7 +70,7 @@ class VectorSpace(Space):
         :return: the string
         :rtype: str
         """
-        return ",".join([self.__formatter(xx) for xx in x])
+        return ",".join([float_to_str(xx) for xx in x])
 
     def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         """
@@ -122,7 +118,7 @@ class VectorSpace(Space):
         if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
             raise ValueError(f"x must be of shape ({self.dimension}) but is "
                              f"of shape {x.shape}.")
-        if not all(np.isfinite(x)):
+        if not is_all_finite(x):
             raise ValueError("All elements must be finite.")
 
     def scale(self) -> int:
@@ -136,37 +132,19 @@ class VectorSpace(Space):
         if self.dtype.char == "e":
             exponent = 5
             mantissa = 10
-            is_complex = False
         elif self.dtype.char == "f":
             exponent = 8
             mantissa = 23
-            is_complex = False
         elif self.dtype == "d":
             exponent = 11
             mantissa = 52
-            is_complex = False
         elif self.dtype == "g":
             exponent = 15
             mantissa = 112
-            is_complex = False
-        elif self.dtype == "F":
-            exponent = 8
-            mantissa = 23
-            is_complex = True
-        elif self.dtype == "D":
-            exponent = 11
-            mantissa = 52
-            is_complex = True
-        elif self.dtype == "G":
-            exponent = 15
-            mantissa = 112
-            is_complex = True
         else:
             raise ValueError(f"Invalid dtype {self.dtype}.")
 
         base = 2 * ((2 ** exponent) - 1) * (2 ** mantissa) - 1
-        if is_complex:
-            base = base * base
         return base ** self.dimension
 
     def get_name(self) -> str:
@@ -188,5 +166,5 @@ class VectorSpace(Space):
         :param KeyValueLogger logger: the logger
         """
         super().log_parameters_to(logger)
-        logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
+        logger.key_value(KEY_SPACE_NUM_VARS, self.dimension)
         logger.key_value(VectorSpace.KEY_NUMPY_TYPE, self.dtype.char)
