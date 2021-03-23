@@ -6,13 +6,12 @@ from typing import Optional, Union, Iterable, List, MutableSequence, Dict, \
     Final, Callable
 
 from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if
+from moptipy.evaluation.base_classes import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
 from moptipy.utils import logging as log
 from moptipy.utils.io import canonicalize_path, enforce_file
 
-#: The key for the total number of runs.
-KEY_N: Final[str] = "n"
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
 #: The key for the number of successful runs.
@@ -28,7 +27,7 @@ KEY_ERT_TIME_MILLIS: Final[str] = "ertTimeMillis"
 
 
 @dataclass(frozen=True, init=False, order=True)
-class EndStatistics:
+class EndStatistics(MultiRunData):
     """
     Statistics over end results of one or multiple algorithm*instance setups.
 
@@ -37,12 +36,6 @@ class EndStatistics:
     runs is defined.
     """
 
-    #: The algorithm that was applied, if the same over all runs.
-    algorithm: Optional[str]
-    #: The problem instance that was solved, if the same over all runs.
-    instance: Optional[str]
-    #: The number of runs.
-    n: int
     #: The statistics about the best encountered result.
     best_f: Statistics
     #: The statistics about the last improvement FE.
@@ -136,21 +129,7 @@ class EndStatistics:
         :param Union[Statistics, int, None] max_time_millis: the budget in
             term of milliseconds
         """
-        if algorithm is not None:
-            if algorithm != log.sanitize_name(algorithm):
-                raise ValueError(f"Invalid algorithm '{algorithm}'.")
-        object.__setattr__(self, "algorithm", algorithm)
-
-        if instance is not None:
-            if instance != log.sanitize_name(instance):
-                raise ValueError(f"Invalid instance '{instance}'.")
-        object.__setattr__(self, "instance", instance)
-
-        if not isinstance(n, int):
-            raise TypeError(f"n must be int, but is {type(n)}.")
-        if n <= 0:
-            raise ValueError(f"n must be > 0, but is {n}.")
-        object.__setattr__(self, "n", n)
+        super().__init__(algorithm, instance, n)
 
         if not isinstance(best_f, Statistics):
             raise TypeError(f"best_f must Statistics, but is {type(best_f)}.")

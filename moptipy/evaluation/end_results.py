@@ -4,13 +4,13 @@ from datetime import datetime
 from math import inf
 from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
+from moptipy.evaluation._utils import _ifn_to_str, _in_to_str, _str_to_if, \
+    _str_to_ifn, _str_to_in, _try_int
+from moptipy.evaluation.base_classes import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
 from moptipy.utils.io import canonicalize_path, enforce_file
-from moptipy.utils.nputils import rand_seed_check
-from ._utils import _ifn_to_str, _in_to_str, _str_to_if, \
-    _str_to_ifn, _str_to_in, _try_int
 
 #: The internal CSV header
 _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
@@ -28,22 +28,13 @@ _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
 
 
 @dataclass(frozen=True, init=False, order=True)
-class EndResult:
+class EndResult(PerRunData):
     """
     An immutable end result record of one run of one algorithm on one problem.
 
     This record provides the information of the outcome of one application of
     one algorithm to one problem instance in an immutable way.
     """
-
-    #: The algorithm that was applied.
-    algorithm: str
-
-    #: The problem instance that was solved.
-    instance: str
-
-    #: The seed of the random number generator.
-    rand_seed: int
 
     #: The best objective value encountered.
     best_f: Union[int, float]
@@ -101,21 +92,7 @@ class EndResult:
         :raises TypeError: if any parameter has a wrong type
         :raises ValueError: if the parameter values are inconsistent
         """
-        if not isinstance(algorithm, str):
-            raise TypeError(
-                f"algorithm must be str, but is {type(algorithm)}.")
-        if algorithm != logging.sanitize_name(algorithm):
-            raise ValueError("In valid algorithm must name '{algorithm}'.")
-        object.__setattr__(self, "algorithm", algorithm)
-
-        if not isinstance(instance, str):
-            raise TypeError(
-                f"instance must be str, but is {type(instance)}.")
-        if instance != logging.sanitize_name(instance):
-            raise ValueError("In valid instance must name '{instance}'.")
-        object.__setattr__(self, "instance", instance)
-
-        object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
+        super().__init__(algorithm, instance, rand_seed)
         object.__setattr__(self, "best_f", _try_int(best_f))
 
         if not isinstance(last_improvement_fe, int):

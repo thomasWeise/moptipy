@@ -7,9 +7,10 @@ import numpy as np
 
 import moptipy.utils.logging as logging
 from moptipy.evaluation._utils import _str_to_if
+from moptipy.evaluation.base_classes import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
-from moptipy.utils.nputils import rand_seed_check, is_np_int, is_np_float, \
+from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
 
 #: The unit of the time axis if time is measured in milliseconds.
@@ -56,17 +57,8 @@ def check_f_name(f_name: str) -> str:
 
 
 @dataclass(frozen=True, init=False, order=True)
-class Progress:
+class Progress(PerRunData):
     """An immutable record of progress information over a single run."""
-
-    #: The algorithm that was applied.
-    algorithm: str
-
-    #: The problem instance that was solved.
-    instance: str
-
-    #: The seed of the random number generator.
-    rand_seed: int
 
     #: The time axis data.
     time: np.ndarray
@@ -110,24 +102,15 @@ class Progress:
         :param bool only_improvements: enforce that f-values should be
             improving and time values increasing
         """
-        if not isinstance(algorithm, str):
-            raise TypeError(
-                f"algorithm must be str, but is {type(algorithm)}.")
-        if algorithm != logging.sanitize_name(algorithm):
-            raise ValueError("In valid algorithm must name '{algorithm}'.")
-        object.__setattr__(self, "algorithm", algorithm)
-
-        if not isinstance(instance, str):
-            raise TypeError(
-                f"instance must be str, but is {type(instance)}.")
-        if instance != logging.sanitize_name(instance):
-            raise ValueError("In valid instance must name '{instance}'.")
-        object.__setattr__(self, "instance", instance)
-        object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
+        super().__init__(algorithm, instance, rand_seed)
 
         if not isinstance(time, np.ndarray):
             raise TypeError(
                 f"time data must be np.array, but is {type(time)}.")
+        time.flags.writeable = False
+        if len(time.shape) != 1:
+            raise ValueError("time array must be one-dimensional, but "
+                             f"has shape {time.shape}.")
         if not is_np_int(time.dtype):
             raise TypeError("time data must be integer-valued.")
         tl = time.size
@@ -155,6 +138,10 @@ class Progress:
         if not isinstance(f, np.ndarray):
             raise TypeError(
                 f"f data must be np.array, but is {type(f)}.")
+        f.flags.writeable = False
+        if len(f.shape) != 1:
+            raise ValueError(
+                f"f array must be one-dimensional, but has shape {f.shape}.")
         if is_np_float(f.dtype):
             if not is_all_finite(f):
                 raise ValueError("f must be all finite.")

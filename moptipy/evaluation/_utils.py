@@ -3,7 +3,7 @@
 from math import isfinite, inf, gcd
 from typing import Union, Optional, Final
 
-from moptipy.utils import logging
+import moptipy.utils.logging as logging
 
 
 def _ifn_to_str(val: Union[int, float, None]) -> str:
