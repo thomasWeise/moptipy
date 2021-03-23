@@ -2,10 +2,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 from math import inf
-from os.path import dirname, basename
 from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
-from moptipy.evaluation.log_parser import LogParser
+from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
 from moptipy.utils.io import canonicalize_path, enforce_file
@@ -282,18 +281,15 @@ class EndResult:
         print(f"{datetime.now()}: Done reading CSV file '{file}'.")
 
 
-class _InnerLogParser(LogParser):
+class _InnerLogParser(ExperimentParser):
     """The internal log parser class."""
 
     def __init__(self, collector: MutableSequence[EndResult]):
-        super().__init__(print_begin_end=True, print_dir_start=True)
+        super().__init__()
         if not isinstance(collector, MutableSequence):
             raise TypeError("Collector must be mutable sequence, "
                             f"but is {type(collector)}.")
         self.__collector: Final[MutableSequence[EndResult]] = collector
-        self.__algorithm: Optional[str] = None
-        self.__instance: Optional[str] = None
-        self.__rand_seed: Optional[int] = None
         self.__total_fes: Optional[int] = None
         self.__total_time_millis: Optional[int] = None
         self.__best_f: Union[int, float, None] = None
@@ -311,20 +307,6 @@ class _InnerLogParser(LogParser):
         if self.__state != 0:
             raise ValueError(f"Illegal state when trying to parse {path}.")
 
-        inst_dir = dirname(path)
-        algo_dir = dirname(inst_dir)
-        self.__instance = logging.sanitize_name(basename(inst_dir))
-        self.__algorithm = logging.sanitize_name(basename(algo_dir))
-
-        start = f"{self.__algorithm}{logging.PART_SEPARATOR}" \
-                f"{self.__instance}{logging.PART_SEPARATOR}0x"
-        base = basename(path)
-        if not base.startswith(start):
-            raise ValueError(
-                f"File name of '{path}' should start with '{start}'.")
-        self.__rand_seed = rand_seed_check(int(
-            base[len(start):(-len(logging.FILE_SUFFIX))], base=16))
-
         return True
 
     def end_file(self) -> bool:
@@ -334,11 +316,11 @@ class _InnerLogParser(LogParser):
                 f"{logging.SECTION_FINAL_STATE} and a "
                 f"{logging.SECTION_SETUP} section.")
 
-        if self.__rand_seed is None:
+        if self.rand_seed is None:
             raise ValueError("rand_seed is missing.")
-        if self.__algorithm is None:
+        if self.algorithm is None:
             raise ValueError("algorithm is missing.")
-        if self.__instance is None:
+        if self.instance is None:
             raise ValueError("instance is missing.")
         if self.__total_fes is None:
             raise ValueError("total_fes is missing.")
@@ -352,9 +334,9 @@ class _InnerLogParser(LogParser):
             raise ValueError("last_improvement_time_millis is missing.")
 
         self.__collector.append(
-            EndResult(self.__algorithm,
-                      self.__instance,
-                      self.__rand_seed,
+            EndResult(self.algorithm,
+                      self.instance,
+                      self.rand_seed,
                       self.__best_f,
                       self.__last_improvement_fe,
                       self.__last_improvement_time_millis,
@@ -364,9 +346,6 @@ class _InnerLogParser(LogParser):
                       self.__max_fes,
                       self.__max_time_millis))
 
-        self.__rand_seed = None
-        self.__algorithm = None
-        self.__instance = None
         self.__total_fes = None
         self.__total_time_millis = None
         self.__best_f = None
@@ -376,7 +355,7 @@ class _InnerLogParser(LogParser):
         self.__max_fes = None
         self.__max_time_millis = None
         self.__state = 0
-        return True
+        return super().end_file()
 
     def start_section(self, title: str) -> bool:
         if title == logging.SECTION_SETUP:
@@ -415,10 +394,10 @@ class _InnerLogParser(LogParser):
                     int(data[logging.KEY_MAX_TIME_MILLIS])
 
             seed_check = int(data[logging.KEY_RAND_SEED])
-            if seed_check != self.__rand_seed:
+            if seed_check != self.rand_seed:
                 raise ValueError(
                     f"Found seed {seed_check} in log file, but file name "
-                    f"indicates seed {self.__rand_seed}.")
+                    f"indicates seed {self.rand_seed}.")
 
             self.__state = (self.__state | 1) & (~4)
             return self.__state != 3
@@ -428,11 +407,7 @@ class _InnerLogParser(LogParser):
             self.__total_time_millis = \
                 int(data[logging.KEY_TOTAL_TIME_MILLIS])
 
-            best_f = data[logging.KEY_BEST_F]
-            if ("e" in best_f) or ("E" in best_f) or ("." in best_f):
-                self.__best_f = float(best_f)
-            else:
-                self.__best_f = int(best_f)
+            self.__best_f = _str_to_if(data[logging.KEY_BEST_F])
 
             self.__last_improvement_fe = \
                 int(data[logging.KEY_LAST_IMPROVEMENT_FE])

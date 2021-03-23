@@ -3,11 +3,12 @@
 from abc import ABC
 from datetime import datetime
 from os import listdir
-from os.path import isfile, isdir, join
-from typing import List, Final
+from os.path import isfile, isdir, join, dirname, basename
+from typing import List, Final, Optional
 
 from moptipy.utils import logging
 from moptipy.utils.io import canonicalize_path, enforce_file, enforce_dir
+from moptipy.utils.nputils import rand_seed_check
 
 
 class LogParser(ABC):
@@ -90,7 +91,7 @@ class LogParser(ABC):
     # noinspection PyMethodMayBeStatic
     def start_file(self, path: str) -> bool:
         """
-        Decide whether to parsing a file.
+        Decide whether to start parsing a file.
 
         This method is called by :meth:`parse_file`. If it returns `True`,
         then we will open and parse the file. If it returns `False`, then
@@ -372,3 +373,55 @@ class LogParser(ABC):
             return self.parse_dir(path)
         raise ValueError(
             f"Path {path} is neither a file nor a directory?")
+
+
+class ExperimentParser(LogParser):
+    """A log parser following our pre-defined experiment structure."""
+
+    def __init__(self):
+        """Initialize the experiment parser."""
+        super().__init__(print_begin_end=True, print_dir_start=True)
+
+        #: The name of the algorithm to which the current log file belongs.
+        self.algorithm: Optional[str] = None
+
+        #: The name of the instance to which the current log file belongs.
+        self.instance: Optional[str] = None
+
+        #: The random seed of the current log file.
+        self.rand_seed: Optional[int] = None
+
+    def start_file(self, path: str) -> bool:
+        """
+        Decide whether to start parsing a file and setup meta-data.
+
+        :param str path: the file path
+        :return: `True` if the file should be parsed, `False` if it should be
+            skipped (and :meth:`parse_file` should return `True`).
+        :rtype: bool
+        """
+        if not super().start_file(path):
+            return False
+
+        inst_dir = dirname(path)
+        algo_dir = dirname(inst_dir)
+        self.instance = logging.sanitize_name(basename(inst_dir))
+        self.algorithm = logging.sanitize_name(basename(algo_dir))
+
+        start = f"{self.algorithm}{logging.PART_SEPARATOR}" \
+                f"{self.instance}{logging.PART_SEPARATOR}0x"
+        base = basename(path)
+        if not base.startswith(start):
+            raise ValueError(
+                f"File name of '{path}' should start with '{start}'.")
+        self.rand_seed = rand_seed_check(int(
+            base[len(start):(-len(logging.FILE_SUFFIX))], base=16))
+
+        return True
+
+    def end_file(self) -> bool:
+        """Finalize parsing a file."""
+        self.rand_seed = None
+        self.algorithm = None
+        self.instance = None
+        return super().end_file()

@@ -5,9 +5,9 @@ from typing import Final
 import moptipy.version
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.evaluation.log_parser import LogParser
-from moptipy.evaluation.parse_data import parse_key_values, parse_csv, \
-    strs_to_array
+from moptipy.evaluation.log_parser import LogParser, ExperimentParser
+from moptipy.evaluation.parse_data import parse_key_values
+from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.statistics import Statistics
 
 __version__: Final[str] = moptipy.version.__version__
@@ -15,8 +15,8 @@ __version__: Final[str] = moptipy.version.__version__
 __all__ = (
     "EndResult",
     "EndStatistics",
+    "ExperimentParser",
     "LogParser",
-    "parse_csv",
     "parse_key_values",
-    "Statistics",
-    "strs_to_array")
+    "Progress",
+    "Statistics")

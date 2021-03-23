@@ -36,10 +36,10 @@ def _str_to_if(val: str) -> Union[int, float]:
     :return: the int or float
     :rtype: Union[int, float]
     """
-    return inf if (val == "inf") else \
-        float(val) if ("e" in val) or \
-                      ("E" in val) or \
-                      ("." in val) else int(val)
+    return float(val) if ("e" in val) or \
+                         ("E" in val) or \
+                         ("." in val) or \
+                         ("inf" in val) else int(val)
 
 
 def _str_to_ifn(val: str) -> Union[int, float, None]:
