@@ -15,11 +15,11 @@ from moptipy.utils.nputils import is_np_float
 
 #: The value of the CDF of the standard normal distribution CDF at -1,
 #: which corresponds to "mean - 1 * sd".
-_Q159: Final[float] = (1.0 + erf(-1.0 / sqrt(2.0))) / 2.0
+__Q159: Final[float] = (1.0 + erf(-1.0 / sqrt(2.0))) / 2.0
 
 #: The value of the CDF of the standard normal distribution CDF at +1,
 #: which corresponds to "mean + 1 * sd".
-_Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
+__Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
 
 
 @numba.njit(cache=True)
@@ -188,7 +188,7 @@ def __stat_max(data: np.ndarray) -> np.number:
     return data.max()
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(cache=True)
 def __stat_median(data: np.ndarray) -> np.number:
     """
     Compute the median.
@@ -236,6 +236,54 @@ def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
     return data.mean() + data.std()
 
 
+@numba.njit(cache=True)
+def __stat_quantile_10(data: np.ndarray) -> np.number:
+    """
+    Compute the 10% quantile.
+
+    :param np.ndarray data: the data
+    :return: the 10% quantile
+    :rtype: np.number
+    """
+    return np.quantile(data, 0.1)
+
+
+@numba.njit(cache=True)
+def __stat_quantile_90(data: np.ndarray) -> np.number:
+    """
+    Compute the 90% quantile.
+
+    :param np.ndarray data: the data
+    :return: the 90% quantile
+    :rtype: np.number
+    """
+    return np.quantile(data, 0.9)
+
+
+@numba.njit(cache=True)
+def __stat_quantile_159(data: np.ndarray) -> np.number:
+    """
+    Compute the 15.9% quantile, which equals mean-sd in normal distributions.
+
+    :param np.ndarray data: the data
+    :return: the 15.9% quantile
+    :rtype: np.number
+    """
+    return np.quantile(data, __Q159)
+
+
+@numba.njit(cache=True)
+def __stat_quantile_841(data: np.ndarray) -> np.number:
+    """
+    Compute the 84.1% quantile, which equals mean+sd in normal distributions.
+
+    :param np.ndarray data: the data
+    :return: the 84.1% quantile
+    :rtype: np.number
+    """
+    return np.quantile(data, __Q841)
+
+
 #: The statistics key for the minimum
 STAT_MINIMUM: Final[str] = statn.KEY_MINIMUM
 #: The statistics key for the median.
@@ -252,6 +300,16 @@ STAT_STDDEV: Final[str] = statn.KEY_STDDEV
 STAT_MEAN_MINUS_STDDEV: Final[str] = f"{STAT_MEAN_ARITH}-{STAT_STDDEV}"
 #: The key for the arithmetic mean plus the standard deviation.
 STAT_MEAN_PLUS_STDDEV: Final[str] = f"{STAT_MEAN_ARITH}+{STAT_STDDEV}"
+#: The key for the 10% quantile.
+STAT_Q10: Final[str] = "q10"
+#: The key for the 90% quantile.
+STAT_Q90: Final[str] = "q90"
+#: The key for the 15.9% quantile. In a normal distribution, this quantile
+#: is where "mean - standard deviation" is located-
+STAT_Q159: Final[str] = "q159"
+#: The key for the 84.1% quantile. In a normal distribution, this quantile
+#: is where "mean + standard deviation" is located-
+STAT_Q841: Final[str] = "q841"
 
 #: The internal function map.
 _FUNC_MAP: Final[Dict[str, Callable]] = {
@@ -262,7 +320,11 @@ _FUNC_MAP: Final[Dict[str, Callable]] = {
     STAT_MAXIMUM: __stat_max,
     STAT_STDDEV: __stat_sd,
     STAT_MEAN_MINUS_STDDEV: __stat_mean_minus_sd,
-    STAT_MEAN_PLUS_STDDEV: __stat_mean_plus_sd
+    STAT_MEAN_PLUS_STDDEV: __stat_mean_plus_sd,
+    STAT_Q10: __stat_quantile_10,
+    STAT_Q90: __stat_quantile_90,
+    STAT_Q159: __stat_quantile_159,
+    STAT_Q841: __stat_quantile_841
 }
 
 
@@ -410,3 +472,69 @@ class StatRun(MultiRunData):
 
         if count <= 0:
             raise ValueError("No statistic names provided.")
+
+    @staticmethod
+    def from_progress(source: Iterable[Progress],
+                      statistics: Iterable[str],
+                      collector: MutableSequence['StatRun'],
+                      join_all_algorithms: bool = False,
+                      join_all_instances: bool = False) -> None:
+        """
+        Aggregate statist runs over a stream of progress data.
+
+        :param Iterable[moptipy.evaluation.Progress] source: the stream
+            of progress data
+        :param Iterable[str] statistics: the statistics that should be
+            computed per group
+        :param MutableSequence['StatRun'] collector: the destination
+            to which the new stat runs will be appended
+        :param bool join_all_algorithms: should the statistics be aggregated
+            over all algorithms
+        :param bool join_all_instances: should the statistics be aggregated
+            over all algorithms
+        """
+        if not isinstance(source, Iterable):
+            raise TypeError(
+                f"source must be Iterable, but is {type(source)}.")
+        if not isinstance(statistics, Iterable):
+            raise TypeError(
+                f"statistics must be Iterable, but is {type(statistics)}.")
+        if not isinstance(collector, MutableSequence):
+            raise TypeError("collector must be MutableSequence, "
+                            f"but is {type(collector)}.")
+        if not isinstance(join_all_algorithms, bool):
+            raise TypeError("join_all_algorithms must be bool, "
+                            f"but is {type(join_all_algorithms)}.")
+        if not isinstance(join_all_instances, bool):
+            raise TypeError("join_all_instances must be bool, "
+                            f"but is {type(join_all_instances)}.")
+
+        sorter: Dict[str, List[Progress]] = dict()
+        for prog in source:
+            if not isinstance(prog, Progress):
+                raise TypeError("source must contain only Progress, but "
+                                f"found a {type(prog)}.")
+            a: str = "" if join_all_algorithms else prog.algorithm
+            i: str = "" if join_all_instances else prog.instance
+            key: str = f"{a}/{i}/{prog.time_unit}/{prog.f_name}"
+            if key in sorter:
+                lst = sorter[key]
+            else:
+                lst = list()
+                sorter[key] = lst
+            lst.append(prog)
+
+        if len(sorter) <= 0:
+            raise ValueError("source must not be empty")
+
+        if len(sorter) > 1:
+            keys = list(sorter.keys())
+            keys.sort()
+            for key in keys:
+                StatRun.create(sorter[key],
+                               statistics,
+                               collector)
+        else:
+            StatRun.create(next(iter(sorter.values())),
+                           statistics,
+                           collector)

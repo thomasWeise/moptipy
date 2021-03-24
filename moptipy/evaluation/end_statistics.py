@@ -537,7 +537,7 @@ class EndStatistics(MultiRunData):
         """
         Aggregate statistics over a stream of end results.
 
-        :param Iterable[.moptipy.evaluation.EndResult] source: the stream
+        :param Iterable[moptipy.evaluation.EndResult] source: the stream
             of end results
         :param MutableSequence['EndStatistic'] collector: the destination
             to which the new records will be appended
@@ -580,15 +580,16 @@ class EndStatistics(MultiRunData):
 
         if len(sorter) <= 0:
             raise ValueError("source must not be empty")
-        if len(sorter) <= 1:
-            collector.append(EndStatistics.create(source))
-            return
 
-        keys = list(sorter.keys())
-        keys.sort()
-
-        for key in keys:
-            collector.append(EndStatistics.create(sorter[key]))
+        keys: Iterable[str]
+        if len(sorter) > 1:
+            keys = list(sorter.keys())
+            keys.sort()
+            for key in keys:
+                collector.append(EndStatistics.create(sorter[key]))
+        else:
+            collector.append(EndStatistics.create(
+                next(iter(sorter.values()))))
 
     @staticmethod
     def to_csv(data: Iterable['EndStatistics'], file: str) -> None:
