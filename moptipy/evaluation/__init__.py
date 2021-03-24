@@ -9,6 +9,7 @@ from moptipy.evaluation.log_parser import LogParser, ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.statistics import Statistics
+from moptipy.evaluation.stat_run import StatRun
 
 __version__: Final[str] = moptipy.version.__version__
 
@@ -19,4 +20,5 @@ __all__ = (
     "LogParser",
     "parse_key_values",
     "Progress",
-    "Statistics")
+    "Statistics",
+    "StatRun")

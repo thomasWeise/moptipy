@@ -41,12 +41,12 @@ class Statistics:
     minimum: Union[int, float]
     #: The median.
     median: Union[int, float]
-    #: The maximum.
-    maximum: Union[int, float]
     #: The arithmetic mean value.
     mean_arith: Union[int, float]
     #: The geometric mean value, if defined.
     mean_geom: Union[int, float, None]
+    #: The maximum.
+    maximum: Union[int, float]
     #: The standard deviation.
     stddev: Union[int, float]
 

@@ -65,7 +65,7 @@ class MultiRunData:
     algorithm: Optional[str]
     #: The problem instance that was solved, if the same over all runs.
     instance: Optional[str]
-    #: The number of runs.
+    #: The number of runs over which the statistic information is computed.
     n: int
 
     def __init__(self,

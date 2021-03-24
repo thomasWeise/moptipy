@@ -1,6 +1,6 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
 
-from typing import List, Final
+from typing import List
 
 import numpy as np
 
@@ -8,7 +8,7 @@ import moptipy.evaluation.progress as prg
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, RandomSampling
 from moptipy.api import Execution, run_experiment
-from moptipy.evaluation import EndResult, EndStatistics, Progress
+from moptipy.evaluation import EndResult, EndStatistics, Progress, StatRun
 from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
@@ -64,7 +64,6 @@ def test_experiment_jssp():
 
         results: List[EndResult] = list()
         EndResult.from_logs(base_dir, results)
-        resr: Final[List[EndResult]] = results.copy()
 
         assert len(results) == (4 * 2 * 3)
         results.sort()
@@ -309,81 +308,95 @@ def test_experiment_jssp():
         Progress.from_logs(base_dir, progress_fes_raw,
                            time_unit=prg.TIME_UNIT_FES,
                            f_name=prg.F_NAME_RAW)
+        progress_fes_raw.sort()
         assert len(progress_fes_raw) == 24
         for idx, pr in enumerate(progress_fes_raw):
             assert isinstance(pr, Progress)
-            assert pr.algorithm == resr[idx].algorithm
-            assert pr.instance == resr[idx].instance
-            assert pr.rand_seed == resr[idx].rand_seed
-            assert pr.f[-1] == resr[idx].best_f
-            assert pr.time[-1] >= resr[idx].last_improvement_fe
-            assert pr.time[-1] <= resr[idx].total_fes
+            assert pr.algorithm == results[idx].algorithm
+            assert pr.instance == results[idx].instance
+            assert pr.rand_seed == results[idx].rand_seed
+            assert pr.f[-1] == results[idx].best_f
+            assert pr.time[-1] >= results[idx].last_improvement_fe
+            assert pr.time[-1] <= results[idx].total_fes
 
         Progress.from_logs(base_dir, progress_ms_raw,
                            time_unit=prg.TIME_UNIT_MILLIS,
                            f_name=prg.F_NAME_RAW)
+        progress_ms_raw.sort()
         assert len(progress_ms_raw) == 24
         for idx, pr in enumerate(progress_ms_raw):
             assert isinstance(pr, Progress)
-            assert pr.algorithm == resr[idx].algorithm
-            assert pr.instance == resr[idx].instance
-            assert pr.rand_seed == resr[idx].rand_seed
-            assert pr.f[-1] == resr[idx].best_f
-            assert pr.time[-1] >= resr[idx].last_improvement_time_millis
-            assert pr.time[-1] <= resr[idx].total_time_millis
+            assert pr.algorithm == results[idx].algorithm
+            assert pr.instance == results[idx].instance
+            assert pr.rand_seed == results[idx].rand_seed
+            assert pr.f[-1] == results[idx].best_f
+            assert pr.time[-1] >= results[idx].last_improvement_time_millis
+            assert pr.time[-1] <= results[idx].total_time_millis
 
         Progress.from_logs(base_dir, progress_fes_std,
                            time_unit=prg.TIME_UNIT_FES,
                            f_name=prg.F_NAME_SCALED)
+        progress_fes_std.sort()
         assert len(progress_fes_std) == 24
         for idx, pr in enumerate(progress_fes_std):
             assert isinstance(pr, Progress)
-            assert pr.algorithm == resr[idx].algorithm
-            assert pr.instance == resr[idx].instance
-            assert pr.rand_seed == resr[idx].rand_seed
+            assert pr.algorithm == results[idx].algorithm
+            assert pr.instance == results[idx].instance
+            assert pr.rand_seed == results[idx].rand_seed
             assert np.all(pr.f >= 1)
-            assert pr.time[-1] >= resr[idx].last_improvement_fe
-            assert pr.time[-1] <= resr[idx].total_fes
+            assert pr.time[-1] >= results[idx].last_improvement_fe
+            assert pr.time[-1] <= results[idx].total_fes
             assert np.array_equal(pr.time, progress_fes_raw[idx].time)
 
         Progress.from_logs(base_dir, progress_ms_std,
                            time_unit=prg.TIME_UNIT_MILLIS,
                            f_name=prg.F_NAME_SCALED)
+        progress_ms_std.sort()
         assert len(progress_ms_std) == 24
         for idx, pr in enumerate(progress_ms_std):
             assert isinstance(pr, Progress)
-            assert pr.algorithm == resr[idx].algorithm
-            assert pr.instance == resr[idx].instance
-            assert pr.rand_seed == resr[idx].rand_seed
+            assert pr.algorithm == results[idx].algorithm
+            assert pr.instance == results[idx].instance
+            assert pr.rand_seed == results[idx].rand_seed
             assert np.all(pr.f >= 1)
-            assert pr.time[-1] >= resr[idx].last_improvement_time_millis
-            assert pr.time[-1] <= resr[idx].total_time_millis
+            assert pr.time[-1] >= results[idx].last_improvement_time_millis
+            assert pr.time[-1] <= results[idx].total_time_millis
             assert np.array_equal(pr.time, progress_ms_raw[idx].time)
 
         Progress.from_logs(base_dir, progress_fes_nrm,
                            time_unit=prg.TIME_UNIT_FES,
                            f_name=prg.F_NAME_NORMALIZED)
         assert len(progress_fes_nrm) == 24
+        progress_fes_nrm.sort()
         for idx, pr in enumerate(progress_fes_nrm):
             assert isinstance(pr, Progress)
-            assert pr.algorithm == resr[idx].algorithm
-            assert pr.instance == resr[idx].instance
-            assert pr.rand_seed == resr[idx].rand_seed
+            assert pr.algorithm == results[idx].algorithm
+            assert pr.instance == results[idx].instance
+            assert pr.rand_seed == results[idx].rand_seed
             assert np.all(pr.f >= 0)
-            assert pr.time[-1] >= resr[idx].last_improvement_fe
-            assert pr.time[-1] <= resr[idx].total_fes
+            assert pr.time[-1] >= results[idx].last_improvement_fe
+            assert pr.time[-1] <= results[idx].total_fes
             assert np.array_equal(pr.time, progress_fes_raw[idx].time)
 
         Progress.from_logs(base_dir, progress_ms_nrm,
                            time_unit=prg.TIME_UNIT_MILLIS,
                            f_name=prg.F_NAME_NORMALIZED)
         assert len(progress_ms_nrm) == 24
+        progress_ms_nrm.sort()
         for idx, pr in enumerate(progress_ms_nrm):
             assert isinstance(pr, Progress)
-            assert pr.algorithm == resr[idx].algorithm
-            assert pr.instance == resr[idx].instance
-            assert pr.rand_seed == resr[idx].rand_seed
+            assert pr.algorithm == results[idx].algorithm
+            assert pr.instance == results[idx].instance
+            assert pr.rand_seed == results[idx].rand_seed
             assert np.all(pr.f >= 0)
-            assert pr.time[-1] >= resr[idx].last_improvement_time_millis
-            assert pr.time[-1] <= resr[idx].total_time_millis
+            assert pr.time[-1] >= results[idx].last_improvement_time_millis
+            assert pr.time[-1] <= results[idx].total_time_millis
             assert np.array_equal(pr.time, progress_ms_raw[idx].time)
+
+        stat_names = ["min", "med", "mean", "geom", "max",
+                      "mean-sd", "mean+sd", "sd"]
+        stat_runs_mean = list()
+        StatRun.create(source=progress_fes_raw,
+                       statistics=stat_names,
+                       collector=stat_runs_mean)
+        assert len(stat_runs_mean) == len(stat_names)

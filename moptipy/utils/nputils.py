@@ -44,7 +44,7 @@ __DEFAULT_UNSIGNED_INT: Final[np.dtype] = (__NP_INTS_LIST[-1])[0]
 __DEFAULT_BOOLS: Final[np.dtype] = np.dtype(np.bool_)
 
 #: The default floating point type.
-__DEFAULT_FLOAT: Final[np.dtype] = np.dtype(np.float64)
+DEFAULT_FLOAT: Final[np.dtype] = np.zeros(1).dtype
 
 
 def is_np_int(dtype: np.dtype) -> bool:
@@ -312,7 +312,7 @@ def strs_to_floats(lines: Iterable[str]) -> np.ndarray:
     >>> strs_to_floats(["-1.6", "2", "3"])
     array([-1.6,  2. ,  3. ])
     """
-    return np.array(lines, dtype=__DEFAULT_FLOAT)
+    return np.array(lines, dtype=DEFAULT_FLOAT)
 
 
 @numba.njit(nogil=True)

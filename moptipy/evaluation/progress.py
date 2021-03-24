@@ -127,7 +127,6 @@ class Progress(PerRunData):
                                      f"increasing, but encountered {time}.")
 
         object.__setattr__(self, "time", time)
-
         object.__setattr__(self, "time_unit", check_time_unit(time_unit))
 
         mintime = 1 if time_unit == TIME_UNIT_FES else 0
