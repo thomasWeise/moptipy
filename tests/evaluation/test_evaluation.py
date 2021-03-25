@@ -405,36 +405,30 @@ def test_experiment_jssp():
         all_progress = list()
         all_progress.extend(progress_ms_raw)
         all_progress.extend(progress_ms_std)
-        all_progress.extend(progress_ms_nrm)
         all_progress.extend(progress_fes_raw)
         all_progress.extend(progress_fes_std)
-        all_progress.extend(progress_fes_nrm)
-
-        stat_names = ["min", "med", "mean", "max",
-                      "mean-sd", "mean+sd", "sd",
-                      "q10", "q90", "q159", "q841"]
 
         stat_runs.clear()
         StatRun.from_progress(all_progress,
                               stat_names,
                               stat_runs,
                               False, False)
-        assert len(stat_runs) == len(stat_names) * 6 * 3 * 2
+        assert len(stat_runs) == len(stat_names) * 4 * 3 * 2
         stat_runs.clear()
         StatRun.from_progress(all_progress,
                               stat_names,
                               stat_runs,
                               True, False)
-        assert len(stat_runs) == len(stat_names) * 6 * 3
+        assert len(stat_runs) == len(stat_names) * 4 * 3
         stat_runs.clear()
         StatRun.from_progress(all_progress,
                               stat_names,
                               stat_runs,
                               False, True)
-        assert len(stat_runs) == len(stat_names) * 6 * 2
+        assert len(stat_runs) == len(stat_names) * 4 * 2
         stat_runs.clear()
         StatRun.from_progress(all_progress,
                               stat_names,
                               stat_runs,
                               True, True)
-        assert len(stat_runs) == len(stat_names) * 6
+        assert len(stat_runs) == len(stat_names) * 4

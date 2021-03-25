@@ -22,7 +22,7 @@ __Q159: Final[float] = (1.0 + erf(-1.0 / sqrt(2.0))) / 2.0
 __Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
 
 
-@numba.njit(cache=True)
+@numba.njit
 def _unique_floats_1d(data: Tuple[np.ndarray]) -> np.ndarray:
     """
     Get all unique values that are >= than the minimum of all arrays.
@@ -43,7 +43,7 @@ def _unique_floats_1d(data: Tuple[np.ndarray]) -> np.ndarray:
     return res
 
 
-@numba.njit(inline='always', cache=True)
+@numba.njit(inline='always')
 def __apply_fun(x_unique: np.ndarray,
                 x_raw: Tuple[np.ndarray, ...],
                 y_raw: Tuple[np.ndarray, ...],
@@ -103,7 +103,7 @@ def __apply_fun(x_unique: np.ndarray,
     return np.column_stack((x_unique[indexes], dest_y[indexes]))
 
 
-@numba.jit(forceobj=True, cache=True)
+@numba.jit(forceobj=True)
 def _apply_fun(x_unique: np.ndarray,
                x_raw: Tuple[np.ndarray, ...],
                y_raw: Tuple[np.ndarray, ...],
@@ -140,7 +140,7 @@ def _apply_fun(x_unique: np.ndarray,
                        dest_y, stat_dim, values, pos)
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_arith_mean(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean.
@@ -152,7 +152,7 @@ def __stat_arith_mean(data: np.ndarray) -> np.number:
     return data.mean()
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_geo_mean(data: np.ndarray) -> np.number:
     """
     Compute the geometric mean.
@@ -164,7 +164,7 @@ def __stat_geo_mean(data: np.ndarray) -> np.number:
     return np.exp(np.mean(np.log(data)))
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_min(data: np.ndarray) -> np.number:
     """
     Compute the minimum.
@@ -176,7 +176,7 @@ def __stat_min(data: np.ndarray) -> np.number:
     return data.min()
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_max(data: np.ndarray) -> np.number:
     """
     Compute the maximum.
@@ -188,7 +188,7 @@ def __stat_max(data: np.ndarray) -> np.number:
     return data.max()
 
 
-@numba.njit(cache=True)
+@numba.njit
 def __stat_median(data: np.ndarray) -> np.number:
     """
     Compute the median.
@@ -200,7 +200,7 @@ def __stat_median(data: np.ndarray) -> np.number:
     return np.median(data)
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_sd(data: np.ndarray) -> np.number:
     """
     Compute the standard deviation.
@@ -212,7 +212,7 @@ def __stat_sd(data: np.ndarray) -> np.number:
     return data.std()
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_mean_minus_sd(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean minus the standard deviation.
@@ -224,7 +224,7 @@ def __stat_mean_minus_sd(data: np.ndarray) -> np.number:
     return data.mean() - data.std()
 
 
-@numba.njit(cache=True, parallel=True)
+@numba.njit(parallel=True)
 def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean plus the standard deviation.
@@ -236,7 +236,7 @@ def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
     return data.mean() + data.std()
 
 
-@numba.njit(cache=True)
+@numba.njit
 def __stat_quantile_10(data: np.ndarray) -> np.number:
     """
     Compute the 10% quantile.
@@ -248,7 +248,7 @@ def __stat_quantile_10(data: np.ndarray) -> np.number:
     return np.quantile(data, 0.1)
 
 
-@numba.njit(cache=True)
+@numba.njit
 def __stat_quantile_90(data: np.ndarray) -> np.number:
     """
     Compute the 90% quantile.
@@ -260,7 +260,7 @@ def __stat_quantile_90(data: np.ndarray) -> np.number:
     return np.quantile(data, 0.9)
 
 
-@numba.njit(cache=True)
+@numba.njit
 def __stat_quantile_159(data: np.ndarray) -> np.number:
     """
     Compute the 15.9% quantile, which equals mean-sd in normal distributions.
@@ -272,7 +272,7 @@ def __stat_quantile_159(data: np.ndarray) -> np.number:
     return np.quantile(data, __Q159)
 
 
-@numba.njit(cache=True)
+@numba.njit
 def __stat_quantile_841(data: np.ndarray) -> np.number:
     """
     Compute the 84.1% quantile, which equals mean+sd in normal distributions.
