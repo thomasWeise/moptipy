@@ -5,7 +5,7 @@ from math import inf
 from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
 from moptipy.evaluation._utils import _ifn_to_str, _in_to_str, _str_to_if, \
-    _str_to_ifn, _str_to_in, _try_int
+    _str_to_ifn, _str_to_in, _try_int, _check_max_time_millis
 from moptipy.evaluation.base_classes import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
@@ -148,12 +148,11 @@ class EndResult(PerRunData):
 
         if max_time_millis is not None:
             if not isinstance(max_time_millis, int):
-                raise TypeError(
-                    f"max_fes must be int but are {type(max_time_millis)}.")
-            if max_time_millis < total_time_millis:
-                raise ValueError(
-                    f"max_fes ({max_time_millis}) must be >= total_fes "
-                    f"({total_time_millis}), but are not.")
+                raise TypeError("max_time_millis must be int but "
+                                f"are {type(max_time_millis)}.")
+            _check_max_time_millis(max_time_millis,
+                                   total_fes,
+                                   total_time_millis)
         object.__setattr__(self, "max_time_millis", max_time_millis)
 
     def success(self) -> bool:

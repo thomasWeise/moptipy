@@ -109,3 +109,41 @@ def _try_div(a: int, b: int) -> Union[int, float]:
         return a
     b //= gc
     return _try_int(a / b)
+
+
+def _check_max_time_millis(max_time_millis: Union[int, float],
+                           total_fes: int,
+                           total_time_millis: int) -> None:
+    """
+    Check whether a max-time-millis value is permissible.
+
+    If we set a time limit for a run, then the
+    :meth:`~moptipy.api.Process.should_terminate` will become `True`
+    approximately after the time limit has expired. However, this also
+    could be later (or maybe even earlier) due to the workings of the
+    unlderying operating system. And even if
+    :meth:`~moptipy.api.Process.should_terminate` if `True`, it is not
+    clear whether the optimization algorithm can query it right away.
+    Instead, it may be blocked in a long-running objective function
+    evaluation or some other computation. Hence, it may actually stop
+    later. So we cannot simply require that
+    `total_time_millis <= max_time_millis`, as this is not practically
+    enforceable. Instead, we will heuristically determine a feasible
+    maximum limit for how much longer an algorithm might run.
+
+    :param Union[int, float] max_time_millis: the max time millis threshold
+    :param int total_fes: the total FEs performed
+    :param int total_time_millis: the measured total time millis
+    """
+    if total_fes == 1:
+        return
+
+    div: Final[float] = (total_fes - 2) if total_fes > 1 else 1
+    permitted_limit: Final[float] = \
+        60_000 + ((1 + (1.1 * (max_time_millis / div))) * total_fes)
+    if total_time_millis > permitted_limit:
+        raise ValueError(
+            f"If max_time_millis is {max_time_millis} and "
+            f"total_fes is {total_fes}, then total_time_millis must "
+            f"not be more than {permitted_limit}, but is"
+            f"{total_time_millis}.")

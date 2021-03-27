@@ -5,7 +5,8 @@ from math import inf
 from typing import Optional, Union, Iterable, List, MutableSequence, Dict, \
     Final, Callable
 
-from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if
+from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if, \
+    _check_max_time_millis
 from moptipy.evaluation.base_classes import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
@@ -382,21 +383,16 @@ class EndStatistics(MultiRunData):
         object.__setattr__(self, "max_fes", max_fes)
 
         if isinstance(max_time_millis, int):
-            if max_time_millis < total_time_millis.maximum:
-                raise ValueError(
-                    f"max_time_millis must be >= {total_time_millis.maximum},"
-                    f" but is {max_time_millis}.")
+            _check_max_time_millis(max_time_millis,
+                                   total_fes.minimum,
+                                   total_time_millis.maximum)
         elif isinstance(max_time_millis, Statistics):
-            if max_time_millis.minimum < total_time_millis.minimum:
-                raise ValueError(
-                    "max_time_millis.minimum must be >="
-                    f" {total_time_millis.minimum},"
-                    f" but is {max_time_millis.minimum}.")
-            if max_time_millis.maximum < total_time_millis.maximum:
-                raise ValueError(
-                    "max_time_millis.maximum must be "
-                    f">= {total_time_millis.maximum},"
-                    f" but is {max_time_millis.maximum}.")
+            _check_max_time_millis(max_time_millis.minimum,
+                                   total_fes.minimum,
+                                   total_time_millis.minimum)
+            _check_max_time_millis(max_time_millis.maximum,
+                                   total_fes.minimum,
+                                   total_time_millis.maximum)
         elif max_time_millis is not None:
             raise TypeError(
                 "max_time_millis must be int, Statistics, or None, but is "
