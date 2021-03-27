@@ -17,12 +17,21 @@ from moptipy.utils.nputils import rand_seeds_from_str
 
 
 def __ensure_dir(dir_name: str) -> str:
+    """
+    Make sure that the directory referenced by `dir_name` exists.
+
+    :param str dir_name: the directory name
+    :return: the string
+    :rtype: str
+    """
     dir_name = canonicalize_path(dir_name)
     makedirs(name=dir_name, exist_ok=True)
     return enforce_dir(dir_name)
 
 
 class __DummyLock:
+    """A dummy replacement for locks."""
+
     def __enter__(self) -> '__DummyLock':
         return self
 
@@ -32,6 +41,13 @@ class __DummyLock:
 
 def __log(string: str, note: str,
           stdio_lock: ContextManager) -> None:
+    """
+    Print a log information string to stdout.
+
+    :param str string: the string
+    :param str note: a small prefix, such as a thread ID
+    :param ContextManager stdio_lock: the lock
+    """
     text = f"{datetime.now()}{note}: {string}"
     with stdio_lock:
         print(text)
@@ -42,8 +58,19 @@ def __run_experiment(base_dir: str,
                      n_runs: Tuple[int, ...],
                      file_lock: ContextManager,
                      stdio_lock: ContextManager,
-                     cache,
+                     cache: Callable,
                      note: str) -> None:
+    """
+    Execute a single thread of expeirments.
+
+    :param str base_dir: the base directory
+    :param List[Tuple[Callable, Callable]] experiments: the stream of
+        experiment setups
+    :param ContextManager file_lock: the lock for file operations
+    :param ContextManager stdio_lock: the lock for log output
+    :param Callable cache: the cache
+    :param note: the thread id
+    """
     random = default_rng()
 
     for runs in n_runs:

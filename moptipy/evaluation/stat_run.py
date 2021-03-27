@@ -245,6 +245,10 @@ def __stat_quantile_10(data: np.ndarray) -> np.number:
     :return: the 10% quantile
     :rtype: np.number
     """
+    length: Final[int] = len(data)
+    if (length > 10) and ((length % 10) == 1):
+        data.sort()
+        return data[(length - 1) // 10]
     return np.quantile(data, 0.1)
 
 
@@ -257,6 +261,10 @@ def __stat_quantile_90(data: np.ndarray) -> np.number:
     :return: the 90% quantile
     :rtype: np.number
     """
+    length: Final[int] = len(data)
+    if (length > 10) and ((length % 10) == 1):
+        data.sort()
+        return data[(9 * (length - 1)) // 10]
     return np.quantile(data, 0.9)
 
 

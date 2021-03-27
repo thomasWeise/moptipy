@@ -11,6 +11,7 @@ def is_new() -> Callable:
     This is based on https://stackoverflow.com/questions/27427067
     :return: a function `is_new(xx)` that will return `True` the first time it
     encounters any value `xx` and `False` for all values it has already seen
+    :rtype: Callable
     """
     s: Dict[Any, int] = {}
     setdefault = s.setdefault
