@@ -3,21 +3,21 @@ pytest >= 6.2.2
 
 # setuptools, testresources, and wheel are needed for generating the
 # installable pip package.
-setuptools >= 53.0
+setuptools >= 54.2.0
 testresources >= 2.0.1
 wheel >= 0.36.2
 
 # sphinx is needed for generating the documentation.
-sphinx >= 3.4.3
+sphinx >= 3.5.3
 
 # static code analysis tools
 bandit >= 1.7.0
-flake8 >= 3.8.3
+flake8 >= 3.9.0
 mypy >= 0.812
 pep257 >= 0.7.0
-pyflakes >= 2.2.0
+pyflakes >= 2.3.1
 pylint >= 2.7.2
-pyroma >= 3.0.1
+pyroma >= 3.1
 
 # yaml is used only in tests and examples and therefore not strictly needed.
 pyyaml >= 5.3.1
