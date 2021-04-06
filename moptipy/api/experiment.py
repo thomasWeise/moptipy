@@ -1,4 +1,5 @@
 """The experiment execution API."""
+import copy
 import multiprocessing as mp
 import os.path
 from datetime import datetime
@@ -56,20 +57,22 @@ def __log(string: str, note: str,
 def __run_experiment(base_dir: str,
                      experiments: List[Tuple[Callable, Callable]],
                      n_runs: Tuple[int, ...],
+                     perform_warmup: bool,
                      file_lock: ContextManager,
                      stdio_lock: ContextManager,
                      cache: Callable,
-                     note: str) -> None:
+                     thread_id: str) -> None:
     """
     Execute a single thread of expeirments.
 
     :param str base_dir: the base directory
     :param List[Tuple[Callable, Callable]] experiments: the stream of
         experiment setups
+    :param bool perform_warmup: should we perform a warm-up per instance?
     :param ContextManager file_lock: the lock for file operations
     :param ContextManager stdio_lock: the lock for log output
     :param Callable cache: the cache
-    :param note: the thread id
+    :param thread_id: the thread id
     """
     random = default_rng()
 
@@ -93,6 +96,7 @@ def __run_experiment(base_dir: str,
 
             seeds = rand_seeds_from_str(string=inst_name, n_seeds=runs)
             random.shuffle(seeds)
+            needs_warmup = perform_warmup
             for seed in seeds:
                 filename = sanitize_names([algo_name, inst_name, hex(seed)])
                 log_file = os.path.join(cd, filename + FILE_SUFFIX)
@@ -104,10 +108,23 @@ def __run_experiment(base_dir: str,
                 if skip:
                     continue
 
-                __log(filename, note, stdio_lock)
-
                 exp.set_rand_seed(seed)
+
+                if needs_warmup:
+                    needs_warmup = False
+                    cpy: Execution = copy.copy(exp)
+                    cpy.set_max_fes(10, True)
+                    cpy.set_max_time_millis(3600000, True)
+                    cpy.set_log_file(None)
+                    cpy.set_log_improvements(False)
+                    cpy.set_log_all_fes(False)
+                    __log(f"warmup for '{filename}'.", thread_id, stdio_lock)
+                    with cpy.execute():
+                        pass
+                    del cpy
+
                 exp.set_log_file(log_file)
+                __log(filename, thread_id, stdio_lock)
                 with exp.execute():
                     pass
 
@@ -121,7 +138,8 @@ def run_experiment(base_dir: str,
                    instances: Iterable[Callable],
                    setups: Iterable[Callable],
                    n_runs: Union[int, Iterable[int]] = 11,
-                   n_threads: int = __DEFAULT_N_THREADS) -> str:
+                   n_threads: int = __DEFAULT_N_THREADS,
+                   perform_warmup: bool = True) -> str:
     """
     Run an experiment and store the log files into the given folder.
 
@@ -136,6 +154,16 @@ def run_experiment(base_dir: str,
         instance combination
     :param int n_threads: the number of parallel threads of execution to use.
         By default, we will use the number of processors - 1 threads
+    :param bool perform_warmup: should we perform a warm-up per instance? If
+        this parameter is `True`, then before the very first run of a thread on
+        an instance, we will execute the algorithm for just ten function
+        evaluations without logging and discard the results. The idea is that
+        during this warm-up, things such as JIT compilation or complicated
+        parsing can take place. While this cannot mitigate time measurement
+        problems for JIT compilations taking place late in runs, it can at
+        least somewhat solve the problem of delayed first FEs caused by
+        compilation and parsing.
+
     :return: the canonicalized path to `base_dir`
     :rtype: str
     """
@@ -145,6 +173,10 @@ def run_experiment(base_dir: str,
     if not isinstance(setups, Iterable):
         raise TypeError(
             f"setups must be a iterable object, but is {type(setups)}.")
+    if not isinstance(perform_warmup, bool):
+        raise TypeError(
+            f"perform_warmup must be a bool, but is {type(perform_warmup)}.")
+
     if not isinstance(n_threads, int):
         raise TypeError(f"n_threads must be int, but is {type(n_threads)}.")
     if n_threads <= 0:
@@ -202,6 +234,7 @@ def run_experiment(base_dir: str,
                                 args=(base_dir,
                                       experiments.copy(),
                                       n_runs,
+                                      perform_warmup,
                                       file_lock,
                                       stdio_lock,
                                       cache,
@@ -219,10 +252,11 @@ def run_experiment(base_dir: str,
         __run_experiment(base_dir=base_dir,
                          experiments=experiments,
                          n_runs=n_runs,
+                         perform_warmup=perform_warmup,
                          file_lock=__DummyLock(),
                          stdio_lock=stdio_lock,
                          cache=cache,
-                         note="")
+                         thread_id="")
 
     __log("finished experiment.", "", stdio_lock)
     return base_dir

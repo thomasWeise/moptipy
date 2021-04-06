@@ -8,6 +8,7 @@ import moptipy.api.experiment as ex
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
+from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -167,6 +168,32 @@ def propose_instances(n: int) -> Tuple[str, ...]:
 
 
 # noinspection PyUnusedLocal
+def rs1(inst: Instance) -> SingleRandomSample:
+    """
+    Instantiate the single random sample algorithm.
+
+    :param moptipy.examples.jssp.Instance inst: the jssp instance
+    :return: the RandomSampling
+    :rtype: moptipy.algorithms.RandomSampling
+    """
+    del inst
+    return SingleRandomSample(Op0Shuffle())
+
+
+# noinspection PyUnusedLocal
+def rs(inst: Instance) -> RandomSampling:
+    """
+    Instantiate the random sampling.
+
+    :param moptipy.examples.jssp.Instance inst: the jssp instance
+    :return: the RandomSampling
+    :rtype: moptipy.algorithms.RandomSampling
+    """
+    del inst
+    return RandomSampling(Op0Shuffle())
+
+
+# noinspection PyUnusedLocal
 def hc_swap2(inst: Instance) -> HillClimber:
     """
     Instantiate the hill climber with 2-swap operator.
@@ -192,21 +219,13 @@ def rw_swap2(inst: Instance) -> RandomWalk:
     return RandomWalk(Op0Shuffle(), Op1Swap2())
 
 
-# noinspection PyUnusedLocal
-def rs(inst: Instance) -> RandomSampling:
-    """
-    Instantiate the random sampling.
-
-    :param moptipy.examples.jssp.Instance inst: the jssp instance
-    :return: the RandomSampling
-    :rtype: moptipy.algorithms.RandomSampling
-    """
-    del inst
-    return RandomSampling(Op0Shuffle())
+#: The default set of algorithms for our experiments
+DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = \
+    (rs1, rs, rw_swap2, hc_swap2)
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
-                   algorithms: Iterable[Callable] = (rs, rw_swap2, hc_swap2),
+                   algorithms: Iterable[Callable] = DEFAULT_ALGORITHMS,
                    instances: Iterable[str] = EXPERIMENT_INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
                    max_time: Optional[int] = EXPERIMENT_RUNTIME_MS,

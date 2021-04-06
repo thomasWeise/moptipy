@@ -56,7 +56,8 @@ def test_experiment_jssp():
                        setups=[algo_1, algo_2],
                        n_runs=10,
                        base_dir=base_dir,
-                       n_threads=3)
+                       n_threads=3,
+                       perform_warmup=False)
 
         algos = listdir(base_dir)
         assert len(algos) == 2

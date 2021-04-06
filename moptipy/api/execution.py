@@ -136,35 +136,44 @@ class Execution:
         self.__rand_seed = None if rand_seed is None \
             else rand_seed_check(rand_seed)
 
-    def set_max_fes(self, max_fes: int) -> None:
+    def set_max_fes(self, max_fes: int,
+                    force_override: bool = False) -> None:
         """
         Set the maximum FEs.
 
         This is the number of candidate solutions an optimization is allowed
         to evaluate. If this method is called multiple times, then the
-        shortest limit is used.
+        shortest limit is used unless `force_override` is `True`.
 
         :param int max_fes: the maximum FEs
+        :param bool force_override: the use the value given in
+            `max_time_millis` regardless of what was specified before
         """
         max_fes = _check_max_fes(max_fes)
         if not (self.__max_fes is None):
             if max_fes >= self.__max_fes:
-                return
+                if not force_override:
+                    return
         self.__max_fes = max_fes
 
-    def set_max_time_millis(self, max_time_millis: int) -> None:
+    def set_max_time_millis(self, max_time_millis: int,
+                            force_override: bool = False) -> None:
         """
         Set the maximum time in milliseconds.
 
         This is the maximum time that the process is allowed to run. If this
-        method is called multiple times, the shortest time is used.
+        method is called multiple times, the shortest time is used unless
+        `force_override` is `True`.
 
         :param int max_time_millis: the maximum time in milliseconds
+        :param bool force_override: the use the value given in
+            `max_time_millis` regardless of what was specified before
         """
         max_time_millis = _check_max_time_millis(max_time_millis)
         if not (self.__max_time_millis is None):
             if max_time_millis >= self.__max_time_millis:
-                return
+                if not force_override:
+                    return
         self.__max_time_millis = max_time_millis
 
     def set_goal_f(self, goal_f: Union[int, float]) -> None:
@@ -182,7 +191,7 @@ class Execution:
                 return
         self.__goal_f = goal_f
 
-    def set_log_file(self, log_file: str) -> None:
+    def set_log_file(self, log_file: Optional[str]) -> None:
         """
         Set the log file to write to.
 
