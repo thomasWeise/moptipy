@@ -1,8 +1,7 @@
 """Some internal helper functions."""
 
 from dataclasses import dataclass
-from typing import Final
-from typing import Optional
+from typing import Final, Union, Optional
 
 import moptipy.utils.logging as logging
 from moptipy.utils.nputils import rand_seed_check
@@ -73,7 +72,7 @@ class MultiRunData:
                  instance: Optional[str],
                  n: int):
         """
-        Create the end statistics of an experiment-setup combination.
+        Create the dataset of an experiment-setup combination.
 
         :param Optional[str] algorithm: the algorithm name, if all runs are
             with the same algorithm
@@ -96,3 +95,56 @@ class MultiRunData:
         if n <= 0:
             raise ValueError(f"n must be > 0, but is {n}.")
         object.__setattr__(self, "n", n)
+
+
+@dataclass(frozen=True, init=False, order=True)
+class Setup:
+    """
+    A class that represents a key identifying multiple runs.
+
+    These could have either an algorithm, a setup, or both.
+    """
+
+    #: The algorithm that was applied, if the same over all runs.
+    algorithm: Optional[str]
+    #: The problem instance that was solved, if the same over all runs.
+    instance: Optional[str]
+
+    def __init__(self,
+                 algorithm: Optional[str],
+                 instance: Optional[str]):
+        """
+        Create the setup key of an experiment-setup combination.
+
+        :param Optional[str] algorithm: the algorithm name, if all runs are
+            with the same algorithm
+        :param Optional[str] instance: the instance name, if all runs are
+            on the same instance
+        """
+        if algorithm is not None:
+            if algorithm != logging.sanitize_name(algorithm):
+                raise ValueError(f"Invalid algorithm '{algorithm}'.")
+        object.__setattr__(self, "algorithm", algorithm)
+
+        if instance is not None:
+            if instance != logging.sanitize_name(instance):
+                raise ValueError(f"Invalid instance '{instance}'.")
+        object.__setattr__(self, "instance", instance)
+
+        if (algorithm is None) and (instance is None):
+            raise ValueError("You must at least specify either an "
+                             "algorithm or an instance.")
+
+    @staticmethod
+    def key_for(src: Union[PerRunData, MultiRunData]) -> 'Setup':
+        """
+        Create a key for a dataset.
+
+        :param Union[PerRunData, MultiRunData] src: the dataset
+        :return: the corresponding instance of `Setup`
+        :rtype: Setup
+        """
+        if not isinstance(src, (PerRunData, MultiRunData)):
+            raise TypeError("src must be PerRunData or MultiRunData, but is "
+                            f"{type(src)}.")
+        return Setup(src.algorithm, src.instance)

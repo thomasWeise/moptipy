@@ -1,10 +1,13 @@
 """A utility to specify axis ranges."""
 import sys
 from math import isfinite, inf
-from typing import Optional, Final, Iterable
+from typing import Optional, Final, Iterable, Callable
 
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
+
+from moptipy.evaluation.progress import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
+    F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
 
 #: The internal minimum float value for log-scaled axes.
 _MIN_LOG_FLOAT: Final[float] = sys.float_info.min
@@ -213,3 +216,151 @@ class AxisRanger:
                         axes.semilogy()
                     else:
                         axes.semilogy(self.__log_base)
+
+    @staticmethod
+    def for_axis(name: str,
+                 chosen_min: Optional[float] = None,
+                 chosen_max: Optional[float] = None,
+                 use_data_min: Optional[bool] = None,
+                 use_data_max: Optional[bool] = None,
+                 log_scale: Optional[bool] = None,
+                 log_base: Optional[float] = None) -> 'AxisRanger':
+        """
+        Create a default axis ranger based on the axis type.
+
+        The axis ranger will use the minimal values and log scaling options
+        that usually make sense for the dimension, unless overridden by the
+        optional arguments.
+
+        :param str name: the axis type name, supporting `"ms"`, `"FEs"`,
+            `"plain"`, `"scaled"`, and `"normalized"`
+        :param Optional[float] chosen_min: the chosen minimum
+        :param Optional[float] chosen_max: the chosen maximum
+        :param Optional[bool] use_data_min: should the data minimum be used
+        :param Optional[bool] use_data_max: should the data maximum be used
+        :param Optional[bool] log_scale: the log scale indicator
+        :param Optional[float] log_base: the log base
+        :return: the `AxisRanger`
+        :rtype: AxisRanger
+        """
+        if not isinstance(name, str):
+            raise TypeError(f"Axis name must be str, but is {type(name)}.")
+
+        __log: bool = False
+        __min: Optional[float] = None
+        __data_min: bool = chosen_min is None
+        __data_max: bool = chosen_max is None
+
+        if name == TIME_UNIT_MILLIS:
+            if chosen_min is not None:
+                if (chosen_min < 0) or (not isfinite(chosen_min)):
+                    raise ValueError("chosen_min must be >= 0 for axis "
+                                     f"type {name}, but is {chosen_min}.")
+                __log = (chosen_min > 0)
+                if log_scale is not None:
+                    if log_scale and (not __log):
+                        raise TypeError(f"Cannot set log_scale={log_scale} "
+                                        f"and chosen_min={chosen_min} for "
+                                        f"axis type {name}.")
+                    __log = log_scale
+            elif log_scale is None:
+                __log = True
+            else:
+                __log = log_scale
+
+            if chosen_min is None:
+                __min = 0 if __log else 1
+            else:
+                __min = chosen_min
+
+            if use_data_max is not None:
+                __data_max = use_data_max
+            if use_data_min is not None:
+                __data_min = use_data_min
+            else:
+                __data_min = False
+
+            return AxisRanger(__min, chosen_max, __data_min, __data_max,
+                              __log, log_base if __log else None)
+
+        if name == TIME_UNIT_FES:
+            if chosen_min is None:
+                __min = 1
+            else:
+                if (chosen_min < 1) or (not isfinite(chosen_min)):
+                    raise ValueError("chosen_min must be >= 1 for axis "
+                                     f"type {name}, but is {chosen_min}.")
+                __min = chosen_min
+            __log = True if (log_scale is None) else log_scale
+
+            if use_data_max is not None:
+                __data_max = use_data_max
+            if use_data_min is not None:
+                __data_min = use_data_min
+            else:
+                __data_min = False
+
+            return AxisRanger(__min, chosen_max, __data_min, __data_max,
+                              __log, log_base if __log else None)
+
+        if name == F_NAME_RAW:
+            if use_data_max is not None:
+                __data_max = use_data_max
+            if use_data_min is not None:
+                __data_min = use_data_min
+            if log_scale is not None:
+                __log = log_scale
+            return AxisRanger(chosen_min, chosen_max, __data_min, __data_max,
+                              __log, log_base if __log else None)
+
+        if name == F_NAME_SCALED:
+            __min = 1
+        elif name == F_NAME_NORMALIZED:
+            if (log_scale is None) or (not log_scale):
+                __min = 0
+        else:
+            raise ValueError(f"Axis type '{name}' is unknown.")
+
+        if chosen_min is not None:
+            __min = chosen_min
+
+        if log_scale is not None:
+            __log = log_scale
+        if use_data_max is not None:
+            __data_max = use_data_max
+        if use_data_min is not None:
+            __data_min = use_data_min
+
+        return AxisRanger(__min, chosen_max, __data_min, __data_max,
+                          __log, log_base if __log else None)
+
+    @staticmethod
+    def for_axis_func(chosen_min: Optional[float] = None,
+                      chosen_max: Optional[float] = None,
+                      use_data_min: Optional[bool] = None,
+                      use_data_max: Optional[bool] = None,
+                      log_scale: Optional[bool] = None,
+                      log_base: Optional[float] = None) -> Callable:
+        """
+        Generate a function that provides the default per-axis ranger.
+
+        :param Optional[float] chosen_min: the chosen minimum
+        :param Optional[float] chosen_max: the chosen maximum
+        :param Optional[bool] use_data_min: should the data minimum be used
+        :param Optional[bool] use_data_max: should the data maximum be used
+        :param Optional[bool] log_scale: the log scale indicator
+        :param Optional[float] log_base: the log base
+        :return: the a function in the shape of :meth:`for_axis` with the
+            provided defaults
+        :rtype: Callable
+        """
+        def __func(name: str,
+                   cmi=chosen_min,
+                   cma=chosen_max,
+                   udmi=use_data_min,
+                   udma=use_data_max,
+                   ls=log_scale,
+                   lb=log_base) -> AxisRanger:
+            return AxisRanger.for_axis(name, cmi, cma, udmi, udma, ls, lb)
+
+        return __func
