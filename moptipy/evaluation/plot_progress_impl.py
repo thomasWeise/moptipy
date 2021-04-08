@@ -6,7 +6,7 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.plot_defaults import key_func_inst, \
-    default_name_func, default_palette_func
+    default_name_func, distinct_colors
 from moptipy.evaluation.progress import Progress
 
 
@@ -16,7 +16,7 @@ def plot_progress(progresses: Iterable[Progress],
                   y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
                   key_func: Callable = key_func_inst,
                   name_func: Callable = default_name_func,
-                  palette_func: Callable = default_palette_func,
+                  distinct_colors_func: Callable = distinct_colors,
                   legend: bool = True) -> None:
     """
     Plot a set of progress lines into one chart.
@@ -28,7 +28,7 @@ def plot_progress(progresses: Iterable[Progress],
     :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
     :param Callable key_func: the function extracting the key from a progress
     :param Callable name_func: the function converting keys to names
-    :param Callable palette_func: the function returning the palette
+    :param Callable distinct_colors_func: the function returning the palette
     :param bool legend: should we plot the legend?
     """
     # find groups of runs to plot together in the same color/style
@@ -80,9 +80,7 @@ def plot_progress(progresses: Iterable[Progress],
     axes: Final = figure.add_axes([0.05, 0.05, 0.9, 0.9]) \
         if isinstance(figure, Figure) else figure.axes
 
-    color_map = palette_func()
-    colors: Final[List] = [color_map(i) for i in range(n_groups)]
-    del color_map
+    colors = distinct_colors_func(n_groups)
 
     if callable(x_axis):
         x_axis = x_axis(x_dim)
