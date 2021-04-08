@@ -3,7 +3,7 @@ import copy
 import multiprocessing as mp
 import os.path
 from datetime import datetime
-from os import makedirs, sched_getaffinity
+from os import sched_getaffinity
 from typing import Iterable, Union, Callable, Tuple, List, \
     ContextManager, Final
 
@@ -11,23 +11,9 @@ from numpy.random import default_rng
 
 from moptipy.api.execution import Execution
 from moptipy.utils.cache import is_new
-from moptipy.utils.io import canonicalize_path, enforce_dir
-from moptipy.utils.io import file_ensure_exists
+from moptipy.utils.io import dir_ensure_exists, file_ensure_exists
 from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.nputils import rand_seeds_from_str
-
-
-def __ensure_dir(dir_name: str) -> str:
-    """
-    Make sure that the directory referenced by `dir_name` exists.
-
-    :param str dir_name: the directory name
-    :return: the string
-    :rtype: str
-    """
-    dir_name = canonicalize_path(dir_name)
-    makedirs(name=dir_name, exist_ok=True)
-    return enforce_dir(dir_name)
 
 
 class __DummyLock:
@@ -92,7 +78,8 @@ def __run_experiment(base_dir: str,
                     f"Execution, but generates {type(exp)}.")
             algo_name = sanitize_name(exp.get_algorithm().get_name())
 
-            cd = __ensure_dir(os.path.join(base_dir, algo_name, inst_name))
+            cd = dir_ensure_exists(os.path.join(base_dir, algo_name,
+                                                inst_name))
 
             seeds = rand_seeds_from_str(string=inst_name, n_seeds=runs)
             random.shuffle(seeds)
@@ -220,7 +207,7 @@ def run_experiment(base_dir: str,
         last = run
 
     cache = is_new()
-    base_dir = __ensure_dir(base_dir)
+    base_dir = dir_ensure_exists(base_dir)
 
     stdio_lock: ContextManager
 

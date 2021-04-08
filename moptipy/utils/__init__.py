@@ -4,9 +4,9 @@ from typing import Final
 
 import moptipy.version
 from moptipy.utils.cache import is_new
-from moptipy.utils.io import canonicalize_path, enforce_dir, enforce_file, \
-    file_create_or_fail, file_create_or_truncate, file_ensure_exists, \
-    TempDir, TempFile
+from moptipy.utils.io import canonicalize_path, dir_ensure_exists, \
+    enforce_dir, enforce_file, file_create_or_fail, file_create_or_truncate, \
+    file_ensure_exists, TempDir, TempFile
 from moptipy.utils.logger import CsvSection, FileLogger, InMemoryLogger, \
     KeyValueSection, Logger, TextSection
 from moptipy.utils.logging import float_to_str, sanitize_name, \
@@ -20,6 +20,7 @@ __version__: Final[str] = moptipy.version.__version__
 __all__ = (
     "canonicalize_path",
     "CsvSection",
+    "dir_ensure_exists",
     "enforce_dir",
     "enforce_file",
     "file_create_or_fail",

@@ -267,3 +267,16 @@ def file_ensure_exists(path: str) -> Tuple[str, bool]:
         raise ValueError(
             f"Error when trying to create file '{path}'.") from err
     return enforce_file(path), existed
+
+
+def dir_ensure_exists(dir_name: str) -> str:
+    """
+    Make sure that the directory referenced by `dir_name` exists.
+
+    :param str dir_name: the directory name
+    :return: the string
+    :rtype: str
+    """
+    dir_name = canonicalize_path(dir_name)
+    os.makedirs(name=dir_name, exist_ok=True)
+    return enforce_dir(dir_name)

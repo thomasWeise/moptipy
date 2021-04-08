@@ -13,11 +13,13 @@ from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
 from moptipy.evaluation.statistics import Statistics
 from moptipy.evaluation.plot_progress_impl import plot_progress
+from moptipy.evaluation.plot_utils import create_figure, save_figure
 
 __version__: Final[str] = moptipy.version.__version__
 
 __all__ = (
     "AxisRanger",
+    "create_figure",
     "EndResult",
     "EndStatistics",
     "ExperimentParser",
@@ -27,6 +29,7 @@ __all__ = (
     "plot_progress",
     "PerRunData",
     "Progress",
+    "save_figure",
     "Setup",
     "Statistics",
     "StatRun")
