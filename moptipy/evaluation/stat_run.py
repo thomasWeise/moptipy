@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from math import erf, sqrt
 from typing import Final, Optional, Iterable, Callable, List, Tuple, \
-    Dict, MutableSequence
+    Dict, MutableSequence, Union
 
 import numba  # type: ignore
 import numpy as np
@@ -395,19 +395,22 @@ class StatRun(MultiRunData):
 
     @staticmethod
     def create(source: Iterable[Progress],
-               statistics: Iterable[str],
+               statistics: Union[str, Iterable[str]],
                collector: MutableSequence['StatRun']) -> None:
         """
         Compute statistics from an iterable of :class:`Progress`.
 
         :param Iterable[moptipy.evaluation.Progress] source: the progress data
-        :param Iterable[str] statistics: the statistics to be computed
+        :param Union[str, Iterable[str]] statistics: the statistics to be
+            computed
         :param MutableSequence['StatRun'] collector: the collector for the
             statistics
         """
         if not isinstance(source, Iterable):
             raise TypeError(
                 f"source must be Iterable, but is {type(source)}.")
+        if isinstance(statistics, str):
+            statistics = [statistics]
         if not isinstance(statistics, Iterable):
             raise TypeError(
                 f"statistics must be Iterable, but is {type(statistics)}.")
@@ -483,7 +486,7 @@ class StatRun(MultiRunData):
 
     @staticmethod
     def from_progress(source: Iterable[Progress],
-                      statistics: Iterable[str],
+                      statistics: Union[str, Iterable[str]],
                       collector: MutableSequence['StatRun'],
                       join_all_algorithms: bool = False,
                       join_all_instances: bool = False) -> None:
@@ -492,8 +495,8 @@ class StatRun(MultiRunData):
 
         :param Iterable[moptipy.evaluation.Progress] source: the stream
             of progress data
-        :param Iterable[str] statistics: the statistics that should be
-            computed per group
+        :param Union[str, Iterable[str]] statistics: the statistics that
+            should be computed per group
         :param MutableSequence['StatRun'] collector: the destination
             to which the new stat runs will be appended
         :param bool join_all_algorithms: should the statistics be aggregated
@@ -504,6 +507,8 @@ class StatRun(MultiRunData):
         if not isinstance(source, Iterable):
             raise TypeError(
                 f"source must be Iterable, but is {type(source)}.")
+        if isinstance(statistics, str):
+            statistics = [statistics]
         if not isinstance(statistics, Iterable):
             raise TypeError(
                 f"statistics must be Iterable, but is {type(statistics)}.")
