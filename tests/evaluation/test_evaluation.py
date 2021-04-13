@@ -1,5 +1,6 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
 
+from os import environ
 from typing import List
 
 import numpy as np
@@ -118,6 +119,9 @@ def test_experiment_jssp():
         assert es_hc_a.best_f_scaled.mean_geom >= 1
         assert es_hc_a.ert_fes > 0
         assert es_hc_a.ert_time_millis > 0
+
+        if "GITHUB_JOB" not in environ:
+            return
 
         es_rs_a = EndStatistics.create(results[0:4])
         assert es_rs_a.instance == "abz8"

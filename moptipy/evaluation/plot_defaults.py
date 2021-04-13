@@ -5,6 +5,7 @@ import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.colors as colors  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 
+import moptipy.evaluation.progress as pr
 from moptipy.evaluation.base_classes import PerRunData, MultiRunData
 
 #: The internal color black.
@@ -132,7 +133,7 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
 
 
 #: An internal array of fixed line styles.
-__FIXED_LINESTYLES: \
+__FIXED_LINE_DASHES: \
     Final[Tuple[Union[str, Tuple[float, Tuple[float, ...]]], ...]] = \
     tuple(["solid",
            "dotted",
@@ -149,10 +150,10 @@ __FIXED_LINESTYLES: \
            (0.0, (3.0, 10.0, 1.0, 10.0, 1.0, 10.0))])  # loosely dashdotdotted
 
 
-def distinct_linestyles(n: int) -> \
+def distinct_line_dashes(n: int) -> \
         Tuple[Union[str, Tuple[float, Tuple[float, ...]]], ...]:
     """
-    Create a sequence of distinct line styles.
+    Create a sequence of distinct line dashes.
 
     :param int n: the number of styles
     :return: the styles
@@ -161,15 +162,15 @@ def distinct_linestyles(n: int) -> \
     if not isinstance(n, int):
         raise TypeError(f"n must be int but is {type(n)}.")
     if not (0 < n < 1000):
-        raise ValueError(f"Invalid n={n}.")
-    if n > len(__FIXED_LINESTYLES):
+        raise ValueError(f"Invalid n={n} for line dash number.")
+    if n > len(__FIXED_LINE_DASHES):
         raise ValueError(f"{n} is too many for different strokes...")
-    if n == __FIXED_LINESTYLES:
-        return __FIXED_LINESTYLES
-    return tuple(__FIXED_LINESTYLES[0:n])
+    if n == __FIXED_LINE_DASHES:
+        return __FIXED_LINE_DASHES
+    return tuple(__FIXED_LINE_DASHES[0:n])
 
 
-def importance_to_linewidth(importance: int) -> float:
+def importance_to_line_width(importance: int) -> float:
     """
     Transform an importance value to a line width.
 
@@ -222,7 +223,7 @@ def importance_to_alpha(importance: int) -> float:
 
 
 #: The internal default basic style
-__BASE_STYLE: Final[Dict[str, object]] = {
+__BASE_LINE_STYLE: Final[Dict[str, object]] = {
     "alpha": 1.0,
     "antialiased": True,
     "color": COLOR_BLACK,
@@ -235,7 +236,7 @@ __BASE_STYLE: Final[Dict[str, object]] = {
 }
 
 
-def create_style(**kwargs) -> Dict[str, object]:
+def create_line_style(**kwargs) -> Dict[str, object]:
     """
     Obtain the basic style for lines in diagrams.
 
@@ -243,6 +244,59 @@ def create_style(**kwargs) -> Dict[str, object]:
     :return: a dictionary with the style elements
     :rtype: Dict[str, object]
     """
-    res = dict(__BASE_STYLE)
+    res = dict(__BASE_LINE_STYLE)
     res.update(kwargs)
     return res
+
+
+def importance_to_font_size(importance: float) -> float:
+    """
+    Transform an importance value to a font size.
+
+    :param int importance: the importance value
+    :return: the font size
+    :rtype: float
+    """
+    if not isinstance(importance, int):
+        raise TypeError(f"importance must be int but is {type(importance)}.")
+    if not (-10 < importance < 10):
+        raise ValueError(f"Invalid importance={importance}.")
+    if importance < 0:
+        return 7.5
+    if importance <= 0:
+        return 8
+    if importance == 1:
+        return 8.5
+    if importance == 2:
+        return 9
+    if importance == 3:
+        return 10
+    return 11
+
+
+#: The default grid color
+GRID_COLOR: Final[Tuple[float, float, float, float]] = \
+    4.0 / 11.0, 4.0 / 11.0, 4.0 / 11.0, importance_to_alpha(-2)
+
+
+def default_axis_label(dimension: str) -> str:
+    """
+    Get the default label for a given axis.
+
+    :param str dimension: the dimension, which is one of progress dimensions
+    :return: the axis label
+    :rtype: str
+    """
+    if not isinstance(dimension, str):
+        raise TypeError(f"Dimension must be str but is {type(dimension)}.")
+    if dimension == pr.F_NAME_NORMALIZED:
+        return "f (normalized)"
+    if dimension == pr.F_NAME_SCALED:
+        return "f (scaled)"
+    if dimension == pr.F_NAME_RAW:
+        return "f"
+    if dimension == pr.TIME_UNIT_FES:
+        return "time in FEs"
+    if dimension == pr.TIME_UNIT_MILLIS:
+        return "time in ms"
+    raise ValueError(f"Invalid dimension: '{dimension}'.")

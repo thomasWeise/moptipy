@@ -20,11 +20,19 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                   key_func: Callable = pd.key_func_inst,
                   name_func: Callable = pd.default_name_func,
                   distinct_colors_func: Callable = pd.distinct_colors,
-                  distinct_linestyles_func: Callable = pd.distinct_linestyles,
-                  importance_to_linewidth_func: Callable =
-                  pd.importance_to_linewidth,
+                  distinct_line_dashes_func: Callable =
+                  pd.distinct_line_dashes,
+                  importance_to_line_width_func: Callable =
+                  pd.importance_to_line_width,
                   importance_to_alpha_func: Callable =
-                  pd.importance_to_alpha) -> None:
+                  pd.importance_to_alpha,
+                  importance_to_font_size_func: Callable =
+                  pd.importance_to_font_size,
+                  xgrid: bool = True,
+                  ygrid: bool = True,
+                  xlabel: Union[None, str, Callable] = pd.default_axis_label,
+                  ylabel: Union[None, str, Callable] =
+                  pd.default_axis_label) -> None:
     """
     Plot a set of progress or statistical run lines into one chart.
 
@@ -37,12 +45,20 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     :param Callable key_func: the function extracting the key from a progress
     :param Callable name_func: the function converting keys to names
     :param Callable distinct_colors_func: the function returning the palette
-    :param Callable distinct_linestyles_func: the function returning the line
+    :param Callable distinct_line_dashes_func: the function returning the line
         styles
-    :param Callable importance_to_linewidth_func: the function converting
+    :param Callable importance_to_line_width_func: the function converting
         importance values to line widths
     :param Callable importance_to_alpha_func: the function converting
         importance values to alphas
+    :param Callable importance_to_font_size_func: the function converting
+        importance values to font sizes
+    :param bool xgrid: should we have a grid along the x-axis?
+    :param bool ygrid: should we have a grid along the y-axis
+    :param Union[None,str,Callable] xlabel: a callable returning the label for
+        the x-axis, a label string, or `None` if no label should be put
+    :param Union[None,str,Callable] ylabel: a callable returning the label for
+        the y-axis, a label string, or `None` if no label should be put
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
@@ -123,18 +139,19 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
 
     progress_alpha = importance_to_alpha_func(progress_importance)
     statrun_alpha = importance_to_alpha_func(statrun_importance)
-    progress_linewidth = importance_to_linewidth_func(progress_importance)
-    statrun_linewidth = importance_to_linewidth_func(statrun_importance)
+    progress_linewidth = importance_to_line_width_func(progress_importance)
+    statrun_linewidth = importance_to_line_width_func(statrun_importance)
     colors = list(distinct_colors_func(n_groups))
 
     plot_list: List[Dict] = list()
     for groupidx, key in enumerate(keys):
         for prgs in groups[key][0]:
-            plot_list.append(pd.create_style(x=prgs.time,
-                                             y=prgs.f,
-                                             color=colors[groupidx],
-                                             alpha=progress_alpha,
-                                             linewidth=progress_linewidth))
+            plot_list.append(pd.create_line_style(
+                x=prgs.time,
+                y=prgs.f,
+                color=colors[groupidx],
+                alpha=progress_alpha,
+                linewidth=progress_linewidth))
 
     # Perform some mild, deterministic shuffling to obtain a fair printing
     # order of lines: No line group should completely cover another one.
@@ -154,13 +171,13 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         # Obtain the names of the statistics, if any.
         stat_names = list(stat_names_set)
         stat_names.sort()
-        stat_dashes = distinct_linestyles_func(len(stat_names))
+        stat_dashes = distinct_line_dashes_func(len(stat_names))
 
         for nameidx, stat_name in enumerate(stat_names):
             for groupidx, key in enumerate(keys):
                 for strn in groups[key][1]:
                     if strn.stat_name == stat_name:
-                        plot_list.append(pd.create_style(
+                        plot_list.append(pd.create_line_style(
                             x=strn.stat[:, 0],
                             y=strn.stat[:, 1],
                             color=colors[groupidx],
@@ -170,9 +187,20 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
 
     del stat_names_set
 
+    font_size_0: Final[float] = importance_to_font_size_func(0)
+
     # set up the graphics area
-    axes: Final = figure.add_axes([0.05, 0.05, 0.9, 0.9]) \
+    axes: Final = figure.add_axes([0.01, 0.01, 0.98, 0.98]) \
         if isinstance(figure, Figure) else figure.axes
+    axes.tick_params(axis="x", labelsize=font_size_0)
+    axes.tick_params(axis="y", labelsize=font_size_0)
+
+    if xgrid or ygrid:
+        grid_lwd = importance_to_line_width_func(-1)
+        if xgrid:
+            axes.grid(axis="x", color=pd.GRID_COLOR, linewidth=grid_lwd)
+        if ygrid:
+            axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
     if callable(x_axis):
         x_axis = x_axis(x_dim)
@@ -203,6 +231,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
 
         if (len(stat_names) == 1) and (not has_progress):
             args["title"] = stat_names[0]
+            args["title_fontsize"] = importance_to_font_size_func(1)
         else:
             handles.extend([mlines.Line2D([], [],
                                           color=pd.COLOR_BLACK,
@@ -215,5 +244,26 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         args["loc"] = "upper right"
         args["handles"] = handles
         args["labelcolor"] = colors
+        args["fontsize"] = font_size_0
 
         axes.legend(**args)
+
+    # put the label on the x-axis, if any
+    if xlabel is not None:
+        if callable(xlabel):
+            xlabel = xlabel(x_dim)
+        if not isinstance(xlabel, str):
+            raise TypeError(f"xlabel must be str but is {type(xlabel)}.")
+        if len(xlabel) > 0:
+            axes.set_xlabel(xlabel,
+                            fontsize=font_size_0)
+
+    # put the label on the y-axis, if any
+    if ylabel is not None:
+        if callable(ylabel):
+            ylabel = ylabel(y_dim)
+        if not isinstance(ylabel, str):
+            raise TypeError(f"ylabel must be str but is {type(ylabel)}.")
+        if len(ylabel) > 0:
+            axes.set_ylabel(ylabel,
+                            fontsize=font_size_0)

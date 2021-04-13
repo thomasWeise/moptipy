@@ -14,7 +14,7 @@ __GOLDEN_RATIO: Final[float] = 0.5 + (0.5 * sqrt(5))
 
 
 def create_figure(width: Union[float, int, None] = 8.6,
-                  height: Union[float, int, None] = 6,
+                  height: Union[float, int, None] = None,
                   dpi: Union[float, int, None] = 384.0,
                   **kwargs) -> figure.Figure:
     """
@@ -75,7 +75,7 @@ def create_figure(width: Union[float, int, None] = 8.6,
         kwargs['frameon'] = False
 
     if 'constrained_layout' not in kwargs:
-        kwargs['constrained_layout'] = True
+        kwargs['constrained_layout'] = False
 
     return figure.Figure(**kwargs)
 
@@ -115,6 +115,10 @@ def save_figure(fig: figure.Figure,
     else:
         orientation = "portrait"
 
+    # set minimal margins to the axes to avoid wasting space
+    for ax in fig.axes:
+        ax.margins(0, 0)
+
     dir_name = dir_ensure_exists(dir_name)
     files = list()
     for fmt in formats:
@@ -124,7 +128,9 @@ def save_figure(fig: figure.Figure,
             os.path.join(dir_name, f"{file_name}.{fmt}"))
         fig.savefig(dest_file, transparent=True, format=fmt,
                     orientation=orientation,
-                    dpi="figure")
+                    dpi="figure",
+                    bbox_inches='tight',
+                    pad_inches=1.0 / 72.0)
         files.append(enforce_file(dest_file))
 
     fig.clf(False)
