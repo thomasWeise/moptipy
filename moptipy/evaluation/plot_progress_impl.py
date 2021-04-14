@@ -7,6 +7,7 @@ from matplotlib.artist import Artist  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 import moptipy.evaluation.plot_defaults as pd
+import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
@@ -31,8 +32,10 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                   xgrid: bool = True,
                   ygrid: bool = True,
                   xlabel: Union[None, str, Callable] = pd.default_axis_label,
+                  xlabel_inside: bool = True,
                   ylabel: Union[None, str, Callable] =
-                  pd.default_axis_label) -> None:
+                  pd.default_axis_label,
+                  ylabel_inside: bool = True) -> None:
     """
     Plot a set of progress or statistical run lines into one chart.
 
@@ -57,8 +60,12 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     :param bool ygrid: should we have a grid along the y-axis
     :param Union[None,str,Callable] xlabel: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
+    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+        it does not consume additional vertical space)
     :param Union[None,str,Callable] ylabel: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
+    :param bool ylabel_inside: put the xyaxis label inside the plot (so that
+        it does not consume additional horizontal space)
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
@@ -255,8 +262,15 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         if not isinstance(xlabel, str):
             raise TypeError(f"xlabel must be str but is {type(xlabel)}.")
         if len(xlabel) > 0:
-            axes.set_xlabel(xlabel,
-                            fontsize=font_size_0)
+            if xlabel_inside:
+                pu.label_box(axes,
+                             text=xlabel,
+                             x=0.5,
+                             y=0,
+                             font_size=font_size_0)
+            else:
+                axes.set_xlabel(xlabel,
+                                fontsize=font_size_0)
 
     # put the label on the y-axis, if any
     if ylabel is not None:
@@ -265,5 +279,13 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         if not isinstance(ylabel, str):
             raise TypeError(f"ylabel must be str but is {type(ylabel)}.")
         if len(ylabel) > 0:
-            axes.set_ylabel(ylabel,
-                            fontsize=font_size_0)
+            if ylabel_inside:
+                pu.label_box(axes,
+                             text=ylabel,
+                             x=0,
+                             y=1,
+                             font_size=font_size_0,
+                             may_rotate_text=True)
+            else:
+                axes.set_ylabel(ylabel,
+                                fontsize=font_size_0)

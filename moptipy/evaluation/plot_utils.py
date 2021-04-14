@@ -1,11 +1,13 @@
 """Utilities for creating and storing figures."""
 import os.path
 from math import sqrt, isfinite
-from typing import Final, Iterable, Union, List
+from typing import Final, Iterable, Union, List, Optional
 
 import matplotlib.pyplot  # type: ignore
-from matplotlib import figure  # type: ignore
+from matplotlib.axes import Axes  # type: ignore
+from matplotlib.figure import Figure  # type: ignore
 
+import moptipy.evaluation.plot_defaults as pd
 from moptipy.utils.io import dir_ensure_exists, file_ensure_exists, \
     enforce_file
 
@@ -16,7 +18,7 @@ __GOLDEN_RATIO: Final[float] = 0.5 + (0.5 * sqrt(5))
 def create_figure(width: Union[float, int, None] = 8.6,
                   height: Union[float, int, None] = None,
                   dpi: Union[float, int, None] = 384.0,
-                  **kwargs) -> figure.Figure:
+                  **kwargs) -> Figure:
     """
     Create a matplotlib figure.
 
@@ -25,7 +27,7 @@ def create_figure(width: Union[float, int, None] = 8.6,
     :param Union[float,int,None] dpi: the dpi value
     :param kwargs: a set of optional arguments
     :return: the figure option
-    :rtype: figure.Figure
+    :rtype: Figure
     """
     # Check the size, i.e., width and height and use
     put_size: bool = True
@@ -77,24 +79,24 @@ def create_figure(width: Union[float, int, None] = 8.6,
     if 'constrained_layout' not in kwargs:
         kwargs['constrained_layout'] = False
 
-    return figure.Figure(**kwargs)
+    return Figure(**kwargs)
 
 
-def save_figure(fig: figure.Figure,
+def save_figure(fig: Figure,
                 file_name: str = "figure",
                 dir_name: str = ".",
                 formats: Union[str, Iterable[str]] = "svg") -> List[str]:
     """
     Store the given figure in files of the given formats and dispose it.
 
-    :param figure.Figure fig: the figure to save
+    :param Figure fig: the figure to save
     :param str file_name: the basic file name
     :param str dir_name: the directory name
     :param Union[str, Iterable[str]] formats: the file format(s)
     :return: a list of files
     :rtype: List[str]
     """
-    if not isinstance(fig, figure.Figure):
+    if not isinstance(fig, Figure):
         raise TypeError(f"Invalid figure type {type(fig)}.")
     if not isinstance(file_name, str):
         raise TypeError(f"Invalid file_name type {type(file_name)}.")
@@ -141,3 +143,67 @@ def save_figure(fig: figure.Figure,
         raise ValueError("No formats were specified.")
 
     return files
+
+
+def label_box(axes: Axes,
+              text: str,
+              x: Optional[float] = None,
+              y: Optional[float] = None,
+              font_size: float = pd.importance_to_font_size(0),
+              may_rotate_text: bool = False) -> None:
+    """
+    Put a label text box near an axis.
+
+    :param figure.SubplotBase axes: the axes to add the label to
+    :param str text: the text to place
+    :param Optional[float] x: the location along the x-axis: `0` means left,
+        `0.5` means centered, `1` means right
+    :param Optional[float] y: the location along the x-axis: `0` means bottom,
+        `0.5` means centered, `1` means top
+    :param float font_size: the font size
+    :param bool may_rotate_text: should we rotate the text by 90° if that
+        makes sense (`True`) or always keep it horizontally (`False`)
+    """
+    if x is None:
+        if y is None:
+            raise ValueError("At least one of x or y must not be None.")
+        x = 0
+    elif y is None:
+        y = 0
+
+    spacing: Final[float] = max(4.0, font_size / 2.0)
+    xtext: float = 0.0
+    ytext: float = 0.0
+    xalign: str = "center"
+    yalign: str = "center"
+    if x >= 0.85:
+        xtext = -spacing
+        xalign = "right"
+    elif x <= 0.15:
+        xtext = spacing
+        xalign = "left"
+    if y >= 0.85:
+        ytext = -spacing
+        yalign = "top"
+    elif y <= 0.15:
+        ytext = spacing
+        yalign = "bottom"
+
+    args = {"text": text,
+            "xy": (x, y),
+            "xytext": (xtext, ytext),
+            "verticalalignment": yalign,
+            "horizontalalignment": xalign,
+            "xycoords": "axes fraction",
+            "textcoords": "offset points",
+            "fontsize": font_size,
+            "bbox": {"boxstyle": 'round',
+                     "color": 'white',
+                     "fill": True,
+                     "linewidth": 0,
+                     "alpha": 0.9}}
+
+    if may_rotate_text and (len(text) > 2) and (ytext != 0.0):
+        args["rotation"] = 90
+
+    axes.annotate(**args)

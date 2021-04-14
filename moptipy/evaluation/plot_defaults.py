@@ -276,7 +276,7 @@ def importance_to_font_size(importance: float) -> float:
 
 #: The default grid color
 GRID_COLOR: Final[Tuple[float, float, float, float]] = \
-    4.0 / 11.0, 4.0 / 11.0, 4.0 / 11.0, importance_to_alpha(-2)
+    7.0 / 11.0, 7.0 / 11.0, 7.0 / 11.0, importance_to_alpha(-2)
 
 
 def default_axis_label(dimension: str) -> str:
@@ -290,9 +290,9 @@ def default_axis_label(dimension: str) -> str:
     if not isinstance(dimension, str):
         raise TypeError(f"Dimension must be str but is {type(dimension)}.")
     if dimension == pr.F_NAME_NORMALIZED:
-        return "f (normalized)"
+        return "normalized f"
     if dimension == pr.F_NAME_SCALED:
-        return "f (scaled)"
+        return "scaled f"
     if dimension == pr.F_NAME_RAW:
         return "f"
     if dimension == pr.TIME_UNIT_FES:
