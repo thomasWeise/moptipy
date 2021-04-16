@@ -154,7 +154,7 @@ def label_box(axes: Axes,
     """
     Put a label text box near an axis.
 
-    :param figure.SubplotBase axes: the axes to add the label to
+    :param Axes axes: the axes to add the label to
     :param str text: the text to place
     :param Optional[float] x: the location along the x-axis: `0` means left,
         `0.5` means centered, `1` means right
@@ -207,3 +207,71 @@ def label_box(axes: Axes,
         args["rotation"] = 90
 
     axes.annotate(**args)
+
+
+def mix_plot_list(lst: List) -> None:
+    """
+    Deterministically shuffle a list of plot elements.
+
+    The goal of this method is to achieve some sort of fairness in terms of
+    overlapping plot elements.
+
+    :param List lst: a list of elements that should be painted
+    """
+    lll = len(lst)
+    if lll > 4:
+        center = lll // 2
+        for i in range(1, center, 2):
+            lst[i], lst[-i] = lst[-i], lst[i]
+        for start, end in [(center, lll - center), (lll - center, lll - 1)]:
+            for i in range(lll // 4):
+                lst[start + i], lst[end - i] = lst[end - i], lst[start + i]
+
+
+def label_axes(axes: Axes,
+               xlabel: Optional[str] = None,
+               xlabel_inside: bool = True,
+               xlabel_location: float = 0.5,
+               ylabel: Optional[str] = None,
+               ylabel_inside: bool = True,
+               ylabel_location: float = 1,
+               font_size: float = pd.importance_to_font_size(0)) -> None:
+    """
+    Put labels on a figure.
+
+    :param Axes axes: the axes to add the label to
+    :param Optional[str] xlabel: a callable returning the label for
+        the x-axis, a label string, or `None` if no label should be put
+    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+        it does not consume additional vertical space)
+    :param float xlabel_location: the location of the x-axis label if it is
+        placed inside the plot area
+    :param Optional[str] ylabel: a callable returning the label for
+        the y-axis, a label string, or `None` if no label should be put
+    :param bool ylabel_inside: put the xyaxis label inside the plot (so that
+        it does not consume additional horizontal space)nal vertical space)
+    :param float ylabel_location: the location of the y-axis label if it is
+        placed inside the plot area
+    :param float font_size: the font size to use
+    """
+    # put the label on the x-axis, if any
+    if xlabel is not None:
+        if not isinstance(xlabel, str):
+            raise TypeError(f"xlabel must be str but is {type(xlabel)}.")
+        if len(xlabel) > 0:
+            if xlabel_inside:
+                label_box(axes, text=xlabel, x=xlabel_location, y=0,
+                          font_size=font_size)
+            else:
+                axes.set_xlabel(xlabel, fontsize=font_size)
+
+    # put the label on the y-axis, if any
+    if ylabel is not None:
+        if not isinstance(ylabel, str):
+            raise TypeError(f"ylabel must be str but is {type(ylabel)}.")
+        if len(ylabel) > 0:
+            if ylabel_inside:
+                label_box(axes, text=ylabel, x=0, y=ylabel_location,
+                          font_size=font_size, may_rotate_text=True)
+            else:
+                axes.set_ylabel(ylabel, fontsize=font_size)

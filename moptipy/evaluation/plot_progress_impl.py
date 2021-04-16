@@ -1,8 +1,7 @@
 """Plot a set of progress objects into one figure."""
-from typing import List, Dict, Tuple, Final, Callable, Iterable, Union, \
-    Optional, Set, cast
+from typing import List, Dict, Final, Callable, Iterable, Union, \
+    Optional
 
-import matplotlib.lines as mlines  # type: ignore
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
@@ -11,6 +10,19 @@ import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
+from moptipy.evaluation.styler import Styler
+
+
+def __get_inst(obj: Union[Progress, StatRun]) -> Optional[str]:
+    return obj.instance
+
+
+def __get_algo(obj: Union[Progress, StatRun]) -> Optional[str]:
+    return obj.algorithm
+
+
+def __get_stat(obj: Union[Progress, StatRun]) -> Optional[str]:
+    return obj.stat_name if isinstance(obj, StatRun) else None
 
 
 def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
@@ -18,8 +30,6 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                   x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
                   y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
                   legend: bool = True,
-                  key_func: Callable = pd.key_func_inst,
-                  name_func: Callable = pd.default_name_func,
                   distinct_colors_func: Callable = pd.distinct_colors,
                   distinct_line_dashes_func: Callable =
                   pd.distinct_line_dashes,
@@ -35,7 +45,10 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                   xlabel_inside: bool = True,
                   ylabel: Union[None, str, Callable] =
                   pd.default_axis_label,
-                  ylabel_inside: bool = True) -> None:
+                  ylabel_inside: bool = True,
+                  inst_priority: float = 0.666,
+                  algo_priority: float = 0.333,
+                  stat_priority: float = 0.0) -> None:
     """
     Plot a set of progress or statistical run lines into one chart.
 
@@ -45,8 +58,6 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     :param Union[moptipy.evaluation.AxisRanger, Callable] x_axis: the x_axis
     :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
     :param bool legend: should we plot the legend?
-    :param Callable key_func: the function extracting the key from a progress
-    :param Callable name_func: the function converting keys to names
     :param Callable distinct_colors_func: the function returning the palette
     :param Callable distinct_line_dashes_func: the function returning the line
         styles
@@ -66,33 +77,30 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         the y-axis, a label string, or `None` if no label should be put
     :param bool ylabel_inside: put the xyaxis label inside the plot (so that
         it does not consume additional horizontal space)
+    :param float inst_priority: the style priority for instances
+    :param float algo_priority: the style priority for algorithms
+    :param float stat_priority: the style priority for statistics
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
-    groups: Dict[object, Tuple[List[Progress], List[StatRun]]] = dict()
+    instances: Final[Styler] = Styler(__get_inst, "all insts", inst_priority)
+    algorithms: Final[Styler] = Styler(__get_algo, "all algos", algo_priority)
+    statistics: Final[Styler] = Styler(__get_stat, "single run",
+                                       stat_priority)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
-    has_progress: bool = False
-    has_statrun: bool = False
-    stat_names_set: Set[str] = set()
+    progress_list: List[Progress] = list()
+    statrun_list: List[StatRun] = list()
+
+    # First pass: find out the statistics, instances, algorithms, and types
     for prg in progresses:
-        # Compute the key identifying the right group for prg.
-        key = key_func(prg)
-
-        gp: Tuple[List[Progress], List[StatRun]]
-        if key in groups:
-            gp = groups[key]
-        else:
-            groups[key] = gp = list(), list()
-
-        # Check the type and decide to which list they should be added.
+        instances.add(prg)
+        algorithms.add(prg)
+        statistics.add(prg)
         if isinstance(prg, Progress):
-            gp[0].append(prg)
-            has_progress = True
+            progress_list.append(prg)
         elif isinstance(prg, StatRun):
-            has_statrun = True
-            gp[1].append(prg)
-            stat_names_set.add(prg.stat_name)
+            statrun_list.append(prg)
         else:
             raise TypeError("Invalid progress object: "
                             f"type {type(prg)} is not supported.")
@@ -109,90 +117,115 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         elif y_dim != prg.f_name:
             raise ValueError(
                 f"F-units {y_dim} and {prg.f_name} do not fit!")
+    del progresses
 
-    # Check if there was useful data to plot.
-    n_groups: Final[int] = len(groups)
-    if n_groups <= 0:
-        raise ValueError("There must be at least one group.")
     if (x_dim is None) or (y_dim is None) or \
-            (not (has_progress or has_statrun)):
+            ((len(progress_list) + len(statrun_list)) <= 0):
         raise ValueError("Illegal state?")
 
-    # Create consistent orderings of the line groups.
-    for runs in groups.values():
-        for lst in runs:
-            cast(List, lst).sort()
+    statrun_list.sort(key=lambda x: (
+        "" if x.algorithm is None else x.algorithm,
+        "" if x.instance is None else x.instance,
+        x.n))
+    progress_list.sort()
+    instances.compile()
+    algorithms.compile()
+    statistics.compile()
 
-    # Now name the data consistently. For each key, one name
-    # will be computed. The data elements are then sorted by
-    # their names and the names can be used for the legend.
-    key_list: List[object] = list(groups.keys())
-    names_and_keys: Final[List[Tuple[str, object]]] = \
-        [(name_func(key), key) for key in key_list]
-    del key_list
-    names_and_keys.sort()
+    def __set_importance(st: Styler):
+        if st is statistics:
+            none = -1
+            not_none = 1
+        else:
+            none = 1
+            not_none = -1
+        none_lw = importance_to_line_width_func(none)
+        not_none_lw = importance_to_line_width_func(not_none)
+        st.set_line_width(lambda x: [none_lw if i <= 0 else not_none_lw
+                                     for i in range(x)])
+        none_a = importance_to_alpha_func(none)
+        not_none_a = importance_to_alpha_func(not_none)
+        st.set_line_alpha(lambda x: [none_a if i <= 0 else not_none_a
+                                     for i in range(x)])
 
-    keys: Final[List[object]] = [key[1] for key in names_and_keys]
-    names: Final[List[str]] = [key[0] for key in names_and_keys]
-    del names_and_keys
+    # determine the style groups
+    groups: List[Styler] = list()
 
-    # Compute the importance values for the line types and get the
-    # base style features line width and alpha.
-    progress_importance = 0
-    statrun_importance = 0
-    if has_statrun and has_progress:
-        progress_importance -= 1
-        statrun_importance += 1
+    no_importance = True
+    if instances.count > 1:
+        groups.append(instances)
+    if algorithms.count > 1:
+        groups.append(algorithms)
+    add_stat_to_groups = False
+    if statistics.count > 1:
+        if statistics.has_none and (statistics.count == 2):
+            __set_importance(statistics)
+            no_importance = False
+            add_stat_to_groups = True
+        else:
+            groups.append(statistics)
 
-    progress_alpha = importance_to_alpha_func(progress_importance)
-    statrun_alpha = importance_to_alpha_func(statrun_importance)
-    progress_linewidth = importance_to_line_width_func(progress_importance)
-    statrun_linewidth = importance_to_line_width_func(statrun_importance)
-    colors = list(distinct_colors_func(n_groups))
+    if len(groups) > 0:
+        groups.sort()
+        groups[0].set_line_color(distinct_colors_func)
 
+        if len(groups) > 1:
+            groups[1].set_line_dash(distinct_line_dashes_func)
+
+            if (len(groups) > 2) and no_importance:
+                g = groups[2]
+                if g.count > 2:
+                    raise ValueError(
+                        f"Cannot have {g.count} importance values.")
+                __set_importance(g)
+                no_importance = False
+
+    if add_stat_to_groups:
+        groups.append(statistics)
+
+    # If we only have <= 2 groups, we can mark None and not-None values with
+    # different importance.
+    if no_importance and statistics.has_none and (statistics.count > 1):
+        __set_importance(statistics)
+        no_importance = False
+    if no_importance and instances.has_none and (instances.count > 1):
+        __set_importance(instances)
+        no_importance = False
+    if no_importance and algorithms.has_none and (algorithms.count > 1):
+        __set_importance(algorithms)
+
+    # we will collect all lines to plot in plot_list
     plot_list: List[Dict] = list()
-    for groupidx, key in enumerate(keys):
-        for prgs in groups[key][0]:
-            plot_list.append(pd.create_line_style(
-                x=prgs.time,
-                y=prgs.f,
-                color=colors[groupidx],
-                alpha=progress_alpha,
-                linewidth=progress_linewidth))
+
+    # first we collect all progress object
+    for prgs in progress_list:
+        style = pd.create_line_style()
+        for g in groups:
+            g.add_line_style(prgs, style)
+        style["x"] = prgs.time
+        style["y"] = prgs.f
+        plot_list.append(style)
+    del progress_list
 
     # Perform some mild, deterministic shuffling to obtain a fair printing
     # order of lines: No line group should completely cover another one.
-    lll = len(plot_list)
-    if lll > 4:
-        center = lll // 2
-        for i in range(1, center, 2):
-            plot_list[i], plot_list[-i] = plot_list[-i], plot_list[i]
-        for start, end in [(center, lll - center), (lll - center, lll - 1)]:
-            for i in range(lll // 4):
-                plot_list[start + i], plot_list[end - i] = \
-                    plot_list[end - i], plot_list[start + i]
+    pu.mix_plot_list(plot_list)
 
-    stat_names: Optional[List[str]] = None
-    stat_dashes: Optional[Tuple] = None
-    if has_statrun:
-        # Obtain the names of the statistics, if any.
-        stat_names = list(stat_names_set)
-        stat_names.sort()
-        stat_dashes = distinct_line_dashes_func(len(stat_names))
+    # now collect the plot data for the statistics
+    for sn in statistics.keys:
+        if sn is None:
+            continue
+        for sr in statrun_list:
+            if statistics.key_func(sr) != sn:
+                continue
 
-        for nameidx, stat_name in enumerate(stat_names):
-            for groupidx, key in enumerate(keys):
-                for strn in groups[key][1]:
-                    if strn.stat_name == stat_name:
-                        plot_list.append(pd.create_line_style(
-                            x=strn.stat[:, 0],
-                            y=strn.stat[:, 1],
-                            color=colors[groupidx],
-                            alpha=statrun_alpha,
-                            linewidth=statrun_linewidth,
-                            linestyle=stat_dashes[nameidx]))
-
-    del stat_names_set
+            style = pd.create_line_style()
+            for g in groups:
+                g.add_line_style(sr, style)
+            style["x"] = sr.stat[:, 0]
+            style["y"] = sr.stat[:, 1]
+            plot_list.append(style)
+    del statrun_list
 
     font_size_0: Final[float] = importance_to_font_size_func(0)
 
@@ -202,6 +235,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     axes.tick_params(axis="x", labelsize=font_size_0)
     axes.tick_params(axis="y", labelsize=font_size_0)
 
+    # draw the grid
     if xgrid or ygrid:
         grid_lwd = importance_to_line_width_func(-1)
         if xgrid:
@@ -209,6 +243,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         if ygrid:
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
+    # set up the axis rangers
     if callable(x_axis):
         x_axis = x_axis(x_dim)
     if not isinstance(x_axis, AxisRanger):
@@ -219,73 +254,41 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     if not isinstance(y_axis, AxisRanger):
         raise TypeError(f"y_axis must be AxisRanger, but is {type(y_axis)}.")
 
-    # plot the lines in a round robin fashion
+    # plot the lines
     for line in plot_list:
         axes.step(where="post", **line)
         x_axis.register_array(line["x"])
         y_axis.register_array(line["y"])
+    del plot_list
 
     x_axis.apply(axes, "x")
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = [mlines.Line2D([], [],
-                                               color=colors[i],
-                                               label=name)
-                                 for i, name in enumerate(names)]
+        handles: List[Artist] = list()
 
-        args: Dict[str, object] = dict()
+        for g in groups:
+            g.add_to_legend(handles)
+            g.has_style = False
 
-        if (len(stat_names) == 1) and (not has_progress):
-            args["title"] = stat_names[0]
-            args["title_fontsize"] = importance_to_font_size_func(1)
-        else:
-            handles.extend([mlines.Line2D([], [],
-                                          color=pd.COLOR_BLACK,
-                                          linewidth=statrun_linewidth,
-                                          linestyle=stat_dashes[i],
-                                          label=name)
-                            for i, name in enumerate(stat_names)])
-            colors.extend([pd.COLOR_BLACK] * len(stat_names))
+        if instances.has_style:
+            instances.add_to_legend(handles)
+        if algorithms.has_style:
+            algorithms.add_to_legend(handles)
+        if statistics.has_style:
+            statistics.add_to_legend(handles)
 
-        args["loc"] = "upper right"
-        args["handles"] = handles
-        args["labelcolor"] = colors
-        args["fontsize"] = font_size_0
+        axes.legend(loc="upper right",
+                    handles=handles,
+                    labelcolor=[art.color if hasattr(art, "color")
+                                else pd.COLOR_BLACK for art in handles],
+                    fontsize=font_size_0)
 
-        axes.legend(**args)
-
-    # put the label on the x-axis, if any
-    if xlabel is not None:
-        if callable(xlabel):
-            xlabel = xlabel(x_dim)
-        if not isinstance(xlabel, str):
-            raise TypeError(f"xlabel must be str but is {type(xlabel)}.")
-        if len(xlabel) > 0:
-            if xlabel_inside:
-                pu.label_box(axes,
-                             text=xlabel,
-                             x=0.5,
-                             y=0,
-                             font_size=font_size_0)
-            else:
-                axes.set_xlabel(xlabel,
-                                fontsize=font_size_0)
-
-    # put the label on the y-axis, if any
-    if ylabel is not None:
-        if callable(ylabel):
-            ylabel = ylabel(y_dim)
-        if not isinstance(ylabel, str):
-            raise TypeError(f"ylabel must be str but is {type(ylabel)}.")
-        if len(ylabel) > 0:
-            if ylabel_inside:
-                pu.label_box(axes,
-                             text=ylabel,
-                             x=0,
-                             y=1,
-                             font_size=font_size_0,
-                             may_rotate_text=True)
-            else:
-                axes.set_ylabel(ylabel,
-                                fontsize=font_size_0)
+    pu.label_axes(axes=axes,
+                  xlabel=xlabel(x_dim) if callable(xlabel) else xlabel,
+                  xlabel_inside=xlabel_inside,
+                  xlabel_location=0.5,
+                  ylabel=ylabel(y_dim) if callable(ylabel) else ylabel,
+                  ylabel_inside=ylabel_inside,
+                  ylabel_location=1,
+                  font_size=font_size_0)

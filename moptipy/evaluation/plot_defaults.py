@@ -6,36 +6,9 @@ import matplotlib.colors as colors  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 
 import moptipy.evaluation.progress as pr
-from moptipy.evaluation.base_classes import PerRunData, MultiRunData
 
 #: The internal color black.
 COLOR_BLACK: Final[Tuple[float, float, float]] = 0.0, 0.0, 0.0
-
-
-def key_func_inst(data: Union[PerRunData, MultiRunData]) -> str:
-    """
-    Use the instance as a key for the dataset.
-
-    :param data: the data to compute a key for
-    :return: the corresponding key with only the instance name
-    :rtype: str
-    """
-    if data.instance is None:
-        raise ValueError("Instance cannot be None.")
-    return data.instance
-
-
-def key_func_algo(data: Union[PerRunData, MultiRunData]) -> str:
-    """
-    Use the algorithm as a key for the dataset.
-
-    :param data: the data to compute a key for
-    :return: the corresponding key with only the algorithm name
-    :rtype: str
-    """
-    if data.algorithm is None:
-        raise ValueError("Algorithm cannot be None.")
-    return data.algorithm
 
 
 def default_name_func(key) -> str:
@@ -132,13 +105,16 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
     return tuple(qq)
 
 
+#: The solid line dash
+LINE_DASH_SOLID: Final[str] = "solid"
+
 #: An internal array of fixed line styles.
 __FIXED_LINE_DASHES: \
     Final[Tuple[Union[str, Tuple[float, Tuple[float, ...]]], ...]] = \
-    tuple(["solid",
-           "dotted",
+    tuple([LINE_DASH_SOLID,
            "dashed",
            "dashdot",
+           "dotted",
            (0.0, (3.0, 5.0, 1.0, 5.0, 1.0, 5.0)),  # dashdotdotted
            (0.0, (3.0, 1.0, 1.0, 1.0)),  # densely dashdotted
            (0.0, (5.0, 1.0)),  # densely dashed
@@ -229,7 +205,7 @@ __BASE_LINE_STYLE: Final[Dict[str, object]] = {
     "color": COLOR_BLACK,
     "dash_capstyle": "butt",
     "dash_joinstyle": "round",
-    "linestyle": "solid",
+    "linestyle": LINE_DASH_SOLID,
     "linewidth": 1.0,
     "solid_capstyle": "round",
     "solid_joinstyle": "round"
