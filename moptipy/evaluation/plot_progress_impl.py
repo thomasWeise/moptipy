@@ -138,7 +138,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
             not_none = 1
         else:
             none = 1
-            not_none = -1
+            not_none = 0
         none_lw = importance_to_line_width_func(none)
         not_none_lw = importance_to_line_width_func(not_none)
         st.set_line_width(lambda x: [none_lw if i <= 0 else not_none_lw
