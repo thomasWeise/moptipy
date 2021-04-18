@@ -9,6 +9,8 @@ import moptipy.evaluation.progress as pr
 
 #: The internal color black.
 COLOR_BLACK: Final[Tuple[float, float, float]] = 0.0, 0.0, 0.0
+#: The internal color white.
+COLOR_WHITE: Final[Tuple[float, float, float]] = 1.0, 1.0, 1.0
 
 
 def default_name_func(key) -> str:
@@ -87,6 +89,7 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
     if not (0 < n < 1000):
         raise ValueError(f"Invalid n={n}.")
 
+    # First, let us see if we can cover the range with hand-picked colors.
     for k in __FIXED_COLORS:
         lk = len(k)
         if lk >= n:
@@ -94,15 +97,19 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
                 return k
             return tuple(k[0:n])
 
+    # Second, let's see whether the method from
+    # https://stackoverflow.com/questions/8389636
+    # works.
     cm = plt.get_cmap('gist_rainbow')
     cNorm = colors.Normalize(vmin=0, vmax=n - 1)
     scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
     qq = cast(List[Tuple[float, float, float]],
               [tuple(scalarMap.to_rgba(i)[0:3]) for i in range(n)])
     ss = set(qq)
-    if len(ss) != n:
-        raise ValueError(f"Could not obtain {n} distinct colors.")
-    return tuple(qq)
+    if len(ss) == n:
+        return tuple(qq)
+
+    raise ValueError(f"Could not obtain {n} distinct colors.")
 
 
 #: The solid line dash
@@ -276,3 +283,49 @@ def default_axis_label(dimension: str) -> str:
     if dimension == pr.TIME_UNIT_MILLIS:
         return "time in ms"
     raise ValueError(f"Invalid dimension: '{dimension}'.")
+
+
+def rgb_to_gray(r: float, g: float, b: float) -> float:
+    """
+    A small utility method to convert RGB to gray scale.
+
+    :param float r: the red value
+    :param float g: the green value
+    :param float b: the blue value
+    :return: the gray value
+    :rtype: float
+    """
+    return (0.2989 * r) + (0.5870 * g) + (0.1140 * b)
+
+
+def text_color_for_background(background: Tuple[float, float, float]) \
+        -> Tuple[float, float, float]:
+    """
+    Get a reasonable text color for a given background color.
+
+    :param Tuple[float, float, float] background: the background color
+    :return: the text color
+    :rtype: Tuple[float, float, float]
+    """
+    br: Final[float] = background[0]
+    bg: Final[float] = background[1]
+    bb: Final[float] = background[2]
+    bgg: Final[float] = rgb_to_gray(br, bg, bb)
+
+    if bgg < 0.12:
+        return COLOR_WHITE
+    if bgg > 0.88:
+        return COLOR_BLACK
+
+    fr: float = 1 - br
+    fg: float = 1 - bg
+    fb: float = 1 - bb
+    fgg: float = rgb_to_gray(fr, fg, fb)
+    if fgg < 0.12:
+        return COLOR_BLACK
+    if fgg > 0.88:
+        return COLOR_WHITE
+    if abs(fgg - bgg) < 0.17:
+        return COLOR_WHITE if fgg >= 0.5 else COLOR_BLACK
+
+    return fr, fg, fb

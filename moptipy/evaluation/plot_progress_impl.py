@@ -3,6 +3,7 @@ from typing import List, Dict, Final, Callable, Iterable, Union, \
     Optional
 
 from matplotlib.artist import Artist  # type: ignore
+from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 import moptipy.evaluation.plot_defaults as pd
@@ -230,8 +231,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     font_size_0: Final[float] = importance_to_font_size_func(0)
 
     # set up the graphics area
-    axes: Final = figure.add_axes([0.01, 0.01, 0.98, 0.98]) \
-        if isinstance(figure, Figure) else figure.axes
+    axes: Final[Axes] = pu.get_axes(figure)
     axes.tick_params(axis="x", labelsize=font_size_0)
     axes.tick_params(axis="y", labelsize=font_size_0)
 

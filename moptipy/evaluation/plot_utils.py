@@ -5,7 +5,9 @@ from typing import Final, Iterable, Union, List, Optional
 
 import matplotlib.pyplot  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
-from matplotlib.figure import Figure  # type: ignore
+from matplotlib.backend_bases import RendererBase  # type: ignore
+from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
+from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 import moptipy.evaluation.plot_defaults as pd
 from moptipy.utils.io import dir_ensure_exists, file_ensure_exists, \
@@ -275,3 +277,37 @@ def label_axes(axes: Axes,
                           font_size=font_size, may_rotate_text=True)
             else:
                 axes.set_ylabel(ylabel, fontsize=font_size)
+
+
+def get_axes(figure: Union[SubplotBase, Figure]) -> Axes:
+    """
+    Obtain the axes from a figure or axes object.
+
+    :param Union[SubplotBase, Figure] figure: the figure
+    :return: the Axes
+    :rtype: Axes
+    """
+    return figure.add_axes([0.005, 0.005, 0.99, 0.99]) \
+        if isinstance(figure, Figure) else figure.axes[0]
+
+
+def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
+    """
+    Get a renderer that can be used for determining figure element sizes.
+
+    :param Union[SubplotBase, Figure] figure: the figure element
+    :return: the renderer
+    :rtype: RendererBase
+    """
+    if isinstance(figure, (Axes, SubplotBase)):
+        figure = figure.figure
+    if not isinstance(figure, Figure):
+        raise TypeError(f"Figure expected, but got {type(figure)}.")
+    canvas = figure.canvas
+    if hasattr(canvas, "renderer"):
+        return canvas.renderer
+    if hasattr(canvas, "get_renderer"):
+        return canvas.get_renderer()
+    return RendererAgg(width=figure.get_figwidth(),
+                       height=figure.get_figheight(),
+                       dpi=figure.get_dpi())
