@@ -1,10 +1,11 @@
 """Plot a Gantt chart into one figure."""
-from typing import Final, Callable, Union, Tuple
+from typing import Final, Callable, Union, Tuple, Iterable, Dict, Optional
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
+from matplotlib.lines import Line2D  # type: ignore
 from matplotlib.patches import Rectangle  # type: ignore
 from matplotlib.text import Text  # type: ignore
 from matplotlib.ticker import MaxNLocator  # type: ignore
@@ -14,9 +15,16 @@ import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.examples.jssp.gantt import Gantt
 
+#: The default markers
+DEFAULT_MARKERS: Tuple[Tuple[str, Callable]] = \
+    (("lb", lambda x: x.instance.makespan_lower_bound),)
+
 
 def plot_gantt_chart(gantt: Gantt,
                      figure: Union[SubplotBase, Figure],
+                     markers: Optional[Iterable[
+                         Tuple[str, Union[int, Callable]]]] =
+                     DEFAULT_MARKERS,
                      x_axis: Union[AxisRanger, Callable] =
                      lambda gantt: AxisRanger(chosen_min=0)) -> None:
     """
@@ -24,6 +32,7 @@ def plot_gantt_chart(gantt: Gantt,
 
     :param moptipy.examples.jssp.Gantt gantt: the gantt chart
     :param Union[SubplotBase, Figure] figure: the figure
+    :param Iterable[Tuple[str,Union[int, Callable]]] markers: a set of markers
     :param moptipy.evaluation.AxisRanger x_axis: the ranger for the x-axis
     """
     if not isinstance(gantt, Gantt):
@@ -41,6 +50,29 @@ def plot_gantt_chart(gantt: Gantt,
     if not isinstance(x_axis, AxisRanger):
         raise TypeError(f"x_axis must be AxisRanger, but is {type(x_axis)}.")
 
+    # Compute all the marks
+    marks: Dict[int, str] = dict()
+    if markers is not None:
+        if not isinstance(markers, Iterable):
+            raise TypeError(
+                f"Expected markers to be Iterable, but got {type(markers)}.")
+        for name, val in markers:
+            if not isinstance(name, str):
+                raise TypeError(
+                    f"marker name must be str, but is {type(name)}.")
+            if callable(val):
+                val = val(gantt)
+                if val is None:
+                    continue
+            if not isinstance(val, int):
+                raise TypeError(f"marker must be int but is {type(val)}.")
+            if val in marks:
+                marks[val] = f"{marks[val]}/{name}"
+            else:
+                marks[val] = name
+                x_axis.register_value(val)
+
+    # Add x-axis data
     x_axis.register_array(times.flatten())
     x_axis.apply(axes, "x")
 
@@ -63,6 +95,17 @@ def plot_gantt_chart(gantt: Gantt,
     rend: Final = pu.get_renderer(axes)
     inv: Final = axes.transData.inverted()
 
+    zorder: int = 0
+
+    # print the marker lines
+    for val, _ in marks.items():
+        axes.add_artist(Line2D(xdata=(val, val),
+                               ydata=(y_min, y_max),
+                               color=pd.COLOR_BLACK,
+                               linewidth=2.0,
+                               zorder=zorder))
+        zorder += 1
+
     # plot the jobs
     for job in range(jobs):
         background = colors[job]
@@ -80,7 +123,9 @@ def plot_gantt_chart(gantt: Gantt,
                 width=(x_end - x_start),
                 height=height,
                 color=background,
-                linewidth=0))
+                linewidth=0,
+                zorder=zorder))
+            zorder += 1
 
             # Now we insert the job IDs, which is a bit tricky:
             # First, the rectangle may be too small to hold the text.
@@ -135,4 +180,28 @@ def plot_gantt_chart(gantt: Gantt,
                           fontsize=font_size,
                           color=foreground,
                           horizontalalignment="center",
-                          verticalalignment="center")
+                          verticalalignment="center",
+                          zorder=zorder)
+                zorder += 1
+
+    # print the marker labels
+    bbox = {"boxstyle": 'round',
+            "color": 'white',
+            "fill": True,
+            "linewidth": 0,
+            "alpha": 0.9}
+    y_mark: Final[float] = machines - 1 + (0.9 * bar_ofs)
+    for val, name in marks.items():
+        axes.annotate(text=f"{name}={val}",
+                      xy=(val, y_mark),
+                      xytext=(-4, -4),
+                      verticalalignment="top",
+                      horizontalalignment="right",
+                      xycoords="data",
+                      textcoords="offset points",
+                      fontsize=font_size,
+                      color=pd.COLOR_BLACK,
+                      rotation=90,
+                      bbox=bbox,
+                      zorder=zorder)
+        zorder += 1
