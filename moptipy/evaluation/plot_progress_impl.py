@@ -76,7 +76,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         it does not consume additional vertical space)
     :param Union[None,str,Callable] ylabel: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
-    :param bool ylabel_inside: put the xyaxis label inside the plot (so that
+    :param bool ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     :param float inst_priority: the style priority for instances
     :param float algo_priority: the style priority for algorithms

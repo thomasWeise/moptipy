@@ -19,6 +19,10 @@ from moptipy.examples.jssp.gantt import Gantt
 DEFAULT_MARKERS: Tuple[Tuple[str, Callable]] = \
     (("lb", lambda x: x.instance.makespan_lower_bound),)
 
+DEFAULT_INFOS: Callable = lambda gantt: \
+    f"{gantt.instance.name} ({gantt.instance.jobs}\u00D7" \
+    f"{gantt.instance.machines}), makespan {gantt.makespan}"
+
 
 def plot_gantt_chart(gantt: Gantt,
                      figure: Union[SubplotBase, Figure],
@@ -26,7 +30,18 @@ def plot_gantt_chart(gantt: Gantt,
                          Tuple[str, Union[int, Callable]]]] =
                      DEFAULT_MARKERS,
                      x_axis: Union[AxisRanger, Callable] =
-                     lambda gantt: AxisRanger(chosen_min=0)) -> None:
+                     lambda gantt: AxisRanger(chosen_min=0),
+                     importance_to_line_width_func: Callable =
+                     pd.importance_to_line_width,
+                     importance_to_font_size_func: Callable =
+                     pd.importance_to_font_size,
+                     info: Union[None, str, Callable] = DEFAULT_INFOS,
+                     xgrid: bool = False,
+                     ygrid: bool = False,
+                     xlabel: Union[None, str, Callable] = "time",
+                     xlabel_inside: bool = True,
+                     ylabel: Union[None, str, Callable] = "machine",
+                     ylabel_inside: bool = True) -> None:
     """
     Plot a Gantt chart.
 
@@ -34,6 +49,21 @@ def plot_gantt_chart(gantt: Gantt,
     :param Union[SubplotBase, Figure] figure: the figure
     :param Iterable[Tuple[str,Union[int, Callable]]] markers: a set of markers
     :param moptipy.evaluation.AxisRanger x_axis: the ranger for the x-axis
+    :param Union[None,str,Callable] info: the optional info header
+    :param Callable importance_to_font_size_func: the function converting
+        importance values to font sizes
+    :param Callable importance_to_line_width_func: the function converting
+        importance values to line widths
+    :param bool xgrid: should we have a grid along the x-axis?
+    :param bool ygrid: should we have a grid along the y-axis
+    :param Union[None,str,Callable] xlabel: a callable returning the label for
+        the x-axis, a label string, or `None` if no label should be put
+    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+        it does not consume additional vertical space)
+    :param Union[None,str,Callable] ylabel: a callable returning the label for
+        the y-axis, a label string, or `None` if no label should be put
+    :param bool ylabel_inside: put the y-axis label inside the plot (so that
+        it does not consume additional horizontal space)
     """
     if not isinstance(gantt, Gantt):
         raise TypeError(f"gantt must be Gantt, but is {type(gantt)}.")
@@ -89,11 +119,19 @@ def plot_gantt_chart(gantt: Gantt,
 
     # get the color and font styles
     colors: Final[Tuple] = pd.distinct_colors(jobs)
-    font_size: Final = pd.importance_to_font_size(-1)
+    font_size: Final[float] = importance_to_font_size_func(-1)
 
     # get the transforms needed to obtain text dimensions
     rend: Final = pu.get_renderer(axes)
     inv: Final = axes.transData.inverted()
+
+    # draw the grid
+    if xgrid or ygrid:
+        grid_lwd = importance_to_line_width_func(-1)
+        if xgrid:
+            axes.grid(axis="x", color=pd.GRID_COLOR, linewidth=grid_lwd)
+        if ygrid:
+            axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
     zorder: int = 0
 
@@ -205,3 +243,28 @@ def plot_gantt_chart(gantt: Gantt,
                       bbox=bbox,
                       zorder=zorder)
         zorder += 1
+
+    info_font_size: Final[float] = importance_to_font_size_func(0)
+    pu.label_axes(axes=axes,
+                  xlabel=xlabel(gantt) if callable(xlabel) else xlabel,
+                  xlabel_inside=xlabel_inside,
+                  xlabel_location=0.5,
+                  ylabel=ylabel(gantt) if callable(ylabel) else ylabel,
+                  ylabel_inside=ylabel_inside,
+                  ylabel_location=0.5,
+                  font_size=info_font_size,
+                  zorder=zorder)
+    zorder = zorder + 1
+
+    if callable(info):
+        info = info(gantt)
+    if info is not None:
+        if not isinstance(info, str):
+            raise TypeError(f"info must be str, but is {type(info)}.")
+        pu.label_box(axes=axes,
+                     text=info,
+                     x=0.5,
+                     y=1,
+                     font_size=importance_to_font_size_func(1),
+                     may_rotate_text=False,
+                     zorder=zorder)

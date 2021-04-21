@@ -152,7 +152,8 @@ def label_box(axes: Axes,
               x: Optional[float] = None,
               y: Optional[float] = None,
               font_size: float = pd.importance_to_font_size(0),
-              may_rotate_text: bool = False) -> None:
+              may_rotate_text: bool = False,
+              zorder: Optional[float] = None) -> None:
     """
     Put a label text box near an axis.
 
@@ -165,6 +166,7 @@ def label_box(axes: Axes,
     :param float font_size: the font size
     :param bool may_rotate_text: should we rotate the text by 90° if that
         makes sense (`True`) or always keep it horizontally (`False`)
+    :param Optional[float] zorder: an optional z-order value
     """
     if x is None:
         if y is None:
@@ -204,8 +206,10 @@ def label_box(axes: Axes,
                      "fill": True,
                      "linewidth": 0,
                      "alpha": 0.9}}
+    if zorder is not None:
+        args["zorder"] = zorder
 
-    if may_rotate_text and (len(text) > 2) and (ytext != 0.0):
+    if may_rotate_text and (len(text) > 2):
         args["rotation"] = 90
 
     axes.annotate(**args)
@@ -237,7 +241,8 @@ def label_axes(axes: Axes,
                ylabel: Optional[str] = None,
                ylabel_inside: bool = True,
                ylabel_location: float = 1,
-               font_size: float = pd.importance_to_font_size(0)) -> None:
+               font_size: float = pd.importance_to_font_size(0),
+               zorder: Optional[float] = None) -> None:
     """
     Put labels on a figure.
 
@@ -255,6 +260,7 @@ def label_axes(axes: Axes,
     :param float ylabel_location: the location of the y-axis label if it is
         placed inside the plot area
     :param float font_size: the font size to use
+    :param Optional[float] zorder: an optional z-order value
     """
     # put the label on the x-axis, if any
     if xlabel is not None:
@@ -263,7 +269,7 @@ def label_axes(axes: Axes,
         if len(xlabel) > 0:
             if xlabel_inside:
                 label_box(axes, text=xlabel, x=xlabel_location, y=0,
-                          font_size=font_size)
+                          font_size=font_size, zorder=zorder)
             else:
                 axes.set_xlabel(xlabel, fontsize=font_size)
 
@@ -274,7 +280,8 @@ def label_axes(axes: Axes,
         if len(ylabel) > 0:
             if ylabel_inside:
                 label_box(axes, text=ylabel, x=0, y=ylabel_location,
-                          font_size=font_size, may_rotate_text=True)
+                          font_size=font_size, may_rotate_text=True,
+                          zorder=zorder)
             else:
                 axes.set_ylabel(ylabel, fontsize=font_size)
 
