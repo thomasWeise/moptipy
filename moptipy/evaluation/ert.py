@@ -1,16 +1,19 @@
 """Approximate the empirical running time to reach certain goals."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from math import isfinite, inf
 from typing import Optional, Iterable, List, Final, cast, Union
 
 import numba  # type: ignore
 import numpy as np
 
+import moptipy.utils.logging as lg
 import moptipy.utils.nputils as npu
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
-    F_NAME_NORMALIZED, F_NAME_RAW
+    F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
 from moptipy.evaluation.progress import Progress
+from moptipy.utils.io import canonicalize_path, enforce_file
 
 
 @numba.njit(nogil=True)
@@ -92,6 +95,41 @@ class Ert(MultiRun2DData):
             raise ValueError(
                 f"first ert y-axis element cannot be {ert[0, 1]}.")
         object.__setattr__(self, "ert", ert)
+
+    def to_csv(self, file: str,
+               put_header: bool = True) -> str:
+        """
+        Store a :class:`Ert` record in a CSV file.
+
+        :param str file: the file to generate
+        :param bool put_header: should we put a header with meta-data?
+        :return: the fully resolved file name
+        :rtype: str
+        """
+        file = canonicalize_path(file)
+        print(f"{datetime.now()}: Writing ERT to CSV file '{file}'.")
+
+        with open(file, "wt") as out:
+            sep: Final[str] = lg.CSV_SEPARATOR
+            if put_header:
+                kv: Final[str] = lg.KEY_VALUE_SEPARATOR
+                cmt: Final[str] = lg.COMMENT_CHAR
+                if self.algorithm is not None:
+                    out.write(
+                        f"{cmt} {lg.KEY_ALGORITHM}{kv}{self.algorithm}\n")
+                if self.instance is not None:
+                    out.write(
+                        f"{cmt} {lg.KEY_INSTANCE}{kv}{self.instance}\n")
+                out.write(
+                    f"{cmt} {KEY_N}{kv}{self.n}\n")
+            out.write(f"{self.f_name}{sep}ert[{self.time_unit}]\n")
+            for v in self.ert:
+                out.write(
+                    f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
+
+        print(f"{datetime.now()}: Done writing ERT to CSV file '{file}'.")
+
+        return enforce_file(file)
 
     @staticmethod
     def from_progress(source: Iterable[Progress],

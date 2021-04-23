@@ -1,5 +1,6 @@
 """Progress data over a run."""
 from dataclasses import dataclass
+from datetime import datetime
 from math import isfinite, inf
 from typing import MutableSequence, Union, Optional, List, Final, Dict
 
@@ -12,6 +13,7 @@ from moptipy.evaluation.base import PerRunData, check_f_name, \
     F_NAME_SCALED
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
+from moptipy.utils.io import canonicalize_path, enforce_file
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
 
@@ -169,6 +171,43 @@ class Progress(PerRunData):
                         collector,
                         f_standard,
                         only_improvements).parse(path)
+
+    def to_csv(self, file: str,
+               put_header: bool = True) -> str:
+        """
+        Store a :class:`Progress` record in a CSV file.
+
+        :param str file: the file to generate
+        :param bool put_header: should we put a header with meta-data?
+        :return: the fully resolved file name
+        :rtype: str
+        """
+        file = canonicalize_path(file)
+        print(f"{datetime.now()}: Writing progress object to "
+              f"CSV file '{file}'.")
+
+        with open(file, "wt") as out:
+            sep: Final[str] = logging.CSV_SEPARATOR
+            if put_header:
+                kv: Final[str] = logging.KEY_VALUE_SEPARATOR
+                cmt: Final[str] = logging.COMMENT_CHAR
+                out.write(
+                    f"{cmt} {logging.KEY_ALGORITHM}{kv}{self.algorithm}\n")
+                out.write(
+                    f"{cmt} {logging.KEY_INSTANCE}{kv}{self.instance}\n")
+                out.write(f"{cmt} {logging.KEY_RAND_SEED}{kv}"
+                          f"{hex(self.rand_seed)}\n")
+                if self.f_standard is not None:
+                    out.write(
+                        f"{cmt} {logging.KEY_GOAL_F}{kv}{self.f_standard}\n")
+            out.write(f"{self.time_unit}{sep}{self.f_name}\n")
+            for i, t in enumerate(self.time):
+                out.write(f"{t}{sep}{logging.num_to_str(self.f[i])}\n")
+
+        print(f"{datetime.now()}: Done writing progress object to "
+              f"CSV file '{file}'.")
+
+        return enforce_file(file)
 
 
 class _InnerLogParser(ExperimentParser):

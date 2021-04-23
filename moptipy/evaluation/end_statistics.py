@@ -587,11 +587,13 @@ class EndStatistics(MultiRunData):
                 next(iter(sorter.values()))))
 
     @staticmethod
-    def to_csv(data: Iterable['EndStatistics'], file: str) -> None:
+    def to_csv(data: Union['EndStatistics',
+                           Iterable['EndStatistics']], file: str) -> None:
         """
         Store a set of :class:`EndStatistics` in a CSV file.
 
-        :param Iterable['EndStatistics'] data: the data to store
+        :param Union['EndStatistics', Iterable['EndStatistics']] data: the
+            data to store
         :param str file: the file to generate
         """
         file = canonicalize_path(file)
@@ -610,6 +612,9 @@ class EndStatistics(MultiRunData):
         has_max_fes: int = 0  # 512
         has_max_time_millis: int = 0  # 1024
         checker: int = 2047
+
+        if isinstance(data, EndStatistics):
+            data = [data]
 
         for es in data:
             if es.algorithm is not None:
