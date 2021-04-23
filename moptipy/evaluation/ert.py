@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 from math import isfinite, inf
-from typing import Optional, Iterable, List, Final, cast, Union
+from typing import Optional, Iterable, List, Final, cast, Union, \
+    MutableSequence, Dict
 
 import numba  # type: ignore
 import numpy as np
@@ -85,15 +86,29 @@ class Ert(MultiRun2DData):
         super().__init__(algorithm, instance, n, time_unit, f_name)
         if not isinstance(ert, np.ndarray):
             raise TypeError(f"ert must be numpy.ndarray, but is {type(ert)}.")
-        if not npu.is_all_finite(ert[:, 0]):
-            raise ValueError("ert x-axis must be all finite.")
-        if np.isfinite(ert[0, 1]) or (np.isposinf(ert[0, 1])):
-            if not npu.is_all_finite(ert[1:, 1]):
+        ert.flags.writeable = False
+
+        f: Final[np.ndarray] = ert[:, 0]
+        if not npu.is_all_finite(f):
+            raise ValueError(
+                f"Ert x-axis must be all finite, but encountered {f}.")
+        ll = f.size
+        if ll > 1:
+            if np.any(f[1:] <= f[:-1]):
+                raise ValueError("f data must be strictly increasing,"
+                                 f"but encountered {f}.")
+
+        t: Final[np.ndarray] = ert[:, 1]
+        if np.isfinite(t[0]) or (np.isposinf(t[0])):
+            if not npu.is_all_finite(t[1:]):
                 raise ValueError(
                     "non-first ert y-axis elements must be all finite.")
+            if np.any(t[1:] >= t[:-1]):
+                raise ValueError("t data must be strictly decreasing,"
+                                 f"but encountered {t}.")
         else:
             raise ValueError(
-                f"first ert y-axis element cannot be {ert[0, 1]}.")
+                f"first ert y-axis element cannot be {t[0]}.")
         object.__setattr__(self, "ert", ert)
 
     def to_csv(self, file: str,
@@ -132,11 +147,11 @@ class Ert(MultiRun2DData):
         return enforce_file(file)
 
     @staticmethod
-    def from_progress(source: Iterable[Progress],
-                      f_lower_bound: Optional[float] = None,
-                      use_default_lower_bounds: bool = True) -> 'Ert':
+    def create(source: Iterable[Progress],
+               f_lower_bound: Optional[float] = None,
+               use_default_lower_bounds: bool = True) -> 'Ert':
         """
-        Create an Ert record.
+        Create one single Ert record from an iterable of Progress records.
 
         :param Iterable[moptipy.evaluation.Progress] source: the set of
             progress instances
@@ -251,3 +266,72 @@ class Ert(MultiRun2DData):
 
         return Ert(algorithm, instance, n,
                    time_unit, f_name, ert)
+
+    @staticmethod
+    def from_progresses(source: Iterable[Progress],
+                        collector: MutableSequence['Ert'],
+                        f_lower_bound: Optional[float] = None,
+                        use_default_lower_bounds: bool = True,
+                        join_all_algorithms: bool = False,
+                        join_all_instances: bool = False) -> None:
+        """
+        Aggregate statistics over a stream of end results.
+
+        :param Iterable[moptipy.evaluation.Progress] source: the set of
+            progress instances
+        :param float f_lower_bound: the lower bound for the objective value
+        :param bool use_default_lower_bounds: should we use the default lower
+            bounds
+        :param MutableSequence['Ert'] collector: the destination
+            to which the new records will be appended
+        :param bool join_all_algorithms: should the Ert be aggregated over
+            all algorithms
+        :param bool join_all_instances: should the Ert be aggregated over all
+            algorithms
+        """
+        if not isinstance(source, Iterable):
+            raise TypeError(
+                f"source must be Iterable, but is {type(source)}.")
+        if not isinstance(collector, MutableSequence):
+            raise TypeError("collector must be MutableSequence, "
+                            f"but is {type(collector)}.")
+        if not isinstance(join_all_algorithms, bool):
+            raise TypeError("join_all_algorithms must be bool, "
+                            f"but is {type(join_all_algorithms)}.")
+        if not isinstance(join_all_instances, bool):
+            raise TypeError("join_all_instances must be bool, "
+                            f"but is {type(join_all_instances)}.")
+
+        if join_all_algorithms and join_all_instances:
+            collector.append(Ert.create(source, f_lower_bound,
+                                        use_default_lower_bounds))
+            return
+
+        sorter: Dict[str, List[Progress]] = dict()
+        for er in source:
+            if not isinstance(er, Progress):
+                raise TypeError("source must contain only Progress, but "
+                                f"found a {type(er)}.")
+            key = er.instance if join_all_algorithms else \
+                er.algorithm if join_all_instances else \
+                f"{er.algorithm}/{er.instance}"
+            if key in sorter:
+                lst = sorter[key]
+            else:
+                lst = list()
+                sorter[key] = lst
+            lst.append(er)
+
+        if len(sorter) <= 0:
+            raise ValueError("source must not be empty")
+
+        if len(sorter) > 1:
+            keyz = list(sorter.keys())
+            keyz.sort()
+            for key in keyz:
+                collector.append(Ert.create(sorter[key], f_lower_bound,
+                                            use_default_lower_bounds))
+        else:
+            collector.append(Ert.create(next(iter(sorter.values())),
+                                        f_lower_bound,
+                                        use_default_lower_bounds))

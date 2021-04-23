@@ -243,7 +243,7 @@ def test_experiment_jssp():
             assert pr.time[-1] >= results[idx].last_improvement_fe
             assert pr.time[-1] <= results[idx].total_fes
 
-        ert = Ert.from_progress(progress_fes_raw)
+        ert = Ert.create(progress_fes_raw)
         assert ert.instance is None
         assert ert.algorithm is None
         assert ert.n == 24
