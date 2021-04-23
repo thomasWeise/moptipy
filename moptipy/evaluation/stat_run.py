@@ -8,7 +8,8 @@ import numba  # type: ignore
 import numpy as np
 
 import moptipy.evaluation.statistics as statn
-from moptipy.evaluation.base import MultiRun2DData
+from moptipy.evaluation.base import MultiRun2DData, MultiRunData, \
+    PerRunData
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
 from moptipy.utils.nputils import is_np_float
@@ -544,3 +545,14 @@ class StatRun(MultiRun2DData):
             StatRun.create(next(iter(sorter.values())),
                            statistics,
                            collector)
+
+
+def get_statistic(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
+    """
+    Get the statistic of a given object.
+
+    :param obj: the object
+    :return: the statistic string, or `None` if no statistic is specified
+    :rtype: Optional[str]
+    """
+    return obj.stat_name if isinstance(obj, StatRun) else None

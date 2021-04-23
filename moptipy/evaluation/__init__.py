@@ -4,7 +4,7 @@ from typing import Final
 
 import moptipy.version
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import Setup, PerRunData, MultiRunData
+from moptipy.evaluation.base import PerRunData, MultiRunData
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.log_parser import LogParser, ExperimentParser
@@ -33,6 +33,5 @@ __all__ = (
     "PerRunData",
     "Progress",
     "save_figure",
-    "Setup",
     "Statistics",
     "StatRun")

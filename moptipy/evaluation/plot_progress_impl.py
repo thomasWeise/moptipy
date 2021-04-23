@@ -1,4 +1,4 @@
-"""Plot a set of progress objects into one figure."""
+"""Plot a set of `Progress` or `StatRun` objects into one figure."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
     Optional
 
@@ -9,21 +9,10 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.evaluation.plot_defaults as pd
 import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
+from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
 from moptipy.evaluation.progress import Progress
-from moptipy.evaluation.stat_run import StatRun
+from moptipy.evaluation.stat_run import StatRun, get_statistic
 from moptipy.evaluation.styler import Styler
-
-
-def __get_inst(obj: Union[Progress, StatRun]) -> Optional[str]:
-    return obj.instance
-
-
-def __get_algo(obj: Union[Progress, StatRun]) -> Optional[str]:
-    return obj.algorithm
-
-
-def __get_stat(obj: Union[Progress, StatRun]) -> Optional[str]:
-    return obj.stat_name if isinstance(obj, StatRun) else None
 
 
 def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
@@ -53,8 +42,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     """
     Plot a set of progress or statistical run lines into one chart.
 
-    :param Iterable[moptipy.evaluation.Progress] progresses: the iterable
-        of progresses
+    :param progresses: the iterable of progresses and statistical runs
     :param Union[SubplotBase, Figure] figure: the figure to plot in
     :param Union[moptipy.evaluation.AxisRanger, Callable] x_axis: the x_axis
     :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
@@ -84,9 +72,11 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
-    instances: Final[Styler] = Styler(__get_inst, "all insts", inst_priority)
-    algorithms: Final[Styler] = Styler(__get_algo, "all algos", algo_priority)
-    statistics: Final[Styler] = Styler(__get_stat, "single run",
+    instances: Final[Styler] = Styler(get_instance, "all insts",
+                                      inst_priority)
+    algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
+                                       algo_priority)
+    statistics: Final[Styler] = Styler(get_statistic, "single run",
                                        stat_priority)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
@@ -124,10 +114,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
             ((len(progress_list) + len(statrun_list)) <= 0):
         raise ValueError("Illegal state?")
 
-    statrun_list.sort(key=lambda x: (
-        "" if x.algorithm is None else x.algorithm,
-        "" if x.instance is None else x.instance,
-        x.n))
+    statrun_list.sort(key=sort_key)
     progress_list.sort()
     instances.compile()
     algorithms.compile()

@@ -1,7 +1,7 @@
 """Some internal helper functions."""
 
 from dataclasses import dataclass
-from typing import Final, Union, Optional
+from typing import Final, Union, Optional, Tuple
 
 import moptipy.utils.logging as logging
 from moptipy.utils.nputils import rand_seed_check
@@ -140,59 +140,6 @@ class MultiRunData:
 
 
 @dataclass(frozen=True, init=False, order=True)
-class Setup:
-    """
-    A class that represents a key identifying multiple runs.
-
-    These could have either an algorithm, a setup, or both.
-    """
-
-    #: The algorithm that was applied, if the same over all runs.
-    algorithm: Optional[str]
-    #: The problem instance that was solved, if the same over all runs.
-    instance: Optional[str]
-
-    def __init__(self,
-                 algorithm: Optional[str],
-                 instance: Optional[str]):
-        """
-        Create the setup key of an experiment-setup combination.
-
-        :param Optional[str] algorithm: the algorithm name, if all runs are
-            with the same algorithm
-        :param Optional[str] instance: the instance name, if all runs are
-            on the same instance
-        """
-        if algorithm is not None:
-            if algorithm != logging.sanitize_name(algorithm):
-                raise ValueError(f"Invalid algorithm '{algorithm}'.")
-        object.__setattr__(self, "algorithm", algorithm)
-
-        if instance is not None:
-            if instance != logging.sanitize_name(instance):
-                raise ValueError(f"Invalid instance '{instance}'.")
-        object.__setattr__(self, "instance", instance)
-
-        if (algorithm is None) and (instance is None):
-            raise ValueError("You must at least specify either an "
-                             "algorithm or an instance.")
-
-    @staticmethod
-    def key_for(src: Union[PerRunData, MultiRunData]) -> 'Setup':
-        """
-        Create a key for a dataset.
-
-        :param Union[PerRunData, MultiRunData] src: the dataset
-        :return: the corresponding instance of `Setup`
-        :rtype: Setup
-        """
-        if not isinstance(src, (PerRunData, MultiRunData)):
-            raise TypeError("src must be PerRunData or MultiRunData, but is "
-                            f"{type(src)}.")
-        return Setup(src.algorithm, src.instance)
-
-
-@dataclass(frozen=True, init=False, order=True)
 class MultiRun2DData(MultiRunData):
     """A multi-run data based on one time and one objective dimension."""
 
@@ -222,3 +169,48 @@ class MultiRun2DData(MultiRunData):
 
         object.__setattr__(self, "time_unit", check_time_unit(time_unit))
         object.__setattr__(self, "f_name", check_f_name(f_name))
+
+
+def get_instance(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
+    """
+    Get the instance of a given object.
+
+    :param Union[PerRunData, MultiRunData] obj: the object
+    :return: the instance string, or `None` if no instance is specified
+    :rtype: Optional[str]
+    """
+    return obj.instance
+
+
+def get_algorithm(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
+    """
+    Get the algorithm of a given object.
+
+    :param Union[PerRunData, MultiRunData] obj: the object
+    :return: the algorithm string, or `None` if no algorithm is specified
+    :rtype: Optional[str]
+    """
+    return obj.algorithm
+
+
+def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
+        Tuple[str, str, str, int, int, str, str]:
+    """
+    Get a default sort key for the given object.
+
+    The sort key is a tuple with well-defined field elements that should
+    allow for a default and consistent sorting over many different elements of
+    the experiment evaluation data API. Sorting should work also for lists
+    containing elements of different classes.
+
+    :param Union[PerRunData, MultiRunData] obj: the object
+    :return: the sort key
+    :rtype: Tuple[str, str, int, int, str, str]
+    """
+    return obj.__class__.__name__, \
+        "" if obj.algorithm is None else obj.algorithm, \
+        "" if obj.instance is None else obj.instance, \
+        obj.n if isinstance(obj, MultiRunData) else 1, \
+        obj.rand_seed if isinstance(obj, PerRunData) else 0, \
+        obj.time_unit if isinstance(obj, MultiRun2DData) else "", \
+        obj.f_name if isinstance(obj, MultiRun2DData) else ""

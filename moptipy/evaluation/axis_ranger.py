@@ -116,10 +116,12 @@ class AxisRanger:
 
         :param np.ndarray data: the data to register
         """
-        if self.__use_data_min:
-            self.register_value(float(data.min()))
-        if self.__use_data_max:
-            self.register_value(float(data.max()))
+        if self.__use_data_min or self.__use_data_max:
+            d = data[np.isfinite(data)]
+            if self.__use_data_min:
+                self.register_value(float(d.min()))
+            if self.__use_data_max:
+                self.register_value(float(d.max()))
 
     def register_value(self, value: float) -> None:
         """
@@ -127,15 +129,16 @@ class AxisRanger:
 
         :param float value: the data to register
         """
-        if self.__use_data_min:
-            if (value < self.__detected_min) and \
-                    ((value > 0.0) or (not self.__log_scale)):
-                self.__detected_min = value
-                self.__has_detected_min = True
-        if self.__use_data_max:
-            if value > self.__detected_max:
-                self.__detected_max = value
-                self.__has_detected_max = True
+        if isfinite(value):
+            if self.__use_data_min:
+                if (value < self.__detected_min) and \
+                        ((value > 0.0) or (not self.__log_scale)):
+                    self.__detected_min = value
+                    self.__has_detected_min = True
+            if self.__use_data_max:
+                if value > self.__detected_max:
+                    self.__detected_max = value
+                    self.__has_detected_max = True
 
     def register_seq(self, seq: Iterable[float]) -> None:
         """
