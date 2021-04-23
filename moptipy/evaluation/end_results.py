@@ -6,7 +6,7 @@ from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
 from moptipy.evaluation._utils import _ifn_to_str, _in_to_str, _str_to_if, \
     _str_to_ifn, _str_to_in, _try_int, _check_max_time_millis
-from moptipy.evaluation.base_classes import PerRunData
+from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging

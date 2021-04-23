@@ -7,53 +7,13 @@ import numpy as np
 
 import moptipy.utils.logging as logging
 from moptipy.evaluation._utils import _str_to_if
-from moptipy.evaluation.base_classes import PerRunData
+from moptipy.evaluation.base import PerRunData, check_f_name, \
+    check_time_unit, TIME_UNIT_MILLIS, TIME_UNIT_FES, F_NAME_RAW, \
+    F_NAME_SCALED
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
-
-#: The unit of the time axis if time is measured in milliseconds.
-TIME_UNIT_MILLIS: Final[str] = "ms"
-#: The unit of the time axis of time is measured in FEs
-TIME_UNIT_FES: Final[str] = "FEs"
-
-#: The name of the raw objective values data.
-F_NAME_RAW: Final[str] = "plain"
-#: The name of the scaled objective values data.
-F_NAME_SCALED: Final[str] = "scaled"
-#: The name of the normalized objective values data.
-F_NAME_NORMALIZED: Final[str] = "normalized"
-
-
-def check_time_unit(time_unit: str) -> str:
-    """
-    Check that the time unit is OK.
-
-    :param str time_unit: the time unit
-    :return: the time unit string
-    :rtype: str
-    """
-    if time_unit in (TIME_UNIT_FES, TIME_UNIT_MILLIS):
-        return time_unit
-    raise ValueError(
-        f"Invalid time unit '{time_unit}', only {TIME_UNIT_FES} "
-        f"and {TIME_UNIT_MILLIS} are permitted.")
-
-
-def check_f_name(f_name: str) -> str:
-    """
-    Check whether an objective value name is valid.
-
-    :param str f_name: the name of the objective function dimension
-    :return: the name of the objective function dimension
-    :rtype: str
-    """
-    if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
-        return f_name
-    raise ValueError(
-        f"Invalid f name '{f_name}', only {F_NAME_RAW}, "
-        f"{F_NAME_SCALED}, and {F_NAME_NORMALIZED} are permitted.")
 
 
 @dataclass(frozen=True, init=False, order=True)

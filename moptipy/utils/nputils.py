@@ -41,7 +41,7 @@ DEFAULT_INT: Final[np.dtype] = (__NP_INTS_LIST[-2])[0]
 __DEFAULT_UNSIGNED_INT: Final[np.dtype] = (__NP_INTS_LIST[-1])[0]
 
 #: The default boolean type.
-__DEFAULT_BOOLS: Final[np.dtype] = np.dtype(np.bool_)
+DEFAULT_BOOL: Final[np.dtype] = np.dtype(np.bool_)
 
 #: The default floating point type.
 DEFAULT_FLOAT: Final[np.dtype] = np.zeros(1).dtype
@@ -270,7 +270,7 @@ def strs_to_bools(lines: Iterable[str]) -> np.ndarray:
     array([ True, False,  True])
     """
     return np.array([logging.str_to_bool(s) for s in lines],
-                    dtype=__DEFAULT_BOOLS)
+                    dtype=DEFAULT_BOOL)
 
 
 def strs_to_uints(lines: Iterable[str]) -> np.ndarray:

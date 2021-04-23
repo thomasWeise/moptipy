@@ -6,7 +6,7 @@ from typing import Optional, Final, Iterable, Callable
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
 
-from moptipy.evaluation.progress import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
+from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
     F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
 
 #: The internal minimum float value for log-scaled axes.

@@ -7,7 +7,7 @@ from typing import Optional, Union, Iterable, List, MutableSequence, Dict, \
 
 from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if, \
     _check_max_time_millis
-from moptipy.evaluation.base_classes import MultiRunData, KEY_N
+from moptipy.evaluation.base import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
 from moptipy.utils import logging as log
@@ -577,11 +577,10 @@ class EndStatistics(MultiRunData):
         if len(sorter) <= 0:
             raise ValueError("source must not be empty")
 
-        keys: Iterable[str]
         if len(sorter) > 1:
-            keys = list(sorter.keys())
-            keys.sort()
-            for key in keys:
+            keyz = list(sorter.keys())
+            keyz.sort()
+            for key in keyz:
                 collector.append(EndStatistics.create(sorter[key]))
         else:
             collector.append(EndStatistics.create(

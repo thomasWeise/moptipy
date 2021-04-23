@@ -8,8 +8,8 @@ import numba  # type: ignore
 import numpy as np
 
 import moptipy.evaluation.statistics as statn
-from moptipy.evaluation.base_classes import MultiRunData
-from moptipy.evaluation.progress import Progress, check_time_unit, check_f_name
+from moptipy.evaluation.base import MultiRun2DData
+from moptipy.evaluation.progress import Progress
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
 from moptipy.utils.nputils import is_np_float
 
@@ -337,13 +337,9 @@ _FUNC_MAP: Final[Dict[str, Callable]] = {
 
 
 @dataclass(frozen=True, init=False, order=True)
-class StatRun(MultiRunData):
+class StatRun(MultiRun2DData):
     """A time-value statistic over a set of runs."""
 
-    #: The unit of the time axis.
-    time_unit: str
-    #: the name of the objective value axis.
-    f_name: str
     #: The name of this statistic.
     stat_name: str
     #: The time-dependent statistic.
@@ -370,10 +366,7 @@ class StatRun(MultiRunData):
         :param str stat_name: the name of the statistic
         :param np.ndarray stat: the statistic itself
         """
-        super().__init__(algorithm, instance, n)
-
-        object.__setattr__(self, "time_unit", check_time_unit(time_unit))
-        object.__setattr__(self, "f_name", check_f_name(f_name))
+        super().__init__(algorithm, instance, n, time_unit, f_name)
 
         if not isinstance(stat_name, str):
             raise TypeError(

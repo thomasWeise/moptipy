@@ -9,6 +9,48 @@ from moptipy.utils.nputils import rand_seed_check
 #: The key for the total number of runs.
 KEY_N: Final[str] = "n"
 
+#: The unit of the time axis if time is measured in milliseconds.
+TIME_UNIT_MILLIS: Final[str] = "ms"
+#: The unit of the time axis of time is measured in FEs
+TIME_UNIT_FES: Final[str] = "FEs"
+
+#: The name of the raw objective values data.
+F_NAME_RAW: Final[str] = "plain"
+#: The name of the scaled objective values data.
+F_NAME_SCALED: Final[str] = "scaled"
+#: The name of the normalized objective values data.
+F_NAME_NORMALIZED: Final[str] = "normalized"
+
+
+def check_time_unit(time_unit: str) -> str:
+    """
+    Check that the time unit is OK.
+
+    :param str time_unit: the time unit
+    :return: the time unit string
+    :rtype: str
+    """
+    if time_unit in (TIME_UNIT_FES, TIME_UNIT_MILLIS):
+        return time_unit
+    raise ValueError(
+        f"Invalid time unit '{time_unit}', only {TIME_UNIT_FES} "
+        f"and {TIME_UNIT_MILLIS} are permitted.")
+
+
+def check_f_name(f_name: str) -> str:
+    """
+    Check whether an objective value name is valid.
+
+    :param str f_name: the name of the objective function dimension
+    :return: the name of the objective function dimension
+    :rtype: str
+    """
+    if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
+        return f_name
+    raise ValueError(
+        f"Invalid f name '{f_name}', only {F_NAME_RAW}, "
+        f"{F_NAME_SCALED}, and {F_NAME_NORMALIZED} are permitted.")
+
 
 @dataclass(frozen=True, init=False, order=True)
 class PerRunData:
@@ -148,3 +190,35 @@ class Setup:
             raise TypeError("src must be PerRunData or MultiRunData, but is "
                             f"{type(src)}.")
         return Setup(src.algorithm, src.instance)
+
+
+@dataclass(frozen=True, init=False, order=True)
+class MultiRun2DData(MultiRunData):
+    """A multi-run data based on one time and one objective dimension."""
+
+    #: The unit of the time axis.
+    time_unit: str
+    #: the name of the objective value axis.
+    f_name: str
+
+    def __init__(self,
+                 algorithm: Optional[str],
+                 instance: Optional[str],
+                 n: int,
+                 time_unit: str,
+                 f_name: str):
+        """
+        Create multi-run data based on one time and one objective dimension.
+
+        :param Optional[str] algorithm: the algorithm name, if all runs are
+            with the same algorithm
+        :param Optional[str] instance: the instance name, if all runs are
+            on the same instance
+        :param int n: the total number of runs
+        :param str time_unit: the time unit
+        :param str f_name: the objective dimension name
+        """
+        super().__init__(algorithm, instance, n)
+
+        object.__setattr__(self, "time_unit", check_time_unit(time_unit))
+        object.__setattr__(self, "f_name", check_f_name(f_name))
