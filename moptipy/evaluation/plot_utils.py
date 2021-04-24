@@ -215,25 +215,6 @@ def label_box(axes: Axes,
     axes.annotate(**args)
 
 
-def mix_plot_list(lst: List) -> None:
-    """
-    Deterministically shuffle a list of plot elements.
-
-    The goal of this method is to achieve some sort of fairness in terms of
-    overlapping plot elements.
-
-    :param List lst: a list of elements that should be painted
-    """
-    lll = len(lst)
-    if lll > 4:
-        center = lll // 2
-        for i in range(1, center, 2):
-            lst[i], lst[-i] = lst[-i], lst[i]
-        for start, end in [(center, lll - center), (lll - center, lll - 1)]:
-            for i in range(lll // 4):
-                lst[start + i], lst[end - i] = lst[end - i], lst[start + i]
-
-
 def label_axes(axes: Axes,
                xlabel: Optional[str] = None,
                xlabel_inside: bool = True,

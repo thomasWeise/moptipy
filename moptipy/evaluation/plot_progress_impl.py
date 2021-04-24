@@ -195,10 +195,6 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         plot_list.append(style)
     del progress_list
 
-    # Perform some mild, deterministic shuffling to obtain a fair printing
-    # order of lines: No line group should completely cover another one.
-    pu.mix_plot_list(plot_list)
-
     # now collect the plot data for the statistics
     for sn in statistics.keys:
         if sn is None:

@@ -220,6 +220,21 @@ class AxisRanger:
                     else:
                         axes.semilogy(self.__log_base)
 
+    def get_pinf_replacement(self) -> float:
+        """
+        Get a reasonable finite value that can replace positive infinity.
+
+        :return: a reasonable finate value that can be used to replace
+            positive infinity
+        :rtype: float
+        """
+        data_max: float = 0.0
+        if self.__chosen_max is not None:
+            data_max = self.__chosen_max
+        elif self.__detected_max is not None:
+            data_max = self.__detected_max
+        return min(1e100, max(1e70, 1e5 * data_max))
+
     @staticmethod
     def for_axis(name: str,
                  chosen_min: Optional[float] = None,
@@ -272,7 +287,7 @@ class AxisRanger:
                 __log = log_scale
 
             if chosen_min is None:
-                __min = 0 if __log else 1
+                __min = 1 if __log else 0
             else:
                 __min = chosen_min
 

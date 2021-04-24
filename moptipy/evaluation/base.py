@@ -210,7 +210,7 @@ def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
     return obj.__class__.__name__, \
         "" if obj.algorithm is None else obj.algorithm, \
         "" if obj.instance is None else obj.instance, \
-        obj.n if isinstance(obj, MultiRunData) else 1, \
+        obj.n if isinstance(obj, MultiRunData) else 0, \
         obj.rand_seed if isinstance(obj, PerRunData) else 0, \
         obj.time_unit if isinstance(obj, MultiRun2DData) else "", \
         obj.f_name if isinstance(obj, MultiRun2DData) else ""
