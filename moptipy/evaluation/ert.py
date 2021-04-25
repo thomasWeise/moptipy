@@ -285,7 +285,7 @@ class Ert(MultiRun2DData):
                         join_all_algorithms: bool = False,
                         join_all_instances: bool = False) -> None:
         """
-        Aggregate statistics over a stream of end results.
+        Compute one or multiple ERTs from a stream of end results.
 
         :param Iterable[moptipy.evaluation.Progress] source: the set of
             progress instances

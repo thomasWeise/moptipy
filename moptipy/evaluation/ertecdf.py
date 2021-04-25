@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from math import isfinite, inf
 from typing import Optional, Iterable, List, Final, Union, \
-    Dict, Callable
+    Dict, Callable, MutableSequence
 
 import numpy as np
 
@@ -264,6 +264,62 @@ class ErtEcdf(MultiRun2DData):
                        same_goal_f,
                        np.column_stack((np.array(time),
                                         np.array(ecdf))))
+
+    @staticmethod
+    def from_progresses(source: Iterable[Progress],
+                        collector: MutableSequence['ErtEcdf'],
+                        f_goal: Union[int, float, Callable,
+                                      Iterable[Union[int, float,
+                                                     Callable]]] = None,
+                        join_all_algorithms: bool = False) -> None:
+        """
+        Compute one or multiple ERT-ECDFs from a stream of end results.
+
+        :param Iterable[moptipy.evaluation.Progress] source: the set of
+            progress instances
+        :param f_goal: one or multiple goal values
+        :param MutableSequence['Ert'] collector: the destination
+            to which the new records will be appended
+        :param bool join_all_algorithms: should the Ert-Ecdf be aggregated
+            over all algorithms
+        """
+        if not isinstance(source, Iterable):
+            raise TypeError(
+                f"source must be Iterable, but is {type(source)}.")
+        if not isinstance(collector, MutableSequence):
+            raise TypeError("collector must be MutableSequence, "
+                            f"but is {type(collector)}.")
+        if not isinstance(join_all_algorithms, bool):
+            raise TypeError("join_all_algorithms must be bool, "
+                            f"but is {type(join_all_algorithms)}.")
+        if not isinstance(f_goal, Iterable):
+            f_goal = [f_goal]
+
+        sorter: Dict[str, List[Progress]] = dict()
+        for er in source:
+            if not isinstance(er, Progress):
+                raise TypeError("source must contain only Progress, but "
+                                f"found a {type(er)}.")
+            key = er.algorithm
+            if key in sorter:
+                lst = sorter[key]
+            else:
+                lst = list()
+                sorter[key] = lst
+            lst.append(er)
+
+        if len(sorter) <= 0:
+            raise ValueError("source must not be empty")
+
+        keyz = list(sorter.keys())
+        keyz.sort()
+
+        for goal in f_goal:
+            use_default_goal = goal is None
+            for key in keyz:
+                collector.append(ErtEcdf.create(sorter[key],
+                                                goal,
+                                                use_default_goal))
 
 
 def get_goal(ert_ecdf: ErtEcdf) -> Union[int, float, None]:
