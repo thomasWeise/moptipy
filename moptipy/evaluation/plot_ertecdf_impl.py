@@ -1,4 +1,4 @@
-"""Plot a set of ERT objects into one figure."""
+"""Plot a set of ERT-ECDF objects into one figure."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
     Optional, cast
 
@@ -10,49 +10,61 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.evaluation.plot_defaults as pd
 import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
-from moptipy.evaluation.ert import Ert
+from moptipy.evaluation.base import get_algorithm, sort_key
+from moptipy.evaluation.ertecdf import ErtEcdf, get_goal, goal_to_str
+from moptipy.evaluation.plot_ert_impl import ert_y_axis_label
 from moptipy.evaluation.styler import Styler
 
 
-def ert_y_axis_label(x: str) -> str:
+def ert_ecdf_x_axis_label(x: str) -> str:
     """
-    Compute the proper label for the ERT y-axis.
+    Compute the proper label for the x-axis for the ERT-ECDF.
 
     :param str x: the x-axis (time) type
     :return: the label for the x-axis
     :rtype: str
     """
-    return f"ert\u2009[{pd.default_axis_label(x)}]"
+    return ert_y_axis_label(x)
 
 
-def plot_ert(erts: Iterable[Ert],
-             figure: Union[SubplotBase, Figure],
-             x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-             y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-             legend: bool = True,
-             distinct_colors_func: Callable = pd.distinct_colors,
-             distinct_line_dashes_func: Callable =
-             pd.distinct_line_dashes,
-             importance_to_line_width_func: Callable =
-             pd.importance_to_line_width,
-             importance_to_alpha_func: Callable =
-             pd.importance_to_alpha,
-             importance_to_font_size_func: Callable =
-             pd.importance_to_font_size,
-             xgrid: bool = True,
-             ygrid: bool = True,
-             xlabel: Union[None, str, Callable] = pd.default_axis_label,
-             xlabel_inside: bool = True,
-             ylabel: Union[None, str, Callable] =
-             ert_y_axis_label,
-             ylabel_inside: bool = True,
-             inst_priority: float = 0.666,
-             algo_priority: float = 0.333) -> None:
+def ert_ecdf_y_axis_label(y: str) -> str:
+    """
+    Compute the proper label for the y-axis for the ERT-ECDF.
+
+    :param str y: the y-axis (time) type
+    :return: the label for the y-axis
+    :rtype: str
+    """
+    return f"ecdf\u2009[{pd.default_axis_label(y)}]"
+
+
+def plot_ert_ecdf(ert_ecdfs: Iterable[ErtEcdf],
+                  figure: Union[SubplotBase, Figure],
+                  x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+                  y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+                  legend: bool = True,
+                  distinct_colors_func: Callable = pd.distinct_colors,
+                  distinct_line_dashes_func: Callable =
+                  pd.distinct_line_dashes,
+                  importance_to_line_width_func: Callable =
+                  pd.importance_to_line_width,
+                  importance_to_alpha_func: Callable =
+                  pd.importance_to_alpha,
+                  importance_to_font_size_func: Callable =
+                  pd.importance_to_font_size,
+                  xgrid: bool = True,
+                  ygrid: bool = True,
+                  xlabel: Union[None, str, Callable] = ert_ecdf_x_axis_label,
+                  xlabel_inside: bool = True,
+                  ylabel: Union[None, str, Callable] =
+                  ert_ecdf_y_axis_label,
+                  ylabel_inside: bool = True,
+                  algo_priority: float = 5.0,
+                  goal_priority: float = 0.333) -> None:
     """
     Plot a set of Ert functions into one chart.
 
-    :param erts: the iterable of Ert functions
+    :param ert_ecdfs: the iterable of ERT-ECDF functions
     :param Union[SubplotBase, Figure] figure: the figure to plot in
     :param Union[moptipy.evaluation.AxisRanger, Callable] x_axis: the x_axis
     :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
@@ -76,42 +88,42 @@ def plot_ert(erts: Iterable[Ert],
         the y-axis, a label string, or `None` if no label should be put
     :param bool ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
-    :param float inst_priority: the style priority for instances
     :param float algo_priority: the style priority for algorithms
+    :param float goal_priority: the style priority for goal values
     """
     # First, we try to find groups of data to plot together in the same
-    # color/style.
-    instances: Final[Styler] = Styler(get_instance, "all insts",
-                                      inst_priority)
+    # color/style. We distinguish progress objects from statistical runs.
+    goals: Final[Styler] = Styler(get_goal, goal_to_str, goal_priority,
+                                  sort_by_name=False)
     algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
                                        algo_priority)
-    x_dim: Optional[str] = None
-    y_dim: Optional[str] = None
-    source: List[Ert] = cast(List[Ert], erts) if isinstance(erts, list) \
-        else list(erts)
-    del erts
+    f_dim: Optional[str] = None
+    t_dim: Optional[str] = None
+    source: List[ErtEcdf] = cast(List[ErtEcdf], ert_ecdfs) \
+        if isinstance(ert_ecdfs, list) else list(ert_ecdfs)
+    del ert_ecdfs
 
-    # First pass: find out the instances and algorithms
-    for ert in source:
-        if not isinstance(ert, Ert):
-            raise TypeError(f"Type {type(ert)} is not supported.")
-        instances.add(ert)
-        algorithms.add(ert)
+    # First pass: find out the goals and algorithms
+    for ee in source:
+        if not isinstance(ee, ErtEcdf):
+            raise TypeError(f"Type {type(ee)} is not supported.")
+        goals.add(ee)
+        algorithms.add(ee)
 
         # Validate that we have consistent time and objective units.
-        if x_dim is None:
-            x_dim = ert.f_name
-        elif x_dim != ert.f_name:
+        if f_dim is None:
+            f_dim = ee.f_name
+        elif f_dim != ee.f_name:
             raise ValueError(
-                f"F-units {x_dim} and {ert.f_name} do not fit!")
+                f"F-units {f_dim} and {ee.f_name} do not fit!")
 
-        if y_dim is None:
-            y_dim = ert.time_unit
-        elif y_dim != ert.time_unit:
+        if t_dim is None:
+            t_dim = ee.time_unit
+        elif t_dim != ee.time_unit:
             raise ValueError(
-                f"Time units {y_dim} and {ert.time_unit} do not fit!")
+                f"Time units {t_dim} and {ee.time_unit} do not fit!")
 
-    if (x_dim is None) or (y_dim is None) or (len(source) <= 0):
+    if (f_dim is None) or (t_dim is None) or (len(source) <= 0):
         raise ValueError("Illegal state?")
 
     source.sort(key=sort_key)
@@ -130,11 +142,11 @@ def plot_ert(erts: Iterable[Ert],
 
     # determine the style groups
     groups: List[Styler] = list()
-    instances.compile()
+    goals.compile()
     algorithms.compile()
 
-    if instances.count > 1:
-        groups.append(instances)
+    if goals.count > 1:
+        groups.append(goals)
     if algorithms.count > 1:
         groups.append(algorithms)
 
@@ -147,8 +159,8 @@ def plot_ert(erts: Iterable[Ert],
 
     # If we only have <= 2 groups, we can mark None and not-None values with
     # different importance.
-    if instances.has_none and (instances.count > 1):
-        __set_importance(instances)
+    if goals.has_none and (goals.count > 1):
+        __set_importance(goals)
     elif algorithms.has_none and (algorithms.count > 1):
         __set_importance(algorithms)
 
@@ -157,24 +169,24 @@ def plot_ert(erts: Iterable[Ert],
 
     # set up the axis rangers
     if callable(x_axis):
-        x_axis = x_axis(x_dim)
+        x_axis = x_axis(t_dim)
     if not isinstance(x_axis, AxisRanger):
         raise TypeError(f"x_axis must be AxisRanger, but is {type(x_axis)}.")
 
     if callable(y_axis):
-        y_axis = y_axis(y_dim)
+        y_axis = y_axis("ecdf")
     if not isinstance(y_axis, AxisRanger):
         raise TypeError(f"y_axis must be AxisRanger, but is {type(y_axis)}.")
 
     # first we collect all progress object
-    for ert in source:
+    for ee in source:
         style = pd.create_line_style()
         for g in groups:
-            g.add_line_style(ert, style)
-        x = ert.ert[:, 0]
+            g.add_line_style(ee, style)
+        x = ee.ert_ecdf[:, 0]
         style["x"] = x
         x_axis.register_array(x)
-        y = ert.ert[:, 1]
+        y = ee.ert_ecdf[:, 1]
         y_axis.register_array(y)
         style["y"] = y
         plot_list.append(style)
@@ -195,15 +207,25 @@ def plot_ert(erts: Iterable[Ert],
         if ygrid:
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
-    max_y = y_axis.get_pinf_replacement()
+    max_x: float = x_axis.get_pinf_replacement()
+    min_x: Optional[float] = x_axis.get_0_replacement() \
+        if x_axis.log_scale else None
 
     # plot the lines
     for line in plot_list:
-        y = line["y"]
-        if np.isposinf(y[0]):
-            y = y.copy()
-            y[0] = max_y
-            line["y"] = y
+        x = line["x"]
+        changed = False
+        if np.isposinf(x[-1]):
+            x = x.copy()
+            x[-1] = max_x
+            changed = True
+        if (x[0] <= 0) and (min_x is not None):
+            if not changed:
+                changed = True
+                x = x.copy()
+            x[0] = min_x
+        if changed:
+            line["x"] = x
         axes.step(where="post", **line)
     del plot_list
 
@@ -217,22 +239,22 @@ def plot_ert(erts: Iterable[Ert],
             g.add_to_legend(handles)
             g.has_style = False
 
-        if instances.has_style:
-            instances.add_to_legend(handles)
         if algorithms.has_style:
             algorithms.add_to_legend(handles)
+        if goals.has_style:
+            goals.add_to_legend(handles)
 
-        axes.legend(loc="upper right",
+        axes.legend(loc="upper left",
                     handles=handles,
                     labelcolor=[art.color if hasattr(art, "color")
                                 else pd.COLOR_BLACK for art in handles],
                     fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
-                  xlabel=xlabel(x_dim) if callable(xlabel) else xlabel,
+                  xlabel=xlabel(t_dim) if callable(xlabel) else xlabel,
                   xlabel_inside=xlabel_inside,
                   xlabel_location=1,
-                  ylabel=ylabel(y_dim) if callable(ylabel) else ylabel,
+                  ylabel=ylabel(f_dim) if callable(ylabel) else ylabel,
                   ylabel_inside=ylabel_inside,
                   ylabel_location=0,
                   font_size=font_size_0)

@@ -37,10 +37,10 @@ class AxisRanger:
             raise TypeError(
                 f"log_scale must be bool, but is {type(log_scale)}.")
         #: Should the axis be log-scaled?
-        self.__log_scale: Final[bool] = log_scale
+        self.log_scale: Final[bool] = log_scale
 
         self.__log_base: Final[Optional[float]] = \
-            log_base if self.__log_scale else None
+            log_base if self.log_scale else None
         if self.__log_base is not None:
             if not isinstance(log_base, float):
                 raise TypeError("log_base must be float if specified, "
@@ -55,9 +55,9 @@ class AxisRanger:
             chosen_min = float(chosen_min)
             if not isfinite(chosen_min):
                 raise ValueError(f"chosen_min cannot be {chosen_min}.")
-            if self.__log_scale and (chosen_min <= 0):
+            if self.log_scale and (chosen_min <= 0):
                 raise ValueError(
-                    f"if log_scale={self.__log_scale}, then chosen_min must "
+                    f"if log_scale={self.log_scale}, then chosen_min must "
                     f"be > 0, but is {chosen_min}.")
 
         #: The pre-defined, chosen minimum axis value.
@@ -95,7 +95,7 @@ class AxisRanger:
         self.__detected_min: float = inf
 
         #: The maximum detected from the data.
-        self.__detected_max: float = _MIN_LOG_FLOAT if self.__log_scale \
+        self.__detected_max: float = _MIN_LOG_FLOAT if self.log_scale \
             else -inf
 
         #: Did we detect a minimum?
@@ -108,7 +108,7 @@ class AxisRanger:
         self.__has_detected_min = False
         self.__has_detected_max = False
         self.__detected_min = inf
-        self.__detected_max = _MIN_LOG_FLOAT if self.__log_scale else -inf
+        self.__detected_max = _MIN_LOG_FLOAT if self.log_scale else -inf
 
     def register_array(self, data: np.ndarray) -> None:
         """
@@ -132,7 +132,7 @@ class AxisRanger:
         if isfinite(value):
             if self.__use_data_min:
                 if (value < self.__detected_min) and \
-                        ((value > 0.0) or (not self.__log_scale)):
+                        ((value > 0.0) or (not self.log_scale)):
                     self.__detected_min = value
                     self.__has_detected_min = True
             if self.__use_data_max:
@@ -205,7 +205,7 @@ class AxisRanger:
                 else:
                     axes.set_ylim(use_min, use_max)
 
-            if self.__log_scale:
+            if self.log_scale:
                 if use_min <= 0:
                     raise ValueError("minimum must be positive if log scale "
                                      f"is defined, but found {use_min}.")
@@ -224,7 +224,7 @@ class AxisRanger:
         """
         Get a reasonable finite value that can replace positive infinity.
 
-        :return: a reasonable finate value that can be used to replace
+        :return: a reasonable finite value that can be used to replace
             positive infinity
         :rtype: float
         """
@@ -234,6 +234,21 @@ class AxisRanger:
         elif self.__detected_max is not None:
             data_max = self.__detected_max
         return min(1e100, max(1e70, 1e5 * data_max))
+
+    def get_0_replacement(self) -> float:
+        """
+        Get a reasonable positive finite value that can replace `0`.
+
+        :return: a reasonable finite value that can be used to replace
+            `0`
+        :rtype: float
+        """
+        data_min: float = 1e-100
+        if self.__chosen_min is not None:
+            data_min = self.__chosen_min
+        elif self.__detected_min is not None:
+            data_min = self.__detected_min
+        return max(1e-100, min(1e-70, 1e-5 * data_min))
 
     @staticmethod
     def for_axis(name: str,
@@ -266,6 +281,7 @@ class AxisRanger:
 
         __log: bool = False
         __min: Optional[float] = None
+        __max: Optional[float] = None
         __data_min: bool = chosen_min is None
         __data_max: bool = chosen_max is None
 
@@ -298,7 +314,10 @@ class AxisRanger:
             else:
                 __data_min = False
 
-            return AxisRanger(__min, chosen_max, __data_min, __data_max,
+            if chosen_max is not None:
+                __max = chosen_max
+
+            return AxisRanger(__min, __max, __data_min, __data_max,
                               __log, log_base if __log else None)
 
         if name == TIME_UNIT_FES:
@@ -336,6 +355,10 @@ class AxisRanger:
         elif name == F_NAME_NORMALIZED:
             if (log_scale is None) or (not log_scale):
                 __min = 0
+        elif name == "ecdf":
+            if (log_scale is None) or (not log_scale):
+                __min = 0
+            __max = 1
         else:
             raise ValueError(f"Axis type '{name}' is unknown.")
 

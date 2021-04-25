@@ -264,3 +264,26 @@ class ErtEcdf(MultiRun2DData):
                        same_goal_f,
                        np.column_stack((np.array(time),
                                         np.array(ecdf))))
+
+
+def get_goal(ert_ecdf: ErtEcdf) -> Union[int, float, None]:
+    """
+    Get the goal value from the given ert-ecdf instance.
+
+    :param ErtEcdf ert_ecdf: the ert-ecdf instance
+    :return: the goal value
+    :rtype: Union[int, float, None]
+    """
+    return ert_ecdf.goal_f
+
+
+def goal_to_str(goal_f: Union[int, float, None]) -> str:
+    """
+    Transform a goal to a string.
+
+    :param Union[int, float, None] goal_f: the goal value
+    :return: the string representation
+    :rtype: str
+    """
+    return "undefined" if goal_f is None else \
+        f"goal: \u2264{lg.num_to_str(goal_f)}"

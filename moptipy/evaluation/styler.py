@@ -26,8 +26,9 @@ class Styler:
 
     def __init__(self,
                  key_func: Callable,
-                 namer: Union[str, Callable] = lambda x: x,
-                 priority: Union[int, float] = 0):
+                 namer: Union[str, Callable] = str,
+                 priority: Union[int, float] = 0,
+                 sort_by_name: bool = True):
         """
         Initialize the style grouper.
 
@@ -38,6 +39,7 @@ class Styler:
             keys as names (in which case all non-`None` keys are used as
             names as-is)
         :param Union[int, float] priority: the base priority of this grouper
+        :param bool sort_by_name: Sort by name (`True`) or by key (`False`)
         """
         if not callable(key_func):
             raise TypeError("Key function must be callable.")
@@ -52,6 +54,11 @@ class Styler:
         if not isinstance(priority, (float, int)):
             raise TypeError("priority must be float or int "
                             f"but is {type(priority)}.")
+        if not isinstance(sort_by_name, bool):
+            raise TypeError(
+                f"sort_by_name must be bool but is {type(sort_by_name)}.")
+        #: Sort by name (`True`) or by key (`False`)
+        self.__sort_by_name: Final[bool] = sort_by_name
 
         #: The key function of the grouper
         self.key_func: Final[Callable] = key_func
@@ -84,14 +91,23 @@ class Styler:
         if self.has_none:
             self.__collection.remove(None)
 
-        data = [(self.name_func(k), k) for k in self.__collection]
-        del self.__collection
-        data.sort()
-        if self.has_none:
-            data.insert(0, (self.name_func(None), None))
+        if self.__sort_by_name:
+            data = [(self.name_func(k), k) for k in self.__collection]
+            data.sort()
+            if self.has_none:
+                data.insert(0, (self.name_func(None), None))
+            self.names = tuple([x[0] for x in data])
+            self.keys = tuple([x[1] for x in data])
+        else:
+            data = [(k, self.name_func(k)) for k in self.__collection]
+            data.sort()
+            if self.has_none:
+                data.insert(0, (None, self.name_func(None)))
+            self.keys = tuple([x[0] for x in data])
+            self.names = tuple([x[1] for x in data])
 
-        self.names = tuple([x[0] for x in data])
-        self.keys = tuple([x[1] for x in data])
+        del self.__collection
+        del data
         self.__indexes = {k: i for i, k in enumerate(self.keys)}
         self.count = len(self.names)
         self.priority += self.count

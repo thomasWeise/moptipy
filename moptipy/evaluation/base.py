@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Final, Union, Optional, Tuple
 
+from math import inf
 import moptipy.utils.logging as logging
 from moptipy.utils.nputils import rand_seed_check
 
@@ -194,7 +195,7 @@ def get_algorithm(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
 
 
 def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
-        Tuple[str, str, str, int, int, str, str]:
+        Tuple[str, str, str, int, int, str, str, float]:
     """
     Get a default sort key for the given object.
 
@@ -205,12 +206,20 @@ def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
 
     :param Union[PerRunData, MultiRunData] obj: the object
     :return: the sort key
-    :rtype: Tuple[str, str, int, int, str, str]
+    :rtype: Tuple[str, str, int, int, str, str, float]
     """
+    if hasattr(obj, "goal_f"):
+        goal_f = getattr(obj, "goal_f")
+    else:
+        goal_f = None
+    if goal_f is None:
+        goal_f = inf
+
     return obj.__class__.__name__, \
         "" if obj.algorithm is None else obj.algorithm, \
         "" if obj.instance is None else obj.instance, \
         obj.n if isinstance(obj, MultiRunData) else 0, \
         obj.rand_seed if isinstance(obj, PerRunData) else 0, \
         obj.time_unit if isinstance(obj, MultiRun2DData) else "", \
-        obj.f_name if isinstance(obj, MultiRun2DData) else ""
+        obj.f_name if isinstance(obj, MultiRun2DData) else "", \
+        goal_f

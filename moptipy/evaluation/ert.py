@@ -229,11 +229,9 @@ class Ert(MultiRun2DData):
 
         if use_default_lower_bounds:
             if f_name == F_NAME_SCALED:
-                if lower_bound >= 1:
-                    lower_bound = 1
+                lower_bound = min(lower_bound, 1)
             elif f_name == F_NAME_NORMALIZED:
-                if lower_bound >= 0:
-                    lower_bound = 0
+                lower_bound = min(lower_bound, 0)
 
         # get unique x-values and make sure that lower bound is included
         has_lb: Final[bool] = isfinite(lower_bound)
