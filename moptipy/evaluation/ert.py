@@ -1,10 +1,10 @@
-"""Approximate the empirical running time to reach certain goals."""
+"""Approximate the expected running time to reach certain goals."""
 
 from dataclasses import dataclass
 from datetime import datetime
 from math import isfinite, inf
 from typing import Optional, Iterable, List, Final, cast, Union, \
-    MutableSequence, Dict
+    MutableSequence, Dict, Callable
 
 import numba  # type: ignore
 import numpy as np
@@ -18,12 +18,12 @@ from moptipy.utils.io import canonicalize_path, enforce_file
 
 
 @numba.njit(nogil=True)
-def __get_ert_index(f: np.ndarray, goal_f: float) -> np.integer:
+def __get_ert_index(f: np.ndarray, goal_f: Union[int, float]) -> np.integer:
     """
     Compute the ert index.
 
     :param np.ndarray f: the raw data
-    :param float goal_f: the goal f value
+    :param Union[int, float] goal_f: the goal f value
     :return: the index
     :rtype: np.integer
     """
@@ -31,12 +31,12 @@ def __get_ert_index(f: np.ndarray, goal_f: float) -> np.integer:
 
 
 def compute_single_ert(source: Iterable[Progress],
-                       goal_f: float) -> float:
+                       goal_f: Union[int, float]) -> float:
     """
     Compute a single ERT.
 
     :param Iterable[moptipy.evaluation.Progress] source: the source array
-    :param float goal_f: the goal objective value
+    :param Union[int, float] goal_f: the goal objective value
     :return: the ERT
     :rtype: float
     """
@@ -59,7 +59,7 @@ def compute_single_ert(source: Iterable[Progress],
 
 @dataclass(frozen=True, init=False, order=True)
 class Ert(MultiRun2DData):
-    """A time-value statistic over a set of runs."""
+    """Estimate the Expected Running Time (ERT)."""
 
     #: The ert function
     ert: np.ndarray
@@ -148,14 +148,16 @@ class Ert(MultiRun2DData):
 
     @staticmethod
     def create(source: Iterable[Progress],
-               f_lower_bound: Optional[float] = None,
+               f_lower_bound: Union[int, float, Callable, None] = None,
                use_default_lower_bounds: bool = True) -> 'Ert':
         """
         Create one single Ert record from an iterable of Progress records.
 
         :param Iterable[moptipy.evaluation.Progress] source: the set of
             progress instances
-        :param float f_lower_bound: the lower bound for the objective value
+        :param Union[int,float,Callable,None] f_lower_bound: the lower bound
+            for the objective value, or a callable that is applied to a
+            progress object to get the lower bound
         :param bool use_default_lower_bounds: should we use the default lower
             bounds
         :return: the Ert record
@@ -167,11 +169,12 @@ class Ert(MultiRun2DData):
 
         lower_bound: Union[int, float] = inf
         if f_lower_bound is not None:
-            f_lower_bound = float(f_lower_bound)
-            if not isfinite(f_lower_bound):
-                raise ValueError(
-                    f"f_lower_bound must be finite but is {f_lower_bound}.")
-            lower_bound = f_lower_bound
+            if not callable(f_lower_bound):
+                if not isfinite(f_lower_bound):
+                    raise ValueError("f_lower_bound must be finite "
+                                     f"but is {f_lower_bound}.")
+                lower_bound = f_lower_bound
+                f_lower_bound = None
 
         algorithm: Optional[str] = None
         instance: Optional[str] = None
@@ -210,6 +213,15 @@ class Ert(MultiRun2DData):
                     (progress.f_name == F_NAME_RAW):
                 if lower_bound > progress.f_standard:
                     lower_bound = progress.f_standard
+            if f_lower_bound is not None:
+                lb = f_lower_bound(progress)
+                if not isinstance(lb, (int, float)):
+                    raise TypeError("Computed lower bound must be int or "
+                                    f"float, but is {type(lb)}.")
+                if not isfinite(lb):
+                    raise ValueError(f"Invalid computed lower bound {lb}.")
+                if lb < lower_bound:
+                    lower_bound = lb
             f_list.append(progress.f)
 
         if n <= 0:
