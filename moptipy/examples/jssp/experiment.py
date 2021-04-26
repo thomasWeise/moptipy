@@ -2,9 +2,10 @@
 import os.path as pp
 from math import factorial
 from typing import Tuple, Dict, Set, List, Final, Iterable, Callable, \
-    Optional, Union, cast
+    Optional, Union, cast, Any
 
 import moptipy.api.experiment as ex
+from moptipy.algorithms.ea1p1 import EA1p1
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
@@ -167,61 +168,14 @@ def propose_instances(n: int) -> Tuple[str, ...]:
     return tuple(result)
 
 
-# noinspection PyUnusedLocal
-def rs1(inst: Instance) -> SingleRandomSample:
-    """
-    Instantiate the single random sample algorithm.
-
-    :param moptipy.examples.jssp.Instance inst: the jssp instance
-    :return: the RandomSampling
-    :rtype: moptipy.algorithms.RandomSampling
-    """
-    del inst
-    return SingleRandomSample(Op0Shuffle())
-
-
-# noinspection PyUnusedLocal
-def rs(inst: Instance) -> RandomSampling:
-    """
-    Instantiate the random sampling.
-
-    :param moptipy.examples.jssp.Instance inst: the jssp instance
-    :return: the RandomSampling
-    :rtype: moptipy.algorithms.RandomSampling
-    """
-    del inst
-    return RandomSampling(Op0Shuffle())
-
-
-# noinspection PyUnusedLocal
-def hc_swap2(inst: Instance) -> HillClimber:
-    """
-    Instantiate the hill climber with 2-swap operator.
-
-    :param moptipy.examples.jssp.Instance inst: the jssp instance
-    :return: the HillClimber
-    :rtype: moptipy.algorithms.HillClimber
-    """
-    del inst
-    return HillClimber(Op0Shuffle(), Op1Swap2())
-
-
-# noinspection PyUnusedLocal
-def rw_swap2(inst: Instance) -> RandomWalk:
-    """
-    Instantiate the random walk with 2-swap operator.
-
-    :param moptipy.examples.jssp.Instance inst: the jssp instance
-    :return: the RandomWalk
-    :rtype: moptipy.algorithms.RandomWalk
-    """
-    del inst
-    return RandomWalk(Op0Shuffle(), Op1Swap2())
-
-
 #: The default set of algorithms for our experiments
-DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = \
-    (rs1, rs, rw_swap2, hc_swap2)
+DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = (
+    lambda inst: EA1p1(Op0Shuffle(), Op1Swap2()),  # (1+1)-EA
+    lambda inst: HillClimber(Op0Shuffle(), Op1Swap2()),  # hill climber
+    lambda inst: RandomSampling(Op0Shuffle()),  # random sampling
+    lambda inst: SingleRandomSample(Op0Shuffle()),  # single random sample
+    lambda inst: RandomWalk(Op0Shuffle(), Op1Swap2())  # random walk
+)
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
@@ -229,7 +183,8 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                    instances: Iterable[str] = EXPERIMENT_INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
                    max_time: Optional[int] = EXPERIMENT_RUNTIME_MS,
-                   max_fes: Optional[int] = None) -> None:
+                   max_fes: Optional[int] = None,
+                   n_threads: Optional[int] = None) -> None:
     """
     Run the experiment.
 
@@ -239,6 +194,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     :param int n_runs: the number of runs
     :param Optional[int] max_time: the maximum runtime in milliseconds
     :param Optional[int] max_fes: the maximum runtime in FEs
+    :param Optional[int] n_threads: the number of threads
     """
     if not isinstance(base_dir, str):
         raise TypeError(
@@ -296,7 +252,15 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     if len(algo_gens) <= 0:
         raise ValueError("There must be at least one algorithm.")
 
-    ex.run_experiment(base_dir, inst_gens, algo_gens, n_runs)
+    kwargs: Dict[str, Any] = {"base_dir": base_dir,
+                              "instances": inst_gens,
+                              "setups": algo_gens,
+                              "n_runs": n_runs,
+                              "perform_warmup": True}
+    if n_threads is not None:
+        kwargs["n_threads"] = n_threads
+
+    ex.run_experiment(**kwargs)
 
 
 # Execute experiment if run as script
