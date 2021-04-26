@@ -1,6 +1,6 @@
 """Plot a set of ERT-ECDF objects into one figure."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, cast
+    Optional, cast, Set
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
@@ -11,23 +11,22 @@ import moptipy.evaluation.plot_defaults as pd
 import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_algorithm, sort_key
-from moptipy.evaluation.ertecdf import ErtEcdf, get_goal, goal_to_str
-from moptipy.evaluation.plot_ert_impl import ert_y_axis_label
+from moptipy.evaluation.ecdf import Ecdf, get_goal, goal_to_str
 from moptipy.evaluation.styler import Styler
 
 
-def ert_ecdf_x_axis_label(x: str) -> str:
+def ecdf_x_axis_label(x: List[str]) -> str:
     """
-    Compute the proper label for the x-axis for the ERT-ECDF.
+    Compute the proper label for the x-axis for the ECDF plot.
 
-    :param str x: the x-axis (time) type
+    :param str x: the collected x-axis labels
     :return: the label for the x-axis
     :rtype: str
     """
-    return ert_y_axis_label(x)
+    return x[0]
 
 
-def ert_ecdf_y_axis_label(y: str) -> str:
+def ecdf_y_axis_label(y: str) -> str:
     """
     Compute the proper label for the y-axis for the ERT-ECDF.
 
@@ -38,33 +37,32 @@ def ert_ecdf_y_axis_label(y: str) -> str:
     return f"ecdf\u2009[{pd.default_axis_label(y)}]"
 
 
-def plot_ert_ecdf(ert_ecdfs: Iterable[ErtEcdf],
-                  figure: Union[SubplotBase, Figure],
-                  x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-                  y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-                  legend: bool = True,
-                  distinct_colors_func: Callable = pd.distinct_colors,
-                  distinct_line_dashes_func: Callable =
-                  pd.distinct_line_dashes,
-                  importance_to_line_width_func: Callable =
-                  pd.importance_to_line_width,
-                  importance_to_alpha_func: Callable =
-                  pd.importance_to_alpha,
-                  importance_to_font_size_func: Callable =
-                  pd.importance_to_font_size,
-                  xgrid: bool = True,
-                  ygrid: bool = True,
-                  xlabel: Union[None, str, Callable] = ert_ecdf_x_axis_label,
-                  xlabel_inside: bool = True,
-                  ylabel: Union[None, str, Callable] =
-                  ert_ecdf_y_axis_label,
-                  ylabel_inside: bool = True,
-                  algo_priority: float = 5.0,
-                  goal_priority: float = 0.333) -> None:
+def plot_ecdf(ecdfs: Iterable[Ecdf],
+              figure: Union[SubplotBase, Figure],
+              x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+              y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+              legend: bool = True,
+              distinct_colors_func: Callable = pd.distinct_colors,
+              distinct_line_dashes_func: Callable =
+              pd.distinct_line_dashes,
+              importance_to_line_width_func: Callable =
+              pd.importance_to_line_width,
+              importance_to_alpha_func: Callable =
+              pd.importance_to_alpha,
+              importance_to_font_size_func: Callable =
+              pd.importance_to_font_size,
+              xgrid: bool = True,
+              ygrid: bool = True,
+              xlabel: Union[None, str, Callable] = ecdf_x_axis_label,
+              xlabel_inside: bool = True,
+              ylabel: Union[None, str, Callable] = ecdf_y_axis_label,
+              ylabel_inside: bool = True,
+              algo_priority: float = 5.0,
+              goal_priority: float = 0.333) -> None:
     """
-    Plot a set of Ert functions into one chart.
+    Plot a set of Ecdf functions into one chart.
 
-    :param ert_ecdfs: the iterable of ERT-ECDF functions
+    :param ecdfs: the iterable of ECDF functions
     :param Union[SubplotBase, Figure] figure: the figure to plot in
     :param Union[moptipy.evaluation.AxisRanger, Callable] x_axis: the x_axis
     :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
@@ -99,16 +97,19 @@ def plot_ert_ecdf(ert_ecdfs: Iterable[ErtEcdf],
                                        algo_priority)
     f_dim: Optional[str] = None
     t_dim: Optional[str] = None
-    source: List[ErtEcdf] = cast(List[ErtEcdf], ert_ecdfs) \
-        if isinstance(ert_ecdfs, list) else list(ert_ecdfs)
-    del ert_ecdfs
+    source: List[Ecdf] = cast(List[Ecdf], ecdfs) \
+        if isinstance(ecdfs, list) else list(ecdfs)
+    del ecdfs
+
+    x_labels: Set[str] = set()
 
     # First pass: find out the goals and algorithms
     for ee in source:
-        if not isinstance(ee, ErtEcdf):
+        if not isinstance(ee, Ecdf):
             raise TypeError(f"Type {type(ee)} is not supported.")
         goals.add(ee)
         algorithms.add(ee)
+        x_labels.add(ee.time_label())
 
         # Validate that we have consistent time and objective units.
         if f_dim is None:
@@ -183,10 +184,10 @@ def plot_ert_ecdf(ert_ecdfs: Iterable[ErtEcdf],
         style = pd.create_line_style()
         for g in groups:
             g.add_line_style(ee, style)
-        x = ee.ert_ecdf[:, 0]
+        x = ee.ecdf[:, 0]
         style["x"] = x
         x_axis.register_array(x)
-        y = ee.ert_ecdf[:, 1]
+        y = ee.ecdf[:, 1]
         y_axis.register_array(y)
         style["y"] = y
         plot_list.append(style)
@@ -251,7 +252,8 @@ def plot_ert_ecdf(ert_ecdfs: Iterable[ErtEcdf],
                     fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
-                  xlabel=xlabel(t_dim) if callable(xlabel) else xlabel,
+                  xlabel=xlabel(list(x_labels))
+                  if callable(xlabel) else xlabel,
                   xlabel_inside=xlabel_inside,
                   xlabel_location=1,
                   ylabel=ylabel(f_dim) if callable(ylabel) else ylabel,

@@ -3,6 +3,9 @@
 from math import isfinite, inf, gcd
 from typing import Union, Optional, Final
 
+import numba  # type: ignore
+import numpy as np
+
 import moptipy.utils.logging as logging
 
 
@@ -147,3 +150,33 @@ def _check_max_time_millis(max_time_millis: Union[int, float],
             f"total_fes is {total_fes}, then total_time_millis must "
             f"not be more than {permitted_limit}, but is"
             f"{total_time_millis}.")
+
+
+@numba.njit(nogil=True)
+def _get_reach_index(f: np.ndarray, goal_f: Union[int, float]):
+    """
+    Compute the offset from the end of `f` when `goal_f` was reached.
+
+    :param np.ndarray f: the raw data array, which must be sorted in
+        descending order
+    :param Union[int, float] goal_f: the goal f value
+    :return: the index, or `0` if `goal_f` was not reached
+    :rtype: np.integer
+
+    >>> ft = np.array([10, 9, 8, 5, 3, 2, 1])
+    >>> _get_reach_index(ft, 11)
+    7
+    >>> ft[ft.size - _get_reach_index(ft, 11)]
+    10
+    >>> _get_reach_index(ft, 10)
+    7
+    >>> _get_reach_index(ft, 9)
+    6
+    >>> ft[ft.size - _get_reach_index(ft, 6)]
+    5
+    >>> _get_reach_index(ft, 1)
+    1
+    >>> _get_reach_index(ft, 0.9)
+    0
+    """
+    return np.searchsorted(f[::-1], goal_f, side="right")

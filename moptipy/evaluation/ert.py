@@ -6,28 +6,15 @@ from math import isfinite, inf
 from typing import Optional, Iterable, List, Final, cast, Union, \
     MutableSequence, Dict, Callable
 
-import numba  # type: ignore
 import numpy as np
 
 import moptipy.utils.logging as lg
 import moptipy.utils.nputils as npu
+from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.io import canonicalize_path, enforce_file
-
-
-@numba.njit(nogil=True)
-def __get_ert_index(f: np.ndarray, goal_f: Union[int, float]) -> np.integer:
-    """
-    Compute the ert index.
-
-    :param np.ndarray f: the raw data
-    :param Union[int, float] goal_f: the goal f value
-    :return: the index
-    :rtype: np.integer
-    """
-    return np.searchsorted(f[::-1], goal_f, side="right")
 
 
 def compute_single_ert(source: Iterable[Progress],
@@ -44,7 +31,7 @@ def compute_single_ert(source: Iterable[Progress],
     time_sum: int = 0
     for progress in source:
         size = progress.f.size
-        idx = size - __get_ert_index(progress.f, goal_f)
+        idx = size - _get_reach_index(progress.f, goal_f)
         if idx < size:
             n_success += 1
         else:
