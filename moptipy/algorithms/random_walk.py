@@ -40,5 +40,4 @@ class RandomWalk(Algorithm1):
         :return: "rw" + any non-standard operator suffixes
         :rtype: str
         """
-        name: Final[str] = super().get_name()
-        return f"rw_{name}" if (len(name) > 0) else "rw"
+        return f"rw{super().get_name()}"

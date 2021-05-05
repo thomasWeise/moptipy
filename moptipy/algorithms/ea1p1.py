@@ -48,5 +48,4 @@ class EA1p1(Algorithm1):
         :return: "ea1p1" + any non-standard operator suffixes
         :rtype: str
         """
-        name: Final[str] = super().get_name()
-        return f"ea1p1_{name}" if (len(name) > 0) else "ea1p1"
+        return f"ea1p1{super().get_name()}"

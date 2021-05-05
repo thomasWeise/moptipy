@@ -30,5 +30,4 @@ class RandomSampling(Algorithm0):
         :return: "rs" + any non-standard operator suffixes
         :rtype: str
         """
-        name: Final[str] = super().get_name()
-        return f"rs_{name}" if (len(name) > 0) else "rs"
+        return f"rs{super().get_name()}"

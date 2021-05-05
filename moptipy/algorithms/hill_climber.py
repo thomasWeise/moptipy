@@ -48,5 +48,4 @@ class HillClimber(Algorithm1):
         :return: "hc" + any non-standard operator suffixes
         :rtype: str
         """
-        name: Final[str] = super().get_name()
-        return f"hc_{name}" if (len(name) > 0) else "hc"
+        return f"hc{super().get_name()}"

@@ -25,5 +25,4 @@ class SingleRandomSample(Algorithm0):
         :return: "1rs" + any non-standard operator suffixes
         :rtype: str
         """
-        name: Final[str] = super().get_name()
-        return f"1rs_{name}" if (len(name) > 0) else "1rs"
+        return f"1rs{super().get_name()}"

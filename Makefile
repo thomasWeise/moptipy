@@ -1,6 +1,9 @@
 # the default goal is build
 .DEFAULT_GOAL := build
 
+# Get the location of the Python package binaries.
+PYTHON_PACKAGE_BINARIES := $(shell python3 -m site --user-base)/bin
+
 # Cleaning means that the package is uninstalled if it is installed.
 # Also, all build artifacts are deleted (as they will be later re-created).
 clean:
@@ -28,6 +31,9 @@ init: clean
 
 # Run the unit tests.
 test: init
+	echo "The original value of PATH is '${PATH}'." &&\
+	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
+	echo "PATH is now '${PATH}'." &&\
 	echo "Running py.test tests." && \
 	py.test tests && \
 	echo "Running py.test with doctests." && \
@@ -36,6 +42,9 @@ test: init
 
 # Perform static code analysis.
 static_analysis: init
+	echo "The original value of PATH is '${PATH}'." &&\
+	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
+	echo "PATH is now '${PATH}'." &&\
 	echo "Running static code analysis, starting with flake8." && \
     flake8 . --ignore=W503 && \
     echo "Finished running flake8, now applying pylint to package." &&\
@@ -55,6 +64,9 @@ static_analysis: init
 # We use sphinx to generate the documentation.
 # This automatically checks the docstrings and such and such.
 create_documentation: static_analysis test
+	echo "The original value of PATH is '${PATH}'." &&\
+	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
+	echo "PATH is now '${PATH}'." &&\
 	echo "First creating the .rst files from the source code." && \
 	sphinx-apidoc -M --ext-autodoc -o docs/source ./moptipy && \
 	echo "Now creating the documentation build folder and building the documentation." && \

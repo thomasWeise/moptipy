@@ -45,8 +45,9 @@ class Algorithm0(Algorithm, ABC):
         if not isinstance(op0_is_default, bool):
             raise TypeError("op0_is_default must be bool, but is "
                             f"{type(op0_is_default)}.")
-        #: If `False`, the nullary operator influences the name.
-        self._op0_is_default: Final[bool] = op0_is_default
+        #: The internal name suffix
+        self._name_suffix: str = "" if op0_is_default else \
+            f"{logging.PART_SEPARATOR}{op0.get_name()}"
 
     def get_name(self) -> str:
         """
@@ -55,7 +56,7 @@ class Algorithm0(Algorithm, ABC):
         :return: the name of the algorithm
         :rtype: str
         """
-        return "" if self._op0_is_default else self.op0.get_name()
+        return self._name_suffix
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """
@@ -95,19 +96,9 @@ class Algorithm1(Algorithm0, ABC):
         if not isinstance(op1_is_default, bool):
             raise TypeError("op1_is_default must be bool, but is "
                             f"{type(op1_is_default)}.")
-        #: If `False`, the unary operator influences the name.
-        self._op1_is_default: Final[bool] = op1_is_default
-
-    def get_name(self) -> str:
-        """
-        Get the suffix for the name of the algorithm by subclasses.
-
-        :return: the name of the algorithm
-        :rtype: str
-        """
-        return logging.sanitize_names([
-            "" if self._op0_is_default else self.op0.get_name(),
-            "" if self._op1_is_default else self.op1.get_name()])
+        #: the internal name suffix
+        self._name_suffix += ("" if op1_is_default else
+                              f"{logging.PART_SEPARATOR}{op1.get_name()}")
 
     def log_parameters_to(self, logger: KeyValueSection):
         """
@@ -154,20 +145,9 @@ class Algorithm2(Algorithm1, ABC):
         if not isinstance(op2_is_default, bool):
             raise TypeError("op2_is_default must be bool, but is "
                             f"{type(op2_is_default)}.")
-        #: If `False`, the binary operator influences the name.
-        self._op2_is_default: Final[bool] = op2_is_default
-
-    def get_name(self) -> str:
-        """
-        Get the suffix for the name of the algorithm by subclasses.
-
-        :return: the name of the algorithm
-        :rtype: str
-        """
-        return logging.sanitize_names([
-            "" if self._op0_is_default else self.op0.get_name(),
-            "" if self._op1_is_default else self.op1.get_name(),
-            "" if self._op2_is_default else self.op2.get_name()])
+        #: the internal name suffix
+        self._name_suffix += ("" if op2_is_default else
+                              f"{logging.PART_SEPARATOR}{op2.get_name()}")
 
     def log_parameters_to(self, logger: KeyValueSection):
         """
