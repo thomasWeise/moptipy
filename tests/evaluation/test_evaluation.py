@@ -15,7 +15,7 @@ from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
 from moptipy.utils import logging
-from moptipy.utils.io import TempDir, TempFile
+from moptipy.utils.temp import TempDir, TempFile
 
 instances = [lambda: Instance.from_resource("dmu21"),
              lambda: Instance.from_resource("abz8"),
@@ -56,8 +56,7 @@ def algo_2(inst) -> Execution:
 
 
 def test_experiment_jssp():
-    with TempDir() as td:
-        base_dir = str(td)
+    with TempDir.create() as base_dir:
 
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],
@@ -101,9 +100,8 @@ def test_experiment_jssp():
             assert e.goal_f > 0
             assert e.best_f > e.goal_f
 
-        with TempFile(directory=base_dir,
-                      suffix=logging.FILE_SUFFIX) as csv:
-            path = str(csv)
+        with TempFile.create(directory=base_dir,
+                             suffix=logging.FILE_SUFFIX) as path:
             EndResult.to_csv(results=results, file=path)
 
             results2: List[EndResult] = list()
@@ -214,10 +212,8 @@ def test_experiment_jssp():
             assert es_one == [es_all]
             assert len(es_one) == 1
 
-        with TempFile(directory=base_dir,
-                      suffix=logging.FILE_SUFFIX) as csv:
-            f = str(csv)
-
+        with TempFile.create(directory=base_dir,
+                             suffix=logging.FILE_SUFFIX) as f:
             check = [es_hc_a]
             EndStatistics.to_csv(check, f)
             check_2 = list()

@@ -2,8 +2,8 @@
 from typing import Union, Tuple, cast, List, Final, Dict
 
 import matplotlib.cm as mplcm  # type: ignore
-import matplotlib.colors as colors  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
+from matplotlib import colors  # type: ignore
 
 import moptipy.evaluation.base as bs
 
@@ -101,10 +101,10 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
     # https://stackoverflow.com/questions/8389636
     # works.
     cm = plt.get_cmap('gist_rainbow')
-    cNorm = colors.Normalize(vmin=0, vmax=n - 1)
-    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
+    c_norm = colors.Normalize(vmin=0, vmax=n - 1)
+    scalar_map = mplcm.ScalarMappable(norm=c_norm, cmap=cm)
     qq = cast(List[Tuple[float, float, float]],
-              [tuple(scalarMap.to_rgba(i)[0:3]) for i in range(n)])
+              [tuple(scalar_map.to_rgba(i)[0:3]) for i in range(n)])
     ss = set(qq)
     if len(ss) == n:
         return tuple(qq)

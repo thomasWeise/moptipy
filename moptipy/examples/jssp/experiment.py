@@ -59,8 +59,8 @@ def propose_instances(n: int) -> Tuple[str, ...]:
         purge = purge.union(chosen)
 
         # collect all different problem scales that exist
-        scales: Dict[Tuple[int, int, int, float], List[str]] = dict()
-        groups: Dict[str, Set[Tuple[int, int, int, float]]] = dict()
+        scales: Dict[Tuple[int, int, int, float], List[str]] = {}
+        groups: Dict[str, Set[Tuple[int, int, int, float]]] = {}
         for inst_name in all_instance_names:
             if inst_name in purge:
                 continue
@@ -119,7 +119,7 @@ def propose_instances(n: int) -> Tuple[str, ...]:
             sizez.sort()
             if len(sizez) <= 0:
                 break
-            chosen_sizes: List[Tuple[int, int, int, float]] = list()
+            chosen_sizes: List[Tuple[int, int, int, float]] = []
 
             # for each feature dimension, select maximum and minimum
             for dim in range(4):
@@ -225,7 +225,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     inst_gens = [(lambda s=s: Instance.from_resource(s)) for s in instances]
     if len(inst_gens) <= 0:
         raise ValueError("There must be at least one instance.")
-    algo_gens = list()
+    algo_gens = []
     for algo in algorithms:
         def creator(inst: Instance, algor=algo):
             val: Union[Execution, Algorithm] = algor(inst)

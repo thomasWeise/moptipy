@@ -8,7 +8,7 @@ from moptipy.api import Execution, run_experiment
 from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
-from moptipy.utils.io import TempDir
+from moptipy.utils.temp import TempDir
 
 instances = [lambda: Instance.from_resource("dmu01"),
              lambda: Instance.from_resource("abz7"),
@@ -49,9 +49,7 @@ def algo_2(inst) -> Execution:
 
 
 def test_experiment_jssp():
-    with TempDir() as td:
-        base_dir = str(td)
-
+    with TempDir.create() as base_dir:
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],
                        n_runs=10,

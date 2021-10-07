@@ -1,13 +1,14 @@
 """Classes for writing structured log files."""
 from abc import ABC
-from io import open, StringIO
+from io import StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
-from typing import Optional, List, Union, cast, Final, Callable
+from typing import Optional, List, Union, cast, Final, Callable, Tuple
 
 from moptipy.utils import logging
 from moptipy.utils.cache import is_new
+from moptipy.utils.path import Path
 
 
 class Logger(ABC):
@@ -169,8 +170,8 @@ class Logger(ABC):
         :return: the new logger
         :rtype: KeyValueSection
 
-        >>> from moptipy.utils.io import TempFile
-        >>> with TempFile() as t:
+        >>> from moptipy.utils.temp import TempFile
+        >>> with TempFile.create() as t:
         ...     with FileLogger(str(t)) as l:
         ...         with l.key_values("B") as kv:
         ...             kv.key_value("a", "b")
@@ -201,8 +202,8 @@ class Logger(ABC):
         :rtype: CsvSection
 
         >>> from moptipy.utils.logger import FileLogger
-        >>> from moptipy.utils.io import TempFile
-        >>> with TempFile() as t:
+        >>> from moptipy.utils.temp import TempFile
+        >>> with TempFile.create() as t:
         ...     with FileLogger(str(t)) as l:
         ...         with l.csv("A", ["x", "y"]) as csv:
         ...             csv.row([1,2])
@@ -230,7 +231,6 @@ class Logger(ABC):
         :rtype: TextSection
 
         >>> from moptipy.utils.logger import InMemoryLogger
-        >>> from moptipy.utils.io import TempFile
         >>> with InMemoryLogger() as l:
         ...     with l.text("C") as tx:
         ...         tx.write("aaaaaa")
@@ -256,9 +256,7 @@ class FileLogger(Logger):
             raise ValueError("Path must be string but is {type(path)}.")
         name = path
         path = realpath(path)
-        super().__init__(stream=open(file=path, mode="wt",
-                                     encoding="utf-8",
-                                     errors="strict"),
+        super().__init__(stream=Path.path(path).open_for_write(),
                          name=name)
 
 
@@ -355,7 +353,8 @@ class CsvSection(_Section):
         logger._write(logging.CSV_SEPARATOR.join(
             [c.strip() for c in header]) + "\n")
 
-    def row(self, row: List[Union[int, float, bool]]) -> None:
+    def row(self, row: Union[Tuple[Union[int, float, bool], ...],
+                             List[Union[int, float, bool]]]) -> None:
         """
         Write a row of csv data.
 

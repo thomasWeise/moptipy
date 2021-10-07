@@ -13,6 +13,7 @@ from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
 from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
+from moptipy.utils.path import Path
 from moptipy.utils.sys_info import log_sys_info
 
 
@@ -28,7 +29,7 @@ class _ProcessNoSS(_ProcessBase):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: Optional[str] = None,
+                 log_file: Optional[Path] = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
@@ -78,7 +79,7 @@ class _ProcessNoSS(_ProcessBase):
         self._has_current_best: bool = False
 
         #: The log file, or `None` is needed
-        self.__log_file: Final[Optional[str]] = log_file
+        self.__log_file: Final[Optional[Path]] = log_file
 
     def get_random(self) -> Generator:
         """

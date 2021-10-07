@@ -6,14 +6,14 @@ from typing import MutableSequence, Union, Optional, List, Final, Dict
 
 import numpy as np
 
-import moptipy.utils.logging as logging
 from moptipy.evaluation._utils import _str_to_if
 from moptipy.evaluation.base import PerRunData, check_f_name, \
     check_time_unit, TIME_UNIT_MILLIS, TIME_UNIT_FES, F_NAME_RAW, \
     F_NAME_SCALED
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
-from moptipy.utils.io import canonicalize_path, enforce_file
+from moptipy.utils import logging
+from moptipy.utils.path import Path
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
 
@@ -182,11 +182,11 @@ class Progress(PerRunData):
         :return: the fully resolved file name
         :rtype: str
         """
-        file = canonicalize_path(file)
+        path: Final[Path] = Path.path(file)
         print(f"{datetime.now()}: Writing progress object to "
-              f"CSV file '{file}'.")
+              f"CSV file '{path}'.")
 
-        with open(file, "wt") as out:
+        with path.open_for_write() as out:
             sep: Final[str] = logging.CSV_SEPARATOR
             if put_header:
                 kv: Final[str] = logging.KEY_VALUE_SEPARATOR
@@ -205,9 +205,10 @@ class Progress(PerRunData):
                 out.write(f"{t}{sep}{logging.num_to_str(self.f[i])}\n")
 
         print(f"{datetime.now()}: Done writing progress object to "
-              f"CSV file '{file}'.")
+              f"CSV file '{path}'.")
 
-        return enforce_file(file)
+        path.enforce_file()
+        return path
 
 
 class _InnerLogParser(ExperimentParser):
@@ -249,8 +250,8 @@ class _InnerLogParser(ExperimentParser):
         self.__total_fes: Optional[int] = None
         self.__last_fe: Optional[int] = None
         self.__goal_f: Union[int, float, None] = None
-        self.__t_collector: Final[List[int]] = list()
-        self.__f_collector: Final[List[Union[int, float]]] = list()
+        self.__t_collector: Final[List[int]] = []
+        self.__f_collector: Final[List[Union[int, float]]] = []
         if not isinstance(only_improvements, bool):
             raise TypeError("only_improvements must be bool, "
                             f"but is {type(only_improvements)}.")
@@ -262,7 +263,7 @@ class _InnerLogParser(ExperimentParser):
             = f_standard
         self.__state = 0
 
-    def start_file(self, path: str) -> bool:
+    def start_file(self, path: Path) -> bool:
         if not super().start_file(path):
             return False
         if self.__state != 0:

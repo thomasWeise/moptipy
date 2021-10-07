@@ -1,17 +1,16 @@
 """Test the interaction with the file system."""
 from io import open
-from os.path import isfile, isdir, exists, dirname, sep, basename, getsize
+from os.path import isfile, isdir, exists, dirname, basename, getsize, join
 
 # noinspection PyPackageRequirements
 from pytest import raises
 
-from moptipy.utils import TempFile, TempDir, file_create_or_fail, \
-    file_create_or_truncate, canonicalize_path, file_ensure_exists
+from moptipy.utils.path import Path
+from moptipy.utils.temp import TempFile, TempDir
 
 
 def test_temp_file():
-    with TempFile() as t:
-        path = str(t)
+    with TempFile.create() as path:
         assert isinstance(path, str)
         assert len(path) > 0
         assert isfile(path)
@@ -19,8 +18,7 @@ def test_temp_file():
     assert not isfile(path)
     assert not exists(path)
 
-    with TempFile(prefix="aaaa", suffix=".xxx") as t:
-        path = str(t)
+    with TempFile.create(prefix="aaaa", suffix=".xxx") as path:
         assert isinstance(path, str)
         assert len(path) > 0
         assert isfile(path)
@@ -33,8 +31,7 @@ def test_temp_file():
 
 
 def test_temp_dir():
-    with TempDir() as d:
-        path = str(d)
+    with TempDir.create() as path:
         assert isinstance(path, str)
         assert len(path) > 0
         assert isdir(path)
@@ -42,27 +39,24 @@ def test_temp_dir():
     assert not isdir(path)
     assert not exists(path)
 
-    with TempDir() as d:
-        path = str(d)
+    with TempDir.create() as path:
         assert isinstance(path, str)
         assert len(path) > 0
         assert isdir(path)
         assert exists(path)
-        with TempFile(d) as f:
-            path2 = str(f)
+        with TempFile.create(path) as path2:
             assert isinstance(path2, str)
             assert dirname(path2) == path
             assert len(path2) > 0
             assert isfile(path2)
             assert exists(path2)
-        with TempFile(path) as f:
-            path2 = str(f)
+        with TempFile.create(path) as path2:
             assert isinstance(path2, str)
             assert dirname(path2) == path
             assert len(path2) > 0
             assert isfile(path2)
             assert exists(path2)
-        inner = (path + sep + "xx.y")
+        inner = join(path, "xx.y")
         open(inner, "w").close()
         assert isfile(inner)
         assert exists(inner)
@@ -73,15 +67,14 @@ def test_temp_dir():
 
 
 def test_file_create_or_fail():
-    with TempDir() as td:
-        tds = str(td)
-        s = canonicalize_path(tds + sep + "a.txt")
+    with TempDir.create() as tds:
+        s = Path.path(join(tds, "a.txt"))
         assert isinstance(s, str)
         assert len(s) > 0
         assert s.startswith(tds)
         assert s.endswith("a.txt")
         assert not exists(s)
-        s = file_create_or_fail(s)
+        s.create_file_or_fail()
         assert isinstance(s, str)
         assert len(s) > 0
         assert s.startswith(tds)
@@ -90,19 +83,18 @@ def test_file_create_or_fail():
         assert isfile(s)
         assert getsize(s) == 0
         with raises(ValueError):
-            file_create_or_fail(s)
+            s.create_file_or_fail()
 
 
 def test_file_create_or_truncate():
-    with TempDir() as td:
-        tds = str(td)
-        s = canonicalize_path(tds + sep + "a.txt")
+    with TempDir.create() as tds:
+        s = Path.path(join(tds, "a.txt"))
         assert isinstance(s, str)
         assert len(s) > 0
         assert s.startswith(tds)
         assert s.endswith("a.txt")
         assert not exists(s)
-        s = file_create_or_truncate(s)
+        s.create_file_or_truncate()
         assert isinstance(s, str)
         assert len(s) > 0
         assert s.startswith(tds)
@@ -116,23 +108,21 @@ def test_file_create_or_truncate():
 
         assert getsize(s) > 0
 
-        s2 = file_create_or_truncate(s)
-        assert s == s2
+        s.create_file_or_truncate()
         assert exists(s)
         assert isfile(s)
         assert getsize(s) == 0
 
 
 def test_file_ensure_exists():
-    with TempDir() as td:
-        tds = str(td)
-        s = canonicalize_path(tds + sep + "a.txt")
+    with TempDir.create() as tds:
+        s = Path.path(join(tds, "a.txt"))
         assert isinstance(s, str)
         assert len(s) > 0
         assert s.startswith(tds)
         assert s.endswith("a.txt")
         assert not exists(s)
-        s, existed = file_ensure_exists(s)
+        existed = s.ensure_file_exists()
         assert isinstance(s, str)
         assert len(s) > 0
         assert s.startswith(tds)
@@ -148,10 +138,7 @@ def test_file_ensure_exists():
         old_size = getsize(s)
         assert old_size > 0
 
-        s2, existed = file_ensure_exists(s)
-        assert isinstance(s2, str)
-        assert s2 == s
-        assert exists(s2)
-        assert isfile(s2)
-        assert getsize(s2) == getsize(s)
+        existed = s.ensure_file_exists()
+        assert exists(s)
+        assert isfile(s)
         assert existed

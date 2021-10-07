@@ -10,7 +10,7 @@ from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
-from moptipy.utils.io import canonicalize_path, enforce_file
+from moptipy.utils.path import Path
 
 #: The internal CSV header
 _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
@@ -182,18 +182,19 @@ class EndResult(PerRunData):
 
     @staticmethod
     def to_csv(results: Iterable['EndResult'],
-               file: str) -> None:
+               file: str) -> Path:
         """
         Write a sequence of end results to a file in CSV format.
 
         :param Iterable[EndResult] results: the end results
         :param str file: the path
+        :return: the path of the file that was written
+        :rtype: Path
         """
-        file = canonicalize_path(file)
-        print(f"{datetime.now()}: Writing end results to CSV file '{file}'.")
+        path: Final[Path] = Path.path(file)
+        print(f"{datetime.now()}: Writing end results to CSV file '{path}'.")
 
-        with open(file=file, mode="wt", encoding="utf-8",
-                  errors="strict") as out:
+        with path.open_for_write() as out:
             out.write(_HEADER)
             for e in results:
                 out.write(
@@ -210,7 +211,7 @@ class EndResult(PerRunData):
                     f"{_in_to_str(e.max_time_millis)}\n")
 
         print(f"{datetime.now()}: Done writing end "
-              f"results to CSV file '{file}'.")
+              f"results to CSV file '{path}'.")
 
     @staticmethod
     def from_csv(file: str,
@@ -224,16 +225,16 @@ class EndResult(PerRunData):
         if not isinstance(collector, MutableSequence):
             raise TypeError("Collector must be mutable sequence, "
                             f"but is {type(collector)}.")
-        file = enforce_file(canonicalize_path(file))
-        print(f"{datetime.now()}: Now reading CSV file '{file}'.")
+        path: Final[Path] = Path.file(file)
+        print(f"{datetime.now()}: Now reading CSV file '{path}'.")
 
-        with open(file=file, mode="rt", encoding="utf-8",
-                  errors="strict") as rd:
+        with path.open_for_read() as rd:
             header = rd.readlines(1)
             if (header is None) or (len(header) <= 0):
                 raise ValueError(f"No line in file '{file}'.")
             if _HEADER != header[0]:
-                raise ValueError(f"Header '{header[0]}' should be {_HEADER}.")
+                raise ValueError(
+                    f"Header '{header[0]}' in '{path}' should be {_HEADER}.")
 
             while True:
                 lines = rd.readlines(100)
@@ -254,7 +255,7 @@ class EndResult(PerRunData):
                         _str_to_in(splt[9]),  # max_fes
                         _str_to_in(splt[10])))  # max_time_millis
 
-        print(f"{datetime.now()}: Done reading CSV file '{file}'.")
+        print(f"{datetime.now()}: Done reading CSV file '{path}'.")
 
 
 class _InnerLogParser(ExperimentParser):
@@ -276,7 +277,7 @@ class _InnerLogParser(ExperimentParser):
         self.__max_time_millis: Optional[int] = None
         self.__state: int = 0
 
-    def start_file(self, path: str) -> bool:
+    def start_file(self, path: Path) -> bool:
         if not super().start_file(path):
             return False
 

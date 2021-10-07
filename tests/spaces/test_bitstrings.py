@@ -4,7 +4,8 @@ import numpy as np
 from moptipy.api import Space
 from moptipy.spaces import BitStrings
 from moptipy.tests.space import check_space
-from moptipy.utils import TempFile, FileLogger
+from moptipy.utils.temp import TempFile
+from moptipy.utils.logger import FileLogger
 
 
 def test_int():
@@ -28,12 +29,11 @@ def test_int():
     b[0] = not b[0]
     assert not f.is_equal(a, b)
 
-    with TempFile() as tmp:
-        path = str(tmp)
+    with TempFile.create() as path:
         with FileLogger(path) as log:
             with log.key_values("F") as kv:
                 f.log_parameters_to(kv)
-        result = open(path, "r").read().splitlines()
+        result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: bits12",
                       "type: <class 'moptipy.spaces.bitstrings.BitStrings'>",

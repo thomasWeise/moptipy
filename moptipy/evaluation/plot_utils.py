@@ -10,8 +10,7 @@ from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 import moptipy.evaluation.plot_defaults as pd
-from moptipy.utils.io import dir_ensure_exists, file_ensure_exists, \
-    enforce_file
+from moptipy.utils.path import Path
 
 #: the golden ratio
 __GOLDEN_RATIO: Final[float] = 0.5 + (0.5 * sqrt(5))
@@ -123,19 +122,20 @@ def save_figure(fig: Figure,
     for ax in fig.axes:
         ax.margins(0, 0)
 
-    dir_name = dir_ensure_exists(dir_name)
-    files = list()
+    use_dir = Path.directory(dir_name)
+    files = []
     for fmt in formats:
         if not isinstance(fmt, str):
             raise TypeError(f"Invalid format type {type(fmt)}.")
-        dest_file, _ = file_ensure_exists(
-            os.path.join(dir_name, f"{file_name}.{fmt}"))
+        dest_file = Path.path(os.path.join(use_dir, f"{file_name}.{fmt}"))
+        dest_file.ensure_file_exists()
         fig.savefig(dest_file, transparent=True, format=fmt,
                     orientation=orientation,
                     dpi="figure",
                     bbox_inches='tight',
                     pad_inches=1.0 / 72.0)
-        files.append(enforce_file(dest_file))
+        dest_file.enforce_file()
+        files.append(dest_file)
 
     fig.clf(False)
     matplotlib.pyplot.close(fig)

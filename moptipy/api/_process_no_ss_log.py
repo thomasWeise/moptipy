@@ -9,6 +9,7 @@ from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils import logging
 from moptipy.utils.logger import Logger
+from moptipy.utils.path import Path
 
 
 class _ProcessNoSSLog(_ProcessNoSS):
@@ -18,7 +19,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: str = None,
+                 log_file: Path = None,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
@@ -41,7 +42,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
         self.__log_all: Final[bool] = log_all_fes
 
         #: The in-memory log
-        self.__log: List[Tuple[int, int, Union[int, float]]] = list()
+        self.__log: List[Tuple[int, int, Union[int, float]]] = []
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:

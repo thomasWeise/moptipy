@@ -9,7 +9,7 @@ from moptipy.api import CallableAlgorithm, CallableObjective, \
     Process
 from moptipy.api.execution import Execution
 from moptipy.spaces import VectorSpace
-from moptipy.utils import TempFile
+from moptipy.utils.temp import TempFile
 
 worst_f = 1_000_000_000_000
 max_fes = 100
@@ -75,8 +75,7 @@ def test_process_noss_no_log():
 def test_process_noss_log():
     v = VectorSpace(10)
     x = v.create()
-    with TempFile() as log:
-        path = str(log)
+    with TempFile.create() as path:
         exp = Execution()
         exp.set_algorithm(CallableAlgorithm(myalgorithm))
         exp.set_solution_space(v)
@@ -99,8 +98,7 @@ def test_process_noss_log():
 def test_process_noss_timed_log():
     v = VectorSpace(10)
     x = v.create()
-    with TempFile() as log:
-        path = str(log)
+    with TempFile.create() as path:
         exp = Execution()
         exp.set_algorithm(CallableAlgorithm(myalgorithm))
         exp.set_solution_space(v)
@@ -123,9 +121,7 @@ def test_process_noss_timed_log():
 
 def test_process_noss_maxfes_log_state():
     v = VectorSpace(4)
-    with TempFile() as log:
-        path = str(log)
-
+    with TempFile.create() as path:
         exp = Execution()
         exp.set_algorithm(CallableAlgorithm(myalgorithm2))
         exp.set_solution_space(v)
@@ -137,5 +133,5 @@ def test_process_noss_maxfes_log_state():
             assert p.has_current_best()
         assert isfile(path)
         assert getsize(path) > 10
-        result = open(path, "r").read().splitlines()
+        result = path.read_all_list()
         assert len(result) > 5

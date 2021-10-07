@@ -142,7 +142,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                                      for i in range(p)])
 
     # determine the style groups
-    groups: List[Styler] = list()
+    groups: List[Styler] = []
     goals.compile()
     algorithms.compile()
 
@@ -166,7 +166,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
-    plot_list: List[Dict] = list()
+    plot_list: List[Dict] = []
 
     # set up the axis rangers
     if callable(x_axis):
@@ -234,7 +234,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = list()
+        handles: List[Artist] = []
 
         for g in groups:
             g.add_to_legend(handles)

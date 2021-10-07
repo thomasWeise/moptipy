@@ -11,7 +11,7 @@ from numpy.random import default_rng
 
 from moptipy.api.execution import Execution
 from moptipy.utils.cache import is_new
-from moptipy.utils.io import dir_ensure_exists, file_ensure_exists
+from moptipy.utils.path import Path
 from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.nputils import rand_seeds_from_str
 
@@ -40,7 +40,7 @@ def __log(string: str, note: str,
         print(text)
 
 
-def __run_experiment(base_dir: str,
+def __run_experiment(base_dir: Path,
                      experiments: List[Tuple[Callable, Callable]],
                      n_runs: Tuple[int, ...],
                      perform_warmup: bool,
@@ -78,20 +78,19 @@ def __run_experiment(base_dir: str,
                     f"Execution, but generates {type(exp)}.")
             algo_name = sanitize_name(exp.get_algorithm().get_name())
 
-            cd = dir_ensure_exists(os.path.join(base_dir, algo_name,
-                                                inst_name))
+            cd = Path.directory(os.path.join(base_dir, algo_name, inst_name))
 
             seeds = rand_seeds_from_str(string=inst_name, n_seeds=runs)
             random.shuffle(seeds)
             needs_warmup = perform_warmup
             for seed in seeds:
                 filename = sanitize_names([algo_name, inst_name, hex(seed)])
-                log_file = os.path.join(cd, filename + FILE_SUFFIX)
+                log_file = Path.path(os.path.join(cd, filename + FILE_SUFFIX))
 
                 skip = True
                 with file_lock:
                     if cache(log_file):
-                        log_file, skip = file_ensure_exists(log_file)
+                        skip = log_file.ensure_file_exists()
                 if skip:
                     continue
 
@@ -207,7 +206,7 @@ def run_experiment(base_dir: str,
         last = run
 
     cache = is_new()
-    base_dir = dir_ensure_exists(base_dir)
+    use_dir: Final[Path] = Path.directory(base_dir)
 
     stdio_lock: ContextManager
 
@@ -218,7 +217,7 @@ def run_experiment(base_dir: str,
               "", stdio_lock)
 
         processes = [mp.Process(target=__run_experiment,
-                                args=(base_dir,
+                                args=(use_dir,
                                       experiments.copy(),
                                       n_runs,
                                       perform_warmup,
@@ -236,7 +235,7 @@ def run_experiment(base_dir: str,
 
     else:
         stdio_lock = __DummyLock()
-        __run_experiment(base_dir=base_dir,
+        __run_experiment(base_dir=use_dir,
                          experiments=experiments,
                          n_runs=n_runs,
                          perform_warmup=perform_warmup,

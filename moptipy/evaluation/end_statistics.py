@@ -11,7 +11,7 @@ from moptipy.evaluation.base import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
 from moptipy.utils import logging as log
-from moptipy.utils.io import canonicalize_path, enforce_file
+from moptipy.utils.path import Path
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
@@ -413,21 +413,21 @@ class EndStatistics(MultiRunData):
                 f"source must be Iterable, but is {type(source)}.")
 
         n: int = 0
-        best_f: List[Union[int, float]] = list()
-        last_improvement_fe: List[int] = list()
-        last_improvement_time_millis: List[int] = list()
-        total_fes: List[int] = list()
-        total_time_millis: List[int] = list()
-        max_fes: Optional[List[int]] = list()
+        best_f: List[Union[int, float]] = []
+        last_improvement_fe: List[int] = []
+        last_improvement_time_millis: List[int] = []
+        total_fes: List[int] = []
+        total_time_millis: List[int] = []
+        max_fes: Optional[List[int]] = []
         max_fes_same: bool = True
-        max_time_millis: Optional[List[int]] = list()
+        max_time_millis: Optional[List[int]] = []
         max_time_same: bool = True
-        goal_f: Optional[List[Union[int, float]]] = list()
+        goal_f: Optional[List[Union[int, float]]] = []
         goal_f_same: bool = True
-        best_f_scaled: Optional[List[float]] = list()
+        best_f_scaled: Optional[List[float]] = []
         n_success: Optional[int] = 0
-        success_fes: Optional[List[int]] = list()
-        success_times: Optional[List[int]] = list()
+        success_fes: Optional[List[int]] = []
+        success_times: Optional[List[int]] = []
 
         fes: int = 0
         time: int = 0
@@ -559,7 +559,7 @@ class EndStatistics(MultiRunData):
             collector.append(EndStatistics.create(source))
             return
 
-        sorter: Dict[str, List[EndResult]] = dict()
+        sorter: Dict[str, List[EndResult]] = {}
         for er in source:
             if not isinstance(er, EndResult):
                 raise TypeError("source must contain only EndResults, but "
@@ -570,7 +570,7 @@ class EndStatistics(MultiRunData):
             if key in sorter:
                 lst = sorter[key]
             else:
-                lst = list()
+                lst = []
                 sorter[key] = lst
             lst.append(er)
 
@@ -588,17 +588,19 @@ class EndStatistics(MultiRunData):
 
     @staticmethod
     def to_csv(data: Union['EndStatistics',
-                           Iterable['EndStatistics']], file: str) -> None:
+                           Iterable['EndStatistics']], file: str) -> Path:
         """
         Store a set of :class:`EndStatistics` in a CSV file.
 
         :param Union['EndStatistics', Iterable['EndStatistics']] data: the
             data to store
         :param str file: the file to generate
+        :return: the path to the generated CSV file
+        :rtype: Path
         """
-        file = canonicalize_path(file)
+        path: Final[Path] = Path.path(file)
         print(f"{datetime.now()}: Writing end result statistics to "
-              f"CSV file '{file}'.")
+              f"CSV file '{path}'.")
 
         has_algorithm: bool = False  # 1
         has_instance: bool = False  # 2
@@ -662,7 +664,7 @@ class EndStatistics(MultiRunData):
             if checker == 0:
                 break
 
-        with open(file, "wt") as out:
+        with path.open_for_write() as out:
             wrt: Final[Callable] = out.write
             sep: Final[str] = log.CSV_SEPARATOR
             if has_algorithm:
@@ -816,7 +818,9 @@ class EndStatistics(MultiRunData):
                 out.write("\n")
 
         print(f"{datetime.now()}: Done writing end result statistics to "
-              f"CSV file '{file}'.")
+              f"CSV file '{path}'.")
+        path.enforce_file()
+        return path
 
     @staticmethod
     def from_csv(file: str,
@@ -828,12 +832,12 @@ class EndStatistics(MultiRunData):
         :param MutableSequence['EndStatistics'] collector: the collector to
             receive all the parsed instances of :class:`EndStatistics`.
         """
-        file = enforce_file(canonicalize_path(file))
+        path: Final[Path] = Path.file(file)
         print(f"{datetime.now()}: Begin reading end result statistics from "
-              f"CSV file '{file}'.")
+              f"CSV file '{path}'.")
 
         sep: Final[str] = log.CSV_SEPARATOR
-        with open(file, "rt") as rd:
+        with path.open_for_read() as rd:
             headerrow: Final[List[str]] = rd.readlines(1)
             if (headerrow is None) or (len(headerrow) <= 0):
                 raise ValueError(f"No line in file '{file}'.")
@@ -864,7 +868,7 @@ class EndStatistics(MultiRunData):
             if header[idx] != KEY_N:
                 raise ValueError(
                     f"Expected to find {KEY_N} at index {idx} "
-                    f"in header '{headerstr}' of file '{file}'.")
+                    f"in header '{headerstr}' of file '{path}'.")
             idx += 1
 
             for key in [log.KEY_BEST_F, log.KEY_LAST_IMPROVEMENT_FE,
@@ -874,7 +878,7 @@ class EndStatistics(MultiRunData):
                     raise ValueError(
                         f"Expected to find '{key}.*' keys from index "
                         f"{idx} on in header "
-                        f"'{headerstr}' of file '{file}', expected "
+                        f"'{headerstr}' of file '{path}', expected "
                         f"{csv(key)} but got {header[idx:(idx + CSV_COLS)]}.")
                 idx += CSV_COLS
 
@@ -897,7 +901,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{log.KEY_GOAL_F}.*' keys from "
                             f"index {idx} on in header "
-                            f"'{headerstr}' of file '{file}'.")
+                            f"'{headerstr}' of file '{path}'.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -910,7 +914,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{KEY_BEST_F_SCALED}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{file}'.")
+                            f"'{headerstr}' of file '{path}'.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -929,7 +933,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{KEY_SUCCESS_FES}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{file}'.")
+                            f"'{headerstr}' of file '{path}'.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -942,7 +946,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{KEY_SUCCESS_TIME_MILLIS}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{file}'.")
+                            f"'{headerstr}' of file '{path}'.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -971,7 +975,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{log.KEY_MAX_FES}.*' keys"
                             f" from index {idx} on in header "
-                            f"'{headerstr}' of file '{file}'.")
+                            f"'{headerstr}' of file '{path}'.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -986,7 +990,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{log.KEY_MAX_TIME_MILLIS}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{file}'.")
+                            f"'{headerstr}' of file '{path}'.")
                     idx += CSV_COLS
 
                 break
@@ -994,7 +998,7 @@ class EndStatistics(MultiRunData):
             if len(header) > idx:
                 raise ValueError(
                     f"Unexpected item '{header[idx]}' in header "
-                    f"'{header}' of file '{file}'.")
+                    f"'{header}' of file '{path}'.")
 
             while True:
                 lines = rd.readlines(100)
@@ -1102,11 +1106,11 @@ class EndStatistics(MultiRunData):
 
                     except BaseException as be:
                         raise ValueError(
-                            f"Invalid row '{line}' in file '{file}'.") from be
+                            f"Invalid row '{line}' in file '{path}'.") from be
 
                     if len(row) != idx:
                         raise ValueError("Invalid number of columns in row "
-                                         f"'{line}' in file '{file}'.")
+                                         f"'{line}' in file '{path}'.")
                     collector.append(EndStatistics(
                         algo, inst, n, best_f,
                         last_improv_fe, last_improv_time, total_fes,
@@ -1115,4 +1119,4 @@ class EndStatistics(MultiRunData):
                         max_fes, max_time))
 
         print(f"{datetime.now()}: Finished reading end result statistics "
-              f"from CSV file '{file}'.")
+              f"from CSV file '{path}'.")

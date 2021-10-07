@@ -1,10 +1,10 @@
 """Some internal helper functions."""
 
 from dataclasses import dataclass
+from math import inf
 from typing import Final, Union, Optional, Tuple
 
-from math import inf
-import moptipy.utils.logging as logging
+from moptipy.utils import logging
 from moptipy.utils.nputils import rand_seed_check
 
 #: The key for the total number of runs.

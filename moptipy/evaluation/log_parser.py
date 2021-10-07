@@ -7,7 +7,7 @@ from os.path import isfile, isdir, join, dirname, basename
 from typing import List, Final, Optional
 
 from moptipy.utils import logging
-from moptipy.utils.io import canonicalize_path, enforce_file, enforce_dir
+from moptipy.utils.path import Path
 from moptipy.utils.nputils import rand_seed_check
 
 
@@ -45,7 +45,7 @@ class LogParser(ABC):
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
-    def start_dir(self, path: str) -> bool:
+    def start_dir(self, path: Path) -> bool:
         """
         Enter a directory to parse all files inside.
 
@@ -57,7 +57,7 @@ class LogParser(ABC):
         is returned, then :meth:`parse_dir` will return immediately and return
         `True`.
 
-        :param str path: the path of the directory
+        :param Path path: the path of the directory
         :return: `True` if all the files and sub-directories inside the
             directory should be processed, `False` if this directory should
             be skipped and parsing should continue with the next sibling
@@ -69,7 +69,7 @@ class LogParser(ABC):
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
-    def end_dir(self, path: str) -> bool:
+    def end_dir(self, path: Path) -> bool:
         """
         Enter a directory to parse all files inside.
 
@@ -77,7 +77,7 @@ class LogParser(ABC):
         every sub-directory inside of it will be passed to :meth:`start_dir`
         and every file will be passed to :meth:`start_file`.
 
-        :param str path: the path of the directory
+        :param Path path: the path of the directory
         :return: `True` if all the files and sub-directories inside the
             directory should be processed, `False` if this directory should
             be skipped and parsing should continue with the next sibling
@@ -89,7 +89,7 @@ class LogParser(ABC):
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
-    def start_file(self, path: str) -> bool:
+    def start_file(self, path: Path) -> bool:
         """
         Decide whether to start parsing a file.
 
@@ -98,7 +98,7 @@ class LogParser(ABC):
         the fill will not be parsed and :meth:`parse_file` will return
         `True` immediately.
 
-        :param str path: the file path
+        :param Path path: the file path
         :return: `True` if the file should be parsed, `False` if it should be
             skipped (and :meth:`parse_file` should return `True`).
         :rtype: bool
@@ -189,23 +189,23 @@ class LogParser(ABC):
         :return: the return value of :meth:`end_file`
         :rtype: bool
         """
-        path = enforce_file(canonicalize_path(path))
+        file: Final[Path] = Path.file(path)
 
         retval: bool
         try:
-            retval = self.start_file(path)
+            retval = self.start_file(file)
         except BaseException as be:
-            raise ValueError(f"Error when starting file '{path}'") from be
+            raise ValueError(f"Error when starting file '{file}'") from be
 
         if retval:
             if self.__print_file_start:
-                print(f"{datetime.now()}: parsing file {path}.")
+                print(f"{datetime.now()}: parsing file {file}.")
         else:
             if self.__print_file_start:
-                print(f"{datetime.now()}: skipping file {path}.")
+                print(f"{datetime.now()}: skipping file {file}.")
             return True
 
-        lines: List[str] = list()
+        lines: List[str] = []
         buffer: List[str] = []
         state: int = 0
         wants_section: bool = False
@@ -213,7 +213,7 @@ class LogParser(ABC):
         section: str = ""
 
         index: int = 0
-        with open(path, "rt") as handle:
+        with file.open_for_read() as handle:
             while True:
 
                 # get the next line
@@ -222,10 +222,10 @@ class LogParser(ABC):
                         buffer = handle.readlines(128)
                     except BaseException as be:
                         raise ValueError(
-                            f"Error when reading lines from file '{path}' "
+                            f"Error when reading lines from file '{file}' "
                             f"while in section '{section}'."
                             if state == 1 else
-                            f"Error when reading lines from file '{path}'.") \
+                            f"Error when reading lines from file '{file}'.") \
                             from be
                     if buffer is None:
                         break
@@ -249,11 +249,11 @@ class LogParser(ABC):
                     if not cur.startswith(logging.SECTION_START):
                         ValueError("Line should start with "
                                    f"'{logging.SECTION_START}' but is "
-                                   f"'{orig_cur}' in file '{path}'.")
+                                   f"'{orig_cur}' in file '{file}'.")
                     section = cur[len(logging.SECTION_START):]
                     if len(section) <= 0:
                         ValueError("Section title cannot be empty in "
-                                   f"'{path}', but encountered '{orig_cur}'.")
+                                   f"'{file}', but encountered '{orig_cur}'.")
                     state = 1
                     sec_end = logging.SECTION_END + section
                     wants_section = self.start_section(section)
@@ -266,7 +266,7 @@ class LogParser(ABC):
                             except BaseException as be:
                                 raise ValueError(
                                     "Error when processing section "
-                                    f"'{section}' in file '{path}'.") from be
+                                    f"'{section}' in file '{file}'.") from be
                             lines.clear()
                             if not do_next:
                                 break
@@ -274,18 +274,18 @@ class LogParser(ABC):
                         lines.append(cur)
 
         if state == 0:
-            raise ValueError(f"Log file '{path}' contains no section.")
+            raise ValueError(f"Log file '{file}' contains no section.")
         if state == 1:
-            raise ValueError(f"Log file '{path}' ended before"
+            raise ValueError(f"Log file '{file}' ended before"
                              f"encountering '{sec_end}'.")
 
         try:
             retval = self.end_file()
         except BaseException as be:
             raise ValueError("Error when ending section parsing "
-                             f"of file '{path}'.") from be
+                             f"of file '{file}'.") from be
         if self.__print_file_end:
-            print(f"{datetime.now()}: finished parsing file {path}.")
+            print(f"{datetime.now()}: finished parsing file {file}.")
         return retval
 
     def parse_dir(self, path: str) -> bool:
@@ -297,56 +297,56 @@ class LogParser(ABC):
             :meth:`end_dir` returned `True`, `False` otherwise
         :rtype: bool
         """
-        path = enforce_dir(canonicalize_path(path))
+        folder: Final[Path] = Path.directory(path)
 
         if self.__depth <= 0:
             if self.__depth == 0:
                 if self.__print_begin_end:
                     print(f"{datetime.now()}: beginning recursive parsing "
-                          f"of directory '{path}'.")
+                          f"of directory '{folder}'.")
             else:
                 raise ValueError(
                     f"Depth must be >= 0, but is {self.__depth}??")
         self.__depth += 1
 
-        if not self.start_dir(path):
+        if not self.start_dir(folder):
             if self.__print_dir_start:
-                print(f"{datetime.now()}: skipping directory '{path}'.")
+                print(f"{datetime.now()}: skipping directory '{folder}'.")
             return True
         if self.__print_dir_start:
-            print(f"{datetime.now()}: entering directory '{path}'.")
+            print(f"{datetime.now()}: entering directory '{folder}'.")
 
         do_files = True
         do_dirs = True
-        for sub in listdir(path):
-            sub = join(path, sub)
+        for sub in listdir(folder):
+            sub = join(folder, sub)
             if isfile(sub):
                 if do_files:
                     if not self.parse_file(sub):
                         print(f"{datetime.now()}: will parse no more "
-                              f"files in '{path}'.")
+                              f"files in '{folder}'.")
                         if not do_dirs:
                             break
                         do_files = False
             elif isdir(sub):
                 if do_dirs:
-                    if not self.parse_dir(sub):
+                    if not self.parse_dir(folder):
                         print(f"{datetime.now()}: will parse no more "
-                              f"sub-directories of '{path}'.")
+                              f"sub-directories of '{folder}'.")
                         if not do_files:
                             break
                         do_dirs = False
 
-        retval = self.end_dir(path)
+        retval = self.end_dir(folder)
         if self.__print_dir_end:
-            print(f"{datetime.now()}: finished parsing directory '{path}'.")
+            print(f"{datetime.now()}: finished parsing directory '{folder}'.")
 
         self.__depth -= 1
         if self.__depth <= 0:
             if self.__depth == 0:
                 if self.__print_begin_end:
                     print(f"{datetime.now()}: finished recursive parsing "
-                          f"of directory '{path}'.")
+                          f"of directory '{folder}'.")
             else:
                 raise ValueError(
                     f"Depth must be >= 0, but is {self.__depth}??")
@@ -366,13 +366,13 @@ class LogParser(ABC):
         :rtype: bool
         :raises ValueError: if `path` does not identify a directory or file
         """
-        path = canonicalize_path(path)
-        if isfile(path):
-            return self.parse_file(path)
-        if isdir(path):
-            return self.parse_dir(path)
+        npath = Path.path(path)
+        if isfile(npath):
+            return self.parse_file(npath)
+        if isdir(npath):
+            return self.parse_dir(npath)
         raise ValueError(
-            f"Path {path} is neither a file nor a directory?")
+            f"Path {npath} is neither a file nor a directory?")
 
 
 class ExperimentParser(LogParser):
@@ -391,7 +391,7 @@ class ExperimentParser(LogParser):
         #: The random seed of the current log file.
         self.rand_seed: Optional[int] = None
 
-    def start_file(self, path: str) -> bool:
+    def start_file(self, path: Path) -> bool:
         """
         Decide whether to start parsing a file and setup meta-data.
 

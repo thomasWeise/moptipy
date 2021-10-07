@@ -198,7 +198,7 @@ def __stat_median(data: np.ndarray) -> np.number:
     :return: the median
     :rtype: np.number
     """
-    return np.median(data)
+    return np.median(data)[0]
 
 
 @numba.njit(parallel=True)
@@ -416,8 +416,8 @@ class StatRun(MultiRun2DData):
         instance: Optional[str] = None
         time_unit: Optional[str] = None
         f_name: Optional[str] = None
-        time: List[np.ndarray] = list()
-        f: List[np.ndarray] = list()
+        time: List[np.ndarray] = []
+        f: List[np.ndarray] = []
         n: int = 0
 
         for progress in source:
@@ -516,7 +516,7 @@ class StatRun(MultiRun2DData):
             raise TypeError("join_all_instances must be bool, "
                             f"but is {type(join_all_instances)}.")
 
-        sorter: Dict[str, List[Progress]] = dict()
+        sorter: Dict[str, List[Progress]] = {}
         for prog in source:
             if not isinstance(prog, Progress):
                 raise TypeError("source must contain only Progress, but "
@@ -527,7 +527,7 @@ class StatRun(MultiRun2DData):
             if key in sorter:
                 lst = sorter[key]
             else:
-                lst = list()
+                lst = []
                 sorter[key] = lst
             lst.append(prog)
 

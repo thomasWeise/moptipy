@@ -6,7 +6,8 @@ from pytest import raises
 
 from moptipy.api import CallableObjective, Objective, Component
 from moptipy.tests.objective import check_objective
-from moptipy.utils import TempFile, FileLogger
+from moptipy.utils.temp import TempFile
+from moptipy.utils.logger import FileLogger
 
 
 def test_pure_callable_objective_function():
@@ -101,12 +102,11 @@ def test_logged_args():
     assert isinstance(f, Objective)
     assert isinstance(f, Component)
 
-    with TempFile() as tmp:
-        path = str(tmp)
+    with TempFile.create() as path:
         with FileLogger(path) as log:
             with log.key_values("F") as kv:
                 f.log_parameters_to(kv)
-        result = open(path, "r").read().splitlines()
+        result = path.read_all_list()
     assert result == [
         "BEGIN_F",
         "name: hello",

@@ -35,9 +35,9 @@ test: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "PATH is now '${PATH}'." &&\
 	echo "Running py.test tests." && \
-	py.test tests && \
+	py.test --strict-config tests && \
 	echo "Running py.test with doctests." && \
-	py.test --doctest-modules && \
+	py.test --strict-config --doctest-modules && \
     echo "Finished running py.test tests."
 
 # Perform static code analysis.
@@ -48,7 +48,7 @@ static_analysis: init
 	echo "Running static code analysis, starting with flake8." && \
     flake8 . --ignore=W503 && \
     echo "Finished running flake8, now applying pylint to package." &&\
-    pylint moptipy --disable=C0103,C0302,C0325,R0201,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0703 &&\
+    pylint moptipy --disable=C0103,C0302,C0325,R0201,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
     echo "Done with pylint, now trying mypy." &&\
     mypy moptipy --no-strict-optional &&\
     echo "Done with mypy, now doing pyflakes." &&\
@@ -74,6 +74,7 @@ create_documentation: static_analysis test
     echo "Done creating HTML documentation, cleaning up documentation temp files." && \
     mv docs/source/index.rst docs/source/index.tmp && \
     rm -rf docs/source/*.rst && \
+    rm -rf docs/source/*.md && \
     mv docs/source/index.tmp docs/source/index.rst && \
     echo "Done creating the documentation."
 

@@ -32,7 +32,7 @@ def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
     if not isinstance(lines, Iterable):
         raise TypeError(
             f"lines must be Iterable of strings, but is {type(lines)}.")
-    dct = dict()
+    dct = {}
     for line in lines:
         splt = line.split(logging.KEY_VALUE_SEPARATOR)
         if len(splt) != 2:

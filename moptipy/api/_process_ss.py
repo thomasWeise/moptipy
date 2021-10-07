@@ -10,6 +10,7 @@ from moptipy.api.objective import Objective
 from moptipy.api.space import Space, _check_space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, Logger
+from moptipy.utils.path import Path
 
 
 class _ProcessSS(_ProcessNoSS):
@@ -19,7 +20,7 @@ class _ProcessSS(_ProcessNoSS):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: str = None,
+                 log_file: Optional[Path] = None,
                  search_space: Space = None,
                  encoding: Encoding = None,
                  rand_seed: Optional[int] = None,

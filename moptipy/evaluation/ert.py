@@ -14,7 +14,7 @@ from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.io import canonicalize_path, enforce_file
+from moptipy.utils.path import Path
 
 
 def compute_single_ert(source: Iterable[Progress],
@@ -99,19 +99,19 @@ class Ert(MultiRun2DData):
         object.__setattr__(self, "ert", ert)
 
     def to_csv(self, file: str,
-               put_header: bool = True) -> str:
+               put_header: bool = True) -> Path:
         """
         Store a :class:`Ert` record in a CSV file.
 
         :param str file: the file to generate
         :param bool put_header: should we put a header with meta-data?
         :return: the fully resolved file name
-        :rtype: str
+        :rtype: Path
         """
-        file = canonicalize_path(file)
-        print(f"{datetime.now()}: Writing ERT to CSV file '{file}'.")
+        path: Final[Path] = Path.path(file)
+        print(f"{datetime.now()}: Writing ERT to CSV file '{path}'.")
 
-        with open(file, "wt") as out:
+        with path.open_for_write() as out:
             sep: Final[str] = lg.CSV_SEPARATOR
             if put_header:
                 kv: Final[str] = lg.KEY_VALUE_SEPARATOR
@@ -129,9 +129,10 @@ class Ert(MultiRun2DData):
                 out.write(
                     f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
 
-        print(f"{datetime.now()}: Done writing ERT to CSV file '{file}'.")
+        print(f"{datetime.now()}: Done writing ERT to CSV file '{path}'.")
 
-        return enforce_file(file)
+        path.enforce_file()
+        return path
 
     @staticmethod
     def create(source: Iterable[Progress],
@@ -167,7 +168,7 @@ class Ert(MultiRun2DData):
         instance: Optional[str] = None
         time_unit: Optional[str] = None
         f_name: Optional[str] = None
-        f_list: List[np.ndarray] = list()
+        f_list: List[np.ndarray] = []
         n: int = 0
 
         prgs: Final[List[Progress]] = cast(List[Progress], source) \
@@ -304,7 +305,7 @@ class Ert(MultiRun2DData):
                                         use_default_lower_bounds))
             return
 
-        sorter: Dict[str, List[Progress]] = dict()
+        sorter: Dict[str, List[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
                 raise TypeError("source must contain only Progress, but "
@@ -315,7 +316,7 @@ class Ert(MultiRun2DData):
             if key in sorter:
                 lst = sorter[key]
             else:
-                lst = list()
+                lst = []
                 sorter[key] = lst
             lst.append(er)
 

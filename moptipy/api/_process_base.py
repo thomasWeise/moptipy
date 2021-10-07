@@ -66,7 +66,7 @@ def _check_goal_f(goal_f: Union[int, float, None],
     """
     Check the goal objective value.
 
-    :param Optional[int] max_time_millis: the maximum time in milliseconds
+    :param Optional[int] goal_f: the goal objective value
     :param bool none_is_ok: is None ok?
     :return: the goal objective value, or None
     :rtype: Union[int, float, None]

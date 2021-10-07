@@ -15,13 +15,12 @@ from moptipy.api.encoding import Encoding, _check_encoding
 from moptipy.api.objective import Objective, _check_objective
 from moptipy.api.process import Process
 from moptipy.api.space import Space, _check_space
-from moptipy.utils.io import canonicalize_path
-from moptipy.utils.io import file_create_or_truncate
+from moptipy.utils.path import Path
 from moptipy.utils.nputils import rand_seed_check
 
 
 def _check_log_file(log_file: Optional[str],
-                    none_is_ok: bool = True) -> Optional[str]:
+                    none_is_ok: bool = True) -> Optional[Path]:
     """
     Check a log file.
 
@@ -33,7 +32,7 @@ def _check_log_file(log_file: Optional[str],
     if log_file is None:
         if none_is_ok:
             return None
-    return canonicalize_path(log_file)
+    return Path.path(log_file)
 
 
 class Execution:
@@ -59,7 +58,7 @@ class Execution:
         self.__max_fes: Optional[int] = None
         self.__max_time_millis: Optional[int] = None
         self.__goal_f: Union[None, int, float] = None
-        self.__log_file: Optional[str] = None
+        self.__log_file: Optional[Path] = None
         self.__log_improvements: bool = False
         self.__log_all_fes: bool = False
 
@@ -262,7 +261,7 @@ class Execution:
                                  "if improvements should be logged.")
 
         else:
-            log_file = file_create_or_truncate(log_file)
+            log_file.create_file_or_truncate()
 
         process: _ProcessBase
         if search_space is None:

@@ -15,7 +15,7 @@ from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, KEY_N
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.io import canonicalize_path, enforce_file
+from moptipy.utils.path import Path
 
 #: The number of instances.
 KEY_N_INSTS: Final[str] = f"{KEY_N}Insts"
@@ -122,19 +122,19 @@ class Ecdf(MultiRun2DData):
         return self.time_unit
 
     def to_csv(self, file: str,
-               put_header: bool = True) -> str:
+               put_header: bool = True) -> Path:
         """
         Store a :class:`Ecdf` record in a CSV file.
 
         :param str file: the file to generate
         :param bool put_header: should we put a header with meta-data?
         :return: the fully resolved file name
-        :rtype: str
+        :rtype: Path
         """
-        file = canonicalize_path(file)
-        print(f"{datetime.now()}: Writing ECDF to CSV file '{file}'.")
+        path: Final[Path] = Path.path(file)
+        print(f"{datetime.now()}: Writing ECDF to CSV file '{path}'.")
 
-        with open(file, "wt") as out:
+        with path.open_for_write() as out:
             sep: Final[str] = lg.CSV_SEPARATOR
             if put_header:
                 kv: Final[str] = lg.KEY_VALUE_SEPARATOR
@@ -158,9 +158,10 @@ class Ecdf(MultiRun2DData):
                     f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
 
         print(
-            f"{datetime.now()}: Done writing ECDF to CSV file '{file}'.")
+            f"{datetime.now()}: Done writing ECDF to CSV file '{path}'.")
 
-        return enforce_file(file)
+        path.enforce_file()
+        return path
 
     @staticmethod
     def _compute_times(source: List[Progress],
@@ -173,7 +174,7 @@ class Ecdf(MultiRun2DData):
         :return: a list of times
         :rtype: List[float]
         """
-        ret = list()
+        ret = []
         for pr in source:
             idx = _get_reach_index(pr.f, goal)
             if idx <= 0:
@@ -219,7 +220,7 @@ class Ecdf(MultiRun2DData):
         algorithm: Optional[str] = None
         time_unit: Optional[str] = None
         f_name: Optional[str] = None
-        inst_runs: Dict[str, List[Progress]] = dict()
+        inst_runs: Dict[str, List[Progress]] = {}
         n: int = 0
 
         for progress in source:
@@ -253,7 +254,7 @@ class Ecdf(MultiRun2DData):
         if (n_insts <= 0) or (n_insts > n):
             raise ValueError("Huh?.")
 
-        times: List[float] = list()
+        times: List[float] = []
         goal: Union[int, float, None]
         same_goal_f: Union[int, float, None] = None
         first: bool = True
@@ -351,7 +352,7 @@ class Ecdf(MultiRun2DData):
         if not isinstance(f_goal, Iterable):
             f_goal = [f_goal]
 
-        sorter: Dict[str, List[Progress]] = dict()
+        sorter: Dict[str, List[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
                 raise TypeError("source must contain only Progress, but "
@@ -360,7 +361,7 @@ class Ecdf(MultiRun2DData):
             if key in sorter:
                 lst = sorter[key]
             else:
-                lst = list()
+                lst = []
                 sorter[key] = lst
             lst.append(er)
 

@@ -80,8 +80,8 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                                        stat_priority)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
-    progress_list: List[Progress] = list()
-    statrun_list: List[StatRun] = list()
+    progress_list: List[Progress] = []
+    statrun_list: List[StatRun] = []
 
     # First pass: find out the statistics, instances, algorithms, and types
     for prg in progresses:
@@ -137,7 +137,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                                      for i in range(x)])
 
     # determine the style groups
-    groups: List[Styler] = list()
+    groups: List[Styler] = []
 
     no_importance = True
     if instances.count > 1:
@@ -183,7 +183,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
-    plot_list: List[Dict] = list()
+    plot_list: List[Dict] = []
 
     # first we collect all progress object
     for prgs in progress_list:
@@ -248,7 +248,7 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = list()
+        handles: List[Artist] = []
 
         for g in groups:
             g.add_to_legend(handles)

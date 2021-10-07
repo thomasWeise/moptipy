@@ -6,12 +6,12 @@ from os.path import isfile, exists
 # noinspection PyPackageRequirements
 import yaml
 
-from moptipy.utils import TempFile, FileLogger
+from moptipy.utils.logger import FileLogger
+from moptipy.utils.temp import TempFile
 
 
 def test_log_files():
-    with TempFile() as t:
-        path = str(t)
+    with TempFile.create() as path:
         with FileLogger(path) as log:
             with log.csv("A", ["x", "y"]) as xsv:
                 xsv.row([1, 2])
