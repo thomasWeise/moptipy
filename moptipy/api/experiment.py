@@ -78,7 +78,8 @@ def __run_experiment(base_dir: Path,
                     f"Execution, but generates {type(exp)}.")
             algo_name = sanitize_name(exp.get_algorithm().get_name())
 
-            cd = Path.directory(os.path.join(base_dir, algo_name, inst_name))
+            cd = Path.path(os.path.join(base_dir, algo_name, inst_name))
+            cd.ensure_dir_exists()
 
             seeds = rand_seeds_from_str(string=inst_name, n_seeds=runs)
             random.shuffle(seeds)

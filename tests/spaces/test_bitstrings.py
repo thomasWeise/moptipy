@@ -1,11 +1,11 @@
 """Test the bit-string space."""
 import numpy as np
 
+import moptipy.tests as tst
 from moptipy.api import Space
 from moptipy.spaces import BitStrings
-from moptipy.tests.space import check_space
-from moptipy.utils.temp import TempFile
 from moptipy.utils.logger import FileLogger
+from moptipy.utils.temp import TempFile
 
 
 def test_int():
@@ -47,4 +47,4 @@ def test_int():
     a = f.from_str(text)
     assert f.is_equal(a, b)
 
-    check_space(f)
+    tst.test_space(f)

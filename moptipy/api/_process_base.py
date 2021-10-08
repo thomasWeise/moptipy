@@ -1,93 +1,14 @@
 """An internal module with the base class for implementing Processes."""
 from abc import ABC
-from math import inf, isnan
+from math import inf
 from threading import Lock, Timer
 from time import monotonic_ns
 from typing import Optional, Final, Union
 
-from moptipy.api.process import Process
+from moptipy.api.process import Process, check_goal_f, check_max_fes, \
+    check_max_time_millis
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
-
-
-def _check_max_fes(max_fes: Optional[int],
-                   none_is_ok: bool = False) -> Optional[int]:
-    """
-    Check the maximum FEs.
-
-    :param Optional[int] max_fes: the maximum FEs
-    :param bool none_is_ok: is None ok?
-    :return: the maximum fes, or None
-    :rtype: Optional[int]
-    :raises TypeError: if max_fes is None or not an int
-    :raises ValueError: if max_fes is invalid
-    """
-    if max_fes is None:
-        if none_is_ok:
-            return None
-        raise TypeError("Maximum FEs must not be None.")
-
-    if not isinstance(max_fes, int):
-        raise TypeError("Maximum number of function evaluations must be "
-                        f"int, but is {type(max_fes)}.")
-    if max_fes <= 0:
-        raise ValueError(f"Maximum FEs must be positive, but are {max_fes}.")
-    return max_fes
-
-
-def _check_max_time_millis(max_time_millis: Optional[int],
-                           none_is_ok: bool = False) -> Optional[int]:
-    """
-    Check the maximum time in milliseconds.
-
-    :param Optional[int] max_time_millis: the maximum time in milliseconds
-    :param bool none_is_ok: is None ok?
-    :return: the maximum time in millseconds, or None
-    :rtype: Optional[int]
-    :raises TypeError: if max_time_millis is None or not an int
-    :raises ValueError: if max_time_millis is invalid
-    """
-    if max_time_millis is None:
-        if none_is_ok:
-            return None
-        raise TypeError("Maximum time in milliseconds must not be None.")
-
-    if not isinstance(max_time_millis, int):
-        raise TypeError("Maximum time in milliseconds must be int, but is "
-                        f"{type(max_time_millis)}.")
-    if max_time_millis <= 0:
-        raise ValueError("Maximum time in milliseconds must be positive, "
-                         f"but is {max_time_millis}.")
-    return max_time_millis
-
-
-def _check_goal_f(goal_f: Union[int, float, None],
-                  none_is_ok: bool = False) -> Union[int, float, None]:
-    """
-    Check the goal objective value.
-
-    :param Optional[int] goal_f: the goal objective value
-    :param bool none_is_ok: is None ok?
-    :return: the goal objective value, or None
-    :rtype: Union[int, float, None]
-    :raises TypeError: if goal_f is None or neither an int nor a float
-    :raises ValueError: if goal_f is invalid
-    """
-    if goal_f is None:
-        if none_is_ok:
-            return None
-        raise TypeError("Goal objective value cannot be None.")
-
-    if not (isinstance(goal_f, (int, float))):
-        raise TypeError("Goal objective value must be int or float, but is "
-                        f"{type(goal_f)}.")
-    if isnan(goal_f):
-        raise ValueError("Goal objective value must not be NaN, but is "
-                         f"{goal_f}.")
-    if goal_f >= inf:
-        raise ValueError("Goal objective value must be less than positive "
-                         f"infinity, but is {goal_f}.")
-    return goal_f
 
 
 class _ProcessBase(Process, ABC):
@@ -110,46 +31,34 @@ class _ProcessBase(Process, ABC):
         super().__init__()
         #: The time when the process was started, in milliseconds.
         self._start_time_millis: Final[int] = int(monotonic_ns() // 1_000_000)
-
         #: The internal lock, needed to protect :meth:`terminate`.
         self.__lock: Final[Lock] = Lock()
-
         #: The maximum FEs.
-        self._max_fes: Final[Optional[int]] = _check_max_fes(max_fes, True)
-
+        self._max_fes: Final[Optional[int]] = check_max_fes(max_fes, True)
         #: A version of :attr:`_max_fes` that can be used in comparisons.
         self._end_fes: Final[Union[int, float]] = inf \
             if (self._max_fes is None) else self._max_fes
-
         #: The goal objective value.
         self._goal_f: Final[Union[int, float, None]] = \
-            _check_goal_f(goal_f, True)
-
+            check_goal_f(goal_f, True)
         #: A comparable version of :attr:`self._goal_f`.
         self._end_f: Final[Union[int, float]] = \
             -inf if (self._goal_f is None) else self._goal_f
-
         #: The currently consumed milliseconds.
         self._current_time_millis: int = 0
-
         #: The currently consumed objective function evaluations (FEs).
         self._current_fes: int = 0
-
         #: The time (in milliseconds) when the last improvement was made.
         self._last_improvement_time_millis: int = -1
-
         #: The FE when the last improvement was made.
         self._last_improvement_fe: int = -1
-
         #: The maximum runtime in milliseconds.
         self._max_time_millis: Final[Optional[int]] = \
-            _check_max_time_millis(max_time_millis, True)
-
+            check_max_time_millis(max_time_millis, True)
         #: A comparable version of :attr:`_max_time_millis`.
         self._end_time_millis: Final[Union[float, int]] = \
             inf if (self._max_time_millis is None) else \
             int(self._start_time_millis + self._max_time_millis)
-
         #: The timer until the end-of-run, or `None` if there is no end time.
         self.__timer: Final[Optional[Timer]] = None \
             if (self._max_time_millis is None) else \

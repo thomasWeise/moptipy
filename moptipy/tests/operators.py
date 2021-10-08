@@ -6,12 +6,12 @@ from numpy.random import default_rng
 
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.space import Space
-from moptipy.tests.component import check_component
+from moptipy.tests.component import test_component
 
 
-def check_op0(op0: Op0,
-              space: Space = None,
-              make_valid: Optional[Callable] = lambda x: x) -> None:
+def test_op0(op0: Op0,
+             space: Space = None,
+             make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy nullary operator.
 
@@ -23,7 +23,7 @@ def check_op0(op0: Op0,
     if not isinstance(op0, Op0):
         raise ValueError("Expected to receive an instance of Op0Shuffle, but "
                          f"got a {type(op0)}.")
-    check_component(component=op0)
+    test_component(component=op0)
 
     if (space is None) or (make_valid is None):
         return
@@ -59,9 +59,9 @@ def check_op0(op0: Op0,
             "different points.")
 
 
-def check_op1(op1: Op1,
-              space: Space = None,
-              make_valid: Optional[Callable] = lambda x: x) -> None:
+def test_op1(op1: Op1,
+             space: Space = None,
+             make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy unary operator.
 
@@ -74,7 +74,7 @@ def check_op1(op1: Op1,
     if not isinstance(op1, Op1):
         raise ValueError("Expected to receive an instance of Op1, but "
                          f"got a {type(op1)}.")
-    check_component(component=op1)
+    test_component(component=op1)
 
     if (space is None) or (make_valid is None):
         return

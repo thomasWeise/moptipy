@@ -4,17 +4,17 @@ from typing import Optional
 from typing import Union
 
 from moptipy.api._process_base import _ProcessBase
-from moptipy.api._process_base import _check_max_fes, _check_max_time_millis, \
-    _check_goal_f
+from moptipy.api.process import check_max_fes, check_max_time_millis, \
+    check_goal_f
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api._process_no_ss_log import _ProcessNoSSLog
 from moptipy.api._process_ss import _ProcessSS
 from moptipy.api._process_ss_log import _ProcessSSLog
-from moptipy.api.algorithm import Algorithm, _check_algorithm
-from moptipy.api.encoding import Encoding, _check_encoding
-from moptipy.api.objective import Objective, _check_objective
+from moptipy.api.algorithm import Algorithm, check_algorithm
+from moptipy.api.encoding import Encoding, check_encoding
+from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import Process
-from moptipy.api.space import Space, _check_space
+from moptipy.api.space import Space, check_space
 from moptipy.utils.path import Path
 from moptipy.utils.nputils import rand_seed_check
 
@@ -68,7 +68,7 @@ class Execution:
 
         :param moptipy.api.Algorithm algorithm: the algorithm
         """
-        self.__algorithm = _check_algorithm(algorithm)
+        self.__algorithm = check_algorithm(algorithm)
 
     def get_algorithm(self) -> Algorithm:
         """
@@ -79,7 +79,7 @@ class Execution:
         :return: the algorithm
         :rtype: moptipy.api.Algorithm
         """
-        return _check_algorithm(self.__algorithm)
+        return check_algorithm(self.__algorithm)
 
     def set_solution_space(self, solution_space: Space) -> None:
         """
@@ -90,7 +90,7 @@ class Execution:
 
         :param moptipy.api.Space solution_space: the solution space
         """
-        self.__solution_space = _check_space(solution_space)
+        self.__solution_space = check_space(solution_space)
 
     def set_objective(self, objective: Objective) -> None:
         """
@@ -100,7 +100,7 @@ class Execution:
 
         :param moptipy.api.Objective objective: the objective function
         """
-        self.__objective = _check_objective(objective)
+        self.__objective = check_objective(objective)
 
     def set_search_space(self, search_space: Optional[Space]) -> None:
         """
@@ -111,7 +111,7 @@ class Execution:
         :param Optional[moptipy.api.Space] search_space: the search space, or
             `None` of none shall be used
         """
-        self.__search_space = _check_space(search_space, none_is_ok=True)
+        self.__search_space = check_space(search_space, none_is_ok=True)
 
     def set_encoding(self, encoding: Optional[Encoding]) -> None:
         """
@@ -123,7 +123,7 @@ class Execution:
         :param Optional[moptipy.api.Encoding] encoding: the encoding, or
             `None` of none shall be used
         """
-        self.__encoding = _check_encoding(encoding, none_is_ok=True)
+        self.__encoding = check_encoding(encoding, none_is_ok=True)
 
     def set_rand_seed(self, rand_seed: Optional[int]) -> None:
         """
@@ -148,7 +148,7 @@ class Execution:
         :param bool force_override: the use the value given in
             `max_time_millis` regardless of what was specified before
         """
-        max_fes = _check_max_fes(max_fes)
+        max_fes = check_max_fes(max_fes)
         if not (self.__max_fes is None):
             if max_fes >= self.__max_fes:
                 if not force_override:
@@ -168,7 +168,7 @@ class Execution:
         :param bool force_override: the use the value given in
             `max_time_millis` regardless of what was specified before
         """
-        max_time_millis = _check_max_time_millis(max_time_millis)
+        max_time_millis = check_max_time_millis(max_time_millis)
         if not (self.__max_time_millis is None):
             if max_time_millis >= self.__max_time_millis:
                 if not force_override:
@@ -184,7 +184,7 @@ class Execution:
 
         :param Union[int, float] goal_f: the goal objective value.
         """
-        goal_f = _check_goal_f(goal_f)
+        goal_f = check_goal_f(goal_f)
         if not (self.__goal_f is None):
             if goal_f <= self.__goal_f:
                 return
@@ -229,20 +229,19 @@ class Execution:
         :return: the process that can be queried for the result
         :rtype: moptipy.api.Process
         """
-        algorithm = _check_algorithm(self.__algorithm)
-        solution_space = _check_space(self.__solution_space)
-        objective = _check_objective(self.__objective)
-        search_space = _check_space(self.__search_space,
-                                    self.__encoding is None)
-        encoding = _check_encoding(self.__encoding,
-                                   search_space is None)
+        algorithm = check_algorithm(self.__algorithm)
+        solution_space = check_space(self.__solution_space)
+        objective = check_objective(self.__objective)
+        search_space = check_space(self.__search_space,
+                                   self.__encoding is None)
+        encoding = check_encoding(self.__encoding,
+                                  search_space is None)
         rand_seed = self.__rand_seed
         if not (rand_seed is None):
             rand_seed = rand_seed_check(rand_seed)
-        max_time_millis = _check_max_time_millis(self.__max_time_millis,
-                                                 True)
-        max_fes = _check_max_fes(self.__max_fes, True)
-        goal_f = _check_goal_f(self.__goal_f, True)
+        max_time_millis = check_max_time_millis(self.__max_time_millis, True)
+        max_fes = check_max_fes(self.__max_fes, True)
+        goal_f = check_goal_f(self.__goal_f, True)
         f_lb = objective.lower_bound()
         if (not (f_lb is None)) and isfinite(f_lb):
             if (goal_f is None) or (f_lb > goal_f):

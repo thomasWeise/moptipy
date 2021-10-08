@@ -4,7 +4,7 @@ from moptipy.utils import logging
 from moptipy.utils.logger import InMemoryLogger
 
 
-def check_component(component: Component) -> None:
+def test_component(component: Component) -> None:
     """
     Check whether an object is a moptipy component.
 

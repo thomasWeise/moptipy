@@ -19,13 +19,28 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: Path = None,
+                 log_file: Path,
                  rand_seed: Optional[int] = None,
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None,
                  log_all_fes: bool = False) -> None:
+        """
+        The internal initialization method. Do not call directly.
 
+        :param Space solution_space: the search- and solution space.
+        :param Objective objective: the objective function
+        :param Algorithm algorithm: the optimization algorithm
+        :param Path log_file: the optional log file
+        :param Optional[int] rand_seed: the optional random seed
+        :param Optional[int] max_fes: the maximum permitted function
+            evaluations
+        :param Optional[int] max_time_millis: the maximum runtime in
+            milliseconds
+        :param Union[int, float, None] goal_f: the goal objective
+            value: if it is reached, the process is terminated
+        :param bool log_all_fes: should we log all FEs?
+        """
         super().__init__(solution_space=solution_space,
                          objective=objective,
                          algorithm=algorithm,
@@ -34,17 +49,29 @@ class _ProcessNoSSLog(_ProcessNoSS):
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
+        if not log_file:
+            raise ValueError("Log file cannot be None in this class.")
         if not isinstance(log_all_fes, bool):
             raise TypeError(
                 f"log_all must be bool, but is {type(log_all_fes)}.")
 
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
-
         #: The in-memory log
         self.__log: List[Tuple[int, int, Union[int, float]]] = []
 
     def evaluate(self, x) -> Union[float, int]:
+        """
+        Evaluate a candidate solution.
+
+        This method internally forwards to :meth:`Objective.evaluate` of
+        :attr:`_objective` and keeps track of the best-so-far solution.
+        It also performs the logging of the progress.
+
+        :param x: the candidate solution
+        :return: the objective value
+        :rtype: Union[float, int]
+        """
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '

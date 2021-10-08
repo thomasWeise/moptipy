@@ -319,7 +319,7 @@ class LogParser(ABC):
         do_files = True
         do_dirs = True
         for sub in listdir(folder):
-            sub = join(folder, sub)
+            sub = Path.path(join(folder, sub))
             if isfile(sub):
                 if do_files:
                     if not self.parse_file(sub):
@@ -330,7 +330,7 @@ class LogParser(ABC):
                         do_files = False
             elif isdir(sub):
                 if do_dirs:
-                    if not self.parse_dir(folder):
+                    if not self.parse_dir(sub):
                         print(f"{datetime.now()}: will parse no more "
                               f"sub-directories of '{folder}'.")
                         if not do_files:

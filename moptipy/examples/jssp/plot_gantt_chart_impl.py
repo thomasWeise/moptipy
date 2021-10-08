@@ -81,7 +81,7 @@ def plot_gantt_chart(gantt: Gantt,
         raise TypeError(f"x_axis must be AxisRanger, but is {type(x_axis)}.")
 
     # Compute all the marks
-    marks: Dict[int, str] = dict()
+    marks: Dict[int, str] = {}
     if markers is not None:
         if not isinstance(markers, Iterable):
             raise TypeError(

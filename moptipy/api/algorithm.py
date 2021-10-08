@@ -185,7 +185,7 @@ class CallableAlgorithm(_CallableComponent, Algorithm):
         self._inner(process)
 
 
-def _check_algorithm(algorithm: Algorithm) -> Algorithm:
+def check_algorithm(algorithm: Algorithm) -> Algorithm:
     """
     Check whether an object is a valid instance of :class:`Algorithm`.
 

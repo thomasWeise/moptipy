@@ -192,13 +192,14 @@ class Path(str):
 
     def open_for_read(self) -> io.TextIOWrapper:
         """
-        Open a file for reading.
+        Open this file for reading.
 
         :return: the file open for reading
         :rtype: io.TextIOWrapper
         """
-        return cast(io.TextIOWrapper,
-                    io.open(self, "rt", encoding=_get_text_encoding(self)))
+        return cast(io.TextIOWrapper, io.open(
+            self, mode="rt", encoding=_get_text_encoding(self),
+            errors="strict"))
 
     def read_all_list(self) -> List[str]:
         """
@@ -215,7 +216,7 @@ class Path(str):
                             f"found {type(ret)} in '{self}'.")
         if len(ret) <= 0:
             raise ValueError(f"File '{self}' contains no text.")
-        return ret
+        return [s.rstrip() for s in ret]
 
     def read_all_str(self) -> str:
         """
@@ -241,20 +242,20 @@ class Path(str):
         :return: the text io wrapper for writing
         :rtype: io.TextIOWrapper
         """
-        return cast(io.TextIOWrapper, io.open(self, "wt", encoding="utf-8",
-                                              errors="strict"))
+        return cast(io.TextIOWrapper, io.open(
+            self, mode="wt", encoding="utf-8", errors="strict"))
 
     def write_all(self, contents: Union[str, Iterable[str]]) -> None:
         """
-        Read all the lines in a file.
+        Write all the lines to this file.
 
         :param Iterable[str] contents: the contents to write
         """
-        self.ensure_file_exist()
+        self.ensure_file_exists()
         if not isinstance(contents, (str, Iterable)):
             raise TypeError(
                 f"Excepted str or Iterable, got {type(contents)}.")
-        with io.open(self, "wt", encoding="utf-8") as writer:
+        with self.open_for_write() as writer:
             all_text = contents if isinstance(contents, str) \
                 else "\n".join(contents)
             if len(all_text) <= 0:
@@ -265,7 +266,7 @@ class Path(str):
 
     def create_file_or_fail(self) -> None:
         """
-        Atomically create the file `path` and fail if it already exists.
+        Atomically create the file path and fail if it already exists.
 
         :raises: ValueError if anything goes wrong during the file creation or
             if the file already exists
@@ -281,7 +282,7 @@ class Path(str):
 
     def create_file_or_truncate(self) -> None:
         """
-        Try to create the file identified by `path` and truncate it it it exists.
+        Create the file identified by this path and truncate it it it exists.
 
         :raises: ValueError if anything goes wrong during the file creation
         """

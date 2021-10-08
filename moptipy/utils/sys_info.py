@@ -11,6 +11,7 @@ import numpy
 import moptipy.version
 from moptipy.utils import logging
 from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueSection
+from moptipy.utils.path import Path
 
 
 def __make_sys_info() -> str:
@@ -29,9 +30,10 @@ def __make_sys_info() -> str:
             if platform.system() == "Windows":
                 return platform.processor()
             if platform.system() == "Linux":
-                for line in open('/proc/cpuinfo').readlines():
+                for line in Path.path("/proc/cpuinfo").read_all_list():
                     if "model name" in line:
-                        return re.sub(".*model name.*:", "", line, 1).strip()
+                        return re.sub(".*model name.*:", "",
+                                      line, 1).strip()
         except BaseException:
             pass
         return None
@@ -67,7 +69,7 @@ def __make_sys_info() -> str:
     def __get_mem_size_memconf() -> Optional[int]:
         try:
             meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1]))
-                           for i in open('/proc/meminfo').readlines())
+                           for i in Path.path('/proc/meminfo').read_all_list())
             mem_kib = meminfo['MemTotal']  # e.g. 3921852
             mem_kib = int(mem_kib)
             if mem_kib > 0:

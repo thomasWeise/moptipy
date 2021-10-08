@@ -128,14 +128,14 @@ class CallableObjective(_CallableComponent, Objective):
         logger.key_value(logging.KEY_F_UPPER_BOUND, self.__upper_bound)
 
 
-def _check_objective(objective: Objective) -> Objective:
+def check_objective(objective: Objective) -> Objective:
     """
     Check whether an object is a valid instance of :class:`Objective`.
 
     :param Objective objective: the object
     :return: the object
     :raises TypeError: if `objective` is not an instance of
-    :class:`Objective`
+        :class:`Objective`
     """
     if objective is None:
         raise TypeError("An objective function must not be None.")

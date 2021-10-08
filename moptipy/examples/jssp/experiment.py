@@ -109,7 +109,7 @@ def propose_instances(n: int) -> Tuple[str, ...]:
                             if name.startswith(group):
                                 chosen.add(name)
                                 break
-                    del groups[group]
+                    groups.__delitem__(group)
                     changed = True
                     break
 

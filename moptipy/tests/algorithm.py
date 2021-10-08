@@ -4,8 +4,7 @@ from typing import Callable, Optional
 
 import numpy.random as rnd
 
-# noinspection PyProtectedMember
-from moptipy.api.algorithm import Algorithm, _check_algorithm
+import moptipy.api.algorithm as ma
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
@@ -15,18 +14,18 @@ from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
-from moptipy.tests.component import check_component
-from moptipy.tests.encoding import check_encoding
-from moptipy.tests.objective import check_objective
-from moptipy.tests.space import check_space
+from moptipy.tests.component import test_component
+from moptipy.tests.encoding import test_encoding
+from moptipy.tests.objective import test_objective
+from moptipy.tests.space import test_space
 
 
-def check_algorithm(algorithm: Algorithm,
-                    solution_space: Optional[Space] = None,
-                    objective: Optional[Objective] = None,
-                    search_space: Optional[Space] = None,
-                    encoding: Optional[Encoding] = None,
-                    max_fes: int = 100) -> None:
+def test_algorithm(algorithm: ma.Algorithm,
+                   solution_space: Optional[Space] = None,
+                   objective: Optional[Objective] = None,
+                   search_space: Optional[Space] = None,
+                   encoding: Optional[Encoding] = None,
+                   max_fes: int = 100) -> None:
     """
     Check whether an algorithm follows the moptipy API specification.
 
@@ -39,18 +38,18 @@ def check_algorithm(algorithm: Algorithm,
     :raises TypeError: if `algorithm` is not an Algorithm instance
     :raises ValueError: if `algorithm` does not behave like it should
     """
-    if not isinstance(algorithm, Algorithm):
+    if not isinstance(algorithm, ma.Algorithm):
         raise TypeError("Expected to receive an instance of Space, but "
                         f"got a {type(algorithm)}.")
 
-    _check_algorithm(algorithm)
+    ma.check_algorithm(algorithm)
 
-    check_component(component=algorithm)
-    check_space(solution_space, make_valid=None)
-    check_objective(objective, create_valid=None)
+    test_component(component=algorithm)
+    test_space(solution_space, make_valid=None)
+    test_objective(objective, create_valid=None)
     if not (encoding is None):
-        check_encoding(encoding, make_search_space_valid=None)
-        check_space(search_space, make_valid=None)
+        test_encoding(encoding, make_search_space_valid=None)
+        test_space(search_space, make_valid=None)
 
     if not isinstance(max_fes, int):
         raise ValueError(
@@ -138,9 +137,9 @@ def check_algorithm(algorithm: Algorithm,
                 f"to {check_f} from objective function.")
 
 
-def check_algorithm_on_jssp(algorithm: Callable,
-                            instance: Optional[str] = None,
-                            max_fes: int = 100) -> None:
+def test_algorithm_on_jssp(algorithm: Callable,
+                           instance: Optional[str] = None,
+                           max_fes: int = 100) -> None:
     """
     Check the validity of a black-box algorithm on the JSSP.
 
@@ -167,7 +166,7 @@ def check_algorithm_on_jssp(algorithm: Callable,
             f"obtained {type(inst)} instead.")
 
     algorithm = algorithm(inst)
-    if not isinstance(algorithm, Algorithm):
+    if not isinstance(algorithm, ma.Algorithm):
         raise ValueError(
             "Must 'algorithm' parameter must be a callable that instantiates"
             f"an algorithm for JSSP instance '{instance}', but it created a "
@@ -179,9 +178,9 @@ def check_algorithm_on_jssp(algorithm: Callable,
     encoding = OperationBasedEncoding(inst)
     objective = Makespan(inst)
 
-    check_algorithm(algorithm=algorithm,
-                    solution_space=solution_space,
-                    objective=objective,
-                    search_space=search_space,
-                    encoding=encoding,
-                    max_fes=max_fes)
+    test_algorithm(algorithm=algorithm,
+                   solution_space=solution_space,
+                   objective=objective,
+                   search_space=search_space,
+                   encoding=encoding,
+                   max_fes=max_fes)

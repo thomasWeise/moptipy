@@ -1,13 +1,11 @@
 """Test the operation-based encoding for the JSSP."""
 import numpy.random as rnd
 
+import moptipy.tests as tst
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
-# from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
-from moptipy.tests.encoding import check_encoding
-from moptipy.tests.space import check_space
 
 
 def __check_for_instance(instance: str,
@@ -15,13 +13,13 @@ def __check_for_instance(instance: str,
     inst = Instance.from_resource(instance)
 
     x_space = PermutationsWithRepetitions(inst.jobs, inst.machines)
-    check_space(x_space)
+    tst.test_space(x_space)
 
     y_space = GanttSpace(inst)
-    check_space(y_space, make_valid=None)
+    tst.test_space(y_space, make_valid=None)
 
     g = OperationBasedEncoding(inst)
-    check_encoding(g, x_space, y_space)
+    tst.test_encoding(g, x_space, y_space)
 
     x = x_space.create()
     x_space.validate(x)

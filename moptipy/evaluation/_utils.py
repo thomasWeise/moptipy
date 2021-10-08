@@ -6,7 +6,7 @@ from typing import Union, Optional, Final
 import numba  # type: ignore
 import numpy as np
 
-import moptipy.utils.logging as logging
+from moptipy.utils import logging
 
 
 def _ifn_to_str(val: Union[int, float, None]) -> str:

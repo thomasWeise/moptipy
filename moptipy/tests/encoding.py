@@ -1,17 +1,16 @@
 """Functions that can be used to test encodings."""
 from typing import Callable, Optional
 
-# noinspection PyProtectedMember
-from moptipy.api.encoding import Encoding, _check_encoding
+import moptipy.api.encoding as me
 from moptipy.api.space import Space
-from moptipy.tests.component import check_component
+from moptipy.tests.component import test_component
 
 
-def check_encoding(encoding: Encoding,
-                   search_space: Optional[Space] = None,
-                   solution_space: Optional[Space] = None,
-                   make_search_space_valid:
-                   Optional[Callable] = lambda x: x) -> None:
+def test_encoding(encoding: me.Encoding,
+                  search_space: Optional[Space] = None,
+                  solution_space: Optional[Space] = None,
+                  make_search_space_valid:
+                  Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a proper moptipy encoding.
 
@@ -22,11 +21,11 @@ def check_encoding(encoding: Encoding,
     :param solution_space: the solution space
     :raises ValueError: if `encoding` is not a valid :class:`Space`
     """
-    if not isinstance(encoding, Encoding):
+    if not isinstance(encoding, me.Encoding):
         raise ValueError("Expected to receive an instance of Encoding, but "
                          f"got a {type(encoding)}.")
-    _check_encoding(encoding)
-    check_component(component=encoding)
+    me.check_encoding(encoding)
+    test_component(component=encoding)
 
     if (search_space is None) \
             or (make_search_space_valid is None) \

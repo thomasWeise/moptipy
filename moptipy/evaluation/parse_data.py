@@ -1,7 +1,7 @@
 """A module for parsing the different section types of log files."""
 from typing import Dict, Iterable
 
-import moptipy.utils.logging as logging
+from moptipy.utils import logging
 
 
 def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:

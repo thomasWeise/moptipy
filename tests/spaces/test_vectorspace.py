@@ -1,9 +1,9 @@
 """Test the unconstrained real vector space."""
 import numpy as np
 
+import moptipy.tests as tst
 from moptipy.api import Space
 from moptipy.spaces import VectorSpace
-from moptipy.tests.space import check_space
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
@@ -48,4 +48,4 @@ def test_vectors():
     a = f.from_str(text)
     assert f.is_equal(a, b)
 
-    check_space(f)
+    tst.test_space(f)

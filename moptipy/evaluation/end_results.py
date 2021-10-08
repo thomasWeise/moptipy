@@ -212,6 +212,7 @@ class EndResult(PerRunData):
 
         print(f"{datetime.now()}: Done writing end "
               f"results to CSV file '{path}'.")
+        return path
 
     @staticmethod
     def from_csv(file: str,

@@ -86,7 +86,7 @@ def create_figure(width: Union[float, int, None] = 8.6,
 def save_figure(fig: Figure,
                 file_name: str = "figure",
                 dir_name: str = ".",
-                formats: Union[str, Iterable[str]] = "svg") -> List[str]:
+                formats: Union[str, Iterable[str]] = "svg") -> List[Path]:
     """
     Store the given figure in files of the given formats and dispose it.
 

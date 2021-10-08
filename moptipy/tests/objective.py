@@ -1,13 +1,12 @@
 """Functions that can be used to test objective functions."""
 from typing import Callable, Optional
 
-# noinspection PyProtectedMember
-from moptipy.api.objective import Objective, _check_objective
-from moptipy.tests.component import check_component
+import moptipy.api.objective as mo
+from moptipy.tests.component import test_component
 
 
-def check_objective(objective: Objective,
-                    create_valid: Optional[Callable] = None) -> None:
+def test_objective(objective: mo.Objective,
+                   create_valid: Optional[Callable] = None) -> None:
     """
     Check whether an object is a moptipy objective function.
 
@@ -16,11 +15,11 @@ def check_objective(objective: Objective,
         or `None` if the `evaluate` function should not be tested
     :raises ValueError: if `objective` is not a valid Objective
     """
-    if not isinstance(objective, Objective):
+    if not isinstance(objective, mo.Objective):
         raise ValueError("Expected to receive an instance of Objective, but "
                          f"got a {type(objective)}.")
-    _check_objective(objective)
-    check_component(component=objective)
+    mo.check_objective(objective)
+    test_component(component=objective)
 
     lower = objective.lower_bound()
     if not (isinstance(lower, (int, float))):

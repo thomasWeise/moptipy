@@ -23,8 +23,8 @@ class Encoding(Component):
         raise NotImplementedError
 
 
-def _check_encoding(encoding: Optional[Encoding],
-                    none_is_ok: bool = True) -> Optional[Encoding]:
+def check_encoding(encoding: Optional[Encoding],
+                   none_is_ok: bool = True) -> Optional[Encoding]:
     """
     Check whether an object is a valid instance of :class:`Encoding`.
 

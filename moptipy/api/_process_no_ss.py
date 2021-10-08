@@ -6,9 +6,9 @@ from typing import Optional, Union, Final
 from numpy.random import Generator
 
 from moptipy.api._process_base import _ProcessBase
-from moptipy.api.algorithm import Algorithm, _check_algorithm
-from moptipy.api.objective import Objective, _check_objective
-from moptipy.api.space import Space, _check_space
+from moptipy.api.algorithm import Algorithm, check_algorithm
+from moptipy.api.objective import Objective, check_objective
+from moptipy.api.space import Space, check_space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
 from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
@@ -40,44 +40,37 @@ class _ProcessNoSS(_ProcessBase):
         :param Space solution_space: the search- and solution space.
         :param Objective objective: the objective function
         :param Algorithm algorithm: the optimization algorithm
-        :param Optional[str] log_file: the optional log file
+        :param Optional[Path] log_file: the optional log file
         :param Optional[int] rand_seed: the optional random seed
         :param Optional[int] max_fes: the maximum permitted function
-        evaluations
+            evaluations
         :param Optional[int] max_time_millis: the maximum runtime in
-        milliseconds
+            milliseconds
         :param Union[int, float, None] goal_f: the goal objective
-        value: if it is reached, the process is terminated
+            value: if it is reached, the process is terminated
         """
-        super().__init__(max_fes=max_fes, max_time_millis=max_time_millis,
+        super().__init__(max_fes=max_fes,
+                         max_time_millis=max_time_millis,
                          goal_f=goal_f)
 
         #: The solution space, i.e., the data structure of possible solutions.
-        self._solution_space: Final[Space] = _check_space(solution_space)
-
+        self._solution_space: Final[Space] = check_space(solution_space)
         #: The objective function rating candidate solutions.
-        self._objective: Final[Objective] = _check_objective(objective)
-
+        self._objective: Final[Objective] = check_objective(objective)
         #: The algorithm to be applied.
-        self.__algorithm: Final[Algorithm] = _check_algorithm(algorithm)
-
+        self.__algorithm: Final[Algorithm] = check_algorithm(algorithm)
         #: The random seed.
         self.__rand_seed: Final[int] = rand_seed_generate() \
             if rand_seed is None \
             else rand_seed_check(rand_seed)
-
         #: The random number generator.
         self.__random: Final[Generator] = rand_generator(self.__rand_seed)
-
         #: The current best solution.
         self._current_best_y: Final = self._solution_space.create()
-
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
-
         #: Do we have a current-best solution?
         self._has_current_best: bool = False
-
         #: The log file, or `None` is needed
         self.__log_file: Final[Optional[Path]] = log_file
 

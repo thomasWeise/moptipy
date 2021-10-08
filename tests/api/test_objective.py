@@ -4,10 +4,10 @@ from math import inf
 # noinspection PyPackageRequirements
 from pytest import raises
 
+import moptipy.tests as tst
 from moptipy.api import CallableObjective, Objective, Component
-from moptipy.tests.objective import check_objective
-from moptipy.utils.temp import TempFile
 from moptipy.utils.logger import FileLogger
+from moptipy.utils.temp import TempFile
 
 
 def test_pure_callable_objective_function():
@@ -29,7 +29,7 @@ def test_pure_callable_objective_function():
         # noinspection PyTypeChecker
         CallableObjective("blabla")
 
-    check_objective(f, lambda: 3)
+    tst.test_objective(f, lambda: 3)
 
 
 def test_callable_objective_function_bounds():
@@ -41,7 +41,7 @@ def test_callable_objective_function_bounds():
     assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == +inf
     assert f.lower_bound() == 7
-    check_objective(f, lambda: 3)
+    tst.test_objective(f, lambda: 3)
 
     f = CallableObjective(lambda x: 3, upper_bound=7)
     assert isinstance(f, Objective)
@@ -51,7 +51,7 @@ def test_callable_objective_function_bounds():
     assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == 7
     assert f.lower_bound() == -inf
-    check_objective(f, lambda: 3)
+    tst.test_objective(f, lambda: 3)
 
     f = CallableObjective(lambda x: -3, upper_bound=7, lower_bound=-4)
     assert isinstance(f, Objective)
@@ -61,7 +61,7 @@ def test_callable_objective_function_bounds():
     assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == 7
     assert f.lower_bound() == -4
-    check_objective(f, lambda: 3)
+    tst.test_objective(f, lambda: 3)
 
     with raises(ValueError):
         CallableObjective(lambda x: -3, upper_bound=4, lower_bound=4)
@@ -88,7 +88,7 @@ def test_named_callable_objective_function():
     f = CallableObjective(lambda x: -3, name="hallo ")
     assert str(f) == "hallo"
     assert f.get_name() == "hallo"
-    check_objective(f, lambda: 3)
+    tst.test_objective(f, lambda: 3)
 
     with raises(ValueError):
         CallableObjective(lambda x: -3, name=" ")

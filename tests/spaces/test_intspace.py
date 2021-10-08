@@ -3,11 +3,11 @@ import numpy as np
 # noinspection PyPackageRequirements
 from pytest import raises
 
+import moptipy.tests as tst
 from moptipy.api import Space
 from moptipy.spaces import IntSpace
-from moptipy.tests.space import check_space
-from moptipy.utils.temp import TempFile
 from moptipy.utils.logger import FileLogger
+from moptipy.utils.temp import TempFile
 
 
 def test_int():
@@ -56,4 +56,4 @@ def test_int():
     a = f.from_str(text)
     assert f.is_equal(a, b)
 
-    check_space(f)
+    tst.test_space(f)

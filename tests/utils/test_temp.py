@@ -103,8 +103,7 @@ def test_file_create_or_truncate():
         assert isfile(s)
         assert getsize(s) == 0
 
-        with open(s, "w") as f:
-            f.write("blablabla")
+        s.write_all("blablabla")
 
         assert getsize(s) > 0
 
@@ -132,8 +131,7 @@ def test_file_ensure_exists():
         assert getsize(s) == 0
         assert not existed
 
-        with open(s, "w") as f:
-            f.write("blablabla")
+        s.write_all("blablabla")
 
         old_size = getsize(s)
         assert old_size > 0

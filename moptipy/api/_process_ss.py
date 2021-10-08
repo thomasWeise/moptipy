@@ -5,9 +5,9 @@ from typing import Optional, Union, Final
 
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
-from moptipy.api.encoding import Encoding, _check_encoding
+from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.objective import Objective
-from moptipy.api.space import Space, _check_space
+from moptipy.api.space import Space, check_space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, Logger
 from moptipy.utils.path import Path
@@ -27,7 +27,23 @@ class _ProcessSS(_ProcessNoSS):
                  max_fes: Optional[int] = None,
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None) -> None:
+        """
+        The internal initialization method. Do not call directly.
 
+        :param Space solution_space: the solution space.
+        :param Objective objective: the objective function
+        :param Algorithm algorithm: the optimization algorithm
+        :param Space search_space: the search space.
+        :param Encoding encoding: the encoding
+        :param Optional[Path] log_file: the optional log file
+        :param Optional[int] rand_seed: the optional random seed
+        :param Optional[int] max_fes: the maximum permitted function
+            evaluations
+        :param Optional[int] max_time_millis: the maximum runtime in
+            milliseconds
+        :param Union[int, float, None] goal_f: the goal objective
+            value: if it is reached, the process is terminated
+        """
         super().__init__(solution_space=solution_space,
                          objective=objective,
                          algorithm=algorithm,
@@ -38,14 +54,11 @@ class _ProcessSS(_ProcessNoSS):
                          goal_f=goal_f)
 
         #: The search space.
-        self._search_space: Final[Space] = _check_space(search_space)
-
+        self._search_space: Final[Space] = check_space(search_space)
         #: The encoding.
-        self._encoding: Final[Encoding] = _check_encoding(encoding)
-
+        self._encoding: Final[Encoding] = check_encoding(encoding)
         #: The holder for the currently de-coded solution.
         self._current_y: Final = self._solution_space.create()
-
         #: The current best point in the search space.
         self._current_best_x: Final = self._search_space.create()
 

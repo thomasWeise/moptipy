@@ -198,7 +198,7 @@ def __stat_median(data: np.ndarray) -> np.number:
     :return: the median
     :rtype: np.number
     """
-    return np.median(data)[0]
+    return np.median(data)
 
 
 @numba.njit(parallel=True)

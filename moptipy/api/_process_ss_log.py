@@ -20,7 +20,7 @@ class _ProcessSSLog(_ProcessSS):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: Path = None,
+                 log_file: Path,
                  search_space: Space = None,
                  encoding: Encoding = None,
                  rand_seed: Optional[int] = None,
@@ -39,12 +39,13 @@ class _ProcessSSLog(_ProcessSS):
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
+        if not log_file:
+            raise ValueError("Log file cannot be None in this class.")
         if not isinstance(log_all_fes, bool):
             raise TypeError(
                 f"log_all must be boolean, but is {type(log_all_fes)}.")
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
-
         #: The in-memory log
         self.__log: List[Tuple[int, int, Union[int, float]]] = []
 

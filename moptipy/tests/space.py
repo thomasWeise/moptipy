@@ -1,13 +1,12 @@
 """Functions that can be used to test spaces."""
 from typing import Callable, Optional
 
-# noinspection PyProtectedMember
-from moptipy.api.space import Space, _check_space
-from moptipy.tests.component import check_component
+import moptipy.api.space as ms
+from moptipy.tests.component import test_component
 
 
-def check_space(space: Space,
-                make_valid: Optional[Callable] = lambda x: x) -> None:
+def test_space(space: ms.Space,
+               make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy space.
 
@@ -16,11 +15,11 @@ def check_space(space: Space,
         a valid point
     :raises ValueError: if `space` is not a valid Space
     """
-    if not isinstance(space, Space):
+    if not isinstance(space, ms.Space):
         raise ValueError("Expected to receive an instance of Space, but "
                          f"got a {type(space)}.")
-    _check_space(space)
-    check_component(component=space)
+    ms.check_space(space)
+    test_component(component=space)
 
     x1 = space.create()
     if x1 is None:

@@ -6,6 +6,7 @@ state as handed to the optimization algorithm and, after the algorithm has
 finished, to the user.
 """
 from abc import abstractmethod
+from math import inf, isnan
 from typing import Optional, Union
 
 from numpy.random import Generator
@@ -211,3 +212,83 @@ class Process(Space, Objective):
         :param traceback: ignored
         """
         self.terminate()
+
+
+def check_max_fes(max_fes: Optional[int],
+                  none_is_ok: bool = False) -> Optional[int]:
+    """
+    Check the maximum FEs.
+
+    :param Optional[int] max_fes: the maximum FEs
+    :param bool none_is_ok: is None ok?
+    :return: the maximum fes, or None
+    :rtype: Optional[int]
+    :raises TypeError: if max_fes is None or not an int
+    :raises ValueError: if max_fes is invalid
+    """
+    if max_fes is None:
+        if none_is_ok:
+            return None
+        raise TypeError("Maximum FEs must not be None.")
+
+    if not isinstance(max_fes, int):
+        raise TypeError("Maximum number of function evaluations must be "
+                        f"int, but is {type(max_fes)}.")
+    if max_fes <= 0:
+        raise ValueError(f"Maximum FEs must be positive, but are {max_fes}.")
+    return max_fes
+
+
+def check_max_time_millis(max_time_millis: Optional[int],
+                          none_is_ok: bool = False) -> Optional[int]:
+    """
+    Check the maximum time in milliseconds.
+
+    :param Optional[int] max_time_millis: the maximum time in milliseconds
+    :param bool none_is_ok: is None ok?
+    :return: the maximum time in millseconds, or None
+    :rtype: Optional[int]
+    :raises TypeError: if max_time_millis is None or not an int
+    :raises ValueError: if max_time_millis is invalid
+    """
+    if max_time_millis is None:
+        if none_is_ok:
+            return None
+        raise TypeError("Maximum time in milliseconds must not be None.")
+
+    if not isinstance(max_time_millis, int):
+        raise TypeError("Maximum time in milliseconds must be int, but is "
+                        f"{type(max_time_millis)}.")
+    if max_time_millis <= 0:
+        raise ValueError("Maximum time in milliseconds must be positive, "
+                         f"but is {max_time_millis}.")
+    return max_time_millis
+
+
+def check_goal_f(goal_f: Union[int, float, None],
+                 none_is_ok: bool = False) -> Union[int, float, None]:
+    """
+    Check the goal objective value.
+
+    :param Optional[int] goal_f: the goal objective value
+    :param bool none_is_ok: is None ok?
+    :return: the goal objective value, or None
+    :rtype: Union[int, float, None]
+    :raises TypeError: if goal_f is None or neither an int nor a float
+    :raises ValueError: if goal_f is invalid
+    """
+    if goal_f is None:
+        if none_is_ok:
+            return None
+        raise TypeError("Goal objective value cannot be None.")
+
+    if not (isinstance(goal_f, (int, float))):
+        raise TypeError("Goal objective value must be int or float, but is "
+                        f"{type(goal_f)}.")
+    if isnan(goal_f):
+        raise ValueError("Goal objective value must not be NaN, but is "
+                         f"{goal_f}.")
+    if goal_f >= inf:
+        raise ValueError("Goal objective value must be less than positive "
+                         f"infinity, but is {goal_f}.")
+    return goal_f

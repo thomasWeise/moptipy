@@ -106,8 +106,8 @@ class Space(Component):
         raise NotImplementedError
 
 
-def _check_space(space: Optional[Space],
-                 none_is_ok: bool = False) -> Optional[Space]:
+def check_space(space: Optional[Space],
+                none_is_ok: bool = False) -> Optional[Space]:
     """
     Check whether an object is a valid instance of :class:`Space`.
 
