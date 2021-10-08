@@ -115,7 +115,7 @@ def check_space(space: Optional[Space],
     :param bool none_is_ok: is it ok if `None` is passed in?
     :return: the object
     :raises TypeError: if `space` is not an instance of
-    :class:`Space`
+        :class:`Space`
     """
     if space is None:
         if none_is_ok:
