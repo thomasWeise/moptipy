@@ -78,16 +78,12 @@ class OperationBasedEncoding(Encoding):
                              f"but is '{type(instance)}'.")
         dtype = int_range_to_dtype(instance.makespan_lower_bound,
                                    instance.makespan_upper_bound)
-
         self.__machine_time: Final[np.ndarray] = \
             np.zeros(instance.machines, dtype)
-
         self.__job_time: Final[np.ndarray] = \
             np.zeros(instance.jobs, dtype)
-
         self.__job_idx: Final[np.ndarray] = \
             np.zeros(instance.jobs, int_range_to_dtype(0, instance.jobs))
-
         self.__matrix: Final[np.ndarray] = instance.matrix
 
     def map(self, x: np.ndarray, y: Gantt) -> None:

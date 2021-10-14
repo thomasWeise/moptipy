@@ -147,7 +147,7 @@ class Instance(Component):
         ms_upper_bound = int(jobtimes.sum())
         if ms_upper_bound < ms_lower_bound:
             raise ValueError(
-                f"Computed makespan upper bound {ms_upper_bound} must "
+                f"Computed makespan upper bound {ms_upper_bound} must not "
                 f"be less than computed lower bound {ms_lower_bound}.")
 
         if makespan_lower_bound is None:
@@ -339,7 +339,6 @@ class Instance(Component):
     @staticmethod
     def list_resources() -> Tuple[str, ...]:
         """
-
         A tuple with all the JSSP instances provided in the moptipy resources.
 
         :return: a tuple with all instance names that are valid parameters

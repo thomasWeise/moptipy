@@ -9,6 +9,8 @@ Well, it will eventually be, because I first need to learn Python.
 
 Metaheuristic optimization algorithms are methods for solving hard problems.
 Here we provide an API that can be used to implement them and to experiment with them.
+The codes in this repository are ued as examples in the book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently writing.
+Its full sources are available on GitHub at <https://github.com/thomasWeise/oa>.
 
 ## 2. Installation
 
