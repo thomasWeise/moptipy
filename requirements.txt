@@ -8,3 +8,6 @@ numba >= 0.54.0
 
 # matplotlib is used to create plots in the evaluation procedures
 matplotlib >= 3.4.3
+
+# we need this to obtain some clusters of JSSP instances for our experiments
+scikit-learn >= 1.0

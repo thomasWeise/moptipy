@@ -1,4 +1,5 @@
 """Shared constants and functions for dealing with logs."""
+import datetime
 import math
 from re import sub
 from typing import List, Final, Union
@@ -302,3 +303,12 @@ def num_to_str(value: Union[int, float]) -> str:
     '1.5'
     """
     return str(value) if isinstance(value, int) else float_to_str(value)
+
+
+def logger(message: str) -> None:
+    """
+    Write a message to the log.
+
+    :param str message: the message
+    """
+    print(f"{datetime.datetime.now()}: {message}", flush=True)
