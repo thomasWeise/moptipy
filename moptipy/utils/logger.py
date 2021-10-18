@@ -369,9 +369,9 @@ class CsvSection(_Section):
         # noinspection PyProtectedMember
         txt = [str(c) if isinstance(c, int)
                else logging.bool_to_str(c) if isinstance(c, bool)
-               else (logging.float_to_str(c) if isinstance(c, float) else
-                     cast(None, self._logger._error(
-                         f"Invalid log value {c} in row {row}")))
+        else (logging.float_to_str(c) if isinstance(c, float) else
+              cast(None, self._logger._error(
+                  f"Invalid log value {c} in row {row}")))
                for c in row]
 
         # noinspection PyProtectedMember

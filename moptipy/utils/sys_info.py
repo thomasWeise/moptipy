@@ -1,4 +1,5 @@
 """A tool for writing a section with system information into log files."""
+import importlib.metadata as ilm
 import os
 import platform
 import re
@@ -6,9 +7,7 @@ import sys
 from datetime import datetime
 from typing import Optional
 
-import numpy
-
-import moptipy.version
+import moptipy.version as ver
 from moptipy.utils import logging
 from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueSection
 from moptipy.utils.path import Path
@@ -90,9 +89,11 @@ def __make_sys_info() -> str:
                 __v(k, logging.KEY_SESSION_START, datetime.now())
 
             with kv.scope(logging.SCOPE_VERSIONS) as k:
-                __v(k, logging.KEY_MOPTIPY_VERSION,
-                    moptipy.version.__version__)
-                __v(k, logging.KEY_NUMPY_VERSION, numpy.__version__)
+                __v(k, "moptipy", ver.__version__)
+                for package in ["numpy", "numba", "matplotlib",
+                                "scikit-learn"]:
+                    __v(k, package.replace("-", ""),
+                        ilm.version(package).strip())
 
             with kv.scope(logging.SCOPE_HARDWARE) as k:
                 __v(k, logging.KEY_HW_N_CPUS, os.cpu_count())

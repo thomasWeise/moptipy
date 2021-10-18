@@ -1,7 +1,6 @@
 """Run the moptipy example experiment."""
 import os.path as pp
-from math import factorial
-from typing import Tuple, Dict, Set, List, Final, Iterable, Callable, \
+from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any
 
 import moptipy.api.experiment as ex
@@ -20,152 +19,17 @@ from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
 from moptipy.operators.pwr.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 
-#: The default instances to be used in our experiment.
+#: The default instances to be used in our experiment. These have been
+#: computed via instance_selector.propose_instances.
 EXPERIMENT_INSTANCES: \
     Final[Tuple[str, str, str, str, str, str, str, str, str]] = \
-    ('dmu16', 'dmu26', 'ft06', 'la01', 'la06', 'orb01', 'swv11',
-     'ta71', 'yn1')
+    ('abz8', 'dmu14', 'ft06', 'la14', 'swv07', 'swv15', 'ta65', 'ta76', 'yn1')
 
 #: The number of runs per instance in our experiment.
 EXPERIMENT_RUNS: Final[int] = 7
 
 #: We will perform two minutes per run.
 EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
-
-
-def propose_instances(n: int) -> Tuple[str, ...]:
-    """
-    Propose a set of instances to be used for our experiment.
-
-    This function was used to obtain `EXPERIMENT_INSTANCES`. For
-    `n=len(EXPERIMENT_INSTANCES)`, we now short-circuited it to
-    `EXPERIMENT_INSTANCES`.
-
-    :param int n: the number of instances to be proposed
-    :return: a tuple with the instance names
-    :rtype: str
-    """
-    if n == len(EXPERIMENT_INSTANCES):
-        return EXPERIMENT_INSTANCES
-
-    all_instance_names = Instance.list_resources()
-    rm = str.maketrans("", "", "0123456789")
-    prefixes: Set[str] = {s.translate(rm) for s in all_instance_names}
-    purge = {"demo"}  # the forbidden instances
-    chosen: Set[str] = set()  # the result instances
-    prefixes.difference_update(purge)
-
-    while len(chosen) < n:
-        purge = purge.union(chosen)
-
-        # collect all different problem scales that exist
-        scales: Dict[Tuple[int, int, int, float], List[str]] = {}
-        groups: Dict[str, Set[Tuple[int, int, int, float]]] = {}
-        for inst_name in all_instance_names:
-            if inst_name in purge:
-                continue
-            inst = Instance.from_resource(inst_name)
-
-            # We consider the number of machines and jobs, but also the
-            # the number of possible Gantt charts and the ratio of machines
-            # to jobs as feature of an instance.
-            size = inst.machines, inst.jobs, \
-                factorial(inst.jobs) ** inst.machines, \
-                inst.machines / inst.jobs
-
-            # keep track of all sizes of a group
-            group = inst_name.translate(rm)
-            if group in groups:
-                groups[group].add(size)
-            else:
-                ss: Set[Tuple[int, int, int, float]] = set()
-                ss.add(size)
-                groups[group] = ss
-
-            # add instance to scale set
-            if size in scales:
-                lst = scales[size]
-                if any(s.startswith(group) for s in lst):
-                    continue
-                lst.append(inst_name)
-            else:
-                scales[size] = [inst_name]
-
-        # sort the scale values
-        for lst in scales.values():
-            lst.sort()
-
-        # pick one item from all instance types that only occur in one size
-        changed = True
-        while changed and (len(chosen) < n):
-            changed = False
-            for group, sizes in groups.items():
-                if len(sizes) <= 1:
-                    sze = next(iter(sizes))
-                    if sze in scales:
-                        sel = scales[sze]
-                        del scales[sze]
-                        for name in sel:
-                            if name.startswith(group):
-                                chosen.add(name)
-                                break
-                    groups.__delitem__(group)
-                    changed = True
-                    break
-
-        # fill set of chosen instances based on extreme properties
-        while len(chosen) < n:
-            sizez = list(scales.keys())
-            sizez.sort()
-            if len(sizez) <= 0:
-                break
-            chosen_sizes: List[Tuple[int, int, int, float]] = []
-
-            # for each feature dimension, select maximum and minimum
-            for dim in range(4):
-                dim_min = min(sc[dim] for sc in sizez)
-                for sc in sizez:
-                    if sc[dim] <= dim_min:
-                        if sc not in chosen_sizes:
-                            chosen_sizes.append(sc)
-                        break
-                dim_max = max(sc[dim] for sc in sizez)
-                for sc in sizez:
-                    if sc[dim] >= dim_max:
-                        if sc not in chosen_sizes:
-                            chosen_sizes.append(sc)
-                        break
-
-            new_len = len(scales)
-            min_size = 1
-            while len(chosen) < n:
-                old_len = new_len
-                for scale in chosen_sizes:
-                    choices = scales[scale]
-                    if len(choices) <= min_size:
-                        sel2 = choices[0]
-                        group = sel2.translate(rm)
-                        chosen_sizes.remove(scale)
-                        del scales[scale]
-                        chosen.add(sel2)
-                        min_size = 1
-                        for value in scales.values():
-                            if len(value) > 1:
-                                for i, v in enumerate(value):
-                                    if v.startswith(group):
-                                        del value[i]
-                                        break
-                        break
-                new_len = len(chosen_sizes)
-                if new_len >= old_len:
-                    min_size += 1
-                if new_len <= 0:
-                    break
-
-    # finalize
-    result = list(chosen)
-    result.sort()
-    return tuple(result)
 
 
 #: The default set of algorithms for our experiments

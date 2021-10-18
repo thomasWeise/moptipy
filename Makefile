@@ -54,7 +54,7 @@ static_analysis: init
     echo "Done with mypy, now doing pyflakes." &&\
     python3 -m pyflakes . &&\
     echo "Done with pyflakes, now applying bandit to find security issues." &&\
-    bandit -r moptipy &&\
+    bandit -r moptipy -s B311 &&\
     echo "Done with bandit, now using pep257 to check comments and documentation." &&\
     pep257 . &&\
     echo "Done with pep257, now using pyroma to check setup.py." &&\

@@ -1,8 +1,9 @@
 """Shared constants and functions for dealing with logs."""
 import datetime
 import math
+from contextlib import nullcontext
 from re import sub
-from typing import List, Final, Union
+from typing import List, Final, Union, ContextManager
 
 #: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
@@ -104,10 +105,6 @@ SCOPE_SESSION: Final[str] = "session"
 KEY_SESSION_START: Final[str] = "start"
 #: the versions scope in the sys-info section
 SCOPE_VERSIONS: Final[str] = "version"
-#: the moptipy version key
-KEY_MOPTIPY_VERSION: Final[str] = "moptipy"
-#: the numpy version key
-KEY_NUMPY_VERSION: Final[str] = "numpy"
 #: the hardware scope in the sys-info section
 SCOPE_HARDWARE: Final[str] = "hardware"
 #: the number of CPUs
@@ -305,10 +302,17 @@ def num_to_str(value: Union[int, float]) -> str:
     return str(value) if isinstance(value, int) else float_to_str(value)
 
 
-def logger(message: str) -> None:
+def logger(message: str,
+           note: str = "",
+           lock: ContextManager = nullcontext()) -> None:
     """
     Write a message to the log.
 
     :param str message: the message
+    :param str note: a note to put between the time and the message
+    :param ContextManager lock: the lock to prevent multiple threads to
+        write log output at the same time
     """
-    print(f"{datetime.datetime.now()}: {message}", flush=True)
+    text: Final[str] = f"{datetime.datetime.now()}{note}: {message}"
+    with lock:
+        print(text, flush=True)

@@ -2,7 +2,7 @@
 import copy
 import multiprocessing as mp
 import os.path
-from datetime import datetime
+from contextlib import nullcontext
 from os import sched_getaffinity
 from typing import Iterable, Union, Callable, Tuple, List, \
     ContextManager, Final
@@ -11,33 +11,10 @@ from numpy.random import default_rng
 
 from moptipy.api.execution import Execution
 from moptipy.utils.cache import is_new
-from moptipy.utils.path import Path
-from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX
+from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX, \
+    logger
 from moptipy.utils.nputils import rand_seeds_from_str
-
-
-class __DummyLock:
-    """A dummy replacement for locks."""
-
-    def __enter__(self) -> '__DummyLock':
-        return self
-
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
-        pass
-
-
-def __log(string: str, note: str,
-          stdio_lock: ContextManager) -> None:
-    """
-    Print a log information string to stdout.
-
-    :param str string: the string
-    :param str note: a small prefix, such as a thread ID
-    :param ContextManager stdio_lock: the lock
-    """
-    text = f"{datetime.now()}{note}: {string}"
-    with stdio_lock:
-        print(text)
+from moptipy.utils.path import Path
 
 
 def __run_experiment(base_dir: Path,
@@ -49,7 +26,7 @@ def __run_experiment(base_dir: Path,
                      cache: Callable,
                      thread_id: str) -> None:
     """
-    Execute a single thread of expeirments.
+    Execute a single thread of experiments.
 
     :param str base_dir: the base directory
     :param List[Tuple[Callable, Callable]] experiments: the stream of
@@ -105,13 +82,13 @@ def __run_experiment(base_dir: Path,
                     cpy.set_log_file(None)
                     cpy.set_log_improvements(False)
                     cpy.set_log_all_fes(False)
-                    __log(f"warmup for '{filename}'.", thread_id, stdio_lock)
+                    logger(f"warmup for '{filename}'.", thread_id, stdio_lock)
                     with cpy.execute():
                         pass
                     del cpy
 
                 exp.set_log_file(log_file)
-                __log(filename, thread_id, stdio_lock)
+                logger(filename, thread_id, stdio_lock)
                 with exp.execute():
                     pass
 
@@ -207,15 +184,16 @@ def run_experiment(base_dir: str,
         last = run
 
     cache = is_new()
-    use_dir: Final[Path] = Path.directory(base_dir)
+    use_dir: Final[Path] = Path.path(base_dir)
+    use_dir.ensure_dir_exists()
 
     stdio_lock: ContextManager
 
     if n_threads > 1:
         file_lock: ContextManager = mp.Lock()
         stdio_lock = mp.Lock()
-        __log(f"starting experiment with {n_threads} threads.",
-              "", stdio_lock)
+        logger(f"starting experiment with {n_threads} threads.",
+               "", stdio_lock)
 
         processes = [mp.Process(target=__run_experiment,
                                 args=(use_dir,
@@ -229,21 +207,21 @@ def run_experiment(base_dir: str,
                      for i in range(n_threads)]
         for i in range(n_threads):
             processes[i].start()
-            __log(f"started processes {hex(i)[2:]}.", "", stdio_lock)
+            logger(f"started processes {hex(i)[2:]}.", "", stdio_lock)
         for i in range(n_threads):
             processes[i].join()
-            __log(f"processes {hex(i)[2:]} terminated.", "", stdio_lock)
+            logger(f"processes {hex(i)[2:]} terminated.", "", stdio_lock)
 
     else:
-        stdio_lock = __DummyLock()
+        stdio_lock = nullcontext()
         __run_experiment(base_dir=use_dir,
                          experiments=experiments,
                          n_runs=n_runs,
                          perform_warmup=perform_warmup,
-                         file_lock=__DummyLock(),
+                         file_lock=nullcontext(),
                          stdio_lock=stdio_lock,
                          cache=cache,
                          thread_id="")
 
-    __log("finished experiment.", "", stdio_lock)
+    logger("finished experiment.", "", stdio_lock)
     return base_dir

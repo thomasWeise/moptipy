@@ -7,9 +7,9 @@ from numpy.random import Generator, RandomState  # type: ignore
 from sklearn.cluster import SpectralClustering  # type: ignore
 
 from moptipy.examples.jssp.instance import Instance
+from moptipy.utils.logging import logger
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
 from moptipy.utils.nputils import rand_generator
-from moptipy.utils.logging import logger
 
 
 def __get_instances() -> List[Instance]:
@@ -48,9 +48,8 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
     total_best_f: Tuple[int, int, int, int, float] = -1, -1, -1, -1, -1
     run_last_improved: int = 1
     run_current: int = 0
-    run_max_none_improved: Final[int] = int((32 + (2 * (n * n_groups)))
-                                            ** 1.2)
-    step_max_none_improved: Final[int] = int(run_max_none_improved ** 1.5)
+    run_max_none_improved: Final[int] = 4
+    step_max_none_improved: Final[int] = int((2 + (n_groups * n)) ** 2)
 
     done: Final[np.ndarray] = np.zeros(n_groups, DEFAULT_INT)
     extremes: Final[Set[int]] = set()
@@ -112,6 +111,7 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
             cg = cluster_groups[i]
             best[i] = cg[random.integers(len(cg))]
         best_f = __f(best)  # compute quality
+        use_f = best_f
 
         if best_f > total_best_f:  # accept solution if it is better
             total_best_f = best_f
@@ -146,9 +146,12 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
                     break
 
             current_f = __f(current)  # evaluate quality
-            if current_f >= best_f:  # accept?
+            # accept if better or with small probability
+            if (current_f >= use_f) or (random.integers(50) < 1):
+                use_f = current_f
                 np.copyto(best, current)
                 if current_f > best_f:
+                    best_f = current_f
                     step_last_improved = step_current
                     if current_f > total_best_f:  # new optimum
                         total_best_f = current_f
@@ -157,7 +160,7 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
                         logger(f"New global best {tuple(best)} with quality"
                                f" {total_best_f} found in run {run_current} "
                                f"after {step_current} FEs.")
-                best_f = current_f
+        logger(f"Run {run_current} finished with quality {best_f}.")
 
     result = tuple(total_best)
     logger(f"Finished after {run_current} runs with solution {result} of "
@@ -171,13 +174,33 @@ def propose_instances(n: int,
     """
     Propose a set of instances to be used for our experiment.
 
-    This function was used to obtain `EXPERIMENT_INSTANCES`. For
-    `n=len(EXPERIMENT_INSTANCES)`, we now short-circuited it to
-    `EXPERIMENT_INSTANCES`.
+    This function is used to obtain the instances chosen for the JSSP
+    experiment. You can also use it for other experiments, by using your own
+    instance source and/or for selecting more or less JSSP instances.
+
+    Basically, it will accept a function `get_instances`, which must produce
+    a sequence of Instance objects. Each instance has a name (e.g., `dmu14`)
+    and a group, where the group is the name without any numerical suffix
+    (e.g., `dmu`). This function will then select `n` instances from the
+    instance set with the goal to maximize the diversity of the instances, to
+    include instances from as many groups as possible, and to include one
+    instance of the smallest and one of the largest scale.
+    The diversity is measured in terms of the numbers of jobs and machines,
+    the instance scale, the minimum and maximum operation length, the
+    standard deviation of the mean operation lengths over the jobs, the
+    makespan bounds, and so on.
+
+    First, features are computed for each instance. Second, the instances are
+    clustered into `n` clusters. Third, we try to pick groups for each cluster
+    such that a) the minimum and maximum-scale instances can be included and
+    b) that instances from as many groups as possible are picked. Third, we
+    then randomly pick one instance for each cluster from the selected group
+    (while trying to pick the minimum and maximum-scale instances). Finally,
+    the chosen instance names are listed as sorted tuple and returned.
 
     :param int n: the number of instances to be proposed
     :param Callable get_instances: a function returning an
-        iterable of instances
+        iterable of instances.
     :return: a tuple with the instance names
     :rtype: Tuple[str, ...]
     """
