@@ -22,7 +22,7 @@ MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
 MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
 
-# start book-code
+# start book
 class Instance(Component):
     """An instance of the Job Shop Scheduling Problem."""
 
@@ -43,7 +43,7 @@ class Instance(Component):
         """
         #: The name of this JSSP instance.
         self.name: Final[str] = logging.sanitize_name(name)
-        # end book-code
+        # end book
 
         if name != self.name:
             raise ValueError(f"Name '{name}' is not a valid name.")
@@ -52,19 +52,15 @@ class Instance(Component):
             raise ValueError("There must be at least one machine, "
                              f"but '{machines}' were specified in "
                              f"instance '{name}'.")
-        # start book-code
         #: The number of machines in this JSSP instance.
-        self.machines: Final[int] = machines
-        # end book-code
+        self.machines: Final[int] = machines  # +book
 
         if not isinstance(jobs, int) or (jobs < 1):
             raise ValueError("There must be at least one job, "
                              f"but '{jobs}' were specified in "
                              f"instance '{name}'.")
-        # start book-code
         #: The number of jobs in this JSSP instance.
-        self.jobs: Final[int] = jobs
-        # end book-code
+        self.jobs: Final[int] = jobs  # +book
 
         if not isinstance(matrix, np.ndarray):
             raise TypeError("The matrix must be an numpy.ndarray, but is a "
@@ -90,13 +86,11 @@ class Instance(Component):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
-        # start book-code
         #: The matrix with the operations of the jobs and their durations. \
         #: This matrix holds one row for each job. \
         #: In each row, it stores tuples of (machine, duration) in a \
         #: consecutive sequence, i.e., 2*machine numbers.
-        self.matrix: Final[np.ndarray] = matrix
-        # end book-code
+        self.matrix: Final[np.ndarray] = matrix  # +book
 
         # We now compute the lower bound for the makespan based on the
         # algorithm by Taillard
@@ -176,10 +170,9 @@ class Instance(Component):
                     "If specified, makespan_lower_bound must be <= "
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
                     f"instance '{name}'.")
-        # start book-code
+
         #: The lower bound of the makespan for the JSSP instance.
-        self.makespan_lower_bound: Final[int] = makespan_lower_bound
-        # end book-code
+        self.makespan_lower_bound: Final[int] = makespan_lower_bound  # +book
 
         #: The upper bound of the makespan for the JSSP instance.
         self.makespan_upper_bound: Final[int] = ms_upper_bound
