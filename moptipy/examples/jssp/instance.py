@@ -10,25 +10,23 @@ from moptipy.utils import nputils
 from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 
+#: the recommended scope under which instance data should be stored
+SCOPE_INSTANCE: Final = "inst"
+#: The number of machines in the instance.
+MACHINES: Final = "machines"
+#: The number of jobs in the instance.
+JOBS: Final = "jobs"
+#: The lower bound of the makespan of the instance.
+MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
+#: The upper bound of the makespan of the instance.
+MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
+
+# start book-code
 class Instance(Component):
     """An instance of the Job Shop Scheduling Problem."""
 
-    #: the recommended scope under which instance data should be stored
-    SCOPE_INSTANCE: Final = "inst"
-    #: The number of machines in the instance.
-    MACHINES: Final = "machines"
-    #: The number of jobs in the instance.
-    JOBS: Final = "jobs"
-    #: The lower bound of the makespan of the instance.
-    MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
-    #: The upper bound of the makespan of the instance.
-    MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
-
-    def __init__(self,
-                 name: str,
-                 machines: int,
-                 jobs: int,
+    def __init__(self, name: str, machines: int, jobs: int,
                  matrix: np.ndarray,
                  makespan_lower_bound: Optional[int] = None) -> None:
         """
@@ -45,6 +43,7 @@ class Instance(Component):
         """
         #: The name of this JSSP instance.
         self.name: Final[str] = logging.sanitize_name(name)
+        # end book-code
 
         if name != self.name:
             raise ValueError(f"Name '{name}' is not a valid name.")
@@ -53,15 +52,19 @@ class Instance(Component):
             raise ValueError("There must be at least one machine, "
                              f"but '{machines}' were specified in "
                              f"instance '{name}'.")
+        # start book-code
         #: The number of machines in this JSSP instance.
         self.machines: Final[int] = machines
+        # end book-code
 
         if not isinstance(jobs, int) or (jobs < 1):
             raise ValueError("There must be at least one job, "
                              f"but '{jobs}' were specified in "
                              f"instance '{name}'.")
+        # start book-code
         #: The number of jobs in this JSSP instance.
         self.jobs: Final[int] = jobs
+        # end book-code
 
         if not isinstance(matrix, np.ndarray):
             raise TypeError("The matrix must be an numpy.ndarray, but is a "
@@ -87,11 +90,13 @@ class Instance(Component):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
+        # start book-code
         #: The matrix with the operations of the jobs and their durations. \
         #: This matrix holds one row for each job. \
         #: In each row, it stores tuples of (machine, duration) in a \
         #: consecutive sequence, i.e., 2*machine numbers.
         self.matrix: Final[np.ndarray] = matrix
+        # end book-code
 
         # We now compute the lower bound for the makespan based on the
         # algorithm by Taillard
@@ -171,9 +176,10 @@ class Instance(Component):
                     "If specified, makespan_lower_bound must be <= "
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
                     f"instance '{name}'.")
-
+        # start book-code
         #: The lower bound of the makespan for the JSSP instance.
         self.makespan_lower_bound: Final[int] = makespan_lower_bound
+        # end book-code
 
         #: The upper bound of the makespan for the JSSP instance.
         self.makespan_upper_bound: Final[int] = ms_upper_bound
@@ -194,16 +200,15 @@ class Instance(Component):
         :param moptipy.utils.KeyValueSection logger: the logger
         """
         super().log_parameters_to(logger)
-        logger.key_value(Instance.MACHINES, self.machines)
-        logger.key_value(Instance.JOBS, self.jobs)
-        logger.key_value(Instance.MAKESPAN_LOWER_BOUND,
+        logger.key_value(MACHINES, self.machines)
+        logger.key_value(JOBS, self.jobs)
+        logger.key_value(MAKESPAN_LOWER_BOUND,
                          self.makespan_lower_bound)
-        logger.key_value(Instance.MAKESPAN_UPPER_BOUND,
+        logger.key_value(MAKESPAN_UPPER_BOUND,
                          self.makespan_upper_bound)
 
     @staticmethod
-    def from_text(name: str,
-                  rows: List[str]) -> 'Instance':
+    def from_text(name: str, rows: List[str]) -> 'Instance':
         """
         Convert a name and a set of rows of text to an JSSP instance.
 

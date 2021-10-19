@@ -22,8 +22,8 @@ from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
 EXPERIMENT_INSTANCES: \
-    Final[Tuple[str, str, str, str, str, str, str, str, str]] = \
-    ('abz8', 'dmu14', 'ft06', 'la14', 'swv07', 'swv15', 'ta65', 'ta76', 'yn1')
+    Final[Tuple[str, str, str, str, str, str, str, str]] = \
+    ('abz9', 'dmu48', 'ft06', 'la10', 'swv17', 'ta19', 'ta73', 'yn3')
 
 #: The number of runs per instance in our experiment.
 EXPERIMENT_RUNS: Final[int] = 7

@@ -6,7 +6,7 @@ import numpy as np
 
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
-from moptipy.examples.jssp.instance import Instance
+from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
 from moptipy.utils.logger import KeyValueSection
 
 
@@ -213,5 +213,5 @@ class GanttSpace(Space):
         :param moptipy.utils.KeyValueSection logger: the logger
         """
         super().log_parameters_to(logger)
-        with logger.scope(Instance.SCOPE_INSTANCE) as kv:
+        with logger.scope(SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)
