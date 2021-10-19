@@ -370,8 +370,8 @@ class CsvSection(_Section):
         txt = [str(c) if isinstance(c, int)
                else logging.bool_to_str(c) if isinstance(c, bool)
                else (logging.float_to_str(c) if isinstance(c, float) else
-                     cast(None, self._logger._error(
-                         f"Invalid log value {c} in row {row}")))
+               cast(None, self._logger._error(
+                   f"Invalid log value {c} in row {row}")))
                for c in row]
 
         # noinspection PyProtectedMember
