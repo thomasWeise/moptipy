@@ -1,5 +1,5 @@
 """Some fixed demo codes for the JSSP examples."""
-from typing import Final
+from typing import Final, Dict, List
 
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
@@ -13,6 +13,22 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.utils.path import Path
+
+#: the language strings
+__LANG_STRINGS: Final[Dict[str, Dict[str, str]]] = {
+    "": {
+        "jobs": "jobs",
+        "machine": "machine",
+        "machines": "machines",
+        "time": "time"
+    },
+    "_de": {
+        "jobs": "Jobs",
+        "machine": "Maschine",
+        "machines": "Maschinen",
+        "time": "Zeit"
+    }
+}
 
 
 def demo_instance() -> Instance:
@@ -103,21 +119,38 @@ def demo_solution() -> Gantt:
 
 
 def demo_gantt_chart(dir_name: str,
-                     file_name: str) -> str:
+                     file_name: str) -> List[Path]:
     """
     Plot the demo gantt chart.
 
     :param str dir_name: the directory
     :param str file_name: the file name
     """
-    figure: Final[Figure] = create_figure(width=cm_to_inch(11))
-
-    plot_gantt_chart(gantt=demo_solution(),
-                     figure=figure)
-
+    result: Final[List[Path]] = []
     the_dir: Final[Path] = Path.path(dir_name)
     the_dir.ensure_dir_exists()
-    return save_figure(fig=figure,
-                       dir_name=the_dir,
-                       file_name=file_name,
-                       formats="svg")[0]
+
+    for lang, dm in __LANG_STRINGS.items():
+        figure: Figure = create_figure(width=cm_to_inch(11))
+
+        time = dm["time"]
+        machine = dm["machine"]
+        jobs = dm["jobs"]
+        machines = dm["machines"]
+        gantt = demo_solution()
+        info = f"{gantt.instance.name} ({gantt.instance.jobs} " \
+               f"{jobs} \u00D7 {gantt.instance.machines} {machines})"
+        plot_gantt_chart(gantt=gantt,
+                         figure=figure,
+                         xlabel=time,
+                         xlabel_inside=False,
+                         ylabel=machine,
+                         ylabel_inside=False,
+                         markers=None,
+                         info=info)
+
+        result.extend(save_figure(fig=figure,
+                                  dir_name=the_dir,
+                                  file_name=f"{file_name}{lang}",
+                                  formats="svg"))
+    return result

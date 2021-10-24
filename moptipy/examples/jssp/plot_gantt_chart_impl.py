@@ -19,6 +19,7 @@ from moptipy.examples.jssp.gantt import Gantt
 DEFAULT_MARKERS: Tuple[Tuple[str, Callable]] = \
     (("lb", lambda x: x.instance.makespan_lower_bound),)
 
+#: The default infos
 DEFAULT_INFOS: Callable = lambda gantt: \
     f"{gantt.instance.name} ({gantt.instance.jobs}\u00D7" \
     f"{gantt.instance.machines}), makespan {gantt.makespan}"
