@@ -299,3 +299,23 @@ def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
     return RendererAgg(width=figure.get_figwidth(),
                        height=figure.get_figheight(),
                        dpi=figure.get_dpi())
+
+
+def cm_to_inch(cm: Union[int, float]) -> float:
+    """
+    Convert cm to inch.
+
+    :param float cm: the cm value
+    :return: the value in inch
+    :rtype: float
+    """
+    if not isinstance(cm, int):
+        if not isinstance(cm, float):
+            raise TypeError(f"cm must be int or float, but is {type(cm)}.")
+        if not isfinite(cm):
+            raise ValueError(f"cm must be finite, but is {cm}.")
+    res: float = cm / 2.54
+    if not isfinite(res):
+        raise ValueError(f"Conversation {cm} cm to inch "
+                         f"must be finite, but is {res}.")
+    return res
