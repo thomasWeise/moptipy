@@ -13,16 +13,12 @@ from matplotlib.ticker import MaxNLocator  # type: ignore
 import moptipy.evaluation.plot_defaults as pd
 import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
+from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp.gantt import Gantt
 
 #: The default markers
 DEFAULT_MARKERS: Tuple[Tuple[str, Callable]] = \
     (("lb", lambda x: x.instance.makespan_lower_bound),)
-
-#: The default infos
-DEFAULT_INFOS: Callable = lambda gantt: \
-    f"{gantt.instance.name} ({gantt.instance.jobs}\u00D7" \
-    f"{gantt.instance.machines}), makespan {gantt.makespan}"
 
 
 def plot_gantt_chart(gantt: Gantt,
@@ -36,12 +32,15 @@ def plot_gantt_chart(gantt: Gantt,
                      pd.importance_to_line_width,
                      importance_to_font_size_func: Callable =
                      pd.importance_to_font_size,
-                     info: Union[None, str, Callable] = DEFAULT_INFOS,
+                     info: Union[None, str, Callable] = lambda g:
+                     Lang.current().format("gantt_info", gantt=g),
                      xgrid: bool = False,
                      ygrid: bool = False,
-                     xlabel: Union[None, str, Callable] = "time",
+                     xlabel: Union[None, str, Callable] = lambda g:
+                     Lang.current()["time"],
                      xlabel_inside: bool = True,
-                     ylabel: Union[None, str, Callable] = "machine",
+                     ylabel: Union[None, str, Callable] = lambda g:
+                     Lang.current()["machine"],
                      ylabel_inside: bool = True) -> None:
     """
     Plot a Gantt chart.
@@ -269,3 +268,34 @@ def plot_gantt_chart(gantt: Gantt,
                      font_size=importance_to_font_size_func(1),
                      may_rotate_text=False,
                      zorder=zorder)
+
+
+# Below, we provide some standard language settings
+
+# the English language strings
+Lang.get("en").extend({
+    "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs} "
+                  "jobs \u00D7 {gantt.instance.machines} machines), "
+                  "makespan {gantt.makespan}",
+    "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
+                        "jobs \u00D7 {gantt.instance.machines} machines)",
+    "machine": "machine",
+})
+# the German language strings
+Lang.get("de").extend({
+    "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs} "
+                  "Jobs \u00D7 {gantt.instance.machines} Maschinen), "
+                  "Makespan {gantt.makespan}",
+    "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
+                        "Jobs \u00D7 {gantt.instance.machines} Maschinen)",
+    "machine": "Maschine",
+})
+# the Chinese language strings
+Lang.get("zh").extend({
+    "gantt_info": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
+                  "\u00D7{gantt.instance.machines}台机器），"
+                  "最大完工时间{gantt.makespan}",
+    "gantt_info_no_ms": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
+                        "\u00D7{gantt.instance.machines}台机器）",
+    "machine": "机器",
+})

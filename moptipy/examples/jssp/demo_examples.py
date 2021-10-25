@@ -1,9 +1,10 @@
 """Some fixed demo codes for the JSSP examples."""
-from typing import Final, Dict, List
+from typing import Final, List
 
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
 
+from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.plot_utils import create_figure, save_figure, \
     cm_to_inch
 from moptipy.examples.jssp.gantt import Gantt
@@ -13,22 +14,6 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.utils.path import Path
-
-#: the language strings
-__LANG_STRINGS: Final[Dict[str, Dict[str, str]]] = {
-    "": {
-        "jobs": "jobs",
-        "machine": "machine",
-        "machines": "machines",
-        "time": "time"
-    },
-    "_de": {
-        "jobs": "Jobs",
-        "machine": "Maschine",
-        "machines": "Maschinen",
-        "time": "Zeit"
-    }
-}
 
 
 def demo_instance() -> Instance:
@@ -118,39 +103,31 @@ def demo_solution() -> Gantt:
     return result
 
 
-def demo_gantt_chart(dir_name: str,
-                     file_name: str) -> List[Path]:
+def demo_gantt_chart(dirname: str,
+                     filename: str = "demo_solution") -> List[Path]:
     """
     Plot the demo gantt chart.
 
-    :param str dir_name: the directory
-    :param str file_name: the file name
+    :param str dirname: the directory
+    :param str filename: the file name
     """
     result: Final[List[Path]] = []
-    the_dir: Final[Path] = Path.path(dir_name)
+    the_dir: Final[Path] = Path.path(dirname)
     the_dir.ensure_dir_exists()
 
-    for lang, dm in __LANG_STRINGS.items():
+    for lang in Lang.all():
+        lang.set_current()
         figure: Figure = create_figure(width=cm_to_inch(11))
 
-        time = dm["time"]
-        machine = dm["machine"]
-        jobs = dm["jobs"]
-        machines = dm["machines"]
         gantt = demo_solution()
-        info = f"{gantt.instance.name} ({gantt.instance.jobs} " \
-               f"{jobs} \u00D7 {gantt.instance.machines} {machines})"
         plot_gantt_chart(gantt=gantt,
                          figure=figure,
-                         xlabel=time,
                          xlabel_inside=False,
-                         ylabel=machine,
                          ylabel_inside=False,
-                         markers=None,
-                         info=info)
+                         markers=None)
 
         result.extend(save_figure(fig=figure,
                                   dir_name=the_dir,
-                                  file_name=f"{file_name}{lang}",
+                                  file_name=lang.filename(filename),
                                   formats="svg"))
     return result
