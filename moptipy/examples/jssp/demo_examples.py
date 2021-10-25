@@ -117,14 +117,16 @@ def demo_gantt_chart(dirname: str,
 
     for lang in Lang.all():
         lang.set_current()
-        figure: Figure = create_figure(width=cm_to_inch(11))
+        figure: Figure = create_figure(width=cm_to_inch(10))
 
         gantt = demo_solution()
         plot_gantt_chart(gantt=gantt,
                          figure=figure,
                          xlabel_inside=False,
                          ylabel_inside=False,
-                         markers=None)
+                         markers=None,
+                         info=lambda g: Lang.current().format(
+                             "gantt_info_no_ms", gantt=g))
 
         result.extend(save_figure(fig=figure,
                                   dir_name=the_dir,
