@@ -103,8 +103,8 @@ def demo_solution() -> Gantt:
     return result
 
 
-def demo_gantt_chart(dirname: str,
-                     filename: str = "demo_solution") -> List[Path]:
+def demo_gantt_chart(dirname: str, filename: str =
+                     "gantt_demo_without_makespan") -> List[Path]:
     """
     Plot the demo gantt chart.
 

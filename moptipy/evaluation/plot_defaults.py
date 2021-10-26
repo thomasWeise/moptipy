@@ -312,20 +312,4 @@ def text_color_for_background(background: Tuple[float, float, float]) \
     bb: Final[float] = background[2]
     bgg: Final[float] = rgb_to_gray(br, bg, bb)
 
-    if bgg < 0.12:
-        return COLOR_WHITE
-    if bgg > 0.88:
-        return COLOR_BLACK
-
-    fr: float = 1 - br
-    fg: float = 1 - bg
-    fb: float = 1 - bb
-    fgg: float = rgb_to_gray(fr, fg, fb)
-    if fgg < 0.12:
-        return COLOR_BLACK
-    if fgg > 0.88:
-        return COLOR_WHITE
-    if abs(fgg - bgg) < 0.17:
-        return COLOR_WHITE if fgg >= 0.5 else COLOR_BLACK
-
-    return fr, fg, fb
+    return COLOR_WHITE if bgg < 0.3 else COLOR_BLACK
