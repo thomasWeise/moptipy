@@ -121,9 +121,6 @@ def plot_gantt_chart(gantt: Gantt,
     colors: Final[Tuple] = pd.distinct_colors(jobs)
     font_size: Final[float] = importance_to_font_size_func(-1)
 
-    # get the font to use
-    font: Final[str] = Lang.current().font()
-
     # get the transforms needed to obtain text dimensions
     rend: Final = pu.get_renderer(axes)
     inv: Final = axes.transData.inverted()
@@ -185,7 +182,6 @@ def plot_gantt_chart(gantt: Gantt,
             # Get the size of the text using a temporary text
             # that gets immediately deleted again.
             tmp: Text = axes.text(x=xp, y=yp, s=jobstr,
-                                  fontname=font,
                                   fontsize=font_size,
                                   color=foreground,
                                   horizontalalignment="center",
@@ -202,7 +198,6 @@ def plot_gantt_chart(gantt: Gantt,
                 # offset to do proper alignment using another temporary
                 # text.
                 tmp = axes.text(x=xp, y=yp, s=jobstr,
-                                fontname=font,
                                 fontsize=font_size,
                                 color=foreground,
                                 horizontalalignment="center",
@@ -220,7 +215,6 @@ def plot_gantt_chart(gantt: Gantt,
                     yp += adj / 3
 
                 axes.text(x=xp, y=yp, s=jobstr,
-                          fontname=font,
                           fontsize=font_size,
                           color=foreground,
                           horizontalalignment="center",
@@ -243,7 +237,6 @@ def plot_gantt_chart(gantt: Gantt,
                       horizontalalignment="right",
                       xycoords="data",
                       textcoords="offset points",
-                      fontname=font,
                       fontsize=font_size,
                       color=pd.COLOR_BLACK,
                       rotation=90,
@@ -260,8 +253,7 @@ def plot_gantt_chart(gantt: Gantt,
                   ylabel_inside=ylabel_inside,
                   ylabel_location=0.5,
                   font_size=info_font_size,
-                  zorder=zorder,
-                  font=font)
+                  zorder=zorder)
     zorder = zorder + 1
 
     if callable(info):
@@ -275,8 +267,7 @@ def plot_gantt_chart(gantt: Gantt,
                      y=1,
                      font_size=importance_to_font_size_func(1),
                      may_rotate_text=False,
-                     zorder=zorder,
-                     font=font)
+                     zorder=zorder)
 
 
 # Below, we provide some standard language settings for Gantt charts.

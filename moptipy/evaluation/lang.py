@@ -2,6 +2,8 @@
 
 from typing import Dict, Final, Optional, Iterable
 
+import matplotlib  # type: ignore
+
 from moptipy.utils.logging import sanitize_name
 
 
@@ -161,6 +163,7 @@ class Lang:
     def set_current(self) -> None:
         """Mark this language as the current one."""
         setattr(Lang.__get_langs, "__current", self)
+        matplotlib.rc("font", family=self.font())
 
     @staticmethod
     def all() -> Iterable['Lang']:
@@ -175,10 +178,7 @@ class Lang:
         return val
 
 
-#: the default font
-__DEFAULT_FONT = "DejaVu Sans"
-
-lang_en = Lang("en", __DEFAULT_FONT, {
+lang_en = Lang("en", "DejaVu Sans", {
     "f": "f",
     "time": "time",
     "time_in_fes": "time in FEs",
@@ -186,14 +186,15 @@ lang_en = Lang("en", __DEFAULT_FONT, {
 })
 lang_en.register()
 lang_en.set_current()
-del lang_en
 
-Lang("de", __DEFAULT_FONT, {
+Lang("de", lang_en.font(), {
     "f": "f",
     "time": "Zeit",
     "time_in_ms": "Zeit in ms",
     "time_in_fes": "Zeit in FEs",
 }).register()
+
+del lang_en
 
 Lang("zh", "Noto Sans SC", {
     "f": "f",

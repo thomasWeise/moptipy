@@ -234,9 +234,7 @@ def label_axes(axes: Axes,
                ylabel_inside: bool = True,
                ylabel_location: float = 1,
                font_size: float = pd.importance_to_font_size(0),
-               zorder: Optional[float] = None,
-               font: Union[None, str, Callable] =
-               lambda: Lang.current().font()) -> None:
+               zorder: Optional[float] = None) -> None:
     """
     Put labels on a figure.
 
@@ -255,14 +253,7 @@ def label_axes(axes: Axes,
         placed inside the plot area
     :param float font_size: the font size to use
     :param Optional[float] zorder: an optional z-order value
-    :param Union[None, str, Callable] font: the font to use
     """
-    if callable(font):
-        font = font()
-    if font is not None:
-        if not isinstance(font, str):
-            raise TypeError(f"Font must be string, but is {type(font)}.")
-
     # put the label on the x-axis, if any
     if xlabel is not None:
         if not isinstance(xlabel, str):
@@ -270,13 +261,9 @@ def label_axes(axes: Axes,
         if len(xlabel) > 0:
             if xlabel_inside:
                 label_box(axes, text=xlabel, x=xlabel_location, y=0,
-                          font_size=font_size, zorder=zorder,
-                          font=font)
+                          font_size=font_size, zorder=zorder)
             else:
-                if font:
-                    axes.set_xlabel(xlabel, fontsize=font_size, fontname=font)
-                else:
-                    axes.set_xlabel(xlabel, fontsize=font_size)
+                axes.set_xlabel(xlabel, fontsize=font_size)
 
     # put the label on the y-axis, if any
     if ylabel is not None:
@@ -286,12 +273,9 @@ def label_axes(axes: Axes,
             if ylabel_inside:
                 label_box(axes, text=ylabel, x=0, y=ylabel_location,
                           font_size=font_size, may_rotate_text=True,
-                          zorder=zorder, font=font)
+                          zorder=zorder)
             else:
-                if font:
-                    axes.set_ylabel(ylabel, fontsize=font_size, fontname=font)
-                else:
-                    axes.set_ylabel(ylabel, fontsize=font_size)
+                axes.set_ylabel(ylabel, fontsize=font_size)
 
 
 def get_axes(figure: Union[SubplotBase, Figure]) -> Axes:
