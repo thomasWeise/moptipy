@@ -27,11 +27,17 @@ So we try to find this information using a somewhat brute force approach:
 By enumerating instances and, for each instance, the Gantt charts, and
 count how many of them are feasible.
 """
-from math import factorial
-from typing import Tuple
+import sys
+from math import factorial, log10
+from typing import Tuple, Iterable, List
 
 import numba  # type: ignore
 import numpy as np
+
+from moptipy.examples.jssp import experiment
+from moptipy.examples.jssp.instance import Instance
+from moptipy.utils.path import Path
+from moptipy.evaluation.lang import Lang
 
 
 def gantt_space_size(jobs: int, machines: int) -> int:
@@ -439,3 +445,104 @@ def __enumerate_feasible_for(jobs: np.int64, machines: np.int64,
                                 gantt_state, jobs, machines,
                                 upper_bound, gantt_index,
                                 instance)
+
+
+def __long_str(value: int) -> str:
+    """
+    Convert a value to a string.
+
+    :param int value: the value
+    :returns: the string representation
+    :rtype: str
+    """
+    if value < 0:
+        return ""
+    if value <= 1_000_000_000_000:
+        return Lang.current().format_int(value)
+    logg = log10(value)
+    exp = int(logg)
+    base = value / (10 ** exp)
+    expf = Lang.current().format_int(exp)
+    return f"$\\approx${base:.3f}*10^{expf}^"
+
+
+def make_gantt_space_size_table(
+        dest: str = "solution_space_size.md",
+        instances: Iterable[str] =
+        tuple(list(experiment.EXPERIMENT_INSTANCES) + ["demo"])) -> Path:
+    """
+    Print a table of solution space sizes.
+
+    :param str dest: the destination file
+    :param Iterable[str] instances: the instances to add
+    :returns: the fully-qualified path to the generated file
+    :rtype: Path
+    """
+    file = Path.path(dest)
+    text = [f'|{Lang.current()["name"]}|'
+            r"$\jsspJobs$|$\jsspMachines$|$\min(\#\text{"
+            f'{Lang.current()["feasible"]}'
+            r"})$|$\left|\solutionSpace\right|$|",
+            r"|:--|--:|--:|--:|--:|"]
+
+    inst_scales: List[Tuple[int, int, int, int, str]] = []
+
+    # enumerate the pre-defined instances
+    for inst in set(instances):
+        instance = Instance.from_resource(inst)
+        min_size = -1
+        for tup in __PRE_COMPUTED:
+            if (tup[0] == instance.jobs) and (tup[1] == instance.machines):
+                min_size = tup[2]
+                break
+            if (min_size < 0) and ((instance.jobs <= 2)
+                                   or (instance.machines <= 2)):
+                min_size = gantt_min_feasible(
+                    instance.jobs, instance.machines)[0]
+        inst_scales.append(
+            (instance.jobs, instance.machines,
+             gantt_space_size(instance.jobs, instance.machines),
+             min_size, instance.name))
+        del instance
+
+    # enumerate some default values
+    for jobs in range(2, 6):
+        for machines in range(2, 6):
+            found: bool = False  # skip over already added scales
+            for tupp in inst_scales:
+                if (tupp[0] == jobs) and (tupp[1] == machines):
+                    found = True
+                    break
+            if found:
+                continue
+
+            min_size = -1
+            for tup in __PRE_COMPUTED:
+                if (tup[0] == jobs) and (tup[1] == machines):
+                    min_size = tup[2]
+                    break
+            if (min_size < 0) and ((jobs <= 2) or (machines <= 2)):
+                min_size = gantt_min_feasible(jobs, machines)[0]
+            inst_scales.append(
+                (jobs, machines, gantt_space_size(jobs, machines),
+                 min_size, ""))
+
+    inst_scales.sort()
+    for scale in inst_scales:
+        text.append(f"{scale[4]}|{scale[0]}|{scale[1]}|"
+                    f"{__long_str(scale[3])}|{__long_str(scale[2])}")
+
+    file.write_all(text)
+    file.enforce_file()
+    return file
+
+
+# create the tables if this is the main script
+if __name__ == "__main__":
+    dest_dir = Path.path(sys.argv[1])
+    dest_dir.ensure_dir_exists()
+    dest_name = sys.argv[2]
+    for lang in Lang.all():
+        lang.set_current()
+        make_gantt_space_size_table(
+            dest_dir.resolve_inside(lang.filename(dest_name) + ".md"))

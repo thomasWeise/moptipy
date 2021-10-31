@@ -1,6 +1,6 @@
 """Utilities for creating visualizations in multiple languages."""
 
-from typing import Dict, Final, Optional, Iterable
+from typing import Dict, Final, Optional, Iterable, List
 
 import matplotlib  # type: ignore
 
@@ -13,24 +13,35 @@ class Lang:
     def __init__(self,
                  name: str,
                  font: str,
+                 decimal_stepwidth: int,
                  data: Dict[str, str]):
         """
         Instantiate the language formatter.
 
         :param str name: the short name
         :param str font: the font name
+        :param int decimal_stepwidth: the decimal step width
         :param Dict[str, str] data: the data
         """
         #: the name of the locale
         self.__name: Final[str] = sanitize_name(name)
 
-        #: the font name
         if not isinstance(font, str):
             raise TypeError(f"The font must be str, but is {type(font)}.")
         font = font.strip()
         if not font:
             raise ValueError(f"The font cannot be '{font}'.")
+        #: the font name
         self.__font: Final[str] = font
+
+        if not isinstance(decimal_stepwidth, int):
+            raise TypeError(f"The decimal stepwidth must be int, but "
+                            f"is {type(decimal_stepwidth)}.")
+        if decimal_stepwidth <= 1:
+            raise TypeError(f"The decimal stepwidth must be > 1, but "
+                            f"is {decimal_stepwidth}.")
+        #: the decimal step width
+        self.__decimal_stepwidth: Final[int] = decimal_stepwidth
 
         #: the dictionary with the translation data
         self.__dict: Final[Dict[str, str]] = {}
@@ -112,6 +123,38 @@ class Lang:
         """
         return self.__font
 
+    def format_int(self, value: int) -> str:
+        """
+        Convert an integer to a string.
+
+        :param int value: the value
+        :returns: a string representation of the value
+        :rtype: str
+        """
+        if not isinstance(value, int):
+            raise TypeError(f"Value must be int, but is {type(value)}.")
+        if value < 0:
+            prefix = "-"
+            value = -value
+        else:
+            prefix = ""
+
+        sss = str(value)
+        i = len(sss)
+        if i <= self.__decimal_stepwidth:  # no formatting needed
+            return prefix + sss
+
+        # We divide the string into equally-sized chunks and insert "'"
+        # between them.
+        chunks: List[str] = []
+        for i in range(i, -1, -self.__decimal_stepwidth):
+            k: str = sss[i:(i + self.__decimal_stepwidth)]
+            if k:
+                chunks.insert(0, k)
+        if i > 0:
+            chunks.insert(0, sss[0:i])
+        return prefix + "'".join(chunks)
+
     @staticmethod
     def __get_langs() -> Dict[str, 'Lang']:
         """
@@ -178,8 +221,10 @@ class Lang:
         return val
 
 
-lang_en = Lang("en", "DejaVu Sans", {
+lang_en = Lang("en", "DejaVu Sans", 3, {
     "f": "f",
+    "feasible": "feasible",
+    "name": "name",
     "time": "time",
     "time_in_fes": "time in FEs",
     "time_in_ms": "time in ms",
@@ -187,8 +232,10 @@ lang_en = Lang("en", "DejaVu Sans", {
 lang_en.register()
 lang_en.set_current()
 
-Lang("de", lang_en.font(), {
+Lang("de", lang_en.font(), 3, {
     "f": "f",
+    "feasible": "realisierbar",
+    "name": "Name",
     "time": "Zeit",
     "time_in_ms": "Zeit in ms",
     "time_in_fes": "Zeit in FEs",
@@ -196,8 +243,10 @@ Lang("de", lang_en.font(), {
 
 del lang_en
 
-Lang("zh", "Noto Sans SC", {
+Lang("zh", "Noto Sans SC", 4, {
     "f": "f",
+    "feasible": "可行的",
+    "name": "名称",
     "time": "时间",
     "time_in_ms": "时间(毫秒)",
     "time_in_fes": "时间(目标函数的评价)",
