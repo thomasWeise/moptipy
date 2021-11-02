@@ -1,5 +1,5 @@
 """Code for selecting interesting instances for smaller-scale experiments."""
-from math import factorial, log2, inf
+from math import factorial, log2, inf, sqrt
 from typing import Dict, Tuple, Final, List, Callable, Set
 
 import numpy as np  # type: ignore
@@ -168,6 +168,100 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
     return result
 
 
+def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
+                      random: Generator) -> List[int]:
+    """
+    Pick a diverse scale choice.
+
+    :param List[List[Tuple[int, int]]] scale_choices: the scale choices we
+        have per group
+    :param Generator random: the random number generator
+    :returns: one chosen scale per group
+    :rtype: List[int]
+    """
+    n: Final[int] = len(scale_choices)
+
+    x_total_best: List[int] = [0] * n
+    opt_idx: List[Tuple[int, int]] = []  # the relevant indexes
+    opt_sum: int = 0
+    for idx, choices in enumerate(scale_choices):
+        if len(choices) > 1:
+            opt_sum += len(choices)
+            opt_idx.append((idx, len(choices)))
+
+    if not opt_idx:
+        return x_total_best
+
+    def __f(xx: List[int]) -> Tuple[float, float, int]:
+        """
+        Compute the quality of a suggestion, bigger is better.
+
+        :param xx: the candidate solution
+        :returns: a tuple with minimum distance, distance sum, and
+            difference count
+        :rtype: Tuple[float, float, int]
+        """
+        dist_min: float = inf
+        dist_sum: float = 0
+        diff_cnt: int = 0
+        nonlocal scale_choices
+        nonlocal n
+        for i in range(n):
+            a = scale_choices[i][xx[i]]
+            for j in range(i):
+                b = scale_choices[j][xx[j]]
+                if a[0] == b[0]:
+                    d0 = 0
+                else:
+                    diff_cnt += 1
+                    d0 = a[0] - b[0]
+                if a[1] == b[1]:
+                    d1 = 0
+                else:
+                    diff_cnt += 1
+                    d1 = a[1] - b[1]
+                d = sqrt((d0 * d0) + (d1 * d1))
+                if d < dist_min:
+                    dist_min = d
+                dist_sum += d
+        return dist_min, dist_sum, diff_cnt
+
+    f_total_best: Tuple[float, float, int] = __f(x_total_best)
+    logger(f"The following index-choices tuple exist: {opt_idx} and "
+           f"the initial choice is {x_total_best} at quality {f_total_best}.")
+
+    x_cur_best: List[int] = [0] * n
+    x_cur: List[int] = [0] * n
+
+    for _ in range(int(opt_sum ** 2.35)):
+        for ii, sc in enumerate(scale_choices):
+            x_cur_best[ii] = random.integers(len(sc))
+        f_cur_best: Tuple[float, float, int] = __f(x_cur_best)
+        if f_cur_best > f_total_best:
+            f_total_best = f_cur_best
+            x_total_best.clear()
+            x_total_best.extend(x_cur_best)
+            logger(f"Improved to {x_total_best} at quality {f_total_best}.")
+        for __ in range(int(opt_sum ** 2.35)):
+            idx, choicen = opt_idx[random.integers(len(opt_idx))]
+            old = x_cur[idx]
+            while old == x_cur[idx]:
+                x_cur[idx] = random.integers(choicen)
+            f_cur = __f(x_cur)
+            if f_cur >= f_cur_best:
+                f_cur_best = f_cur
+                x_cur_best.clear()
+                x_cur_best.extend(x_cur)
+                if f_cur_best > f_total_best:
+                    f_total_best = f_cur_best
+                    x_total_best.clear()
+                    x_total_best.extend(x_cur_best)
+                    logger(f"Improved to {x_total_best} "
+                           f"at quality {f_total_best}.")
+
+    return x_total_best
+
+
 def propose_instances(n: int,
                       get_instances: Callable = __get_instances) -> \
         Tuple[str, ...]:
@@ -230,6 +324,8 @@ def propose_instances(n: int,
 
     inst_names: Final[Tuple[str, ...]] = tuple([  # get the instance names
         inst.get_name() for inst in instances])
+    inst_sizes: Final[List[Tuple[int, int]]] =\
+        [(inst.jobs, inst.machines) for inst in instances]
 
     # the group to which the instances belong
     rm = str.maketrans("", "", "0123456789")
@@ -342,37 +438,81 @@ def propose_instances(n: int,
                                         random=random)
     logger(f"The instance groups {chosen_groups} were chosen for the"
            f" {n} clusters.")
-    result: List[str] = []
 
     # OK, we have picked one instance group per cluster.
-    # Now we pick the instance from that group.
+    # Now we need to pick the instance scales from these groups.
+    # The goal is to now select instances with (jobs, machines) settings as
+    # diverse as possible, while adhering to the selected instance groups.
+    # For example, a selected group may be of the family "la", but there
+    # might be instances of different (job, machines) settings in the cluster
+    # for this group.
+    # In this case, we want to pick those which do not already occur in other
+    # clusters.
     # If we can, we will pick the instances with the minimum and the maximum
     # scales.
+    # In a first step, we find out
     needs_min_scale = True
     needs_max_scale = True
+    scale_choices: List[List[Tuple[int, int]]] = []
+    inst_choices: List[List[str]] = []
+
     for i in range(n):
         elements = np.where(clusters == i)[0]
         sgroup: str = id_groups[chosen_groups[i]]
         possibility: Set[int] = {i for i in elements
                                  if inst_groups[i] == sgroup}
+        cur_scale_choices: List[Tuple[int, int]] = []
+        scale_choices.append(cur_scale_choices)
+        cur_inst_choices: List[str] = []
+        inst_choices.append(cur_inst_choices)
+        can_skip: bool = False
+
         if needs_min_scale:
             test = possibility.intersection(min_scale_inst)
             if len(test) > 0:
                 logger(
                     f"Choosing from groups {[inst_names[t] for t in test]} "
                     f"for cluster {i} to facilitate minimum-scale instance.")
-                possibility = test
+                sel = list(test)
+                seli = sel[random.integers(len(sel))]
+                possibility = {seli}
+                cur_scale_choices.append(inst_sizes[seli])
+                cur_inst_choices.append(inst_names[seli])
+                can_skip = True
                 needs_min_scale = False
+
         if needs_max_scale:
             test = possibility.intersection(max_scale_inst)
             if len(test) > 0:
                 logger(
                     f"Choosing from groups {[inst_names[t] for t in test]} "
                     f"for cluster {i} to facilitate maximum-scale instance.")
-                possibility = test
                 needs_max_scale = False
+                if can_skip:
+                    continue
+                sel = list(test)
+                seli = sel[random.integers(len(sel))]
+                cur_scale_choices.append(inst_sizes[seli])
+                cur_inst_choices.append(inst_names[seli])
+                continue
+        if can_skip:
+            continue
+
+        scales: Set[Tuple[int, int]] = set()
         sel = list(possibility)
-        result.append(inst_names[sel[random.integers(len(sel))]])
+        random.shuffle(sel)
+        for ii in sel:
+            tup = inst_sizes[ii]
+            if tup not in scales:
+                scales.add(tup)
+                cur_inst_choices.append(inst_names[ii])
+                cur_scale_choices.append(tup)
+
+    logger(f"Got the scale choices {scale_choices} resulting from the "
+           f"possible instances {inst_choices}.")
+    # do the actual scale optimization
+    final_sel = __optimize_scales(scale_choices, random)
+    result: List[str] = [inst_choices[i][k] for i, k in enumerate(final_sel)]
 
     # Finally, we sort and finalize the set of chosen instances.
     result.sort()
