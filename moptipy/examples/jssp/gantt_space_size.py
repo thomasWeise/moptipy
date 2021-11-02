@@ -463,7 +463,7 @@ def __long_str(value: int) -> str:
     exp = int(logg)
     base = value / (10 ** exp)
     expf = Lang.current().format_int(exp)
-    return f"$\\approx${base:.3f}*10^{expf}^"
+    return f"$\\approx$&nbsp;{base:.3f}*10^{expf}^"
 
 
 def make_gantt_space_size_table(
