@@ -262,6 +262,18 @@ def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
     return x_total_best
 
 
+def __scale(jobs: int, machines: int) -> int:
+    """
+    Compute the scale of a JSSP instance.
+
+    :param int jobs: the jobs
+    :param int machines: the machines
+    :returns: the scale
+    :rtype: int
+    """
+    return factorial(jobs) ** machines
+
+
 def propose_instances(n: int,
                       get_instances: Callable = __get_instances) -> \
         Tuple[str, ...]:
@@ -357,7 +369,7 @@ def propose_instances(n: int,
         features[i, 0] = inst.jobs
         features[i, 1] = inst.machines
         features[i, 2] = inst.jobs / inst.machines
-        scale = factorial(inst.jobs) ** inst.machines
+        scale = __scale(inst.jobs, inst.machines)
         if scale <= min_scale_val:
             if scale < min_scale_val:
                 min_scale_val = scale
@@ -512,9 +524,13 @@ def propose_instances(n: int,
            f"possible instances {inst_choices}.")
     # do the actual scale optimization
     final_sel = __optimize_scales(scale_choices, random)
-    result: List[str] = [inst_choices[i][k] for i, k in enumerate(final_sel)]
+
+    res_tmp: Final[List[Tuple[int, str]]] = \
+        [(__scale(scale_choices[i][k][0], scale_choices[i][k][1]),
+          inst_choices[i][k]) for i, k in enumerate(final_sel)]
+    res_tmp.sort()
+    result: Final[List[str]] = [sey[1] for sey in res_tmp]
 
     # Finally, we sort and finalize the set of chosen instances.
-    result.sort()
     logger(f"Found final instance selection {result}.")
     return tuple(result)

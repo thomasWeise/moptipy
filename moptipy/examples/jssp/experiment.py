@@ -21,9 +21,13 @@ from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
+#: The instances in this tuple are sorted by the scale, i.e., the number
+#: of possible (feasible or infeasible) Gantt charts than can be constructed
+#: for them. For the smallest instance, ft06, we can construct over 10**17.
+#: For the largest one (ta79), more than 10**3159 are possible.
 EXPERIMENT_INSTANCES: \
     Final[Tuple[str, str, str, str, str, str, str, str]] = \
-    ('abz8', 'dmu40', 'ft06', 'la09', 'swv18', 'ta54', 'ta79', 'yn2')
+    ('ft06', 'la09', 'abz8', 'yn2', 'swv18', 'ta54', 'dmu40', 'ta79')
 
 #: The number of runs per instance in our experiment.
 EXPERIMENT_RUNS: Final[int] = 7
