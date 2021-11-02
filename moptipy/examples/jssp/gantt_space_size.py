@@ -529,8 +529,8 @@ def make_gantt_space_size_table(
 
     inst_scales.sort()
     for scale in inst_scales:
-        text.append(f"{scale[4]}|{scale[0]}|{scale[1]}|"
-                    f"{__long_str(scale[3])}|{__long_str(scale[2])}")
+        text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
+                    f"{__long_str(scale[3])}|{__long_str(scale[2])}|")
 
     file.write_all(text)
     file.enforce_file()
