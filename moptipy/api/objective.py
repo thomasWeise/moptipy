@@ -17,9 +17,9 @@ class Objective(Component):
         """
         Evaluate a solution `x` and return its objective value.
 
-        The return value is either an integer or a float and must be finite.
-        Smaller objective values are better, i.e., all objective functions are
-        subject to minimization.
+        The return value is either an integer or a float and must be
+        finite. Smaller objective values are better, i.e., all objective
+        functions are subject to minimization.
 
         :param x: the candidate solution
         :return: the objective value

@@ -37,9 +37,10 @@ class Instance(Component):
         :param int jobs: the number of jobs
         :param np.ndarray matrix: the matrix with the data
         :param Optional[int] makespan_lower_bound: the lower bound of the
-            makespan, which may be the known global optimum if the instance has
-            been solved to optimality or any other approximation. If `None` is
-            provided, a lower bound will be computed.
+            makespan, which may be the known global optimum if the
+            instance has been solved to optimality or any other
+            approximation. If `None` is provided, a lower bound will be
+            computed.
         """
         # end book
         #: The name of this JSSP instance.
