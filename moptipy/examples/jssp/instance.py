@@ -41,9 +41,9 @@ class Instance(Component):
             been solved to optimality or any other approximation. If `None` is
             provided, a lower bound will be computed.
         """
-        #: The name of this JSSP instance.
-        self.name: Final[str] = logging.sanitize_name(name)
         # end book
+        #: The name of this JSSP instance.
+        self.name: Final[str] = logging.sanitize_name(name)  # +book
 
         if name != self.name:
             raise ValueError(f"Name '{name}' is not a valid name.")

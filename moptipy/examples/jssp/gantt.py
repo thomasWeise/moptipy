@@ -5,7 +5,8 @@ from moptipy.examples.jssp.instance import Instance
 from moptipy.utils import nputils
 
 
-class Gantt:  # +book
+# start book
+class Gantt:
     """
     A class representing Gantt charts.
 
@@ -16,12 +17,13 @@ class Gantt:  # +book
     the job on the machine.
     """
 
-    def __init__(self, instance: Instance) -> None:  # +book
+    def __init__(self, instance: Instance) -> None:
         """
         Create a Gantt chart record to hold a solution for a JSSP instance.
 
         :param Instance instance: the JSSP instance
         """
+        # end book
         if not isinstance(instance, Instance):
             TypeError("Must provide valid JSSP instance, but passed "
                       f"in a {type(instance)}.")

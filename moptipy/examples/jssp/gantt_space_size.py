@@ -502,7 +502,7 @@ def make_gantt_space_size_table(
         inst_scales.append(
             (instance.jobs, instance.machines,
              gantt_space_size(instance.jobs, instance.machines),
-             min_size, instance.name))
+             min_size, f"`{instance.name}`"))
         del instance
 
     # enumerate some default values
@@ -523,9 +523,11 @@ def make_gantt_space_size_table(
                     break
             if (min_size < 0) and ((jobs <= 2) or (machines <= 2)):
                 min_size = gantt_min_feasible(jobs, machines)[0]
+            name = "[@fig:jssp_feasible_gantt]" \
+                if (jobs == 2) and (machines == 2) else ""
             inst_scales.append(
                 (jobs, machines, gantt_space_size(jobs, machines),
-                 min_size, ""))
+                 min_size, name))
 
     inst_scales.sort()
     for scale in inst_scales:

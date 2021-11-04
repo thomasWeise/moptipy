@@ -8,6 +8,7 @@ from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 
 
+# start book
 class Objective(Component):
     """An objective function: a criterion rating the solution quality."""
 
@@ -25,6 +26,7 @@ class Objective(Component):
         :rtype: Union[float, int]
         """
         raise NotImplementedError
+    # end book
 
     def lower_bound(self) -> Union[float, int]:
         """
