@@ -11,41 +11,44 @@ from moptipy.utils.nputils import int_range_to_dtype
 
 
 @numba.njit(nogil=True, cache=True)
-def _map(x: np.ndarray,
-         machine_time: np.ndarray,
-         job_time: np.ndarray,
-         job_idx: np.ndarray,
-         matrix: np.ndarray,
-         times: np.ndarray) -> np.number:
+def decode(x: np.ndarray,
+           machine_time: np.ndarray,
+           job_time: np.ndarray,
+           job_idx: np.ndarray,
+           matrix: np.ndarray,
+           times: np.ndarray) -> int:
     """
     Map an operation-based encoded array to a Gantt chart.
 
-    :param np.ndarray x: the source array
-    :param np.ndarray machine_time: a scratch array for machine times
-    :param np.ndarray job_time: a scratch array for job times
-    :param np.ndarray job_idx: a scratch array for job indices
-    :param np.ndarray matrix: the instance matrix
-    :param np.ndarray times: the output times array
+    :param np.ndarray x: the source array, i.e., multi-permutation
+    :param np.ndarray machine_time: array of length `m` for machine times
+    :param np.ndarray job_time: array of length `n` for job times
+    :param np.ndarray job_idx: length `n` array of current job operations
+    :param np.ndarray matrix: the instance data matrix
+    :param np.ndarray times: the output array: `times` of the Gantt chart
     :return: the makespan
-    :rtype: np.integer
+    :rtype: int
     """
-    machine_time.fill(0)
-    job_time.fill(0)
-    job_idx.fill(0)
+    machine_time.fill(0)  # all machines start at time 0
+    job_time.fill(0)  # each job has consumed 0 time units
+    job_idx.fill(0)  # each job starts at its first operation
+    makespan: int = 0  # computed makespan
 
-    for job in x:
-        idx = job_idx[job]
-        job_idx[job] = idx + 2
-        machine = matrix[job, idx]
-        time = matrix[job, idx + 1]
-        start = max(job_time[job], machine_time[machine])
-        times[job, machine, 0] = start
-        end = start + time
-        times[job, machine, 1] = end
-        machine_time[machine] = end
-        job_time[job] = end
+    for job in x:  # iterate over multi-permutation
+        idx = job_idx[job]  # get the current operation of the job
+        job_idx[job] = idx + 2  # and step it to the next operation
+        machine = matrix[job, idx]  # get the machine for the operation
+        time = matrix[job, idx + 1]  # and the time requirement
+        start = max(job_time[job], machine_time[machine])  # earliest
+        times[job, machine, 0] = start  # store start time in Gantt chart
+        end = start + time  # compute end time
+        times[job, machine, 1] = end  # store end time in Gantt chart
+        machine_time[machine] = end  # time next job can start on machine
+        job_time[job] = end  # time next operation of job can start
+        if end > makespan:  # do we need to update makespan?
+            makespan = end  # yes - so let's update makespan
 
-    return job_time.max()
+    return makespan  # return makespan
 
 
 class OperationBasedEncoding(Encoding):
@@ -93,9 +96,9 @@ class OperationBasedEncoding(Encoding):
         :param np.array x: the array
         :param moptipy.examples.jssp.Gantt y: the Gantt chart
         """
-        y.makespan = int(_map(x, self.__machine_time,
-                              self.__job_time, self.__job_idx,
-                              self.__matrix, y.times))
+        y.makespan = int(decode(x, self.__machine_time,
+                                self.__job_time, self.__job_idx,
+                                self.__matrix, y.times))
 
     def get_name(self) -> str:
         """
