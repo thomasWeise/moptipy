@@ -44,7 +44,6 @@ class GanttSpace(Space):
         if dest.instance != source.instance:
             raise ValueError("Instances of source and dest must be the same.")
         np.copyto(dest.times, source.times)
-        dest.makespan = source.makespan
 
     def to_str(self, x: Gantt) -> str:
         """
@@ -84,7 +83,6 @@ class GanttSpace(Space):
         np.copyto(x.times,
                   np.fromstring(text, dtype=x.times.dtype, sep=",")
                   .reshape(x.times.shape))
-        x.compute_statistics()
         self.validate(x)
         return x
 
@@ -103,9 +101,6 @@ class GanttSpace(Space):
         if not isinstance(x.times, np.ndarray):
             raise TypeError(
                 f"x.times must be numpy.ndarray, but is {type(x.times)}.")
-        if not isinstance(x.makespan, int):
-            raise TypeError(
-                f"x.makespan must be int, but is {type(x.makespan)}.")
         if not isinstance(x.instance, Instance):
             raise TypeError("x.instance must be a Instance, "
                             f"but is {type(x.instance)}.")
@@ -167,9 +162,6 @@ class GanttSpace(Space):
                 last_machine = machine
 
         maxtime: Final[int] = int(x.times.max())
-        if x.makespan != maxtime:
-            raise ValueError(f"Cached makespan {x.makespan} not equal to "
-                             f"actual makespan {maxtime}.")
         if maxtime < x.instance.makespan_lower_bound:
             raise ValueError(
                 f"Makespan {maxtime} computed, which is smaller than the "

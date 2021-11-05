@@ -228,6 +228,8 @@ lang_en = Lang("en", "DejaVu Sans", 3, {
     "time": "time",
     "time_in_fes": "time in FEs",
     "time_in_ms": "time in ms",
+    "lower_bound": "lower bound",
+    "lower_bound_short": "lb",
 })
 lang_en.register()
 lang_en.set_current()
@@ -239,6 +241,8 @@ Lang("de", lang_en.font(), 3, {
     "time": "Zeit",
     "time_in_ms": "Zeit in ms",
     "time_in_fes": "Zeit in FEs",
+    "lower_bound": "untere Schranke",
+    "lower_bound_short": "us",
 }).register()
 
 del lang_en
@@ -250,4 +254,6 @@ Lang("zh", "Noto Sans SC", 4, {
     "time": "时间",
     "time_in_ms": "时间(毫秒)",
     "time_in_fes": "时间(目标函数的评价)",
+    "lower_bound": "下界",
+    "lower_bound_short": "下界",
 }).register()

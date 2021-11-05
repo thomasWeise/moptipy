@@ -16,16 +16,43 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp.gantt import Gantt
 
-#: The default markers
-DEFAULT_MARKERS: Tuple[Tuple[str, Callable]] = \
-    (("lb", lambda x: x.instance.makespan_lower_bound),)
+
+def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
+    """
+    A marker for the lower bound.
+
+    :param moptipy.examples.jssp.gantt.Gantt x: the Gantt chart
+    :return: the lower bound marker
+    :rtype: str
+    """
+    return Lang.current()["lower_bound_short"],\
+        x.instance.makespan_lower_bound
+
+
+def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
+    """
+    A marker for the makespan.
+
+    :param moptipy.examples.jssp.gantt.Gantt x: the Gantt chart
+    :return: the makespan marker
+    :rtype: str
+    """
+    return Lang.current()["makespan"], int(x.times.max())
+
+
+#: the color for markers at the left end
+__LEFT_END_MARK: Final[Tuple[float, float, float]] = 0.95, 0.02, 0.02
+#: the color for markers at the right end
+__RIGHT_END_MARK: Final[Tuple[float, float, float]] = 0.02, 0.02, 0.95
+#: the color for markers in the middle
+__MIDDLE_MARK: Final[Tuple[float, float, float]] = pd.COLOR_BLACK
 
 
 def plot_gantt_chart(gantt: Gantt,
                      figure: Union[SubplotBase, Figure],
-                     markers: Optional[Iterable[
-                         Tuple[str, Union[int, Callable]]]] =
-                     DEFAULT_MARKERS,
+                     markers: Optional[Iterable[Union[
+                         Tuple[str, Union[int, float]], Callable]]] =
+                     (marker_lb,),
                      x_axis: Union[AxisRanger, Callable] =
                      lambda gantt: AxisRanger(chosen_min=0),
                      importance_to_line_width_func: Callable =
@@ -81,21 +108,29 @@ def plot_gantt_chart(gantt: Gantt,
         raise TypeError(f"x_axis must be AxisRanger, but is {type(x_axis)}.")
 
     # Compute all the marks
-    marks: Dict[int, str] = {}
+    marks: Dict[Union[int, float], str] = {}
     if markers is not None:
         if not isinstance(markers, Iterable):
             raise TypeError(
                 f"Expected markers to be Iterable, but got {type(markers)}.")
-        for name, val in markers:
+        for marker in markers:
+            if callable(marker):
+                marker = marker(gantt)
+            if not marker:
+                continue
+            if isinstance(marker, tuple):
+                name, val = marker
+                if (not name) or (not val):
+                    continue
+            else:
+                raise TypeError("marker must be tuple or "
+                                f"callable, but is {type(marker)}")
             if not isinstance(name, str):
                 raise TypeError(
                     f"marker name must be str, but is {type(name)}.")
-            if callable(val):
-                val = val(gantt)
-                if val is None:
-                    continue
-            if not isinstance(val, int):
-                raise TypeError(f"marker must be int but is {type(val)}.")
+            if not isinstance(val, (int, float)):
+                raise TypeError(
+                    f"marker must be int or float but is {type(val)}.")
             if val in marks:
                 marks[val] = f"{marks[val]}/{name}"
             else:
@@ -105,6 +140,7 @@ def plot_gantt_chart(gantt: Gantt,
     # Add x-axis data
     x_axis.register_array(times.flatten())
     x_axis.apply(axes, "x")
+    xmin, xmax = axes.get_xlim()
 
     # Set up the y-axis range.
     height: Final[float] = 0.7
@@ -139,7 +175,9 @@ def plot_gantt_chart(gantt: Gantt,
     for val, _ in marks.items():
         axes.add_artist(Line2D(xdata=(val, val),
                                ydata=(y_min, y_max),
-                               color=pd.COLOR_BLACK,
+                               color=__LEFT_END_MARK if val <= xmin
+                               else __RIGHT_END_MARK if val >= xmax
+                               else __MIDDLE_MARK,
                                linewidth=2.0,
                                zorder=zorder))
         zorder += 1
@@ -228,17 +266,19 @@ def plot_gantt_chart(gantt: Gantt,
             "fill": True,
             "linewidth": 0,
             "alpha": 0.9}
-    y_mark: Final[float] = machines - 1 + (0.9 * bar_ofs)
+    y_mark: Final[float] = -0.1  # machines - 1 + (0.9 * bar_ofs) for top
     for val, name in marks.items():
         axes.annotate(text=f"{name}={val}",
                       xy=(val, y_mark),
                       xytext=(-4, -4),
-                      verticalalignment="top",
+                      verticalalignment="bottom",
                       horizontalalignment="right",
                       xycoords="data",
                       textcoords="offset points",
                       fontsize=font_size,
-                      color=pd.COLOR_BLACK,
+                      color=__LEFT_END_MARK if val <= xmin
+                      else __RIGHT_END_MARK if val >= xmax
+                      else __MIDDLE_MARK,
                       rotation=90,
                       bbox=bbox,
                       zorder=zorder)
@@ -268,34 +308,3 @@ def plot_gantt_chart(gantt: Gantt,
                      font_size=importance_to_font_size_func(1),
                      may_rotate_text=False,
                      zorder=zorder)
-
-
-# Below, we provide some standard language settings for Gantt charts.
-
-# the English language strings
-Lang.get("en").extend({
-    "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs} "
-                  "jobs \u00D7 {gantt.instance.machines} machines), "
-                  "makespan {gantt.makespan}",
-    "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
-                        "jobs \u00D7 {gantt.instance.machines} machines)",
-    "machine": "machine",
-})
-# the German language strings
-Lang.get("de").extend({
-    "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs} "
-                  "Jobs \u00D7 {gantt.instance.machines} Maschinen), "
-                  "Makespan {gantt.makespan}",
-    "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
-                        "Jobs \u00D7 {gantt.instance.machines} Maschinen)",
-    "machine": "Maschine",
-})
-# the Chinese language strings
-Lang.get("zh").extend({
-    "gantt_info": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
-                  "\u00D7{gantt.instance.machines}台机器），"
-                  "最大完工时间{gantt.makespan}",
-    "gantt_info_no_ms": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
-                        "\u00D7{gantt.instance.machines}台机器）",
-    "machine": "机器",
-})

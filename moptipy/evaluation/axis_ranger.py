@@ -162,7 +162,7 @@ class AxisRanger:
             raise TypeError(
                 f"which_axis must be str but is {type(which_axis)}.")
 
-        for is_x_axis in [True, False]:
+        for is_x_axis in (True, False):
             if not (("x" if is_x_axis else "y") in which_axis):
                 continue
 

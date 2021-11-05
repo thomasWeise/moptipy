@@ -6,9 +6,11 @@ from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance
 
 
+# start book
 class Makespan(Objective):
     """This objective function returns the makespan of a Gantt chart."""
 
+# end book
     def __init__(self, instance: Instance) -> None:
         """
         Initialize the makespan objective function.
@@ -22,15 +24,16 @@ class Makespan(Objective):
                 f"Must provide Instance, but got '{type(instance)}'.")
         self.__instance: Final[Instance] = instance
 
+    # start book
     def evaluate(self, x: Gantt) -> int:
         """
         Get the makespan corresponding to a given :class:`Gantt` chart.
 
         :param moptipy.examples.jssp.Gantt x: the Gantt chart.
-        :return: the value of the :py:attr:`~Gantt.makespan` stored in the
-            Gantt chart
+        :return: the maximum of any time stored in the chart
         """
-        return int(x.makespan)
+        return int(x.times.max())
+        # end book
 
     def lower_bound(self) -> int:
         """

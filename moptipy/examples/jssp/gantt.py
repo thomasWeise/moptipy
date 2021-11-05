@@ -35,17 +35,3 @@ class Gantt:
             dtype=nputils.int_range_to_dtype(
                 min_value=0, max_value=instance.makespan_upper_bound),
             shape=(instance.jobs, instance.machines, 2))  # +book
-
-        #: The makespan of the Gantt chart, an integer.
-        self.makespan: int = 0  # +book2
-
-    # start book2
-    def compute_statistics(self) -> None:
-        """
-        Re-compute all statistics of the Gantt chart.
-
-        This currently only includes the makespan, which simply is the largest
-        recorded number in `self.times`.
-        """
-        self.makespan = int(self.times.max())
-        # end book2

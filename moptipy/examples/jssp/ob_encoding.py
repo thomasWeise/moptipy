@@ -16,7 +16,7 @@ def decode(x: np.ndarray,
            job_time: np.ndarray,
            job_idx: np.ndarray,
            matrix: np.ndarray,
-           times: np.ndarray) -> int:
+           times: np.ndarray) -> None:
     """
     Map an operation-based encoded array to a Gantt chart.
 
@@ -26,13 +26,10 @@ def decode(x: np.ndarray,
     :param np.ndarray job_idx: length `n` array of current job operations
     :param np.ndarray matrix: the instance data matrix
     :param np.ndarray times: the output array: `times` of the Gantt chart
-    :return: the makespan
-    :rtype: int
     """
     machine_time.fill(0)  # all machines start at time 0
     job_time.fill(0)  # each job has consumed 0 time units
     job_idx.fill(0)  # each job starts at its first operation
-    makespan: int = 0  # computed makespan
 
     for job in x:  # iterate over multi-permutation
         idx = job_idx[job]  # get the current operation of the job
@@ -45,10 +42,6 @@ def decode(x: np.ndarray,
         times[job, machine, 1] = end  # store end time in Gantt chart
         machine_time[machine] = end  # time next job can start on machine
         job_time[job] = end  # time next operation of job can start
-        if end > makespan:  # do we need to update makespan?
-            makespan = end  # yes - so let's update makespan
-
-    return makespan  # return makespan
 
 
 class OperationBasedEncoding(Encoding):
@@ -96,9 +89,8 @@ class OperationBasedEncoding(Encoding):
         :param np.array x: the array
         :param moptipy.examples.jssp.Gantt y: the Gantt chart
         """
-        y.makespan = int(decode(x, self.__machine_time,
-                                self.__job_time, self.__job_idx,
-                                self.__matrix, y.times))
+        decode(x, self.__machine_time, self.__job_time, self.__job_idx,
+               self.__matrix, y.times)
 
     def get_name(self) -> str:
         """
