@@ -93,6 +93,7 @@ class Instance(Component):
         #: consecutive sequence, i.e., 2*machine numbers.
         self.matrix: Final[np.ndarray] = matrix  # +book
 
+        # ... some computations ...  # +book
         # We now compute the lower bound for the makespan based on the
         # algorithm by Taillard
         usedmachines = np.zeros(machines, np.dtype(np.bool_))
