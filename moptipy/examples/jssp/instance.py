@@ -4,9 +4,9 @@ from typing import Final, List, Tuple, Optional
 
 import numpy as np
 
+import moptipy.utils.nputils as npu
 from moptipy.api import Component
 from moptipy.utils import logging
-from moptipy.utils import nputils
 from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 
@@ -37,10 +37,10 @@ def compute_makespan_lower_bound(machines: int,
     """
     # get the lower bound of the makespan with the algorithm by Taillard
     usedmachines = np.zeros(machines, np.bool_)  # -lb
-    jobtimes = np.zeros(jobs, np.int64)  # allocate array for job times
+    jobtimes = np.zeros(jobs, np.int64)  # get array for job times
     machinetimes = np.zeros(machines, np.int64)  # machine times array
-    machine_start_idle = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
-    machine_end_idle = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
+    machine_start_idle = npu.np_ints_max(machines, npu.DEFAULT_INT)
+    machine_end_idle = npu.np_ints_max(machines, npu.DEFAULT_INT)
 
     for jobidx in range(jobs):  # iterate over all jobs
         row = matrix[jobidx]  # get the data for the job
@@ -57,8 +57,8 @@ def compute_makespan_lower_bound(machines: int,
             if time < 0:  # time can _never_ be negative -> error  # -lb
                 raise ValueError(f"Invalid time '{time}'.")  # -lb
             machinetimes[machine] += time  # add up operation times
-            machine_start_idle[machine] = min(  # update start idle time
-                machine_start_idle[machine], jobtime)  # with job time
+            machine_start_idle[machine] = min(  # update with...
+                machine_start_idle[machine], jobtime)  # ...job time
             jobtime += time  # update job time by adding operation time
             j += 2  # step operation index
 
@@ -68,9 +68,9 @@ def compute_makespan_lower_bound(machines: int,
             j -= 2  # step operation index downwards
             machine = row[j]  # get machine for operation
             time = row[j + 1]  # get time for operation
-            machine_end_idle[machine] = min(  # update machine end idle
-                machine_end_idle[machine],  # time by computing the time
-                jobtime - jobremaining)  # the job needs after operation
+            machine_end_idle[machine] = min(  # update by computing...
+                machine_end_idle[machine],  # the time that the job...
+                jobtime - jobremaining)  # needs _after_ operation
             jobremaining -= time  # and update the remaining job time
 
         if not all(usedmachines):  # all machines have been used?  # -lb
@@ -82,13 +82,13 @@ def compute_makespan_lower_bound(machines: int,
     if machines_bound <= 0:  # -lb
         raise ValueError("Computed machine bound cannot be <= , "  # -lb
                          f"but is {machines_bound}.")  # -lb
-    # get  the longest time any job needs in total
+    # get the longest time any job needs in total
     jobs_bound = jobtimes.max()
     if jobs_bound <= 0:  # -lb
         raise ValueError(  # -lb
             f"Computed jobs bound cannot be <= , but is {jobs_bound}.")  # -lb
 
-    return int(max(machines_bound, jobs_bound))  # return the maximum
+    return int(max(machines_bound, jobs_bound))  # return bigger one
 # end lb
 
 
