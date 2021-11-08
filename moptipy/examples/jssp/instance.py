@@ -22,6 +22,76 @@ MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
 MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
 
+# start lb
+def compute_makespan_lower_bound(machines: int,
+                                 jobs: int,
+                                 matrix: np.ndarray) -> int:
+    """
+    Compute the lower bound for the makespan of a JSSP instance.
+
+    :param int machines: the number of machines
+    :param int jobs: the number of jobs
+    :param np.ndarray matrix: the matrix with the instance data
+    :returns: the lower bound for the makespan
+    :rtype: int
+    """
+    # get the lower bound of the makespan with the algorithm by Taillard
+    usedmachines = np.zeros(machines, np.bool_)  # -lb
+    jobtimes = np.zeros(jobs, np.int64)  # allocate array for job times
+    machinetimes = np.zeros(machines, np.int64)  # machine times array
+    machine_start_idle = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
+    machine_end_idle = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
+
+    for jobidx in range(jobs):  # iterate over all jobs
+        row = matrix[jobidx]  # get the data for the job
+        usedmachines.fill(False)  # no machine has been used  # -lb
+        j: int = 0  # the index into the data
+        jobtime: int = 0  # the job time sum
+        for i in range(machines):  # iterate over all operations
+            machine: int = row[j]  # get machine for operation
+            time: int = row[j + 1]  # get time for operation
+            if usedmachines[i]:  # machine already used??? -> error  # -lb
+                raise ValueError(  # -lb
+                    f"Machine {machine} occurs more than once.")  # -lb
+            usedmachines[i] = True  # mark machine as used  # -lb
+            if time < 0:  # time can _never_ be negative -> error  # -lb
+                raise ValueError(f"Invalid time '{time}'.")  # -lb
+            machinetimes[machine] += time  # add up operation times
+            machine_start_idle[machine] = min(  # update start idle time
+                machine_start_idle[machine], jobtime)  # with job time
+            jobtime += time  # update job time by adding operation time
+            j += 2  # step operation index
+
+        jobtimes[jobidx] = jobtime  # store job time
+        jobremaining = jobtime  # iterate backwards to get end idle times
+        for i in range(machines):  # second iteration round
+            j -= 2  # step operation index downwards
+            machine = row[j]  # get machine for operation
+            time = row[j + 1]  # get time for operation
+            machine_end_idle[machine] = min(  # update machine end idle
+                machine_end_idle[machine],  # time by computing the time
+                jobtime - jobremaining)  # the job needs after operation
+            jobremaining -= time  # and update the remaining job time
+
+        if not all(usedmachines):  # all machines have been used?  # -lb
+            raise ValueError("Some machines not used in a job.")  # -lb
+
+    # get the maximum of the per-machine sums of the idle and work times
+    machines_bound = (machine_start_idle + machine_end_idle
+                      + machinetimes).max()
+    if machines_bound <= 0:  # -lb
+        raise ValueError("Computed machine bound cannot be <= , "  # -lb
+                         f"but is {machines_bound}.")  # -lb
+    # get  the longest time any job needs in total
+    jobs_bound = jobtimes.max()
+    if jobs_bound <= 0:  # -lb
+        raise ValueError(  # -lb
+            f"Computed jobs bound cannot be <= , but is {jobs_bound}.")  # -lb
+
+    return int(max(machines_bound, jobs_bound))  # return the maximum
+# end lb
+
+
 # start book
 class Instance(Component):
     """An instance of the Job Shop Scheduling Problem."""
@@ -94,58 +164,8 @@ class Instance(Component):
         self.matrix: Final[np.ndarray] = matrix  # +book
 
         # ... some computations ...  # +book
-        # We now compute the lower bound for the makespan based on the
-        # algorithm by Taillard
-        usedmachines = np.zeros(machines, np.dtype(np.bool_))
-        jobtimes = np.zeros(jobs, nputils.DEFAULT_INT)
-        machinetimes = np.zeros(machines, nputils.DEFAULT_INT)
-        machine1 = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
-        machine2 = nputils.np_ints_max(machines, nputils.DEFAULT_INT)
-
-        jobidx = 0
-        for row in matrix:
-            usedmachines.fill(False)
-            j = 0
-            jobtime = 0
-            for i in range(machines):
-                machine = row[j]
-                time = row[j + 1]
-                if usedmachines[i]:
-                    raise ValueError(
-                        f"Machine {machine} occurs more than once "
-                        f"for instance '{name}'.")
-                usedmachines[i] = True
-                if time < 0:
-                    raise ValueError(
-                        f"Invalid time '{time}' for instance '{name}'.")
-                machinetimes[machine] += time
-                machine1[machine] = min(machine1[machine], jobtime)
-                jobtime += time
-                j += 2
-
-            jobtimes[jobidx] = jobtime
-            jobremaining = jobtime
-            j = len(row)
-            for i in range(machines):
-                j -= 2
-                machine = row[j]
-                time = row[j + 1]
-                machine2[machine] = min(machine2[machine],
-                                        jobtime - jobremaining)
-                jobremaining -= time
-
-            if not all(usedmachines):
-                raise ValueError(
-                    f"Some machines not used in a job in instance '{name}'.")
-            jobidx += 1
-
-        ms_lower_bound = max(int(jobtimes.max()),
-                             int((machine1 + machine2 + machinetimes).max()))
-        if ms_lower_bound <= 0:
-            raise ValueError(
-                "Computed makespan lower bound must not be <= 0, "
-                f"but is {ms_lower_bound}.")
-        ms_upper_bound = int(jobtimes.sum())
+        ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
+        ms_upper_bound = int(matrix[:, 1::2].sum())  # sum of all job times
         if ms_upper_bound < ms_lower_bound:
             raise ValueError(
                 f"Computed makespan upper bound {ms_upper_bound} must not "

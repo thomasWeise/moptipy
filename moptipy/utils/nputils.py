@@ -106,6 +106,7 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
         "was specified.")
 
 
+@numba.jit(forceobj=True)
 def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
     Create an integer array of the given length filled with the maximum value.
@@ -120,6 +121,7 @@ def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
                    dtype=dtype)
 
 
+@numba.jit(forceobj=True)
 def np_ints_min(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
     Create an integer array of the given length filled with the minimum value.
