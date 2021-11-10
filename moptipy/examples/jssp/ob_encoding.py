@@ -10,14 +10,14 @@ from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.nputils import int_range_to_dtype
 
 
-@numba.njit(nogil=True, cache=True)
 # start book
+@numba.njit(nogil=True, cache=True)
 def decode(x: np.ndarray,
            machine_time: np.ndarray,
            job_time: np.ndarray,
            job_idx: np.ndarray,
            matrix: np.ndarray,
-           times: np.ndarray) -> None:
+           y: np.ndarray) -> None:
     """
     Map an operation-based encoded array to a Gantt chart.
 
@@ -26,7 +26,7 @@ def decode(x: np.ndarray,
     :param np.ndarray job_time: array of length `n` for job times
     :param np.ndarray job_idx: length `n` array of current job operations
     :param np.ndarray matrix: the instance data matrix
-    :param np.ndarray times: the output array: `times` of the Gantt chart
+    :param np.ndarray y: the output array: `times` of the Gantt chart
     """
     machine_time.fill(0)  # all machines start at time 0
     job_time.fill(0)  # each job has initially consumed 0 time units
@@ -38,14 +38,16 @@ def decode(x: np.ndarray,
         machine = matrix[job, idx]  # get the machine for the operation
         time = matrix[job, idx + 1]  # and the time requirement
         start = max(job_time[job], machine_time[machine])  # earliest
-        times[job, machine, 0] = start  # store start time in chart
+        y[job, machine, 0] = start  # store start time in Gantt chart
         end = start + time  # compute end time
-        times[job, machine, 1] = end  # store end time in Gantt chart
+        y[job, machine, 1] = end  # store end time in Gantt chart
         machine_time[machine] = end  # time when next job can start
         job_time[job] = end  # time next operation of job can start
 
 
 class OperationBasedEncoding(Encoding):
+    # ... some scratch variables for decode are allocated in __init__
+    # end book
     """
     An operation-based encoding for the Job Shop Scheduling Problem (JSSP).
 
@@ -63,8 +65,6 @@ class OperationBasedEncoding(Encoding):
     second time, its second operation is placed on its corresponding machine,
     and so on.
     """
-    # ... some scratch variables for decode are allocated in __init__
-    # end book
 
     def __init__(self, instance: Instance) -> None:
         """
