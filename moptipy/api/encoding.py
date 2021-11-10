@@ -5,6 +5,7 @@ from typing import Optional
 from moptipy.api.component import Component
 
 
+# start book
 class Encoding(Component):
     """The encodings translates from a search space to a solution space."""
 
@@ -21,6 +22,7 @@ class Encoding(Component):
             solution space, whose contents will be overwritten
         """
         raise NotImplementedError
+    # end book
 
 
 def check_encoding(encoding: Optional[Encoding],

@@ -11,6 +11,7 @@ from moptipy.utils.nputils import int_range_to_dtype
 
 
 @numba.njit(nogil=True, cache=True)
+# start book
 def decode(x: np.ndarray,
            machine_time: np.ndarray,
            job_time: np.ndarray,
@@ -28,7 +29,7 @@ def decode(x: np.ndarray,
     :param np.ndarray times: the output array: `times` of the Gantt chart
     """
     machine_time.fill(0)  # all machines start at time 0
-    job_time.fill(0)  # each job has consumed 0 time units
+    job_time.fill(0)  # each job has initially consumed 0 time units
     job_idx.fill(0)  # each job starts at its first operation
 
     for job in x:  # iterate over multi-permutation
@@ -37,10 +38,10 @@ def decode(x: np.ndarray,
         machine = matrix[job, idx]  # get the machine for the operation
         time = matrix[job, idx + 1]  # and the time requirement
         start = max(job_time[job], machine_time[machine])  # earliest
-        times[job, machine, 0] = start  # store start time in Gantt chart
+        times[job, machine, 0] = start  # store start time in chart
         end = start + time  # compute end time
         times[job, machine, 1] = end  # store end time in Gantt chart
-        machine_time[machine] = end  # time next job can start on machine
+        machine_time[machine] = end  # time when next job can start
         job_time[job] = end  # time next operation of job can start
 
 
@@ -62,6 +63,8 @@ class OperationBasedEncoding(Encoding):
     second time, its second operation is placed on its corresponding machine,
     and so on.
     """
+    # ... some scratch variables for decode are allocated in __init__
+    # end book
 
     def __init__(self, instance: Instance) -> None:
         """
@@ -82,6 +85,7 @@ class OperationBasedEncoding(Encoding):
             np.zeros(instance.jobs, int_range_to_dtype(0, instance.jobs))
         self.__matrix: Final[np.ndarray] = instance.matrix
 
+    # start book
     def map(self, x: np.ndarray, y: Gantt) -> None:
         """
         Map an operation-based encoded array to a Gantt chart.
@@ -91,6 +95,7 @@ class OperationBasedEncoding(Encoding):
         """
         decode(x, self.__machine_time, self.__job_time, self.__job_idx,
                self.__matrix, y.times)
+        # end book
 
     def get_name(self) -> str:
         """
