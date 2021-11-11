@@ -46,7 +46,7 @@ def decode(x: np.ndarray,
 
 
 class OperationBasedEncoding(Encoding):
-    # reusable scratch __machine_time, __job_time, and __job_idx are
+    # reusable variables __machine_time, __job_time, and __job_idx are
     # allocated in __init__; __matrix points to instance data I.matrix
     # end book
     """
