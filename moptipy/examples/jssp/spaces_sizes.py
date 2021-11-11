@@ -38,6 +38,7 @@ from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp import experiment
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.path import Path
+from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 
 
 def gantt_space_size(jobs: int, machines: int) -> int:
@@ -495,10 +496,10 @@ def make_gantt_space_size_table(
             if (tup[0] == instance.jobs) and (tup[1] == instance.machines):
                 min_size = tup[2]
                 break
-            if (min_size < 0) and ((instance.jobs <= 2)
-                                   or (instance.machines <= 2)):
-                min_size = gantt_min_feasible(
-                    instance.jobs, instance.machines)[0]
+        if (min_size < 0) and ((instance.jobs <= 2)
+                               or (instance.machines <= 2)):
+            min_size = gantt_min_feasible(
+                instance.jobs, instance.machines)[0]
         inst_scales.append(
             (instance.jobs, instance.machines,
              gantt_space_size(instance.jobs, instance.machines),
@@ -539,12 +540,69 @@ def make_gantt_space_size_table(
     return file
 
 
+def make_search_space_size_table(
+        dest: str = "solution_space_size.md",
+        instances: Iterable[str] =
+        tuple(list(experiment.EXPERIMENT_INSTANCES) + ["demo"])) -> Path:
+    """
+    Print a table of search space sizes.
+
+    :param str dest: the destination file
+    :param Iterable[str] instances: the instances to add
+    :returns: the fully-qualified path to the generated file
+    :rtype: Path
+    """
+    file = Path.path(dest)
+    text = [f'|{Lang.current()["name"]}|'
+            r"$\jsspJobs$|$\jsspMachines$|$\left|\solutionSpace\right|$|"
+            r"$\left|\searchSpace\right|$|",
+            r"|:--|--:|--:|--:|--:|"]
+    inst_scales: List[Tuple[int, int, int, int, str]] = []
+
+    # enumerate the pre-defined instances
+    for inst in set(instances):
+        instance = Instance.from_resource(inst)
+        inst_scales.append(
+            (instance.jobs, instance.machines,
+             gantt_space_size(instance.jobs, instance.machines),
+             PermutationsWithRepetitions(instance.jobs,
+                                         instance.machines).scale(),
+             f"`{instance.name}`"))
+        del instance
+
+    # enumerate some default values
+    for jobs in range(3, 6):
+        for machines in range(2, 6):
+            found: bool = False  # skip over already added scales
+            for tupp in inst_scales:
+                if (tupp[0] == jobs) and (tupp[1] == machines):
+                    found = True
+                    break
+            if found:
+                continue
+            inst_scales.append(
+                (jobs, machines, gantt_space_size(jobs, machines),
+                 PermutationsWithRepetitions(jobs, machines).scale(), ""))
+
+    inst_scales.sort()
+    for scale in inst_scales:
+        text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
+                    f"{__long_str(scale[2])}|{__long_str(scale[3])}|")
+
+    file.write_all(text)
+    file.enforce_file()
+    return file
+
+
 # create the tables if this is the main script
 if __name__ == "__main__":
     dest_dir = Path.path(sys.argv[1])
     dest_dir.ensure_dir_exists()
-    dest_name = sys.argv[2]
     for lang in Lang.all():
         lang.set_current()
         make_gantt_space_size_table(
-            dest_dir.resolve_inside(lang.filename(dest_name) + ".md"))
+            dest_dir.resolve_inside(
+                lang.filename("solution_space_size") + ".md"))
+        make_search_space_size_table(
+            dest_dir.resolve_inside(
+                lang.filename("search_space_size") + ".md"))
