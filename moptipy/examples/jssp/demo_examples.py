@@ -140,6 +140,8 @@ def demo_gantt_chart(dirname: str,
                      optimum: bool = False,
                      with_makespan: bool = False,
                      with_lower_bound: bool = False,
+                     width: Union[float, int, None] = cm_to_inch(10),
+                     height: Union[float, int, None] = None,
                      filename: Union[str, Callable] =
                      __make_gantt_demo_name) -> List[Path]:
     """
@@ -149,6 +151,8 @@ def demo_gantt_chart(dirname: str,
     :param bool optimum: should we return the optimal solution?
     :param bool with_makespan: should the makespan be included?
     :param bool with_lower_bound: should the lower bound be included?
+    :param Union[float,int,None] width: the optional width
+    :param Union[float,int,None] height: the optional height
     :param str filename: the file name
     """
     the_dir: Final[Path] = Path.path(dirname)
@@ -178,7 +182,7 @@ def demo_gantt_chart(dirname: str,
 
     for lang in Lang.all():
         lang.set_current()
-        figure: Figure = create_figure(width=cm_to_inch(10))
+        figure: Figure = create_figure(width=width, height=height)
 
         gantt = demo_solution(optimum=optimum)
         plot_gantt_chart(gantt=gantt,
