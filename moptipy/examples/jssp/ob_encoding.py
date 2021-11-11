@@ -35,7 +35,7 @@ def decode(x: np.ndarray,
     for job in x:  # iterate over multi-permutation
         idx = job_idx[job]  # get the current operation of the job
         job_idx[job] = idx + 2  # and step it to the next operation
-        machine = matrix[job, idx]  # get the machine for the operation
+        machine = matrix[job, idx]  # get the machine of the operation
         time = matrix[job, idx + 1]  # and the time requirement
         start = max(job_time[job], machine_time[machine])  # earliest
         y[job, machine, 0] = start  # store start time in Gantt chart
@@ -46,7 +46,8 @@ def decode(x: np.ndarray,
 
 
 class OperationBasedEncoding(Encoding):
-    # ... some scratch variables for decode are allocated in __init__
+    # reusable scratch __machine_time, __job_time, and __job_idx are
+    # allocated in __init__; __matrix points to instance data I.matrix
     # end book
     """
     An operation-based encoding for the Job Shop Scheduling Problem (JSSP).
