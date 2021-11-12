@@ -10,10 +10,12 @@ from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
 from moptipy.utils.logger import KeyValueSection
 
 
+# start book
 class GanttSpace(Space):
     """A space implementation of for `Gantt` charts."""
 
     def __init__(self, instance: Instance) -> None:
+        # end book
         """
         Create a Gantt chart space.
 
@@ -23,18 +25,18 @@ class GanttSpace(Space):
             ValueError("Must provide valid JSSP instance, "
                        f"but passed in a {type(instance)}.")
         #: The JSSP Instance to which the Gantt record apply.
-        self.instance = instance
+        self.instance: Final[Instance] = instance  # +book
 
-    def create(self) -> Gantt:
+    def create(self) -> Gantt:  # +book
         """
         Create a Gantt chart object without assigning jobs to machines.
 
         :return: the Gantt chart
         :rtype: moptipy.examples.jssp.Gantt
         """
-        return Gantt(self.instance)
+        return Gantt(self.instance)  # +book
 
-    def copy(self, source: Gantt, dest: Gantt) -> None:
+    def copy(self, source: Gantt, dest: Gantt) -> None:  # +book
         """
         Copy the contents of one Gantt chart to another.
 
@@ -43,9 +45,9 @@ class GanttSpace(Space):
         """
         if dest.instance != source.instance:
             raise ValueError("Instances of source and dest must be the same.")
-        np.copyto(dest.times, source.times)
+        np.copyto(dest.times, source.times)  # +book
 
-    def to_str(self, x: Gantt) -> str:
+    def to_str(self, x: Gantt) -> str:  # +book
         """
         Convert a Gantt chart to a string.
 
@@ -54,9 +56,9 @@ class GanttSpace(Space):
             :py:attr:`~Gantt.times` array
         :rtype: str
         """
-        return ",".join([str(xx) for xx in x.times.flatten()])
+        return ",".join([str(xx) for xx in x.times.flatten()])  # +book
 
-    def is_equal(self, x1: Gantt, x2: Gantt) -> bool:
+    def is_equal(self, x1: Gantt, x2: Gantt) -> bool:  # +book
         """
         Check if two Gantt charts have the same contents.
 
@@ -66,10 +68,12 @@ class GanttSpace(Space):
             same structure
         :rtype: bool
         """
+        # start book
         return (x1.instance == x2.instance) and \
             np.array_equal(x1.times, x2.times)
+        # end book
 
-    def from_str(self, text: str) -> Gantt:
+    def from_str(self, text: str) -> Gantt:  # +book
         """
         Convert a string to a Gantt chart.
 
@@ -77,24 +81,27 @@ class GanttSpace(Space):
         :return: the Gantt chart
         :rtype: moptipy.examples.jssp.Gantt
         """
-        if not (isinstance(text, str)):
+        if not isinstance(text, str):
             raise TypeError(f"text must be str, but is {type(text)}.")
+        # start book
         x: Final[Gantt] = self.create()
         np.copyto(x.times,
                   np.fromstring(text, dtype=x.times.dtype, sep=",")
                   .reshape(x.times.shape))
-        self.validate(x)
+        self.validate(x)  # -book
         return x
+        # end book
 
-    def validate(self, x: Gantt) -> None:
+    def validate(self, x: Gantt) -> None:  # +book
         """
-        Validate a Gantt chart `x` and raise errors if it is invalid.
+        Check if a Gantt chart if valid and feasible.
 
         :param moptipy.examples.jssp.Gantt x: the Gantt chart
         :raises TypeError: if any component of the chart is of the wrong type
         :raises ValueError: if the Gantt chart is not feasible or the makespan
             is wrong
         """
+        # checks if a Gantt chart if valid and feasible.  # +book
         if not isinstance(x.instance, Instance):
             raise TypeError("Invalid instance, not a JSSP instance, "
                             f"but a {type(x.instance)}.")

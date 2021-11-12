@@ -1,4 +1,6 @@
 """A class for representing Gantt charts as objects."""
+from typing import Final
+
 import numpy as np
 
 from moptipy.examples.jssp.instance import Instance
@@ -28,10 +30,10 @@ class Gantt:
             TypeError("Must provide valid JSSP instance, but passed "
                       f"in a {type(instance)}.")
         #: The JSSP Instance to which this Gantt record applies.
-        self.instance = instance  # +book
+        self.instance: Final[Instance] = instance  # +book
 
         #: A 3D matrix with (start, stop) time for each job on each machine.
-        self.times = np.zeros(  # +book
+        self.times: Final[np.ndarray] = np.zeros(  # +book
             dtype=nputils.int_range_to_dtype(
                 min_value=0, max_value=instance.makespan_upper_bound),
             shape=(instance.jobs, instance.machines, 2))  # +book

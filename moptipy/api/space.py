@@ -11,22 +11,27 @@ from typing import Optional
 from moptipy.api.component import Component
 
 
+# start book
 class Space(Component):
     """
     A class to represent both search and solution spaces.
 
-    The space basically defines a container data structure and basic operations
-    that we can apply to them. For instance, a solution space contains all the
-    possible solutions to an optimization problem. All of them are instances of
-    one data structure. An optimization as well as a black-box process needs to
-    be able to create and copy such instances. In order to store the solutions
-    we found in a log file, we must further be able to translate them to
-    strings. Finally, it is also important to detect whether two instances are
-    the same. All of this functionality is offered by the Space class.
+    The space basically defines a container data structure and basic
+    operations that we can apply to them. For example, a solution
+    space contains all the possible solutions to an optimization
+    problem. All of them are instances of one data structure. An
+    optimization as well as a black-box process needs to be able to
+    create and copy such objects. In order to store the solutions we
+    found in a text file, we must further be able to translate them to
+    strings and we should also be able to parse such strings. It is
+    also important to detect whether two objects are the same and
+    whether the contents of an object are valid. All of this
+    functionality is offered by the `Space` class.
     """
 
     @abstractmethod
     def create(self):
+        # end book
         """
         Generate an instance of the data structure managed by the space.
 
@@ -34,10 +39,10 @@ class Space(Component):
 
         :return: the new instance
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
-    @abstractmethod
-    def copy(self, source, dest) -> None:
+    @abstractmethod  # +book
+    def copy(self, source, dest) -> None:  # +book
         """
         Copy one instance of the data structure to another one.
 
@@ -46,10 +51,10 @@ class Space(Component):
         :param dest: the destination data structure,
             whose contents will be overwritten with those from `source`
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
-    @abstractmethod
-    def to_str(self, x) -> str:
+    @abstractmethod  # +book
+    def to_str(self, x) -> str:  # +book
         """
         Obtain a textual representation of an instance of the data structure.
 
@@ -59,8 +64,8 @@ class Space(Component):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def is_equal(self, x1, x2) -> bool:
+    @abstractmethod  # +book
+    def is_equal(self, x1, x2) -> bool:  # +book
         """
         Check if the contents of two instances of the data structure are equal.
 
@@ -69,10 +74,10 @@ class Space(Component):
         :return: True if the contents are equal, False otherwise
         :rtype: bool
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
-    @abstractmethod
-    def from_str(self, text: str):
+    @abstractmethod  # +book
+    def from_str(self, text: str):  # +book
         """
         Transform a string `text` to one element of the space.
 
@@ -83,17 +88,17 @@ class Space(Component):
         :param text: the input string
         :return: the element in the space corresponding to `text`
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
-    @abstractmethod
-    def validate(self, x) -> None:
+    @abstractmethod  # +book
+    def validate(self, x) -> None:  # +book
         """
         Check whether a given point in the space is valid.
 
         :param x: the point
         :raises ValueError: if the point `x` is invalid
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod
     def scale(self) -> int:

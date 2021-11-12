@@ -9,7 +9,7 @@ from moptipy.utils.logger import KeyValueSection
 
 
 class PermutationsWithRepetitions(IntSpace):
-    """A space where each element represents a permutation with repetition."""
+    """A space of permutations with repetitions."""
 
     #: the number of times each value must occur
     KEY_REPETITIONS: Final = "repetitions"
