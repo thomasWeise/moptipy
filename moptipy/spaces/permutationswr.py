@@ -44,6 +44,7 @@ class PermutationsWithRepetitions(IntSpace):
         self.repetitions: Final[int] = repetitions
 
         # start book
+        # ...omitted some things, self.dimension = n*repetitions
         self.__blueprint: Final[np.ndarray] = np.empty(
             shape=self.dimension, dtype=self.dtype)
         self.__blueprint[0:self.dimension] = list(range(n)) * repetitions
