@@ -62,7 +62,7 @@ class Space(Component):
         :return: the string representation of x
         :rtype: str
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod  # +book
     def is_equal(self, x1, x2) -> bool:  # +book
