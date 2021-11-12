@@ -6,8 +6,9 @@ from numpy.random import Generator
 from moptipy.api.component import Component
 
 
+# start op0
 class Op0(Component):
-    """A class to implement a nullary search operator."""
+    """A base class to implement a nullary search operator."""
 
     @abstractmethod
     def op0(self, random: Generator, dest) -> None:
@@ -20,10 +21,12 @@ class Op0(Component):
         :param dest: the destination data structure
         """
         raise NotImplementedError
+# end op0
 
 
+# start op1
 class Op1(Component):
-    """A class to implement a unary search operator."""
+    """A base class to implement a unary search operator."""
 
     @abstractmethod
     def op1(self, random: Generator, x, dest) -> None:
@@ -35,15 +38,17 @@ class Op1(Component):
         :param dest: the destination data structure
         """
         raise NotImplementedError
+# end op1
 
 
+# start op2
 class Op2(Component):
-    """A class to implement a binary search operator."""
+    """A base class to implement a binary search operator."""
 
     @abstractmethod
     def op2(self, random: Generator, x0, x1, dest) -> None:
         """
-        Fill `dest` with a combination of the contents of `x0` and `x1`.
+        Fill `dest` with a combination of `x0` and `x1`.
 
         :param Generator random: the random number generator
         :param x0: the first source point in the search space
@@ -51,3 +56,4 @@ class Op2(Component):
         :param dest: the destination data structure
         """
         raise NotImplementedError
+# end op2
