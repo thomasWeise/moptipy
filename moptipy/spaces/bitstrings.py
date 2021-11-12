@@ -7,6 +7,9 @@ from moptipy.api.space import Space
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 
+#: the internal type for but strings
+_DTYPE: Final[np.dtype] = np.dtype(np.bool_)
+
 
 class BitStrings(Space):
     """
@@ -14,9 +17,6 @@ class BitStrings(Space):
 
     With such a space, discrete optimization can be realized.
     """
-
-    #: the internal type for but strings
-    __DTYPE: Final = np.dtype(np.bool_)
 
     def __init__(self, dimension: int) -> None:
         """
@@ -50,7 +50,7 @@ class BitStrings(Space):
         >>> print(v.dtype)
         bool
         """
-        return np.zeros(shape=self.dimension, dtype=BitStrings.__DTYPE)
+        return np.zeros(shape=self.dimension, dtype=_DTYPE)
 
     def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
         """
@@ -111,10 +111,9 @@ class BitStrings(Space):
         if not (isinstance(x, np.ndarray)):
             raise TypeError(
                 f"x must be an numpy.ndarray, but is a {type(x)}.")
-        if x.dtype != BitStrings.__DTYPE:
+        if x.dtype != _DTYPE:
             raise TypeError(
-                f"x must be of type {BitStrings.__DTYPE}, "
-                f"but is of type {x.dtype}.")
+                f"x must be of type {_DTYPE}, but is of type {x.dtype}.")
         if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
             raise ValueError(f"x must be of shape ({self.dimension}), "
                              f"but is of shape {x.shape}.")

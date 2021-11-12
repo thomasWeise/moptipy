@@ -85,8 +85,7 @@ class GanttSpace(Space):
             raise TypeError(f"text must be str, but is {type(text)}.")
         # start book
         x: Final[Gantt] = self.create()
-        np.copyto(x.times,
-                  np.fromstring(text, dtype=x.times.dtype, sep=",")
+        np.copyto(x.times, np.fromstring(text, dtype=x.times.dtype, sep=",")
                   .reshape(x.times.shape))
         self.validate(x)  # -book
         return x
@@ -102,11 +101,11 @@ class GanttSpace(Space):
             is wrong
         """
         # start book
-        # checks if a Gantt chart if valid and feasible.
+        # Checks if a Gantt chart if valid and feasible.
         if not isinstance(x.instance, Instance):
             raise TypeError("x.instance must be an 'Instance', "
                             f"but is {type(x.instance)}.")
-        # ...
+        # the rest of the checks is not printed for brevity reasons...
         # end book
         if not isinstance(x.times, np.ndarray):
             raise TypeError(

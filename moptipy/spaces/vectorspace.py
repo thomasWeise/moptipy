@@ -8,6 +8,9 @@ from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.logging import float_to_str, KEY_SPACE_NUM_VARS
 from moptipy.utils.nputils import is_np_float, is_all_finite
 
+#: the character identifying the numpy data type backing the space
+KEY_NUMPY_TYPE: Final = "dtype"
+
 
 class VectorSpace(Space):
     """
@@ -15,9 +18,6 @@ class VectorSpace(Space):
 
     Such spaces are useful for continuous optimization.
     """
-
-    #: the character identifying the numpy data type backing the space
-    KEY_NUMPY_TYPE: Final = "dtype"
 
     def __init__(self, dimension: int, dtype=np.dtype(np.float64)) -> None:
         """
@@ -167,4 +167,4 @@ class VectorSpace(Space):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, self.dimension)
-        logger.key_value(VectorSpace.KEY_NUMPY_TYPE, self.dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)

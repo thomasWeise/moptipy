@@ -8,6 +8,13 @@ from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 
+#: the character identifying the numpy data type backing the space
+KEY_NUMPY_TYPE: Final[str] = "dtype"
+#: the minimum value
+KEY_MIN: Final[str] = "min"
+#: the maximum value
+KEY_MAX: Final[str] = "max"
+
 
 class IntSpace(Space):
     """
@@ -16,13 +23,6 @@ class IntSpace(Space):
     Such spaces can serve as basis for implementing combinatorial
     optimization and can be extended to host permutations.
     """
-
-    #: the character identifying the numpy data type backing the space
-    KEY_NUMPY_TYPE: Final = "dtype"
-    #: the minimum value
-    KEY_MIN: Final = "min"
-    #: the maximum value
-    KEY_MAX: Final = "max"
 
     def __init__(self, dimension: int,
                  min_value: int,
@@ -135,7 +135,7 @@ class IntSpace(Space):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
-        if not (isinstance(x, np.ndarray)):
+        if not isinstance(x, np.ndarray):
             raise TypeError(
                 f"x must be an numpy.ndarray, but is a {type(x)}.")
         if x.dtype != self.dtype:
@@ -180,6 +180,6 @@ class IntSpace(Space):
         """
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
-        logger.key_value(IntSpace.KEY_NUMPY_TYPE, self.dtype.char)
-        logger.key_value(IntSpace.KEY_MIN, self.min_value)
-        logger.key_value(IntSpace.KEY_MAX, self.max_value)
+        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)
+        logger.key_value(KEY_MIN, self.min_value)
+        logger.key_value(KEY_MAX, self.max_value)

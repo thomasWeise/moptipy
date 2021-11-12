@@ -18,7 +18,8 @@ class Permutations(IntSpace):
         """
         super().__init__(dimension=n, min_value=0, max_value=n - 1)
 
-        self.__blueprint: Final[np.ndarray] = super().create()
+        self.__blueprint: Final[np.ndarray] = np.empty(
+            shape=self.dimension, dtype=self.dtype)
         self.__blueprint[0:n] = list(range(n))
 
     def create(self) -> np.ndarray:
