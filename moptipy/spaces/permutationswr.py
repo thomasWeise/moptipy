@@ -36,7 +36,6 @@ class PermutationsWithRepetitions(IntSpace):
             raise ValueError("repetitions must be in 1..1_000_000_000, "
                              f"but is {repetitions}.")
 
-        # start book
         super().__init__(dimension=n * repetitions, min_value=0,
                          max_value=n - 1)
         #: n is the number of items, meaning the values are in [0, n-1].
@@ -44,6 +43,7 @@ class PermutationsWithRepetitions(IntSpace):
         #: The number of times each value must occur.
         self.repetitions: Final[int] = repetitions
 
+        # start book
         self.__blueprint: Final[np.ndarray] = np.empty(
             shape=self.dimension, dtype=self.dtype)
         self.__blueprint[0:self.dimension] = list(range(n)) * repetitions
