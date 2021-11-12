@@ -101,16 +101,16 @@ class GanttSpace(Space):
         :raises ValueError: if the Gantt chart is not feasible or the makespan
             is wrong
         """
-        # checks if a Gantt chart if valid and feasible.  # +book
+        # start book
+        # checks if a Gantt chart if valid and feasible.
         if not isinstance(x.instance, Instance):
-            raise TypeError("Invalid instance, not a JSSP instance, "
-                            f"but a {type(x.instance)}.")
+            raise TypeError("x.instance must be an 'Instance', "
+                            f"but is {type(x.instance)}.")
+        # ...
+        # end book
         if not isinstance(x.times, np.ndarray):
             raise TypeError(
                 f"x.times must be numpy.ndarray, but is {type(x.times)}.")
-        if not isinstance(x.instance, Instance):
-            raise TypeError("x.instance must be a Instance, "
-                            f"but is {type(x.instance)}.")
         if not isinstance(x.instance.matrix, np.ndarray):
             raise TypeError("x.instance.matrix must be numpy.ndarray, "
                             f"but is {type(x.instance.matrix)}.")
