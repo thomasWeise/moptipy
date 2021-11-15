@@ -1,5 +1,6 @@
 """Run the moptipy example experiment."""
 import os.path as pp
+import sys
 from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any
 
@@ -18,6 +19,8 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
 from moptipy.operators.pwr.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.utils.logging import logger
+from moptipy.utils.path import Path
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
@@ -36,13 +39,15 @@ EXPERIMENT_RUNS: Final[int] = 7
 EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 
 
-#: The default set of algorithms for our experiments
+#: The default set of algorithms for our experiments.
+#: Each of them is a Callable that receives two parameters, the instance
+#: `inst` and the permutation with repetitions-space `pwr`.
 DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = (
-    lambda inst: EA1p1(Op0Shuffle(), Op1Swap2()),  # (1+1)-EA
-    lambda inst: HillClimber(Op0Shuffle(), Op1Swap2()),  # hill climber
-    lambda inst: RandomSampling(Op0Shuffle()),  # random sampling
-    lambda inst: SingleRandomSample(Op0Shuffle()),  # single random sample
-    lambda inst: RandomWalk(Op0Shuffle(), Op1Swap2())  # random walk
+    lambda inst, pwr: EA1p1(Op0Shuffle(pwr), Op1Swap2()),  # (1+1)-EA
+    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
+    lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
+    lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
+    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2())  # random walk
 )
 
 
@@ -56,7 +61,10 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     """
     Run the experiment.
 
-    :param Iterable[Callable] algorithms: the algorithm factories
+    :param Iterable[Callable] algorithms: the algorithm factories.
+        Each factory receives as input one JSSP `Instance` and one instance
+        of `PermutationWithRepetition`. It returns either an instance of
+        `Algorithm` or of `Execution`.
     :param Iterable[Callable] instances: the JSSP instance names
     :param str base_dir: the base directory
     :param int n_runs: the number of runs
@@ -64,6 +72,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     :param Optional[int] max_fes: the maximum runtime in FEs
     :param Optional[int] n_threads: the number of threads
     """
+    # The intitial parameter validity checks.
     if not isinstance(base_dir, str):
         raise TypeError(
             f"base_dir must be str, but is {type(base_dir)}.")
@@ -93,44 +102,76 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     inst_gens = [(lambda s=s: Instance.from_resource(s)) for s in instances]
     if len(inst_gens) <= 0:
         raise ValueError("There must be at least one instance.")
+    del instances
+
+    # In this loop, we convert the simple algorithm lambdas to execution
+    # creators.
     algo_gens = []
     for algo in algorithms:
-        def creator(inst: Instance, algor=algo):
-            val: Union[Execution, Algorithm] = algor(inst)
+        # we create one constructor for each algorithm factory
+        def creator(inst: Instance, algor: Callable = algo) -> Execution:
+            """
+            Create the algorithm for a given instance.
+
+            :param Instance inst: the JSSP instance
+            :param Callable algor: the algorithm creator
+            :return: an Execution for the experiment
+            :rtype: Execution
+            """
+            pwr: PermutationsWithRepetitions = \
+                PermutationsWithRepetitions(inst.jobs, inst.machines)
+
+            val: Union[Execution, Algorithm] = algor(inst, pwr)
             experiment: Execution
             if isinstance(val, Execution):
                 experiment = cast(Execution, val)
             else:
+                if not isinstance(val, Algorithm):
+                    raise TypeError("Factory must return Algorithm or "
+                                    f"Execution, but returns {type(val)}.")
                 experiment = Execution()
                 experiment.set_algorithm(cast(Algorithm, val))
+
             if max_time is not None:
                 experiment.set_max_time_millis(max_time)
             if max_fes is not None:
                 experiment.set_max_fes(max_fes)
             experiment.set_objective(Makespan(inst))
             experiment.set_solution_space(GanttSpace(inst))
-            experiment.set_search_space(
-                PermutationsWithRepetitions(inst.jobs, inst.machines))
+            experiment.set_search_space(pwr)
             experiment.set_encoding(OperationBasedEncoding(inst))
             experiment.set_log_improvements()
             return experiment
 
-        algo_gens.append(creator)
-        del creator
+        algo_gens.append(creator)  # add constructor to generator list
+        del creator  # the creator is no longer needed
+    del algorithms
+
     if len(algo_gens) <= 0:
         raise ValueError("There must be at least one algorithm.")
 
-    kwargs: Dict[str, Any] = {"base_dir": base_dir,
-                              "instances": inst_gens,
-                              "setups": algo_gens,
-                              "n_runs": n_runs,
-                              "perform_warmup": True}
+    ikwargs: Dict[str, Any] = {"base_dir": base_dir,
+                               "instances": inst_gens,
+                               "setups": algo_gens,
+                               "n_runs": n_runs,
+                               "perform_warmup": True}
     if n_threads is not None:
-        kwargs["n_threads"] = n_threads
+        ikwargs["n_threads"] = n_threads
 
-    ex.run_experiment(**kwargs)
+    ex.run_experiment(**ikwargs)  # invoke the actual experiment
 
 
 # Execute experiment if run as script
 if __name__ == '__main__':
-    run_experiment()
+    mkwargs: Dict[str, Any] = {}
+    if len(sys.argv) > 1:
+        dest_dir: Final[Path] = Path.path(sys.argv[1])
+        dest_dir.ensure_dir_exists()
+        mkwargs["base_dir"] = dest_dir
+        logger(f"Set base_dir '{dest_dir}'.")
+        if len(sys.argv) > 2:
+            n_cpu = int(sys.argv[2])
+            mkwargs["n_threads"] = n_cpu
+            logger(f"Set n_threads to {n_cpu}.")
+
+    run_experiment(**mkwargs)  # invoke the experiment execution

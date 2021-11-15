@@ -165,15 +165,15 @@ def test_algorithm_on_jssp(algorithm: Callable,
             f"Error when loading JSSP instance '{instance}', "
             f"obtained {type(inst)} instead.")
 
-    algorithm = algorithm(inst)
+    search_space = PermutationsWithRepetitions(inst.jobs,
+                                               inst.machines)
+    algorithm = algorithm(inst, search_space)
     if not isinstance(algorithm, ma.Algorithm):
         raise ValueError(
             "Must 'algorithm' parameter must be a callable that instantiates"
             f"an algorithm for JSSP instance '{instance}', but it created a "
             f"'{type(algorithm)}' instead.")
 
-    search_space = PermutationsWithRepetitions(inst.jobs,
-                                               inst.machines)
     solution_space = GanttSpace(inst)
     encoding = OperationBasedEncoding(inst)
     objective = Makespan(inst)

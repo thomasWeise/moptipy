@@ -18,7 +18,7 @@ instances = [lambda: Instance.from_resource("dmu01"),
 def algo_1(inst) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0Shuffle()
+    op0 = pwr.Op0Shuffle(ss)
     op1 = pwr.Op1Swap2()
     algo = HillClimber(op0, op1)
     ex = Execution()
@@ -35,7 +35,7 @@ def algo_1(inst) -> Execution:
 def algo_2(inst) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0Shuffle()
+    op0 = pwr.Op0Shuffle(ss)
     algo = RandomSampling(op0)
     ex = Execution()
     ex.set_algorithm(algo)

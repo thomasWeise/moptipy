@@ -45,9 +45,11 @@ class PermutationsWithRepetitions(IntSpace):
 
         # start book
         # ...omitted some things, self.dimension = n*repetitions
-        self.__blueprint: Final[np.ndarray] = np.empty(
+        #: the blueprint of a valid solution: a canonical permutation
+        #: with repetitions
+        self.blueprint: Final[np.ndarray] = np.empty(
             shape=self.dimension, dtype=self.dtype)
-        self.__blueprint[0:self.dimension] = list(range(n)) * repetitions
+        self.blueprint[0:self.dimension] = list(range(n)) * repetitions
         # end book
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
@@ -73,7 +75,7 @@ class PermutationsWithRepetitions(IntSpace):
         >>> print(pwr.to_str(perm))
         0,1,2,3,0,1,2,3,0,1,2,3
         """
-        return self.__blueprint.copy()  # +book
+        return self.blueprint.copy()  # +book
 
     def scale(self) -> int:
         """
