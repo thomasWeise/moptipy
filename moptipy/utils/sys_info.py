@@ -5,7 +5,7 @@ import platform
 import re
 import sys
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Final
 
 import moptipy.version as ver
 from moptipy.utils import logging
@@ -14,7 +14,22 @@ from moptipy.utils.path import Path
 
 
 def __make_sys_info() -> str:
-    def __v(sec: KeyValueSection, key: str, value):
+    """
+    Build the system info string.
+
+    This method is only used once and then deleted.
+
+    :returns: the system info string.
+    :rtype: str
+    """
+    def __v(sec: KeyValueSection, key: str, value) -> None:
+        """
+        Create a key-value pair if value is not empty.
+
+        :param KeyValueSection sec: the section to write to.
+        :param str key: the key
+        :param value: an arbitrary value, maybe consisting of multiple lines.
+        """
         if value is None:
             return
         value = " ".join([s.strip() for s in
@@ -25,20 +40,31 @@ def __make_sys_info() -> str:
 
     # noinspection PyBroadException
     def __get_processor_name() -> Optional[str]:
+        """
+        Get the processor name.
+
+        :returns: a string if there is any processor information
+        :rtype: Optional[str]
+        """
         try:
             if platform.system() == "Windows":
                 return platform.processor()
             if platform.system() == "Linux":
                 for line in Path.path("/proc/cpuinfo").read_all_list():
                     if "model name" in line:
-                        return re.sub(".*model name.*:", "",
-                                      line, 1).strip()
+                        return re.sub(".*model name.*:", "", line, 1).strip()
         except BaseException:
             pass
         return None
 
     # noinspection PyBroadException
     def __get_mem_size_sysconf() -> Optional[int]:
+        """
+        Get the memory size information from sysconf.
+
+        :returns: an integer with the memory size if available
+        :rtype: Optional[int]
+        """
         try:
             k1 = "SC_PAGESIZE"
             if k1 not in os.sysconf_names:
@@ -65,7 +91,13 @@ def __make_sys_info() -> str:
         return None
 
     # noinspection PyBroadException
-    def __get_mem_size_memconf() -> Optional[int]:
+    def __get_mem_size_meminfo() -> Optional[int]:
+        """
+        Get the memory size information from meminfo.
+
+        :returns: an integer with the memory size if available
+        :rtype: Optional[int]
+        """
         try:
             meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1]))
                            for i in Path.path('/proc/meminfo').read_all_list())
@@ -78,15 +110,23 @@ def __make_sys_info() -> str:
         return None
 
     def __get_mem_size() -> Optional[int]:
+        """
+        Get the memory size information from any available source.
+
+        :returns: an integer with the memory size if available
+        :rtype: Optional[int]
+        """
         s = __get_mem_size_sysconf()
         if s is None:
-            return __get_mem_size_memconf()
+            return __get_mem_size_meminfo()
         return s
 
+    # log all information in memory to convert it to one constant string.
     with InMemoryLogger() as imr:
         with imr.key_values(logging.SECTION_SYS_INFO) as kv:
             with kv.scope(logging.SCOPE_SESSION) as k:
                 __v(k, logging.KEY_SESSION_START, datetime.now())
+                __v(k, logging.KEY_NODE_NAME, platform.node())
 
             with kv.scope(logging.SCOPE_VERSIONS) as k:
                 __v(k, "moptipy", ver.__version__)
@@ -109,7 +149,8 @@ def __make_sys_info() -> str:
 
             with kv.scope(logging.SCOPE_OS) as k:
                 __v(k, logging.KEY_OS_NAME, platform.system())
-                __v(k, logging.KEY_OS_VERSION, platform.release())
+                __v(k, logging.KEY_OS_RELEASE, platform.release())
+                __v(k, logging.KEY_OS_VERSION, platform.version())
 
         lst = imr.get_log()
 
@@ -118,15 +159,21 @@ def __make_sys_info() -> str:
     return "\n".join(lst[1:(len(lst) - 1)])
 
 
-__SYS_INFO = __make_sys_info()
-del __make_sys_info
+#: The internal variable holding the memory information
+__SYS_INFO: Final[str] = __make_sys_info()
+del __make_sys_info  # delete the no-longer-needed function
 
 
 def log_sys_info(logger: Logger) -> None:
     """
     Write the system information section to a logger.
 
-    :param logger: the logger
+    The concept of this method is that we only construct the whole system
+    configuration exactly once in memory and then always directly flush it
+    as a string to the logger. This is much more efficient than querying it
+    every single time.
+
+    :param Logger logger: the logger
     """
     with logger.text(logging.SECTION_SYS_INFO) as txt:
         txt.write(__SYS_INFO)
