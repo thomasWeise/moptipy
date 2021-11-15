@@ -7,6 +7,7 @@ from os import sched_getaffinity
 from typing import Iterable, Union, Callable, Tuple, List, \
     ContextManager, Final
 
+from numpy.random import Generator
 from numpy.random import default_rng
 
 from moptipy.api.execution import Execution
@@ -37,12 +38,12 @@ def __run_experiment(base_dir: Path,
     :param Callable cache: the cache
     :param thread_id: the thread id
     """
-    random = default_rng()
+    random: Final[Generator] = default_rng()
 
-    for runs in n_runs:
+    for runs in n_runs:  # for each number of runs
         random.shuffle(experiments)
 
-        for setup in experiments:
+        for setup in experiments:  # for each setup
             instance = setup[0]()
             if instance is None:
                 raise ValueError("None is not an instance.")
@@ -58,10 +59,12 @@ def __run_experiment(base_dir: Path,
             cd = Path.path(os.path.join(base_dir, algo_name, inst_name))
             cd.ensure_dir_exists()
 
-            seeds = rand_seeds_from_str(string=inst_name, n_seeds=runs)
+            # generate sequence of seeds
+            seeds: List[int] = rand_seeds_from_str(string=inst_name,
+                                                   n_seeds=runs)
             random.shuffle(seeds)
             needs_warmup = perform_warmup
-            for seed in seeds:
+            for seed in seeds:  # for every run
                 filename = sanitize_names([algo_name, inst_name, hex(seed)])
                 log_file = Path.path(os.path.join(cd, filename + FILE_SUFFIX))
 
@@ -70,11 +73,11 @@ def __run_experiment(base_dir: Path,
                     if cache(log_file):
                         skip = log_file.ensure_file_exists()
                 if skip:
-                    continue
+                    continue  # run already done
 
                 exp.set_rand_seed(seed)
 
-                if needs_warmup:
+                if needs_warmup:  # perform warmup run
                     needs_warmup = False
                     cpy: Execution = copy.copy(exp)
                     cpy.set_max_fes(10, True)
@@ -89,7 +92,7 @@ def __run_experiment(base_dir: Path,
 
                 exp.set_log_file(log_file)
                 logger(filename, thread_id, stdio_lock)
-                with exp.execute():
+                with exp.execute():  # run the experiment
                     pass
 
 
@@ -162,7 +165,8 @@ def run_experiment(base_dir: str,
             raise TypeError("All setups must be callables, "
                             f"but encountered a {type(setup)}.")
 
-    experiments = [(ii, ss) for ii in instances for ss in setups]
+    experiments: Final[List[Tuple[Callable, Callable]]] = \
+        [(ii, ss) for ii in instances for ss in setups]
 
     del instances
     del setups
@@ -179,7 +183,7 @@ def run_experiment(base_dir: str,
         if run is None:
             raise ValueError("n_runs must not be None.")
         if run <= last:
-            raise ValueError("n_runs sequence must not be increasing and "
+            raise ValueError("n_runs sequence must be increasing and "
                              f"positive, we cannot have {run} follow {last}.")
         last = run
 
@@ -213,6 +217,7 @@ def run_experiment(base_dir: str,
             logger(f"processes {hex(i)[2:]} terminated.", "", stdio_lock)
 
     else:
+        logger("starting experiment with single thread.")
         stdio_lock = nullcontext()
         __run_experiment(base_dir=use_dir,
                          experiments=experiments,

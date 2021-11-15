@@ -7,7 +7,7 @@ finished, to the user.
 """
 from abc import abstractmethod
 from math import inf, isnan
-from typing import Optional, Union
+from typing import Optional, Union, ContextManager
 
 from numpy.random import Generator
 
@@ -15,16 +15,24 @@ from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 
 
-class Process(Space, Objective):
+# start book
+class Process(Space, Objective, ContextManager):
     """
-    Processes offer data to both the user and the optimization algorithm.
+    Processes offer data to the optimization algorithm and the user.
 
-    A :class:`Process` provides an optimization algorithm access to a problem
-    as well as information about the best-so-far results and how much
-    runtime was consumed.
-    It also lets the user access the final result of optimization and
-    can be implemented to write log files.
+    A Process presents the objective function and search space to an
+    optimization algorithm. Since it wraps the actual objective
+    function, it can see all evaluated solutions and remember the
+    best-so-far solution. It can also count the FEs and the runtime
+    that has passed. Therefore, it also presents the termination
+    criterion to the optimization algorithm. It also provides a random
+    number generator the algorithm. It can a write log files with the
+    progress of the search and the end result. Finally, it provides
+    the end result to the user, who can access it after the algorithm
+    has finished.
     """
+
+# end book
 
     def __init__(self) -> None:
         """Internal method to initialize the process. Do not call directly."""
@@ -34,16 +42,16 @@ class Process(Space, Objective):
         self._knows_that_terminated: bool = False
 
     @abstractmethod
-    def get_random(self) -> Generator:
+    def get_random(self) -> Generator:  # +book
         """
         Obtain the random number generator.
 
         :return: the random number generator
         :rtype: Generator
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
-    def should_terminate(self) -> bool:
+    def should_terminate(self) -> bool:  # +book
         """
         Check whether the optimization process should terminate.
 
@@ -59,7 +67,7 @@ class Process(Space, Objective):
         if self._terminated:
             self._knows_that_terminated = True
             return True
-        return False
+        return False  # +book
 
     @abstractmethod
     def get_consumed_fes(self) -> int:
@@ -110,7 +118,7 @@ class Process(Space, Objective):
         raise NotImplementedError
 
     @abstractmethod
-    def has_current_best(self) -> bool:
+    def has_current_best(self) -> bool:  # +book
         """
         Check whethers a current best solution is available.
 
@@ -121,38 +129,38 @@ class Process(Space, Objective):
         :return: True if the current-best solution can be queried.
         :rtype: bool
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod
-    def get_current_best_f(self) -> Union[int, float]:
+    def get_current_best_f(self) -> Union[int, float]:  # +book
         """
         Get the objective value of the current best solution.
 
         :return: the objective value of the current best solution.
         :rtype: Union[int,float]
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod
-    def get_copy_of_current_best_x(self, x) -> None:
+    def get_copy_of_current_best_x(self, x) -> None:  # +book
         """
         Get a copy of the current best point in the search space.
 
         :param x: the destination data structure to be overwritten
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod
-    def get_copy_of_current_best_y(self, y) -> None:
+    def get_copy_of_current_best_y(self, y) -> None:  # +book
         """
         Get a copy of the current best point in the solution space.
 
         :param y: the destination data structure to be overwritten
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod
-    def get_last_improvement_fe(self) -> int:
+    def get_last_improvement_fe(self) -> int:  # +book
         """
         Get the FE at which the last improvement was made.
 
@@ -160,7 +168,7 @@ class Process(Space, Objective):
         :rtype: int
         :raises ValueError: if no FE was performed yet
         """
-        raise NotImplementedError
+        raise NotImplementedError  # +book
 
     @abstractmethod
     def get_last_improvement_time_millis(self) -> int:
@@ -181,7 +189,7 @@ class Process(Space, Objective):
         """
         return "process"
 
-    def terminate(self) -> None:
+    def terminate(self) -> None:  # +book
         """
         Terminate this process.
 
@@ -192,7 +200,7 @@ class Process(Space, Objective):
         After the first time this method is invoked, :meth:should_terminate`
         becomes `True`.
         """
-        self._terminated = True
+        self._terminated = True  # +book
 
     def __enter__(self) -> 'Process':
         """

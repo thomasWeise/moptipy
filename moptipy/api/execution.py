@@ -4,8 +4,6 @@ from typing import Optional
 from typing import Union
 
 from moptipy.api._process_base import _ProcessBase
-from moptipy.api.process import check_max_fes, check_max_time_millis, \
-    check_goal_f
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api._process_no_ss_log import _ProcessNoSSLog
 from moptipy.api._process_ss import _ProcessSS
@@ -14,9 +12,11 @@ from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import Process
+from moptipy.api.process import check_max_fes, check_max_time_millis, \
+    check_goal_f
 from moptipy.api.space import Space, check_space
-from moptipy.utils.path import Path
 from moptipy.utils.nputils import rand_seed_check
+from moptipy.utils.path import Path
 
 
 def _check_log_file(log_file: Optional[str],
@@ -39,11 +39,12 @@ class Execution:
     """
     Define all the components of an experiment and then execute it.
 
-    This class follows the builder pattern. It allows us to step-by-step
-    store all the parameters needed to execute an experiment. Via the
-    method :meth:`~Execution.execute`, we can then obtain an instance of
-    :class:`Process` *after* execution of the algorithm. From this instance,
-    we can query the final result of the algorithm application.
+    This class follows the builder pattern. It allows us to
+    step-by-step store all the parameters needed to execute an
+    experiment. Via the method :meth:`~Execution.execute`, we can then
+    run the experiment and obtain the instance of :class:`Process`
+    *after* the execution of the algorithm. From this instance, we can
+    query the final result of the algorithm application.
     """
 
     def __init__(self) -> None:
@@ -135,7 +136,7 @@ class Execution:
         self.__rand_seed = None if rand_seed is None \
             else rand_seed_check(rand_seed)
 
-    def set_max_fes(self, max_fes: int,
+    def set_max_fes(self, max_fes: int,  # +book
                     force_override: bool = False) -> None:
         """
         Set the maximum FEs.
@@ -219,12 +220,12 @@ class Execution:
         """
         if not isinstance(log_all_fes, bool):
             raise ValueError(
-                "log all FEs must be bool, but is {type(log_all_fes)}.")
+                f"log_all_FEs must be bool, but is {type(log_all_fes)}.")
         self.__log_all_fes = log_all_fes
 
     def execute(self) -> Process:
         """
-        Execute the experiment and return the process.
+        Execute the experiment and return the process after the run.
 
         :return: the process that can be queried for the result
         :rtype: moptipy.api.Process

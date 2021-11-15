@@ -10,6 +10,7 @@ from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 
 
+# start book
 class Algorithm(Component):
     """A class to represent an optimization algorithm."""
 
@@ -21,6 +22,7 @@ class Algorithm(Component):
         :param moptipy.api.Process process: the black-box process
         """
         raise NotImplementedError
+# end book
 
 
 class Algorithm0(Algorithm, ABC):
