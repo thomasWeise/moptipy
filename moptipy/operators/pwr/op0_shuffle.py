@@ -26,7 +26,6 @@ class Op0Shuffle(operators.Op0):
                 f" but is {type(space)}.")  # -book
         #: the internal blueprint for filling permutations
         self.__blueprint: Final[np.ndarray] = space.blueprint
-    # end book
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:
         """
