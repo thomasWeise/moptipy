@@ -76,7 +76,9 @@ KEY_GOAL_F: Final[str] = "goalF"
 #: the random seed
 KEY_RAND_SEED: Final[str] = "randSeed"
 #: the random generator type
-KEY_BBP_RAND_GENERATOR_TYPE: Final[str] = "randGenType"
+KEY_RAND_GENERATOR_TYPE: Final[str] = "randGenType"
+#: the type of the bit generator used by the random generator
+KEY_RAND_BIT_GENERATOR_TYPE: Final[str] = "randBitGenType"
 #: the number of decision variables
 KEY_SPACE_NUM_VARS: Final[str] = "nvars"
 

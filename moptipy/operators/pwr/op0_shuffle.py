@@ -15,7 +15,7 @@ class Op0Shuffle(operators.Op0):
     # end book
     def __init__(self, space: PermutationsWithRepetitions):
         """
-        Initialize this shuffle operation.
+        Initialize this shuffle operation: use blueprint from space.
 
         :param PermutationsWithRepetitions space: the search space
         """

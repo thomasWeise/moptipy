@@ -212,8 +212,10 @@ class _ProcessNoSS(_ProcessBase):
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed,
                          also_hex=True)
-        logger.key_value(logging.KEY_BBP_RAND_GENERATOR_TYPE,
+        logger.key_value(logging.KEY_RAND_GENERATOR_TYPE,
                          str(type(self.__random)))
+        logger.key_value(logging.KEY_RAND_BIT_GENERATOR_TYPE,
+                         str(type(self.__random.bit_generator)))
         with logger.scope(logging.SCOPE_ALGORITHM) as sc:
             self.__algorithm.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_SOLUTION_SPACE) as sc:
