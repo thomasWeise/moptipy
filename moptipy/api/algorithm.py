@@ -12,21 +12,25 @@ from moptipy.utils.logger import KeyValueSection
 
 # start book
 class Algorithm(Component):
-    """A class to represent an optimization algorithm."""
+    """A base class for implementing optimization algorithms."""
 
     @abstractmethod
     def solve(self, process: Process) -> None:
         """
-        Apply this optimization algorithm to the given black-box process.
+        Apply this optimization algorithm to the given process.
 
-        :param moptipy.api.Process process: the black-box process
+        :param moptipy.api.Process process: the process which provides
+            methods to access the search space, the termination
+            criterion, and a source of randomness. It also wraps the
+            objective function, remembers the best-so-far solution,
+            and takes care of creating log files (if this is wanted).
         """
         raise NotImplementedError
 # end book
 
 
 class Algorithm0(Algorithm, ABC):
-    """An algorithm implementation with a nullary search operator."""
+    """An algorithm with a nullary search operator."""
 
     def __init__(self,
                  op0: Op0,
@@ -72,7 +76,7 @@ class Algorithm0(Algorithm, ABC):
 
 
 class Algorithm1(Algorithm0, ABC):
-    """An algorithm implementation with a unary search operator."""
+    """An algorithm with a unary search operator."""
 
     def __init__(self,
                  op0: Op0,
@@ -114,7 +118,7 @@ class Algorithm1(Algorithm0, ABC):
 
 
 class Algorithm2(Algorithm1, ABC):
-    """An algorithm implementation with a binary and unary operator."""
+    """An algorithm with a binary and unary operator."""
 
     def __init__(self,
                  op0: Op0,
