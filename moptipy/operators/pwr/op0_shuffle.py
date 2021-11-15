@@ -12,7 +12,6 @@ from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 class Op0Shuffle(operators.Op0):
     """Shuffle permutations with repetitions randomly."""
 
-    # end book
     def __init__(self, space: PermutationsWithRepetitions):
         """
         Initialize this shuffle operation: use blueprint from space.
@@ -27,6 +26,7 @@ class Op0Shuffle(operators.Op0):
                 f" but is {type(space)}.")  # -book
         #: the internal blueprint for filling permutations
         self.__blueprint: Final[np.ndarray] = space.blueprint
+    # end book
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:
         """
