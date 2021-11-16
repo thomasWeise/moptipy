@@ -7,6 +7,7 @@ with open("moptipy/version.py") as fp:
 
 setup(
     name='moptipy',
+    python_requires='>=3.8',
     description='A package for metaheuristic optimization in python.',
     url='git@github.com/thomasWeise/moptipy.git',
     author='Thomas Weise',
@@ -28,7 +29,6 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Topic :: Scientific/Engineering :: Artificial Intelligence'
     ],
     keywords=[

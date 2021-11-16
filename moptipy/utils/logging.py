@@ -105,6 +105,8 @@ SECTION_SYS_INFO: Final[str] = "SYS_INFO"
 SCOPE_SESSION: Final[str] = "session"
 #: the time when the session was started
 KEY_SESSION_START: Final[str] = "start"
+#: the node on which the session is running
+KEY_NODE_NAME: Final[str] = "node"
 #: the versions scope in the sys-info section
 SCOPE_VERSIONS: Final[str] = "version"
 #: the hardware scope in the sys-info section
@@ -125,6 +127,8 @@ SCOPE_OS: Final[str] = "os"
 KEY_OS_NAME: Final[str] = "name"
 #: the operating system version
 KEY_OS_VERSION: Final[str] = "version"
+#: the operating system release
+KEY_OS_RELEASE: Final[str] = "release"
 #: the python scope in the sys-info section
 SCOPE_PYTHON: Final[str] = "python"
 #: the python version
