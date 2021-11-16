@@ -9,5 +9,8 @@ numba >= 0.54.0
 # matplotlib is used to create plots in the evaluation procedures
 matplotlib >= 3.4.3
 
+# getting information about the system configuration to enrich the log files
+psutil >= 5.8.0
+
 # we need this to obtain some clusters of JSSP instances for our experiments
 scikit-learn >= 1.0

@@ -4,8 +4,11 @@ import os
 import platform
 import re
 import sys
+import socket
 from datetime import datetime
-from typing import Optional, Final
+from typing import Optional, Final, Dict, Tuple, List
+
+import psutil  # type: ignore
 
 import moptipy.version as ver
 from moptipy.utils import logging
@@ -13,6 +16,7 @@ from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueSection
 from moptipy.utils.path import Path
 
 
+# noinspection PyBroadException
 def __make_sys_info() -> str:
     """
     Build the system info string.
@@ -32,7 +36,7 @@ def __make_sys_info() -> str:
         """
         if value is None:
             return
-        value = " ".join([s.strip() for s in
+        value = " ".join([ts.strip() for ts in
                           str(value).strip().split("\n")]).strip()
         if len(value) <= 0:
             return
@@ -116,10 +120,12 @@ def __make_sys_info() -> str:
         :returns: an integer with the memory size if available
         :rtype: Optional[int]
         """
-        s = __get_mem_size_sysconf()
-        if s is None:
-            return __get_mem_size_meminfo()
-        return s
+        vs = __get_mem_size_sysconf()
+        if vs is None:
+            vs = __get_mem_size_meminfo()
+        if vs is None:
+            vs = psutil.virtual_memory().total
+        return vs
 
     # log all information in memory to convert it to one constant string.
     with InMemoryLogger() as imr:
@@ -128,17 +134,57 @@ def __make_sys_info() -> str:
                 __v(k, logging.KEY_SESSION_START, datetime.now())
                 __v(k, logging.KEY_NODE_NAME, platform.node())
 
+                # see https://stackoverflow.com/questions/166506/.
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                try:
+                    # doesn't even have to be reachable
+                    s.connect(('10.255.255.255', 1))
+                    ip = s.getsockname()[0]
+                except BaseException:
+                    ip = '127.0.0.1'
+                finally:
+                    s.close()
+                __v(k, logging.KEY_NODE_IP, ip)
+
             with kv.scope(logging.SCOPE_VERSIONS) as k:
                 __v(k, "moptipy", ver.__version__)
                 for package in ["numpy", "numba", "matplotlib",
-                                "scikit-learn"]:
+                                "psutil", "scikit-learn"]:
                     __v(k, package.replace("-", ""),
                         ilm.version(package).strip())
 
             with kv.scope(logging.SCOPE_HARDWARE) as k:
-                __v(k, logging.KEY_HW_N_CPUS, os.cpu_count())
-                __v(k, logging.KEY_HW_BYTE_ORDER, sys.byteorder)
                 __v(k, logging.KEY_HW_MACHINE, platform.machine())
+                __v(k, logging.KEY_HW_N_PHYSICAL_CPUS,
+                    psutil.cpu_count(logical=False))
+                __v(k, logging.KEY_HW_N_LOGICAL_CPUS,
+                    psutil.cpu_count(logical=True))
+
+                # store the CPU speed information
+                cpuf: Dict[Tuple[int, int], int] = {}
+                total: int = 0
+                for cf in psutil.cpu_freq(True):
+                    t = (int(cf.min), int(cf.max))
+                    cpuf[t] = cpuf.get(t, 0) + 1
+                    total += 1
+                memlst: List[Tuple[int, ...]]
+                if total > 1:
+                    memlst = [(key[0], key[1], value) for
+                              key, value in cpuf.items()]
+                    memlst.sort()
+                else:
+                    memlst = list(cpuf)
+
+                def __make_mhz_str(tpl: Tuple[int, ...]) -> str:
+                    """Convert a MHz tuple to a string."""
+                    base: str = f"({tpl[0]}MHz..{tpl[1]}MHz)" \
+                        if tpl[1] > tpl[0] else f"{tpl[0]}MHz"
+                    return base if (len(tpl) < 3) or (tpl[2] <= 1) \
+                        else f"{base}*{tpl[2]}"
+                __v(k, logging.KEY_HW_CPU_MHZ,
+                    "+".join([__make_mhz_str(t) for t in memlst]))
+
+                __v(k, logging.KEY_HW_BYTE_ORDER, sys.byteorder)
                 __v(k, logging.KEY_HW_CPU_NAME, __get_processor_name())
                 __v(k, logging.KEY_HW_MEM_SIZE, __get_mem_size())
 
