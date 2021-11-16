@@ -193,7 +193,7 @@ class GanttSpace(Space):
 
     def get_name(self) -> str:
         """
-        The name of the Gantt space.
+        Get the name of the Gantt space.
 
         :return: the name
         :rtype: str

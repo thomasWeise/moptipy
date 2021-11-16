@@ -45,7 +45,7 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
     best: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
     best_f: Tuple[int, int, int, int, float]
     total_best: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
-    total_best_f: Tuple[int, int, int, int, float] = -1, -1, -1, -1, -1
+    total_best_f: Tuple[int, int, int, int, float] = (-1, -1, -1, -1, -1)
     run_last_improved: int = 1
     run_current: int = 0
     run_max_none_improved: Final[int] = 4
@@ -63,7 +63,7 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
 
     def __f(sol: np.ndarray) -> Tuple[int, int, int, int, float]:
         """
-        The internal objective function.
+        Compute the quality: The internal objective function.
 
         We maximize five things:
         First, we maximize the number of group assignments that allow us to

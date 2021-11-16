@@ -43,7 +43,7 @@ class Objective(Component):
 
     def upper_bound(self) -> Union[float, int]:
         """
-        The upper bound of the objective value.
+        Get the upper bound of the objective value.
 
         This function returns a theoretical limit for how bad a solution could
         be at worst. If no real limit is known, the function should return

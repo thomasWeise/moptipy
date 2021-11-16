@@ -359,7 +359,7 @@ class Instance(Component):
     @staticmethod
     def list_resources() -> Tuple[str, ...]:
         """
-        A tuple with all the JSSP instances provided in the moptipy resources.
+        Get a tuple with all JSSP instances provided in the moptipy resources.
 
         :return: a tuple with all instance names that are valid parameters
             to :meth:`Instance.from_resource`

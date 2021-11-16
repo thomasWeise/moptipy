@@ -8,9 +8,9 @@ from matplotlib import colors  # type: ignore
 import moptipy.evaluation.base as bs
 
 #: The internal color black.
-COLOR_BLACK: Final[Tuple[float, float, float]] = 0.0, 0.0, 0.0
+COLOR_BLACK: Final[Tuple[float, float, float]] = (0.0, 0.0, 0.0)
 #: The internal color white.
-COLOR_WHITE: Final[Tuple[float, float, float]] = 1.0, 1.0, 1.0
+COLOR_WHITE: Final[Tuple[float, float, float]] = (1.0, 1.0, 1.0)
 
 
 def default_name_func(key) -> str:
@@ -259,7 +259,7 @@ def importance_to_font_size(importance: float) -> float:
 
 #: The default grid color
 GRID_COLOR: Final[Tuple[float, float, float, float]] = \
-    7.0 / 11.0, 7.0 / 11.0, 7.0 / 11.0, importance_to_alpha(-2)
+    (7.0 / 11.0, 7.0 / 11.0, 7.0 / 11.0, importance_to_alpha(-2))
 
 
 def default_axis_label(dimension: str) -> str:
@@ -287,7 +287,7 @@ def default_axis_label(dimension: str) -> str:
 
 def rgb_to_gray(r: float, g: float, b: float) -> float:
     """
-    A small utility method to convert RGB to gray scale.
+    Convert RGB values to gray scale.
 
     :param float r: the red value
     :param float g: the green value

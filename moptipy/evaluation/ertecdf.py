@@ -15,7 +15,7 @@ class ErtEcdf(Ecdf):
 
     def time_label(self) -> str:
         """
-        The method used to get the time axis label.
+        Get the time axis label.
 
         :return: the time key
         :rtype: str
@@ -24,7 +24,7 @@ class ErtEcdf(Ecdf):
 
     def _time_key(self) -> str:
         """
-        The internal method used to get the time key.
+        Get the time key.
 
         :return: the time key
         :rtype: str

@@ -140,7 +140,7 @@ SECTION_RESULT_X: Final[str] = "RESULT_X"
 
 def __recursive_replace(find: str, replace: str, src: str) -> str:
     """
-    An internal function which performs a recursive replacement of strings.
+    Perform a recursive replacement of strings.
 
     :param str find: the string to find
     :param str replace: the string with which it will be replaced

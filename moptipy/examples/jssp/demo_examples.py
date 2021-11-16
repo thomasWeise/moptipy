@@ -118,7 +118,7 @@ def __make_gantt_demo_name(optimum: bool,
                            with_makespan: bool,
                            with_lower_bound: bool) -> str:
     """
-    A quick lambda for making the name for the demo gantt chart.
+    Construct the name for the demo gantt chart.
 
     :param bool optimum: should we return the optimal solution?
     :param bool with_makespan: should the makespan be included?

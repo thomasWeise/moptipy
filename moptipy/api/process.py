@@ -35,7 +35,7 @@ class Process(Space, Objective, ContextManager):
 # end book
 
     def __init__(self) -> None:
-        """Internal method to initialize the process. Do not call directly."""
+        """Initialize the process. Do not call directly."""
         #: This will be `True` after :meth:`terminate` has been called.
         self._terminated: bool = False
         #: This becomes `True` when :meth:`should_terminate` returned `True`.

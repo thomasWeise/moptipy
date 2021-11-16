@@ -105,7 +105,7 @@ class Ecdf(MultiRun2DData):
 
     def time_label(self) -> str:
         """
-        The method used to get the time label for x-axes.
+        Get the time label for x-axes.
 
         :return: the time key
         :rtype: str
@@ -114,7 +114,7 @@ class Ecdf(MultiRun2DData):
 
     def _time_key(self) -> str:
         """
-        The internal method used to get the time key.
+        Get the time key.
 
         :return: the time key
         :rtype: str

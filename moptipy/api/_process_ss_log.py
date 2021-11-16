@@ -28,7 +28,24 @@ class _ProcessSSLog(_ProcessSS):
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None,
                  log_all_fes: bool = False) -> None:
+        """
+        Perform the internal initialization. Do not call directly.
 
+        :param Space solution_space: the solution space.
+        :param Objective objective: the objective function
+        :param Algorithm algorithm: the optimization algorithm
+        :param Space search_space: the search space.
+        :param Encoding encoding: the encoding
+        :param Optional[Path] log_file: the optional log file
+        :param Optional[int] rand_seed: the optional random seed
+        :param Optional[int] max_fes: the maximum permitted function
+            evaluations
+        :param Optional[int] max_time_millis: the maximum runtime in
+            milliseconds
+        :param Union[int, float, None] goal_f: the goal objective
+            value: if it is reached, the process is terminated
+        :param bool log_all_fes: should every single FE be logged?
+        """
         super().__init__(solution_space=solution_space,
                          objective=objective,
                          algorithm=algorithm,

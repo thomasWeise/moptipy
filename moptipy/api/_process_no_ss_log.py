@@ -26,7 +26,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  goal_f: Union[int, float, None] = None,
                  log_all_fes: bool = False) -> None:
         """
-        The internal initialization method. Do not call directly.
+        Perform the internal initialization. Do not call directly.
 
         :param Space solution_space: the search- and solution space.
         :param Objective objective: the objective function

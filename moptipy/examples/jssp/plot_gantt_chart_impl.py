@@ -19,7 +19,7 @@ from moptipy.examples.jssp.gantt import Gantt
 
 def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
     """
-    A marker for the lower bound.
+    Compute the marker for the lower bound.
 
     :param moptipy.examples.jssp.gantt.Gantt x: the Gantt chart
     :return: the lower bound marker
@@ -31,7 +31,7 @@ def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
 
 def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
     """
-    A marker for the makespan.
+    Compute the marker for the makespan.
 
     :param moptipy.examples.jssp.gantt.Gantt x: the Gantt chart
     :return: the makespan marker
@@ -41,9 +41,9 @@ def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
 
 
 #: the color for markers at the left end
-__LEFT_END_MARK: Final[Tuple[float, float, float]] = 0.95, 0.02, 0.02
+__LEFT_END_MARK: Final[Tuple[float, float, float]] = (0.95, 0.02, 0.02)
 #: the color for markers at the right end
-__RIGHT_END_MARK: Final[Tuple[float, float, float]] = 0.02, 0.02, 0.95
+__RIGHT_END_MARK: Final[Tuple[float, float, float]] = (0.02, 0.02, 0.95)
 #: the color for markers in the middle
 __MIDDLE_MARK: Final[Tuple[float, float, float]] = pd.COLOR_BLACK
 

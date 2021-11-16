@@ -8,7 +8,7 @@ from typing import cast, List, Iterable, Final, Union, Tuple
 
 def _canonicalize_path(path: str) -> str:
     """
-    An method which will check and canonicalize a path.
+    Check and canonicalize a path.
 
     :param str path: the path
     :return: the canonicalized path
@@ -79,7 +79,7 @@ class Path(str):
 
     def enforce_file(self) -> None:
         """
-        A method which enforces that a path references an existing file.
+        Enforce that the path references an existing file.
 
         :raises ValueError:  if `path` does not reference an existing file
         """
@@ -88,7 +88,7 @@ class Path(str):
 
     def enforce_dir(self) -> None:
         """
-        A method which enforces that a path references an existing directory.
+        Enforce that the path references an existing directory.
 
         :raises ValueError:  if `path` does not reference an existing directory
         """

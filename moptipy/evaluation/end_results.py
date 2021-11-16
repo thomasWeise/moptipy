@@ -157,7 +157,10 @@ class EndResult(PerRunData):
 
     def success(self) -> bool:
         """
-        A run is successful if `goal_f` is defined and `best_f <= goal_f`.
+        Check if a run is successful.
+
+        This method returns `True` if and only if `goal_f` is defined and
+        `best_f <= goal_f` (and `False` otherwise).
 
         :return: True if `best_f<=goal_f`
         :rtype: bool

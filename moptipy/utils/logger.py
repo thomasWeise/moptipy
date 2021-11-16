@@ -1,9 +1,9 @@
 """Classes for writing structured log files."""
-from abc import ABC
 from io import StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
+from typing import ContextManager
 from typing import Optional, List, Union, cast, Final, Callable, Tuple
 
 from moptipy.utils import logging
@@ -11,7 +11,7 @@ from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
 
 
-class Logger(ABC):
+class Logger(ContextManager):
     """
     An abstract base class for logging data in a structured way.
 
@@ -52,7 +52,7 @@ class Logger(ABC):
 
     def _error(self, message: str) -> None:
         """
-        Internal method for raising an :class:`ValueError` with context infos.
+        Raise a :class:`ValueError` with context information.
 
         :param str message: the message elements to merge
         :raises ValueError: an error with the message and some context
@@ -81,7 +81,7 @@ class Logger(ABC):
 
     def _open_section(self, title: str) -> None:
         """
-        An internal method for opening a new section.
+        Open a new section.
 
         :param str title: the section title
         """
@@ -108,7 +108,7 @@ class Logger(ABC):
 
     def _close_section(self, title: str) -> None:
         """
-        An internal method for closing a section.
+        Close a section.
 
         :param str title: the section title
         """
@@ -125,7 +125,7 @@ class Logger(ABC):
 
     def _comment(self, comment: str) -> None:
         """
-        An internal method for writing a comment.
+        Write a comment.
 
         :param str comment: the comment
         """
@@ -139,7 +139,7 @@ class Logger(ABC):
 
     def _write(self, text: str) -> None:
         """
-        Internal method for writing a string.
+        Write a string.
 
         :param str text: the text to write
         """
@@ -278,11 +278,11 @@ class InMemoryLogger(Logger):
         return self._stream.getvalue().splitlines()
 
 
-class _Section(ABC):
+class _Section(ContextManager):
 
     def __init__(self, title: Optional[str], logger: Logger) -> None:
         """
-        Internal constructor. Do not call directly.
+        Perform internal construction. Do not call directly.
 
         :param Optional[str] title: the section title
         :param Logger logger: the logger
@@ -295,7 +295,7 @@ class _Section(ABC):
 
     def __enter__(self):
         """
-        The enter method needed for the `with` statement.
+        Enter the context: needed for the `with` statement.
 
         :return: `self`
         """
@@ -303,7 +303,7 @@ class _Section(ABC):
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """
-        The exit method needed for the `with` statement.
+        Exit the `with` statement.
 
         :param exception_type: ignored
         :param exception_value: ignored
@@ -331,7 +331,7 @@ class CsvSection(_Section):
 
     def __init__(self, title: str, logger: Logger, header: List[str]) -> None:
         """
-        Internal constructor. Do not call directly.
+        Perform internal construction. Do not call directly.
 
         :param str title: the title
         :param Logger logger: the owning logger
@@ -384,7 +384,7 @@ class KeyValueSection(_Section):
     def __init__(self, title: Optional[str],
                  logger: Logger, prefix: str, done) -> None:
         """
-        Internal constructor, do not call directly.
+        Perform internal construction, do not call directly.
 
         :param Optional[str] title: the section title, or `None` for nested
         scopes.
@@ -464,7 +464,7 @@ class TextSection(_Section):
 
     def __init__(self, title: str, logger: Logger) -> None:
         """
-        Internal constructor, do not call it directly.
+        Perform internal construction. Do not call it directly.
 
         :param str title: the title
         :param Logger logger: the logger

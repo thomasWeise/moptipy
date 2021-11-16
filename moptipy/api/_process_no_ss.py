@@ -35,7 +35,7 @@ class _ProcessNoSS(_ProcessBase):
                  max_time_millis: Optional[int] = None,
                  goal_f: Union[int, float, None] = None) -> None:
         """
-        The internal initialization method. Do not call directly.
+        Perform the internal initialization. Do not call directly.
 
         :param Space solution_space: the search- and solution space.
         :param Objective objective: the objective function

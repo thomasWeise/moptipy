@@ -66,7 +66,11 @@ class _ProcessBase(Process, ABC):
                   function=self.terminate)
 
     def _after_init(self) -> None:
-        """Internal method that must be called after __init__ is completed."""
+        """
+        Finish initialization, start timer for termination if needed.
+
+        Internal method that must be called after __init__ is completed.
+        """
         if not (self.__timer is None):
             self.__timer.start()
 
@@ -146,7 +150,11 @@ class _ProcessBase(Process, ABC):
         return self._last_improvement_time_millis - self._start_time_millis
 
     def _perform_termination(self) -> None:
-        """An internal method invoked my :meth:`terminate`."""
+        """
+        Do the actual work of termination: must be invoked only once.
+
+        This is an internal method invoked my :meth:`terminate`.
+        """
 
     def terminate(self) -> None:
         """

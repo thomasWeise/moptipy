@@ -59,6 +59,10 @@ static_analysis: init
     pep257 . &&\
     echo "Done with pep257, now using pyroma to check setup.py." &&\
     pyroma . &&\
+    echo "Done with pyroma, now applying semgrep." &&\
+    (semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto || semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto --verbose) &&\
+    echo "Done with semgrep, now applying pydocstyle." &&\
+    pydocstyle --convention=pep257 &&\
     echo "Done: All static checks passed."
 
 # We use sphinx to generate the documentation.
