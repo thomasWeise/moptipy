@@ -5,7 +5,7 @@ import os.path
 from contextlib import nullcontext
 from os import sched_getaffinity
 from typing import Iterable, Union, Callable, Tuple, List, \
-    ContextManager, Final
+    ContextManager, Final, Sequence, cast
 
 from numpy.random import Generator
 from numpy.random import default_rng
@@ -41,7 +41,7 @@ def __run_experiment(base_dir: Path,
     random: Final[Generator] = default_rng()
 
     for runs in n_runs:  # for each number of runs
-        random.shuffle(experiments)
+        random.shuffle(cast(Sequence, experiments))
 
         for setup in experiments:  # for each setup
             instance = setup[0]()
