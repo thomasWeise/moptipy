@@ -1,7 +1,6 @@
 """Approximate the expected running time to reach certain goals."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from math import isfinite, inf
 from typing import Optional, Iterable, List, Final, cast, Union, \
     MutableSequence, Dict, Callable
@@ -14,6 +13,7 @@ from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
 from moptipy.evaluation.progress import Progress
+from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 
 
@@ -109,7 +109,7 @@ class Ert(MultiRun2DData):
         :rtype: Path
         """
         path: Final[Path] = Path.path(file)
-        print(f"{datetime.now()}: Writing ERT to CSV file '{path}'.")
+        logger(f"Writing ERT to CSV file '{path}'.")
 
         with path.open_for_write() as out:
             sep: Final[str] = lg.CSV_SEPARATOR
@@ -129,7 +129,7 @@ class Ert(MultiRun2DData):
                 out.write(
                     f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
 
-        print(f"{datetime.now()}: Done writing ERT to CSV file '{path}'.")
+        logger(f"Done writing ERT to CSV file '{path}'.")
 
         path.enforce_file()
         return path

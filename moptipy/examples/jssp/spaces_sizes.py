@@ -37,8 +37,8 @@ import numpy as np
 from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp import experiment
 from moptipy.examples.jssp.instance import Instance
-from moptipy.utils.path import Path
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.utils.path import Path
 
 
 def gantt_space_size(jobs: int, machines: int) -> int:

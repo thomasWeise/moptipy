@@ -1,14 +1,14 @@
 """A section consumer can load the sections from a log file."""
 
 from abc import ABC
-from datetime import datetime
 from os import listdir
 from os.path import isfile, isdir, join, dirname, basename
 from typing import List, Final, Optional
 
 from moptipy.utils import logging
-from moptipy.utils.path import Path
+from moptipy.utils.log import logger
 from moptipy.utils.nputils import rand_seed_check
+from moptipy.utils.path import Path
 
 
 class LogParser(ABC):
@@ -199,10 +199,10 @@ class LogParser(ABC):
 
         if retval:
             if self.__print_file_start:
-                print(f"{datetime.now()}: parsing file {file}.")
+                logger(f"parsing file '{file}'.")
         else:
             if self.__print_file_start:
-                print(f"{datetime.now()}: skipping file {file}.")
+                logger(f"skipping file '{file}'.")
             return True
 
         lines: List[str] = []
@@ -285,7 +285,7 @@ class LogParser(ABC):
             raise ValueError("Error when ending section parsing "
                              f"of file '{file}'.") from be
         if self.__print_file_end:
-            print(f"{datetime.now()}: finished parsing file {file}.")
+            logger(f"finished parsing file '{file}'.")
         return retval
 
     def parse_dir(self, path: str) -> bool:
@@ -302,8 +302,8 @@ class LogParser(ABC):
         if self.__depth <= 0:
             if self.__depth == 0:
                 if self.__print_begin_end:
-                    print(f"{datetime.now()}: beginning recursive parsing "
-                          f"of directory '{folder}'.")
+                    logger("beginning recursive parsing of "
+                           f"directory '{folder}'.")
             else:
                 raise ValueError(
                     f"Depth must be >= 0, but is {self.__depth}??")
@@ -311,10 +311,10 @@ class LogParser(ABC):
 
         if not self.start_dir(folder):
             if self.__print_dir_start:
-                print(f"{datetime.now()}: skipping directory '{folder}'.")
+                logger(f"skipping directory '{folder}'.")
             return True
         if self.__print_dir_start:
-            print(f"{datetime.now()}: entering directory '{folder}'.")
+            logger(f"entering directory '{folder}'.")
 
         do_files = True
         do_dirs = True
@@ -323,30 +323,29 @@ class LogParser(ABC):
             if isfile(sub):
                 if do_files:
                     if not self.parse_file(sub):
-                        print(f"{datetime.now()}: will parse no more "
-                              f"files in '{folder}'.")
+                        logger(f"will parse no more files in '{folder}'.")
                         if not do_dirs:
                             break
                         do_files = False
             elif isdir(sub):
                 if do_dirs:
                     if not self.parse_dir(sub):
-                        print(f"{datetime.now()}: will parse no more "
-                              f"sub-directories of '{folder}'.")
+                        logger("will parse no more sub-directories "
+                               f"of '{folder}'.")
                         if not do_files:
                             break
                         do_dirs = False
 
         retval = self.end_dir(folder)
         if self.__print_dir_end:
-            print(f"{datetime.now()}: finished parsing directory '{folder}'.")
+            logger(f"finished parsing directory '{folder}'.")
 
         self.__depth -= 1
         if self.__depth <= 0:
             if self.__depth == 0:
                 if self.__print_begin_end:
-                    print(f"{datetime.now()}: finished recursive parsing "
-                          f"of directory '{folder}'.")
+                    logger(f"finished recursive parsing of "
+                           f"directory '{folder}'.")
             else:
                 raise ValueError(
                     f"Depth must be >= 0, but is {self.__depth}??")

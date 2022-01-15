@@ -19,7 +19,7 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
 from moptipy.operators.pwr.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
-from moptipy.utils.logging import logger
+from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 
 #: The default instances to be used in our experiment. These have been
@@ -43,10 +43,10 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 #: Each of them is a Callable that receives two parameters, the instance
 #: `inst` and the permutation with repetitions-space `pwr`.
 DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = (
-    lambda inst, pwr: EA1p1(Op0Shuffle(pwr), Op1Swap2()),  # (1+1)-EA
-    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
-    lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
+    lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
+    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
+    lambda inst, pwr: EA1p1(Op0Shuffle(pwr), Op1Swap2()),  # (1+1)-EA
     lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2())  # random walk
 )
 
@@ -72,7 +72,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     :param Optional[int] max_fes: the maximum runtime in FEs
     :param Optional[int] n_threads: the number of threads
     """
-    # The intitial parameter validity checks.
+    # The initial parameter validity checks.
     if not isinstance(base_dir, str):
         raise TypeError(
             f"base_dir must be str, but is {type(base_dir)}.")

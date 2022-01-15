@@ -1,6 +1,5 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
 from dataclasses import dataclass
-from datetime import datetime
 from math import inf
 from typing import Union, List, MutableSequence, Final, Optional, Iterable
 
@@ -10,6 +9,7 @@ from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
+from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 
 #: The internal CSV header
@@ -195,7 +195,7 @@ class EndResult(PerRunData):
         :rtype: Path
         """
         path: Final[Path] = Path.path(file)
-        print(f"{datetime.now()}: Writing end results to CSV file '{path}'.")
+        logger(f"Writing end results to CSV file '{path}'.")
 
         with path.open_for_write() as out:
             out.write(_HEADER)
@@ -213,8 +213,7 @@ class EndResult(PerRunData):
                     f"{_in_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
                     f"{_in_to_str(e.max_time_millis)}\n")
 
-        print(f"{datetime.now()}: Done writing end "
-              f"results to CSV file '{path}'.")
+        logger(f"Done writing end results to CSV file '{path}'.")
         return path
 
     @staticmethod
@@ -230,7 +229,7 @@ class EndResult(PerRunData):
             raise TypeError("Collector must be mutable sequence, "
                             f"but is {type(collector)}.")
         path: Final[Path] = Path.file(file)
-        print(f"{datetime.now()}: Now reading CSV file '{path}'.")
+        logger(f"Now reading CSV file '{path}'.")
 
         with path.open_for_read() as rd:
             header = rd.readlines(1)
@@ -259,7 +258,7 @@ class EndResult(PerRunData):
                         _str_to_in(splt[9]),  # max_fes
                         _str_to_in(splt[10])))  # max_time_millis
 
-        print(f"{datetime.now()}: Done reading CSV file '{path}'.")
+        logger(f"Done reading CSV file '{path}'.")
 
 
 class _InnerLogParser(ExperimentParser):

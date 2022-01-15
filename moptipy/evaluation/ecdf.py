@@ -1,7 +1,6 @@
 """Approximate the ECDF to reach certain goals."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from math import isfinite, inf
 from typing import Optional, Iterable, List, Final, Union, \
     Dict, Callable, MutableSequence
@@ -15,6 +14,7 @@ from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, KEY_N
 from moptipy.evaluation.progress import Progress
+from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 
 #: The number of instances.
@@ -132,7 +132,7 @@ class Ecdf(MultiRun2DData):
         :rtype: Path
         """
         path: Final[Path] = Path.path(file)
-        print(f"{datetime.now()}: Writing ECDF to CSV file '{path}'.")
+        logger(f"Writing ECDF to CSV file '{path}'.")
 
         with path.open_for_write() as out:
             sep: Final[str] = lg.CSV_SEPARATOR
@@ -157,8 +157,7 @@ class Ecdf(MultiRun2DData):
                 out.write(
                     f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
 
-        print(
-            f"{datetime.now()}: Done writing ECDF to CSV file '{path}'.")
+        logger(f"Done writing ECDF to CSV file '{path}'.")
 
         path.enforce_file()
         return path

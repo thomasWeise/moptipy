@@ -1,6 +1,5 @@
 """Progress data over a run."""
 from dataclasses import dataclass
-from datetime import datetime
 from math import isfinite, inf
 from typing import MutableSequence, Union, Optional, List, Final, Dict
 
@@ -13,9 +12,10 @@ from moptipy.evaluation.base import PerRunData, check_f_name, \
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.utils import logging
-from moptipy.utils.path import Path
+from moptipy.utils.log import logger
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
+from moptipy.utils.path import Path
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -183,8 +183,7 @@ class Progress(PerRunData):
         :rtype: str
         """
         path: Final[Path] = Path.path(file)
-        print(f"{datetime.now()}: Writing progress object to "
-              f"CSV file '{path}'.")
+        logger(f"Writing progress object to CSV file '{path}'.")
 
         with path.open_for_write() as out:
             sep: Final[str] = logging.CSV_SEPARATOR
@@ -204,8 +203,7 @@ class Progress(PerRunData):
             for i, t in enumerate(self.time):
                 out.write(f"{t}{sep}{logging.num_to_str(self.f[i])}\n")
 
-        print(f"{datetime.now()}: Done writing progress object to "
-              f"CSV file '{path}'.")
+        logger(f"Done writing progress object to CSV file '{path}'.")
 
         path.enforce_file()
         return path

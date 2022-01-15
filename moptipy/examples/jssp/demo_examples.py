@@ -17,8 +17,8 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart, \
     marker_lb, marker_makespan
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.utils.log import logger
 from moptipy.utils.path import Path, UTF8
-from moptipy.utils.logging import logger
 
 
 def demo_instance() -> Instance:

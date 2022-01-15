@@ -7,7 +7,7 @@ from numpy.random import Generator, RandomState  # type: ignore
 from sklearn.cluster import SpectralClustering  # type: ignore
 
 from moptipy.examples.jssp.instance import Instance
-from moptipy.utils.logging import logger
+from moptipy.utils.log import logger
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
 from moptipy.utils.nputils import rand_generator
 

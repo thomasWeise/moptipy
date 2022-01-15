@@ -12,8 +12,8 @@ from numpy.random import default_rng
 
 from moptipy.api.execution import Execution
 from moptipy.utils.cache import is_new
-from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX, \
-    logger
+from moptipy.utils.log import logger
+from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.path import Path
 

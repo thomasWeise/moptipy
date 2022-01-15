@@ -1,6 +1,5 @@
 """Statistics aggregated over multiple instances of :class:`EndResult`."""
 from dataclasses import dataclass
-from datetime import datetime
 from math import inf
 from typing import Optional, Union, Iterable, List, MutableSequence, Dict, \
     Final, Callable
@@ -11,6 +10,7 @@ from moptipy.evaluation.base import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
 from moptipy.utils import logging as log
+from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 
 #: The key for the best F.
@@ -599,8 +599,7 @@ class EndStatistics(MultiRunData):
         :rtype: Path
         """
         path: Final[Path] = Path.path(file)
-        print(f"{datetime.now()}: Writing end result statistics to "
-              f"CSV file '{path}'.")
+        logger(f"Writing end result statistics to CSV file '{path}'.")
 
         has_algorithm: bool = False  # 1
         has_instance: bool = False  # 2
@@ -817,8 +816,7 @@ class EndStatistics(MultiRunData):
                         wrt(EMPTY_CSV_ROW)
                 out.write("\n")
 
-        print(f"{datetime.now()}: Done writing end result statistics to "
-              f"CSV file '{path}'.")
+        logger(f"Done writing end result statistics to CSV file '{path}'.")
         path.enforce_file()
         return path
 
@@ -833,8 +831,7 @@ class EndStatistics(MultiRunData):
             receive all the parsed instances of :class:`EndStatistics`.
         """
         path: Final[Path] = Path.file(file)
-        print(f"{datetime.now()}: Begin reading end result statistics from "
-              f"CSV file '{path}'.")
+        logger(f"Begin reading end result statistics from CSV file '{path}'.")
 
         sep: Final[str] = log.CSV_SEPARATOR
         with path.open_for_read() as rd:
@@ -1118,5 +1115,5 @@ class EndStatistics(MultiRunData):
                         success_fes, success_time, ert_fes, ert_time,
                         max_fes, max_time))
 
-        print(f"{datetime.now()}: Finished reading end result statistics "
-              f"from CSV file '{path}'.")
+        logger("Finished reading end result statistics from CSV "
+               f"file '{path}'.")
