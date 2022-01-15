@@ -8,6 +8,9 @@ from matplotlib.axes import Axes  # type: ignore
 
 from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
     F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
+from moptipy.utils.logging import KEY_LAST_IMPROVEMENT_FE, \
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
+    KEY_TOTAL_TIME_MILLIS
 
 #: The internal minimum float value for log-scaled axes.
 _MIN_LOG_FLOAT: Final[float] = sys.float_info.min
@@ -285,7 +288,8 @@ class AxisRanger:
         __data_min: bool = chosen_min is None
         __data_max: bool = chosen_max is None
 
-        if name == TIME_UNIT_MILLIS:
+        if name in (TIME_UNIT_MILLIS, KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                    KEY_TOTAL_TIME_MILLIS):
             if chosen_min is not None:
                 if (chosen_min < 0) or (not isfinite(chosen_min)):
                     raise ValueError("chosen_min must be >= 0 for axis "
@@ -320,7 +324,7 @@ class AxisRanger:
             return AxisRanger(__min, __max, __data_min, __data_max,
                               __log, log_base if __log else None)
 
-        if name == TIME_UNIT_FES:
+        if name in (TIME_UNIT_FES, KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES):
             if chosen_min is None:
                 __min = 1
             else:

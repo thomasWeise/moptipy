@@ -4,6 +4,8 @@ from typing import Dict, Final, Optional, Iterable, List
 
 import matplotlib  # type: ignore
 
+import moptipy.evaluation.base as bs
+import moptipy.utils.logging as lg
 from moptipy.utils.logging import sanitize_name
 
 
@@ -230,6 +232,15 @@ lang_en = Lang("en", "DejaVu Sans", 3, {
     "time_in_ms": "time in ms",
     "lower_bound": "lower bound",
     "lower_bound_short": "lb",
+    bs.F_NAME_NORMALIZED: "normalized f",
+    bs.F_NAME_SCALED: "scaled f",
+    bs.F_NAME_RAW: "f",
+    bs.TIME_UNIT_FES: "time in FEs",
+    bs.TIME_UNIT_MILLIS: "time in ms",
+    lg.KEY_TOTAL_TIME_MILLIS: "total time in ms",
+    lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "last improvement time at ms",
+    lg.KEY_TOTAL_FES: "total time in FEs",
+    lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE"
 })
 lang_en.register()
 lang_en.set_current()
@@ -243,6 +254,15 @@ Lang("de", lang_en.font(), 3, {
     "time_in_fes": "Zeit in FEs",
     "lower_bound": "untere Schranke",
     "lower_bound_short": "us",
+    bs.F_NAME_NORMALIZED: "normalisierte f",
+    bs.F_NAME_SCALED: "skalierte f",
+    bs.F_NAME_RAW: "f",
+    bs.TIME_UNIT_FES: "Zeit in FEs",
+    bs.TIME_UNIT_MILLIS: "Zeit in ms",
+    lg.KEY_TOTAL_TIME_MILLIS: "Gesamtzeit in ms",
+    lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "letzte Verbesserung bei ms",
+    lg.KEY_TOTAL_FES: "Gesamtzeit in FEs",
+    lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE"
 }).register()
 
 del lang_en
@@ -256,4 +276,13 @@ Lang("zh", "Noto Sans SC", 4, {
     "time_in_fes": "时间(目标函数的评价)",
     "lower_bound": "下界",
     "lower_bound_short": "下界",
+    bs.F_NAME_NORMALIZED: "归一化f",
+    bs.F_NAME_SCALED: "标度f",
+    bs.F_NAME_RAW: "f",
+    bs.TIME_UNIT_FES: "时间(目标函数的评价)",
+    bs.TIME_UNIT_MILLIS: "时间(毫秒)",
+    lg.KEY_TOTAL_TIME_MILLIS: "总时间(毫秒)",
+    lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "最后一次改进是在(毫秒)",
+    lg.KEY_TOTAL_FES: "总时间(目标函数的评价)",
+    lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)"
 }).register()

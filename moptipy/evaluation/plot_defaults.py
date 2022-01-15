@@ -5,7 +5,7 @@ import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib import colors  # type: ignore
 
-import moptipy.evaluation.base as bs
+from moptipy.evaluation.lang import Lang
 
 #: The internal color black.
 COLOR_BLACK: Final[Tuple[float, float, float]] = (0.0, 0.0, 0.0)
@@ -272,17 +272,7 @@ def default_axis_label(dimension: str) -> str:
     """
     if not isinstance(dimension, str):
         raise TypeError(f"Dimension must be str but is {type(dimension)}.")
-    if dimension == bs.F_NAME_NORMALIZED:
-        return "normalized f"
-    if dimension == bs.F_NAME_SCALED:
-        return "scaled f"
-    if dimension == bs.F_NAME_RAW:
-        return "f"
-    if dimension == bs.TIME_UNIT_FES:
-        return "time in FEs"
-    if dimension == bs.TIME_UNIT_MILLIS:
-        return "time in ms"
-    raise ValueError(f"Invalid dimension: '{dimension}'.")
+    return Lang.current()[dimension]
 
 
 def rgb_to_gray(r: float, g: float, b: float) -> float:
