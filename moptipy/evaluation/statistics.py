@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast
 
-from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int, _try_div
-from moptipy.evaluation._utils import _str_to_if, _str_to_ifn
+from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int, _try_div, \
+    _str_to_if, _str_to_ifn
 from moptipy.utils import logging
 
 #: The limit until which we simplify geometric mean data.

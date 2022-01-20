@@ -81,14 +81,14 @@ class PerRunData:
             raise TypeError(
                 f"algorithm must be str, but is {type(algorithm)}.")
         if algorithm != logging.sanitize_name(algorithm):
-            raise ValueError("In valid algorithm must name '{algorithm}'.")
+            raise ValueError(f"Invalid algorithm name '{algorithm}'.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if not isinstance(instance, str):
             raise TypeError(
                 f"instance must be str, but is {type(instance)}.")
         if instance != logging.sanitize_name(instance):
-            raise ValueError("In valid instance must name '{instance}'.")
+            raise ValueError(f"Invalid instance name '{instance}'.")
         object.__setattr__(self, "instance", instance)
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
 

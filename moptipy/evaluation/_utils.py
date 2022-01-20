@@ -67,9 +67,9 @@ def _str_to_in(val: str) -> Optional[int]:
     return None if len(val) <= 0 else int(val)
 
 
-#: The positive limit for doubles that can be represent exactly as ints.
+#: The positive limit for doubles that can be represented exactly as ints.
 _DBL_INT_LIMIT_P: Final[float] = 9007199254740992.0  # = 1 << 53
-#: The negative  limit for doubles that can be represent exactly as ints.
+#: The negative  limit for doubles that can be represented exactly as ints.
 _DBL_INT_LIMIT_N: Final[float] = -_DBL_INT_LIMIT_P
 
 
@@ -112,6 +112,23 @@ def _try_div(a: int, b: int) -> Union[int, float]:
         return a
     b //= gc
     return _try_int(a / b)
+
+
+def _try_div2(a: Union[int, float], b: Union[int, float]) \
+        -> Union[int, float]:
+    """
+    Try to divide two numbers at best precision.
+
+    :param int a: the first number
+    :param int b: the second number
+    :return: a/b
+    :rtype: Union[int, float]
+    """
+    ia = _try_int(a)
+    ib = _try_int(b)
+    if isinstance(ia, int) and isinstance(ib, int):
+        return _try_div(ia, ib)
+    return _try_int(ia / ib)
 
 
 def _check_max_time_millis(max_time_millis: Union[int, float],

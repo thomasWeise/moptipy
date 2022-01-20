@@ -68,7 +68,7 @@ class Styler:
         self.priority: float = float(priority)
         #: The internal collection.
         self.__collection: Set = set()
-        #: the colors
+        #: the line colors
         self.__line_colors: Optional[Tuple] = None
         #: the line dashes
         self.__line_dashes: Optional[Tuple] = None
@@ -76,6 +76,8 @@ class Styler:
         self.__line_widths: Optional[Tuple[float, ...]] = None
         #: the optional line alpha
         self.__line_alphas: Optional[Tuple[float, ...]] = None
+        #: the fill colors
+        self.__fill_colors: Optional[Tuple] = None
 
     def add(self, obj) -> None:
         """
@@ -149,6 +151,22 @@ class Styler:
         if len(self.__line_colors) != self.count:
             raise ValueError(f"There must be {self.count} line colors,"
                              f"but found only {len(self.__line_colors)}.")
+        self.has_style = True
+
+    def set_fill_color(self, fill_color_func: Callable) -> None:
+        """
+        Set that this styler should apply fill colors.
+
+        :param Callable fill_color_func: a function returning the palette
+        """
+        tmp = fill_color_func(self.count)
+        if not isinstance(tmp, Iterable):
+            raise TypeError(
+                f"Fill colors must be iterable, but are {type(tmp)}.")
+        self.__fill_colors = tuple(tmp)
+        if len(self.__fill_colors) != self.count:
+            raise ValueError(f"There must be {self.count} fill colors,"
+                             f"but found only {len(self.__fill_colors)}.")
         self.has_style = True
 
     def set_line_dash(self, line_dash_func: Callable) -> None:

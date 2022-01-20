@@ -77,7 +77,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     :param Callable importance_to_font_size_func: the function converting
         importance values to font sizes
     :param bool xgrid: should we have a grid along the x-axis?
-    :param bool ygrid: should we have a grid along the y-axis
+    :param bool ygrid: should we have a grid along the y-axis?
     :param Union[None,str,Callable] xlabel: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
     :param bool xlabel_inside: put the x-axis label inside the plot (so that
