@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass
 from math import isfinite, ceil
-from typing import Tuple, Final, Set, List, Optional, Iterable, Union, Any
+from typing import Tuple, Final, Set, List, Optional, Iterable, Union, \
+    Any, Dict
 
 from numpy.random import Generator
 
@@ -217,8 +218,7 @@ class Instance:
 
     @staticmethod
     def create(n: int,
-               forbidden: Optional[Iterable[Union[
-                   str, float, Iterable[Any]]]] = None,
+               forbidden: Optional[Any] = None,
                random: Generator = fixed_random_generator()) \
             -> Tuple['Instance', ...]:
         """
@@ -243,6 +243,7 @@ class Instance:
         scales: List[float] = []
         limits: List[int] = []
 
+        # First we choose a unique name.
         max_name_len: int = int(max(2, ceil(n / 6)))
         trials: int = 0
         while len(names) < n:
@@ -255,6 +256,7 @@ class Instance:
                 names.append(nv)
                 not_allowed.add(nv)
 
+        # Now we pick an instance hardness.
         limit: int = 2000
         trials = 0
         while len(hardnesses) < n:
@@ -272,6 +274,7 @@ class Instance:
                 hardnesses.append(v)
                 not_allowed.add(v)
 
+        # Now we pick an instance jitter.
         limit = 2000
         trials = 0
         while len(jitters) < n:
@@ -289,6 +292,7 @@ class Instance:
                 jitters.append(v)
                 not_allowed.add(v)
 
+        # Now we choose a scale.
         limit = 2000
         trials = 0
         while len(scales) < n:
@@ -306,6 +310,7 @@ class Instance:
                 scales.append(v)
                 not_allowed.add(v)
 
+        # We choose the global optimum and the worst objective value.
         trials = 0
         scale: int = 1000
         loc: int = 1000
@@ -339,6 +344,7 @@ class Instance:
             attdone.add(b1)
             attdone.add(b2)
 
+            # Now we make sure that there are at least 6 attractors.
             trials = 0
             while (len(attdone) < 6) or (random.integers(7) > 0) \
                     and (trials < 10000):
@@ -346,7 +352,7 @@ class Instance:
                 while ((a <= b1) or (a >= b2) or (a in attdone)) \
                         and (trials < 10000):
                     trials += 1
-                    a = random.integers(low=b1 + 1, high=b2 - 1)
+                    a = int(random.integers(low=b1 + 1, high=b2 - 1))
                 if (a <= b1) or (a >= b2):
                     continue
                 ok = True
@@ -429,8 +435,7 @@ class Algorithm:
 
     @staticmethod
     def create(n: int,
-               forbidden: Optional[Iterable[Union[
-                   str, float, Iterable[Any]]]] = None,
+               forbidden: Optional[Any] = None,
                random: Generator = fixed_random_generator()) \
             -> Tuple['Algorithm', ...]:
         """
@@ -604,11 +609,11 @@ class BasePerformance:
         """
         if not isinstance(algorithm, Algorithm):
             raise TypeError(
-                f"algorithm must be Algorithm is {type(algorithm)}.")
+                f"algorithm must be Algorithm, but is {type(algorithm)}.")
         object.__setattr__(self, "algorithm", algorithm)
         if not isinstance(instance, Instance):
             raise TypeError(
-                f"instance must be Instance is {type(instance)}.")
+                f"instance must be Instance, but is {type(instance)}.")
         object.__setattr__(self, "instance", instance)
 
         if not isinstance(performance, float):
@@ -712,3 +717,253 @@ def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
     if n_runs <= 0:
         raise ValueError(f"n_runs must be > 0, but is {n_runs}.")
     return tuple(rand_seeds_from_str(string=instance.name, n_seeds=n_runs))
+
+
+@dataclass(frozen=True, init=False, order=True)
+class Experiment:
+    """An immutable experiment description."""
+
+    #: The instances.
+    instances: Tuple[Instance, ...]
+    #: The algorithms.
+    algorithms: Tuple[Algorithm, ...]
+    #: The applications of the algorithms to the instances.
+    applications: Tuple[BasePerformance, ...]
+    #: The random seeds per instance.
+    per_instance_seeds: Tuple[Tuple[int, ...]]
+    #: the seeds per instance
+    __seeds_per_inst: Dict[Union[str, Instance], Tuple[int, ...]]
+    #: the performance per algorithm
+    __perf_per_algo: Dict[Union[str, Algorithm], Tuple[BasePerformance, ...]]
+    #: the performance per instance
+    __perf_per_inst: Dict[Union[str, Instance], Tuple[BasePerformance, ...]]
+    #: the algorithm by names
+    __algo_by_name: Dict[str, Algorithm]
+    #: the algorithm names
+    algorithm_names: Tuple[str, ...]
+    #: the instance by names
+    __inst_by_name: Dict[str, Instance]
+    #: the instance names
+    instance_names: Tuple[str, ...]
+
+    def __init__(self,
+                 instances: Tuple[Instance, ...],
+                 algorithms: Tuple[Algorithm, ...],
+                 applications: Tuple[BasePerformance, ...],
+                 per_instance_seeds: Tuple[Tuple[int, ...], ...]):
+        """
+        Create a mock experiment definition.
+
+        :param algorithms: the algorithms
+        :param instances: the instances
+        :param applications: the applications of the algorithms to the
+            instances
+        :param per_instance_seeds: the seeds
+        """
+        if not isinstance(instances, tuple):
+            raise TypeError(
+                f"instances must be Tuple, but is {type(instances)}.")
+        if len(instances) <= 0:
+            raise ValueError("instances must not be empty.")
+        inst_bn: Dict[str, Instance] = {}
+        for a in instances:
+            if not isinstance(a, Instance):
+                raise TypeError(f"instances contains {a}, "
+                                f"which is {type(a)} and not Instance.")
+            if a.name in inst_bn:
+                raise ValueError(f"double instance name {a.name}.")
+            inst_bn[a.name] = a
+        object.__setattr__(self, "instances", instances)
+        object.__setattr__(self, "_Experiment__inst_by_name", inst_bn)
+        object.__setattr__(self, "instance_names",
+                           tuple(sorted(inst_bn.keys())))
+
+        if not isinstance(algorithms, tuple):
+            raise TypeError(
+                f"algorithms must be Tuple, but is {type(algorithms)}.")
+        if len(algorithms) <= 0:
+            raise ValueError("algorithms must not be empty.")
+        algo_bn: Dict[str, Algorithm] = {}
+        for b in algorithms:
+            if not isinstance(b, Algorithm):
+                raise TypeError(f"algorithms contains {b}, "
+                                f"which is {type(b)} and not Algorithm.")
+            if b.name in algo_bn:
+                raise ValueError(f"double algorithm name {b.name}.")
+            if b.name in inst_bn:
+                raise ValueError(f"instance/algorithm name {b.name} clash.")
+            algo_bn[b.name] = b
+        object.__setattr__(self, "algorithms", algorithms)
+        object.__setattr__(self, "_Experiment__algo_by_name", algo_bn)
+        object.__setattr__(self, "algorithm_names",
+                           tuple(sorted(algo_bn.keys())))
+
+        if not isinstance(applications, tuple):
+            raise TypeError(
+                f"applications must be Tuple, but is {type(applications)}.")
+        if len(applications) != len(algorithms) * len(instances):
+            raise ValueError(
+                f"There must be {len(algorithms) * len(instances)} "
+                f"applications, but found {len(applications)}.")
+
+        perf_per_inst: Dict[Instance, List[BasePerformance]] = {}
+        perf_per_algo: Dict[Algorithm, List[BasePerformance]] = {}
+
+        done: Set[str] = set()
+        for c in applications:
+            if not isinstance(c, BasePerformance):
+                raise TypeError(f"applications contains {c}, "
+                                f"which is {type(c)} and not BasePerformance.")
+            s = c.algorithm.name + "+" + c.instance.name
+            if s in done:
+                raise ValueError(f"Encountered application {s} twice.")
+            done.add(s)
+            if c.algorithm in perf_per_algo:
+                perf_per_algo[c.algorithm].append(c)
+            else:
+                perf_per_algo[c.algorithm] = [c]
+            if c.instance in perf_per_inst:
+                perf_per_inst[c.instance].append(c)
+            else:
+                perf_per_inst[c.instance] = [c]
+        object.__setattr__(self, "applications", applications)
+
+        pa: Dict[Union[str, Algorithm], Tuple[BasePerformance, ...]] = {}
+        for ax in algorithms:
+            lax: List[BasePerformance] = perf_per_algo[ax]
+            lax.sort()
+            pa[ax.name] = pa[ax] = tuple(lax)
+        pi: Dict[Union[str, Instance], Tuple[BasePerformance, ...]] = {}
+        for ix in instances:
+            lix: List[BasePerformance] = perf_per_inst[ix]
+            lix.sort()
+            pi[ix.name] = pi[ix] = tuple(lix)
+        object.__setattr__(self, "_Experiment__perf_per_algo", pa)
+        object.__setattr__(self, "_Experiment__perf_per_inst", pi)
+
+        if not isinstance(per_instance_seeds, tuple):
+            raise TypeError("per_instance_seeds must be Tuple, "
+                            f"but is {type(per_instance_seeds)}.")
+        if len(per_instance_seeds) != len(instances):
+            raise ValueError(
+                f"There must be one entry for each of the {len(instances)} "
+                "instances, but per_instance_seeds only "
+                f"has {len(per_instance_seeds)}.")
+        xl: int = -1
+        inst_seeds: Final[Dict[Union[str, Instance], Tuple[int, ...]]] = {}
+        for idx, d in enumerate(per_instance_seeds):
+            if not isinstance(d, tuple):
+                raise TypeError(f"per_instance_seeds contains {d}, "
+                                f"which is {type(d)} and not Tuple.")
+            if len(d) <= 0:
+                raise ValueError(f"there must be at least one per "
+                                 f"instance seed, but found {len(d)}.")
+            if xl < 0:
+                xl = len(d)
+            if len(d) != xl:
+                raise ValueError(f"there must be {xl} per "
+                                 f"instance seeds, but found {len(d)}.")
+            for e in d:
+                if not isinstance(e, int):
+                    raise TypeError(f"seeds contains {e}, "
+                                    f"which is {type(e)} and not int.")
+            inst_seeds[instances[idx]] = d
+            inst_seeds[instances[idx].name] = d
+        object.__setattr__(self, "per_instance_seeds", per_instance_seeds)
+        object.__setattr__(self, "_Experiment__seeds_per_inst", inst_seeds)
+
+    @staticmethod
+    def create(n_instances: int,
+               n_algorithms: int,
+               n_runs: int,
+               random: Generator = fixed_random_generator()) -> 'Experiment':
+        """
+        Create an experiment definition.
+
+        :param int n_instances: the number of instances
+        :param int n_algorithms: the number of algorithms
+        :param int n_runs: the number of per-instance runs
+        :param Generator random: the random number generator to use
+        """
+        if not isinstance(n_instances, int):
+            raise TypeError(
+                f"n_instances must be int, but is {type(n_instances)}.")
+        if n_instances <= 0:
+            raise ValueError(
+                f"n_instances must be > 0, but is {n_instances}.")
+        if not isinstance(n_algorithms, int):
+            raise TypeError(
+                f"n_algorithms must be int, but is {type(n_algorithms)}.")
+        if n_algorithms <= 0:
+            raise ValueError(
+                f"n_algorithms must be > 0, but is {n_algorithms}.")
+        if not isinstance(n_runs, int):
+            raise TypeError(
+                f"n_runs must be int, but is {type(n_runs)}.")
+        if n_algorithms <= 0:
+            raise ValueError(
+                f"n_runs must be > 0, but is {n_runs}.")
+
+        insts = Instance.create(n_instances, random=random)
+        algos = Algorithm.create(n_algorithms, forbidden=insts, random=random)
+        app = [BasePerformance.create(i, a, random)
+               for i in insts for a in algos]
+        app.sort()
+        seeds = [get_run_seeds(i, n_runs) for i in insts]
+        return Experiment(instances=insts,
+                          algorithms=algos,
+                          applications=tuple(app),
+                          per_instance_seeds=tuple(seeds))
+
+    def seeds_for_instance(self, instance: Union[str, Instance]) \
+            -> Tuple[int, ...]:
+        """
+        Get the seeds for the specified instance.
+
+        :param Union[str, Instance] instance: the instance
+        :returns: the seeds
+        :rtype: Tuple[int, ...]
+        """
+        return self.__seeds_per_inst[instance]
+
+    def instance_applications(self, instance: Union[str, Instance]) \
+            -> Tuple[BasePerformance, ...]:
+        """
+        Get the applications of the algorithms to a specific instance.
+
+        :param Union[str, Instance] instance: the instance
+        :returns: the applications
+        :rtype: Tuple[BasePerformance, ...]
+        """
+        return self.__perf_per_inst[instance]
+
+    def algorithm_applications(self, algorithm: Union[str, Algorithm]) \
+            -> Tuple[BasePerformance, ...]:
+        """
+        Get the applications of an algorithm to the instances.
+
+        :param Union[str, Algorithm] algorithm: the algorithm
+        :returns: the applications
+        :rtype: Tuple[BasePerformance, ...]
+        """
+        return self.__perf_per_algo[algorithm]
+
+    def get_algorithm(self, name: str) -> Algorithm:
+        """
+        Get an algorithm by name.
+
+        :param str name: the algorithm name
+        :returns: the algorithm instance
+        :rtype: str
+        """
+        return self.__algo_by_name[name]
+
+    def get_instance(self, name: str) -> Instance:
+        """
+        Get an instance by name.
+
+        :param str name: the instance name
+        :returns: the instance
+        :rtype: str
+        """
+        return self.__inst_by_name[name]
