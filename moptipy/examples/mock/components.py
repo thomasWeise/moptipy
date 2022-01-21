@@ -8,6 +8,7 @@ from typing import Tuple, Final, Set, List, Optional, Iterable, Union, \
 from numpy.random import Generator
 
 from moptipy.utils import logging
+from moptipy.utils.log import logger
 from moptipy.utils.nputils import rand_generator, rand_seeds_from_str
 
 
@@ -234,6 +235,7 @@ class Instance:
             raise TypeError(f"n must be int, but is {type(n)}.")
         if n <= 0:
             raise ValueError(f"n must be > 0, but is {n}.")
+        logger(f"now creating {n} instances.")
 
         not_allowed: Final[Set[Union[str, float]]] = \
             _make_not_allowed(forbidden)
@@ -241,7 +243,6 @@ class Instance:
         hardnesses: List[float] = []
         jitters: List[float] = []
         scales: List[float] = []
-        limits: List[int] = []
 
         # First we choose a unique name.
         max_name_len: int = int(max(2, ceil(n / 6)))
@@ -255,6 +256,7 @@ class Instance:
             if nv not in not_allowed:
                 names.append(nv)
                 not_allowed.add(nv)
+        logger(f"- created {n} instance names ({names}).")
 
         # Now we pick an instance hardness.
         limit: int = 2000
@@ -273,6 +275,7 @@ class Instance:
             if v not in not_allowed:
                 hardnesses.append(v)
                 not_allowed.add(v)
+        logger(f"- created {n} instance hardnesses ({hardnesses}).")
 
         # Now we pick an instance jitter.
         limit = 2000
@@ -291,6 +294,7 @@ class Instance:
             if v not in not_allowed:
                 jitters.append(v)
                 not_allowed.add(v)
+        logger(f"- created {n} instance jitters ({jitters}).")
 
         # Now we choose a scale.
         limit = 2000
@@ -309,11 +313,13 @@ class Instance:
             if v not in not_allowed:
                 scales.append(v)
                 not_allowed.add(v)
+        logger(f"- created {n} instance scales ({scales}).")
 
         # We choose the global optimum and the worst objective value.
         trials = 0
         scale: int = 1000
         loc: int = 1000
+        limits: List[int] = []
         while len(limits) < (2 * n):
             tbound: int = -1
             while (tbound <= 0) or (tbound >= 1_000_000_000):
@@ -322,46 +328,62 @@ class Instance:
                     trials = 0
                     scale += (scale // 3)
                     loc *= 2
-                tbound = int(random.normal(loc=loc, scale=scale))
+                tbound = int(random.normal(
+                    loc=random.integers(low=1, high=4) * loc, scale=scale))
             permitted: bool = True
             for b in limits:
-                if abs(b - tbound) <= 12:
+                if abs(b - tbound) <= 41:
                     permitted = False
                     break
             if permitted and (tbound not in not_allowed):
                 limits.append(tbound)
                 not_allowed.add(tbound)
+        logger(f"- created {2 * n} instance bounds ({limits}).")
 
         result: List[Instance] = []
         attdone: Set[int] = set()
-        for i in range(n, 0, -1):
-            b1 = limits.pop(random.integers(i * 2))
-            b2 = limits.pop(random.integers(i * 2 - 1))
 
-            if b1 > b2:
-                b1, b2 = b2, b1
+        for i in range(n, 0, -1):
+            trials = 0
+            b1 = b2 = -1
+            while trials < 10:
+                trials += 1
+                b1 = limits.pop(random.integers(i * 2))
+                b2 = limits.pop(random.integers(i * 2 - 1))
+                if b1 > b2:
+                    b1, b2 = b2, b1
+                if i <= 1:
+                    break
+                if (b1 * max(2.0, 0.4 * (10 - trials))) < b2:
+                    break
+                limits.append(b1)
+                limits.append(b2)
             attdone.clear()
             attdone.add(b1)
             attdone.add(b2)
 
             # Now we make sure that there are at least 6 attractors.
             trials = 0
-            while (len(attdone) < 6) or (random.integers(7) > 0) \
-                    and (trials < 10000):
+            min_dist = max(7.0, 0.07 * (b2 - b1))
+            while ((len(attdone) < 6) or (random.integers(7) > 0)) \
+                    and (trials < 20000):
                 a = -1
                 while ((a <= b1) or (a >= b2) or (a in attdone)) \
-                        and (trials < 10000):
+                        and (trials < 20000):
                     trials += 1
                     a = int(random.integers(low=b1 + 1, high=b2 - 1))
                 if (a <= b1) or (a >= b2):
                     continue
                 ok = True
                 for aa in attdone:
-                    if abs(aa - a) < 5:
+                    if abs(aa - a) < min_dist:
                         ok = False
                         break
                 if ok:
                     attdone.add(a)
+                else:
+                    if (trials % 1000) <= 0:
+                        min_dist = max(5, 0.5 * min_dist)
 
             result.append(Instance(
                 name=names.pop(random.integers(i)),
@@ -371,7 +393,9 @@ class Instance:
                 best=b1,
                 worst=b2,
                 attractors=tuple(sorted(attdone))))
+            logger(f"- created instance ({result[-1]}).")
         result.sort()
+        logger(f"finished creating {n} instances.")
         return tuple(result)
 
 
@@ -451,6 +475,7 @@ class Algorithm:
             raise TypeError(f"n must be int, but is {type(n)}.")
         if n <= 0:
             raise ValueError(f"n must be > 0, but is {n}.")
+        logger(f"now creating {n} algorithms.")
 
         not_allowed: Final[Set[Union[str, float]]] = \
             _make_not_allowed(forbidden)
@@ -511,60 +536,64 @@ class Algorithm:
             not_allowed.add(nv)
             if name_mode == 3:
                 not_allowed.add(nvb)
+        logger(f"- created {n} algorithms names ({names}).")
 
-            limit: int = 2000
-            trials = 0
-            while len(strengths) < n:
-                v: float = -1
-                while (v <= 0) or (v >= 1) or (not isfinite(v)):
-                    trials += 1
-                    if trials > 1000:
-                        trials = 0
-                        limit *= 2
-                    if random.integers(4) <= 0:
-                        v = int(random.uniform(1, limit)) / limit
-                    else:
-                        v = int(random.normal(loc=0.5,
-                                              scale=0.25) * limit) / limit
-                if v not in not_allowed:
-                    strengths.append(v)
-                    not_allowed.add(v)
+        limit: int = 2000
+        trials = 0
+        while len(strengths) < n:
+            v: float = -1
+            while (v <= 0) or (v >= 1) or (not isfinite(v)):
+                trials += 1
+                if trials > 1000:
+                    trials = 0
+                    limit *= 2
+                if random.integers(4) <= 0:
+                    v = int(random.uniform(1, limit)) / limit
+                else:
+                    v = int(random.normal(loc=0.5,
+                                          scale=0.25) * limit) / limit
+            if v not in not_allowed:
+                strengths.append(v)
+                not_allowed.add(v)
+        logger(f"- created {n} algorithms strengths ({strengths}).")
 
-            limit = 2000
-            trials = 0
-            while len(jitters) < n:
-                v = -1
-                while (v <= 0) or (v >= 1) or (not isfinite(v)):
-                    trials += 1
-                    if trials > 1000:
-                        trials = 0
-                        limit *= 2
-                    if random.integers(4) <= 0:
-                        v = int(random.uniform(1, limit)) / limit
-                    else:
-                        v = int(random.normal(loc=0.5,
-                                              scale=0.2) * limit) / limit
-                if v not in not_allowed:
-                    jitters.append(v)
-                    not_allowed.add(v)
+        limit = 2000
+        trials = 0
+        while len(jitters) < n:
+            v = -1
+            while (v <= 0) or (v >= 1) or (not isfinite(v)):
+                trials += 1
+                if trials > 1000:
+                    trials = 0
+                    limit *= 2
+                if random.integers(4) <= 0:
+                    v = int(random.uniform(1, limit)) / limit
+                else:
+                    v = int(random.normal(loc=0.5,
+                                          scale=0.2) * limit) / limit
+            if v not in not_allowed:
+                jitters.append(v)
+                not_allowed.add(v)
+        logger(f"- created {n} algorithms jitters ({jitters}).")
 
-            limit = 2000
-            trials = 0
-            while len(complexities) < n:
-                v = -1
-                while (v <= 0) or (v >= 1) or (not isfinite(v)):
-                    trials += 1
-                    if trials > 1000:
-                        trials = 0
-                        limit *= 2
-                    if random.integers(4) <= 0:
-                        v = int(random.uniform(1, limit)) / limit
-                    else:
-                        v = int(random.normal(loc=0.5,
-                                              scale=0.2) * limit) / limit
-                if v not in not_allowed:
-                    complexities.append(v)
-                    not_allowed.add(v)
+        limit = 2000
+        trials = 0
+        while len(complexities) < n:
+            v = -1
+            while (v <= 0) or (v >= 1) or (not isfinite(v)):
+                trials += 1
+                if trials > 1000:
+                    trials = 0
+                    limit *= 2
+                if random.integers(4) <= 0:
+                    v = int(random.uniform(1, limit)) / limit
+                else:
+                    v = int(random.normal(loc=0.5,
+                                          scale=0.2) * limit) / limit
+            if v not in not_allowed:
+                complexities.append(v)
+                not_allowed.add(v)
+        logger(f"- created {n} algorithms complexities ({complexities}).")
 
         result: List[Algorithm] = []
         for i in range(n, 0, -1):
@@ -573,7 +602,10 @@ class Algorithm:
                 strength=strengths.pop(random.integers(i)),
                 jitter=jitters.pop(random.integers(i)),
                 complexity=complexities.pop(random.integers(i))))
+            logger(f"- created algorithm {result[-1]}.")
         result.sort()
+
+        logger(f"finished creating {n} algorithms.")
         return tuple(result)
 
 
@@ -662,6 +694,9 @@ class BasePerformance:
         if not isinstance(algorithm, Algorithm):
             raise TypeError(
                 f"algorithm must be Algorithm, but is {type(algorithm)}.")
+        logger("now creating base performance for algorithm "
+               f"{algorithm.name} on instance {instance.name}.")
+
         perf: float = -1
         granularity: Final[int] = 2000
         while (perf <= 0) or (perf >= 1):
@@ -693,11 +728,13 @@ class BasePerformance:
                     scale=0.2 * (instance.scale + algorithm.complexity))
             speed = int(speed * granularity) / granularity
 
-        return BasePerformance(algorithm=algorithm,
-                               instance=instance,
-                               performance=perf,
-                               jitter=jit,
-                               speed=speed)
+        bp: Final[BasePerformance] = BasePerformance(algorithm=algorithm,
+                                                     instance=instance,
+                                                     performance=perf,
+                                                     jitter=jit,
+                                                     speed=speed)
+        logger(f"finished base performance {bp}.")
+        return bp
 
 
 def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
@@ -716,7 +753,11 @@ def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
         raise TypeError(f"n_runs must be int, but is {type(n_runs)}.")
     if n_runs <= 0:
         raise ValueError(f"n_runs must be > 0, but is {n_runs}.")
-    return tuple(rand_seeds_from_str(string=instance.name, n_seeds=n_runs))
+    res: Final[Tuple[int, ...]] = tuple(sorted(rand_seeds_from_str(
+        string=instance.name, n_seeds=n_runs)))
+    logger(f"finished creating {n_runs} seeds for instance "
+           f"{instance.name}: {res}.")
+    return res
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -903,6 +944,8 @@ class Experiment:
         if n_algorithms <= 0:
             raise ValueError(
                 f"n_runs must be > 0, but is {n_runs}.")
+        logger(f"now creating mock experiment with {n_algorithms} algorithms "
+               f"on {n_instances} instances for {n_runs} runs.")
 
         insts = Instance.create(n_instances, random=random)
         algos = Algorithm.create(n_algorithms, forbidden=insts, random=random)
@@ -910,10 +953,12 @@ class Experiment:
                for i in insts for a in algos]
         app.sort()
         seeds = [get_run_seeds(i, n_runs) for i in insts]
-        return Experiment(instances=insts,
-                          algorithms=algos,
-                          applications=tuple(app),
-                          per_instance_seeds=tuple(seeds))
+        res: Final[Experiment] = Experiment(instances=insts,
+                                            algorithms=algos,
+                                            applications=tuple(app),
+                                            per_instance_seeds=tuple(seeds))
+        logger(f"finished creating mock experiment {res}.")
+        return res
 
     def seeds_for_instance(self, instance: Union[str, Instance]) \
             -> Tuple[int, ...]:
