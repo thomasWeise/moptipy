@@ -144,13 +144,34 @@ def distinct_line_dashes(n: int) -> \
     """
     if not isinstance(n, int):
         raise TypeError(f"n must be int but is {type(n)}.")
-    if not (0 < n < 1000):
-        raise ValueError(f"Invalid n={n} for line dash number.")
-    if n > len(__FIXED_LINE_DASHES):
-        raise ValueError(f"{n} is too many for different strokes...")
+    if not (0 < n < len(__FIXED_LINE_DASHES)):
+        raise ValueError(f"Invalid n={n} for line dash number, must be "
+                         f"in 1..{len(__FIXED_LINE_DASHES)}.")
     if n == __FIXED_LINE_DASHES:
         return __FIXED_LINE_DASHES
     return tuple(__FIXED_LINE_DASHES[0:n])
+
+
+#: The fixed predefined distinct markers
+__FIXED_MARKERS: Tuple[str, ...] = ("o", "^", "s", "P", "X", "D", "*", "p")
+
+
+def distinct_markers(n: int) -> Tuple[str, ...]:
+    """
+    Create a sequence of distinct markers.
+
+    :param int n: the number of markers
+    :return: the markers
+    :rtype: Tuple[str, ...]
+    """
+    if not isinstance(n, int):
+        raise TypeError(f"n must be int but is {type(n)}.")
+    if not (0 < n < len(__FIXED_MARKERS)):
+        raise ValueError(f"Invalid n={n} for line dash number, must be "
+                         f"in 1..{len(__FIXED_MARKERS)}.")
+    if n == __FIXED_MARKERS:
+        return __FIXED_MARKERS
+    return tuple(__FIXED_MARKERS[0:n])
 
 
 def importance_to_line_width(importance: int) -> float:

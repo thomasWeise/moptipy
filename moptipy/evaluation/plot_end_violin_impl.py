@@ -1,9 +1,11 @@
 """Violin plots for end results."""
 from math import isfinite
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Tuple
+    Tuple, Set, Optional, Any
 
+import numpy as np
 from matplotlib.axes import Axes  # type: ignore
+from matplotlib.collections import PolyCollection  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 import moptipy.evaluation.plot_defaults as pd
@@ -12,9 +14,8 @@ from moptipy.evaluation._utils import _try_div2
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
     F_NAME_NORMALIZED
-from moptipy.evaluation.base import get_algorithm
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.styler import Styler
+from moptipy.utils.log import logger
 from moptipy.utils.logging import KEY_LAST_IMPROVEMENT_FE, \
     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
     KEY_TOTAL_TIME_MILLIS
@@ -37,6 +38,12 @@ def plot_end_violin(
         importance_to_font_size_func: Callable =
         pd.importance_to_font_size,
         ygrid: bool = True,
+        xgrid: bool = True,
+        plot_arith_mean: bool = True,
+        plot_median: bool = True,
+        plot_q25: bool = True,
+        plot_q75: bool = True,
+        distinct_markers_func: Callable = pd.distinct_markers,
         goal_f: Union[int, float, Callable] = lambda g: g.goal_f) -> None:
     """
     Plot a set of Ecdf functions into one chart.
@@ -51,6 +58,13 @@ def plot_end_violin(
     :param Callable importance_to_font_size_func: the function converting
         importance values to font sizes
     :param bool ygrid: should we have a grid along the y-axis?
+    :param bool xgrid: should we have a grid along the x-axis?
+    :param bool plot_arith_mean: should we plot the arithmetic mean?
+    :param bool plot_median: should we plot the median?
+    :param bool plot_q25: should we plot the 25% quantile?
+    :param bool plot_q75: should we plot the 75% quantile?
+    :param Callable distinct_markers_func: the function for creating the
+        distinct markers for the statistics
     :param Union[int, float, Callable] goal_f: the goal objective value for
         normalized or standardized f display. Can be a constant or a callable
         applied to the individual EndResult records.
@@ -60,16 +74,17 @@ def plot_end_violin(
     if dimension not in __PERMITTED_DIMENSIONS:
         raise ValueError(f"dimension is '{dimension}', but must be one of "
                          f"{__PERMITTED_DIMENSIONS}.")
-
-    # instance -> algorithm -> values
-    data: Dict[str, Dict[str, List[Union[int, float]]]] = {}
-    algorithms: Final[Styler] = Styler(get_algorithm, "all algos", 0)
+    logger(f"now plotting end violins for dimension {dimension}.")
 
     if callable(y_axis):
         y_axis = y_axis(dimension)
     if not isinstance(y_axis, AxisRanger):
         raise TypeError(f"y_axis for {dimension} must be AxisRanger, "
                         f"but is {type(y_axis)}.")
+
+    # instance -> algorithm -> values
+    data: Dict[str, Dict[str, List[Union[int, float]]]] = {}
+    algo_set: Set[str] = set()
 
     # We now collect instances, the algorithms, and the measured values.
     for res in end_results:
@@ -78,21 +93,18 @@ def plot_end_violin(
                 "all violin plot elements must be instances of EndResult, "
                 f"but encountered an instance of {type(res)}.")
 
-        inst = res.instance
-        d: Dict[str, List[Union[int, float]]]
-        if inst not in data:
-            d = {}
-            data[inst] = d
-        else:
-            d = data[inst]
+        algo_set.add(res.algorithm)
 
-        algorithms.add(res)
-        ad: List[Union[int, float]]
-        if res.algorithm not in d:
-            ad = []
-            d[res.algorithm] = ad
+        per_inst_data: Dict[str, List[Union[int, float]]]
+        if res.instance not in data:
+            data[res.instance] = per_inst_data = {}
         else:
-            ad = d[res.algorithm]
+            per_inst_data = data[res.instance]
+        inst_algo_data: List[Union[int, float]]
+        if res.algorithm not in per_inst_data:
+            per_inst_data[res.algorithm] = inst_algo_data = []
+        else:
+            inst_algo_data = per_inst_data[res.algorithm]
 
         value: Union[int, float]
         if dimension == F_NAME_RAW:
@@ -121,93 +133,153 @@ def plot_end_violin(
             value = res.last_improvement_time_millis
         else:
             raise ValueError(f"huh? dimension is {dimension}??")
-        ad.append(value)
+        if not isinstance(value, (int, float)):
+            raise ValueError(
+                f"value must be int or float, but is {type(value)}.")
+        inst_algo_data.append(value)
         y_axis.register_value(value)
-    del inst, d, ad
 
-    if len(data) <= 0:
-        raise ValueError("Data cannot be empty.")
-
-    # compile the algorithm data
-    algorithms.compile()
-    if algorithms.count > 1:
-        algorithms.set_fill_color(distinct_colors_func)
-        algorithms.set_line_color(distinct_colors_func)
+    # We now know the number of instances and algorithms and have the data in
+    # the hierarchical structure instance->algorithms->values.
+    n_instances: Final[int] = len(data)
+    n_algorithms: Final[int] = len(algo_set)
+    if (n_instances <= 0) or (n_algorithms <= 0):
+        raise ValueError("Data cannot be empty but found "
+                         f"{n_instances} and {n_algorithms}.")
+    algorithms: Final[Tuple[str, ...]] = tuple(sorted(algo_set))
+    logger(f"- {n_algorithms} algorithms ({algorithms}) "
+           f"and {n_instances} instances ({data.keys()}).")
 
     # compile the data
-    keys: List[Tuple[str, List[str]]] = []
+    inst_algos: List[Tuple[str, List[str]]] = []
     plot_data: List[List[Union[int, float]]] = []
+    plot_algos: List[str] = []
     for inst in sorted(data.keys()):
-        dd: Dict[str, List[Union[int, float]]] = data[inst]
-        cc: List[str] = []
-        keys.append((inst, cc))
-        for algo in sorted(dd.keys()):
-            cc.append(algo)
-            ll = dd[algo]
-            ll.sort()
-            plot_data.append(ll)
-    del data, dd, cc, ll
+        per_inst_data = data[inst]
+        algo_names: List[str] = sorted(per_inst_data.keys())
+        plot_algos.extend(algo_names)
+        inst_algos.append((inst, algo_names))
+        for algo in algo_names:
+            inst_algo_data = per_inst_data[algo]
+            inst_algo_data.sort()
+            plot_data.append(inst_algo_data)
+
+    # compute the violin positions
+    n_violins: Final[int] = len(plot_data)
+    if n_violins < max(n_instances, n_algorithms):
+        raise ValueError(f"Huh? {n_violins}, {n_instances}, {n_algorithms}")
+    violin_positions: Final[Tuple[int, ...]] = \
+        tuple(range(1, len(plot_data) + 1))
 
     # Now we got all instances and all algorithms and know the axis ranges.
     font_size_0: Final[float] = importance_to_font_size_func(0)
 
-    # compute the violin positions
-    positions = list(range(1, len(plot_data) + 1))
-
     # set up the graphics area
     axes: Final[Axes] = pu.get_axes(figure)
     axes.tick_params(axis="y", labelsize=font_size_0)
+    axes.tick_params(axis="x", labelsize=font_size_0)
 
     # draw the grid
+    grid_lwd: Optional[Union[int, float]] = None
     if ygrid:
         grid_lwd = importance_to_line_width_func(-1)
         axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
+    x_axis: Final[AxisRanger] = AxisRanger(
+        chosen_min=0.5, chosen_max=violin_positions[-1] + 0.5)
+
     # compute the labels for the x-axis
-    labels: List[str] = []
+    labels_str: List[str] = []
     labels_x: List[float] = []
-    use_instances_on_x: bool = len(keys) > 1
-    use_algorithms_on_x: bool = algorithms.count > 1
-    needs_legend: bool
-    if (len(plot_data) > 6) and use_algorithms_on_x and use_instances_on_x:
-        use_algorithms_on_x = False
-        needs_legend = True
-    else:
-        needs_legend = not (use_algorithms_on_x or use_instances_on_x)
+    counter: int = 0
+    needs_legend: bool = False
 
-    total_violins: int = 0
-    if use_instances_on_x:
-        if use_algorithms_on_x:
-            # use both instances and algorithms as labels
-            for key in keys:
-                for algo in key[1]:
-                    labels.append(f"{key[0]}\n{algo}")
-                    labels_x.append(positions[total_violins])
-                    total_violins += 1
-        else:
-            # use only instances as labels
-            for key in keys:
-                cur_violins = total_violins
-                total_violins += len(key[1])
-                labels.append(key[0])
-                labels_x.append(0.5 * (positions[cur_violins]
-                                       + positions[total_violins - 1]))
-    elif use_algorithms_on_x:
+    if n_instances > 1:
+        # use only the instances as labels
+        for key in inst_algos:
+            current = counter
+            counter += len(key[1])
+            labels_str.append(key[0])
+            labels_x.append(0.5 * (violin_positions[current]
+                                   + violin_positions[counter - 1]))
+        needs_legend = (n_algorithms > 1)
+    elif n_algorithms > 1:
         # only use algorithms as key
-        for key in keys:
+        for key in inst_algos:
             for algo in key[1]:
-                labels.append(algo)
-                labels_x.append(positions[total_violins])
-                total_violins += 1
+                labels_str.append(algo)
+                labels_x.append(violin_positions[counter])
+                counter += 1
 
-    axes.violinplot(dataset=plot_data,
-                    positions=positions,
-                    vert=True,
-                    widths=0.5,
-                    showmeans=True,
-                    showextrema=True,
-                    showmedians=True)
+    # manually add x grid lines between instances
+    if xgrid and (n_instances > 1) and (n_algorithms > 1):
+        if not grid_lwd:
+            grid_lwd = importance_to_line_width_func(-1)
+        counter = 0
+        for key in inst_algos:
+            if counter > 0:
+                axes.axvline(x=counter + 0.5,
+                             color=pd.GRID_COLOR,
+                             linewidth=grid_lwd)
+            counter += len(key[1])
+
     y_axis.apply(axes, "y")
+    x_axis.apply(axes, "x")
+
+    violins: Final[Dict[str, Any]] = axes.violinplot(
+        dataset=plot_data, positions=violin_positions, vert=True,
+        widths=2 / 3, showmeans=False, showextrema=False, showmedians=False)
+
+    # fix the algorithm colors
+    colors: Final[Tuple[Any]] = distinct_colors_func(n_algorithms)
+    algo_colors: Dict[str, Tuple[float, float, float]] = {}
+    for i, algo in enumerate(algorithms):
+        algo_colors[algo] = colors[i]
+
+    bodies: Final[PolyCollection] = violins["bodies"]
+    counter = 0
+    for key in inst_algos:
+        for algo in key[1]:
+            bd = bodies[counter]
+            color = algo_colors[algo]
+            bd.set_edgecolor('none')
+            bd.set_facecolor(color)
+            bd.set_alpha(1)
+            counter += 1
+            bd.set_zorder(100 + counter)
+
+    marker_cmd: List[Callable] = []
+    marker_names: List[str] = []
+    if plot_q25:
+        marker_cmd.append(lambda x: np.percentile(x, 25))
+        marker_names.append("q25")
+    if plot_median:
+        marker_cmd.append(np.median)
+        marker_names.append("median")
+    if plot_arith_mean:
+        marker_cmd.append(np.mean)
+        marker_names.append("mean")
+    if plot_q75:
+        marker_cmd.append(lambda x: np.percentile(x, 75))
+        marker_names.append("q75")
+
+    if len(marker_cmd) > 0:
+        counter = 0
+        markers: Final[Tuple[str, ...]] = \
+            distinct_markers_func(len(marker_cmd))
+        for key in inst_algos:
+            for algo in key[1]:
+                pdata = plot_data[counter]
+                color = pd.text_color_for_background(algo_colors[algo])
+                for j, marker in enumerate(marker_cmd):
+                    axes.scatter(x=violin_positions[counter],
+                                 y=marker(pdata),
+                                 color=color,
+                                 marker=markers[j],
+                                 zorder=200 + (20 * counter) + j)
+                counter += 1
 
     if needs_legend:
         axes.legend("x")
+
+    logger(f"done plotting {n_violins} end violins.")

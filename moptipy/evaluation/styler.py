@@ -76,8 +76,6 @@ class Styler:
         self.__line_widths: Optional[Tuple[float, ...]] = None
         #: the optional line alpha
         self.__line_alphas: Optional[Tuple[float, ...]] = None
-        #: the fill colors
-        self.__fill_colors: Optional[Tuple] = None
 
     def add(self, obj) -> None:
         """
@@ -153,22 +151,6 @@ class Styler:
                              f"but found only {len(self.__line_colors)}.")
         self.has_style = True
 
-    def set_fill_color(self, fill_color_func: Callable) -> None:
-        """
-        Set that this styler should apply fill colors.
-
-        :param Callable fill_color_func: a function returning the palette
-        """
-        tmp = fill_color_func(self.count)
-        if not isinstance(tmp, Iterable):
-            raise TypeError(
-                f"Fill colors must be iterable, but are {type(tmp)}.")
-        self.__fill_colors = tuple(tmp)
-        if len(self.__fill_colors) != self.count:
-            raise ValueError(f"There must be {self.count} fill colors,"
-                             f"but found only {len(self.__fill_colors)}.")
-        self.has_style = True
-
     def set_line_dash(self, line_dash_func: Callable) -> None:
         """
         Set that this styler should apply line dashes.
@@ -242,6 +224,7 @@ class Styler:
         """
         if self.__line_colors is not None:
             style["color"] = self.__line_colors[index]
+            style["edgecolor"] = self.__line_colors[index]
         if self.__line_dashes is not None:
             style["linestyle"] = self.__line_dashes[index]
         if self.__line_widths is not None:
