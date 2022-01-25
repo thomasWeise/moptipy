@@ -170,7 +170,9 @@ def end_result(performance: BasePerformance,
         max_fes=max_fes,
         max_time_millis=max_time_millis)
 
-    logger(f"finished creating end result {res} for algorithm "
+    logger(f"finished creating end result {res.best_f}/"
+           f"{res.last_improvement_fe}/"
+           f"{res.last_improvement_time_millis} for algorithm "
            f"{performance.algorithm.name} on "
            f"{performance.instance.name} for seed {seed}.")
     return res
@@ -311,7 +313,7 @@ class EndResults:
                                             results=tuple(results),
                                             max_fes=max_fes,
                                             max_time_millis=max_time_millis)
-        logger(f"finished creating all end results {res}.")
+        logger(f"finished creating all {len(res.results)} end results.")
         return res
 
     def results_for_algorithm(self, algorithm: Union[str, Algorithm]) \

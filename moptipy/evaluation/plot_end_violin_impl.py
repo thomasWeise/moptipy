@@ -5,7 +5,7 @@ from typing import List, Dict, Final, Callable, Iterable, Union, \
 
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
-from matplotlib.collections import PolyCollection  # type: ignore
+import matplotlib.collections as mc  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
 import moptipy.evaluation.plot_defaults as pd
@@ -228,7 +228,7 @@ def plot_end_violin(
 
     violins: Final[Dict[str, Any]] = axes.violinplot(
         dataset=plot_data, positions=violin_positions, vert=True,
-        widths=2 / 3, showmeans=False, showextrema=False, showmedians=False)
+        widths=2 / 3, showmeans=False, showextrema=True, showmedians=False)
 
     # fix the algorithm colors
     colors: Final[Tuple[Any]] = distinct_colors_func(n_algorithms)
@@ -236,17 +236,25 @@ def plot_end_violin(
     for i, algo in enumerate(algorithms):
         algo_colors[algo] = colors[i]
 
-    bodies: Final[PolyCollection] = violins["bodies"]
+    bodies: Final[mc.PolyCollection] = violins["bodies"]
     counter = 0
+    violin_colors: List[Tuple[float, float, float]] = []
     for key in inst_algos:
         for algo in key[1]:
             bd = bodies[counter]
             color = algo_colors[algo]
+            violin_colors.append(color)
             bd.set_edgecolor('none')
             bd.set_facecolor(color)
             bd.set_alpha(1)
             counter += 1
             bd.set_zorder(100 + counter)
+
+    for tt in ("cmins", "cmaxes"):
+        lines: mc.LineCollection = violins[tt]
+        lines.set_color(pd.GRID_COLOR)
+
+    violins["cbars"].set_color("none")
 
     marker_cmd: List[Callable] = []
     marker_names: List[str] = []
@@ -276,7 +284,8 @@ def plot_end_violin(
                                  y=marker(pdata),
                                  color=color,
                                  marker=markers[j],
-                                 zorder=200 + (20 * counter) + j)
+                                 zorder=200 + (20 * counter) + j,
+                                 s=14)
                 counter += 1
 
     if needs_legend:

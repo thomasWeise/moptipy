@@ -279,8 +279,8 @@ def importance_to_font_size(importance: float) -> float:
 
 
 #: The default grid color
-GRID_COLOR: Final[Tuple[float, float, float, float]] = \
-    (7.0 / 11.0, 7.0 / 11.0, 7.0 / 11.0, importance_to_alpha(-2))
+GRID_COLOR: Final[Tuple[float, float, float]] = \
+    (7.0 / 11.0, 7.0 / 11.0, 7.0 / 11.0)
 
 
 def default_axis_label(dimension: str) -> str:
