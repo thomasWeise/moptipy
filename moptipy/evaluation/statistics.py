@@ -154,10 +154,15 @@ class Statistics:
                     raise ValueError(
                         f"mean_geom ({mean_geom}) must be >= "
                         f"minimum ({minimum}) if n>1.")
-                if mean_geom > maximum:
+                if mean_geom > mean_arith:
                     raise ValueError(
                         f"mean_geom ({mean_geom}) must be <= "
-                        f"maximum ({maximum}) if n>1.")
+                        f"mean_arith ({mean_arith}) if n>1.")
+                if (mean_geom >= mean_arith) and (minimum < maximum):
+                    raise ValueError(
+                        f"mean_geom ({mean_geom}) must be < "
+                        f"mean_arith ({mean_arith}) if n>1 and "
+                        f"minimum ({minimum}) < maximum ({maximum}).")
 
         if not isinstance(stddev, (int, float)):
             raise TypeError(
@@ -195,13 +200,12 @@ class Statistics:
         :return: the smallest of `mean_arith`, `mean_geom`, and `median`
         :rtype: Union[int, float]
         """
-        if (self.mean_geom is None) or \
-                (self.mean_arith <= self.mean_geom):
-            if self.mean_arith <= self.median:
+        if self.mean_geom is None:
+            if self.mean_arith < self.median:
                 return self.mean_arith
             return self.median
 
-        if self.mean_geom <= self.median:
+        if self.mean_geom < self.median:
             return self.mean_geom
         return self.median
 
@@ -212,13 +216,8 @@ class Statistics:
         :return: the largest of `mean_arith`, `mean_geom`, and `median`
         :rtype: Union[int, float]
         """
-        if (self.mean_geom is None) or \
-                (self.mean_arith >= self.mean_geom):
-            if self.mean_arith >= self.median:
-                return self.mean_arith
-            return self.median
-        if self.mean_geom >= self.median:
-            return self.mean_geom
+        if self.mean_arith > self.median:
+            return self.mean_arith
         return self.median
 
     @staticmethod
@@ -229,6 +228,23 @@ class Statistics:
         :param Collection[Union[int,float]] source: the source
         :return: a statistics representing the statistics over `source`
         :rtype: Statistics
+
+        >>> from moptipy.evaluation.statistics import Statistics
+        >>> s = Statistics.create([3, 1, 2, 5])
+        >>> print(s.minimum)
+        1
+        >>> print(s.maximum)
+        5
+        >>> print(s.mean_arith)
+        2.75
+        >>> print(s.median)
+        2.5
+        >>> print(f"{s.mean_geom:.4f}")
+        2.3403
+        >>> print(f"{s.min_mean():.4f}")
+        2.3403
+        >>> print(f"{s.max_mean()}")
+        2.75
         """
         if not isinstance(source, Iterable):
             raise TypeError(

@@ -77,6 +77,12 @@ class Lang:
         :param str base: the basename
         :return: the filename
         :rtype: str
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> print(Lang.get("en").filename("test"))
+        test_en
+        >>> print(Lang.get("zh").filename("test"))
+        test_zh
         """
         return f"{sanitize_name(base)}_{self.__name}"
 
@@ -108,6 +114,12 @@ class Lang:
         :param str item: the key
         :param kwargs: the keyword-based arguments
         :rtype: str
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> l = Lang.get("en")
+        >>> l.extend({"z": "{a}: bla{b}"})
+        >>> print(l.format("z", a=5, b=6))
+        5: bla6
         """
         if not isinstance(item, str):
             raise TypeError(f"Item must be str, but is {type(item)}.")
@@ -122,6 +134,12 @@ class Lang:
 
         :return: the default font for this language
         :rtype: str
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> print(Lang.get("en").font())
+        DejaVu Sans
+        >>> print(Lang.get("zh").font())
+        Noto Sans SC
         """
         return self.__font
 
@@ -132,6 +150,12 @@ class Lang:
         :param int value: the value
         :returns: a string representation of the value
         :rtype: str
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> print(Lang.get("en").format_int(100000))
+        100'000
+        >>> print(Lang.get("zh").format_int(100000))
+        10'0000
         """
         if not isinstance(value, int):
             raise TypeError(f"Value must be int, but is {type(value)}.")
@@ -199,6 +223,14 @@ class Lang:
 
         :return: the current language
         :rtype: Lang
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> Lang.get("en").set_current()
+        >>> print(Lang.current().filename("b"))
+        b_en
+        >>> Lang.get("zh").set_current()
+        >>> print(Lang.current().filename("b"))
+        b_zh
         """
         lang: Final[Lang] = getattr(Lang.__get_langs, "__current")
         if not lang:
@@ -230,6 +262,14 @@ class Lang:
         :param str key: the key
         :returns: the value of the key in the current language
         :rtype: str
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> Lang.get("en").set_current()
+        >>> print(Lang.translate("feasible"))
+        feasible
+        >>> Lang.get("de").set_current()
+        >>> print(Lang.translate("feasible"))
+        realisierbar
         """
         return Lang.current()[key]
 
@@ -241,6 +281,15 @@ class Lang:
         :param str func: the function name
         :returns: the function
         :rtype: Callable
+
+        >>> from moptipy.evaluation.lang import Lang
+        >>> Lang.get("en").set_current()
+        >>> f = Lang.translate_func("ERT")
+        >>> print(f("FEs"))
+        ERT [time in FEs]
+        >>> Lang.get("de").set_current()
+        >>> print(f("FEs"))
+        ERT [Zeit in FEs]
         """
         def __tf(dim: str, f: str = func) -> str:
             return f"{Lang.translate(f)}\u2009[{Lang.translate(dim)}]"

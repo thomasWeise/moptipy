@@ -184,8 +184,7 @@ class EndResult(PerRunData):
         _InnerLogParser(collector).parse(path)
 
     @staticmethod
-    def to_csv(results: Iterable['EndResult'],
-               file: str) -> Path:
+    def to_csv(results: Iterable['EndResult'], file: str) -> Path:
         """
         Write a sequence of end results to a file in CSV format.
 
@@ -217,8 +216,7 @@ class EndResult(PerRunData):
         return path
 
     @staticmethod
-    def from_csv(file: str,
-                 collector: MutableSequence['EndResult']) -> None:
+    def from_csv(file: str, collector: MutableSequence['EndResult']) -> None:
         """
         Parse a given CSV file to get :class:`EndResult` Records.
 

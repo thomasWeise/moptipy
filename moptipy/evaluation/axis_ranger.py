@@ -152,8 +152,7 @@ class AxisRanger:
         for value in seq:
             self.register_value(value)
 
-    def apply(self, axes: Axes,
-              which_axis: str) -> None:
+    def apply(self, axes: Axes, which_axis: str) -> None:
         """
         Apply this axis ranger to the given axis.
 
