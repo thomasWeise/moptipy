@@ -1,6 +1,6 @@
 """Utilities for creating visualizations in multiple languages."""
 
-from typing import Dict, Final, Optional, Iterable, List
+from typing import Dict, Final, Optional, Iterable, List, Callable
 
 import matplotlib  # type: ignore
 
@@ -222,6 +222,30 @@ class Lang:
         val.sort(key=lambda x: x.__name)
         return val
 
+    @staticmethod
+    def translate(key: str) -> str:
+        """
+        Translate the given key to a string in the current language.
+
+        :param str key: the key
+        :returns: the value of the key in the current language
+        :rtype: str
+        """
+        return Lang.current()[key]
+
+    @staticmethod
+    def translate_func(func: str) -> Callable:
+        """
+        Create a lambda taking a dimensions and presenting a function thereof.
+
+        :param str func: the function name
+        :returns: the function
+        :rtype: Callable
+        """
+        def __tf(dim: str, f: str = func) -> str:
+            return f"{Lang.translate(f)}\u2009[{Lang.translate(dim)}]"
+        return __tf
+
 
 lang_en = Lang("en", "DejaVu Sans", 3, {
     "f": "f",
@@ -240,7 +264,10 @@ lang_en = Lang("en", "DejaVu Sans", 3, {
     lg.KEY_TOTAL_TIME_MILLIS: "total time in ms",
     lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "last improvement time at ms",
     lg.KEY_TOTAL_FES: "total time in FEs",
-    lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE"
+    lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE",
+    "algorithm_on_instance": "algorithm \u00d7 instance",
+    "ERT": "ERT",
+    "ECDF": "ECDF"
 })
 lang_en.register()
 lang_en.set_current()
@@ -262,7 +289,10 @@ Lang("de", lang_en.font(), 3, {
     lg.KEY_TOTAL_TIME_MILLIS: "Gesamtzeit in ms",
     lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "letzte Verbesserung bei ms",
     lg.KEY_TOTAL_FES: "Gesamtzeit in FEs",
-    lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE"
+    lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE",
+    "algorithm_on_instance": "Algorithmus \u00d7 Instanz",
+    "ERT": "ERT",
+    "ECDF": "ECDF"
 }).register()
 
 del lang_en
@@ -284,5 +314,8 @@ Lang("zh", "Noto Sans SC", 4, {
     lg.KEY_TOTAL_TIME_MILLIS: "总时间(毫秒)",
     lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "最后一次改进是在(毫秒)",
     lg.KEY_TOTAL_FES: "总时间(目标函数的评价)",
-    lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)"
+    lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)",
+    "algorithm_on_instance": "优化算法 \u00d7 优化问题实例",
+    "ERT": "经验估计运行时间",
+    "ECDF": "经验累积分布函数"
 }).register()

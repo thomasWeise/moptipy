@@ -7,12 +7,12 @@ from typing import Optional, Iterable, List, Final, Union, \
 
 import numpy as np
 
-import moptipy.evaluation.plot_defaults as pd
 import moptipy.utils.logging as lg
 import moptipy.utils.nputils as npu
 from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, KEY_N
+from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.log import logger
 from moptipy.utils.path import Path
@@ -110,7 +110,7 @@ class Ecdf(MultiRun2DData):
         :return: the time key
         :rtype: str
         """
-        return pd.default_axis_label(self.time_unit)
+        return Lang.translate(self.time_unit)
 
     def _time_key(self) -> str:
         """

@@ -12,29 +12,8 @@ import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_algorithm, sort_key
 from moptipy.evaluation.ecdf import Ecdf, get_goal, goal_to_str
+from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.styler import Styler
-
-
-def ecdf_x_axis_label(x: List[str]) -> str:
-    """
-    Compute the proper label for the x-axis for the ECDF plot.
-
-    :param str x: the collected x-axis labels
-    :return: the label for the x-axis
-    :rtype: str
-    """
-    return x[0]
-
-
-def ecdf_y_axis_label(y: str) -> str:
-    """
-    Compute the proper label for the y-axis for the ERT-ECDF.
-
-    :param str y: the y-axis (time) type
-    :return: the label for the y-axis
-    :rtype: str
-    """
-    return f"ecdf\u2009[{pd.default_axis_label(y)}]"
 
 
 def plot_ecdf(ecdfs: Iterable[Ecdf],
@@ -53,9 +32,10 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               pd.importance_to_font_size,
               xgrid: bool = True,
               ygrid: bool = True,
-              xlabel: Union[None, str, Callable] = ecdf_x_axis_label,
+              xlabel: Union[None, str, Callable] = lambda x: x[0],
               xlabel_inside: bool = True,
-              ylabel: Union[None, str, Callable] = ecdf_y_axis_label,
+              ylabel: Union[None, str, Callable] =
+              Lang.translate_func("ecdf"),
               ylabel_inside: bool = True,
               algo_priority: float = 5.0,
               goal_priority: float = 0.333) -> None:

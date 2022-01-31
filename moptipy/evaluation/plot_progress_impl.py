@@ -10,6 +10,7 @@ import moptipy.evaluation.plot_defaults as pd
 import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
+from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, get_statistic
 from moptipy.evaluation.styler import Styler
@@ -31,10 +32,9 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                   pd.importance_to_font_size,
                   xgrid: bool = True,
                   ygrid: bool = True,
-                  xlabel: Union[None, str, Callable] = pd.default_axis_label,
+                  xlabel: Union[None, str, Callable] = Lang.translate,
                   xlabel_inside: bool = True,
-                  ylabel: Union[None, str, Callable] =
-                  pd.default_axis_label,
+                  ylabel: Union[None, str, Callable] = Lang.translate,
                   ylabel_inside: bool = True,
                   inst_priority: float = 0.666,
                   algo_priority: float = 0.333,

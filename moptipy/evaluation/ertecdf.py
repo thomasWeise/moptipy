@@ -5,7 +5,6 @@ from typing import List, Union
 
 from moptipy.evaluation.ecdf import Ecdf
 from moptipy.evaluation.ert import compute_single_ert
-from moptipy.evaluation.plot_ert_impl import ert_y_axis_label
 from moptipy.evaluation.progress import Progress
 
 
@@ -20,7 +19,7 @@ class ErtEcdf(Ecdf):
         :return: the time key
         :rtype: str
         """
-        return ert_y_axis_label(self.time_unit)
+        return f"ERT\u2009[{self.time_unit}]"
 
     def _time_key(self) -> str:
         """

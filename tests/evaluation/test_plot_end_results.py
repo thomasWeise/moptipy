@@ -4,15 +4,14 @@ from typing import Final
 
 from matplotlib.figure import Figure  # type: ignore
 
-from moptipy.evaluation.plot_end_violin_impl import plot_end_violin
+from moptipy.evaluation.plot_end_results_impl import plot_end_results
 from moptipy.evaluation.plot_utils import create_figure, save_figure
 from moptipy.examples.mock.components import Experiment
 from moptipy.examples.mock.end_result import EndResults
 from moptipy.utils.temp import TempDir
 
 
-def make_end_results_violin_plot(dir_name: str,
-                                 file_name: str) -> None:
+def make_end_results_plot(dir_name: str, file_name: str) -> None:
     """
     Make the end result violin plot with random data.
 
@@ -27,14 +26,13 @@ def make_end_results_violin_plot(dir_name: str,
     del exp
     fig: Final[Figure] = create_figure(width=7)
 
-    plot_end_violin(end_results=res.results,
-                    figure=fig)
+    plot_end_results(end_results=res.results, figure=fig)
     save_figure(fig, dir_name=dir_name, file_name=file_name,
                 formats=("svg", "pdf"))
     del fig
 
 
-def test_end_result_violin():
+def test_end_results_plot():
     """Run the violin plot test."""
     with TempDir.create() as dir_name:
-        make_end_results_violin_plot(dir_name, "test")
+        make_end_results_plot(dir_name, "test")

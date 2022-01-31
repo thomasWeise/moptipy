@@ -5,8 +5,6 @@ import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib import colors  # type: ignore
 
-from moptipy.evaluation.lang import Lang
-
 #: The internal color black.
 COLOR_BLACK: Final[Tuple[float, float, float]] = (0.0, 0.0, 0.0)
 #: The internal color white.
@@ -281,19 +279,6 @@ def importance_to_font_size(importance: float) -> float:
 #: The default grid color
 GRID_COLOR: Final[Tuple[float, float, float]] = \
     (7.0 / 11.0, 7.0 / 11.0, 7.0 / 11.0)
-
-
-def default_axis_label(dimension: str) -> str:
-    """
-    Get the default label for a given axis.
-
-    :param str dimension: the dimension, which is one of progress dimensions
-    :return: the axis label
-    :rtype: str
-    """
-    if not isinstance(dimension, str):
-        raise TypeError(f"Dimension must be str but is {type(dimension)}.")
-    return Lang.current()[dimension]
 
 
 def rgb_to_gray(r: float, g: float, b: float) -> float:

@@ -30,9 +30,6 @@ def end_result(performance: BasePerformance,
     if not isinstance(performance, BasePerformance):
         raise TypeError("performance must be BasePerformance, "
                         f"but is {type(performance)}.")
-    logger("now creating end result for algorithm "
-           f"{performance.algorithm.name} on "
-           f"{performance.instance.name} for seed {seed}.")
 
     limit_time: Union[int, float] = inf
     limit_fes: Union[int, float] = inf
@@ -50,7 +47,6 @@ def end_result(performance: BasePerformance,
         if max_fes <= 10:
             raise ValueError(f"max_fes must be > 10, but is {max_fes}.")
         limit_fes = max_fes
-    logger(f"- set max_fes={max_fes} and max_time_millis={max_time_millis}.")
 
     # The random number generator is determined by the seed.
     random: Final[Generator] = rand_generator(seed)
@@ -60,7 +56,6 @@ def end_result(performance: BasePerformance,
     speed: float = -1
     while (speed <= 0) or (speed >= 1):
         speed = random.normal(loc=performance.speed, scale=0.01 * jitter)
-    logger(f"- set speed={speed}.")
 
     # total_time ~ total_fes * (performance.speed ** 3)
     total_time: int
@@ -93,7 +88,6 @@ def end_result(performance: BasePerformance,
                 scale=max(10.0, 100.0 / speed)))
         if trials >= 10000:
             total_time = int(min(limit_time, 10000.0))
-    logger(f"- set total_fes={total_fes} and total_time={total_time}.")
 
     # We now look for the vicinity of the local optimum that will be found.
     # We use the quality to determine which attractor to use.
@@ -104,7 +98,6 @@ def end_result(performance: BasePerformance,
     qual: float = -1
     while (qual <= 0) or (qual >= 1):
         qual = random.normal(loc=performance.performance, scale=0.02 * jitter)
-    logger(f"- set quality={qual}.")
 
     # Second, find the right attractor and remember it in base.
     att: Final[Tuple[int, ...]] = performance.instance.attractors
@@ -116,7 +109,6 @@ def end_result(performance: BasePerformance,
         att_index = int(random.normal(loc=attn * (qual ** 1.7),
                                       scale=jitter ** 0.9))
     base: Final[int] = att[att_index]
-    logger(f"- chose attractor({att_index})={base} from {attn} choices.")
 
     # Third, choose the ends of the intervals in which we can jitter.
     jit_end: int = min(int(base + 0.6 * (att[att_index + 1] - base)), worst)
@@ -124,7 +116,6 @@ def end_result(performance: BasePerformance,
     if att_index > 0:
         jit_start = int(0.5 + ceil(base - 0.6 * (base - att[att_index - 1])))
     jit_start = max(jit_start, best)
-    logger(f"- jitter range is {jit_start}..{jit_end}.")
 
     # Now determine best_f.
     best_f: int = -1
@@ -137,7 +128,6 @@ def end_result(performance: BasePerformance,
             best_f = int(round(base - uni * (base - jit_start)))
         else:
             best_f = int(round(base + uni * (jit_end - base)))
-    logger(f"- best_f={best_f}.")
 
     # Finally, we need to compute the time we have used.
     fact: float = -1
@@ -154,8 +144,6 @@ def end_result(performance: BasePerformance,
             or (last_improvement_time >= total_time):
         last_improvement_time = int(random.normal(
             loc=total_time * fact, scale=total_time * 0.05 * jitter))
-    logger(f"- time-fact={fact}, last_improvement_fe={last_improvement_fe}, "
-           f"last_improvement_time={last_improvement_time}.")
 
     res: Final[EndResult] = EndResult(
         algorithm=performance.algorithm.name,
@@ -169,12 +157,6 @@ def end_result(performance: BasePerformance,
         goal_f=performance.instance.best,
         max_fes=max_fes,
         max_time_millis=max_time_millis)
-
-    logger(f"finished creating end result {res.best_f}/"
-           f"{res.last_improvement_fe}/"
-           f"{res.last_improvement_time_millis} for algorithm "
-           f"{performance.algorithm.name} on "
-           f"{performance.instance.name} for seed {seed}.")
     return res
 
 
@@ -284,7 +266,11 @@ class EndResults:
         if not isinstance(experiment, Experiment):
             raise TypeError(
                 f"experiment must be Experiment, but is {type(experiment)}.")
-        logger(f"now creating all end results for experiment {experiment}.")
+        logger(
+            "now creating all end results for an experiment with "
+            f"{len(experiment.algorithms)} algorithms, "
+            f"{len(experiment.instances)} instances, and "
+            f"{len(experiment.per_instance_seeds[0])} runs per setup.")
 
         if max_fes is not None:
             if not isinstance(max_fes, int):

@@ -256,7 +256,6 @@ class Instance:
             if nv not in not_allowed:
                 names.append(nv)
                 not_allowed.add(nv)
-        logger(f"- created {n} instance names ({names}).")
 
         # Now we pick an instance hardness.
         limit: int = 2000
@@ -275,7 +274,6 @@ class Instance:
             if v not in not_allowed:
                 hardnesses.append(v)
                 not_allowed.add(v)
-        logger(f"- created {n} instance hardnesses ({hardnesses}).")
 
         # Now we pick an instance jitter.
         limit = 2000
@@ -294,7 +292,6 @@ class Instance:
             if v not in not_allowed:
                 jitters.append(v)
                 not_allowed.add(v)
-        logger(f"- created {n} instance jitters ({jitters}).")
 
         # Now we choose a scale.
         limit = 2000
@@ -313,7 +310,6 @@ class Instance:
             if v not in not_allowed:
                 scales.append(v)
                 not_allowed.add(v)
-        logger(f"- created {n} instance scales ({scales}).")
 
         # We choose the global optimum and the worst objective value.
         trials = 0
@@ -338,7 +334,6 @@ class Instance:
             if permitted and (tbound not in not_allowed):
                 limits.append(tbound)
                 not_allowed.add(tbound)
-        logger(f"- created {2 * n} instance bounds ({limits}).")
 
         result: List[Instance] = []
         attdone: Set[int] = set()
@@ -393,7 +388,6 @@ class Instance:
                 best=b1,
                 worst=b2,
                 attractors=tuple(sorted(attdone))))
-            logger(f"- created instance ({result[-1]}).")
         result.sort()
         logger(f"finished creating {n} instances.")
         return tuple(result)
@@ -536,7 +530,6 @@ class Algorithm:
             not_allowed.add(nv)
             if name_mode == 3:
                 not_allowed.add(nvb)
-        logger(f"- created {n} algorithms names ({names}).")
 
         limit: int = 2000
         trials = 0
@@ -555,7 +548,6 @@ class Algorithm:
             if v not in not_allowed:
                 strengths.append(v)
                 not_allowed.add(v)
-        logger(f"- created {n} algorithms strengths ({strengths}).")
 
         limit = 2000
         trials = 0
@@ -574,7 +566,6 @@ class Algorithm:
             if v not in not_allowed:
                 jitters.append(v)
                 not_allowed.add(v)
-        logger(f"- created {n} algorithms jitters ({jitters}).")
 
         limit = 2000
         trials = 0
@@ -593,7 +584,6 @@ class Algorithm:
             if v not in not_allowed:
                 complexities.append(v)
                 not_allowed.add(v)
-        logger(f"- created {n} algorithms complexities ({complexities}).")
 
         result: List[Algorithm] = []
         for i in range(n, 0, -1):
@@ -602,7 +592,6 @@ class Algorithm:
                 strength=strengths.pop(random.integers(i)),
                 jitter=jitters.pop(random.integers(i)),
                 complexity=complexities.pop(random.integers(i))))
-            logger(f"- created algorithm {result[-1]}.")
         result.sort()
 
         logger(f"finished creating {n} algorithms.")
@@ -733,7 +722,8 @@ class BasePerformance:
                                                      performance=perf,
                                                      jitter=jit,
                                                      speed=speed)
-        logger(f"finished base performance {bp}.")
+        logger("finished base performance "
+               f"{bp.algorithm.name}@{bp.instance.name}.")
         return bp
 
 
@@ -755,8 +745,7 @@ def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
         raise ValueError(f"n_runs must be > 0, but is {n_runs}.")
     res: Final[Tuple[int, ...]] = tuple(sorted(rand_seeds_from_str(
         string=instance.name, n_seeds=n_runs)))
-    logger(f"finished creating {n_runs} seeds for instance "
-           f"{instance.name}: {res}.")
+    logger(f"finished creating {n_runs} seeds for instance {instance.name}.")
     return res
 
 
@@ -957,7 +946,10 @@ class Experiment:
                                             algorithms=algos,
                                             applications=tuple(app),
                                             per_instance_seeds=tuple(seeds))
-        logger(f"finished creating mock experiment {res}.")
+        logger(f"finished creating mock experiment with {len(res.instances)} "
+               f"instances, {len(res.algorithms)} algorithms, and "
+               f"{len(res.per_instance_seeds[0])} runs per instance-"
+               f"algorithm combination.")
         return res
 
     def seeds_for_instance(self, instance: Union[str, Instance]) \

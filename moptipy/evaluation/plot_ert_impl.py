@@ -12,18 +12,8 @@ import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
 from moptipy.evaluation.ert import Ert
+from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.styler import Styler
-
-
-def ert_y_axis_label(x: str) -> str:
-    """
-    Compute the proper label for the ERT y-axis.
-
-    :param str x: the x-axis (time) type
-    :return: the label for the x-axis
-    :rtype: str
-    """
-    return f"ert\u2009[{pd.default_axis_label(x)}]"
 
 
 def plot_ert(erts: Iterable[Ert],
@@ -42,10 +32,9 @@ def plot_ert(erts: Iterable[Ert],
              pd.importance_to_font_size,
              xgrid: bool = True,
              ygrid: bool = True,
-             xlabel: Union[None, str, Callable] = pd.default_axis_label,
+             xlabel: Union[None, str, Callable] = Lang.translate,
              xlabel_inside: bool = True,
-             ylabel: Union[None, str, Callable] =
-             ert_y_axis_label,
+             ylabel: Union[None, str, Callable] = Lang.translate_func("ert"),
              ylabel_inside: bool = True,
              inst_priority: float = 0.666,
              algo_priority: float = 0.333) -> None:
