@@ -1,6 +1,6 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
-from typing import Final, Optional, List, Iterable, cast
+from typing import Final, List, Iterable, cast
 from typing import Set, Dict, Tuple
 
 import numba  # type: ignore
@@ -52,8 +52,17 @@ def is_np_int(dtype: np.dtype) -> bool:
     Check whether a :class:`np.dtype` is an integer type.
 
     :param np.dtype dtype: the type
+
+    >>> import numpy as npx
+    >>> from moptipy.utils.nputils import is_np_int
+    >>> print(is_np_int(npx.dtype(npx.int8)))
+    True
+    >>> print(is_np_int(npx.dtype(npx.uint16)))
+    True
+    >>> print(is_np_int(npx.dtype(npx.float64)))
+    False
     """
-    return dtype.kind == 'i'
+    return dtype.kind in ('i', 'u')
 
 
 def is_np_float(dtype: np.dtype) -> bool:
@@ -61,6 +70,15 @@ def is_np_float(dtype: np.dtype) -> bool:
     Check whether a :class:`np.dtype` is an floating point type.
 
     :param np.dtype dtype: the type
+
+    >>> import numpy as npx
+    >>> from moptipy.utils.nputils import is_np_float
+    >>> print(is_np_float(npx.dtype(npx.int8)))
+    False
+    >>> print(is_np_float(npx.dtype(npx.uint16)))
+    False
+    >>> print(is_np_float(npx.dtype(npx.float64)))
+    True
     """
     return dtype.kind == 'f'
 
@@ -80,6 +98,26 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
     :rtype: np.dtype
     :raises TypeError: if the parameters are not integers
     :raises ValueError: if the range is invalid
+
+    >>> from moptipy.utils.nputils import int_range_to_dtype
+    >>> print(int_range_to_dtype(0, 127))
+    int8
+    >>> print(int_range_to_dtype(0, 128))
+    uint8
+    >>> print(int_range_to_dtype(0, 32767))
+    int16
+    >>> print(int_range_to_dtype(0, 32768))
+    uint16
+    >>> print(int_range_to_dtype(0, (2 ** 31) - 1))
+    int32
+    >>> print(int_range_to_dtype(0, 2 ** 31))
+    uint32
+    >>> print(int_range_to_dtype(0, (2 ** 63) - 1))
+    int64
+    >>> print(int_range_to_dtype(0, 2 ** 63))
+    uint64
+    >>> print(int_range_to_dtype(0, (2 ** 64) - 1))
+    uint64
     """
     if not isinstance(min_value, int):
         raise TypeError(f"min_value must be int, but is {type(min_value)}.")
@@ -115,6 +153,11 @@ def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     :param dtype: the data type (defaults to 64 bit integers)
     :return: the new array
     :rtype: np.ndarray
+
+    >>> import numpy as npx
+    >>> from moptipy.utils.nputils import np_ints_max
+    >>> print(np_ints_max(4, npx.dtype("uint8")))
+    [255 255 255 255]
     """
     return np.full(shape=shape,
                    fill_value=__NP_INTS_MAP[dtype][1],
@@ -130,18 +173,26 @@ def np_ints_min(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     :param dtype: the data type (defaults to 64 bit integers)
     :return: the new array
     :rtype: np.ndarray
+
+    >>> import numpy as npx
+    >>> from moptipy.utils.nputils import np_ints_min
+    >>> print(np_ints_min(3, npx.dtype("int16")))
+    [-32768 -32768 -32768]
     """
     return np.full(shape=shape,
                    fill_value=__NP_INTS_MAP[dtype][0],
                    dtype=dtype)
 
 
+#: the default number of bytes for random seeds
 __SEED_BYTES: Final = 8
+#: the minimum acceptable random seed
 __MIN_RAND_SEED: Final = 0
+#: the maximum acceptable random seed
 __MAX_RAND_SEED: Final = int((1 << (__SEED_BYTES * 8)) - 1)
 
 
-def rand_seed_generate(random: Optional[Generator] = None) -> int:
+def rand_seed_generate(random: Generator = default_rng()) -> int:
     """
     Generate a random seed.
 
@@ -152,8 +203,6 @@ def rand_seed_generate(random: Optional[Generator] = None) -> int:
     :raises TypeError: if `random` is specified but is not an instance of
         `Generator`
     """
-    if random is None:
-        random = default_rng()
     if not isinstance(random, Generator):
         raise TypeError(
             f"random must be instance of Generator, but is {type(random)}.")
@@ -325,6 +374,15 @@ def is_all_finite(a: np.ndarray) -> bool:
     :param np.ndarray a: the input array
     :return: `True` if all elements in the array are finite, `False` otherwise
     :rtype: bool
+
+    >>> import numpy as npx
+    >>> from moptipy.utils.nputils import is_all_finite
+    >>> print(is_all_finite(npx.array([1.1, 2.1, 3])))
+    True
+    >>> print(is_all_finite(npx.array([1, 2, 3])))
+    True
+    >>> print(is_all_finite(npx.array([1.1, npx.inf, 3])))
+    False
     """
     for x in a:
         if not np.isfinite(x):

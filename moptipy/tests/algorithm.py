@@ -8,6 +8,7 @@ import moptipy.api.algorithm as ma
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
+from moptipy.api.operators import check_op0, check_op1, check_op2
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
@@ -43,6 +44,12 @@ def test_algorithm(algorithm: ma.Algorithm,
                         f"got a {type(algorithm)}.")
 
     ma.check_algorithm(algorithm)
+    if isinstance(algorithm, ma.Algorithm0):
+        check_op0(algorithm.op0)
+        if isinstance(algorithm, ma.Algorithm1):
+            check_op1(algorithm.op1)
+            if isinstance(algorithm, ma.Algorithm2):
+                check_op2(algorithm.op2)
 
     test_component(component=algorithm)
     test_space(solution_space, make_valid=None)

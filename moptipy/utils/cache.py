@@ -12,6 +12,17 @@ def is_new() -> Callable:
     :return: a function `is_new(xx)` that will return `True` the first time it
     encounters any value `xx` and `False` for all values it has already seen
     :rtype: Callable
+
+    >>> from moptipy.utils.cache import is_new
+    >>> check = is_new()
+    >>> print(check("a"))
+    True
+    >>> print(check("a"))
+    False
+    >>> print(check("b"))
+    True
+    >>> print(check("b"))
+    False
     """
     s: Dict[Any, int] = {}
     setdefault = s.setdefault

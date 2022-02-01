@@ -4,7 +4,8 @@ from typing import Callable, Final
 
 from moptipy.api.component import Component
 from moptipy.api.objective import _CallableComponent
-from moptipy.api.operators import Op0, Op1, Op2
+from moptipy.api.operators import Op0, check_op0, Op1, check_op1,\
+    Op2, check_op2
 from moptipy.api.process import Process
 from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
@@ -42,11 +43,8 @@ class Algorithm0(Algorithm, ABC):
         :param bool op0_is_default: is this a default nullary operator?
             if `True`, it will not be included in the name suffix
         """
-        if (op0 is None) or (not isinstance(op0, Op0)):
-            TypeError(f"op0 must be instance of Op0, but is {type(op0)}.")
-
         #: The nullary search operator.
-        self.op0: Final[Op0] = op0
+        self.op0: Final[Op0] = check_op0(op0)
 
         if not isinstance(op0_is_default, bool):
             raise TypeError("op0_is_default must be bool, but is "
@@ -95,10 +93,8 @@ class Algorithm1(Algorithm0, ABC):
         """
         super().__init__(op0=op0,
                          op0_is_default=op0_is_default)
-        if (op1 is None) or (not isinstance(op1, Op1)):
-            TypeError(f"op1 must be instance of Op1, but is {type(op1)}.")
         #: The unary search operator.
-        self.op1: Final[Op1] = op1
+        self.op1: Final[Op1] = check_op1(op1)
         if not isinstance(op1_is_default, bool):
             raise TypeError("op1_is_default must be bool, but is "
                             f"{type(op1_is_default)}.")
@@ -144,10 +140,8 @@ class Algorithm2(Algorithm1, ABC):
                          op1=op1,
                          op0_is_default=op0_is_default,
                          op1_is_default=op1_is_default)
-        if (op2 is None) or (not isinstance(op2, Op2)):
-            TypeError(f"op2 must be instance of Op2, but is {type(op2)}.")
         #: The binary search operator.
-        self.op2: Final[Op2] = op2
+        self.op2: Final[Op2] = check_op2(op2)
         if not isinstance(op2_is_default, bool):
             raise TypeError("op2_is_default must be bool, but is "
                             f"{type(op2_is_default)}.")
