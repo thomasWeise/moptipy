@@ -32,7 +32,7 @@ EXPERIMENT_INSTANCES: \
     ('la05', 'ft10', 'abz8', 'yn4', 'swv14', 'dmu73', 'ta65', 'ta79')
 
 #: The number of runs per instance in our experiment.
-EXPERIMENT_RUNS: Final[int] = 11
+EXPERIMENT_RUNS: Final[int] = 23
 
 #: We will perform two minutes per run.
 EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
