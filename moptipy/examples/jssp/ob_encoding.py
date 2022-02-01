@@ -38,9 +38,9 @@ def decode(x: np.ndarray,
         machine = matrix[job, idx]  # get the machine of the operation
         time = matrix[job, idx + 1]  # and the time requirement
         start = max(job_time[job], machine_time[machine])  # earliest
-        y[job, machine, 0] = start  # store start time in Gantt chart
+        y[machine, job, 0] = start  # store start time in Gantt chart
         end = start + time  # compute end time
-        y[job, machine, 1] = end  # store end time in Gantt chart
+        y[machine, job, 1] = end  # store end time in Gantt chart
         machine_time[machine] = end  # time when next job can start
         job_time[job] = end  # time next operation of job can start
 

@@ -1,4 +1,5 @@
 """Test the operation-based encoding for the JSSP."""
+import numpy as np
 import numpy.random as rnd
 
 import moptipy.tests as tst
@@ -32,6 +33,16 @@ def __check_for_instance(instance: str,
     g.map(x, y)
     y_space.validate(y)
 
+    x_str = x_space.to_str(x)
+    x_2 = x_space.from_str(x_str)
+    assert x_space.is_equal(x, x_2)
+    assert np.array_equal(x, x_2)
+
+    y_str = y_space.to_str(y)
+    y_2 = y_space.from_str(y_str)
+    assert y_space.is_equal(y, y_2)
+    assert np.array_equal(y.times, y_2.times)
+
 
 def __check_seq(prefix: str, end: int, start: int = 1,
                 random: rnd.Generator = rnd.default_rng(),
@@ -44,6 +55,7 @@ def __check_seq(prefix: str, end: int, start: int = 1,
 
 
 def test_for_selected():
+    """Test the ob encoding for a selected number of instances."""
     random: rnd.Generator = rnd.default_rng()
 
     __check_seq("abz", 9, 5, random=random, min_len=1)

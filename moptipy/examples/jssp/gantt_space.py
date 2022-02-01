@@ -120,12 +120,12 @@ class GanttSpace(Space):
             raise TypeError("x.instance.machines must be int, "
                             f"but is {type(x.instance.machines)}.")
 
-        if x.times.shape[0] != x.instance.jobs:
-            raise ValueError(f"times matrix must have {x.instance.jobs} "
+        if x.times.shape[0] != x.instance.machines:
+            raise ValueError(f"times matrix must have {x.instance.machines} "
                              f"rows, but has {x.times.shape[0]}.")
 
-        if x.times.shape[1] != x.instance.machines:
-            raise ValueError(f"times matrix must have {x.instance.machines} "
+        if x.times.shape[1] != x.instance.jobs:
+            raise ValueError(f"times matrix must have {x.instance.jobs} "
                              f"rows, but has {x.times.shape[1]}.")
 
         if x.times.shape[2] != 2:
@@ -133,7 +133,7 @@ class GanttSpace(Space):
                              f"but has {x.times.shape[2]}.")
 
         for jobi in range(x.instance.jobs):
-            row = x.times[jobi]
+            row = x.times[:, jobi]
             srow = [(row[i, 0], row[i, 1], i) for i in range(len(row))]
             srow.sort()
             data = x.instance.matrix[jobi]

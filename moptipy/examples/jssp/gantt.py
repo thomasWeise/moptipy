@@ -14,8 +14,8 @@ class Gantt:
 
     A Gantt chart is a diagram that visualizes when a job on a given
     machine begins or ends. We here represent it as a three-dimensional
-    matrix `self.times`. This matrix has one row for each job and one
-    column for each machine. In each cell, it holds two values: the start
+    matrix `self.times`. This matrix has one row for each machine and one
+    column for each job. In each cell, it holds two values: the start
     and the end time of the job on the machine.
     """
 
@@ -36,4 +36,4 @@ class Gantt:
         self.times: Final[np.ndarray] = np.zeros(  # +book
             dtype=nputils.int_range_to_dtype(
                 min_value=0, max_value=instance.makespan_upper_bound),
-            shape=(instance.jobs, instance.machines, 2))  # +book
+            shape=(instance.machines, instance.jobs, 2))  # +book

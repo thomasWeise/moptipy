@@ -183,15 +183,16 @@ def plot_gantt_chart(gantt: Gantt,
         zorder += 1
 
     # plot the jobs
-    for job in range(jobs):
-        background = colors[job]
-        foreground = pd.text_color_for_background(colors[job])
-        jobstr = str(job)
+    for machine in range(machines):
 
-        for machine in range(machines):
+        for job in range(jobs):
+            background = colors[job]
+            foreground = pd.text_color_for_background(colors[job])
+            jobstr = str(job)
+
             # first plot the colored rectangle
-            x_start = times[job][machine][0]
-            x_end = times[job][machine][1]
+            x_start = times[machine][job][0]
+            x_end = times[machine][job][1]
             y_start = machine - bar_ofs
 
             axes.add_artist(Rectangle(

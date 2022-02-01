@@ -22,14 +22,14 @@ def __check_load_inst(inst: str) -> Instance:
 
 
 def test_load_demo_from_resource():
+    """Test loading the demo instance from resources."""
     i = __check_load_inst("demo")
     assert i.jobs == 4
     assert i.machines == 5
     assert i.makespan_lower_bound == 180
 
 
-def __check_seq(prefix: str, end: int, start: int = 1,
-                min_len=2):
+def __check_seq(prefix: str, end: int, start: int = 1, min_len=2):
     for i in range(start, end + 1):
         s = str(i)
         if len(s) < min_len:
@@ -38,6 +38,7 @@ def __check_seq(prefix: str, end: int, start: int = 1,
 
 
 def test_load_orlib_from_resource():
+    """Check loading the well-known instances."""
     __check_seq("abz", 9, 5, 1)
     __check_seq("dmu", 80)
     __check_load_inst("ft06")
