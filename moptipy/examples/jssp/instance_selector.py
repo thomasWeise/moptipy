@@ -25,8 +25,7 @@ def __get_instances() -> List[Instance]:
 
 def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
                         n_groups: int,
-                        extreme_groups: Tuple[Tuple[Tuple[int,
-                                                          int], ...], ...],
+                        extreme_groups: Tuple[Tuple[int, int], ...],
                         random: Generator) -> Tuple[int, ...]:
     """
     Try to find optimal cluster-to-group assignments.
@@ -56,10 +55,10 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
 
     logger(f"Beginning to optimize the assignment of {len(cluster_groups)} "
            f"clusters to {n_groups} groups. The minimum groups are "
-           f"{extreme_groups[0]}, the maximum groups are {extreme_groups[1]}."
-           f" We permit {run_max_none_improved} runs without improvement "
-           f"before termination and {step_max_none_improved} FEs without "
-           "improvement before stopping a run.")
+           f"{extreme_groups}.  We permit {run_max_none_improved} runs "
+           f"without improvement before termination and "
+           f"{step_max_none_improved} FEs without improvement before "
+           "stopping a run.")
 
     def __f(sol: np.ndarray) -> Tuple[int, int, int, int, float]:
         """
@@ -91,12 +90,11 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
         # second, we check which cluster-to-group assignment permits
         # using an extreme instance
         extremes.clear()
-        for groups in extreme_groups:
-            for group in groups:
-                if sol[group[0]] == group[1]:
-                    if group[0] not in extremes:
-                        extremes.add(group[0])
-                        break
+        for group in extreme_groups:
+            if sol[group[0]] == group[1]:
+                if group[0] not in extremes:
+                    extremes.add(group[0])
+                    break
         return len(extremes), int(np.sum(done > 0)), done.min(), \
             -done.max(), -np.std(done)
 
@@ -290,10 +288,10 @@ def propose_instances(n: int,
     (e.g., `dmu`). This function will then select `n` instances from the
     instance set with the goal to maximize the diversity of the instances, to
     include instances from as many groups as possible, and to include one
-    instance of the smallest and one of the largest scale.
-    The diversity is measured in terms of the numbers of jobs and machines,
-    the instance scale, the minimum and maximum operation length, the
-    standard deviation of the mean operation lengths over the jobs, the
+    instance of the largest scale and omitting the instance of the smallest
+    scale. The diversity is measured in terms of the numbers of jobs and
+    machines, the instance scale, the minimum and maximum operation length,
+    the standard deviation of the mean operation lengths over the jobs, the
     makespan bounds, and so on.
 
     First, features are computed for each instance. Second, the instances are
@@ -361,20 +359,21 @@ def propose_instances(n: int,
     base_features: Final[int] = 9
     features = np.zeros((len(instances), base_features + n_groups),
                         DEFAULT_FLOAT)
-    min_scale_val = inf
-    min_scale_inst: Set[int] = set()
     max_scale_val = -inf
     max_scale_inst: Set[int] = set()
+    min_scale_val = inf
+    min_scale_inst: Set[int] = set()
     for i, inst in enumerate(instances):
         features[i, 0] = inst.jobs
         features[i, 1] = inst.machines
         features[i, 2] = inst.jobs / inst.machines
         scale = __scale(inst.jobs, inst.machines)
+
         if scale <= min_scale_val:
             if scale < min_scale_val:
-                min_scale_val = scale
                 min_scale_inst.clear()
-            min_scale_inst.add(i)
+                min_scale_val = scale
+            max_scale_inst.add(i)
         if scale >= max_scale_val:
             if scale > max_scale_val:
                 max_scale_inst.clear()
@@ -391,9 +390,7 @@ def propose_instances(n: int,
     del instances
     logger(f"We computed {base_features + n_groups} features for each "
            f"instance, namely {base_features} features and {n_groups}"
-           f" group features. The instances with the smallest scale "
-           f" {min_scale_val} are {[inst_names[i] for i in min_scale_inst]} "
-           f" (encoded as {min_scale_inst}) and those of the largest scale "
+           f" group features. The instances with the largest scale "
            f"{max_scale_val} are {[inst_names[i] for i in max_scale_inst]} "
            f"(encoded as {max_scale_inst}). Now we will cluster the "
            f"instances.")
@@ -409,8 +406,7 @@ def propose_instances(n: int,
     # 3. set `groups` with the group names
     # 4. the matrix `features` with instance features
     # 5. the bi-directional mapping between instance groups and group IDs
-    # 6. the instance/group indexes for the smallest and largest-scale
-    #    instances
+    # 6. the instance/group indexes for the largest-scale instances
 
     # now we cluster the instances
     model = SpectralClustering(n_clusters=n,
@@ -425,8 +421,7 @@ def propose_instances(n: int,
     if (max(clusters) - min(clusters) + 1) != n:
         raise ValueError(f"Expected {n} clusters, but got "
                          f"{max(clusters) - min(clusters) + 1}.")
-    logger(f"Found clusters {clusters}. The minimum instances are in"
-           f"{[clusters[i] for i in min_scale_inst]}. The maximum instances "
+    logger(f"Found clusters {clusters}. The maximum instances "
            f"are in {[clusters[i] for i in max_scale_inst]}. now assigning"
            f"clusters to groups.")
 
@@ -438,9 +433,9 @@ def propose_instances(n: int,
     logger(f"The groups available per cluster are {cluster_groups}.")
 
     # Now we need to pick the extreme groups.
-    extreme_groups = tuple(tuple(sorted(list(
-        {(clusters[xx], group_ids[inst_groups[xx]]) for xx in ex})))
-        for ex in [min_scale_inst, max_scale_inst])
+    extreme_groups: Final[Tuple[Tuple[int, int], ...]] = tuple(sorted(list(
+        {(clusters[xx], group_ids[inst_groups[xx]])
+         for xx in max_scale_inst})))
     logger(f"The extreme groups are {extreme_groups}.")
 
     # With this method, we choose one instance group for each cluster.
@@ -463,7 +458,6 @@ def propose_instances(n: int,
     # If we can, we will pick the instances with the minimum and the maximum
     # scales.
     # In a first step, we find out
-    needs_min_scale = True
     needs_max_scale = True
     scale_choices: List[List[Tuple[int, int]]] = []
     inst_choices: List[List[str]] = []
@@ -473,25 +467,15 @@ def propose_instances(n: int,
         sgroup: str = id_groups[chosen_groups[i]]
         possibility: Set[int] = {i for i in elements
                                  if inst_groups[i] == sgroup}
+
+        # exclude minimum scale instance
+        possibility.difference_update(min_scale_inst)
+
         cur_scale_choices: List[Tuple[int, int]] = []
         scale_choices.append(cur_scale_choices)
         cur_inst_choices: List[str] = []
         inst_choices.append(cur_inst_choices)
         can_skip: bool = False
-
-        if needs_min_scale:
-            test = possibility.intersection(min_scale_inst)
-            if len(test) > 0:
-                logger(
-                    f"Choosing from groups {[inst_names[t] for t in test]} "
-                    f"for cluster {i} to facilitate minimum-scale instance.")
-                sel = list(test)
-                seli = sel[random.integers(len(sel))]
-                possibility = {seli}
-                cur_scale_choices.append(inst_sizes[seli])
-                cur_inst_choices.append(inst_names[seli])
-                can_skip = True
-                needs_min_scale = False
 
         if needs_max_scale:
             test = possibility.intersection(max_scale_inst)
