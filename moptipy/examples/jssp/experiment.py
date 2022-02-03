@@ -26,10 +26,10 @@ from moptipy.utils.path import Path
 #: computed via instance_selector.propose_instances.
 #: The instances in this tuple are sorted by the scale, i.e., the number
 #: of possible (feasible or infeasible) Gantt charts than can be constructed
-#: for them. For the largest one (ta79), more than 10**3159 are possible.
+#: for them. For the largest one (ta70), more than 10**1'289 are possible.
 EXPERIMENT_INSTANCES: \
     Final[Tuple[str, str, str, str, str, str, str, str]] = \
-    ('la05', 'ft10', 'abz8', 'yn4', 'swv14', 'dmu73', 'ta65', 'ta79')
+    ('orb06', 'la38', 'abz8', 'yn4', 'swv14', 'dmu67', 'dmu72', 'ta70')
 
 #: The number of runs per instance in our experiment.
 EXPERIMENT_RUNS: Final[int] = 23

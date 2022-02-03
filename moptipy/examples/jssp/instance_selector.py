@@ -1,15 +1,182 @@
 """Code for selecting interesting instances for smaller-scale experiments."""
-from math import factorial, log2, inf, sqrt
+import multiprocessing as mp
+from math import factorial, log2, inf, sqrt, ceil
+from os import sched_getaffinity
 from typing import Dict, Tuple, Final, List, Callable, Set
 
 import numpy as np  # type: ignore
 from numpy.random import Generator, RandomState  # type: ignore
 from sklearn.cluster import SpectralClustering  # type: ignore
 
+from moptipy.algorithms.ea1p1 import EA1p1
+from moptipy.api.execution import Execution
+from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
+from moptipy.examples.jssp.makespan import Makespan
+from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
+from moptipy.operators.pwr.op1_swap2 import Op1Swap2
+from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.utils.log import logger
-from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
-from moptipy.utils.nputils import rand_generator
+from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
+    rand_generator, rand_seeds_from_str
+
+
+def __can_solve_instance(inst: Instance, seed: int,
+                         queue: mp.Queue) -> None:
+    """
+    Execute one run of a (1+1)-EA for 2.1min on the instance, return makespan.
+
+    :param Instance inst: the jssp instance to check
+    :param int seed: the seed of this run
+    :param multiprocessing.Queue queue: the queue for the return values
+    """
+    x_space: Final[PermutationsWithRepetitions] = \
+        PermutationsWithRepetitions(inst.jobs, inst.machines)
+    y_space: Final[GanttSpace] = GanttSpace(inst)
+    g: Final[OperationBasedEncoding] = OperationBasedEncoding(inst)
+    o0: Final[Op0Shuffle] = Op0Shuffle(x_space)
+    o1: Final[Op1Swap2] = Op1Swap2()
+    f: Final[Makespan] = Makespan(inst)
+    a: Final[EA1p1] = EA1p1(o0, o1)
+    goal: Final[int] = inst.makespan_lower_bound
+
+    ex: Final[Execution] = Execution()
+    ex.set_search_space(x_space)
+    ex.set_solution_space(y_space)
+    ex.set_encoding(g)
+    ex.set_algorithm(a)
+    ex.set_objective(f)
+    ex.set_max_time_millis(126_000)
+    ex.set_goal_f(goal)
+    ex.set_rand_seed(seed)
+    with ex.execute() as P:
+        queue.put(P.get_current_best_f())
+
+
+def __is_instance_too_easy(inst: Instance) -> bool:
+    """
+    Check if an instance is too easy to be of any interest.
+
+    We perform 16 runs of a (1+1)-EA on an instance, granting 2.1 minutes
+    of runtime to each of them. An instance is considered as easy if one of
+    the following conditions is fulfilled:
+
+    - it is solved often enough (lower bound reached often)
+    - there are not enough different results
+    - the mean result is too close to the lower bound
+    - the worst result is not far enough from the lower bound
+    - the worst result is too close to the best result
+
+    If any of these conditions hold, we consider the instance as too easy to
+    be of any interest for our educational experiment.
+
+    :param Instance inst: the jssp instance to check
+    :returns: True if the instance is too easy to be interesting
+    :rtype: bool
+    """
+    n_runs: Final[int] = 16
+    seeds: Final[List[int]] = rand_seeds_from_str(string=inst.name,
+                                                  n_seeds=n_runs)
+    queue: Final[mp.Queue] = mp.Queue()
+
+    while len(seeds) > 0:
+        processes = [mp.Process(target=__can_solve_instance,
+                                args=(inst, seeds.pop(), queue))
+                     for _ in range(min(len(seeds), __DEFAULT_N_THREADS))]
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+
+    goal: Final[int] = inst.makespan_lower_bound
+    num_solved: int = 0
+    diff: Set[int] = set()
+    min_makespan: int = 1 << 62
+    sum_makespans: int = 0
+    max_makespan: int = 0
+
+    for _ in range(n_runs):
+        makespan: int = queue.get()
+        diff.add(makespan)
+        if makespan <= min_makespan:
+            min_makespan = makespan
+            if makespan <= goal:
+                num_solved += 1
+        sum_makespans += makespan
+        if makespan > max_makespan:
+            max_makespan = makespan
+
+    mean_makespan: Final[float] = sum_makespans / n_runs
+    mean_threshold: Final[float] = min(goal + 32.0,
+                                       max(1.01 * goal, goal + 3))
+    max_threshold: Final[float] = min(goal + 64.0,
+                                      max(1.02 * goal, goal + 5))
+    min_threshold: Final[float] = min(min_makespan + 48.0,
+                                      max(1.015 * min_makespan,
+                                          min_makespan + 4))
+    n_diff: Final[int] = len(diff)
+    diff_threshold: Final[int] = max(3, int(0.5 + ceil(log2(n_runs))))
+    solved_threshold: Final[int] = int(ceil(n_runs / 3))
+
+    result: Final[bool] = (num_solved >= solved_threshold) \
+        or (mean_makespan < mean_threshold) \
+        or (max_makespan < max_threshold) \
+        or (min_threshold > max_makespan) \
+        or (n_diff <= diff_threshold)
+    logger(f"Instance {inst.name} is {'easy' if result else 'hard'}, "
+           f"since {n_runs} runs of the (1+1)-EA had {n_diff} different "
+           f"results (threshold {diff_threshold}), a best result of "
+           f"{min_makespan}, a mean result of {mean_makespan} (threshold: "
+           f"{mean_threshold}), a worst result of {max_makespan} "
+           f"(thresholds: {max_threshold}, {min_threshold}), and "
+           f"reached the makespan lower bound ({goal}) {num_solved} "
+           f"times (threshold: {solved_threshold}).")
+    return result
+
+
+#: The default number of threads to be used
+__DEFAULT_N_THREADS: Final[int] = max(1, min(len(sched_getaffinity(0)), 128))
+
+
+def compute_instances_that_are_too_easy() -> Tuple[str, ...]:
+    """
+    Compute the set of instances that are too easy to be of any interest.
+
+    For our educational experiments, we need instances that are not always
+    solved to optimality by simple algorithms. Otherwise, for example, the
+    box plots of the end results will collapse to single lines. Then, it
+    will also be impossible to really say which algorithm performs best on
+    the instance.
+    See the documentation of :func:`__is_instance_too_easy` for the
+    conditions that lead to the rejection of an instance
+
+    :returns: the tuple of instance names that should not be included in
+        the experiment
+    """
+    logger("We now test the instances whether they are too easy.")
+    easy: Final[List[str]] = []
+    for inst_name in Instance.list_resources():
+        if __is_instance_too_easy(Instance.from_resource(inst_name)):
+            easy.append(inst_name)
+    easy.sort()
+    logger(f"Finished the test, found {len(easy)} easy instances: {easy}.")
+    return tuple(easy)
+
+
+#: This is the set of instances that are too easy to be interesting and shall
+#: therefore be skipped from our experiments.
+#: For a documentation about what constitutes 'too easy', see
+#: :func:`compute_instances_that_are_too_easy`
+__TOO_EASY: Final[Set[str]] = \
+    {'demo', 'dmu21', 'dmu22', 'dmu24', 'dmu25', 'dmu31', 'dmu32', 'dmu33',
+     'dmu34', 'dmu35', 'ft06', 'ft20', 'la01', 'la02', 'la03', 'la04',
+     'la05', 'la06', 'la07', 'la08', 'la09', 'la10', 'la11', 'la12', 'la13',
+     'la14', 'la15', 'la17', 'la18', 'la23', 'la26', 'la28', 'la30', 'la31',
+     'la32', 'la33', 'la34', 'la35', 'swv16', 'swv17', 'swv18', 'swv19',
+     'swv20', 'ta51', 'ta52', 'ta53', 'ta54', 'ta55', 'ta56', 'ta57', 'ta58',
+     'ta59', 'ta60', 'ta61', 'ta63', 'ta68', 'ta69', 'ta71', 'ta72', 'ta73',
+     'ta74', 'ta75', 'ta76', 'ta77', 'ta78', 'ta79', 'ta80'}
 
 
 def __get_instances() -> List[Instance]:
@@ -20,12 +187,13 @@ def __get_instances() -> List[Instance]:
     :rtype: Tuple[Instance, ...]
     """
     return [Instance.from_resource(name) for name in
-            Instance.list_resources() if name != "demo"]
+            Instance.list_resources() if name not in __TOO_EASY]
 
 
 def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
                         n_groups: int,
-                        extreme_groups: Tuple[Tuple[int, int], ...],
+                        extreme_groups: Tuple[Tuple[Tuple[int,
+                                                          int], ...], ...],
                         random: Generator) -> Tuple[int, ...]:
     """
     Try to find optimal cluster-to-group assignments.
@@ -55,10 +223,10 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
 
     logger(f"Beginning to optimize the assignment of {len(cluster_groups)} "
            f"clusters to {n_groups} groups. The minimum groups are "
-           f"{extreme_groups}.  We permit {run_max_none_improved} runs "
-           f"without improvement before termination and "
-           f"{step_max_none_improved} FEs without improvement before "
-           "stopping a run.")
+           f"{extreme_groups[0]}, the maximum groups are {extreme_groups[1]}."
+           f" We permit {run_max_none_improved} runs without improvement "
+           f"before termination and {step_max_none_improved} FEs without "
+           "improvement before stopping a run.")
 
     def __f(sol: np.ndarray) -> Tuple[int, int, int, int, float]:
         """
@@ -90,11 +258,12 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
         # second, we check which cluster-to-group assignment permits
         # using an extreme instance
         extremes.clear()
-        for group in extreme_groups:
-            if sol[group[0]] == group[1]:
-                if group[0] not in extremes:
-                    extremes.add(group[0])
-                    break
+        for groups in extreme_groups:
+            for group in groups:
+                if sol[group[0]] == group[1]:
+                    if group[0] not in extremes:
+                        extremes.add(group[0])
+                        break
         return len(extremes), int(np.sum(done > 0)), done.min(), \
             -done.max(), -np.std(done)
 
@@ -288,10 +457,10 @@ def propose_instances(n: int,
     (e.g., `dmu`). This function will then select `n` instances from the
     instance set with the goal to maximize the diversity of the instances, to
     include instances from as many groups as possible, and to include one
-    instance of the largest scale and omitting the instance of the smallest
-    scale. The diversity is measured in terms of the numbers of jobs and
-    machines, the instance scale, the minimum and maximum operation length,
-    the standard deviation of the mean operation lengths over the jobs, the
+    instance of the smallest and one of the largest scale.
+    The diversity is measured in terms of the numbers of jobs and machines,
+    the instance scale, the minimum and maximum operation length, the
+    standard deviation of the mean operation lengths over the jobs, the
     makespan bounds, and so on.
 
     First, features are computed for each instance. Second, the instances are
@@ -359,21 +528,20 @@ def propose_instances(n: int,
     base_features: Final[int] = 9
     features = np.zeros((len(instances), base_features + n_groups),
                         DEFAULT_FLOAT)
-    max_scale_val = -inf
-    max_scale_inst: Set[int] = set()
     min_scale_val = inf
     min_scale_inst: Set[int] = set()
+    max_scale_val = -inf
+    max_scale_inst: Set[int] = set()
     for i, inst in enumerate(instances):
         features[i, 0] = inst.jobs
         features[i, 1] = inst.machines
         features[i, 2] = inst.jobs / inst.machines
         scale = __scale(inst.jobs, inst.machines)
-
         if scale <= min_scale_val:
             if scale < min_scale_val:
-                min_scale_inst.clear()
                 min_scale_val = scale
-            max_scale_inst.add(i)
+                min_scale_inst.clear()
+            min_scale_inst.add(i)
         if scale >= max_scale_val:
             if scale > max_scale_val:
                 max_scale_inst.clear()
@@ -390,7 +558,9 @@ def propose_instances(n: int,
     del instances
     logger(f"We computed {base_features + n_groups} features for each "
            f"instance, namely {base_features} features and {n_groups}"
-           f" group features. The instances with the largest scale "
+           f" group features. The instances with the smallest scale "
+           f" {min_scale_val} are {[inst_names[i] for i in min_scale_inst]} "
+           f" (encoded as {min_scale_inst}) and those of the largest scale "
            f"{max_scale_val} are {[inst_names[i] for i in max_scale_inst]} "
            f"(encoded as {max_scale_inst}). Now we will cluster the "
            f"instances.")
@@ -406,7 +576,8 @@ def propose_instances(n: int,
     # 3. set `groups` with the group names
     # 4. the matrix `features` with instance features
     # 5. the bi-directional mapping between instance groups and group IDs
-    # 6. the instance/group indexes for the largest-scale instances
+    # 6. the instance/group indexes for the smallest and largest-scale
+    #    instances
 
     # now we cluster the instances
     model = SpectralClustering(n_clusters=n,
@@ -421,7 +592,8 @@ def propose_instances(n: int,
     if (max(clusters) - min(clusters) + 1) != n:
         raise ValueError(f"Expected {n} clusters, but got "
                          f"{max(clusters) - min(clusters) + 1}.")
-    logger(f"Found clusters {clusters}. The maximum instances "
+    logger(f"Found clusters {clusters}. The minimum instances are in"
+           f"{[clusters[i] for i in min_scale_inst]}. The maximum instances "
            f"are in {[clusters[i] for i in max_scale_inst]}. now assigning"
            f"clusters to groups.")
 
@@ -433,9 +605,9 @@ def propose_instances(n: int,
     logger(f"The groups available per cluster are {cluster_groups}.")
 
     # Now we need to pick the extreme groups.
-    extreme_groups: Final[Tuple[Tuple[int, int], ...]] = tuple(sorted(list(
-        {(clusters[xx], group_ids[inst_groups[xx]])
-         for xx in max_scale_inst})))
+    extreme_groups = tuple(tuple(sorted(list(
+        {(clusters[xx], group_ids[inst_groups[xx]]) for xx in ex})))
+        for ex in [min_scale_inst, max_scale_inst])
     logger(f"The extreme groups are {extreme_groups}.")
 
     # With this method, we choose one instance group for each cluster.
@@ -458,6 +630,7 @@ def propose_instances(n: int,
     # If we can, we will pick the instances with the minimum and the maximum
     # scales.
     # In a first step, we find out
+    needs_min_scale = True
     needs_max_scale = True
     scale_choices: List[List[Tuple[int, int]]] = []
     inst_choices: List[List[str]] = []
@@ -467,15 +640,25 @@ def propose_instances(n: int,
         sgroup: str = id_groups[chosen_groups[i]]
         possibility: Set[int] = {i for i in elements
                                  if inst_groups[i] == sgroup}
-
-        # exclude minimum scale instance
-        possibility.difference_update(min_scale_inst)
-
         cur_scale_choices: List[Tuple[int, int]] = []
         scale_choices.append(cur_scale_choices)
         cur_inst_choices: List[str] = []
         inst_choices.append(cur_inst_choices)
         can_skip: bool = False
+
+        if needs_min_scale:
+            test = possibility.intersection(min_scale_inst)
+            if len(test) > 0:
+                logger(
+                    f"Choosing from groups {[inst_names[t] for t in test]} "
+                    f"for cluster {i} to facilitate minimum-scale instance.")
+                sel = list(test)
+                seli = sel[random.integers(len(sel))]
+                possibility = {seli}
+                cur_scale_choices.append(inst_sizes[seli])
+                cur_inst_choices.append(inst_names[seli])
+                can_skip = True
+                needs_min_scale = False
 
         if needs_max_scale:
             test = possibility.intersection(max_scale_inst)

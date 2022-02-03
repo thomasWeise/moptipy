@@ -1,16 +1,17 @@
 """Utilities for creating and storing figures."""
 import os.path
 from math import sqrt, isfinite
-from typing import Final, Iterable, Union, List, Optional, Callable
+from typing import Final, Iterable, Union, List, Optional, Callable, cast, \
+    Tuple, Sequence
 
 import matplotlib.pyplot  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.backend_bases import RendererBase  # type: ignore
 from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
-from moptipy.evaluation.lang import Lang
 
 import moptipy.evaluation.plot_defaults as pd
+from moptipy.evaluation.lang import Lang
 from moptipy.utils.path import Path
 
 #: the golden ratio
@@ -278,7 +279,43 @@ def label_axes(axes: Axes,
                 axes.set_ylabel(ylabel, fontsize=font_size)
 
 
-def get_axes(figure: Union[SubplotBase, Figure]) -> Axes:
+def divide_into_sub_plots(figure: Figure, nrows: int, ncols: int) \
+        -> Tuple[Tuple[Union[SubplotBase, Figure], int, int, int], ...]:
+    """
+    Divide a figure into nrows*ncols sub-plots.
+
+    :param Figure figure: the figure
+    :param int nrows: the number of rows
+    :param int ncols: the number of columns
+    :returns: a tuple with the sub-figures, their row, their column,
+        and their overall index
+    :rtype: Tuple[Tuple[Union[SubplotBase, Figure]]]
+    """
+    if not isinstance(figure, Figure):
+        raise TypeError(f"Expected Figure, but got {type(figure)}.")
+    if not isinstance(nrows, int):
+        raise TypeError(f"nrows must be int, but is {type(nrows)}.")
+    if nrows < 1:
+        raise ValueError(f"nrows must be positive, but is {nrows}.")
+    if not isinstance(ncols, int):
+        raise TypeError(f"ncols must be int, but is {type(ncols)}.")
+    if ncols < 1:
+        raise ValueError(f"ncols must be positive, but is {ncols}.")
+
+    if (nrows == 1) and (ncols == 1):
+        return tuple([(figure, 0, 0, 0)])
+
+    allfigs: List[Tuple[Union[SubplotBase, Figure], int, int, int]] = []
+    index: int = 0
+    for i in range(nrows):
+        for j in range(ncols):
+            index += 1
+            allfigs.append((figure.add_subplot(nrows, ncols, index),
+                            i, j, index - 1))
+    return tuple(allfigs)
+
+
+def get_axes(figure: Union[Axes, SubplotBase, Figure]) -> Axes:
     """
     Obtain the axes from a figure or axes object.
 
@@ -286,8 +323,29 @@ def get_axes(figure: Union[SubplotBase, Figure]) -> Axes:
     :return: the Axes
     :rtype: Axes
     """
-    return figure.add_axes([0.005, 0.005, 0.99, 0.99]) \
-        if isinstance(figure, Figure) else figure.axes[0]
+    if isinstance(figure, Figure):
+        return figure.add_axes([0.005, 0.005, 0.99, 0.99])
+    if hasattr(figure, 'axes') \
+            or isinstance(getattr(type(figure), 'axes', None), property):
+        try:
+            if isinstance(figure.axes, Axes):
+                return cast(Axes, figure.axes)
+            if isinstance(figure.axes, Sequence):
+                ax = figure.axes[0]
+                if isinstance(ax, Axes):
+                    return cast(Axes, ax)
+            elif isinstance(figure.axes, Iterable):
+                for k in figure.axes:
+                    if isinstance(k, Axes):
+                        return cast(Axes, k)
+                    break
+        except TypeError:
+            pass
+        except IndexError:
+            pass
+    if isinstance(figure, Axes):
+        return cast(Axes, figure)
+    raise TypeError(f"Cannot get Axes of object of type {type(figure)}.")
 
 
 def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:

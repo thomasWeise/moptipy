@@ -1,7 +1,8 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
 from dataclasses import dataclass
 from math import inf
-from typing import Union, List, MutableSequence, Final, Optional, Iterable
+from typing import Union, List, MutableSequence, Final, Optional, Iterable, \
+    Callable
 
 from moptipy.evaluation._utils import _ifn_to_str, _in_to_str, _str_to_if, \
     _str_to_ifn, _str_to_in, _try_int, _check_max_time_millis
@@ -216,12 +217,14 @@ class EndResult(PerRunData):
         return path
 
     @staticmethod
-    def from_csv(file: str, collector: MutableSequence['EndResult']) -> None:
+    def from_csv(file: str, collector: MutableSequence['EndResult'],
+                 filterer: Callable = lambda x: True) -> None:
         """
         Parse a given CSV file to get :class:`EndResult` Records.
 
         :param str file: the path to parse
         :param MutableSequence[EndResult] collector: the collector
+        :param Callable filterer: an optional filter function
         """
         if not isinstance(collector, MutableSequence):
             raise TypeError("Collector must be mutable sequence, "
@@ -243,7 +246,7 @@ class EndResult(PerRunData):
                     break
                 for line in lines:
                     splt = line.strip().split(logging.CSV_SEPARATOR)
-                    collector.append(EndResult(
+                    er = EndResult(
                         splt[0].strip(),  # algorithm
                         splt[1].strip(),  # instance
                         int((splt[2])[2:], 16),  # rand seed
@@ -254,7 +257,9 @@ class EndResult(PerRunData):
                         int(splt[7]),  # total_time_millis
                         _str_to_ifn(splt[8]),  # goal_f
                         _str_to_in(splt[9]),  # max_fes
-                        _str_to_in(splt[10])))  # max_time_millis
+                        _str_to_in(splt[10]))  # max_time_millis
+                    if filterer(er):
+                        collector.append(er)
 
         logger(f"Done reading CSV file '{path}'.")
 

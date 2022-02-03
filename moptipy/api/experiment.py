@@ -7,8 +7,7 @@ from os import sched_getaffinity
 from typing import Iterable, Union, Callable, Tuple, List, \
     ContextManager, Final, Sequence, cast
 
-from numpy.random import Generator
-from numpy.random import default_rng
+from numpy.random import Generator, default_rng
 
 from moptipy.api.execution import Execution
 from moptipy.utils.cache import is_new

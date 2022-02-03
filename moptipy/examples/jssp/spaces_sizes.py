@@ -531,6 +531,15 @@ def make_gantt_space_size_table(
                  min_size, name))
 
     inst_scales.sort()
+    for i, a in enumerate(inst_scales):
+        for j in range(i, len(inst_scales)):
+            b = inst_scales[j]
+            if a[-1] and b[-1]:
+                if a[-3] > b[-3]:
+                    inst_scales[i] = b
+                    inst_scales[j] = a
+                    a = b
+
     for scale in inst_scales:
         text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
                     f"{__long_str(scale[3])}|{__long_str(scale[2])}|")
@@ -585,6 +594,14 @@ def make_search_space_size_table(
                  PermutationsWithRepetitions(jobs, machines).scale(), ""))
 
     inst_scales.sort()
+    for i, a in enumerate(inst_scales):
+        for j in range(i, len(inst_scales)):
+            b = inst_scales[j]
+            if a[-1] and b[-1]:
+                if a[-2] > b[-2]:
+                    inst_scales[i] = b
+                    inst_scales[j] = a
+                    a = b
     for scale in inst_scales:
         text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
                     f"{__long_str(scale[2])}|{__long_str(scale[3])}|")

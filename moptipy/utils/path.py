@@ -83,8 +83,18 @@ class Path(str):
 
         :raises ValueError:  if `path` does not reference an existing file
         """
-        if not os.path.isfile(self):
+        if not self.is_file():
             raise ValueError(f"Path '{self}' does not identify a file.")
+
+    def is_file(self) -> bool:
+        """
+        Check if this path identifies an existing file.
+
+        :returns: True if this path identifies an existing file, False
+            otherwise.
+        :rtype: bool
+        """
+        return os.path.isfile(self)
 
     def enforce_dir(self) -> None:
         """

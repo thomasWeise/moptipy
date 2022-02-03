@@ -45,9 +45,11 @@ def plot_end_results(
         xlabel_inside: bool = True,
         ylabel: Union[None, str, Callable] = Lang.translate,
         ylabel_inside: bool = True,
-        legend_pos: str = "best") -> None:
+        legend_pos: str = "best",
+        instance_sort_key: Callable = lambda x: x,
+        algorithm_sort_key: Callable = lambda x: x) -> None:
     """
-    Plot a set of Ecdf functions into one chart.
+    Plot a set of end result boxes/violins functions into one chart.
 
     :param end_results: the iterable of end results
     :param Union[SubplotBase, Figure] figure: the figure to plot in
@@ -72,6 +74,8 @@ def plot_end_results(
     :param bool ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     :param str legend_pos: the legend position
+    :param Callable instance_sort_key: the sort key function for instances
+    :param Callable algorithm_sort_key: the sort key function for algorithms
     """
     if not isinstance(dimension, str):
         raise TypeError(f"dimension must be str, but is {type(dimension)}.")
@@ -150,7 +154,8 @@ def plot_end_results(
     if (n_instances <= 0) or (n_algorithms <= 0):
         raise ValueError("Data cannot be empty but found "
                          f"{n_instances} and {n_algorithms}.")
-    algorithms: Final[Tuple[str, ...]] = tuple(sorted(algo_set))
+    algorithms: Final[Tuple[str, ...]] = \
+        tuple(sorted(algo_set, key=algorithm_sort_key))
     logger(f"- {n_algorithms} algorithms ({algorithms}) "
            f"and {n_instances} instances ({data.keys()}).")
 
@@ -158,7 +163,7 @@ def plot_end_results(
     inst_algos: List[Tuple[str, List[str]]] = []
     plot_data: List[List[Union[int, float]]] = []
     plot_algos: List[str] = []
-    for inst in sorted(data.keys()):
+    for inst in sorted(data.keys(), key=instance_sort_key):
         per_inst_data = data[inst]
         algo_names: List[str] = sorted(per_inst_data.keys())
         plot_algos.extend(algo_names)
@@ -320,7 +325,7 @@ def plot_end_results(
                   xlabel_location=1,
                   ylabel=ylabel(dimension) if callable(ylabel) else ylabel,
                   ylabel_inside=ylabel_inside,
-                  ylabel_location=1,
+                  ylabel_location=0.5,
                   font_size=font_size_0,
                   zorder=zorder)
 
