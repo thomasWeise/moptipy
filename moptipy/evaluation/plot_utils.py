@@ -289,7 +289,7 @@ def divide_into_sub_plots(figure: Figure, nrows: int, ncols: int) \
     :param int ncols: the number of columns
     :returns: a tuple with the sub-figures, their row, their column,
         and their overall index
-    :rtype: Tuple[Tuple[Union[SubplotBase, Figure]]]
+    :rtype: Tuple[Tuple[Union[SubplotBase, Figure], int, int, int], ...]
     """
     if not isinstance(figure, Figure):
         raise TypeError(f"Expected Figure, but got {type(figure)}.")
