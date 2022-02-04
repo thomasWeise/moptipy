@@ -1,16 +1,13 @@
 """The JSSP-example specific plots."""
 
-from math import ceil, floor
-from typing import List, Final, Callable, Iterable, Set
+from typing import Final, Callable, Iterable, Set, List
 
-from matplotlib.figure import Figure  # type: ignore
-
+import moptipy.evaluation.plot_utils as pu
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.plot_end_results_impl import plot_end_results
-import moptipy.evaluation.plot_utils as pu
-from moptipy.utils.log import logger
 from moptipy.evaluation.lang import Lang
+from moptipy.evaluation.plot_end_results_impl import plot_end_results
+from moptipy.utils.log import logger
 
 
 def plot_end_makespans(end_results: Iterable[EndResult],
@@ -30,64 +27,41 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     logger(f"beginning to plot chart {name_base}.")
     algorithms: Set[str] = set()
     instances: Set[str] = set()
+    pairs: Set[str] = set()
     for er in end_results:
         algorithms.add(er.algorithm)
         instances.add(er.instance)
-
-    base_width: Final[float] = 8.6
-    base_height: Final[float] = 2.5
-    figure: Figure
+        pairs.add(f"{er.algorithm}+{er.instance}")
 
     n_algos: Final[int] = len(algorithms)
     n_insts: Final[int] = len(instances)
-    max_chunk_size: Final[int] = 16
-    if n_algos >= max_chunk_size:
-        raise ValueError(f"{n_algos} are just too many algorithms...")
+    n_pairs: Final[int] = len(pairs)
+    if n_pairs != (n_algos * n_insts):
+        raise ValueError(
+            f"found {n_algos} algorithms and {n_insts} instances, "
+            f"but only {n_pairs} algorithm-instance pairs!")
 
-    n_insts_per_chunk: int
-    n_chunks: int
-    insts: List[str] = []
-    if (n_algos * n_insts) <= max_chunk_size:
-        n_insts_per_chunk = n_insts
-        n_chunks = 1
-    else:
-        n_insts_per_chunk = int(0.5 + floor(max_chunk_size / n_algos))
-        n_chunks = int(0.5 + ceil(n_insts / n_insts_per_chunk))
-        if n_chunks <= 1:
-            raise ValueError("Huh?")
-        insts = sorted(instances, key=instance_sort_key, reverse=True)
-    logger(f"we will plot the {n_algos} algorithms on {n_insts} in "
-           f"{n_chunks} plots with {n_insts_per_chunk} instances per plot.")
+    if n_algos >= 16:
+        raise ValueError(f"{n_algos} are just too many algorithms...")
+    max_insts: Final[int] = 16 // n_algos
+    insts: Final[List[str]] = sorted(instances, key=instance_sort_key)
 
     for lang in Lang.all():
         lang.set_current()
+        figure, plots = pu.create_figure_with_subplots(
+            items=n_insts, max_items_per_plot=max_insts, max_rows=5,
+            max_cols=1, max_width=8.6, default_height_per_row=2.5)
 
-        if n_chunks <= 1:
-            figure = pu.create_figure(width=base_width, height=base_height)
-            plot_end_results(end_results=end_results,
-                             figure=figure,
+        for plot, start_inst, end_inst, _, _, _ in plots:
+            instances.clear()
+            instances.update(insts[start_inst:end_inst])
+            plot_end_results(end_results=[er for er in end_results
+                                          if er.instance in instances],
+                             figure=plot,
                              dimension=F_NAME_SCALED,
                              instance_sort_key=instance_sort_key,
                              algorithm_sort_key=algorithm_sort_key)
-        else:
-            figure = pu.create_figure(width=base_width,
-                                      height=n_chunks * (1.02 * base_height))
-            figures = pu.divide_into_sub_plots(figure=figure,
-                                               nrows=n_chunks, ncols=1)
-            inst_idx: int = n_insts
 
-            for fig, _, _, _ in figures:
-                instances.clear()
-                for _ in range(n_insts_per_chunk):
-                    if inst_idx > 0:
-                        inst_idx -= 1
-                        instances.add(insts[inst_idx])
-                plot_end_results(end_results=[er for er in end_results
-                                              if er.instance in instances],
-                                 figure=fig,
-                                 dimension=F_NAME_SCALED,
-                                 instance_sort_key=instance_sort_key,
-                                 algorithm_sort_key=algorithm_sort_key)
         pu.save_figure(fig=figure,
                        file_name=lang.filename(name_base),
                        dir_name=dest_dir)

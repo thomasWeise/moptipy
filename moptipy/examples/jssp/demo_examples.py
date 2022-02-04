@@ -243,8 +243,8 @@ def makespan_lower_bound_table(
 
     text: Final[List[str]] = [
         r"|name|$\jsspJobs$|$\jsspMachines$|$\lowerBound(\objf)$|"
-        r"$\lowerBound(\objf)^{\star}$|source for&nbsp;"
-        r"$\lowerBound(\objf)^{\star}$|",
+        + r"$\lowerBound(\objf)^{\star}$|source for&nbsp;"
+        + r"$\lowerBound(\objf)^{\star}$|",
         "|:--|--:|--:|--:|--:|:--|"
     ]
     bsrc: Final[str] = "[@eq:jsspLowerBound]"

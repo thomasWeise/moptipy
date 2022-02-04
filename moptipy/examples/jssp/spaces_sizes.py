@@ -481,9 +481,9 @@ def make_gantt_space_size_table(
     """
     file = Path.path(dest)
     text = [f'|{Lang.current()["name"]}|'
-            r"$\jsspJobs$|$\jsspMachines$|$\min(\#\text{"
-            f'{Lang.current()["feasible"]}'
-            r"})$|$\left|\solutionSpace\right|$|",
+            + r"$\jsspJobs$|$\jsspMachines$|$\min(\#\text{"
+            + f'{Lang.current()["feasible"]}'
+            + r"})$|$\left|\solutionSpace\right|$|",
             r"|:--|--:|--:|--:|--:|"]
 
     inst_scales: List[Tuple[int, int, int, int, str]] = []
@@ -563,8 +563,8 @@ def make_search_space_size_table(
     """
     file = Path.path(dest)
     text = [f'|{Lang.current()["name"]}|'
-            r"$\jsspJobs$|$\jsspMachines$|$\left|\solutionSpace\right|$|"
-            r"$\left|\searchSpace\right|$|",
+            + r"$\jsspJobs$|$\jsspMachines$|$\left|\solutionSpace\right|$|"
+            + r"$\left|\searchSpace\right|$|",
             r"|:--|--:|--:|--:|--:|"]
     inst_scales: List[Tuple[int, int, int, int, str]] = []
 

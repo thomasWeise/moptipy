@@ -125,8 +125,9 @@ class Lang:
             raise TypeError(f"Item must be str, but is {type(item)}.")
         fstr = self.__dict[item]
         # pylint: disable=W0123
-        return eval(f'f"""{fstr}"""',  # nosec
-                    {"__builtins__": None}, kwargs).strip()  # nosec
+        return eval(f'f"""{fstr}"""',  # nosec # nosemgrep
+                    {"__builtins__": None},  # nosec # nosemgrep
+                    kwargs).strip()  # nosec # nosemgrep
 
     def font(self) -> str:
         """

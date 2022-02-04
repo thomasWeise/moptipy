@@ -330,7 +330,7 @@ def plot_end_results(
                   zorder=zorder)
 
     if needs_legend:
-        legend: Final[List[Line2D]] = []
+        handles: Final[List[Line2D]] = []
 
         for algo in algorithms:
             linestyle = pd.create_line_style()
@@ -341,8 +341,11 @@ def plot_end_results(
             linestyle["xdata"] = []
             linestyle["ydata"] = []
             linestyle["linewidth"] = 6
-            legend.append(Line2D(**linestyle))
+            handles.append(Line2D(**linestyle))
         zorder += 1
-        axes.legend(handles=legend, loc=legend_pos).set_zorder(zorder)
+
+        axes.legend(handles=handles, loc=legend_pos,
+                    labelcolor=pu.get_label_colors(handles),
+                    fontsize=font_size_0).set_zorder(zorder)
 
     logger(f"done plotting {n_bars} end result boxes.")
