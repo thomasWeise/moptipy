@@ -24,7 +24,7 @@ def test_stat_runs():
                                    True)
 
     collector: Final[List[StatRun]] = list()
-    StatRun.create([p0], ["mean"], collector)
+    StatRun.create([p0], ["mean"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]
     assert s.algorithm == algo0
@@ -51,7 +51,7 @@ def test_stat_runs():
                                    None,
                                    True)
     collector.clear()
-    StatRun.create([p1, p0], ["mean"], collector)
+    StatRun.create([p1, p0], ["mean"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]
     assert s.algorithm == algo0
@@ -71,7 +71,7 @@ def test_stat_runs():
                                 [90, 0.5 * (40 + 33)]])).all()
 
     collector.clear()
-    StatRun.create([p1, p0], ["max"], collector)
+    StatRun.create([p1, p0], ["max"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]
     assert s.algorithm == algo0

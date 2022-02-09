@@ -65,7 +65,7 @@ def compute_end_results(results_dir: str,
 
     source: Final[Path] = Path.directory(results_dir)
     logger(f"loading end results from path '{source}'.")
-    EndResult.from_logs(source, results)
+    EndResult.from_logs(source, results.append)
     if not results:
         raise ValueError(f"Could not find any logs in '{source}'.")
     results.sort()
@@ -99,7 +99,7 @@ def get_end_results(file: str,
         return True
 
     col: Final[List[EndResult]] = []
-    EndResult.from_csv(file=file, collector=col, filterer=__filter)
+    EndResult.from_csv(file=file, consumer=col.append, filterer=__filter)
     if len(col) <= 0:
         raise ValueError(
             f"no end results for instances {insts} and algorithms {algos}.")

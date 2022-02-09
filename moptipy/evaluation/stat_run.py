@@ -1,8 +1,8 @@
 """Statistic runs are time-depending statistics over several runs."""
 from dataclasses import dataclass
 from math import erf, sqrt
-from typing import Final, Optional, Iterable, Callable, List, Tuple, \
-    Dict, MutableSequence, Union
+from typing import Final, Optional, Iterable, Callable, List, Tuple, Dict, \
+    Any, Union
 
 import numba  # type: ignore
 import numpy as np
@@ -390,14 +390,14 @@ class StatRun(MultiRun2DData):
     @staticmethod
     def create(source: Iterable[Progress],
                statistics: Union[str, Iterable[str]],
-               collector: MutableSequence['StatRun']) -> None:
+               consumer: Callable[['StatRun'], Any]) -> None:
         """
         Compute statistics from an iterable of :class:`Progress`.
 
         :param Iterable[moptipy.evaluation.Progress] source: the progress data
         :param Union[str, Iterable[str]] statistics: the statistics to be
             computed
-        :param MutableSequence['StatRun'] collector: the collector for the
+        :param Callable[['StatRun'], Any] consumer: the consumer for the
             statistics
         """
         if not isinstance(source, Iterable):
@@ -408,9 +408,9 @@ class StatRun(MultiRun2DData):
         if not isinstance(statistics, Iterable):
             raise TypeError(
                 f"statistics must be Iterable, but is {type(statistics)}.")
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("collector must be MutableSequence, "
-                            f"but is {type(collector)}.")
+        if not callable(consumer):
+            raise TypeError(
+                f"consumer must be callable, but is {type(consumer)}.")
 
         algorithm: Optional[str] = None
         instance: Optional[str] = None
@@ -469,10 +469,8 @@ class StatRun(MultiRun2DData):
                 raise TypeError(f"Invalid statistic name type {type(name)}.")
             if not (name in _FUNC_MAP):
                 raise ValueError(f"Unknown statistic name '{name}'.")
-            collector.append(
-                StatRun(algorithm, instance, n, time_unit,
-                        f_name, name,
-                        _apply_fun(x_unique, x, y, _FUNC_MAP[name])))
+            consumer(StatRun(algorithm, instance, n, time_unit, f_name, name,
+                             _apply_fun(x_unique, x, y, _FUNC_MAP[name])))
             count += 1
 
         if count <= 0:
@@ -481,7 +479,7 @@ class StatRun(MultiRun2DData):
     @staticmethod
     def from_progress(source: Iterable[Progress],
                       statistics: Union[str, Iterable[str]],
-                      collector: MutableSequence['StatRun'],
+                      consumer: Callable[['StatRun'], Any],
                       join_all_algorithms: bool = False,
                       join_all_instances: bool = False) -> None:
         """
@@ -491,8 +489,8 @@ class StatRun(MultiRun2DData):
             of progress data
         :param Union[str, Iterable[str]] statistics: the statistics that
             should be computed per group
-        :param MutableSequence['StatRun'] collector: the destination
-            to which the new stat runs will be appended
+        :param Callable[['StatRun'], Any] consumer: the destination
+            to which the new stat runs will be passed
         :param bool join_all_algorithms: should the statistics be aggregated
             over all algorithms
         :param bool join_all_instances: should the statistics be aggregated
@@ -506,9 +504,9 @@ class StatRun(MultiRun2DData):
         if not isinstance(statistics, Iterable):
             raise TypeError(
                 f"statistics must be Iterable, but is {type(statistics)}.")
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("collector must be MutableSequence, "
-                            f"but is {type(collector)}.")
+        if not callable(consumer):
+            raise TypeError(
+                f"consumer must be callable, but is {type(consumer)}.")
         if not isinstance(join_all_algorithms, bool):
             raise TypeError("join_all_algorithms must be bool, "
                             f"but is {type(join_all_algorithms)}.")
@@ -538,13 +536,9 @@ class StatRun(MultiRun2DData):
             keys = list(sorter.keys())
             keys.sort()
             for key in keys:
-                StatRun.create(sorter[key],
-                               statistics,
-                               collector)
+                StatRun.create(sorter[key], statistics, consumer)
         else:
-            StatRun.create(next(iter(sorter.values())),
-                           statistics,
-                           collector)
+            StatRun.create(next(iter(sorter.values())), statistics, consumer)
 
 
 def get_statistic(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:

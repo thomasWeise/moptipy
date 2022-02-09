@@ -1,8 +1,7 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
 from dataclasses import dataclass
 from math import inf
-from typing import Union, List, MutableSequence, Final, Optional, Iterable, \
-    Callable
+from typing import Union, List, Final, Optional, Iterable, Callable, Any
 
 from moptipy.evaluation._utils import _ifn_to_str, _in_to_str, _str_to_if, \
     _str_to_ifn, _str_to_in, _try_int, _check_max_time_millis
@@ -169,20 +168,22 @@ class EndResult(PerRunData):
         return False if self.goal_f is None else self.best_f <= self.goal_f
 
     @staticmethod
-    def from_logs(path: str, collector: MutableSequence['EndResult']) -> None:
+    def from_logs(path: str, consumer: Callable[['EndResult'], Any]) -> None:
         """
-        Parse a given path and add all end results found  to the collector.
+        Parse a given path and pass all end results found to the consumer.
 
         If `path` identifies a file with suffix `.txt`, then this file is
         parsed. The appropriate :class:`EndResult` is created and appended to
         the `collector`. If `path` identifies a directory, then this directory
-        is parsed recursively for each log file found, one record is added to
-        the `collector`.
+        is parsed recursively for each log file found, one record is passed to
+        the `consumer`. As `consumer`, you could pass any `callable` that
+        accepts instances of :class:`EndResult`, e.g., the `append` method of
+        a list.
 
         :param str path: the path to parse
-        :param MutableSequence[EndResult] collector: the collector
+        :param Callable[['EndResult'], Any] consumer: the consumer
         """
-        _InnerLogParser(collector).parse(path)
+        _InnerLogParser(consumer).parse(path)
 
     @staticmethod
     def to_csv(results: Iterable['EndResult'], file: str) -> Path:
@@ -217,18 +218,18 @@ class EndResult(PerRunData):
         return path
 
     @staticmethod
-    def from_csv(file: str, collector: MutableSequence['EndResult'],
+    def from_csv(file: str, consumer: Callable[['EndResult'], Any],
                  filterer: Callable = lambda x: True) -> None:
         """
         Parse a given CSV file to get :class:`EndResult` Records.
 
         :param str file: the path to parse
-        :param MutableSequence[EndResult] collector: the collector
+        :param Callable[['EndResult'], Any] consumer: the collector
         :param Callable filterer: an optional filter function
         """
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("Collector must be mutable sequence, "
-                            f"but is {type(collector)}.")
+        if not callable(consumer):
+            raise TypeError(
+                f"Consumer must be callable, but is {type(consumer)}.")
         path: Final[Path] = Path.file(file)
         logger(f"Now reading CSV file '{path}'.")
 
@@ -259,7 +260,7 @@ class EndResult(PerRunData):
                         _str_to_in(splt[9]),  # max_fes
                         _str_to_in(splt[10]))  # max_time_millis
                     if filterer(er):
-                        collector.append(er)
+                        consumer(er)
 
         logger(f"Done reading CSV file '{path}'.")
 
@@ -267,12 +268,18 @@ class EndResult(PerRunData):
 class _InnerLogParser(ExperimentParser):
     """The internal log parser class."""
 
-    def __init__(self, collector: MutableSequence[EndResult]):
+    def __init__(self, consumer: Callable[[EndResult], Any]):
+        """
+        Create the internal log parser.
+
+        :param Callable[['EndResult'], Any] consumer: the consumer accepting
+            the parsed data
+        """
         super().__init__()
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("Collector must be mutable sequence, "
-                            f"but is {type(collector)}.")
-        self.__collector: Final[MutableSequence[EndResult]] = collector
+        if not callable(consumer):
+            raise TypeError(
+                f"Consumer must be callable, but is {type(consumer)}.")
+        self.__consumer: Final[Callable[['EndResult'], Any]] = consumer
         self.__total_fes: Optional[int] = None
         self.__total_time_millis: Optional[int] = None
         self.__best_f: Union[int, float, None] = None
@@ -316,18 +323,17 @@ class _InnerLogParser(ExperimentParser):
         if self.__last_improvement_time_millis is None:
             raise ValueError("last_improvement_time_millis is missing.")
 
-        self.__collector.append(
-            EndResult(self.algorithm,
-                      self.instance,
-                      self.rand_seed,
-                      self.__best_f,
-                      self.__last_improvement_fe,
-                      self.__last_improvement_time_millis,
-                      self.__total_fes,
-                      self.__total_time_millis,
-                      self.__goal_f,
-                      self.__max_fes,
-                      self.__max_time_millis))
+        self.__consumer(EndResult(self.algorithm,
+                                  self.instance,
+                                  self.rand_seed,
+                                  self.__best_f,
+                                  self.__last_improvement_fe,
+                                  self.__last_improvement_time_millis,
+                                  self.__total_fes,
+                                  self.__total_time_millis,
+                                  self.__goal_f,
+                                  self.__max_fes,
+                                  self.__max_time_millis))
 
         self.__total_fes = None
         self.__total_time_millis = None

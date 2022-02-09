@@ -64,7 +64,7 @@ def test_experiment_jssp():
                        base_dir=base_dir)
 
         results: List[EndResult] = list()
-        EndResult.from_logs(base_dir, results)
+        EndResult.from_logs(base_dir, results.append)
 
         assert len(results) == (4 * 2 * 3)
         results.sort()
@@ -105,7 +105,7 @@ def test_experiment_jssp():
             EndResult.to_csv(results=results, file=path)
 
             results2: List[EndResult] = list()
-            EndResult.from_csv(file=path, collector=results2)
+            EndResult.from_csv(file=path, consumer=results2.append)
 
             assert results == results2
 
@@ -188,26 +188,26 @@ def test_experiment_jssp():
             assert es_l.ert_time_millis > 0
 
             es_algos = list()
-            EndStatistics.from_end_results(results, es_algos,
+            EndStatistics.from_end_results(results, es_algos.append,
                                            join_all_instances=True)
             assert es_algos[0] == es_rs
             assert len(es_algos) == 2
 
             es_insts = list()
-            EndStatistics.from_end_results(results, es_insts,
+            EndStatistics.from_end_results(results, es_insts.append,
                                            join_all_algorithms=True)
             assert es_insts[2] == es_l
             assert len(es_insts) == 3
 
             es_sep = list()
-            EndStatistics.from_end_results(results, es_sep)
+            EndStatistics.from_end_results(results, es_sep.append)
             assert es_sep[3] == es_hc_a
             assert es_sep[0] == es_rs_a
             assert es_sep[2] == es_rs_l
             assert len(es_sep) == 6
 
             es_one = list()
-            EndStatistics.from_end_results(results, es_one,
+            EndStatistics.from_end_results(results, es_one.append,
                                            True, True)
             assert es_one == [es_all]
             assert len(es_one) == 1
@@ -217,7 +217,7 @@ def test_experiment_jssp():
             check = [es_hc_a]
             EndStatistics.to_csv(check, f)
             check_2 = list()
-            EndStatistics.from_csv(f, check_2)
+            EndStatistics.from_csv(f, check_2.append)
             assert check_2 == check
             assert len(check_2) == 1
 
@@ -225,7 +225,7 @@ def test_experiment_jssp():
         progress_ms_raw = list()
         progress_fes_std = list()
         progress_ms_nrm = list()
-        Progress.from_logs(base_dir, progress_fes_raw,
+        Progress.from_logs(base_dir, progress_fes_raw.append,
                            time_unit=bs.TIME_UNIT_FES,
                            f_name=bs.F_NAME_RAW)
         progress_fes_raw.sort()
@@ -251,7 +251,7 @@ def test_experiment_jssp():
 
         if "GITHUB_JOB" in environ:
 
-            Progress.from_logs(base_dir, progress_ms_raw,
+            Progress.from_logs(base_dir, progress_ms_raw.append,
                                time_unit=bs.TIME_UNIT_MILLIS,
                                f_name=bs.F_NAME_RAW)
             progress_ms_raw.sort()
@@ -265,7 +265,7 @@ def test_experiment_jssp():
                 assert pr.time[-1] >= results[idx].last_improvement_time_millis
                 assert pr.time[-1] <= results[idx].total_time_millis
 
-            Progress.from_logs(base_dir, progress_fes_std,
+            Progress.from_logs(base_dir, progress_fes_std.append,
                                time_unit=bs.TIME_UNIT_FES,
                                f_name=bs.F_NAME_SCALED)
             progress_fes_std.sort()
@@ -280,7 +280,7 @@ def test_experiment_jssp():
                 assert pr.time[-1] <= results[idx].total_fes
                 assert np.array_equal(pr.time, progress_fes_raw[idx].time)
 
-            Progress.from_logs(base_dir, progress_ms_nrm,
+            Progress.from_logs(base_dir, progress_ms_nrm.append,
                                time_unit=bs.TIME_UNIT_MILLIS,
                                f_name=bs.F_NAME_NORMALIZED)
             assert len(progress_ms_nrm) == 24
@@ -301,7 +301,7 @@ def test_experiment_jssp():
         stat_runs = list()
         StatRun.create(source=progress_fes_raw,
                        statistics=stat_names,
-                       collector=stat_runs)
+                       consumer=stat_runs.append)
         assert len(stat_runs) == len(stat_names)
 
         if "GITHUB_JOB" in environ:
@@ -313,24 +313,24 @@ def test_experiment_jssp():
             stat_runs.clear()
             StatRun.from_progress(all_progress,
                                   stat_names,
-                                  stat_runs,
+                                  stat_runs.append,
                                   False, False)
             assert len(stat_runs) == len(stat_names) * 3 * 3 * 2
             stat_runs.clear()
             StatRun.from_progress(all_progress,
                                   stat_names,
-                                  stat_runs,
+                                  stat_runs.append,
                                   True, False)
             assert len(stat_runs) == len(stat_names) * 3 * 3
             stat_runs.clear()
             StatRun.from_progress(all_progress,
                                   stat_names,
-                                  stat_runs,
+                                  stat_runs.append,
                                   False, True)
             assert len(stat_runs) == len(stat_names) * 3 * 2
             stat_runs.clear()
             StatRun.from_progress(all_progress,
                                   stat_names,
-                                  stat_runs,
+                                  stat_runs.append,
                                   True, True)
             assert len(stat_runs) == len(stat_names) * 3

@@ -203,13 +203,13 @@ def plot_ert(erts: Iterable[Ert],
         handles: List[Artist] = []
 
         for g in groups:
-            g.add_to_legend(handles)
+            g.add_to_legend(handles.append)
             g.has_style = False
 
         if instances.has_style:
-            instances.add_to_legend(handles)
+            instances.add_to_legend(handles.append)
         if algorithms.has_style:
-            algorithms.add_to_legend(handles)
+            algorithms.add_to_legend(handles.append)
 
         axes.legend(loc="upper right",
                     handles=handles,

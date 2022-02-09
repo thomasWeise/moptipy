@@ -2,8 +2,7 @@
 
 from dataclasses import dataclass
 from math import isfinite, inf
-from typing import Optional, Iterable, List, Final, Union, \
-    Dict, Callable, MutableSequence
+from typing import Optional, Iterable, List, Final, Union, Dict, Callable, Any
 
 import numpy as np
 
@@ -323,7 +322,7 @@ class Ecdf(MultiRun2DData):
     @classmethod
     def from_progresses(cls,
                         source: Iterable[Progress],
-                        collector: MutableSequence['Ecdf'],
+                        consumer: Callable[['Ecdf'], Any],
                         f_goal: Union[int, float, Callable,
                                       Iterable[Union[int, float,
                                                      Callable]]] = None,
@@ -334,17 +333,17 @@ class Ecdf(MultiRun2DData):
         :param Iterable[moptipy.evaluation.Progress] source: the set of
             progress instances
         :param f_goal: one or multiple goal values
-        :param MutableSequence['Ert'] collector: the destination
-            to which the new records will be appended
+        :param Callable[['Ecdf'], Any] consumer: the destination
+            to which the new records will be passed
         :param bool join_all_algorithms: should the Ert-Ecdf be aggregated
             over all algorithms
         """
         if not isinstance(source, Iterable):
             raise TypeError(
                 f"source must be Iterable, but is {type(source)}.")
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("collector must be MutableSequence, "
-                            f"but is {type(collector)}.")
+        if not callable(consumer):
+            raise TypeError(
+                "consumer must be callable, but is {type(consumer)}.")
         if not isinstance(join_all_algorithms, bool):
             raise TypeError("join_all_algorithms must be bool, "
                             f"but is {type(join_all_algorithms)}.")
@@ -373,9 +372,7 @@ class Ecdf(MultiRun2DData):
         for goal in f_goal:
             use_default_goal = goal is None
             for key in keyz:
-                collector.append(cls.create(sorter[key],
-                                            goal,
-                                            use_default_goal))
+                consumer(cls.create(sorter[key], goal, use_default_goal))
 
 
 def get_goal(ecdf: Ecdf) -> Union[int, float, None]:

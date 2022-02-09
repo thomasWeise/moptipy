@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 from math import isfinite, inf
-from typing import Optional, Iterable, List, Final, cast, Union, \
-    MutableSequence, Dict, Callable
+from typing import Optional, Iterable, List, Final, cast, Union, Any, Dict, \
+    Callable
 
 import numpy as np
 
@@ -267,7 +267,7 @@ class Ert(MultiRun2DData):
 
     @staticmethod
     def from_progresses(source: Iterable[Progress],
-                        collector: MutableSequence['Ert'],
+                        consumer: Callable[['Ert'], Any],
                         f_lower_bound: Optional[float] = None,
                         use_default_lower_bounds: bool = True,
                         join_all_algorithms: bool = False,
@@ -280,8 +280,8 @@ class Ert(MultiRun2DData):
         :param float f_lower_bound: the lower bound for the objective value
         :param bool use_default_lower_bounds: should we use the default lower
             bounds
-        :param MutableSequence['Ert'] collector: the destination
-            to which the new records will be appended
+        :param Callable[['Ert'], Any] consumer: the destination
+            to which the new records will be passed
         :param bool join_all_algorithms: should the Ert be aggregated over
             all algorithms
         :param bool join_all_instances: should the Ert be aggregated over all
@@ -290,9 +290,9 @@ class Ert(MultiRun2DData):
         if not isinstance(source, Iterable):
             raise TypeError(
                 f"source must be Iterable, but is {type(source)}.")
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("collector must be MutableSequence, "
-                            f"but is {type(collector)}.")
+        if not callable(consumer):
+            raise TypeError(
+                "consumer must be callable, but is {type(consumer)}.")
         if not isinstance(join_all_algorithms, bool):
             raise TypeError("join_all_algorithms must be bool, "
                             f"but is {type(join_all_algorithms)}.")
@@ -301,8 +301,8 @@ class Ert(MultiRun2DData):
                             f"but is {type(join_all_instances)}.")
 
         if join_all_algorithms and join_all_instances:
-            collector.append(Ert.create(source, f_lower_bound,
-                                        use_default_lower_bounds))
+            consumer(Ert.create(source, f_lower_bound,
+                                use_default_lower_bounds))
             return
 
         sorter: Dict[str, List[Progress]] = {}
@@ -327,9 +327,8 @@ class Ert(MultiRun2DData):
             keyz = list(sorter.keys())
             keyz.sort()
             for key in keyz:
-                collector.append(Ert.create(sorter[key], f_lower_bound,
-                                            use_default_lower_bounds))
+                consumer(Ert.create(sorter[key], f_lower_bound,
+                                    use_default_lower_bounds))
         else:
-            collector.append(Ert.create(next(iter(sorter.values())),
-                                        f_lower_bound,
-                                        use_default_lower_bounds))
+            consumer(Ert.create(next(iter(sorter.values())), f_lower_bound,
+                                use_default_lower_bounds))

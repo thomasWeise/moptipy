@@ -217,13 +217,13 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         handles: List[Artist] = []
 
         for g in groups:
-            g.add_to_legend(handles)
+            g.add_to_legend(handles.append)
             g.has_style = False
 
         if algorithms.has_style:
-            algorithms.add_to_legend(handles)
+            algorithms.add_to_legend(handles.append)
         if goals.has_style:
-            goals.add_to_legend(handles)
+            goals.add_to_legend(handles.append)
 
         axes.legend(loc="upper left",
                     handles=handles,

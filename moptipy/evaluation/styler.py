@@ -1,6 +1,6 @@
 """Styler allows to discover groups of data and associate styles with them."""
 from typing import Callable, Final, Union, Set, Tuple, Any, Dict, Optional, \
-    MutableSequence, Iterable
+    Iterable
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
@@ -232,17 +232,19 @@ class Styler:
         if self.__line_alphas is not None:
             style["alpha"] = self.__line_alphas[index]
 
-    def add_to_legend(self, collector: MutableSequence[Artist]) -> None:
+    def add_to_legend(self, consumer: Callable[[Artist], Any]) -> None:
         """
         Add this styler to the legend.
 
-        :param MutableSequence[Tuple[Artist,Any]] collector: the collector to
-            add to
+        :param Callable[[Artist], Any] consumer: the consumer to add to
         """
+        if not callable(consumer):
+            raise TypeError(
+                f"consumer must be callable, but is {type(consumer)}.")
         for i, name in enumerate(self.names):
             style = create_line_style()
             self.__add_line_style(i, style)
             style["label"] = name
             style["xdata"] = []
             style["ydata"] = []
-            collector.append(Line2D(**style))
+            consumer(Line2D(**style))

@@ -1,7 +1,7 @@
 """Progress data over a run."""
 from dataclasses import dataclass
 from math import isfinite, inf
-from typing import MutableSequence, Union, Optional, List, Final, Dict
+from typing import Callable, Union, Optional, List, Final, Dict, Any
 
 import numpy as np
 
@@ -143,22 +143,23 @@ class Progress(PerRunData):
 
     @staticmethod
     def from_logs(path: str,
-                  collector: MutableSequence['Progress'],
+                  consumer: Callable[['Progress'], Any],
                   time_unit: str = TIME_UNIT_FES,
                   f_name: str = F_NAME_RAW,
                   f_standard: Optional[Dict[str, Union[int, float]]] = None,
                   only_improvements: bool = True) -> None:
         """
-        Parse a given path and add all progress data found to the collector.
+        Parse a given path and pass all progress data found to the consumer.
 
         If `path` identifies a file with suffix `.txt`, then this file is
         parsed. The appropriate :class:`Progress` is created and appended to
         the `collector`. If `path` identifies a directory, then this directory
-        is parsed recursively for each log file found, one record is added to
-        the `collector`.
+        is parsed recursively for each log file found, one record is passed to
+        the `consumer`. The `consumer` is simply a callable function. You could
+        pass in a list's `append` method.
 
         :param str path: the path to parse
-        :param MutableSequence[Progress] collector: the collector
+        :param Callable[['Progress'], Any] consumer: the consumer
         :param str time_unit: the time unit
         :param str f_name: the objective name
         :param Optional[Dict[str, Union[int, float]]] f_standard: a dictionary
@@ -168,7 +169,7 @@ class Progress(PerRunData):
         """
         _InnerLogParser(time_unit,
                         f_name,
-                        collector,
+                        consumer,
                         f_standard,
                         only_improvements).parse(path)
 
@@ -223,7 +224,7 @@ class _InnerLogParser(ExperimentParser):
     # 32: SECTION_PROGRESS is in progress
 
     def __init__(self, time_unit: str, f_name: str,
-                 collector: MutableSequence[Progress],
+                 consumer: Callable[[Progress], Any],
                  f_standard: Optional[Dict[str, Union[int, float]]] = None,
                  only_improvements: bool = True):
         """
@@ -231,17 +232,17 @@ class _InnerLogParser(ExperimentParser):
 
         :param str time_unit: the time unit
         :param str f_name: the objective name
-        :param MutableSequence[Progress] collector: the collector
+        :param Callable[['Progress'], Any] consumer: the consumer
         :param Optional[Dict[str, Union[int, float]]] f_standard: a dictionary
             mapping instances to standard values
         :param bool only_improvements: enforce that f-values should be
             improving and time values increasing
         """
         super().__init__()
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("Collector must be mutable sequence, "
-                            f"but is {type(collector)}.")
-        self.__collector: Final[MutableSequence[Progress]] = collector
+        if not callable(consumer):
+            raise TypeError(
+                f"Consumer must be callable, but is {type(consumer)}.")
+        self.__consumer: Final[Callable[[Progress], Any]] = consumer
         self.__time_unit = check_time_unit(time_unit)
         self.__f_name = check_f_name(f_name)
         self.__total_time: Optional[int] = None
@@ -326,16 +327,15 @@ class _InnerLogParser(ExperimentParser):
                            for f in self.__f_collector])
         self.__f_collector.clear()
 
-        self.__collector.append(
-            Progress(self.algorithm,
-                     self.instance,
-                     self.rand_seed,
-                     np.array(self.__t_collector),
-                     self.__time_unit,
-                     ff,
-                     self.__f_name,
-                     f_standard,
-                     self.__only_improvements))
+        self.__consumer(Progress(self.algorithm,
+                                 self.instance,
+                                 self.rand_seed,
+                                 np.array(self.__t_collector),
+                                 self.__time_unit,
+                                 ff,
+                                 self.__f_name,
+                                 f_standard,
+                                 self.__only_improvements))
 
         self.__total_time = None
         self.__goal_f = None

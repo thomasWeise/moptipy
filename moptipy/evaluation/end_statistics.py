@@ -1,8 +1,7 @@
 """Statistics aggregated over multiple instances of :class:`EndResult`."""
 from dataclasses import dataclass
 from math import inf
-from typing import Optional, Union, Iterable, List, MutableSequence, Dict, \
-    Final, Callable
+from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 
 from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if, \
     _check_max_time_millis
@@ -527,7 +526,7 @@ class EndStatistics(MultiRunData):
 
     @staticmethod
     def from_end_results(source: Iterable[EndResult],
-                         collector: MutableSequence['EndStatistics'],
+                         consumer: Callable[['EndStatistics'], Any],
                          join_all_algorithms: bool = False,
                          join_all_instances: bool = False) -> None:
         """
@@ -535,7 +534,7 @@ class EndStatistics(MultiRunData):
 
         :param Iterable[moptipy.evaluation.EndResult] source: the stream
             of end results
-        :param MutableSequence['EndStatistic'] collector: the destination
+        :param Callable[['EndStatistics'], Any] consumer: the destination
             to which the new records will be appended
         :param bool join_all_algorithms: should the statistics be aggregated
             over all algorithms
@@ -545,9 +544,9 @@ class EndStatistics(MultiRunData):
         if not isinstance(source, Iterable):
             raise TypeError(
                 f"source must be Iterable, but is {type(source)}.")
-        if not isinstance(collector, MutableSequence):
-            raise TypeError("collector must be MutableSequence, "
-                            f"but is {type(collector)}.")
+        if not callable(consumer):
+            raise TypeError(
+                "consumer must be callable, but is {type(consumer)}.")
         if not isinstance(join_all_algorithms, bool):
             raise TypeError("join_all_algorithms must be bool, "
                             f"but is {type(join_all_algorithms)}.")
@@ -556,7 +555,7 @@ class EndStatistics(MultiRunData):
                             f"but is {type(join_all_instances)}.")
 
         if join_all_algorithms and join_all_instances:
-            collector.append(EndStatistics.create(source))
+            consumer(EndStatistics.create(source))
             return
 
         sorter: Dict[str, List[EndResult]] = {}
@@ -581,9 +580,9 @@ class EndStatistics(MultiRunData):
             keyz = list(sorter.keys())
             keyz.sort()
             for key in keyz:
-                collector.append(EndStatistics.create(sorter[key]))
+                consumer(EndStatistics.create(sorter[key]))
         else:
-            collector.append(EndStatistics.create(
+            consumer(EndStatistics.create(
                 next(iter(sorter.values()))))
 
     @staticmethod
@@ -822,12 +821,12 @@ class EndStatistics(MultiRunData):
 
     @staticmethod
     def from_csv(file: str,
-                 collector: MutableSequence['EndStatistics']) -> None:
+                 consumer: Callable[['EndStatistics'], Any]) -> None:
         """
         Parse a CSV file and collect all encountered :class:`EndStatistics`.
 
         :param str file: the file to parse
-        :param MutableSequence['EndStatistics'] collector: the collector to
+        :param Callable[['EndStatistics'], Any] consumer: the consumer to
             receive all the parsed instances of :class:`EndStatistics`.
         """
         path: Final[Path] = Path.file(file)
@@ -1108,7 +1107,7 @@ class EndStatistics(MultiRunData):
                     if len(row) != idx:
                         raise ValueError("Invalid number of columns in row "
                                          f"'{line}' in file '{path}'.")
-                    collector.append(EndStatistics(
+                    consumer(EndStatistics(
                         algo, inst, n, best_f,
                         last_improv_fe, last_improv_time, total_fes,
                         total_time, goal_f, best_f_scaled, n_success,
