@@ -8,8 +8,8 @@ from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
 
-import moptipy.evaluation.plot_defaults as pd
-import moptipy.evaluation.plot_utils as pu
+import moptipy.utils.plot_defaults as pd
+import moptipy.utils.plot_utils as pu
 from moptipy.evaluation._utils import _try_div2
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \

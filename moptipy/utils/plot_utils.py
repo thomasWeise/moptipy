@@ -12,7 +12,7 @@ from matplotlib.backend_bases import RendererBase  # type: ignore
 from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
-import moptipy.evaluation.plot_defaults as pd
+import moptipy.utils.plot_defaults as pd
 from moptipy.evaluation.lang import Lang
 from moptipy.utils.path import Path
 

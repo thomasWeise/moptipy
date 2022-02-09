@@ -23,7 +23,7 @@ from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.evaluation.plot_ecdf_impl import plot_ecdf
 from moptipy.evaluation.plot_ert_impl import plot_ert
 from moptipy.evaluation.plot_progress_impl import plot_progress
-from moptipy.evaluation.plot_utils import create_figure, save_figure
+from moptipy.utils.plot_utils import create_figure, save_figure
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
 from moptipy.evaluation.statistics import Statistics

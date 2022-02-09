@@ -5,7 +5,7 @@ from typing import Final
 from matplotlib.figure import Figure  # type: ignore
 
 from moptipy.evaluation.plot_end_results_impl import plot_end_results
-from moptipy.evaluation.plot_utils import create_figure, save_figure
+from moptipy.utils.plot_utils import create_figure, save_figure
 from moptipy.examples.mock.components import Experiment
 from moptipy.examples.mock.end_result import EndResults
 from moptipy.utils.temp import TempDir

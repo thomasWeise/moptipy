@@ -2,7 +2,7 @@
 
 from typing import Final, Callable, Iterable, Set, List
 
-import moptipy.evaluation.plot_utils as pu
+import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.lang import Lang

@@ -5,7 +5,7 @@ from typing import Callable, Final, Union, Set, Tuple, Any, Dict, Optional, \
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
 
-from moptipy.evaluation.plot_defaults import create_line_style
+from moptipy.utils.plot_defaults import create_line_style
 
 
 class Styler:

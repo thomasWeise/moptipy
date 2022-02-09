@@ -7,8 +7,8 @@ from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
-import moptipy.evaluation.plot_defaults as pd
-import moptipy.evaluation.plot_utils as pu
+import moptipy.utils.plot_defaults as pd
+import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
 from moptipy.evaluation.ert import Ert

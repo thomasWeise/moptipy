@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.figure import Figure  # type: ignore
 
 from moptipy.evaluation.lang import Lang
-from moptipy.evaluation.plot_utils import create_figure, save_figure, \
+from moptipy.utils.plot_utils import create_figure, save_figure, \
     cm_to_inch
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.gantt import Gantt
