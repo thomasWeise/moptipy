@@ -389,6 +389,7 @@ def create_figure_with_subplots(
                                                (i * ncols) + j + 1),
                             chunk_start, chunk_next, i, j, index))
             chunk_start = chunk_next
+            index += 1
     return figure, tuple(allfigs)
 
 
