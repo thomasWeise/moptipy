@@ -5,11 +5,11 @@ from typing import Optional, Union, Final
 
 from numpy.random import Generator
 
+from moptipy.api import logging
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space, check_space
-from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
 from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
@@ -208,14 +208,17 @@ class _ProcessNoSS(_ProcessBase):
     def scale(self) -> int:
         return self._solution_space.scale()
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
-        super().log_parameters_to(logger)
+    def _log_own_parameters(self, logger: KeyValueSection) -> None:
+        super()._log_own_parameters(logger)
         logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed,
                          also_hex=True)
         logger.key_value(logging.KEY_RAND_GENERATOR_TYPE,
                          str(type(self.__random)))
         logger.key_value(logging.KEY_RAND_BIT_GENERATOR_TYPE,
                          str(type(self.__random.bit_generator)))
+
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
+        super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_ALGORITHM) as sc:
             self.__algorithm.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_SOLUTION_SPACE) as sc:

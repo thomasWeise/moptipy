@@ -7,7 +7,7 @@ from typing import Tuple, Final, Set, List, Optional, Iterable, Union, \
 
 from numpy.random import Generator
 
-from moptipy.utils import logging
+from moptipy.api import logging
 from moptipy.utils.log import logger
 from moptipy.utils.nputils import rand_generator, rand_seeds_from_str
 

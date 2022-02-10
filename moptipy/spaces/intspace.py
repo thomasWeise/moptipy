@@ -4,7 +4,7 @@ from typing import Final
 import numpy as np
 
 from moptipy.api.space import Space
-from moptipy.utils import logging
+from moptipy.api import logging
 from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 

@@ -3,12 +3,12 @@ from math import inf, isnan
 from time import monotonic_ns
 from typing import Optional, Union, Final
 
+from moptipy.api import logging
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space, check_space
-from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection, Logger
 from moptipy.utils.path import Path
 

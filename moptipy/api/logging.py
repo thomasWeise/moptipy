@@ -1,9 +1,9 @@
 """Shared constants and functions for dealing with logs."""
-import math
 from re import sub
-from typing import List, Final, Union
+from typing import List, Final
 
 #: the file suffix to be used for log files
+
 FILE_SUFFIX: Final[str] = ".txt"
 #: the separator used in CSV files to separate columns
 CSV_SEPARATOR: Final[str] = ";"
@@ -80,6 +80,8 @@ KEY_RAND_BIT_GENERATOR_TYPE: Final[str] = "randBitGenType"
 #: the number of decision variables
 KEY_SPACE_NUM_VARS: Final[str] = "nvars"
 
+#: the scope of the process parameters
+SCOPE_PROCESS: Final[str] = "p"
 #: the scope of the solution space
 SCOPE_SOLUTION_SPACE: Final[str] = "y"
 #: the scope of the search space
@@ -230,83 +232,3 @@ def sanitize_names(names: List[str]) -> str:
     """
     return PART_SEPARATOR.join([
         sanitize_name(name) for name in names if len(name) > 0])
-
-
-def float_to_str(x: float) -> str:
-    """
-    Convert float to a string.
-
-    :param float x: the floating point value
-    :return: the string representation
-    :rtype: str
-
-    >>> float_to_str(1.3)
-    '1.3'
-    >>> float_to_str(1.0)
-    '1'
-    """
-    if x == 0:
-        return "0"
-    s = repr(x)
-    if math.isnan(x):
-        raise ValueError(f"'{s}' not permitted.")
-    if s.endswith(".0"):
-        return s[:-2]
-    return s
-
-
-def bool_to_str(value: bool) -> str:
-    """
-    Convert a Boolean value to a string.
-
-    :param bool value: the Boolean value
-    :return: the string
-    :rtype: str
-
-    >>> print(bool_to_str(True))
-    T
-    >>> print(bool_to_str(False))
-    F
-    """
-    return 'T' if value else 'F'
-
-
-def str_to_bool(value: str) -> bool:
-    """
-    Convert a string to a boolean value.
-
-    :param str value: the string value
-    :return: the boolean value
-    :rtype: bool
-
-    >>> str_to_bool("T")
-    True
-    >>> str_to_bool("F")
-    False
-    >>> try:
-    ...     str_to_bool("x")
-    ... except ValueError as v:
-    ...     print(v)
-    Expected 'T' or 'F', but got 'x'.
-    """
-    if value == "T":
-        return True
-    if value == "F":
-        return False
-    raise ValueError(f"Expected 'T' or 'F', but got '{value}'.")
-
-
-def num_to_str(value: Union[int, float]) -> str:
-    """
-    Transform a numerical type to a string.
-
-    :param Union[int, float] value: the value
-    :return: the string
-    :type: str
-
-    >>> num_to_str(1)
-    '1'
-    >>> num_to_str(1.5)
-    '1.5'
-    """
-    return str(value) if isinstance(value, int) else float_to_str(value)

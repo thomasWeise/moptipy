@@ -7,8 +7,9 @@ from typing import Optional, Iterable, List, Final, cast, Union, Any, Dict, \
 
 import numpy as np
 
-import moptipy.utils.logging as lg
+import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
+from moptipy.utils.types import num_to_str
 from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
@@ -127,7 +128,7 @@ class Ert(MultiRun2DData):
             out.write(f"{self.f_name}{sep}ert[{self.time_unit}]\n")
             for v in self.ert:
                 out.write(
-                    f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
+                    f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
 
         logger(f"Done writing ERT to CSV file '{path}'.")
 

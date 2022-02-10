@@ -5,9 +5,9 @@ from threading import Lock, Timer
 from time import monotonic_ns
 from typing import Optional, Final, Union
 
+from moptipy.api import logging
 from moptipy.api.process import Process, check_goal_f, check_max_fes, \
     check_max_time_millis
-from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 
 
@@ -192,9 +192,9 @@ class _ProcessBase(Process, ABC):
         """
         return self.get_copy_of_current_best_x(y)
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def _log_own_parameters(self, logger: KeyValueSection) -> None:
         """
-        Write the standard parameters of this process to the logger.
+        Write the parameters of this process to the logger.
 
         This includes the limits on runtime and FEs.
 
@@ -208,6 +208,17 @@ class _ProcessBase(Process, ABC):
                              self._max_time_millis)
         if not (self._goal_f is None):
             logger.key_value(logging.KEY_GOAL_F, self._goal_f)
+
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
+        """
+        Write the standard parameters of this process to the logger.
+
+        This includes the limits on runtime and FEs.
+
+        :param Logger logger: the logger
+        """
+        with logger.scope(logging.SCOPE_PROCESS) as sc:
+            self._log_own_parameters(sc)
 
     def get_name(self) -> str:
         """

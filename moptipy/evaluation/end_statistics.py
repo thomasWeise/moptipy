@@ -3,14 +3,15 @@ from dataclasses import dataclass
 from math import inf
 from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 
-from moptipy.evaluation._utils import _try_int, _try_div, _str_to_if, \
-    _check_max_time_millis
+import moptipy.utils.types
+from moptipy.api import logging as log
+from moptipy.evaluation._utils import _check_max_time_millis
 from moptipy.evaluation.base import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
-from moptipy.utils import logging as log
 from moptipy.utils.log import logger
 from moptipy.utils.path import Path
+from moptipy.utils.types import str_to_intfloat, try_int, try_int_div
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
@@ -252,7 +253,7 @@ class EndStatistics(MultiRunData):
                 if goal_f <= (-inf):
                     goal_f = None
                 else:
-                    goal_f = _try_int(goal_f)
+                    goal_f = try_int(goal_f)
             elif not isinstance(goal_f, (int, Statistics)):
                 raise TypeError("goal_f must be int, float, None, or "
                                 f"Statistics, but is {type(goal_f)}.")
@@ -313,7 +314,7 @@ class EndStatistics(MultiRunData):
                         f"{last_improvement_time_millis.maximum}, but is "
                         f"{success_time_millis.maximum}.")
 
-                ert_fes = _try_int(ert_fes)
+                ert_fes = try_int(ert_fes)
                 if ert_fes < success_fes.minimum:
                     raise ValueError(
                         "ert_fes must be >= "
@@ -324,7 +325,7 @@ class EndStatistics(MultiRunData):
                         "ert_fes must be <= "
                         f"{ert_fe_max}, but is {ert_fes}.")
 
-                ert_time_millis = _try_int(ert_time_millis)
+                ert_time_millis = try_int(ert_time_millis)
                 if ert_time_millis < success_time_millis.minimum:
                     raise ValueError(
                         "ert_time_millis must be >= "
@@ -515,9 +516,9 @@ class EndStatistics(MultiRunData):
             None if (n_success is None) or (n_success <= 0)
             else Statistics.create(success_times),
             None if (n_success is None)
-            else (inf if (n_success <= 0) else _try_div(fes, n_success)),
+            else (inf if (n_success <= 0) else try_int_div(fes, n_success)),
             None if (n_success is None) else
-            (inf if (n_success <= 0) else _try_div(time, n_success)),
+            (inf if (n_success <= 0) else try_int_div(time, n_success)),
             None if max_fes is None else
             (max_fes[0] if max_fes_same else Statistics.create(max_fes)),
             None if max_time_millis is None
@@ -725,7 +726,7 @@ class EndStatistics(MultiRunData):
             out.write("\n")
 
             csv: Final[Callable] = Statistics.value_to_csv
-            num: Final[Callable] = log.num_to_str
+            num: Final[Callable] = moptipy.utils.types.num_to_str
 
             for er in data:
                 if has_algorithm:
@@ -1050,7 +1051,7 @@ class EndStatistics(MultiRunData):
                         idx += CSV_COLS
 
                         if has_goal_f == 1:
-                            goal_f = _str_to_if(row[idx])
+                            goal_f = str_to_intfloat(row[idx])
                             idx += 1
                         elif has_goal_f == 2:
                             goal_f = Statistics.from_csv(
@@ -1077,11 +1078,11 @@ class EndStatistics(MultiRunData):
                             idx += CSV_COLS
 
                         if has_ert_fes:
-                            ert_fes = _str_to_if(row[idx])
+                            ert_fes = str_to_intfloat(row[idx])
                             idx += 1
 
                         if has_ert_time:
-                            ert_time = _str_to_if(row[idx])
+                            ert_time = str_to_intfloat(row[idx])
                             idx += 1
 
                         if has_max_fes == 1:

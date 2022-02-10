@@ -5,7 +5,8 @@ import numpy as np
 
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueSection
-from moptipy.utils.logging import float_to_str, KEY_SPACE_NUM_VARS
+from moptipy.api.logging import KEY_SPACE_NUM_VARS
+from moptipy.utils.types import float_to_str
 from moptipy.utils.nputils import is_np_float, is_all_finite
 
 #: the character identifying the numpy data type backing the space

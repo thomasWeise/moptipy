@@ -1,134 +1,22 @@
 """Some internal helper functions."""
 
-from math import isfinite, inf, gcd
-from typing import Union, Optional, Final
+from typing import Union, Final
 
 import numba  # type: ignore
 import numpy as np
 
-from moptipy.utils import logging
+import moptipy.api.logging as lg
 
-
-def _ifn_to_str(val: Union[int, float, None]) -> str:
-    """
-    Convert an integer ot float or `None` to a string.
-
-    :param Union[int, float, None] val: the value
-    :return: the string representation
-    :rtype: str
-    """
-    return "" if val is None else logging.num_to_str(val)
-
-
-def _in_to_str(val: Optional[int]) -> str:
-    """
-    Convert an integer or `None` to a string.
-
-    :param Optional[int] val: the value
-    :return: the string representation
-    :rtype: str
-    """
-    return "" if val is None else str(val)
-
-
-def _str_to_if(val: str) -> Union[int, float]:
-    """
-    Convert a string to an int or float.
-
-    :param str val: the string value
-    :return: the int or float
-    :rtype: Union[int, float]
-    """
-    return float(val) if ("e" in val) or \
-                         ("E" in val) or \
-                         ("." in val) or \
-                         ("inf" in val) else int(val)
-
-
-def _str_to_ifn(val: str) -> Union[int, float, None]:
-    """
-    Convert a string to an int or float or None.
-
-    :param str val: the string value
-    :return: the int or float or None
-    :rtype: Union[int, float, None]
-    """
-    return None if len(val) <= 0 else _str_to_if(val)
-
-
-def _str_to_in(val: str) -> Optional[int]:
-    """
-    Convert a string to an int or None.
-
-    :param str val: the string value
-    :return: the int or None
-    :rtype: Optional[int, None]
-    """
-    return None if len(val) <= 0 else int(val)
-
-
-#: The positive limit for doubles that can be represented exactly as ints.
-_DBL_INT_LIMIT_P: Final[float] = 9007199254740992.0  # = 1 << 53
-#: The negative  limit for doubles that can be represented exactly as ints.
-_DBL_INT_LIMIT_N: Final[float] = -_DBL_INT_LIMIT_P
-
-
-def _try_int(val: Union[int, float]) -> Union[int, float]:
-    """
-    Attempt to convert a float to an integer.
-
-    :param Union[int, float] val: the input value
-    :return: an `int` if `val` can be represented as `int` without loss of
-        precision, `val` otherwise
-    :rtype: Union[int, float]
-    """
-    if isinstance(val, int):
-        return val
-    if isinstance(val, float):
-        if not isfinite(val):
-            raise ValueError(f"Value must be finite, but is {val}.")
-        if _DBL_INT_LIMIT_N <= val <= _DBL_INT_LIMIT_P:
-            a = int(val)
-            if a == val:
-                return a
-        return val
-    raise TypeError(f"Value must be int or float, but is {type(val)}.")
-
-
-def _try_div(a: int, b: int) -> Union[int, float]:
-    """
-    Try to divide two integers at best precision.
-
-    :param int a: the first integer
-    :param int b: the second integer
-    :return: a/b
-    :rtype: Union[int, float]
-    """
-    if b == 0:
-        return inf
-    gc = gcd(a, b)
-    a //= gc
-    if b == gc:
-        return a
-    b //= gc
-    return _try_int(a / b)
-
-
-def _try_div2(a: Union[int, float], b: Union[int, float]) \
-        -> Union[int, float]:
-    """
-    Try to divide two numbers at best precision.
-
-    :param int a: the first number
-    :param int b: the second number
-    :return: a/b
-    :rtype: Union[int, float]
-    """
-    ia = _try_int(a)
-    ib = _try_int(b)
-    if isinstance(ia, int) and isinstance(ib, int):
-        return _try_div(ia, ib)
-    return _try_int(ia / ib)
+#: the maximum FEs of a black-box process
+_FULL_KEY_MAX_FES: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_MAX_FES}"
+#: the maximum runtime in milliseconds of a black-box process
+_FULL_KEY_MAX_TIME_MILLIS: Final[str] = \
+    f"{lg.SCOPE_PROCESS}.{lg.KEY_MAX_TIME_MILLIS}"
+#: the goal objective value of a black-box process
+_FULL_KEY_GOAL_F: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_GOAL_F}"
+#: the random seed
+_FULL_KEY_RAND_SEED: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_RAND_SEED}"
+#: the FE when the best objective value was reached
 
 
 def _check_max_time_millis(max_time_millis: Union[int, float],

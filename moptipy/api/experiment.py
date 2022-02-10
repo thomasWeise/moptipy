@@ -10,9 +10,9 @@ from typing import Iterable, Union, Callable, Tuple, List, \
 from numpy.random import Generator, default_rng
 
 from moptipy.api.execution import Execution
+from moptipy.api.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.cache import is_new
 from moptipy.utils.log import logger
-from moptipy.utils.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.path import Path
 

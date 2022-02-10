@@ -5,17 +5,18 @@ from typing import Callable, Union, Optional, List, Final, Dict, Any
 
 import numpy as np
 
-from moptipy.evaluation._utils import _str_to_if
+from moptipy.api import logging
+from moptipy.evaluation._utils import _FULL_KEY_RAND_SEED, _FULL_KEY_GOAL_F
 from moptipy.evaluation.base import PerRunData, check_f_name, \
     check_time_unit, TIME_UNIT_MILLIS, TIME_UNIT_FES, F_NAME_RAW, \
     F_NAME_SCALED
 from moptipy.evaluation.log_parser import ExperimentParser
-from moptipy.evaluation.parse_data import parse_key_values
-from moptipy.utils import logging
 from moptipy.utils.log import logger
+from moptipy.utils.logger import parse_key_values
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
 from moptipy.utils.path import Path
+from moptipy.utils.types import str_to_intfloat, num_to_str
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -202,7 +203,7 @@ class Progress(PerRunData):
                         f"{cmt} {logging.KEY_GOAL_F}{kv}{self.f_standard}\n")
             out.write(f"{self.time_unit}{sep}{self.f_name}\n")
             for i, t in enumerate(self.time):
-                out.write(f"{t}{sep}{logging.num_to_str(self.f[i])}\n")
+                out.write(f"{t}{sep}{num_to_str(self.f[i])}\n")
 
         logger(f"Done writing progress object to CSV file '{path}'.")
 
@@ -376,8 +377,8 @@ class _InnerLogParser(ExperimentParser):
                 raise ValueError("Error when parsing data.")
 
             if (self.__state & 8) != 0:  # state
-                if logging.KEY_GOAL_F in data:
-                    goal_f = data[logging.KEY_GOAL_F]
+                if _FULL_KEY_GOAL_F in data:
+                    goal_f = data[_FULL_KEY_GOAL_F]
                     if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
                         self.__goal_f = float(goal_f)
                     elif goal_f == "-inf":
@@ -387,7 +388,7 @@ class _InnerLogParser(ExperimentParser):
                 else:
                     self.__goal_f = None
 
-                seed_check = int(data[logging.KEY_RAND_SEED])
+                seed_check = int(data[_FULL_KEY_RAND_SEED])
                 if seed_check != self.rand_seed:
                     raise ValueError(
                         f"Found seed {seed_check} in log file, but file name "
@@ -443,7 +444,7 @@ class _InnerLogParser(ExperimentParser):
                              for c in aa(line.split(logging.CSV_SEPARATOR))]
                             for line in lines[1:]])
             time = [int(t) for t in time]
-            f = [_str_to_if(v) for v in f]
+            f = [str_to_intfloat(v) for v in f]
             if self.__only_improvements:
                 biggest_t: int = -1
                 best_f: Union[int, float] = inf

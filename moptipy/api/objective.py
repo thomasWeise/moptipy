@@ -3,8 +3,8 @@ from abc import abstractmethod
 from math import inf
 from typing import Union, Callable, Optional, Final
 
+from moptipy.api import logging
 from moptipy.api.component import _CallableComponent, Component
-from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 
 

@@ -3,14 +3,16 @@ from dataclasses import dataclass
 from math import inf
 from typing import Union, List, Final, Optional, Iterable, Callable, Any
 
-from moptipy.evaluation._utils import _ifn_to_str, _in_to_str, _str_to_if, \
-    _str_to_ifn, _str_to_in, _try_int, _check_max_time_millis
+from moptipy.api import logging
+from moptipy.evaluation._utils import _FULL_KEY_RAND_SEED, _FULL_KEY_MAX_FES, \
+    _FULL_KEY_GOAL_F, _FULL_KEY_MAX_TIME_MILLIS, _check_max_time_millis
 from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
-from moptipy.evaluation.parse_data import parse_key_values
-from moptipy.utils import logging
 from moptipy.utils.log import logger
+from moptipy.utils.logger import parse_key_values
 from moptipy.utils.path import Path
+from moptipy.utils.types import intfloatnone_to_str, intnone_to_str, \
+    str_to_intfloat, str_to_intfloatnone, str_to_intnone, try_int, num_to_str
 
 #: The internal CSV header
 _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
@@ -93,7 +95,7 @@ class EndResult(PerRunData):
         :raises ValueError: if the parameter values are inconsistent
         """
         super().__init__(algorithm, instance, rand_seed)
-        object.__setattr__(self, "best_f", _try_int(best_f))
+        object.__setattr__(self, "best_f", try_int(best_f))
 
         if not isinstance(last_improvement_fe, int):
             raise TypeError("last_improvement_fe must be int, "
@@ -134,7 +136,7 @@ class EndResult(PerRunData):
             if goal_f <= -inf:
                 goal_f = None
             else:
-                goal_f = _try_int(goal_f)
+                goal_f = try_int(goal_f)
         object.__setattr__(self, "goal_f", goal_f)
 
         if max_fes is not None:
@@ -205,14 +207,14 @@ class EndResult(PerRunData):
                     f"{e.algorithm}{logging.CSV_SEPARATOR}"
                     f"{e.instance}{logging.CSV_SEPARATOR}"
                     f"{hex(e.rand_seed)}{logging.CSV_SEPARATOR}"
-                    f"{logging.num_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
+                    f"{num_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
                     f"{e.last_improvement_fe}{logging.CSV_SEPARATOR}"
                     f"{e.last_improvement_time_millis}{logging.CSV_SEPARATOR}"
                     f"{e.total_fes}{logging.CSV_SEPARATOR}"
                     f"{e.total_time_millis}{logging.CSV_SEPARATOR}"
-                    f"{_ifn_to_str(e.goal_f)}{logging.CSV_SEPARATOR}"
-                    f"{_in_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
-                    f"{_in_to_str(e.max_time_millis)}\n")
+                    f"{intfloatnone_to_str(e.goal_f)}{logging.CSV_SEPARATOR}"
+                    f"{intnone_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
+                    f"{intnone_to_str(e.max_time_millis)}\n")
 
         logger(f"Done writing end results to CSV file '{path}'.")
         return path
@@ -251,14 +253,14 @@ class EndResult(PerRunData):
                         splt[0].strip(),  # algorithm
                         splt[1].strip(),  # instance
                         int((splt[2])[2:], 16),  # rand seed
-                        _str_to_if(splt[3]),  # best_f
+                        str_to_intfloat(splt[3]),  # best_f
                         int(splt[4]),  # last_improvement_fe
                         int(splt[5]),  # last_improvement_time_millis
                         int(splt[6]),  # total_fes
                         int(splt[7]),  # total_time_millis
-                        _str_to_ifn(splt[8]),  # goal_f
-                        _str_to_in(splt[9]),  # max_fes
-                        _str_to_in(splt[10]))  # max_time_millis
+                        str_to_intfloatnone(splt[8]),  # goal_f
+                        str_to_intnone(splt[9]),  # max_fes
+                        str_to_intnone(splt[10]))  # max_time_millis
                     if filterer(er):
                         consumer(er)
 
@@ -365,8 +367,8 @@ class _InnerLogParser(ExperimentParser):
             raise ValueError("Error when parsing data.")
 
         if (self.__state & 4) != 0:
-            if logging.KEY_GOAL_F in data:
-                goal_f = data[logging.KEY_GOAL_F]
+            if _FULL_KEY_GOAL_F in data:
+                goal_f = data[_FULL_KEY_GOAL_F]
                 if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
                     self.__goal_f = float(goal_f)
                 elif goal_f == "-inf":
@@ -376,13 +378,13 @@ class _InnerLogParser(ExperimentParser):
             else:
                 self.__goal_f = None
 
-            if logging.KEY_MAX_FES in data:
-                self.__max_fes = int(data[logging.KEY_MAX_FES])
-            if logging.KEY_MAX_TIME_MILLIS in data:
+            if _FULL_KEY_MAX_FES in data:
+                self.__max_fes = int(data[_FULL_KEY_MAX_FES])
+            if _FULL_KEY_MAX_TIME_MILLIS in data:
                 self.__max_time_millis = \
-                    int(data[logging.KEY_MAX_TIME_MILLIS])
+                    int(data[_FULL_KEY_MAX_TIME_MILLIS])
 
-            seed_check = int(data[logging.KEY_RAND_SEED])
+            seed_check = int(data[_FULL_KEY_RAND_SEED])
             if seed_check != self.rand_seed:
                 raise ValueError(
                     f"Found seed {seed_check} in log file, but file name "
@@ -396,7 +398,7 @@ class _InnerLogParser(ExperimentParser):
             self.__total_time_millis = \
                 int(data[logging.KEY_TOTAL_TIME_MILLIS])
 
-            self.__best_f = _str_to_if(data[logging.KEY_BEST_F])
+            self.__best_f = str_to_intfloat(data[logging.KEY_BEST_F])
 
             self.__last_improvement_fe = \
                 int(data[logging.KEY_LAST_IMPROVEMENT_FE])

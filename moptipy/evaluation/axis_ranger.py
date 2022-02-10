@@ -6,11 +6,11 @@ from typing import Optional, Final, Iterable, Callable
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
 
-from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
-    F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
-from moptipy.utils.logging import KEY_LAST_IMPROVEMENT_FE, \
+from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
     KEY_TOTAL_TIME_MILLIS
+from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
+    F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
 
 #: The internal minimum float value for log-scaled axes.
 _MIN_LOG_FLOAT: Final[float] = sys.float_info.min

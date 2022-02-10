@@ -7,7 +7,7 @@ import numba  # type: ignore
 import numpy as np
 from numpy.random import default_rng, Generator, PCG64
 
-from moptipy.utils import logging
+import moptipy.utils.types
 
 #: A map associating all numpy integer types associated to tuples
 #: of their respective minimum and maximum value.
@@ -320,7 +320,7 @@ def strs_to_bools(lines: Iterable[str]) -> np.ndarray:
     >>> strs_to_bools(["T", "F", "T"])
     array([ True, False,  True])
     """
-    return np.array([logging.str_to_bool(s) for s in lines],
+    return np.array([moptipy.utils.types.str_to_bool(s) for s in lines],
                     dtype=DEFAULT_BOOL)
 
 

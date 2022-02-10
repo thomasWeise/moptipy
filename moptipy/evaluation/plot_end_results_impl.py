@@ -10,16 +10,16 @@ from matplotlib.lines import Line2D  # type: ignore
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
-from moptipy.evaluation._utils import _try_div2
+from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
+    KEY_TOTAL_TIME_MILLIS
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
     F_NAME_NORMALIZED
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.lang import Lang
 from moptipy.utils.log import logger
-from moptipy.utils.logging import KEY_LAST_IMPROVEMENT_FE, \
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
-    KEY_TOTAL_TIME_MILLIS
+from moptipy.utils.types import try_float_div
 
 #: the permitted dimensions
 __PERMITTED_DIMENSIONS: Final[Tuple[str, str, str, str, str, str, str]] = \
@@ -128,9 +128,9 @@ def plot_end_results(
             if goal == 0:
                 raise ValueError(f"goal must not be 0, but is {goal}.")
             if dimension == F_NAME_SCALED:
-                value = _try_div2(res.best_f, goal)
+                value = try_float_div(res.best_f, goal)
             else:
-                value = _try_div2(res.best_f - goal, goal)
+                value = try_float_div(res.best_f - goal, goal)
         elif dimension == KEY_TOTAL_FES:
             value = res.total_fes
         elif dimension == KEY_LAST_IMPROVEMENT_FE:

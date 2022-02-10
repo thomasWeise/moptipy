@@ -8,13 +8,12 @@ import numpy as np
 import moptipy.evaluation.base as bs
 import moptipy.operators.pwr as pwr
 from moptipy.algorithms import HillClimber, SingleRandomSample
-from moptipy.api import Execution, run_experiment
+from moptipy.api import Execution, run_experiment, logging
 from moptipy.evaluation import EndResult, EndStatistics, Progress, StatRun, \
     Ert, compute_single_ert
 from moptipy.examples.jssp import Instance, Makespan, \
     OperationBasedEncoding, GanttSpace
 from moptipy.spaces import PermutationsWithRepetitions
-from moptipy.utils import logging
 from moptipy.utils.temp import TempDir, TempFile
 
 instances = [lambda: Instance.from_resource("dmu21"),

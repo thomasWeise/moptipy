@@ -19,11 +19,9 @@ from moptipy.evaluation.ert import Ert, compute_single_ert
 from moptipy.evaluation.ertecdf import ErtEcdf
 from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.log_parser import LogParser, ExperimentParser
-from moptipy.evaluation.parse_data import parse_key_values
 from moptipy.evaluation.plot_ecdf_impl import plot_ecdf
 from moptipy.evaluation.plot_ert_impl import plot_ert
 from moptipy.evaluation.plot_progress_impl import plot_progress
-from moptipy.utils.plot_utils import create_figure, save_figure
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
 from moptipy.evaluation.statistics import Statistics
@@ -31,7 +29,6 @@ from moptipy.evaluation.statistics import Statistics
 __all__ = (
     "AxisRanger",
     "compute_single_ert",
-    "create_figure",
     "EndResult",
     "EndStatistics",
     "Ecdf",
@@ -41,12 +38,10 @@ __all__ = (
     "Lang",
     "LogParser",
     "MultiRunData",
-    "parse_key_values",
     "plot_ert",
     "plot_ecdf",
     "plot_progress",
     "PerRunData",
     "Progress",
-    "save_figure",
     "Statistics",
     "StatRun")

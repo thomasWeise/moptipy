@@ -6,8 +6,9 @@ from typing import Optional, Iterable, List, Final, Union, Dict, Callable, Any
 
 import numpy as np
 
-import moptipy.utils.logging as lg
+import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
+from moptipy.utils.types import num_to_str
 from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, KEY_N
@@ -154,7 +155,7 @@ class Ecdf(MultiRun2DData):
             out.write(f"{self._time_key()}{sep}ecdf\n")
             for v in self.ecdf:
                 out.write(
-                    f"{lg.num_to_str(v[0])}{sep}{lg.num_to_str(v[1])}\n")
+                    f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
 
         logger(f"Done writing ECDF to CSV file '{path}'.")
 
@@ -395,4 +396,4 @@ def goal_to_str(goal_f: Union[int, float, None]) -> str:
     :rtype: str
     """
     return "undefined" if goal_f is None else \
-        f"goal: \u2264{lg.num_to_str(goal_f)}"
+        f"goal: \u2264{num_to_str(goal_f)}"

@@ -3,8 +3,9 @@ from typing import Final
 
 import numpy as np
 
+import moptipy.utils.types
 from moptipy.api.space import Space
-from moptipy.utils import logging
+from moptipy.api import logging
 from moptipy.utils.logger import KeyValueSection
 
 #: the internal type for but strings
@@ -69,7 +70,7 @@ class BitStrings(Space):
         :return: the string
         :rtype: str
         """
-        return "".join([logging.bool_to_str(xx) for xx in x])
+        return "".join([moptipy.utils.types.bool_to_str(xx) for xx in x])
 
     def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
         """
@@ -95,7 +96,7 @@ class BitStrings(Space):
         if not (isinstance(text, str)):
             raise TypeError(f"text must be str, but is {type(text)}.")
         x: Final[np.ndarray] = self.create()
-        x[:] = [logging.str_to_bool(t) for t in text]
+        x[:] = [moptipy.utils.types.str_to_bool(t) for t in text]
         self.validate(x)
         return x
 

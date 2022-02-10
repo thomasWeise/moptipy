@@ -41,7 +41,8 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 #: The default set of algorithms for our experiments.
 #: Each of them is a Callable that receives two parameters, the instance
 #: `inst` and the permutation with repetitions-space `pwr`.
-DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = (
+DEFAULT_ALGORITHMS: Final[Tuple[
+    Callable[[Instance, PermutationsWithRepetitions], Algorithm], ...]] = (
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
     lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
@@ -51,7 +52,9 @@ DEFAULT_ALGORITHMS: Final[Tuple[Callable, ...]] = (
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
-                   algorithms: Iterable[Callable] = DEFAULT_ALGORITHMS,
+                   algorithms: Iterable[
+                       Callable[[Instance, PermutationsWithRepetitions],
+                                Algorithm]] = DEFAULT_ALGORITHMS,
                    instances: Iterable[str] = EXPERIMENT_INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
                    max_time: Optional[int] = EXPERIMENT_RUNTIME_MS,

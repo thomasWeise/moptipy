@@ -1,6 +1,6 @@
 """Functions that can be used to test component implementations."""
+from moptipy.api import logging
 from moptipy.api.component import Component
-from moptipy.utils import logging
 from moptipy.utils.logger import InMemoryLogger
 
 

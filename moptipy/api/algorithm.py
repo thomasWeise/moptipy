@@ -2,12 +2,12 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Final
 
+from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.api.objective import _CallableComponent
-from moptipy.api.operators import Op0, check_op0, Op1, check_op1,\
+from moptipy.api.operators import Op0, check_op0, Op1, check_op1, \
     Op2, check_op2
 from moptipy.api.process import Process
-from moptipy.utils import logging
 from moptipy.utils.logger import KeyValueSection
 
 

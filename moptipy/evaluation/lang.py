@@ -4,9 +4,9 @@ from typing import Dict, Final, Optional, Iterable, List, Callable
 
 import matplotlib  # type: ignore
 
+import moptipy.api.logging as lg
 import moptipy.evaluation.base as bs
-import moptipy.utils.logging as lg
-from moptipy.utils.logging import sanitize_name
+from moptipy.api.logging import sanitize_name
 
 
 class Lang:

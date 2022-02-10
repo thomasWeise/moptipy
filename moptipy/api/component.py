@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Final
 
-from moptipy.utils import logging
+from moptipy.api import logging
 from moptipy.utils.logger import KeyValueSection
 
 

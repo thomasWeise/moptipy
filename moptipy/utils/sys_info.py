@@ -3,15 +3,15 @@ import importlib.metadata as ilm
 import os
 import platform
 import re
-import sys
 import socket
+import sys
 from datetime import datetime
 from typing import Optional, Final, Dict, Tuple, List
 
 import psutil  # type: ignore
 
 import moptipy.version as ver
-from moptipy.utils import logging
+from moptipy.api import logging
 from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueSection
 from moptipy.utils.path import Path
 

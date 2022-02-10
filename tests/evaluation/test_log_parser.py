@@ -1,10 +1,10 @@
 """Test the sections parser."""
 from typing import List
 
+from moptipy.api import logging
 from moptipy.evaluation import LogParser
-from moptipy.utils import logging
-from moptipy.utils.temp import TempFile
 from moptipy.utils.logger import FileLogger
+from moptipy.utils.temp import TempFile
 
 
 class _TestParser(LogParser):

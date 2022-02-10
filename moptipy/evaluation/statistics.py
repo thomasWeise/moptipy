@@ -5,12 +5,13 @@ from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast
 
-from moptipy.evaluation._utils import _DBL_INT_LIMIT_P, _try_int, _try_div, \
-    _str_to_if, _str_to_ifn
-from moptipy.utils import logging
+from moptipy.utils.types import num_to_str
+from moptipy.api import logging
+from moptipy.utils.types import str_to_intfloat, str_to_intfloatnone, \
+    DBL_INT_LIMIT_P, try_int, try_int_div
 
 #: The limit until which we simplify geometric mean data.
-_INT_ROOT_LIMIT: Final[int] = int(sqrt(_DBL_INT_LIMIT_P))
+_INT_ROOT_LIMIT: Final[int] = int(sqrt(DBL_INT_LIMIT_P))
 _ULP: Final[float] = 1 - (2 ** (-53))
 
 #: The minimum value key.
@@ -185,13 +186,13 @@ class Statistics:
 
         # fix types to int where possible without loss of precision
 
-        object.__setattr__(self, "minimum", _try_int(minimum))
-        object.__setattr__(self, "median", _try_int(median))
-        object.__setattr__(self, "maximum", _try_int(maximum))
-        object.__setattr__(self, "mean_arith", _try_int(mean_arith))
+        object.__setattr__(self, "minimum", try_int(minimum))
+        object.__setattr__(self, "median", try_int(median))
+        object.__setattr__(self, "maximum", try_int(maximum))
+        object.__setattr__(self, "mean_arith", try_int(mean_arith))
         object.__setattr__(self, "mean_geom",
-                           None if mean_geom is None else _try_int(mean_geom))
-        object.__setattr__(self, "stddev", _try_int(stddev))
+                           None if mean_geom is None else try_int(mean_geom))
+        object.__setattr__(self, "stddev", try_int(stddev))
 
     def min_mean(self) -> Union[int, float]:
         """
@@ -260,7 +261,7 @@ class Statistics:
 
         for e in source:  # iterate over all data
             n = n + 1
-            e = _try_int(e)
+            e = try_int(e)
 
             if can_int:  # can we do integers
                 if not isinstance(e, int):
@@ -292,7 +293,7 @@ class Statistics:
         mean_arith: Union[int, float]
 
         if can_int:  # if we get here, we have exact sums and product
-            mean_arith = _try_div(int_sum, n)
+            mean_arith = try_int_div(int_sum, n)
 
             if n > 1:  # standard deviation only defined for n > 1
                 int_sum2: int = (int_sum * int_sum)
@@ -302,7 +303,7 @@ class Statistics:
 
                 var: Union[int, float]  # the container for the variance
                 if i_n == 1:
-                    var = _try_div(int_sum_sqr - int_sum2, n - 1)
+                    var = try_int_div(int_sum_sqr - int_sum2, n - 1)
                 else:  # variance is float
                     var = (int_sum_sqr - (int_sum2 / i_n)) / (n - 1)
 
@@ -339,7 +340,7 @@ class Statistics:
                     if int_prod == 1:  # if this holds, we do not need to
                         mean_geom = base_mul  # compute the root
                     else:  # otherwise, we may have prevented overflow(?)
-                        if int_prod <= _DBL_INT_LIMIT_P:  # no overflow?
+                        if int_prod <= DBL_INT_LIMIT_P:  # no overflow?
                             mean_geom = base_mul * (int_prod ** frac)
                         else:  # too dangerous, there may be overflow
                             mean_geom = statistics.geometric_mean(source)
@@ -391,7 +392,7 @@ class Statistics:
         :return: the CSV row.
         :rtype: str
         """
-        s: str = f"{logging.num_to_str(value)}{logging.CSV_SEPARATOR}"
+        s: str = f"{num_to_str(value)}{logging.CSV_SEPARATOR}"
         return f"{s * 5}0"
 
     def to_csv(self) -> str:
@@ -402,15 +403,15 @@ class Statistics:
         :rtype: str
         """
         q: Final[str] = "" if (self.mean_geom is None) \
-            else logging.num_to_str(self.mean_geom)
-        return f"{logging.num_to_str(self.minimum)}{logging.CSV_SEPARATOR}" \
-               f"{logging.num_to_str(self.median)}{logging.CSV_SEPARATOR}" \
-               f"{logging.num_to_str(self.mean_arith)}" \
+            else num_to_str(self.mean_geom)
+        return f"{num_to_str(self.minimum)}{logging.CSV_SEPARATOR}" \
+               f"{num_to_str(self.median)}{logging.CSV_SEPARATOR}" \
+               f"{num_to_str(self.mean_arith)}" \
                f"{logging.CSV_SEPARATOR}" \
                f"{q}" \
                f"{logging.CSV_SEPARATOR}" \
-               f"{logging.num_to_str(self.maximum)}{logging.CSV_SEPARATOR}" \
-               f"{logging.num_to_str(self.stddev)}"
+               f"{num_to_str(self.maximum)}{logging.CSV_SEPARATOR}" \
+               f"{num_to_str(self.stddev)}"
 
     @staticmethod
     def from_csv(n: int, row: Union[str, Iterable[str]]) -> 'Statistics':
@@ -428,9 +429,9 @@ class Statistics:
 
         mini, med, mean, geo, maxi, sd = cells
         return Statistics(n,
-                          _str_to_if(mini),
-                          _str_to_if(med),
-                          _str_to_if(mean),
-                          _str_to_ifn(geo),
-                          _str_to_if(maxi),
-                          _str_to_if(sd))
+                          str_to_intfloat(mini),
+                          str_to_intfloat(med),
+                          str_to_intfloat(mean),
+                          str_to_intfloatnone(geo),
+                          str_to_intfloat(maxi),
+                          str_to_intfloat(sd))
