@@ -1,39 +1,37 @@
 """A class for representing Gantt charts as objects."""
-from typing import Final
-
 import numpy as np
 
 from moptipy.examples.jssp.instance import Instance
-from moptipy.utils import nputils
 
 
 # start book
-class Gantt:
+class Gantt(np.ndarray):
     """
     A class representing Gantt charts.
 
     A Gantt chart is a diagram that visualizes when a job on a given
     machine begins or ends. We here represent it as a three-dimensional
-    matrix `self.times`. This matrix has one row for each machine and one
-    column for each job. In each cell, it holds two values: the start
-    and the end time of the job on the machine.
+    matrix. This matrix has one row for each machine and one column for each
+    job. In each cell, it holds three values: the job ID, the start, and the
+    end time of the job on the machine.
+    The Gantt chart has the additional attribute `instance` which references
+    the JSSP instance for which the chart is constructed.
+    Gantt charts must only be created by an instance of
+    :class:`moptipy.examples.jssp.gant_space.GanttSpace`.
     """
 
-    def __init__(self, instance: Instance) -> None:
-        """
-        Create a Gantt chart record to hold a solution for a JSSP instance.
+    #: the JSSP instance for which the Gantt chart is created
+    instance: Instance
 
-        :param Instance instance: the JSSP instance
+    def __new__(cls, space):
         """
-        # end book
-        if not isinstance(instance, Instance):
-            TypeError("Must provide valid JSSP instance, but passed "
-                      f"in a {type(instance)}.")
-        #: The JSSP Instance to which this Gantt record applies.
-        self.instance: Final[Instance] = instance  # +book
+        Create the Gantt chart.
 
-        #: A 3D matrix with (start, stop) time for each job on each machine.
-        self.times: Final[np.ndarray] = np.zeros(  # +book
-            dtype=nputils.int_range_to_dtype(
-                min_value=0, max_value=instance.makespan_upper_bound),
-            shape=(instance.machines, instance.jobs, 2))  # +book
+        :param moptipy.examples.jssp.gant_space.GanttSpace space: the Gantt
+            space for which the instance is created.
+        """
+        obj = np.ndarray.__new__(Gantt, space.shape, space.instance.dtype)
+        #: store the instance in this object
+        obj.instance = space.instance
+        return obj
+# end book

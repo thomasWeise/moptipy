@@ -57,10 +57,10 @@ KEY_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
 SECTION_SETUP: Final[str] = "SETUP"
 #: the default log key for names of objects
 KEY_NAME: Final[str] = "name"
-#: the type of an object
-KEY_TYPE: Final[str] = "type"
-#: the inner type of an object
-KEY_INNER_TYPE: Final[str] = "innerType"
+#: the class of an object
+KEY_CLASS: Final[str] = "class"
+#: the inner class of an object
+KEY_INNER_CLASS: Final[str] = "innerClass"
 #: the default log key for the lower bound of objective function values
 KEY_F_LOWER_BOUND: Final[str] = "lowerBound"
 #: the default log key for the upper bound of objective function values

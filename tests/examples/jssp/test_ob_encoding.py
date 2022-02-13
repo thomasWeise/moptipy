@@ -41,7 +41,7 @@ def __check_for_instance(instance: str,
     y_str = y_space.to_str(y)
     y_2 = y_space.from_str(y_str)
     assert y_space.is_equal(y, y_2)
-    assert np.array_equal(y.times, y_2.times)
+    assert np.array_equal(y, y_2)
 
 
 def __check_seq(prefix: str, end: int, start: int = 1,

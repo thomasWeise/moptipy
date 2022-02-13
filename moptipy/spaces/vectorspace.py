@@ -1,19 +1,13 @@
 """An implementation of an unconstrained n-dimensional continuous space."""
-from typing import Final
 
 import numpy as np
 
-from moptipy.api.space import Space
-from moptipy.utils.logger import KeyValueSection
-from moptipy.api.logging import KEY_SPACE_NUM_VARS
-from moptipy.utils.types import float_to_str
+from moptipy.spaces._nparrayspace import _NPArraySpace
 from moptipy.utils.nputils import is_np_float, is_all_finite
-
-#: the character identifying the numpy data type backing the space
-KEY_NUMPY_TYPE: Final = "dtype"
+from moptipy.utils.types import float_to_str
 
 
-class VectorSpace(Space):
+class VectorSpace(_NPArraySpace):
     """
     A vector space where each element is a one-dimensional numpy float array.
 
@@ -29,39 +23,9 @@ class VectorSpace(Space):
         :param dtype: The basic data type of the vector space,
             i.e., the type of the decision variables
         """
-        if not isinstance(dimension, int):
-            raise TypeError(
-                f"dimension must be integer, but got {type(dimension)}.")
-        if (dimension < 1) or (dimension > 1_000_000_000):
-            raise ValueError("dimension must be in 1..1_000_000_000, "
-                             f"but got {dimension}.")
-
-        if not (isinstance(dtype, np.dtype) and is_np_float(dtype)):
+        super().__init__(dimension, dtype)
+        if not (isinstance(self.dtype, np.dtype) and is_np_float(self.dtype)):
             raise TypeError(f"Invalid data type {dtype}.")
-
-        #: The dimension of the space, i.e., the vectors.
-        self.dimension: Final[int] = dimension
-
-        #: The basic data type of the vector elements.
-        self.dtype: Final[np.dtype] = dtype
-
-    def create(self) -> np.ndarray:
-        """
-        Create a real vector filled with `0`.
-
-        :return: the zero vector
-        :rtype: np.ndarray
-        """
-        return np.zeros(shape=self.dimension, dtype=self.dtype)
-
-    def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
-        """
-        Copy the contents of one vector to another.
-
-        :param np.ndarray source: the source vector
-        :param np.ndarray dest: the target vector
-        """
-        np.copyto(dest, source)
 
     def to_str(self, x: np.ndarray) -> str:
         """
@@ -72,18 +36,6 @@ class VectorSpace(Space):
         :rtype: str
         """
         return ",".join([float_to_str(xx) for xx in x])
-
-    def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
-        """
-        Check if two vectors are equal.
-
-        :param np.ndarray x1: the first vector
-        :param np.ndarray x2: the second
-        :return: `True` if the contents of both vectors are equal,
-            `False` otherwise
-        :rtype: bool
-        """
-        return np.array_equal(x1, x2)
 
     def from_str(self, text: str) -> np.ndarray:
         """
@@ -110,25 +62,19 @@ class VectorSpace(Space):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
-        if not (isinstance(x, np.ndarray)):
-            raise TypeError(
-                f"x must be an numpy.ndarray, but is a {type(x)}.")
-        if x.dtype != self.dtype:
-            raise TypeError(
-                f"x must be of type {self.dtype} but is of type {x.dtype}.")
-        if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
-            raise ValueError(f"x must be of shape ({self.dimension}) but is "
-                             f"of shape {x.shape}.")
         if not is_all_finite(x):
             raise ValueError("All elements must be finite.")
 
-    def scale(self) -> int:
+    def n_points(self) -> int:
         """
         Get the number of different floating point values in this space.
 
         :return: The space contains unrestricted floating point numbers, so we
             return the approximate number of finite floating point numbers.
         :rtype: int
+
+        >>> print(VectorSpace(3, np.dtype(np.float64)).n_points())
+        6267911251143764491534102180507836301813760039183993274367
         """
         if self.dtype.char == "e":
             exponent = 5
@@ -159,13 +105,3 @@ class VectorSpace(Space):
         vector3d
         """
         return f"vector{self.dimension}{self.dtype.char}"
-
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
-        """
-        Log the parameters of this space to the given logger.
-
-        :param KeyValueLogger logger: the logger
-        """
-        super().log_parameters_to(logger)
-        logger.key_value(KEY_SPACE_NUM_VARS, self.dimension)
-        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)

@@ -1,11 +1,11 @@
 """Functions that can be used to test spaces."""
 from typing import Callable, Optional
 
-import moptipy.api.space as ms
+from moptipy.api.space import Space, check_space
 from moptipy.tests.component import test_component
 
 
-def test_space(space: ms.Space,
+def test_space(space: Space,
                make_valid: Optional[Callable] = lambda x: x) -> None:
     """
     Check whether an object is a moptipy space.
@@ -15,10 +15,10 @@ def test_space(space: ms.Space,
         a valid point
     :raises ValueError: if `space` is not a valid Space
     """
-    if not isinstance(space, ms.Space):
+    if not isinstance(space, Space):
         raise ValueError("Expected to receive an instance of Space, but "
                          f"got a {type(space)}.")
-    ms.check_space(space)
+    check_space(space)
     test_component(component=space)
 
     x1 = space.create()
@@ -42,14 +42,6 @@ def test_space(space: ms.Space,
     if not space.is_equal(x1, x2):
         raise ValueError("space.copy(x1, x2) did not lead to "
                          "space.is_equal(x1, x2).")
-
-    scale = space.scale()
-    if not isinstance(scale, int):
-        raise ValueError("The scale of a space must always be a int, "
-                         f"but is a {type(scale)}.")
-    if scale <= 0:
-        raise ValueError(
-            f"The scale of a space must be positive, but was {scale}.")
 
     if make_valid is None:
         return

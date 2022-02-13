@@ -36,32 +36,11 @@ import numpy as np
 
 from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp import experiment
+from moptipy.examples.jssp.gantt_space import gantt_space_size
 from moptipy.examples.jssp.instance import Instance
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.spaces.permutationswr import \
+    permutations_with_repetitions_space_size
 from moptipy.utils.path import Path
-
-
-def gantt_space_size(jobs: int, machines: int) -> int:
-    """
-    Compute the size of the Gantt space.
-
-    :param int jobs: the number of jobs
-    :param int machines: the number of machines
-    :return: the size of the search
-    :rtype: int
-    """
-    if not isinstance(jobs, int):
-        raise TypeError(f"Number of jobs must be int, but is {type(jobs)}.")
-    if jobs <= 0:
-        raise ValueError(f"Number of jobs must be > 0, but is {jobs}.")
-    if not isinstance(machines, int):
-        raise TypeError(
-            f"Number of machines must be int, but is {type(machines)}.")
-    if machines <= 0:
-        raise ValueError(
-            f"Number of machines must be > 0, but is {machines}.")
-    return factorial(jobs) ** machines
-
 
 #: the pre-computed values
 __PRE_COMPUTED: Tuple[Tuple[int, int, int,
@@ -574,8 +553,8 @@ def make_search_space_size_table(
         inst_scales.append(
             (instance.jobs, instance.machines,
              gantt_space_size(instance.jobs, instance.machines),
-             PermutationsWithRepetitions(instance.jobs,
-                                         instance.machines).scale(),
+             permutations_with_repetitions_space_size(
+                 instance.jobs, instance.machines),
              f"`{instance.name}`"))
         del instance
 
@@ -591,7 +570,8 @@ def make_search_space_size_table(
                 continue
             inst_scales.append(
                 (jobs, machines, gantt_space_size(jobs, machines),
-                 PermutationsWithRepetitions(jobs, machines).scale(), ""))
+                 permutations_with_repetitions_space_size(
+                     jobs, machines), ""))
 
     inst_scales.sort()
     for i, a in enumerate(inst_scales):

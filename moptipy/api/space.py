@@ -100,15 +100,22 @@ class Space(Component):
         """
         raise NotImplementedError  # +book
 
-    @abstractmethod
-    def scale(self) -> int:
+    def n_points(self) -> int:
         """
         Get the approximate number of different elements in the space.
+
+        This operation can help us when doing tests of the space API
+        implementations. If we know how many points exist in the space,
+        then we can judge whether a method that randomly generates
+        points is sufficiently random, for instance.
+
+        By default, this method simply returns `2`. If you have a better
+        approximation of the size of the space, then you should override it.
 
         :return: the approximate scale of the space
         :rtype: int
         """
-        raise NotImplementedError
+        return 2
 
 
 def check_space(space: Optional[Space],

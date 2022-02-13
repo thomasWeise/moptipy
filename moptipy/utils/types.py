@@ -271,3 +271,38 @@ def try_float_div(a: Union[int, float], b: Union[int, float]) \
     if not isfinite(val):
         raise ValueError(f"Value must be finite, but is {a}/{b}={val}.")
     return __try_int(val)
+
+
+def classname(obj) -> str:
+    """
+    Get the fully-qualified class name of an object.
+
+    :param obj: the object
+    :returns: the fully-qualified class name of the object
+    :rtype: str
+
+    >>> from moptipy.examples.jssp.instance import Instance
+    >>> print(classname(Instance.from_resource("demo")))
+    moptipy.examples.jssp.instance.Instance
+    >>> from numpy.random import default_rng
+    >>> print(classname(default_rng()))
+    numpy.random._generator.Generator
+    """
+    if obj is None:
+        return "None"
+
+    candidate1 = ""
+    if hasattr(obj, "__class__"):
+        cc = obj.__class__
+        if hasattr(cc, "__qualname__"):
+            candidate1 = cc.__qualname__
+            if hasattr(obj, "__module__"):
+                module = obj.__module__
+                if module is not None:
+                    candidate1 = f"{module}.{candidate1}"
+
+    candidate2 = str(type(obj))
+    if candidate2.startswith("<class '"):
+        candidate2 = candidate2[8:-2]
+
+    return candidate1 if len(candidate1) > len(candidate2) else candidate2

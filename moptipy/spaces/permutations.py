@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations."""
 from math import factorial
-from typing import Final
+from typing import Final, Optional
 
 import numpy as np
 
@@ -10,13 +10,15 @@ from moptipy.spaces.intspace import IntSpace
 class Permutations(IntSpace):
     """A space of permutations represented as 1-dimensional int arrays."""
 
-    def __init__(self, n: int) -> None:
+    def __init__(self, n: int, dtype: Optional[np.dtype] = None) -> None:
         """
         Create the space of permutations of n elements.
 
         :param int n: the length of the permutations
+        :param np.dtype dtype: the dtype to use
         """
-        super().__init__(dimension=n, min_value=0, max_value=n - 1)
+        super().__init__(dimension=n, min_value=0, max_value=n - 1,
+                         dtype=dtype)
 
         self.__blueprint: Final[np.ndarray] = np.empty(
             shape=self.dimension, dtype=self.dtype)
@@ -37,15 +39,6 @@ class Permutations(IntSpace):
         """
         return self.__blueprint.copy()
 
-    def scale(self) -> int:
-        """
-        Get the number of different permutations.
-
-        :return: factorial(dimension)
-        :rtype: int
-        """
-        return factorial(self.dimension)
-
     def validate(self, x: np.ndarray) -> None:
         """
         Validate a permutation.
@@ -65,11 +58,26 @@ class Permutations(IntSpace):
                 f"once, but encountered {super().to_str(counts[counts != 1])} "
                 "occurrences.")
 
+    def n_points(self) -> int:
+        """
+        Get the number of different permutations.
+
+        :return: factorial(dimension)
+        :rtype: int
+
+        >>> print(Permutations(5).n_points())
+        120
+        """
+        return factorial(self.dimension)
+
     def get_name(self) -> str:
         """
         Get the name of this permutation space.
 
         :return: "perm" + dimension
         :rtype: str
+
+        >>> print(Permutations(5).get_name())
+        perm5
         """
         return f"perm{self.dimension}"

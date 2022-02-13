@@ -42,7 +42,7 @@ def test_int():
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: ints12b3-32",
-                      "type: <class 'moptipy.spaces.intspace.IntSpace'>",
+                      "class: moptipy.spaces.intspace.IntSpace",
                       "nvars: 12",
                       "dtype: b",
                       "min: 3",

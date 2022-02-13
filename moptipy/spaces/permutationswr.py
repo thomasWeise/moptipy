@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations with repetitions."""
 from math import factorial
-from typing import Final
+from typing import Final, Optional
 
 import numpy as np
 
@@ -11,11 +11,39 @@ from moptipy.utils.logger import KeyValueSection
 KEY_REPETITIONS: Final[str] = "repetitions"
 
 
+def permutations_with_repetitions_space_size(
+        n: int, repetitions: int = 1) -> int:
+    """
+    Compute the number of different permutations with repetitions.
+
+    :param int n: number of different values
+    :param int repetitions: the number of repetitions
+    :returns: the number of permutations with repetitions, i.e.,
+        factorial(n*repetitions) / (factorial(repetitions) ** n)
+    :rtype: int
+
+     >>> print(permutations_with_repetitions_space_size(4, 3))
+     369600
+    """
+    if not isinstance(n, int):
+        raise TypeError(f"n must be integer, but is {type(n)}.")
+    if (n <= 1) or (n > 1_000_000_000):
+        raise ValueError(f"n must be in 2..1_000_000_000, but is {n}.")
+    if not isinstance(repetitions, int):
+        raise TypeError(
+            f"repetitions must be integer, but is {type(repetitions)}.")
+    if (repetitions <= 0) or (repetitions > 1_000_000_000):
+        raise ValueError("repetitions must be in 1..1_000_000_000, "
+                         f"but is {repetitions}.")
+    return factorial(n * repetitions) // (factorial(repetitions) ** n)
+
+
 # start book
 class PermutationsWithRepetitions(IntSpace):
     """A space of permutations with repetitions."""
 
-    def __init__(self, n: int, repetitions: int = 1) -> None:
+    def __init__(self, n: int, repetitions: int = 1,
+                 dtype: Optional[np.dtype] = None) -> None:
         # end book
         """
         Create the permutation-with-repetitions space.
@@ -24,11 +52,12 @@ class PermutationsWithRepetitions(IntSpace):
         :param int repetitions: the number of repetitions
         :raises TypeError: if one of the parameters has the wrong type
         :raises ValueError: if the parameters have the wrong value
+        :param np.dtype dtype: the dtype to use
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be integer, but is {type(n)}.")
-        if (n <= 0) or (n > 1_000_000_000):
-            raise ValueError(f"n must be in 1..1_000_000_000, but is {n}.")
+        if (n <= 1) or (n > 1_000_000_000):
+            raise ValueError(f"n must be in 2..1_000_000_000, but is {n}.")
         if not isinstance(repetitions, int):
             raise TypeError(
                 f"repetitions must be integer, but is {type(repetitions)}.")
@@ -37,7 +66,7 @@ class PermutationsWithRepetitions(IntSpace):
                              f"but is {repetitions}.")
 
         super().__init__(dimension=n * repetitions, min_value=0,
-                         max_value=n - 1)
+                         max_value=n - 1, dtype=dtype)
         #: n is the number of items, meaning the values are in [0, n-1].
         self.n: Final[int] = n
         #: The number of times each value must occur.
@@ -77,16 +106,6 @@ class PermutationsWithRepetitions(IntSpace):
         """
         return self.blueprint.copy()  # +book
 
-    def scale(self) -> int:
-        """
-        Get the number of possible different permutations with repetitions.
-
-        :return: factorial(n*repetitions) / (factorial(repetitions) ** n)
-        :rtype: int
-        """
-        return factorial(self.n * self.repetitions) // \
-            (factorial(self.repetitions) ** self.n)
-
     def validate(self, x: np.ndarray) -> None:
         """
         Validate a permutation with repetitions.
@@ -107,11 +126,27 @@ class PermutationsWithRepetitions(IntSpace):
                 f"{super().to_str(counts[counts != self.repetitions])}"
                 " occurrences.")
 
+    def n_points(self) -> int:
+        """
+        Get the number of possible different permutations with repetitions.
+
+        :return: factorial(n*repetitions) / (factorial(repetitions) ** n)
+        :rtype: int
+
+        >>> print(PermutationsWithRepetitions(4, 2).n_points())
+        2520
+        """
+        return permutations_with_repetitions_space_size(
+            self.n, self.repetitions)
+
     def get_name(self) -> str:
         """
         Get the name of this space.
 
         :return: "perm" + n + "w" + repetitions + "r"
         :rtype: str
+
+        >>> print(PermutationsWithRepetitions(4, 3))
+        perm4w3r
         """
         return f"perm{self.n}w{self.repetitions}r"

@@ -1,7 +1,6 @@
 """Plot a Gantt chart into one figure."""
 from typing import Final, Callable, Union, Tuple, Iterable, Dict, Optional
 
-import numpy as np
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
@@ -37,7 +36,7 @@ def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
     :return: the makespan marker
     :rtype: str
     """
-    return Lang.current()["makespan"], int(x.times.max())
+    return Lang.current()["makespan"], int(x[:, -1, 2].max())
 
 
 #: the color for markers at the left end
@@ -97,7 +96,6 @@ def plot_gantt_chart(gantt: Gantt,
     axes: Final[Axes] = pu.get_axes(figure)
 
     # grab the data
-    times: Final[np.ndarray] = gantt.times
     jobs: Final[int] = gantt.instance.jobs
     machines: Final[int] = gantt.instance.machines
 
@@ -138,7 +136,8 @@ def plot_gantt_chart(gantt: Gantt,
                 x_axis.register_value(val)
 
     # Add x-axis data
-    x_axis.register_array(times.flatten())
+    x_axis.register_array(gantt[:, 0, 1].flatten())  # register start times
+    x_axis.register_array(gantt[:, -1, 2].flatten())  # register end times
     x_axis.apply(axes, "x")
     xmin, xmax = axes.get_xlim()
 
@@ -184,15 +183,14 @@ def plot_gantt_chart(gantt: Gantt,
 
     # plot the jobs
     for machine in range(machines):
+        for jobi in range(jobs):
+            job, x_start, x_end = gantt[machine, jobi, :]
 
-        for job in range(jobs):
             background = colors[job]
             foreground = pd.text_color_for_background(colors[job])
             jobstr = str(job)
 
             # first plot the colored rectangle
-            x_start = times[machine][job][0]
-            x_end = times[machine][job][1]
             y_start = machine - bar_ofs
 
             axes.add_artist(Rectangle(

@@ -156,11 +156,6 @@ class Instance(Component):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
-        #: The matrix with the operations of the jobs and their durations. \
-        #: This matrix holds one row for each job. \
-        #: In each row, it stores tuples of (machine, duration) in a \
-        #: consecutive sequence, i.e., 2*machine numbers.
-        self.matrix: Final[np.ndarray] = matrix  # +book
 
         # ... some computations ...  # +book
         ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
@@ -169,6 +164,22 @@ class Instance(Component):
             raise ValueError(
                 f"Computed makespan upper bound {ms_upper_bound} must not "
                 f"be less than computed lower bound {ms_lower_bound}.")
+
+        #: self.dtype is an integer data type suitable for all kinds of
+        #: matrices holding data of this instance. It can hold all values from
+        #: -1 to the maximum possible time of any Gantt chart, namely the
+        #: upper bound of the makespan. Therefore, this is also the suitable
+        #: data type for any Gantt chart.
+        self.dtype: Final[np.dtype] = int_range_to_dtype(
+            min_value=-1, max_value=max(jobs, machines, ms_upper_bound))
+        if self.dtype != matrix.dtype:
+            matrix = matrix.astype(dtype=self.dtype)
+
+        #: The matrix with the operations of the jobs and their durations. \
+        #: This matrix holds one row for each job. \
+        #: In each row, it stores tuples of (machine, duration) in a \
+        #: consecutive sequence, i.e., 2*machine numbers.
+        self.matrix: Final[np.ndarray] = matrix  # +book
 
         if makespan_lower_bound is None:
             makespan_lower_bound = ms_lower_bound
@@ -216,10 +227,9 @@ class Instance(Component):
         super().log_parameters_to(logger)
         logger.key_value(MACHINES, self.machines)
         logger.key_value(JOBS, self.jobs)
-        logger.key_value(MAKESPAN_LOWER_BOUND,
-                         self.makespan_lower_bound)
-        logger.key_value(MAKESPAN_UPPER_BOUND,
-                         self.makespan_upper_bound)
+        logger.key_value(MAKESPAN_LOWER_BOUND, self.makespan_lower_bound)
+        logger.key_value(MAKESPAN_UPPER_BOUND, self.makespan_upper_bound)
+        logger.key_value(npu.KEY_NUMPY_TYPE, self.dtype.char)
 
     @staticmethod
     def from_text(name: str, rows: List[str]) -> 'Instance':

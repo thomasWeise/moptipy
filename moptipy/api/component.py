@@ -4,6 +4,7 @@ from typing import Callable, Final
 
 from moptipy.api import logging
 from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.types import classname
 
 
 class Component(ABC):
@@ -37,7 +38,7 @@ class Component(ABC):
         :param moptipy.utils.KeyValueSection logger: the logger
         """
         logger.key_value(logging.KEY_NAME, self.get_name())
-        logger.key_value(logging.KEY_TYPE, str(type(self)))
+        logger.key_value(logging.KEY_CLASS, classname(self))
 
 
 class _CallableComponent(Component):
@@ -78,4 +79,4 @@ class _CallableComponent(Component):
         :param moptipy.utils.KeyValueSection logger: the logger
         """
         super().log_parameters_to(logger)
-        logger.key_value(logging.KEY_INNER_TYPE, str(type(self._inner)))
+        logger.key_value(logging.KEY_INNER_CLASS, classname(self._inner))

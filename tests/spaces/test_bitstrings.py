@@ -36,8 +36,9 @@ def test_int():
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: bits12",
-                      "type: <class 'moptipy.spaces.bitstrings.BitStrings'>",
+                      "class: moptipy.spaces.bitstrings.BitStrings",
                       "nvars: 12",
+                      "dtype: ?",
                       "END_F"]
 
     text = f.to_str(b)

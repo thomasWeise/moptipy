@@ -32,7 +32,7 @@ class Makespan(Objective):
         :param moptipy.examples.jssp.Gantt x: the Gantt chart.
         :return: the maximum of any time stored in the chart
         """
-        return int(x.times.max())
+        return int(x[:, -1, 2].max())
         # end book
 
     def lower_bound(self) -> int:

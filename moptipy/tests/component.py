@@ -59,7 +59,7 @@ def test_component(component: Component) -> None:
             f"First log line must begin with '{logging.KEY_NAME}', but starts"
             f" with '{lines[0]}'.")
 
-    if not lines[1].startswith(logging.KEY_TYPE):
+    if not lines[1].startswith(logging.KEY_CLASS):
         raise ValueError(
-            f"Second log line must begin with '{logging.KEY_TYPE}', but "
+            f"Second log line must begin with '{logging.KEY_CLASS}', but "
             f"starts with '{lines[1]}'.")

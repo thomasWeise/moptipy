@@ -131,11 +131,11 @@ class _ProcessSS(_ProcessNoSS):
     def validate(self, x) -> None:
         self._search_space.validate(x)
 
+    def n_points(self) -> int:
+        return self._search_space.n_points()
+
     def get_copy_of_current_best_y(self, y):
         return self._solution_space.copy(self._current_best_y, y)
-
-    def scale(self) -> int:
-        return self._search_space.scale()
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)

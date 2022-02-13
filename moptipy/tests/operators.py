@@ -50,7 +50,7 @@ def test_op0(op0: Op0,
                              f"empty string, namely '{strstr}'.")
         seen.add(strstr)
 
-    expected = max(1, min(max_count // 2, isqrt(space.scale())))
+    expected = max(1, min(max_count // 2, isqrt(space.n_points())))
     if len(seen) < expected:
         raise ValueError(
             f"It is expected that at least {expected} different elements "
@@ -110,7 +110,7 @@ def test_op1(op1: Op1,
                              f"empty string, namely '{strstr}'.")
         seen.add(strstr)
 
-    expected = max(2, min(3, isqrt(space.scale())))
+    expected = max(2, min(3, isqrt(space.n_points())))
     if len(seen) < expected:
         raise ValueError(
             f"It is expected that at least {expected} different elements "

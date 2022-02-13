@@ -388,3 +388,7 @@ def is_all_finite(a: np.ndarray) -> bool:
         if not np.isfinite(x):
             return False
     return True
+
+
+#: the character identifying the numpy data type backing the space
+KEY_NUMPY_TYPE: Final[str] = "dtype"

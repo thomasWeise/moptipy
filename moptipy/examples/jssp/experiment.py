@@ -121,7 +121,8 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
             :rtype: Execution
             """
             pwr: PermutationsWithRepetitions = \
-                PermutationsWithRepetitions(inst.jobs, inst.machines)
+                PermutationsWithRepetitions(inst.jobs, inst.machines,
+                                            inst.dtype)
 
             val: Union[Execution, Algorithm] = algor(inst, pwr)
             experiment: Execution

@@ -110,8 +110,8 @@ def test_logged_args():
     assert result == [
         "BEGIN_F",
         "name: hello",
-        "type: <class 'moptipy.api.objective.CallableObjective'>",
-        "innerType: <class 'function'>",
+        "class: moptipy.api.objective.CallableObjective",
+        "innerClass: test_objective.function",
         "lowerBound: -5",
         "upperBound: 11",
         "END_F"]

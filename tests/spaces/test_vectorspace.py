@@ -36,7 +36,7 @@ def test_vectors():
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: vector12d",
-                      "type: <class 'moptipy.spaces.vectorspace.VectorSpace'>",
+                      "class: moptipy.spaces.vectorspace.VectorSpace",
                       "nvars: 12",
                       "dtype: d",
                       "END_F"]

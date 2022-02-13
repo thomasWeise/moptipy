@@ -26,7 +26,7 @@ __all__ = (
 Lang.get("en").extend({
     "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs} "
                   "jobs \u00D7 {gantt.instance.machines} machines), "
-                  "makespan {gantt.times.max()}",
+                  "makespan {gantt[:,:,2].max()}",
     "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
                         "jobs \u00D7 {gantt.instance.machines} machines)",
     "machine": "machine",
@@ -36,7 +36,7 @@ Lang.get("en").extend({
 Lang.get("de").extend({
     "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs} "
                   "Jobs \u00D7 {gantt.instance.machines} Maschinen), "
-                  "Makespan {gantt.times.max()}",
+                  "Makespan {gantt[:,:,2].max()}",
     "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
                         "Jobs \u00D7 {gantt.instance.machines} Maschinen)",
     "machine": "Maschine",
@@ -46,7 +46,7 @@ Lang.get("de").extend({
 Lang.get("zh").extend({
     "gantt_info": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
                   "\u00D7{gantt.instance.machines}台机器），"
-                  "最大完工时间{gantt.times.max()}",
+                  "最大完工时间{gantt[:,:,2].max()}",
     "gantt_info_no_ms": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
                         "\u00D7{gantt.instance.machines}台机器）",
     "machine": "机器",

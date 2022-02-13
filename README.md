@@ -86,8 +86,8 @@ In this key-value section, we log information about the configuration of the opt
 There are at least the following keys:
 
 - process wrapper parameters (scope `p`):
-  - `p.name`: the name of the process wrapper
-  - `p.type`: the python class of the process wrapper
+  - `p.name`: the name of the process wrapper, i.e., a short mnemonic describing its purpose
+  - `p.class`: the python class of the process wrapper
   - `p.maxTimeMillis`: the maximum clock time in milliseconds, if specified
   - `p.maxFEs`: the maximum number of objective function evaluations (FEs), if specified
   - `p.goalF`: the goal objective value, if specified
@@ -95,11 +95,27 @@ There are at least the following keys:
   - `p.randSeed(hex)`: the random seed in hexadecimal notation
   - `p.randGenType`: the class of the random number generator
   - `p.randBitGenType`: the class of the bit generator used by the random number generator
-- algorithm parameters: scope `a`, includes algorithm name, class, etc.
-- solution space scope `y`, includes name and class of solution space
+- algorithm parameters: scope `a`, includes algorithm `name`, `class`, etc.
+- solution space scope `y`, includes `name` and `class` of solution space
 - objective function information: scope `f`
 - search space information (if search space is different from solution space): scope `x`
 - encoding information (if encoding is defined): scope `g` 
+
+
+##### The Section `SYS_INFO`
+
+The system information section is again a key-value section.
+It holds key-value pairs describing features of the machine on which the experiment was executed.
+This includes information about the CPU, the operating system, the Python installation, as well as the version information of packages used by moptipy.
+
+
+##### The `RESULT_*` Sections
+
+The textual representation of the best encountered solution (whose objective value is noted as `bestF` in section `STATE`) is stored in the section `RESULT_Y`.
+Since we can use many different solution spaces, this section just contains raw text.
+
+If the search and solution space are different, the section `RESULT_X` is included.
+It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
 
 
 #### 3.1.3. Example
@@ -123,57 +139,59 @@ The example log file printed by the above code will then look as follows:
 ```
 BEGIN_PROGRESS
 fes;timeMS;f
-1;1;270
-8;1;235
-12;1;230
+1;2;270
+8;2;235
+12;2;230
 17;2;210
 32;2;185
-66;2;180
+66;3;180
 END_PROGRESS
 BEGIN_STATE
 totalFEs: 66
-totalTimeMillis: 2
+totalTimeMillis: 3
 bestF: 180
 lastImprovementFE: 66
-lastImprovementTimeMillis: 2
+lastImprovementTimeMillis: 3
 END_STATE
 BEGIN_SETUP
 p.name: LoggingProcessWithSearchSpace
-p.type: <class 'moptipy.api._process_ss_log._ProcessSSLog'>
+p.class: moptipy.api._process_ss_log._ProcessSSLog
 p.maxTimeMillis: 120000
 p.goalF: 180
 p.randSeed: 6526669205530947346
 p.randSeed(hex): 0x5a9363100a272f12
-p.randGenType: <class 'numpy.random._generator.Generator'>
-p.randBitGenType: <class 'numpy.random._pcg64.PCG64'>
+p.randGenType: numpy.random._generator.Generator
+p.randBitGenType: numpy.random._pcg64.PCG64
 a.name: ea1p1_swap2
-a.type: <class 'moptipy.algorithms.ea1p1.EA1p1'>
+a.class: moptipy.algorithms.ea1p1.EA1p1
 a.op0.name: shuffle
-a.op0.type: <class 'moptipy.operators.pwr.op0_shuffle.Op0Shuffle'>
+a.op0.class: moptipy.operators.pwr.op0_shuffle.Op0Shuffle
 a.op1.name: swap2
-a.op1.type: <class 'moptipy.operators.pwr.op1_swap2.Op1Swap2'>
+a.op1.class: moptipy.operators.pwr.op1_swap2.Op1Swap2
 y.name: gantt_demo
-y.type: <class 'moptipy.examples.jssp.gantt_space.GanttSpace'>
+y.class: moptipy.examples.jssp.gantt_space.GanttSpace
+y.shape: (5, 4, 3)
 y.inst.name: demo
-y.inst.type: <class 'moptipy.examples.jssp.instance.Instance'>
+y.inst.class: moptipy.examples.jssp.instance.Instance
 y.inst.machines: 5
 y.inst.jobs: 4
 y.inst.makespanLowerBound: 180
 y.inst.makespanUpperBound: 482
+y.inst.dtype: h
 f.name: makespan
-f.type: <class 'moptipy.examples.jssp.makespan.Makespan'>
+f.class: moptipy.examples.jssp.makespan.Makespan
 x.name: perm4w5r
-x.type: <class 'moptipy.spaces.permutationswr.PermutationsWithRepetitions'>
+x.class: moptipy.spaces.permutationswr.PermutationsWithRepetitions
 x.nvars: 20
-x.dtype: b
+x.dtype: h
 x.min: 0
 x.max: 3
 x.repetitions: 5
 g.name: operation_based_encoding
-g.type: <class 'moptipy.examples.jssp.ob_encoding.OperationBasedEncoding'>
+g.class: moptipy.examples.jssp.ob_encoding.OperationBasedEncoding
 END_SETUP
 BEGIN_SYS_INFO
-session.start: 2022-02-10 16:35:37.630541
+session.start: 2022-02-14 06:14:01.799024
 session.node: home
 session.ip_address: 10.8.0.6
 version.moptipy: 0.8.1
@@ -196,7 +214,7 @@ os.release: 5.13.0-28-generic
 os.version: #31-Ubuntu SMP Thu Jan 13 17:41:06 UTC 2022
 END_SYS_INFO
 BEGIN_RESULT_Y
-0,10,20,30,170,180,125,145,20,40,0,20,40,60,145,160,40,60,60,110,0,30,110,125,90,130,30,60,130,170,60,90,130,140,140,170,60,72,0,50
+0,0,10,1,20,30,3,125,145,2,170,180,1,0,20,0,20,40,2,40,60,3,145,160,2,0,30,0,40,60,1,60,110,3,110,125,1,30,60,3,60,90,0,90,130,2,130,170,3,0,50,2,60,72,0,130,140,1,140,170
 END_RESULT_Y
 BEGIN_RESULT_X
 2,0,1,1,0,1,3,2,3,0,1,3,3,2,0,3,2,2,0,1

@@ -1,22 +1,19 @@
 """An implementation of an integer string based search space."""
-from typing import Final
+from typing import Final, Optional
 
 import numpy as np
 
-from moptipy.api.space import Space
-from moptipy.api import logging
+from moptipy.spaces._nparrayspace import _NPArraySpace
 from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 
-#: the character identifying the numpy data type backing the space
-KEY_NUMPY_TYPE: Final[str] = "dtype"
 #: the minimum value
 KEY_MIN: Final[str] = "min"
 #: the maximum value
 KEY_MAX: Final[str] = "max"
 
 
-class IntSpace(Space):
+class IntSpace(_NPArraySpace):
     """
     A space where each element is a one-dimensional numpy integer array.
 
@@ -26,7 +23,8 @@ class IntSpace(Space):
 
     def __init__(self, dimension: int,
                  min_value: int,
-                 max_value: int) -> None:
+                 max_value: int,
+                 dtype: Optional[np.dtype] = None) -> None:
         """
         Create the integer-based search space.
 
@@ -34,31 +32,16 @@ class IntSpace(Space):
             i.e., the number of decision variables.
         :param int min_value: the minimum value
         :param int max_value: the maximum value
+        :param np.dtype dtype: the dtype to use
         """
-        if not isinstance(dimension, int):
-            raise TypeError(
-                f"dimension must be integer, but got {type(dimension)}.")
-        if (dimension < 1) or (dimension > 1_000_000_000):
-            raise ValueError("dimension must be in 1..1_000_000_000, "
-                             f"but got {dimension}.")
-
-        #: The basic data type of the vector space elements.
-        self.dtype: Final[np.dtype] = \
+        super().__init__(
+            dimension,
             int_range_to_dtype(min_value=min_value, max_value=max_value)
-
-        if (not isinstance(self.dtype, np.dtype)) or \
-                (not isinstance(self.dtype.char, str)) or \
-                (len(self.dtype.char) != 1):
-            raise ValueError(f"Strange error: {self.dtype} found.")
-
+            if dtype is None else dtype)
         #: The minimum permitted value.
         self.min_value: Final[int] = min_value
-
         #: The maximum permitted value.
         self.max_value: Final[int] = max_value
-
-        #: The dimension, i.e., the number of elements of the vectors.
-        self.dimension: Final[int] = dimension
 
     def create(self) -> np.ndarray:
         """
@@ -78,37 +61,6 @@ class IntSpace(Space):
         return np.full(shape=self.dimension,
                        fill_value=self.min_value,
                        dtype=self.dtype)
-
-    def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
-        """
-        Copy the contents of one integer string to another.
-
-        :param np.ndarray source: the source string
-        :param np.ndarray dest: the target string
-        """
-        np.copyto(dest, source)
-
-    def to_str(self, x: np.ndarray) -> str:
-        """
-        Convert an integer string to a string, using `,` as separator.
-
-        :param np.ndarray x: the integer string
-        :return: the string
-        :rtype: str
-        """
-        return ",".join([str(xx) for xx in x])
-
-    def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
-        """
-        Check if two integer vectors are equal.
-
-        :param np.ndarray x1: the first int vector
-        :param np.ndarray x2: the second
-        :return: `True` if the contents of both int vectors are equal,
-            `False` otherwise
-        :rtype: bool
-        """
-        return np.array_equal(x1, x2)
 
     def from_str(self, text: str) -> np.ndarray:
         """
@@ -135,15 +87,7 @@ class IntSpace(Space):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
-        if not isinstance(x, np.ndarray):
-            raise TypeError(
-                f"x must be an numpy.ndarray, but is a {type(x)}.")
-        if x.dtype != self.dtype:
-            raise TypeError(
-                f"x must be of type {self.dtype} but is of type {x.dtype}.")
-        if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
-            raise ValueError(f"x must be of shape ({self.dimension}) but is "
-                             f"of shape {x.shape}.")
+        super().validate(x)
         if not all(x >= self.min_value):
             raise ValueError(
                 f"All elements of x must be >= {self.min_value}, but "
@@ -153,12 +97,15 @@ class IntSpace(Space):
                 f"All elements of x must be <= {self.max_value}, but "
                 f"{x.max()} was encountered.")
 
-    def scale(self) -> int:
+    def n_points(self) -> int:
         """
         Get the number of possible different integer strings.
 
         :return: (max_value - min_value + 1) ** dimension
         :rtype: int
+
+        >>> print(IntSpace(4, -1, 3).n_points())
+        625
         """
         return (self.max_value - self.min_value + 1) ** self.dimension
 
@@ -168,6 +115,9 @@ class IntSpace(Space):
 
         :return: "ints" + dimension + dtype.char + min_value + "-" + max_value
         :rtype: int
+
+        >>> print(IntSpace(4, -1, 3).get_name())
+        ints4b-1-3
         """
         return f"ints{self.dimension}{self.dtype.char}" \
                f"{self.min_value}-{self.max_value}"
@@ -179,7 +129,5 @@ class IntSpace(Space):
         :param KeyValueLogger logger: the logger
         """
         super().log_parameters_to(logger)
-        logger.key_value(logging.KEY_SPACE_NUM_VARS, self.dimension)
-        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)
         logger.key_value(KEY_MIN, self.min_value)
         logger.key_value(KEY_MAX, self.max_value)
