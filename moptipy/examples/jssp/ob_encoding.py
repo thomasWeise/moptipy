@@ -32,13 +32,12 @@ def decode(x: np.ndarray,
 
     for job in x:  # iterate over multi-permutation
         idx = job_idx[job]  # get the current operation of the job
-        job_idx[job] = idx + 2  # and step it to the next operation
-        machine = matrix[job, idx]  # get the machine of the operation
-        time = matrix[job, idx + 1]  # and the time requirement
+        job_idx[job] = idx + 1  # and step it to the next operation
+        machine, time = matrix[job, idx]  # get the operation data
         start = job_time[job]  # cannot start before last op of job ends
         mi = machine_idx[machine]  # get jobs finished on the machine - 1
         if mi >= 0:  # we already have one job done
-            start = max(start, y[machine, mi, 2])  # check earliest start
+            start = max(start, y[machine, mi, 2])  # earliest start
         mi += 1  # step the machine index
         machine_idx[machine] = mi  # step the machine index
         end = start + time  # compute end time

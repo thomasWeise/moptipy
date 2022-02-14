@@ -26,7 +26,7 @@ def compute_makespan_lower_bound(machines: int,
                                  jobs: int,
                                  matrix: np.ndarray) -> int:
     """
-    Compute the lower bound for the makespan of a JSSP instance.
+    Compute the lower bound for the makespan of a JSSP instance data.
 
     :param int machines: the number of machines
     :param int jobs: the number of jobs
@@ -42,13 +42,10 @@ def compute_makespan_lower_bound(machines: int,
     machine_end_idle = npu.np_ints_max(machines, npu.DEFAULT_INT)
 
     for jobidx in range(jobs):  # iterate over all jobs
-        row = matrix[jobidx]  # get the data for the job
         usedmachines.fill(False)  # no machine has been used  # -lb
-        j: int = 0  # the index into the data
         jobtime: int = 0  # the job time sum
         for i in range(machines):  # iterate over all operations
-            machine: int = row[j]  # get machine for operation
-            time: int = row[j + 1]  # get time for operation
+            machine, time = matrix[jobidx, i]  # get operation data
             if usedmachines[i]:  # machine already used??? -> error  # -lb
                 raise ValueError(  # -lb
                     f"Machine {machine} occurs more than once.")  # -lb
@@ -59,14 +56,11 @@ def compute_makespan_lower_bound(machines: int,
             machine_start_idle[machine] = min(  # update with...
                 machine_start_idle[machine], jobtime)  # ...job time
             jobtime += time  # update job time by adding operation time
-            j += 2  # step operation index
 
         jobtimes[jobidx] = jobtime  # store job time
         jobremaining = jobtime  # iterate backwards to get end idle times
-        for i in range(machines):  # second iteration round
-            j -= 2  # step operation index downwards
-            machine = row[j]  # get machine for operation
-            time = row[j + 1]  # get time for operation
+        for i in range(machines - 1, 0, -1):  # second iteration round
+            machine, time = matrix[jobidx, i]  # get machine for operation
             machine_end_idle[machine] = min(  # update by computing...
                 machine_end_idle[machine],  # the time that the job...
                 jobtime - jobremaining)  # needs _after_ operation
@@ -93,7 +87,16 @@ def compute_makespan_lower_bound(machines: int,
 
 # start book
 class Instance(Component, np.ndarray):
-    """An instance of the Job Shop Scheduling Problem."""
+    """
+    An instance of the Job Shop Scheduling Problem.
+
+    Besides the metadata, this object is a three-dimensional np.ndarray
+    where the columns stand for jobs and the rows represent the
+    operations of the jobs. Each row*column contains two values (third
+    dimension), namely the machine where the operation goes and the time
+    it will consume at that machine: I[job, operation, 0] = machine,
+    I[job, operation, 1] = time job spents on machine.
+    """
 
     # the name of the instance
     name: str
@@ -101,11 +104,11 @@ class Instance(Component, np.ndarray):
     jobs: int
     #: the number of machines == self.shape[1]
     machines: int
+    # end book
     #: the lower bound of the makespan of this JSSP instance
     makespan_lower_bound: int
     #: the upper bound of the makespan of this JSSP instance
     makespan_upper_bound: int
-    # end book
 
     def __new__(cls, name: str, machines: int, jobs: int,
                 matrix: np.ndarray,
@@ -139,27 +142,46 @@ class Instance(Component, np.ndarray):
         if not isinstance(matrix, np.ndarray):
             raise TypeError("The matrix must be an numpy.ndarray, but is a "
                             f"'{type(matrix)}' in instance '{name}'.")
-        if len(matrix.shape) != 2:
-            raise ValueError(
-                "JSSP instance data matrix must have two dimensions, "
-                f"but has {len(matrix.shape)} in instance '{name}'.")
+
+        use_shape: Tuple[int, int, int] = (jobs, machines, 2)
         if matrix.shape[0] != jobs:
             raise ValueError(
                 f"Invalid shape '{matrix.shape}' of matrix: must have "
                 f"jobs={jobs} rows, but has {matrix.shape[0]} in "
                 f"instance '{name}'.")
-        if matrix.shape[1] != 2 * machines:
+        if len(matrix.shape) == 3:
+            if matrix.shape[1] != machines:
+                raise ValueError(
+                    f"Invalid shape '{matrix.shape}' of matrix: must have "
+                    f"2*machines={machines} columns, but has "
+                    f"{matrix.shape[1]} in instance '{name}'.")
+            if matrix.shape[2] != 2:
+                raise ValueError(
+                    f"Invalid shape '{matrix.shape}' of matrix: must have "
+                    f"2 cells per row/column tuple, but has "
+                    f"{matrix.shape[2]} in instance '{name}'.")
+        elif len(matrix.shape) == 2:
+            if matrix.shape[1] != 2 * machines:
+                raise ValueError(
+                    f"Invalid shape '{matrix.shape}' of matrix: must have "
+                    f"2*machines={2 * machines} columns, but has "
+                    f"{matrix.shape[1]} in instance '{name}'.")
+            matrix = matrix.reshape(use_shape)
+        else:
             raise ValueError(
-                f"Invalid shape '{matrix.shape}' of matrix: must have "
-                f"2*machines={2 * machines} columns, but has "
-                f"{matrix.shape[0]} in instance '{name}'.")
+                "JSSP instance data matrix must have two or three"
+                f"dimensions, but has {len(matrix.shape)} in instance "
+                f"'{name}'.")
+        if matrix.shape != use_shape:
+            raise ValueError(
+                f"matrix.shape is {matrix.shape}, not {use_shape}?")
         if not npu.is_np_int(matrix.dtype):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
         # ... some computations ...
         ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
-        ms_upper_bound = int(matrix[:, 1::2].sum())  # sum of all job times
+        ms_upper_bound = int(matrix[:, :, 1].sum())  # sum of all job times
         if ms_upper_bound < ms_lower_bound:
             raise ValueError(
                 f"Computed makespan upper bound {ms_upper_bound} must not "
@@ -192,7 +214,7 @@ class Instance(Component, np.ndarray):
                     "If specified, makespan_lower_bound must be <= "
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
                     f"instance '{name}'.")
-        obj: Final[Instance] = super().__new__(Instance, matrix.shape, dtype)
+        obj: Final[Instance] = super().__new__(Instance, use_shape, dtype)
         np.copyto(obj, matrix, casting="safe")
         #: the name of the instance
         obj.name = use_name

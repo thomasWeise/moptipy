@@ -171,14 +171,12 @@ class GanttSpace(Space):
             last_end = 0
             last_name = "[start]"
             for jobi in range(jobs):
-                job = x[machinei, jobi, 0]
+                job, start, end = x[machinei, jobi]
                 if not (0 <= job < jobs):
                     raise ValueError(
                         f"job {job} invalid for machine {machinei} on "
                         f"instance {inst.name} with {jobs} jobs: "
                         f"{x[machinei]}")
-                start = x[machinei, jobi, 1]
-                end = x[machinei, jobi, 2]
                 if job in jobs_done:
                     raise ValueError(
                         f"job {job} appears twice on machine {machinei} "
@@ -190,9 +188,9 @@ class GanttSpace(Space):
                         f"for instance {inst.name} but cannot before "
                         f"{last_name}: {x[machinei]}.")
                 time = -1
-                for z in range(0, 2 * machines, 2):
-                    if inst[job][z] == machinei:
-                        time = inst[job][z + 1]
+                for z in range(machines):
+                    if inst[job, z, 0] == machinei:
+                        time = inst[job, z, 1]
                         break
                 if time < 0:
                     raise ValueError(
@@ -214,12 +212,10 @@ class GanttSpace(Space):
                     for (idx, start, end) in x[machine, :, :] if idx == jobi]
             done.sort()
 
-            data = inst[jobi]
             last_end = 0
             last_machine = "[start]"
             for machinei in range(machines):
-                machine = data[machinei * 2]
-                time = data[1 + (machinei * 2)]
+                machine, time = inst[jobi, machinei]
                 start, end, used_machine = done[machinei]
                 if machine != used_machine:
                     raise ValueError(

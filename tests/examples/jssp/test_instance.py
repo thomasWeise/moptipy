@@ -16,8 +16,10 @@ def __check_load_inst(inst: str) -> Instance:
     assert isinstance(inst.makespan_upper_bound, int)
     assert inst.makespan_upper_bound > inst.makespan_lower_bound
     assert isinstance(inst, np.ndarray)
+    assert len(inst.shape) == 3
     assert inst.shape[0] == inst.jobs
-    assert inst.shape[1] == 2 * inst.machines
+    assert inst.shape[1] == inst.machines
+    assert inst.shape[2] == 2
     return inst
 
 

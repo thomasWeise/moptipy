@@ -15,8 +15,8 @@ instances = [lambda: Instance.from_resource("dmu01"),
              lambda: Instance.from_resource("demo")]
 
 
-def algo_1(inst) -> Execution:
-    ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
+def algo_1(inst: Instance) -> Execution:
+    ss = PermutationsWithRepetitions(inst.jobs, inst.machines, inst.dtype)
     sos = GanttSpace(inst)
     op0 = pwr.Op0Shuffle(ss)
     op1 = pwr.Op1Swap2()
@@ -32,8 +32,8 @@ def algo_1(inst) -> Execution:
     return ex
 
 
-def algo_2(inst) -> Execution:
-    ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
+def algo_2(inst: Instance) -> Execution:
+    ss = PermutationsWithRepetitions(inst.jobs, inst.machines, inst.dtype)
     sos = GanttSpace(inst)
     op0 = pwr.Op0Shuffle(ss)
     algo = RandomSampling(op0)
