@@ -105,6 +105,7 @@ class Instance(Component, np.ndarray):
     makespan_lower_bound: int
     #: the upper bound of the makespan of this JSSP instance
     makespan_upper_bound: int
+    # end book
 
     def __new__(cls, name: str, machines: int, jobs: int,
                 matrix: np.ndarray,
@@ -123,7 +124,6 @@ class Instance(Component, np.ndarray):
             approximation. If `None` is provided, a lower bound will be
             computed.
         """
-        # end book
         use_name: Final[str] = logging.sanitize_name(name)
         if name != use_name:
             raise ValueError(f"Name '{name}' is not a valid name.")
@@ -157,7 +157,7 @@ class Instance(Component, np.ndarray):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
-        # ... some computations ...  # +book
+        # ... some computations ...
         ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
         ms_upper_bound = int(matrix[:, 1::2].sum())  # sum of all job times
         if ms_upper_bound < ms_lower_bound:

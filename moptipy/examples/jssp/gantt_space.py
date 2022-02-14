@@ -133,8 +133,8 @@ class GanttSpace(Space):
         """
         # start book
         # Checks if a Gantt chart if valid and feasible.
-        if not isinstance(x, np.ndarray):
-            raise TypeError(f"x must be numpy.ndarray, but is {type(x)}.")
+        if not isinstance(x, Gantt):
+            raise TypeError(f"x must be Gantt, but is {type(x)}.")
         # the rest of the checks is not printed for brevity reasons...
         # end book
         inst: Final[Instance] = self.instance
