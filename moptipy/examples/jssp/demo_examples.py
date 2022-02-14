@@ -256,7 +256,7 @@ def makespan_lower_bound_table(
         inst = Instance.from_resource(instn)
         lb = compute_makespan_lower_bound(machines=inst.machines,
                                           jobs=inst.jobs,
-                                          matrix=inst.matrix)
+                                          matrix=inst)
         src = bsrc
         if instn == "demo":
             lbx = lb

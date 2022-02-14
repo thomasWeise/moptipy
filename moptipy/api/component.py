@@ -29,7 +29,14 @@ class Component(ABC):
         """
         return self.get_name()
 
-    __repr__ = __str__
+    def __repr__(self):
+        """
+        Get the string representation of this object.
+
+        :return: the value returned by :meth:`get_name`
+        :rtype: str
+        """
+        return self.get_name()
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """

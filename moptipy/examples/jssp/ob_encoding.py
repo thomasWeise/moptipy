@@ -87,7 +87,7 @@ class OperationBasedEncoding(Encoding):
             np.zeros(instance.jobs, instance.dtype)
         self.__job_idx: Final[np.ndarray] = \
             np.zeros(instance.jobs, instance.dtype)
-        self.__matrix: Final[np.ndarray] = instance.matrix
+        self.__instance: Final[Instance] = instance
 
     def map(self, x: np.ndarray, y: np.ndarray) -> None:  # +book
         """
@@ -97,7 +97,7 @@ class OperationBasedEncoding(Encoding):
         :param moptipy.examples.jssp.Gantt y: the Gantt chart
         """
         decode(x, self.__machine_idx, self.__job_time,  # +book
-               self.__job_idx, self.__matrix, y)  # +book
+               self.__job_idx, self.__instance, y)  # +book
 
     def get_name(self) -> str:
         """

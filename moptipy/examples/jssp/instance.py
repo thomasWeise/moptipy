@@ -92,19 +92,31 @@ def compute_makespan_lower_bound(machines: int,
 
 
 # start book
-class Instance(Component):
+class Instance(Component, np.ndarray):
     """An instance of the Job Shop Scheduling Problem."""
 
-    def __init__(self, name: str, machines: int, jobs: int,
-                 matrix: np.ndarray,
-                 makespan_lower_bound: Optional[int] = None) -> None:
+    # the name of the instance
+    name: str
+    #: the number of jobs == self.shape[0]
+    jobs: int
+    #: the number of machines == self.shape[1]
+    machines: int
+    #: the lower bound of the makespan of this JSSP instance
+    makespan_lower_bound: int
+    #: the upper bound of the makespan of this JSSP instance
+    makespan_upper_bound: int
+
+    def __new__(cls, name: str, machines: int, jobs: int,
+                matrix: np.ndarray,
+                makespan_lower_bound: Optional[int] = None) -> 'Instance':
         """
         Create an instance of the Job Shop Scheduling Problem.
 
+        :param cls: the class
         :param str name: the name of the instance
         :param int machines: the number of machines
         :param int jobs: the number of jobs
-        :param np.ndarray matrix: the matrix with the data
+        :param np.ndarray matrix: the matrix with the data (will be copied)
         :param Optional[int] makespan_lower_bound: the lower bound of the
             makespan, which may be the known global optimum if the
             instance has been solved to optimality or any other
@@ -112,51 +124,39 @@ class Instance(Component):
             computed.
         """
         # end book
-        #: The name of this JSSP instance.
-        self.name: Final[str] = logging.sanitize_name(name)  # +book
-
-        if name != self.name:
+        use_name: Final[str] = logging.sanitize_name(name)
+        if name != use_name:
             raise ValueError(f"Name '{name}' is not a valid name.")
 
         if (not isinstance(machines, int)) or (machines < 1):
             raise ValueError("There must be at least one machine, "
                              f"but '{machines}' were specified in "
                              f"instance '{name}'.")
-        #: The number of machines in this JSSP instance.
-        self.machines: Final[int] = machines  # +book
-
         if not isinstance(jobs, int) or (jobs < 1):
             raise ValueError("There must be at least one job, "
                              f"but '{jobs}' were specified in "
                              f"instance '{name}'.")
-        #: The number of jobs in this JSSP instance.
-        self.jobs: Final[int] = jobs  # +book
-
         if not isinstance(matrix, np.ndarray):
             raise TypeError("The matrix must be an numpy.ndarray, but is a "
                             f"'{type(matrix)}' in instance '{name}'.")
-
         if len(matrix.shape) != 2:
             raise ValueError(
                 "JSSP instance data matrix must have two dimensions, "
                 f"but has {len(matrix.shape)} in instance '{name}'.")
-
         if matrix.shape[0] != jobs:
             raise ValueError(
                 f"Invalid shape '{matrix.shape}' of matrix: must have "
                 f"jobs={jobs} rows, but has {matrix.shape[0]} in "
                 f"instance '{name}'.")
-
         if matrix.shape[1] != 2 * machines:
             raise ValueError(
                 f"Invalid shape '{matrix.shape}' of matrix: must have "
                 f"2*machines={2 * machines} columns, but has "
                 f"{matrix.shape[0]} in instance '{name}'.")
-        if not np.issubdtype(matrix.dtype, np.integer):
+        if not npu.is_np_int(matrix.dtype):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
                 f"'{matrix.dtype}' in instance '{name}'.")
-
         # ... some computations ...  # +book
         ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
         ms_upper_bound = int(matrix[:, 1::2].sum())  # sum of all job times
@@ -164,23 +164,13 @@ class Instance(Component):
             raise ValueError(
                 f"Computed makespan upper bound {ms_upper_bound} must not "
                 f"be less than computed lower bound {ms_lower_bound}.")
-
-        #: self.dtype is an integer data type suitable for all kinds of
+        #: dtype is an integer data type suitable for all kinds of
         #: matrices holding data of this instance. It can hold all values from
         #: -1 to the maximum possible time of any Gantt chart, namely the
         #: upper bound of the makespan. Therefore, this is also the suitable
         #: data type for any Gantt chart.
-        self.dtype: Final[np.dtype] = int_range_to_dtype(
+        dtype: Final[np.dtype] = int_range_to_dtype(
             min_value=-1, max_value=max(jobs, machines, ms_upper_bound))
-        if self.dtype != matrix.dtype:
-            matrix = matrix.astype(dtype=self.dtype)
-
-        #: The matrix with the operations of the jobs and their durations. \
-        #: This matrix holds one row for each job. \
-        #: In each row, it stores tuples of (machine, duration) in a \
-        #: consecutive sequence, i.e., 2*machine numbers.
-        self.matrix: Final[np.ndarray] = matrix  # +book
-
         if makespan_lower_bound is None:
             makespan_lower_bound = ms_lower_bound
         else:
@@ -202,12 +192,19 @@ class Instance(Component):
                     "If specified, makespan_lower_bound must be <= "
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
                     f"instance '{name}'.")
-
-        #: The lower bound of the makespan for the JSSP instance.
-        self.makespan_lower_bound: Final[int] = makespan_lower_bound  # +book
-
-        #: The upper bound of the makespan for the JSSP instance.
-        self.makespan_upper_bound: Final[int] = ms_upper_bound
+        obj: Final[Instance] = super().__new__(Instance, matrix.shape, dtype)
+        np.copyto(obj, matrix, casting="safe")
+        #: the name of the instance
+        obj.name = use_name
+        #: the number of jobs == self.shape[0]
+        obj.jobs = jobs
+        #: the number of machines == self.shape[1]
+        obj.machines = machines
+        #: the lower bound of the makespan of this JSSP instance
+        obj.makespan_lower_bound = makespan_lower_bound
+        #: the upper bound of the makespan of this JSSP instance
+        obj.makespan_upper_bound = ms_upper_bound
+        return obj
 
     def get_name(self) -> str:
         """
@@ -253,8 +250,8 @@ class Instance(Component):
                             f"but are List[{type(description)}].")
         jobs_machines_txt = rows[1]
 
-        basetype = np.dtype(np.uint64)
-        matrix = np.asanyarray([np.fromstring(row, dtype=basetype, sep=" ")
+        matrix = np.asanyarray([np.fromstring(row, dtype=npu.DEFAULT_INT,
+                                              sep=" ")
                                 for row in rows[2:]])
         if not np.issubdtype(matrix.dtype, np.integer):
             raise ValueError("Error when converting array to matrix, "

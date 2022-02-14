@@ -191,20 +191,20 @@ class GanttSpace(Space):
                         f"{last_name}: {x[machinei]}.")
                 time = -1
                 for z in range(0, 2 * machines, 2):
-                    if inst.matrix[job][z] == machinei:
-                        time = inst.matrix[job][z + 1]
+                    if inst[job][z] == machinei:
+                        time = inst[job][z + 1]
                         break
                 if time < 0:
                     raise ValueError(
                         f"Did not find machine {machinei} for job {job} in "
                         f"instance {inst.name}: {x[machinei]}, "
-                        f"{inst.matrix[machinei]}.")
+                        f"{inst[machinei]}.")
                 if (end - start) != time:
                     raise ValueError(
                         f"job {job} should need {time} time units on machine "
                         f"{machinei} for instance {inst.name}, but starts at "
                         f"{start} and ends at {end}: {x[machinei]}, "
-                        f"{inst.matrix[job]}.")
+                        f"{inst[job]}.")
 
         # now check the single jobs
         # we again check for operation overlaps and incorrect timing
@@ -214,7 +214,7 @@ class GanttSpace(Space):
                     for (idx, start, end) in x[machine, :, :] if idx == jobi]
             done.sort()
 
-            data = inst.matrix[jobi]
+            data = inst[jobi]
             last_end = 0
             last_machine = "[start]"
             for machinei in range(machines):
