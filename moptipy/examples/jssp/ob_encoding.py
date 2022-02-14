@@ -49,9 +49,10 @@ def decode(x: np.ndarray,
     # end book
 
 
+# start book
 class OperationBasedEncoding(Encoding):
     # reusable variables __machine_time, __job_time, and __job_idx are
-    # allocated in __init__; __matrix points to instance data I.matrix
+    # allocated in __init__; __matrix refers to instance data matrix
     # end book
     """
     An operation-based encoding for the Job Shop Scheduling Problem (JSSP).
@@ -95,8 +96,8 @@ class OperationBasedEncoding(Encoding):
         :param np.array x: the array
         :param moptipy.examples.jssp.Gantt y: the Gantt chart
         """
-        decode(x, self.__machine_idx, self.__job_time,
-               self.__job_idx, self.__matrix, y)
+        decode(x, self.__machine_idx, self.__job_time,  # +book
+               self.__job_idx, self.__matrix, y)  # +book
 
     def get_name(self) -> str:
         """

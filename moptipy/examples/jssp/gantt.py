@@ -22,6 +22,7 @@ class Gantt(np.ndarray):
 
     #: the JSSP instance for which the Gantt chart is created
     instance: Instance
+# end book
 
     def __new__(cls, space):
         """
@@ -34,4 +35,3 @@ class Gantt(np.ndarray):
         #: store the instance in this object
         obj.instance = space.instance
         return obj
-# end book
