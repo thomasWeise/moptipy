@@ -1,5 +1,5 @@
 """An implementation of an integer string based search space."""
-from typing import Final, Optional
+from typing import Final
 
 import numpy as np
 
@@ -23,8 +23,7 @@ class IntSpace(_NPArraySpace):
 
     def __init__(self, dimension: int,
                  min_value: int,
-                 max_value: int,
-                 dtype: Optional[np.dtype] = None) -> None:
+                 max_value: int) -> None:
         """
         Create the integer-based search space.
 
@@ -32,12 +31,10 @@ class IntSpace(_NPArraySpace):
             i.e., the number of decision variables.
         :param int min_value: the minimum value
         :param int max_value: the maximum value
-        :param np.dtype dtype: the dtype to use
         """
         super().__init__(
             dimension,
-            int_range_to_dtype(min_value=min_value, max_value=max_value)
-            if dtype is None else dtype)
+            int_range_to_dtype(min_value=min_value, max_value=max_value))
         #: The minimum permitted value.
         self.min_value: Final[int] = min_value
         #: The maximum permitted value.

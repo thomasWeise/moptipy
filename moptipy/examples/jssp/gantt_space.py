@@ -8,6 +8,7 @@ from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
 from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
 
 #: the array shape
 KEY_SHAPE: Final[str] = "shape"
@@ -57,6 +58,9 @@ class GanttSpace(Space):
         #: The shape for the Gantt chart arrays.
         self.shape: Final[Tuple[int, int, int]] = \
             (instance.machines, instance.jobs, 3)
+        #: the data to be used for Gantt charts
+        self.dtype: Final[np.dtype] = int_range_to_dtype(
+            min_value=0, max_value=instance.makespan_upper_bound)
 
     def create(self) -> Gantt:  # +book
         """
@@ -116,7 +120,7 @@ class GanttSpace(Space):
             raise TypeError(f"text must be str, but is {type(text)}.")
         # start book
         x: Final[Gantt] = self.create()
-        np.copyto(x, np.fromstring(text, dtype=self.instance.dtype, sep=",")
+        np.copyto(x, np.fromstring(text, dtype=self.dtype, sep=",")
                   .reshape(self.shape))
         self.validate(x)  # -book
         return x
@@ -158,9 +162,9 @@ class GanttSpace(Space):
         if x.shape[2] != 3:
             raise ValueError("x must have three values per cell, "
                              f"but has {x.shape[2]}.")
-        if x.dtype != inst.dtype:
+        if x.dtype != self.dtype:
             raise ValueError(
-                f"x.dtype should be {inst.dtype} for instance "
+                f"x.dtype should be {self.dtype} for instance "
                 f"{inst.name} but is {x.dtype}.")
 
         # now check the sequence on operations per machine
@@ -171,7 +175,9 @@ class GanttSpace(Space):
             last_end = 0
             last_name = "[start]"
             for jobi in range(jobs):
-                job, start, end = x[machinei, jobi]
+                job = int(x[machinei, jobi, 0])
+                start = int(x[machinei, jobi, 1])
+                end = int(x[machinei, jobi, 2])
                 if not (0 <= job < jobs):
                     raise ValueError(
                         f"job {job} invalid for machine {machinei} on "
@@ -190,7 +196,7 @@ class GanttSpace(Space):
                 time = -1
                 for z in range(machines):
                     if inst[job, z, 0] == machinei:
-                        time = inst[job, z, 1]
+                        time = int(inst[job, z, 1])
                         break
                 if time < 0:
                     raise ValueError(
@@ -216,7 +222,9 @@ class GanttSpace(Space):
             last_machine = "[start]"
             for machinei in range(machines):
                 machine, time = inst[jobi, machinei]
-                start, end, used_machine = done[machinei]
+                start = int(done[machinei][0])
+                end = int(done[machinei][1])
+                used_machine = int(done[machinei][2])
                 if machine != used_machine:
                     raise ValueError(
                         f"Machine at index {machinei} of job {jobi} "
@@ -289,5 +297,6 @@ class GanttSpace(Space):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SHAPE, repr(self.shape))
+        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)
         with logger.scope(SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

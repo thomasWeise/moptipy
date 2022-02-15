@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations with repetitions."""
 from math import factorial
-from typing import Final, Optional
+from typing import Final
 
 import numpy as np
 
@@ -42,8 +42,7 @@ def permutations_with_repetitions_space_size(
 class PermutationsWithRepetitions(IntSpace):
     """A space of permutations with repetitions."""
 
-    def __init__(self, n: int, repetitions: int = 1,
-                 dtype: Optional[np.dtype] = None) -> None:
+    def __init__(self, n: int, repetitions: int = 1) -> None:
         # end book
         """
         Create the permutation-with-repetitions space.
@@ -52,7 +51,6 @@ class PermutationsWithRepetitions(IntSpace):
         :param int repetitions: the number of repetitions
         :raises TypeError: if one of the parameters has the wrong type
         :raises ValueError: if the parameters have the wrong value
-        :param np.dtype dtype: the dtype to use
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be integer, but is {type(n)}.")
@@ -66,7 +64,7 @@ class PermutationsWithRepetitions(IntSpace):
                              f"but is {repetitions}.")
 
         super().__init__(dimension=n * repetitions, min_value=0,
-                         max_value=n - 1, dtype=dtype)
+                         max_value=n - 1)
         #: n is the number of items, meaning the values are in [0, n-1].
         self.n: Final[int] = n
         #: The number of times each value must occur.

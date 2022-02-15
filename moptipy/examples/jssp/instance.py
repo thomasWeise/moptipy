@@ -186,13 +186,6 @@ class Instance(Component, np.ndarray):
             raise ValueError(
                 f"Computed makespan upper bound {ms_upper_bound} must not "
                 f"be less than computed lower bound {ms_lower_bound}.")
-        #: dtype is an integer data type suitable for all kinds of
-        #: matrices holding data of this instance. It can hold all values from
-        #: -1 to the maximum possible time of any Gantt chart, namely the
-        #: upper bound of the makespan. Therefore, this is also the suitable
-        #: data type for any Gantt chart.
-        dtype: Final[np.dtype] = int_range_to_dtype(
-            min_value=-1, max_value=max(jobs, machines, ms_upper_bound))
         if makespan_lower_bound is None:
             makespan_lower_bound = ms_lower_bound
         else:
@@ -214,7 +207,9 @@ class Instance(Component, np.ndarray):
                     "If specified, makespan_lower_bound must be <= "
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
                     f"instance '{name}'.")
-        obj: Final[Instance] = super().__new__(Instance, use_shape, dtype)
+        obj: Final[Instance] = super().__new__(
+            Instance, use_shape, int_range_to_dtype(
+                min_value=0, max_value=int(matrix.max())))
         np.copyto(obj, matrix, casting="safe")
         #: the name of the instance
         obj.name = use_name

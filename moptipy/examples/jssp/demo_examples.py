@@ -46,8 +46,7 @@ def demo_search_space() -> PermutationsWithRepetitions:
         instance: Final[Instance] = demo_instance()
         setattr(demo_search_space, attr,
                 PermutationsWithRepetitions(instance.jobs,
-                                            instance.machines,
-                                            instance.dtype))
+                                            instance.machines))
     return getattr(demo_search_space, attr)
 
 

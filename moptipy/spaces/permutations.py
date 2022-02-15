@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations."""
 from math import factorial
-from typing import Final, Optional
+from typing import Final
 
 import numpy as np
 
@@ -10,15 +10,13 @@ from moptipy.spaces.intspace import IntSpace
 class Permutations(IntSpace):
     """A space of permutations represented as 1-dimensional int arrays."""
 
-    def __init__(self, n: int, dtype: Optional[np.dtype] = None) -> None:
+    def __init__(self, n: int) -> None:
         """
         Create the space of permutations of n elements.
 
         :param int n: the length of the permutations
-        :param np.dtype dtype: the dtype to use
         """
-        super().__init__(dimension=n, min_value=0, max_value=n - 1,
-                         dtype=dtype)
+        super().__init__(dimension=n, min_value=0, max_value=n - 1)
 
         self.__blueprint: Final[np.ndarray] = np.empty(
             shape=self.dimension, dtype=self.dtype)

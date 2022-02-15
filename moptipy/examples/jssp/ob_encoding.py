@@ -6,6 +6,15 @@ import numpy as np
 
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.instance import Instance
+from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
+
+#: the numpy data type for machine indices
+KEY_NUMPY_TYPE_MACHINE_IDX: Final[str] = f"{KEY_NUMPY_TYPE}MachineIdx"
+#: the numpy data type for job indices
+KEY_NUMPY_TYPE_JOB_IDX: Final[str] = f"{KEY_NUMPY_TYPE}JobIdx"
+#: the numpy data type for job times
+KEY_NUMPY_TYPE_JOB_TIME: Final[str] = f"{KEY_NUMPY_TYPE}JobTime"
 
 
 # start book
@@ -33,14 +42,14 @@ def decode(x: np.ndarray,
     for job in x:  # iterate over multi-permutation
         idx = job_idx[job]  # get the current operation of the job
         job_idx[job] = idx + 1  # and step it to the next operation
-        machine, time = matrix[job, idx]  # get the operation data
-        start = job_time[job]  # cannot start before last op of job ends
-        mi = machine_idx[machine]  # get jobs finished on the machine - 1
-        if mi >= 0:  # we already have one job done
+        machine = matrix[job, idx, 0]  # get the machine id
+        start = job_time[job]  # end time of previous operation of job
+        mi = machine_idx[machine]  # get jobs finished on machine - 1
+        if mi >= 0:  # we already have one job done?
             start = max(start, y[machine, mi, 2])  # earliest start
         mi += 1  # step the machine index
         machine_idx[machine] = mi  # step the machine index
-        end = start + time  # compute end time
+        end = start + matrix[job, idx, 1]  # compute end time
         y[machine, mi, 0] = job  # store job index
         y[machine, mi, 1] = start  # store start of job's operation
         y[machine, mi, 2] = end  # store end of job's operation
@@ -81,11 +90,14 @@ class OperationBasedEncoding(Encoding):
             raise ValueError("instance must be valid Instance, "
                              f"but is '{type(instance)}'.")
         self.__machine_idx: Final[np.ndarray] = \
-            np.zeros(instance.machines, instance.dtype)
+            np.zeros(instance.machines,
+                     int_range_to_dtype(-1, instance.jobs - 1))
         self.__job_time: Final[np.ndarray] = \
-            np.zeros(instance.jobs, instance.dtype)
+            np.zeros(instance.jobs,
+                     int_range_to_dtype(0, instance.makespan_upper_bound))
         self.__job_idx: Final[np.ndarray] = \
-            np.zeros(instance.jobs, instance.dtype)
+            np.zeros(instance.jobs,
+                     int_range_to_dtype(0, instance.machines - 1))
         self.__instance: Final[Instance] = instance
 
     def map(self, x: np.ndarray, y: np.ndarray) -> None:  # +book
@@ -106,3 +118,15 @@ class OperationBasedEncoding(Encoding):
         :rtype: str
         """
         return "operation_based_encoding"
+
+    def log_parameters_to(self, logger: KeyValueSection) -> None:
+        """
+        Log all parameters of this component as key-value pairs.
+
+        :param moptipy.utils.KeyValueSection logger: the logger
+        """
+        super().log_parameters_to(logger)
+        logger.key_value(KEY_NUMPY_TYPE_MACHINE_IDX,
+                         self.__machine_idx.dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE_JOB_IDX, self.__job_idx.dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE_JOB_TIME, self.__job_time.dtype.char)

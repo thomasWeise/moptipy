@@ -34,8 +34,7 @@ class Gantt(np.ndarray):
         :param moptipy.examples.jssp.gant_space.GanttSpace space: the Gantt
             space for which the instance is created.
         """
-        obj: Final[Gantt] = np.ndarray.__new__(Gantt, space.shape,
-                                               space.instance.dtype)
+        gnt: Final[Gantt] = np.ndarray.__new__(Gantt, space.shape, space.dtype)
         #: the JSSP instance for which the Gantt chart is created
-        obj.instance = space.instance
-        return obj
+        gnt.instance = space.instance
+        return gnt

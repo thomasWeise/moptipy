@@ -173,8 +173,7 @@ def test_algorithm_on_jssp(algorithm: Callable,
             f"obtained {type(inst)} instead.")
 
     search_space = PermutationsWithRepetitions(inst.jobs,
-                                               inst.machines,
-                                               inst.dtype)
+                                               inst.machines)
     algorithm = algorithm(inst, search_space)
     if not isinstance(algorithm, ma.Algorithm):
         raise ValueError(
