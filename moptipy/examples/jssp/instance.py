@@ -5,7 +5,8 @@ from typing import Final, List, Tuple, Optional
 import numpy as np
 
 import moptipy.utils.nputils as npu
-from moptipy.api import Component, logging
+from moptipy.api import logging
+from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import int_range_to_dtype
 

@@ -5,7 +5,6 @@ A :class:`Space` is the abstraction of the data structures for solutions and
 points in the search space that need to be generated, copied, and stored
 during the optimization process.
 """
-from abc import abstractmethod
 from typing import Optional
 
 from moptipy.api.component import Component
@@ -29,7 +28,6 @@ class Space(Component):
     functionality is offered by the `Space` class.
     """
 
-    @abstractmethod
     def create(self):
         # end book
         """
@@ -39,21 +37,17 @@ class Space(Component):
 
         :return: the new instance
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod  # +book
-    def copy(self, source, dest) -> None:  # +book
+    def copy(self, dest, source) -> None:  # +book
         """
         Copy one instance of the data structure to another one.
 
-        :param source: the source data structure, which remains
-            unchanged and whose contents will be copied to `dest`
         :param dest: the destination data structure,
             whose contents will be overwritten with those from `source`
+        :param source: the source data structure, which remains
+            unchanged and whose contents will be copied to `dest`
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod  # +book
     def to_str(self, x) -> str:  # +book
         """
         Obtain a textual representation of an instance of the data structure.
@@ -62,9 +56,7 @@ class Space(Component):
         :return: the string representation of x
         :rtype: str
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod  # +book
     def is_equal(self, x1, x2) -> bool:  # +book
         """
         Check if the contents of two instances of the data structure are equal.
@@ -74,9 +66,7 @@ class Space(Component):
         :return: True if the contents are equal, False otherwise
         :rtype: bool
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod  # +book
     def from_str(self, text: str):  # +book
         """
         Transform a string `text` to one element of the space.
@@ -88,9 +78,7 @@ class Space(Component):
         :param text: the input string
         :return: the element in the space corresponding to `text`
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod  # +book
     def validate(self, x) -> None:  # +book
         """
         Check whether a given point in the space is valid.
@@ -98,7 +86,6 @@ class Space(Component):
         :param x: the point
         :raises ValueError: if the point `x` is invalid
         """
-        raise NotImplementedError  # +book
 
     def n_points(self) -> int:
         """

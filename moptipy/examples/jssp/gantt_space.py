@@ -61,6 +61,8 @@ class GanttSpace(Space):
         #: the data to be used for Gantt charts
         self.dtype: Final[np.dtype] = int_range_to_dtype(
             min_value=0, max_value=instance.makespan_upper_bound)
+        # function wrapper
+        self.copy = np.copyto  # type: ignore
 
     def create(self) -> Gantt:  # +book
         """
@@ -70,18 +72,6 @@ class GanttSpace(Space):
         :rtype: np.ndarray
         """
         return Gantt(self)  # +book
-
-    def copy(self, source: Gantt, dest: Gantt) -> None:  # +book
-        """
-        Copy the contents of one Gantt chart to another.
-
-        This function assumes that both Gantt charts are for the same
-        instance and will otherwise behave in an undefined way.
-
-        :param source: the source chart
-        :param dest: the destination chart
-        """
-        np.copyto(dest, source)  # +book
 
     def to_str(self, x: Gantt) -> str:  # +book
         """

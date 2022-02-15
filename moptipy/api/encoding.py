@@ -1,5 +1,4 @@
 """This module provides the base class for implementing encodings."""
-from abc import abstractmethod
 from typing import Optional
 
 from moptipy.api.component import Component
@@ -9,7 +8,6 @@ from moptipy.api.component import Component
 class Encoding(Component):
     """The encodings translates from a search space to a solution space."""
 
-    @abstractmethod
     def map(self, x, y) -> None:
         """
         Translate from search- to solution space.
@@ -21,7 +19,6 @@ class Encoding(Component):
         :param y: the destination data structure for the point in the
             solution space, whose contents will be overwritten
         """
-        raise NotImplementedError
     # end book
 
 

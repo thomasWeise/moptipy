@@ -1,5 +1,4 @@
 """This module provides the class for implementing objective functions."""
-from abc import abstractmethod
 from math import inf
 from typing import Union, Callable, Optional, Final
 
@@ -12,7 +11,6 @@ from moptipy.utils.logger import KeyValueSection
 class Objective(Component):
     """An objective function: a criterion rating the solution quality."""
 
-    @abstractmethod
     def evaluate(self, x) -> Union[float, int]:
         """
         Evaluate a solution `x` and return its objective value.
@@ -25,7 +23,6 @@ class Objective(Component):
         :return: the objective value
         :rtype: Union[float, int]
         """
-        raise NotImplementedError
     # end book
 
     def lower_bound(self) -> Union[float, int]:

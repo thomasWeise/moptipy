@@ -10,38 +10,3 @@ end results from several algorithms and instances into a single file via the
 per-algorithm or per-instance statistics using
 :class:`moptipy.evaluation.EndResultStatistics`.
 """
-from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import PerRunData, MultiRunData
-from moptipy.evaluation.ecdf import Ecdf
-from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.evaluation.ert import Ert, compute_single_ert
-from moptipy.evaluation.ertecdf import ErtEcdf
-from moptipy.evaluation.lang import Lang
-from moptipy.evaluation.log_parser import LogParser, ExperimentParser
-from moptipy.evaluation.plot_ecdf_impl import plot_ecdf
-from moptipy.evaluation.plot_ert_impl import plot_ert
-from moptipy.evaluation.plot_progress_impl import plot_progress
-from moptipy.evaluation.progress import Progress
-from moptipy.evaluation.stat_run import StatRun
-from moptipy.evaluation.statistics import Statistics
-
-__all__ = (
-    "AxisRanger",
-    "compute_single_ert",
-    "EndResult",
-    "EndStatistics",
-    "Ecdf",
-    "Ert",
-    "ErtEcdf",
-    "ExperimentParser",
-    "Lang",
-    "LogParser",
-    "MultiRunData",
-    "plot_ert",
-    "plot_ecdf",
-    "plot_progress",
-    "PerRunData",
-    "Progress",
-    "Statistics",
-    "StatRun")

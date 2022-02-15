@@ -1,5 +1,5 @@
 """An implementation of processes with different search and solution spaces."""
-from math import inf, isnan
+from math import inf
 from time import monotonic_ns
 from typing import Optional, Union, Final, Callable
 
@@ -55,8 +55,6 @@ class _ProcessSS(_ProcessNoSS):
 
         #: The search space.
         self._search_space: Final[Space] = check_space(search_space)
-        #: the internal x copier
-        self._copy_x: Final[Callable] = self._search_space.copy
         #: The encoding.
         self._encoding: Final[Encoding] = check_encoding(encoding)
         #: the internal encoder
@@ -65,6 +63,14 @@ class _ProcessSS(_ProcessNoSS):
         self._current_y: Final = self._solution_space.create()
         #: The current best point in the search space.
         self._current_best_x: Final = self._search_space.create()
+        # wrappers
+        self.create = self._search_space.create  # type: ignore
+        self.copy = self._search_space.copy  # type: ignore
+        self.to_str = self._search_space.to_str  # type: ignore
+        self.is_equal = self._search_space.is_equal  # type: ignore
+        self.from_str = self._search_space.from_str  # type: ignore
+        self.n_points = self._search_space.n_points  # type: ignore
+        self.validate = self._search_space.validate  # type: ignore
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:
@@ -76,9 +82,6 @@ class _ProcessSS(_ProcessNoSS):
         current_y: Final = self._current_y
         self._g(x, current_y)
         result: Final[Union[int, float]] = self._f(current_y)
-        if isnan(result):
-            raise ValueError(
-                f"NaN invalid as objective value, but got {result}.")
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
@@ -86,8 +89,8 @@ class _ProcessSS(_ProcessNoSS):
             # noinspection PyAttributeOutsideInit
             self._last_improvement_fe = current_fes
             self._current_best_f = result
-            self._copy_x(x, self._current_best_x)
-            self._copy_y(current_y, self._current_best_y)
+            self.copy(self._current_best_x, x)
+            self._copy_y(self._current_best_y, current_y)
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis
@@ -114,32 +117,11 @@ class _ProcessSS(_ProcessNoSS):
 
     def get_copy_of_current_best_x(self, x) -> None:
         if self._has_current_best:
-            return self._search_space.copy(self._current_best_x, x)
+            return self.copy(x, self._current_best_x)
         raise ValueError('No current best available.')
 
-    def create(self):
-        return self._search_space.create()
-
-    def copy(self, source, dest):
-        self._search_space.copy(source, dest)
-
-    def to_str(self, x) -> str:
-        return self._search_space.to_str(x)
-
-    def from_str(self, text: str):
-        return self._search_space.from_str(text)
-
-    def is_equal(self, x1, x2) -> bool:
-        return self._search_space.is_equal(x1, x2)
-
-    def validate(self, x) -> None:
-        self._search_space.validate(x)
-
-    def n_points(self) -> int:
-        return self._search_space.n_points()
-
     def get_copy_of_current_best_y(self, y):
-        return self._solution_space.copy(self._current_best_y, y)
+        return self._copy_y(y, self._current_best_y)
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)

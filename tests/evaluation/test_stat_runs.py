@@ -5,7 +5,8 @@ from typing import List, Final
 import numpy as np
 
 import moptipy.evaluation.progress as prg
-from moptipy.evaluation import Progress, StatRun
+from moptipy.evaluation.stat_run import StatRun
+from moptipy.evaluation.progress import Progress
 
 
 def test_stat_runs():

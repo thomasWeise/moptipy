@@ -38,7 +38,7 @@ def test_space(space: Space,
         raise ValueError("The create() method must produce instances of "
                          f"the same type, but got {type(x1)} and {type(x2)}.")
 
-    space.copy(x1, x2)
+    space.copy(x2, x1)
     if not space.is_equal(x1, x2):
         raise ValueError("space.copy(x1, x2) did not lead to "
                          "space.is_equal(x1, x2).")

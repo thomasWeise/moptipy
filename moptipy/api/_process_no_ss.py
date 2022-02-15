@@ -1,5 +1,5 @@
 """Providing a process without explicit logging with a single space."""
-from math import inf, isnan
+from math import inf
 from time import monotonic_ns
 from typing import Optional, Union, Final, Callable
 
@@ -70,14 +70,24 @@ class _ProcessNoSS(_ProcessBase):
         self.__random: Final[Generator] = rand_generator(self.__rand_seed)
         #: The current best solution.
         self._current_best_y: Final = self._solution_space.create()
-        #: the internal method for copying y
-        self._copy_y: Final[Callable] = self._solution_space.copy
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
         #: Do we have a current-best solution?
         self._has_current_best: bool = False
         #: The log file, or `None` is needed
         self.__log_file: Final[Optional[Path]] = log_file
+        #: the method for copying y
+        self._copy_y: Final[Callable] = self._solution_space.copy
+        #: set up the method forwards
+        self.lower_bound = self.__objective.lower_bound  # type: ignore
+        self.upper_bound = self.__objective.upper_bound  # type: ignore
+        self.create = self._solution_space.create  # type: ignore
+        self.copy = self._solution_space.copy  # type: ignore
+        self.to_str = self._solution_space.to_str  # type: ignore
+        self.is_equal = self._solution_space.is_equal  # type: ignore
+        self.from_str = self._solution_space.from_str  # type: ignore
+        self.n_points = self._solution_space.n_points  # type: ignore
+        self.validate = self._solution_space.validate  # type: ignore
 
     def get_random(self) -> Generator:
         """
@@ -87,22 +97,6 @@ class _ProcessNoSS(_ProcessBase):
         :rtype: Generator
         """
         return self.__random
-
-    def lower_bound(self) -> Union[float, int]:
-        """
-        Forward to :meth:`Objective.lower_bound` of :attr:`_objective`.
-
-        :return: the lower bound of the objective function.
-        """
-        return self.__objective.lower_bound()
-
-    def upper_bound(self) -> Union[float, int]:
-        """
-        Forward to :meth:`Objective.upper_bound` of :attr:`_objective`.
-
-        :return: the upper bound of the objective function.
-        """
-        return self.__objective.upper_bound()
 
     def evaluate(self, x) -> Union[float, int]:
         """
@@ -122,10 +116,6 @@ class _ProcessNoSS(_ProcessBase):
             return inf
 
         result: Final[Union[int, float]] = self._f(x)
-        if isnan(result):
-            raise ValueError(
-                f"NaN invalid as objective value, but got {result}.")
-
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
@@ -137,7 +127,7 @@ class _ProcessNoSS(_ProcessBase):
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
-            self._copy_y(x, self._current_best_y)
+            self._copy_y(self._current_best_y, x)
             self._has_current_best = True
             if result <= self._end_f:
                 do_term = True
@@ -178,40 +168,8 @@ class _ProcessNoSS(_ProcessBase):
         :param x: the destination data structure to be overwritten
         """
         if self._has_current_best:
-            return self._solution_space.copy(self._current_best_y, x)
+            return self._copy_y(x, self._current_best_y)
         raise ValueError('No current best available.')
-
-    def create(self):
-        """
-        Forward to :meth:`Space.create` of :attr:`_solution_space`.
-
-        :return: a new point in the search space (and solution space)
-        """
-        return self._solution_space.create()
-
-    def copy(self, source, dest) -> None:
-        """
-        Forward to :meth:`Space.copy` of :attr:`_solution_space`.
-
-        :param source: the source
-        :param dest: the destination
-        """
-        self._solution_space.copy(source, dest)
-
-    def to_str(self, x) -> str:
-        return self._solution_space.to_str(x)
-
-    def from_str(self, text: str):
-        return self._solution_space.from_str(text)
-
-    def is_equal(self, x1, x2) -> bool:
-        return self._solution_space.is_equal(x1, x2)
-
-    def validate(self, x) -> None:
-        self._solution_space.validate(x)
-
-    def n_points(self) -> int:
-        return self._solution_space.n_points()
 
     def _log_own_parameters(self, logger: KeyValueSection) -> None:
         super()._log_own_parameters(logger)

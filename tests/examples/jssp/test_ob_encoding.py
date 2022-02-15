@@ -2,7 +2,8 @@
 import numpy as np
 import numpy.random as rnd
 
-import moptipy.tests as tst
+import moptipy.tests.encoding as te
+import moptipy.tests.space as ts
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
@@ -14,13 +15,13 @@ def __check_for_instance(instance: str,
     inst = Instance.from_resource(instance)
 
     x_space = PermutationsWithRepetitions(inst.jobs, inst.machines)
-    tst.test_space(x_space)
+    ts.test_space(x_space)
 
     y_space = GanttSpace(inst)
-    tst.test_space(y_space, make_valid=None)
+    ts.test_space(y_space, make_valid=None)
 
     g = OperationBasedEncoding(inst)
-    tst.test_encoding(g, x_space, y_space)
+    te.test_encoding(g, x_space, y_space)
 
     x = x_space.create()
     x_space.validate(x)

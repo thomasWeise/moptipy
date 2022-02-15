@@ -1,5 +1,4 @@
 """Provides the base class for all components of the moptipy API."""
-from abc import ABC, abstractmethod
 from typing import Callable, Final
 
 from moptipy.api import logging
@@ -7,10 +6,9 @@ from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.types import classname
 
 
-class Component(ABC):
+class Component:
     """The base class for all components of the moptipy API."""
 
-    @abstractmethod
     def get_name(self) -> str:
         """
         Get the canonical name of this component.
@@ -18,7 +16,6 @@ class Component(ABC):
         :return: the canonical name of this component
         :rtype: str
         """
-        raise NotImplementedError
 
     def __str__(self):
         """

@@ -1,5 +1,4 @@
 """The internal base class for spaces based on numpy arrays."""
-from abc import ABC
 from typing import Final
 
 import numpy as np
@@ -10,7 +9,7 @@ from moptipy.utils.logger import KeyValueSection
 from moptipy.utils.nputils import KEY_NUMPY_TYPE
 
 
-class _NPArraySpace(Space, ABC):
+class _NPArraySpace(Space):
     """
     A space where each element is a one-dimensional numpy array.
 
@@ -43,6 +42,9 @@ class _NPArraySpace(Space, ABC):
         self.dtype: Final[np.dtype] = dtype
         #: The dimension, i.e., the number of elements of the vectors.
         self.dimension: Final[int] = dimension
+        # the function forwards
+        self.copy = np.copyto  # type: ignore
+        self.is_equal = np.array_equal  # type: ignore
 
     def create(self) -> np.ndarray:
         """
@@ -53,15 +55,6 @@ class _NPArraySpace(Space, ABC):
         """
         return np.zeros(shape=self.dimension, dtype=self.dtype)
 
-    def copy(self, source: np.ndarray, dest: np.ndarray) -> None:
-        """
-        Copy the contents of one string to another.
-
-        :param np.ndarray source: the source string
-        :param np.ndarray dest: the target string
-        """
-        np.copyto(dest, source)
-
     def to_str(self, x: np.ndarray) -> str:
         """
         Convert an integer string to a string, using `,` as separator.
@@ -71,18 +64,6 @@ class _NPArraySpace(Space, ABC):
         :rtype: str
         """
         return ",".join([str(xx) for xx in x])
-
-    def is_equal(self, x1: np.ndarray, x2: np.ndarray) -> bool:
-        """
-        Check if two integer vectors are equal.
-
-        :param np.ndarray x1: the first int vector
-        :param np.ndarray x2: the second
-        :return: `True` if the contents of both int vectors are equal,
-            `False` otherwise
-        :rtype: bool
-        """
-        return np.array_equal(x1, x2)
 
     def from_str(self, text: str) -> np.ndarray:
         """

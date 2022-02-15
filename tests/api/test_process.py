@@ -5,10 +5,11 @@ from os.path import isfile, getsize
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.api import CallableAlgorithm, CallableObjective, \
-    Process
+from moptipy.api.algorithm import CallableAlgorithm
 from moptipy.api.execution import Execution
-from moptipy.spaces import VectorSpace
+from moptipy.api.objective import CallableObjective
+from moptipy.api.process import Process
+from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.temp import TempFile
 
 worst_f = 1_000_000_000_000

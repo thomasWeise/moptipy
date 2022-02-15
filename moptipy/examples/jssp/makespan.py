@@ -1,9 +1,24 @@
 """An objective function for minimizing the makespan of Gantt charts."""
 from typing import Final
 
+import numba  # type: ignore
+
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance
+
+
+# start book
+@numba.njit(nogil=True, cache=True)
+def makespan(x: Gantt) -> int:
+    """
+    Get the makespan corresponding to a given :class:`Gantt` chart.
+
+    :param moptipy.examples.jssp.Gantt x: the Gantt chart.
+    :return: the maximum of any time stored in the chart
+    """
+    return int(x[:, -1, 2].max())
+    # end book
 
 
 # start book
@@ -23,17 +38,7 @@ class Makespan(Objective):
             raise TypeError(
                 f"Must provide Instance, but got '{type(instance)}'.")
         self.__instance: Final[Instance] = instance
-
-    # start book
-    def evaluate(self, x: Gantt) -> int:
-        """
-        Get the makespan corresponding to a given :class:`Gantt` chart.
-
-        :param moptipy.examples.jssp.Gantt x: the Gantt chart.
-        :return: the maximum of any time stored in the chart
-        """
-        return int(x[:, -1, 2].max())
-        # end book
+        self.evaluate = makespan  # type: ignore
 
     def lower_bound(self) -> int:
         """

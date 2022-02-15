@@ -6,14 +6,23 @@ from typing import List
 import numpy as np
 
 import moptipy.evaluation.base as bs
-import moptipy.operators.pwr as pwr
-from moptipy.algorithms import HillClimber, SingleRandomSample
-from moptipy.api import Execution, run_experiment, logging
-from moptipy.evaluation import EndResult, EndStatistics, Progress, StatRun, \
-    Ert, compute_single_ert
-from moptipy.examples.jssp import Instance, Makespan, \
-    OperationBasedEncoding, GanttSpace
-from moptipy.spaces import PermutationsWithRepetitions
+from moptipy.algorithms.hill_climber import HillClimber
+from moptipy.algorithms.single_random_sample import SingleRandomSample
+from moptipy.api import logging
+from moptipy.api.execution import Execution
+from moptipy.api.experiment import run_experiment
+from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.ert import Ert, compute_single_ert
+from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.stat_run import StatRun
+from moptipy.examples.jssp.gantt_space import GanttSpace
+from moptipy.examples.jssp.instance import Instance
+from moptipy.examples.jssp.makespan import Makespan
+from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
+from moptipy.operators.pwr.op1_swap2 import Op1Swap2
+from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.utils.temp import TempDir, TempFile
 
 instances = [lambda: Instance.from_resource("dmu21"),
@@ -24,8 +33,8 @@ instances = [lambda: Instance.from_resource("dmu21"),
 def algo_1(inst) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0Shuffle(ss)
-    op1 = pwr.Op1Swap2()
+    op0 = Op0Shuffle(ss)
+    op1 = Op1Swap2()
     algo = HillClimber(op0, op1)
     ex = Execution()
     ex.set_algorithm(algo)
@@ -41,7 +50,7 @@ def algo_1(inst) -> Execution:
 def algo_2(inst) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0Shuffle(ss)
+    op0 = Op0Shuffle(ss)
     algo = SingleRandomSample(op0)
     ex = Execution()
     ex.set_algorithm(algo)

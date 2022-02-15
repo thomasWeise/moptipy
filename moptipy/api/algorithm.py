@@ -1,5 +1,4 @@
 """The base classes for implementing optimization algorithms."""
-from abc import ABC, abstractmethod
 from typing import Callable, Final
 
 from moptipy.api import logging
@@ -15,7 +14,6 @@ from moptipy.utils.logger import KeyValueSection
 class Algorithm(Component):
     """A base class for implementing optimization algorithms."""
 
-    @abstractmethod
     def solve(self, process: Process) -> None:
         """
         Apply this optimization algorithm to the given process.
@@ -26,11 +24,10 @@ class Algorithm(Component):
             objective function, remembers the best-so-far solution,
             and takes care of creating log files (if this is wanted).
         """
-        raise NotImplementedError
 # end book
 
 
-class Algorithm0(Algorithm, ABC):
+class Algorithm0(Algorithm):
     """An algorithm with a nullary search operator."""
 
     def __init__(self,
@@ -73,7 +70,7 @@ class Algorithm0(Algorithm, ABC):
             self.op0.log_parameters_to(sc)
 
 
-class Algorithm1(Algorithm0, ABC):
+class Algorithm1(Algorithm0):
     """An algorithm with a unary search operator."""
 
     def __init__(self,
@@ -113,7 +110,7 @@ class Algorithm1(Algorithm0, ABC):
             self.op1.log_parameters_to(sc)
 
 
-class Algorithm2(Algorithm1, ABC):
+class Algorithm2(Algorithm1):
     """An algorithm with a binary and unary operator."""
 
     def __init__(self,
@@ -175,14 +172,7 @@ class CallableAlgorithm(_CallableComponent, Algorithm):
         """
         super().__init__(inner=algorithm,
                          name="unnamed_algorithm" if (name is None) else name)
-
-    def solve(self, process: Process) -> None:
-        """
-        Apply the inner callable to the search process.
-
-        :param moptipy.api.Process process: the search process
-        """
-        self._inner(process)
+        self.solve = algorithm  # type: ignore
 
 
 def check_algorithm(algorithm: Algorithm) -> Algorithm:

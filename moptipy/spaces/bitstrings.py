@@ -69,20 +69,6 @@ class BitStrings(_NPArraySpace):
         self.validate(x)
         return x
 
-    def validate(self, x: np.ndarray) -> None:
-        """
-        Validate a bit string.
-
-        :param np.ndarray x: the bit string
-        :rtype: np.ndarray
-        :raises TypeError: if the string is not an element of this space.
-        :raises ValueError: if the shape of the string
-        """
-        super().validate(x)
-        if x.dtype != _DTYPE:
-            raise TypeError(
-                f"x must be of type {_DTYPE}, but is of type {x.dtype}.")
-
     def n_points(self) -> int:
         """
         Get the scale of the bit string space.

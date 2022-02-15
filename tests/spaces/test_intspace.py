@@ -3,9 +3,9 @@ import numpy as np
 # noinspection PyPackageRequirements
 from pytest import raises
 
-import moptipy.tests as tst
-from moptipy.api import Space
-from moptipy.spaces import IntSpace
+import moptipy.tests.space as tst
+from moptipy.api.space import Space
+from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
@@ -25,6 +25,10 @@ def test_int():
         a[i] = i
     with raises(ValueError):
         f.validate(a)
+
+    for i in range(len(a)):
+        a[i] = int(f.min_value + (i % (f.max_value - f.min_value)))
+    f.validate(a)
 
     b = f.create()
     assert not f.is_equal(a, b)

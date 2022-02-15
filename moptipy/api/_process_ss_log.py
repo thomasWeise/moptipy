@@ -1,5 +1,5 @@
 """A process with logging and different search and solution space."""
-from math import inf, isnan
+from math import inf
 from time import monotonic_ns
 from typing import Optional, Union, List, Tuple, Final
 
@@ -76,9 +76,6 @@ class _ProcessSSLog(_ProcessSS):
         current_y: Final = self._current_y
         self._g(x, current_y)
         result: Final[Union[int, float]] = self._f(current_y)
-        if isnan(result):
-            raise ValueError(
-                f"NaN invalid as objective value, but got {result}.")
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all
@@ -88,8 +85,8 @@ class _ProcessSSLog(_ProcessSS):
             self._last_improvement_fe = current_fes
             self._current_best_f = result
             needs_time_millis = False
-            self._copy_x(x, self._current_best_x)
-            self._copy_y(current_y, self._current_best_y)
+            self.copy(self._current_best_x, x)
+            self._copy_y(self._current_best_y, current_y)
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis

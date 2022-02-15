@@ -2,12 +2,17 @@
 import os.path as pt
 from os import listdir
 
-import moptipy.operators.pwr as pwr
-from moptipy.algorithms import HillClimber, RandomSampling
-from moptipy.api import Execution, run_experiment
-from moptipy.examples.jssp import Instance, Makespan, \
-    OperationBasedEncoding, GanttSpace
-from moptipy.spaces import PermutationsWithRepetitions
+from moptipy.algorithms.hill_climber import HillClimber
+from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.api.execution import Execution
+from moptipy.api.experiment import run_experiment
+from moptipy.examples.jssp.gantt_space import GanttSpace
+from moptipy.examples.jssp.instance import Instance
+from moptipy.examples.jssp.makespan import Makespan
+from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
+from moptipy.operators.pwr.op1_swap2 import Op1Swap2
+from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.utils.temp import TempDir
 
 instances = [lambda: Instance.from_resource("dmu01"),
@@ -18,8 +23,8 @@ instances = [lambda: Instance.from_resource("dmu01"),
 def algo_1(inst: Instance) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0Shuffle(ss)
-    op1 = pwr.Op1Swap2()
+    op0 = Op0Shuffle(ss)
+    op1 = Op1Swap2()
     algo = HillClimber(op0, op1)
     ex = Execution()
     ex.set_algorithm(algo)
@@ -35,7 +40,7 @@ def algo_1(inst: Instance) -> Execution:
 def algo_2(inst: Instance) -> Execution:
     ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
-    op0 = pwr.Op0Shuffle(ss)
+    op0 = Op0Shuffle(ss)
     algo = RandomSampling(op0)
     ex = Execution()
     ex.set_algorithm(algo)

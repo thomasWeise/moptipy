@@ -2,7 +2,7 @@
 from typing import List
 
 from moptipy.api import logging
-from moptipy.evaluation import LogParser
+from moptipy.evaluation.log_parser import LogParser
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 

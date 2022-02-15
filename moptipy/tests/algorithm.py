@@ -137,6 +137,7 @@ def test_algorithm(algorithm: ma.Algorithm,
 
         y = solution_space.create()
         process.get_copy_of_current_best_y(y)
+        solution_space.validate(y)
         check_f = objective.evaluate(y)
         if check_f != res_f:
             raise ValueError(

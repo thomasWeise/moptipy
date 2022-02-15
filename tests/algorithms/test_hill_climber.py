@@ -1,11 +1,11 @@
 """Test the hill climber."""
-import moptipy.tests as tst
 # noinspection PyPackageRequirements
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
 from moptipy.operators.pwr.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+import moptipy.tests.algorithm as tst
 
 
 def test_hill_climber_jssp():

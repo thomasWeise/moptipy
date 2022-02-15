@@ -4,8 +4,9 @@ from math import inf
 # noinspection PyPackageRequirements
 from pytest import raises
 
-import moptipy.tests as tst
-from moptipy.api import CallableObjective, Objective, Component
+from moptipy.api.component import Component
+from moptipy.api.objective import CallableObjective, Objective
+import moptipy.tests.objective as tst
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 

@@ -5,7 +5,6 @@ They provide the information about the optimization process and its current
 state as handed to the optimization algorithm and, after the algorithm has
 finished, to the user.
 """
-from abc import abstractmethod
 from math import inf, isnan
 from typing import Optional, Union, ContextManager
 
@@ -41,7 +40,6 @@ class Process(Space, Objective, ContextManager):
         #: This becomes `True` when :meth:`should_terminate` returned `True`.
         self._knows_that_terminated: bool = False
 
-    @abstractmethod
     def get_random(self) -> Generator:  # +book
         """
         Obtain the random number generator.
@@ -49,7 +47,6 @@ class Process(Space, Objective, ContextManager):
         :return: the random number generator
         :rtype: Generator
         """
-        raise NotImplementedError  # +book
 
     def should_terminate(self) -> bool:  # +book
         """
@@ -69,7 +66,6 @@ class Process(Space, Objective, ContextManager):
             return True
         return False  # +book
 
-    @abstractmethod
     def get_consumed_fes(self) -> int:
         """
         Obtain the number consumed objective function evaluations.
@@ -79,9 +75,7 @@ class Process(Space, Objective, ContextManager):
         :return: the number of objective function evaluations so far
         :rtype: int
         """
-        raise NotImplementedError
 
-    @abstractmethod
     def get_consumed_time_millis(self) -> int:
         """
         Obtain an approximation of the consumed runtime in milliseconds.
@@ -89,9 +83,7 @@ class Process(Space, Objective, ContextManager):
         :return: the consumed runtime measured in milliseconds.
         :rtype: int
         """
-        raise NotImplementedError
 
-    @abstractmethod
     def get_max_fes(self) -> Optional[int]:
         """
         Obtain the maximum number of permitted objective function evaluations.
@@ -102,9 +94,7 @@ class Process(Space, Objective, ContextManager):
             or `None` if no limit is specified.
         :rtype: Optional[int]
         """
-        raise NotImplementedError
 
-    @abstractmethod
     def get_max_time_millis(self) -> Optional[int]:
         """
         Obtain the maximum runtime permitted in milliseconds.
@@ -115,9 +105,7 @@ class Process(Space, Objective, ContextManager):
             or `None` if no limit is specified.
         :rtype: Optional[int]
         """
-        raise NotImplementedError
 
-    @abstractmethod
     def has_current_best(self) -> bool:  # +book
         """
         Check whethers a current best solution is available.
@@ -129,9 +117,7 @@ class Process(Space, Objective, ContextManager):
         :return: True if the current-best solution can be queried.
         :rtype: bool
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod
     def get_current_best_f(self) -> Union[int, float]:  # +book
         """
         Get the objective value of the current best solution.
@@ -139,27 +125,21 @@ class Process(Space, Objective, ContextManager):
         :return: the objective value of the current best solution.
         :rtype: Union[int,float]
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod
     def get_copy_of_current_best_x(self, x) -> None:  # +book
         """
         Get a copy of the current best point in the search space.
 
         :param x: the destination data structure to be overwritten
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod
     def get_copy_of_current_best_y(self, y) -> None:  # +book
         """
         Get a copy of the current best point in the solution space.
 
         :param y: the destination data structure to be overwritten
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod
     def get_last_improvement_fe(self) -> int:  # +book
         """
         Get the FE at which the last improvement was made.
@@ -168,9 +148,7 @@ class Process(Space, Objective, ContextManager):
         :rtype: int
         :raises ValueError: if no FE was performed yet
         """
-        raise NotImplementedError  # +book
 
-    @abstractmethod
     def get_last_improvement_time_millis(self) -> int:
         """
         Get the FE at which the last improvement was made.
@@ -179,7 +157,6 @@ class Process(Space, Objective, ContextManager):
         :rtype: int
         :raises ValueError: if no FE was performed yet
         """
-        raise NotImplementedError
 
     def get_name(self) -> str:
         """

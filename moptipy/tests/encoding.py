@@ -64,7 +64,7 @@ def test_encoding(encoding: me.Encoding,
         raise ValueError("Provided search space created "
                          "identical points?")
 
-    search_space.copy(x1, x2)
+    search_space.copy(x2, x1)
     if not search_space.is_equal(x1, x2):
         raise ValueError("Copy method of search space did not result in "
                          "is_equal becoming true?")

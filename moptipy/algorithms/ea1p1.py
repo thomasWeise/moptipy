@@ -39,7 +39,7 @@ class EA1p1(Algorithm1):
             new_f: Union[int, float] = process.evaluate(new_x)
             if new_f <= best_f:
                 best_f = new_f
-                process.copy(new_x, best_x)
+                process.copy(best_x, new_x)
 
     def get_name(self) -> str:
         """

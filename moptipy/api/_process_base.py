@@ -1,5 +1,4 @@
 """An internal module with the base class for implementing Processes."""
-from abc import ABC
 from math import inf
 from threading import Lock, Timer
 from time import monotonic_ns
@@ -11,7 +10,7 @@ from moptipy.api.process import Process, check_goal_f, check_max_fes, \
 from moptipy.utils.logger import KeyValueSection
 
 
-class _ProcessBase(Process, ABC):
+class _ProcessBase(Process):
     """The internal base class for implementing optimization processes."""
 
     def __init__(self,

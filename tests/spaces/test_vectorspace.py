@@ -1,9 +1,9 @@
 """Test the unconstrained real vector space."""
 import numpy as np
 
-import moptipy.tests as tst
-from moptipy.api import Space
-from moptipy.spaces import VectorSpace
+import moptipy.tests.space as tst
+from moptipy.api.space import Space
+from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 

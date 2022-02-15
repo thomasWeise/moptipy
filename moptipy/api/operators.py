@@ -1,6 +1,4 @@
 """The base classes for implementing search operators."""
-from abc import abstractmethod
-
 from numpy.random import Generator
 
 from moptipy.api.component import Component
@@ -10,7 +8,6 @@ from moptipy.api.component import Component
 class Op0(Component):
     """A base class to implement a nullary search operator."""
 
-    @abstractmethod
     def op0(self, random: Generator, dest) -> None:
         """
         Apply the nullary search operator to fill object `dest`.
@@ -20,7 +17,6 @@ class Op0(Component):
         :param Generator random: the random number generator
         :param dest: the destination data structure
         """
-        raise NotImplementedError
 # end op0
 
 
@@ -44,7 +40,6 @@ def check_op0(op0: Op0) -> Op0:
 class Op1(Component):
     """A base class to implement a unary search operator."""
 
-    @abstractmethod
     def op1(self, random: Generator, x, dest) -> None:
         """
         Turn `dest` into a modified copy of `x`.
@@ -53,7 +48,6 @@ class Op1(Component):
         :param x: the source point in the search space
         :param dest: the destination data structure
         """
-        raise NotImplementedError
 # end op1
 
 
@@ -77,7 +71,6 @@ def check_op1(op1: Op1) -> Op1:
 class Op2(Component):
     """A base class to implement a binary search operator."""
 
-    @abstractmethod
     def op2(self, random: Generator, x0, x1, dest) -> None:
         """
         Fill `dest` with a combination of `x0` and `x1`.
@@ -87,7 +80,6 @@ class Op2(Component):
         :param x1: the second source point in the search space
         :param dest: the destination data structure
         """
-        raise NotImplementedError
 # end op2
 
 

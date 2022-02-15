@@ -1,6 +1,6 @@
 """Test the space of permutations with repetitions."""
-import moptipy.tests as tst
-from moptipy.spaces import PermutationsWithRepetitions
+import moptipy.tests.space as tst
+from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 
 
 def test_permutations():
