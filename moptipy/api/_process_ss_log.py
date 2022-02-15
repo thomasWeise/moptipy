@@ -73,23 +73,23 @@ class _ProcessSSLog(_ProcessSS):
                                  'algorithm knows it.')
             return inf
 
-        self._encoding.map(x, self._current_y)
-        result: Union[int, float] = self._objective.evaluate(self._current_y)
+        current_y: Final = self._current_y
+        self._g(x, current_y)
+        result: Final[Union[int, float]] = self._f(current_y)
         if isnan(result):
             raise ValueError(
                 f"NaN invalid as objective value, but got {result}.")
-        self._current_fes += 1
-
-        do_term: bool = self._current_fes >= self._end_fes
+        self._current_fes = current_fes = self._current_fes + 1
+        do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all
 
-        if (self._current_fes <= 1) or (result < self._current_best_f):
+        if (current_fes <= 1) or (result < self._current_best_f):
             # noinspection PyAttributeOutsideInit
-            self._last_improvement_fe = self._current_fes
+            self._last_improvement_fe = current_fes
             self._current_best_f = result
             needs_time_millis = False
-            self._search_space.copy(x, self._current_best_x)
-            self._solution_space.copy(self._current_y, self._current_best_y)
+            self._copy_x(x, self._current_best_x)
+            self._copy_y(current_y, self._current_best_y)
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis

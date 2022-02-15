@@ -1,7 +1,7 @@
 """Providing a process without explicit logging with a single space."""
 from math import inf, isnan
 from time import monotonic_ns
-from typing import Optional, Union, Final
+from typing import Optional, Union, Final, Callable
 
 from numpy.random import Generator
 
@@ -57,7 +57,9 @@ class _ProcessNoSS(_ProcessBase):
         #: The solution space, i.e., the data structure of possible solutions.
         self._solution_space: Final[Space] = check_space(solution_space)
         #: The objective function rating candidate solutions.
-        self._objective: Final[Objective] = check_objective(objective)
+        self.__objective: Final[Objective] = check_objective(objective)
+        #: the internal invoker for the objective function
+        self._f: Final[Callable] = self.__objective.evaluate
         #: The algorithm to be applied.
         self.__algorithm: Final[Algorithm] = check_algorithm(algorithm)
         #: The random seed.
@@ -68,6 +70,8 @@ class _ProcessNoSS(_ProcessBase):
         self.__random: Final[Generator] = rand_generator(self.__rand_seed)
         #: The current best solution.
         self._current_best_y: Final = self._solution_space.create()
+        #: the internal method for copying y
+        self._copy_y: Final[Callable] = self._solution_space.copy
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
         #: Do we have a current-best solution?
@@ -90,7 +94,7 @@ class _ProcessNoSS(_ProcessBase):
 
         :return: the lower bound of the objective function.
         """
-        return self._objective.lower_bound()
+        return self.__objective.lower_bound()
 
     def upper_bound(self) -> Union[float, int]:
         """
@@ -98,7 +102,7 @@ class _ProcessNoSS(_ProcessBase):
 
         :return: the upper bound of the objective function.
         """
-        return self._objective.upper_bound()
+        return self.__objective.upper_bound()
 
     def evaluate(self, x) -> Union[float, int]:
         """
@@ -117,23 +121,23 @@ class _ProcessNoSS(_ProcessBase):
                                  'the algorithm knows it.')
             return inf
 
-        result: Union[int, float] = self._objective.evaluate(x)
+        result: Final[Union[int, float]] = self._f(x)
         if isnan(result):
             raise ValueError(
                 f"NaN invalid as objective value, but got {result}.")
-        self._current_fes += 1
 
-        do_term: bool = self._current_fes >= self._end_fes
+        self._current_fes = current_fes = self._current_fes + 1
+        do_term: bool = current_fes >= self._end_fes
 
-        if (self._current_fes <= 1) or (result < self._current_best_f):
-            self._last_improvement_fe = self._current_fes
+        if (current_fes <= 1) or (result < self._current_best_f):
+            self._last_improvement_fe = current_fes
             self._current_best_f = result
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
             self._last_improvement_time_millis = self._current_time_millis
             if self._current_time_millis >= self._end_time_millis:
                 do_term = True
-            self._solution_space.copy(x, self._current_best_y)
+            self._copy_y(x, self._current_best_y)
             self._has_current_best = True
             if result <= self._end_f:
                 do_term = True
@@ -225,7 +229,7 @@ class _ProcessNoSS(_ProcessBase):
         with logger.scope(logging.SCOPE_SOLUTION_SPACE) as sc:
             self._solution_space.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_OBJECTIVE_FUNCTION) as sc:
-            self._objective.log_parameters_to(sc)
+            self.__objective.log_parameters_to(sc)
 
     def _write_log(self, logger: Logger) -> None:
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:
