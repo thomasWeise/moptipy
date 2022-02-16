@@ -21,6 +21,48 @@ MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
 #: The upper bound of the makespan of the instance.
 MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
+#: the internal final set of instances
+_INSTANCES: Final[Tuple[str, ...]] = \
+    ('abz5', 'abz6', 'abz7', 'abz8', 'abz9',
+     'demo',
+     'dmu01', 'dmu02', 'dmu03', 'dmu04', 'dmu05', 'dmu06', 'dmu07',
+     'dmu08', 'dmu09', 'dmu10', 'dmu11', 'dmu12', 'dmu13', 'dmu14',
+     'dmu15', 'dmu16', 'dmu17', 'dmu18', 'dmu19', 'dmu20', 'dmu21',
+     'dmu22', 'dmu23', 'dmu24', 'dmu25', 'dmu26', 'dmu27', 'dmu28',
+     'dmu29', 'dmu30', 'dmu31', 'dmu32', 'dmu33', 'dmu34', 'dmu35',
+     'dmu36', 'dmu37', 'dmu38', 'dmu39', 'dmu40', 'dmu41', 'dmu42',
+     'dmu43', 'dmu44', 'dmu45', 'dmu46', 'dmu47', 'dmu48', 'dmu49',
+     'dmu50', 'dmu51', 'dmu52', 'dmu53', 'dmu54', 'dmu55', 'dmu56',
+     'dmu57', 'dmu58', 'dmu59', 'dmu60', 'dmu61', 'dmu62', 'dmu63',
+     'dmu64', 'dmu65', 'dmu66', 'dmu67', 'dmu68', 'dmu69', 'dmu70',
+     'dmu71', 'dmu72', 'dmu73', 'dmu74', 'dmu75', 'dmu76', 'dmu77',
+     'dmu78', 'dmu79', 'dmu80',
+     'ft06', 'ft10', 'ft20',
+     'la01', 'la02', 'la03', 'la04', 'la05', 'la06', 'la07',
+     'la08', 'la09', 'la10', 'la11', 'la12', 'la13', 'la14',
+     'la15', 'la16', 'la17', 'la18', 'la19', 'la20', 'la21',
+     'la22', 'la23', 'la24', 'la25', 'la26', 'la27', 'la28',
+     'la29', 'la30', 'la31', 'la32', 'la33', 'la34', 'la35',
+     'la36', 'la37', 'la38', 'la39', 'la40',
+     'orb01', 'orb02', 'orb03', 'orb04', 'orb05', 'orb06', 'orb07',
+     'orb08', 'orb09', 'orb10',
+     'swv01', 'swv02', 'swv03', 'swv04', 'swv05', 'swv06', 'swv07',
+     'swv08', 'swv09', 'swv10', 'swv11', 'swv12', 'swv13', 'swv14',
+     'swv15', 'swv16', 'swv17', 'swv18', 'swv19', 'swv20',
+     'ta01', 'ta02', 'ta03', 'ta04', 'ta05', 'ta06', 'ta07',
+     'ta08', 'ta09', 'ta10', 'ta11', 'ta12', 'ta13', 'ta14',
+     'ta15', 'ta16', 'ta17', 'ta18', 'ta19', 'ta20', 'ta21',
+     'ta22', 'ta23', 'ta24', 'ta25', 'ta26', 'ta27', 'ta28',
+     'ta29', 'ta30', 'ta31', 'ta32', 'ta33', 'ta34', 'ta35',
+     'ta36', 'ta37', 'ta38', 'ta39', 'ta40', 'ta41', 'ta42',
+     'ta43', 'ta44', 'ta45', 'ta46', 'ta47', 'ta48', 'ta49',
+     'ta50', 'ta51', 'ta52', 'ta53', 'ta54', 'ta55', 'ta56',
+     'ta57', 'ta58', 'ta59', 'ta60', 'ta61', 'ta62', 'ta63',
+     'ta64', 'ta65', 'ta66', 'ta67', 'ta68', 'ta69', 'ta70',
+     'ta71', 'ta72', 'ta73', 'ta74', 'ta75', 'ta76', 'ta77',
+     'ta78', 'ta79', 'ta80',
+     'yn1', 'yn2', 'yn3', 'yn4')
+
 
 # start lb
 def compute_makespan_lower_bound(machines: int,
@@ -37,8 +79,8 @@ def compute_makespan_lower_bound(machines: int,
     """
     # get the lower bound of the makespan with the algorithm by Taillard
     usedmachines = np.zeros(machines, np.bool_)  # -lb
-    jobtimes = np.zeros(jobs, np.int64)  # get array for job times
-    machinetimes = np.zeros(machines, np.int64)  # machine times array
+    jobtimes = np.zeros(jobs, npu.DEFAULT_INT)  # get array for job times
+    machinetimes = np.zeros(machines, npu.DEFAULT_INT)  # machine times array
     machine_start_idle = npu.np_ints_max(machines, npu.DEFAULT_INT)
     machine_end_idle = npu.np_ints_max(machines, npu.DEFAULT_INT)
 
@@ -60,7 +102,7 @@ def compute_makespan_lower_bound(machines: int,
 
         jobtimes[jobidx] = jobtime  # store job time
         jobremaining = jobtime  # iterate backwards to get end idle times
-        for i in range(machines - 1, 0, -1):  # second iteration round
+        for i in range(machines - 1, -1, -1):  # second iteration round
             machine, time = matrix[jobidx, i]  # get machine for operation
             machine_end_idle[machine] = min(  # update by computing...
                 machine_end_idle[machine],  # the time that the job...
@@ -391,42 +433,105 @@ class Instance(Component, np.ndarray):
         >>> print(Instance.list_resources()[0:3])
         ('abz5', 'abz6', 'abz7')
         """
-        return 'abz5', 'abz6', 'abz7', 'abz8', 'abz9', \
-               'demo', \
-               'dmu01', 'dmu02', 'dmu03', 'dmu04', 'dmu05', 'dmu06', 'dmu07', \
-               'dmu08', 'dmu09', 'dmu10', 'dmu11', 'dmu12', 'dmu13', 'dmu14', \
-               'dmu15', 'dmu16', 'dmu17', 'dmu18', 'dmu19', 'dmu20', 'dmu21', \
-               'dmu22', 'dmu23', 'dmu24', 'dmu25', 'dmu26', 'dmu27', 'dmu28', \
-               'dmu29', 'dmu30', 'dmu31', 'dmu32', 'dmu33', 'dmu34', 'dmu35', \
-               'dmu36', 'dmu37', 'dmu38', 'dmu39', 'dmu40', 'dmu41', 'dmu42', \
-               'dmu43', 'dmu44', 'dmu45', 'dmu46', 'dmu47', 'dmu48', 'dmu49', \
-               'dmu50', 'dmu51', 'dmu52', 'dmu53', 'dmu54', 'dmu55', 'dmu56', \
-               'dmu57', 'dmu58', 'dmu59', 'dmu60', 'dmu61', 'dmu62', 'dmu63', \
-               'dmu64', 'dmu65', 'dmu66', 'dmu67', 'dmu68', 'dmu69', 'dmu70', \
-               'dmu71', 'dmu72', 'dmu73', 'dmu74', 'dmu75', 'dmu76', 'dmu77', \
-               'dmu78', 'dmu79', 'dmu80', \
-               'ft06', 'ft10', 'ft20', \
-               'la01', 'la02', 'la03', 'la04', 'la05', 'la06', 'la07', \
-               'la08', 'la09', 'la10', 'la11', 'la12', 'la13', 'la14', \
-               'la15', 'la16', 'la17', 'la18', 'la19', 'la20', 'la21', \
-               'la22', 'la23', 'la24', 'la25', 'la26', 'la27', 'la28', \
-               'la29', 'la30', 'la31', 'la32', 'la33', 'la34', 'la35', \
-               'la36', 'la37', 'la38', 'la39', 'la40', \
-               'orb01', 'orb02', 'orb03', 'orb04', 'orb05', 'orb06', 'orb07', \
-               'orb08', 'orb09', 'orb10', \
-               'swv01', 'swv02', 'swv03', 'swv04', 'swv05', 'swv06', 'swv07', \
-               'swv08', 'swv09', 'swv10', 'swv11', 'swv12', 'swv13', 'swv14', \
-               'swv15', 'swv16', 'swv17', 'swv18', 'swv19', 'swv20', \
-               'ta01', 'ta02', 'ta03', 'ta04', 'ta05', 'ta06', 'ta07', \
-               'ta08', 'ta09', 'ta10', 'ta11', 'ta12', 'ta13', 'ta14', \
-               'ta15', 'ta16', 'ta17', 'ta18', 'ta19', 'ta20', 'ta21', \
-               'ta22', 'ta23', 'ta24', 'ta25', 'ta26', 'ta27', 'ta28', \
-               'ta29', 'ta30', 'ta31', 'ta32', 'ta33', 'ta34', 'ta35', \
-               'ta36', 'ta37', 'ta38', 'ta39', 'ta40', 'ta41', 'ta42', \
-               'ta43', 'ta44', 'ta45', 'ta46', 'ta47', 'ta48', 'ta49', \
-               'ta50', 'ta51', 'ta52', 'ta53', 'ta54', 'ta55', 'ta56', \
-               'ta57', 'ta58', 'ta59', 'ta60', 'ta61', 'ta62', 'ta63', \
-               'ta64', 'ta65', 'ta66', 'ta67', 'ta68', 'ta69', 'ta70', \
-               'ta71', 'ta72', 'ta73', 'ta74', 'ta75', 'ta76', 'ta77', \
-               'ta78', 'ta79', 'ta80', \
-               'yn1', 'yn2', 'yn3', 'yn4'
+        return _INSTANCES
+
+
+def check_instance(inst: Instance) -> Instance:
+    """
+    Check whether the contents of a JSSP instance are OK.
+
+    This method thoroughly checks the contents of an instance and the
+    types of all of its members. If your instances passes this method
+    without any error, it is a valid JSSP instance that can be used for
+    experiments. All instances in our benchmark set listed above will
+    pass this test.
+
+    :param Instance inst: the instance
+    :returns: the instance, if its contents are OK
+    :rtype: Instance
+    """
+    if inst is None:
+        raise TypeError("Instance must not be None")
+    if not isinstance(inst, Instance):
+        raise TypeError(
+            f"Instance must instance of Instance, but is {type(inst)}.")
+    if not isinstance(inst, np.ndarray):
+        raise TypeError(
+            f"Instance must instance of ndarray, but is {type(inst)}.")
+    if not isinstance(inst.machines, int):
+        raise TypeError(
+            f"inst.machines must be int, but is {type(inst.machines)}.")
+    if not isinstance(inst.name, str):
+        raise TypeError(f"inst.name must be str, but is {type(inst.name)}")
+    if (len(inst.name) <= 0) \
+            or (inst.name != logging.sanitize_name(inst.name)):
+        raise ValueError(f"invalid instance name '{inst.name}'")
+    if inst.machines <= 0:
+        raise ValueError(f"inst.machines must be > 0, but is {inst.machines}"
+                         f" for instance {inst.name}")
+    if not isinstance(inst.jobs, int):
+        raise TypeError(
+            f"inst.jobs must be int, but is {type(inst.jobs)}"
+            f" for instance {inst.name}.")
+    if inst.machines <= 0:
+        raise ValueError(f"inst.jobs must be > 0, but is {inst.jobs}"
+                         f" for instance {inst.name}.")
+    if not isinstance(inst.makespan_lower_bound, int):
+        raise TypeError(
+            "inst.makespan_lower_bound must be int, but is "
+            f"{type(inst.makespan_lower_bound)}"
+            f" for instance {inst.name}.")
+    if inst.makespan_lower_bound <= 0:
+        raise ValueError("inst.makespan_lower_bound must be > 0,"
+                         f" but is {inst.makespan_lower_bound}"
+                         f" for instance {inst.name}.")
+    if not isinstance(inst.makespan_upper_bound, int):
+        raise TypeError(
+            "inst.makespan_upper_bound must be int, but is "
+            f"{type(inst.makespan_upper_bound)}"
+            f" for instance {inst.name}..")
+    if inst.makespan_upper_bound <= 0:
+        raise ValueError("inst.makespan_upper_bound must be > 0,"
+                         f" but is {inst.makespan_upper_bound}"
+                         f" for instance {inst.name}.")
+    if len(inst.shape) != 3:
+        raise ValueError(f"inst must be 3d-array, but has shape {inst.shape}"
+                         f" for instance {inst.name}.")
+    if inst.shape[0] != inst.jobs:
+        raise ValueError(
+            f"inst.shape[0] must be inst.jobs={inst.jobs}, "
+            f"but inst has shape {inst.shape} for instance {inst.name}.")
+    if inst.shape[1] != inst.machines:
+        raise ValueError(
+            f"inst.machines[1] must be inst.machines={inst.machines}, "
+            f"but inst has shape {inst.shape} for instance {inst.name}.")
+    if inst.shape[2] != 2:
+        raise ValueError(
+            f"inst.machines[2] must be 2, but inst has shape {inst.shape}"
+            f" for instance {inst.name}.")
+
+    for i in range(inst.jobs):
+        for j in range(inst.machines):
+            machine = inst[i, j, 0]
+            if not (0 <= machine < inst.machines):
+                raise ValueError(
+                    f"encountered machine {machine} for job {i} in "
+                    f"operation {j}, but there are only "
+                    f"{inst.machines} machines for instance {inst.name}.")
+    mslb = compute_makespan_lower_bound(
+        machines=inst.machines, jobs=inst.jobs, matrix=inst)
+    if mslb > inst.makespan_lower_bound:
+        raise ValueError(f"makespan lower bound computed as {mslb},"
+                         f"but set to {inst.makespan_upper_bound},"
+                         "which is not lower  for instance {inst.name}.")
+    msub = sum(inst[:, :, 1].flatten())
+    if msub != inst.makespan_upper_bound:
+        raise ValueError(f"makespan upper bound computed as {msub}, "
+                         f"but set to {inst.makespan_upper_bound}"
+                         f" for instance {inst.name}.")
+    tub = max([sum(inst[i, :, 1]) for i in range(inst.jobs)])
+    if inst.makespan_lower_bound < tub:
+        raise ValueError(f"makespan lower bound {inst.makespan_lower_bound} "
+                         f"less then longest job duration {tub}"
+                         f" for instance {inst.name}.")
+    return inst

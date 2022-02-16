@@ -1,4 +1,5 @@
 """Some fixed demo codes for the JSSP examples."""
+import sys
 import urllib.request as rq
 from typing import Final, List, Union, Callable, Iterable
 
@@ -6,8 +7,6 @@ import numpy as np
 from matplotlib.figure import Figure  # type: ignore
 
 from moptipy.evaluation.lang import Lang
-from moptipy.utils.plot_utils import create_figure, save_figure, \
-    cm_to_inch
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -19,6 +18,8 @@ from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart, \
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.utils.log import logger
 from moptipy.utils.path import Path, UTF8
+from moptipy.utils.plot_utils import create_figure, save_figure, \
+    cm_to_inch
 
 
 def demo_instance() -> Instance:
@@ -347,3 +348,14 @@ def makespan_lower_bound_table(
     out_file.enforce_file()
     logger(f"finished writing output results to file '{out_file}'.")
     return out_file
+
+
+# are we being executed?
+if __name__ == '__main__':
+    dest_dir: Final[Path] = Path.path(sys.argv[1])
+    dest_dir.ensure_dir_exists()
+    logger(f"We will print the JSSP examples into dir '{dest_dir}'.")
+    makespan_lower_bound_table(dest_dir)
+    demo_gantt_chart(dest_dir, True)
+    demo_gantt_chart(dest_dir, False)
+    logger(f"Finished printing the JSSP examples into dir '{dest_dir}'.")

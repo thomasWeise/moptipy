@@ -33,7 +33,8 @@ class Space(Component):
         """
         Generate an instance of the data structure managed by the space.
 
-        The state/contents of this data structure are undefined.
+        The state/contents of this data structure are undefined. It may
+        not pass the :meth:`validate` method.
 
         :return: the new instance
         """

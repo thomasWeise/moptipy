@@ -1,26 +1,12 @@
 """Test loading and validity of JSSP instances."""
 import numpy as np
 
-from moptipy.examples.jssp.instance import Instance
+from moptipy.examples.jssp.instance import Instance, check_instance
 
 
 def __check_load_inst(inst: str) -> Instance:
-    inst = Instance.from_resource(inst)
-    assert isinstance(inst, Instance)
-    assert isinstance(inst.machines, int)
-    assert inst.machines > 0
-    assert isinstance(inst.jobs, int)
-    assert inst.jobs > 0
-    assert isinstance(inst.makespan_lower_bound, int)
-    assert inst.makespan_lower_bound > 0
-    assert isinstance(inst.makespan_upper_bound, int)
-    assert inst.makespan_upper_bound > inst.makespan_lower_bound
-    assert isinstance(inst, np.ndarray)
-    assert len(inst.shape) == 3
-    assert inst.shape[0] == inst.jobs
-    assert inst.shape[1] == inst.machines
-    assert inst.shape[2] == 2
-    return inst
+    """Load an instance from a resource and perform basic checks."""
+    return check_instance(Instance.from_resource(inst))
 
 
 def test_load_demo_from_resource():
@@ -29,9 +15,16 @@ def test_load_demo_from_resource():
     assert i.jobs == 4
     assert i.machines == 5
     assert i.makespan_lower_bound == 180
+    assert np.array_equal(i, np.array(
+        [[[0, 10], [1, 20], [2, 20], [3, 40], [4, 10]],
+         [[1, 20], [0, 10], [3, 30], [2, 50], [4, 30]],
+         [[2, 30], [1, 20], [4, 12], [3, 40], [0, 10]],
+         [[4, 50], [3, 30], [2, 15], [0, 20], [1, 15]]],
+        np.int8))
 
 
 def __check_seq(prefix: str, end: int, start: int = 1, min_len=2):
+    """Load a sequence of instance from resources and perform basic checks."""
     for i in range(start, end + 1):
         s = str(i)
         if len(s) < min_len:

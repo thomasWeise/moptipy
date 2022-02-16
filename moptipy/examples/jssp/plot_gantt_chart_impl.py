@@ -14,6 +14,7 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp.gantt import Gantt
+from moptipy.examples.jssp.makespan import makespan
 
 
 def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
@@ -36,7 +37,7 @@ def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
     :return: the makespan marker
     :rtype: str
     """
-    return Lang.current()["makespan"], int(x[:, -1, 2].max())
+    return Lang.current()["makespan"], makespan(x)
 
 
 #: the color for markers at the left end
