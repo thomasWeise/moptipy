@@ -64,7 +64,7 @@ class Process(Space, Objective, ContextManager):
         if self._terminated:
             self._knows_that_terminated = True
             return True
-        return False  # +book
+        return False
 
     def get_consumed_fes(self) -> int:
         """
@@ -177,7 +177,7 @@ class Process(Space, Objective, ContextManager):
         After the first time this method is invoked, :meth:should_terminate`
         becomes `True`.
         """
-        self._terminated = True  # +book
+        self._terminated = True
 
     def __enter__(self) -> 'Process':
         """

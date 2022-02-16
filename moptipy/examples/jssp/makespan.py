@@ -26,7 +26,7 @@ class Makespan(Objective):
     """This objective function returns the makespan of a Gantt chart."""
 
 # end book
-    def __init__(self, instance: Instance) -> None:
+    def __init__(self, instance: Instance) -> None:  # +book
         """
         Initialize the makespan objective function.
 
@@ -38,7 +38,7 @@ class Makespan(Objective):
             raise TypeError(
                 f"Must provide Instance, but got '{type(instance)}'.")
         self.__instance: Final[Instance] = instance
-        self.evaluate = makespan  # type: ignore
+        self.evaluate = makespan  # type: ignore # +book
 
     def lower_bound(self) -> int:
         """
