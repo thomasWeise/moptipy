@@ -1,6 +1,6 @@
 """Functions that can be used to test algorithm implementations."""
 from math import isfinite
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy.random as rnd
 
@@ -10,10 +10,13 @@ from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.api.operators import check_op0, check_op1, check_op2
 from moptipy.api.space import Space
+from moptipy.examples.bitstrings.leadingones import LeadingOnes
+from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.tests.component import test_component
 from moptipy.tests.encoding import test_encoding
@@ -26,7 +29,9 @@ def test_algorithm(algorithm: ma.Algorithm,
                    objective: Optional[Objective] = None,
                    search_space: Optional[Space] = None,
                    encoding: Optional[Encoding] = None,
-                   max_fes: int = 100) -> None:
+                   max_fes: int = 100,
+                   required_result: Optional[Union[int, float]] = None) \
+        -> None:
     """
     Check whether an algorithm follows the moptipy API specification.
 
@@ -36,6 +41,7 @@ def test_algorithm(algorithm: ma.Algorithm,
     :param search_space: the optional search space
     :param encoding: the optional encoding
     :param max_fes: the maximum number of FEs
+    :param required_result: the optional required result quality
     :raises TypeError: if `algorithm` is not an Algorithm instance
     :raises ValueError: if `algorithm` does not behave like it should
     """
@@ -135,6 +141,12 @@ def test_algorithm(algorithm: ma.Algorithm,
             raise ValueError(
                 f"Objective value {res_f} outside of bounds [{lb},{ub}].")
 
+        if required_result is not None:
+            if res_f > required_result:
+                raise ValueError(
+                    "Algorithm should find solution of quality "
+                    f"{required_result}, but got one of {res_f}.")
+
         y = solution_space.create()
         process.get_copy_of_current_best_y(y)
         solution_space.validate(y)
@@ -178,7 +190,7 @@ def test_algorithm_on_jssp(algorithm: Callable,
     algorithm = algorithm(inst, search_space)
     if not isinstance(algorithm, ma.Algorithm):
         raise ValueError(
-            "Must 'algorithm' parameter must be a callable that instantiates"
+            "'algorithm' parameter must be a callable that instantiates "
             f"an algorithm for JSSP instance '{instance}', but it created a "
             f"'{type(algorithm)}' instead.")
 
@@ -192,3 +204,75 @@ def test_algorithm_on_jssp(algorithm: Callable,
                    search_space=search_space,
                    encoding=encoding,
                    max_fes=max_fes)
+
+
+def test_algorithm_on_onemax(algorithm: Callable) -> None:
+    """
+    Check the validity of a black-box algorithm on onemax.
+
+    :param Callable algorithm: the algorithm factory
+    """
+    if not callable(algorithm):
+        raise TypeError(
+            "'algorithm' parameter must be a callable that instantiates"
+            "an algorithm for a given BitStrings instance, but got a "
+            f"{type(algorithm)} instead.")
+
+    for xlen in range(2, 10):
+        space = BitStrings(xlen)
+        onemax = OneMax(space)
+
+        algorithm = algorithm(space)
+        if not isinstance(algorithm, ma.Algorithm):
+            raise ValueError(
+                "'algorithm' parameter must be a callable that instantiates "
+                f"an algorithm for problem '{onemax}', but it created a "
+                f"'{type(algorithm)}' instead.")
+
+        max_fes = 3 ** (xlen + 2)
+        required_result = 0
+        if max_fes > 10000:
+            max_fes = 10000
+            required_result = None
+
+        test_algorithm(algorithm=algorithm,
+                       solution_space=space,
+                       objective=onemax,
+                       max_fes=max_fes,
+                       required_result=required_result)
+
+
+def test_algorithm_on_leadingones(algorithm: Callable) -> None:
+    """
+    Check the validity of a black-box algorithm on leadingones.
+
+    :param Callable algorithm: the algorithm factory
+    """
+    if not callable(algorithm):
+        raise TypeError(
+            "'algorithm' parameter must be a callable that instantiates"
+            "an algorithm for a given BitStrings instance, but got a "
+            f"{type(algorithm)} instead.")
+
+    for xlen in range(2, 5):
+        space = BitStrings(xlen)
+        leadingones = LeadingOnes(space)
+
+        algorithm = algorithm(space)
+        if not isinstance(algorithm, ma.Algorithm):
+            raise ValueError(
+                "'algorithm' parameter must be a callable that instantiates "
+                f"an algorithm for problem '{leadingones}', but it created a "
+                f"'{type(algorithm)}' instead.")
+
+        max_fes = 3 ** (xlen + 3)
+        required_result = 0
+        if max_fes > 10000:
+            max_fes = 10000
+            required_result = None
+
+        test_algorithm(algorithm=algorithm,
+                       solution_space=space,
+                       objective=leadingones,
+                       max_fes=max_fes,
+                       required_result=required_result)

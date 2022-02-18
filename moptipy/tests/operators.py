@@ -102,7 +102,7 @@ def test_op1(op1: Op1,
         raise ValueError("Space must not return None.")
 
     for _ in range(max_count):
-        op1.op1(random, x1, x2)
+        op1.op1(random, x2, x1)
         space.validate(x2)
         strstr = space.to_str(x2)
         if (not isinstance(strstr, str)) or (len(strstr) <= 0):

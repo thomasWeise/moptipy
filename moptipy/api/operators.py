@@ -40,13 +40,13 @@ def check_op0(op0: Op0) -> Op0:
 class Op1(Component):
     """A base class to implement a unary search operator."""
 
-    def op1(self, random: Generator, x, dest) -> None:
+    def op1(self, random: Generator, dest, x) -> None:
         """
         Turn `dest` into a modified copy of `x`.
 
         :param Generator random: the random number generator
-        :param x: the source point in the search space
         :param dest: the destination data structure
+        :param x: the source point in the search space
         """
 # end op1
 
@@ -71,14 +71,14 @@ def check_op1(op1: Op1) -> Op1:
 class Op2(Component):
     """A base class to implement a binary search operator."""
 
-    def op2(self, random: Generator, x0, x1, dest) -> None:
+    def op2(self, random: Generator, dest, x0, x1) -> None:
         """
         Fill `dest` with a combination of `x0` and `x1`.
 
         :param Generator random: the random number generator
+        :param dest: the destination data structure
         :param x0: the first source point in the search space
         :param x1: the second source point in the search space
-        :param dest: the destination data structure
         """
 # end op2
 

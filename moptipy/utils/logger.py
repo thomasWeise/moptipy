@@ -3,13 +3,13 @@ from io import StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
-from typing import ContextManager, Iterable, Dict
-from typing import Optional, List, Union, cast, Final, Callable, Tuple
+from typing import Optional, List, Union, cast, Final, Callable, Tuple, \
+    ContextManager, Iterable, Dict
 
-from moptipy.utils.types import bool_to_str, float_to_str
 from moptipy.api import logging
 from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
+from moptipy.utils.types import bool_to_str, float_to_str
 
 
 class Logger(ContextManager):

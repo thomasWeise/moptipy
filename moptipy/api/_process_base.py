@@ -28,6 +28,10 @@ class _ProcessBase(Process):
         value: if it is reached, the process is terminated
         """
         super().__init__()
+        #: This will be `True` after :meth:`terminate` has been called.
+        self._terminated: bool = False  # +book
+        #: This becomes `True` when :meth:`should_terminate` returned `True`.
+        self._knows_that_terminated: bool = False
         #: The time when the process was started, in milliseconds.
         self._start_time_millis: Final[int] = int(monotonic_ns() // 1_000_000)
         #: The internal lock, needed to protect :meth:`terminate`.
@@ -73,24 +77,16 @@ class _ProcessBase(Process):
         if not (self.__timer is None):
             self.__timer.start()
 
+    def should_terminate(self) -> bool:
+        if self._terminated:
+            self._knows_that_terminated = True
+            return True
+        return False
+
     def get_consumed_fes(self) -> int:
-        """
-        Obtain the number consumed objective function evaluations.
-
-        This is the number of calls to :meth:`evaluate`.
-
-        :return: the number of objective function evaluations so far
-        :rtype: int
-        """
         return self._current_fes
 
     def get_consumed_time_millis(self) -> int:
-        """
-        Obtain an approximation of the consumed runtime in milliseconds.
-
-        :return: the consumed runtime measured in milliseconds.
-        :rtype: int
-        """
         if not self._terminated:
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
@@ -99,76 +95,24 @@ class _ProcessBase(Process):
         return self._current_time_millis - self._start_time_millis
 
     def get_max_time_millis(self) -> Optional[int]:
-        """
-        Obtain the maximum runtime permitted in milliseconds.
-
-        If no limit is set, `None` is returned.
-
-        :return: the maximum runtime permitted in milliseconds,
-        or `None` if no limit is specified.
-        :rtype: Optional[int]
-        """
         return self._max_time_millis
 
     def get_max_fes(self) -> Optional[int]:
-        """
-        Obtain the maximum number of permitted objective function evaluations.
-
-        If no limit is set, `None` is returned.
-
-        :return: the maximum number of objective function evaluations,
-        or `None` if no limit is specified.
-        :rtype: Optional[int]
-        """
         return self._max_fes
 
     def get_last_improvement_fe(self) -> int:
-        """
-        Get the FE at which the last improvement was made.
-
-        :return: the function evaluation when the last improvement was made
-        :rtype: int
-        :raises ValueError: if no FE was performed yet
-        """
         if self._last_improvement_fe < 0:
             raise ValueError("Did not perform FE yet, cannot query "
                              "last improvement FE.")
         return self._last_improvement_fe
 
     def get_last_improvement_time_millis(self) -> int:
-        """
-        Get the FE at which the last improvement was made.
-
-        :return: the function evaluation when the last improvement was made
-        :rtype: int
-        :raises ValueError: if no FE was performed yet
-        """
         if self._last_improvement_time_millis < 0:
             raise ValueError("Did not perform FE yet, cannot query "
                              "last improvement time.")
         return self._last_improvement_time_millis - self._start_time_millis
 
-    def _perform_termination(self) -> None:
-        """
-        Do the actual work of termination: must be invoked only once.
-
-        This is an internal method invoked my :meth:`terminate`.
-        """
-
     def terminate(self) -> None:
-        """
-        Terminate this process.
-
-        This function is automatically called at the end of the `with`
-        statement, but can also be called by the algorithm when it is
-        finished and is also invoked automatically when a termination
-        criterion is hit.
-        After the first time this method is invoked, :meth:should_terminate`
-        becomes `True`.
-
-        While :meth:`terminate` can be called arbitrarily often, it is ensured
-        that :meth:`_perform_termination` is called exactly once.
-        """
         with self.__lock:
             old_terminated = self._terminated
             self._terminated = True
@@ -178,7 +122,6 @@ class _ProcessBase(Process):
                 self.__timer.cancel()
             self._current_time_millis = int((monotonic_ns() + 999_999)
                                             // 1_000_000)
-            self._perform_termination()
 
     def get_copy_of_current_best_y(self, y) -> None:
         """

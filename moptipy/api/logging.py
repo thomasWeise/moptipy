@@ -2,8 +2,8 @@
 from re import sub
 from typing import List, Final
 
-#: the file suffix to be used for log files
 
+#: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
 #: the separator used in CSV files to separate columns
 CSV_SEPARATOR: Final[str] = ";"
@@ -26,10 +26,28 @@ KEY_VALUE_SEPARATOR: Final[str] = ": "
 #: the hexadecimal version of a value
 KEY_HEX_VALUE: Final[str] = "(hex)"
 
+#: the key for the exception type
+KEY_EXCEPTION_TYPE: Final[str] = "exceptionType"
+#: the key for the exception value
+KEY_EXCEPTION_VALUE: Final[str] = "exceptionValue"
+#: the key for the exception stack trace
+KEY_EXCEPTION_STACK_TRACE: Final[str] = "exceptionStackTrace"
+
 #: the key for algorithms
 KEY_ALGORITHM: Final[str] = "algorithm"
 #: the key for the instance
 KEY_INSTANCE: Final[str] = "instance"
+
+#: the common name prefix of all error sections
+ERROR_SECTION_PREFIX: Final[str] = "ERROR_"
+#: the section indicating an error during the algorithm run
+SECTION_ERROR_IN_RUN: Final[str] = f"{ERROR_SECTION_PREFIX}IN_RUN"
+#: the section indicating an invalid candidate solution
+SECTION_ERROR_INVALID_Y: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_Y"
+#: the section indicating an invalid point in the search space
+SECTION_ERROR_INVALID_X: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_X"
+#: the section indicating an error caught during log writing
+SECTION_ERROR_IN_LOG: Final[str] = f"{ERROR_SECTION_PREFIX}IN_LOG"
 
 #: the progress csv section
 SECTION_PROGRESS: Final[str] = "PROGRESS"

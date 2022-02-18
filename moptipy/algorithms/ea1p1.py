@@ -35,7 +35,7 @@ class EA1p1(Algorithm1):
             best_f = process.evaluate(best_x)
 
         while not process.should_terminate():
-            self.op1.op1(random, best_x, new_x)
+            self.op1.op1(random, new_x, best_x)
             new_f: Union[int, float] = process.evaluate(new_x)
             if new_f <= best_f:
                 best_f = new_f

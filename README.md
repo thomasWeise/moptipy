@@ -117,6 +117,17 @@ Since we can use many different solution spaces, this section just contains raw 
 If the search and solution space are different, the section `RESULT_X` is included.
 It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
 
+##### The `ERROR_*` Sections
+
+Our package has mechanisms to catch and store errors that occurred during the experiments.
+Each type of error will be stored in a separate log section and each such sections may store the class of the error in form `exceptionType: error-class`, the error message in the form `exceptionValue: error-message` and the stack trace line by line after a line header `exceptionStackTrace:`.
+The following exception sections are currently supported:
+
+If an exception is encountered during the algorithm run, it will be store in section `ERROR_IN_RUN`.
+If the validation of the finally returned candidate solution failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
+If the validation of the finally returned point in the search space failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
+In the unlikely case that an exception occurs during the writing of the log but writing can continue, this exception will be stored in section `ERROR_IN_LOG`.
+
 
 #### 3.1.3. Example
 

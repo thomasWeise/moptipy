@@ -33,13 +33,6 @@ class Process(Space, Objective, ContextManager):
 
 # end book
 
-    def __init__(self) -> None:
-        """Initialize the process. Do not call directly."""
-        #: This will be `True` after :meth:`terminate` has been called.
-        self._terminated: bool = False
-        #: This becomes `True` when :meth:`should_terminate` returned `True`.
-        self._knows_that_terminated: bool = False
-
     def get_random(self) -> Generator:  # +book
         """
         Obtain the random number generator.
@@ -61,10 +54,6 @@ class Process(Space, Objective, ContextManager):
         :return: True if the process should terminate, False if not
         :rtype: Generator
         """
-        if self._terminated:
-            self._knows_that_terminated = True
-            return True
-        return False
 
     def get_consumed_fes(self) -> int:
         """
@@ -177,7 +166,6 @@ class Process(Space, Objective, ContextManager):
         After the first time this method is invoked, :meth:should_terminate`
         becomes `True`.
         """
-        self._terminated = True
 
     def __enter__(self) -> 'Process':
         """

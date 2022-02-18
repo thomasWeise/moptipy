@@ -138,9 +138,8 @@ class _ProcessSS(_ProcessNoSS):
             with logger.text(logging.SECTION_RESULT_X) as txt:
                 txt.write(self._search_space.to_str(self._current_best_x))
 
-    def _perform_termination(self) -> None:
-        # noinspection PyProtectedMember
-        super()._perform_termination()
+    def _validate_x(self) -> None:
+        """Validate x, if it exists."""
         self._search_space.validate(self._current_best_x)
 
     def get_name(self) -> str:

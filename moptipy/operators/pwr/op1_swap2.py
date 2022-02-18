@@ -16,13 +16,13 @@ class Op1Swap2(operators.Op1):
     easy and fast.
     """
 
-    def op1(self, random: Generator, x: np.ndarray, dest: np.ndarray) -> None:
+    def op1(self, random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
         """
         Create a copy `x` into `dest` and swap two different values in `dest`.
 
         :param Generator random: the random number generator
-        :param np.ndarray x: the existing point in the search space
         :param np.ndarray dest: the array to be shuffled
+        :param np.ndarray x: the existing point in the search space
         """
         np.copyto(dest, x)
         length: Final[int] = len(dest)

@@ -1,6 +1,9 @@
 """Providing a process without explicit logging with a single space."""
+import os
+from io import StringIO
 from math import inf
 from time import monotonic_ns
+from traceback import print_tb
 from typing import Optional, Union, Final, Callable
 
 from numpy.random import Generator
@@ -10,12 +13,86 @@ from moptipy.api._process_base import _ProcessBase
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space, check_space
-from moptipy.utils.logger import KeyValueSection, FileLogger, Logger
+from moptipy.utils.logger import KeyValueSection, FileLogger
+from moptipy.utils.logger import Logger
 from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
 from moptipy.utils.path import Path
 from moptipy.utils.sys_info import log_sys_info
 from moptipy.utils.types import classname
+
+
+def _error_1(logger: Logger, title: str, exception_type,
+             exception_value, traceback):
+    """
+    Create a text section with error information as from a contextmanager.
+
+    :param Logger logger: the logger to write to
+    :param str title: the title of the section with error information to be
+        created
+    :param exception_type: the exception type
+    :param exception_value: the exception value
+    :param traceback: the traceback
+    """
+    if exception_type or exception_value or traceback:
+        with logger.text(title=title) as ts:
+            if exception_type:
+                ts.write(logging.KEY_EXCEPTION_TYPE)
+                ts.write(": ")
+                if isinstance(exception_type, str):
+                    if exception_type.startswith("<class '"):
+                        exception_type = exception_type[8:-2]
+                    ts.write(exception_type.strip())
+                else:
+                    ts.write(classname(exception_type))
+                ts.write(os.linesep)
+            if exception_value:
+                ts.write(logging.KEY_EXCEPTION_VALUE)
+                ts.write(": ")
+                ts.write(exception_value.strip())
+                ts.write(os.linesep)
+            if traceback:
+                ts.write(logging.KEY_EXCEPTION_STACK_TRACE)
+                ts.write(":")
+                ts.write(os.linesep)
+                sio = StringIO()
+                print_tb(traceback, file=sio)
+                for line in sio.getvalue().split("\n"):
+                    ts.write(line.strip())
+                    ts.write(os.linesep)
+
+
+def _error_2(logger: Logger, title: str, exception: BaseException):
+    """
+    Log an exception.
+
+    :param Logger logger: the logger to write to
+    :param str title: the title of the section with error information to be
+        created
+    :param exception: the exception
+
+    >>> from moptipy.utils.logger import InMemoryLogger
+    >>> ime = InMemoryLogger()
+    >>> def k():
+    ...     1 / 0
+    >>> try:
+    ...     k()
+    ... except BaseException as be:
+    ...     _error_2(ime, "ERROR", be)
+    >>> print(ime.get_log()[0])
+    BEGIN_ERROR
+    >>> print(ime.get_log()[1])
+    exceptionType: ZeroDivisionError
+    >>> print(ime.get_log()[2])
+    exceptionValue: division by zero
+    >>> print(ime.get_log()[3])
+    exceptionStackTrace:
+    >>> print(ime.get_log()[-1])
+    END_ERROR
+    """
+    _error_1(logger, title, exception_type=exception,
+             exception_value=str(exception),
+             traceback=exception.__traceback__)
 
 
 class _ProcessNoSS(_ProcessBase):
@@ -190,6 +267,7 @@ class _ProcessNoSS(_ProcessBase):
             self.__objective.log_parameters_to(sc)
 
     def _write_log(self, logger: Logger) -> None:
+        """Write the information gathered during optimization into the log."""
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:
             kv.key_value(logging.KEY_TOTAL_FES, self._current_fes)
             kv.key_value(logging.KEY_TOTAL_TIME_MILLIS,
@@ -212,13 +290,55 @@ class _ProcessNoSS(_ProcessBase):
             with logger.text(logging.SECTION_RESULT_Y) as txt:
                 txt.write(self._solution_space.to_str(self._current_best_y))
 
-    def _perform_termination(self) -> None:
+    def _validate_x(self) -> None:
+        """Validate x, if it exists."""
+
+    def __exit__(self, exception_type, exception_value, traceback) -> None:
+        """Exit the process and write the log if necessary."""
         # noinspection PyProtectedMember
-        super()._perform_termination()
-        if not (self.__log_file is None):
+        super().__exit__(exception_type, exception_value, traceback)
+
+        y_error: Optional[BaseException] = None
+        x_error: Optional[BaseException] = None
+        log_error: Optional[BaseException] = None
+        try:
+            self._solution_space.validate(self._current_best_y)
+        except BaseException as be:
+            y_error = be
+        try:
+            self._validate_x()
+        except BaseException as be:
+            x_error = be
+
+        if self.__log_file is not None:
+            self._current_time_millis = int((monotonic_ns() + 999_999)
+                                            // 1_000_000)
             with FileLogger(self.__log_file) as logger:
-                self._write_log(logger)
-        self._solution_space.validate(self._current_best_y)
+                try:
+                    self._write_log(logger)
+                except BaseException as be:
+                    log_error = be
+
+                if exception_type or exception_value or traceback:
+                    _error_1(logger, logging.SECTION_ERROR_IN_RUN,
+                             exception_type, exception_value, traceback)
+
+                if y_error:
+                    _error_2(logger, logging.SECTION_ERROR_INVALID_Y, y_error)
+
+                if x_error:
+                    _error_2(logger, logging.SECTION_ERROR_INVALID_X, x_error)
+
+                if log_error:
+                    _error_2(logger, logging.SECTION_ERROR_IN_LOG, log_error)
+
+        if not exception_type:
+            if y_error:
+                raise y_error
+            if x_error:
+                raise x_error
+            if log_error:
+                raise log_error
 
     def get_name(self) -> str:
         return "ProcessWithoutSearchSpace"

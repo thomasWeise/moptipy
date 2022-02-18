@@ -348,6 +348,7 @@ class _InnerLogParser(ExperimentParser):
         return super().end_file()
 
     def start_section(self, title: str) -> bool:
+        super().start_section(title)
         if title == logging.SECTION_SETUP:
             if (self.__state & 1) != 0:
                 raise ValueError(f"Already did section {title}.")

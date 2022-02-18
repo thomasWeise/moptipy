@@ -105,7 +105,6 @@ class LogParser(ABC):
         """
         return path.endswith(logging.FILE_SUFFIX)
 
-    # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
     def start_section(self, title: str) -> bool:
         """
@@ -123,7 +122,10 @@ class LogParser(ABC):
             case, we will fast forward to the next :meth:`start_section`.
         :rtype: bool
         """
-        del title
+        if not title:
+            raise ValueError(f"Title cannot be empty, but is '{title}'.")
+        if title.startswith(logging.ERROR_SECTION_PREFIX):
+            raise ValueError(f"Encountered error section '{title}'.")
         return False
 
     # noinspection PyUnusedLocal
