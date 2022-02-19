@@ -82,33 +82,30 @@ class _ProcessNoSSLog(_ProcessNoSS):
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all
+        ctm: int = 0
 
         if (current_fes <= 1) or (result < self._current_best_f):
             self._last_improvement_fe = current_fes
             self._current_best_f = result
-            needs_time_millis = False
-            self._current_time_millis = int((monotonic_ns() + 999_999)
-                                            // 1_000_000)
-            self._last_improvement_time_millis = self._current_time_millis
-            if self._current_time_millis >= self._end_time_millis:
+            self._current_time_millis = ctm = int((monotonic_ns() + 999_999)
+                                                  // 1_000_000)
+            self._last_improvement_time_millis = ctm
+            if ctm >= self._end_time_millis:
                 do_term = True
             self._copy_y(self._current_best_y, x)
             self._has_current_best = True
             do_log = True
             if result <= self._end_f:
                 do_term = True
-        else:
-            needs_time_millis = True
 
         if do_log and (not (self.__log is None)):
-            if needs_time_millis:
-                self._current_time_millis = int((monotonic_ns() + 999_999)
-                                                // 1_000_000)
-                if self._current_time_millis >= self._end_time_millis:
+            if ctm <= 0:
+                self._current_time_millis = ctm = \
+                    int((monotonic_ns() + 999_999) // 1_000_000)
+                if ctm >= self._end_time_millis:
                     do_term = True
-            self.__log.append((self._current_fes,
-                               self._current_time_millis
-                               - self._start_time_millis,
+            self.__log.append((current_fes,
+                               ctm - self._start_time_millis,
                                result))
 
         if do_term:

@@ -167,25 +167,9 @@ class _ProcessNoSS(_ProcessBase):
         self.validate = self._solution_space.validate  # type: ignore
 
     def get_random(self) -> Generator:
-        """
-        Obtain the random number generator.
-
-        :return: the random number generator
-        :rtype: Generator
-        """
         return self.__random
 
     def evaluate(self, x) -> Union[float, int]:
-        """
-        Evaluate a candidate solution.
-
-        This method internally forwards to :meth:`Objective.evaluate` of
-        :attr:`_objective` and keeps track of the best-so-far solution.
-
-        :param x: the candidate solution
-        :return: the objective value
-        :rtype: Union[float, int]
-        """
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
@@ -199,10 +183,10 @@ class _ProcessNoSS(_ProcessBase):
         if (current_fes <= 1) or (result < self._current_best_f):
             self._last_improvement_fe = current_fes
             self._current_best_f = result
-            self._current_time_millis = int((monotonic_ns() + 999_999)
-                                            // 1_000_000)
-            self._last_improvement_time_millis = self._current_time_millis
-            if self._current_time_millis >= self._end_time_millis:
+            self._current_time_millis = ctm = int((monotonic_ns() + 999_999)
+                                                  // 1_000_000)
+            self._last_improvement_time_millis = ctm
+            if ctm >= self._end_time_millis:
                 do_term = True
             self._copy_y(self._current_best_y, x)
             self._has_current_best = True
@@ -215,35 +199,14 @@ class _ProcessNoSS(_ProcessBase):
         return result
 
     def has_current_best(self) -> bool:
-        """
-        Check whether a current best solution is available.
-
-        As soon as one objective function evaluation has been performed,
-        the black-box process can provide a best-so-far solution. Then,
-        this method returns True. Otherwise, it returns False.
-
-        :return: True if the current-best solution can be queried.
-        :rtype: bool
-        """
         return self._has_current_best
 
     def get_current_best_f(self) -> Union[int, float]:
-        """
-        Get the objective value of the current best solution.
-
-        :return: the objective value of the current best solution.
-        :rtype: Union[int,float]
-        """
         if self._has_current_best:
             return self._current_best_f
         raise ValueError('No current best available.')
 
     def get_copy_of_current_best_x(self, x) -> None:
-        """
-        Get a copy of the current best point in the search space.
-
-        :param x: the destination data structure to be overwritten
-        """
         if self._has_current_best:
             return self._copy_y(x, self._current_best_y)
         raise ValueError('No current best available.')

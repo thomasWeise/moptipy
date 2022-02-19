@@ -91,10 +91,10 @@ class _ProcessSS(_ProcessNoSS):
             self._current_best_f = result
             self.copy(self._current_best_x, x)
             self._copy_y(self._current_best_y, current_y)
-            self._current_time_millis = int((monotonic_ns() + 999_999)
-                                            // 1_000_000)
-            self._last_improvement_time_millis = self._current_time_millis
-            if self._current_time_millis >= self._end_time_millis:
+            self._current_time_millis = ctm = int((monotonic_ns() + 999_999)
+                                                  // 1_000_000)
+            self._last_improvement_time_millis = ctm
+            if ctm >= self._end_time_millis:
                 do_term = True
 
             # noinspection PyAttributeOutsideInit

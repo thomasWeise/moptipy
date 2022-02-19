@@ -14,9 +14,9 @@ class SingleRandomSample(Algorithm0):
 
         :param moptipy.api.Process process: the process object
         """
-        x: Final = process.create()
-        self.op0.op0(process.get_random(), x)
-        process.evaluate(x)
+        x: Final = process.create()  # create the solution record
+        self.op0.op0(process.get_random(), x)  # randomize contents
+        process.evaluate(x)  # evaluate quality
 
     def get_name(self) -> str:
         """

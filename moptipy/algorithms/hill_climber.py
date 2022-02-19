@@ -1,5 +1,5 @@
 """The hill climbing algorithm implementation."""
-from typing import Final, Union
+from typing import Final, Union, Callable
 
 from numpy.random import Generator
 
@@ -22,24 +22,37 @@ class HillClimber(Algorithm1):
 
         :param moptipy.api.Process process: the process object
         """
+        # create the records for the best and new point in the search space
         best_x: Final = process.create()
         new_x: Final = process.create()
+        # obtain the random number generator
         random: Final[Generator] = process.get_random()
 
-        best_f: Union[int, float]
-        if process.has_current_best():
-            process.get_copy_of_current_best_x(best_x)
-            best_f = process.get_current_best_f()
-        else:
-            self.op0.op0(random, best_x)
-            best_f = process.evaluate(best_x)
+        # Resolving things such as "process." or "self." costs time.
+        # We shovel a lot of function references into local variables to save
+        # time.
+        evaluate: Final[Callable] = process.evaluate
+        op1: Final[Callable] = self.op1.op1
+        copy: Final[Callable] = process.copy
+        should_terminate: Final[Callable] = process.should_terminate
 
-        while not process.should_terminate():
-            self.op1.op1(random, new_x, best_x)
-            new_f: Union[int, float] = process.evaluate(new_x)
-            if new_f < best_f:
-                best_f = new_f
-                process.copy(best_x, new_x)
+        # Resolving things such as "process." or "self." costs time.
+        # We shovel a lot of function references into local variables
+        # to save time.
+        best_f: Union[int, float]
+        if process.has_current_best():  # there already is a solution
+            process.get_copy_of_current_best_x(best_x)  # get a copy
+            best_f = process.get_current_best_f()  # and its quality
+        else:  # nope, no solution already known
+            self.op0.op0(random, best_x)  # create one randomly
+            best_f = evaluate(best_x)  # and evaluate it
+
+        while not should_terminate():  # until we need to quit...
+            op1(random, new_x, best_x)  # new_x = neighbor of best_x
+            new_f: Union[int, float] = evaluate(new_x)
+            if new_f < best_f:  # new_x is _better_ than best_x?
+                best_f = new_f  # use its objective value
+                copy(best_x, new_x)  # and copy it to best_x
 
     def get_name(self) -> str:
         """
