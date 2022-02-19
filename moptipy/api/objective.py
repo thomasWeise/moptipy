@@ -89,16 +89,7 @@ class CallableObjective(_CallableComponent, Objective):
 
         self.__lower_bound: Final[Union[int, float]] = lower_bound
         self.__upper_bound: Final[Union[int, float]] = upper_bound
-
-    def evaluate(self, x) -> Union[float, int]:
-        """
-        Invoke the internal callable to get the objective value.
-
-        :param x: the candidate solution
-        :return: the objective value
-        :rtype: Union[float, int]
-        """
-        return self._inner(x)
+        self.evaluate = self._inner  # type: ignore
 
     def lower_bound(self) -> Union[float, int]:
         """
