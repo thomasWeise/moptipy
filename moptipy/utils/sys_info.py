@@ -6,7 +6,7 @@ import re
 import socket
 import sys
 from datetime import datetime
-from typing import Optional, Final, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Final
 
 import psutil  # type: ignore
 
@@ -133,6 +133,12 @@ def __make_sys_info() -> str:
             with kv.scope(logging.SCOPE_SESSION) as k:
                 __v(k, logging.KEY_SESSION_START, datetime.now())
                 __v(k, logging.KEY_NODE_NAME, platform.node())
+                proc = psutil.Process()
+                __v(k, logging.KEY_PROCESS_ID, hex(proc.pid))
+                cpua = proc.cpu_affinity()
+                if cpua:
+                    __v(k, logging.KEY_CPU_AFFINITY, ",".join(map(str, cpua)))
+                del proc, cpua
 
                 # see https://stackoverflow.com/questions/166506/.
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -205,9 +211,13 @@ def __make_sys_info() -> str:
     return "\n".join(lst[1:(len(lst) - 1)])
 
 
-#: The internal variable holding the memory information
-__SYS_INFO: Final[str] = __make_sys_info()
-del __make_sys_info  # delete the no-longer-needed function
+#: The internal variable holding the system information
+__SYS_INFO: Final[List[str]] = [__make_sys_info()]
+
+
+def refresh_sys_info():
+    """Refresh the system information."""
+    __SYS_INFO[0] = __make_sys_info()
 
 
 def log_sys_info(logger: Logger) -> None:
@@ -222,4 +232,4 @@ def log_sys_info(logger: Logger) -> None:
     :param Logger logger: the logger
     """
     with logger.text(logging.SECTION_SYS_INFO) as txt:
-        txt.write(__SYS_INFO)
+        txt.write(__SYS_INFO[0])

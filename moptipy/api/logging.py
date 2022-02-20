@@ -125,26 +125,30 @@ SCOPE_SESSION: Final[str] = "session"
 KEY_SESSION_START: Final[str] = "start"
 #: the node on which the session is running
 KEY_NODE_NAME: Final[str] = "node"
+#: the affinity of the process to logical CPUs
+KEY_CPU_AFFINITY: Final[str] = "cpuAffinity"
+#: the pid of the process
+KEY_PROCESS_ID: Final[str] = "procesId"
 #: the ip address of the node on which the session is running
-KEY_NODE_IP: Final[str] = "ip_address"
+KEY_NODE_IP: Final[str] = "ipAddress"
 #: the versions scope in the sys-info section
 SCOPE_VERSIONS: Final[str] = "version"
 #: the hardware scope in the sys-info section
 SCOPE_HARDWARE: Final[str] = "hardware"
 #: the number of physical CPUs
-KEY_HW_N_PHYSICAL_CPUS: Final[str] = "n_physical_cpus"
+KEY_HW_N_PHYSICAL_CPUS: Final[str] = "nPhysicalCpus"
 #: the number of logical CPUs
-KEY_HW_N_LOGICAL_CPUS: Final[str] = "n_logical_cpus"
+KEY_HW_N_LOGICAL_CPUS: Final[str] = "nLogicalCpus"
 #: the clock speed of the CPUs
-KEY_HW_CPU_MHZ: Final[str] = "cpu_mhz"
+KEY_HW_CPU_MHZ: Final[str] = "cpuMhz"
 #: the key for the byte order
-KEY_HW_BYTE_ORDER: Final[str] = "byteorder"
+KEY_HW_BYTE_ORDER: Final[str] = "byteOrder"
 #: the key for the machine
 KEY_HW_MACHINE: Final[str] = "machine"
 #: the key for the cpu name
 KEY_HW_CPU_NAME: Final[str] = "cpu"
 #: the key for the memory size
-KEY_HW_MEM_SIZE: Final[str] = "mem_size"
+KEY_HW_MEM_SIZE: Final[str] = "memSize"
 #: the operating system in the sys-info section
 SCOPE_OS: Final[str] = "os"
 #: the operating system name

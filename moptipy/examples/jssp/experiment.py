@@ -156,7 +156,10 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                                "instances": inst_gens,
                                "setups": algo_gens,
                                "n_runs": n_runs,
-                               "perform_warmup": True}
+                               "perform_warmup": True,
+                               "warmup_fes": 20,
+                               "perform_pre_warmup": True,
+                               "pre_warmup_fes": 20}
     if n_threads is not None:
         ikwargs["n_threads"] = n_threads
 
