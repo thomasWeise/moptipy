@@ -1,5 +1,6 @@
 """The experiment execution API."""
 import copy
+import gc
 import multiprocessing as mp
 import os.path
 from contextlib import nullcontext
@@ -29,7 +30,8 @@ def __run_experiment(base_dir: Path,
                      file_lock: ContextManager,
                      stdio_lock: ContextManager,
                      cache: Callable,
-                     thread_id: str) -> None:
+                     thread_id: str,
+                     pre_warmup_barrier) -> None:
     """
     Execute a single thread of experiments.
 
@@ -45,20 +47,35 @@ def __run_experiment(base_dir: Path,
     :param ContextManager stdio_lock: the lock for log output
     :param Callable cache: the cache
     :param thread_id: the thread id
+    :param pre_warmup_barrier: a barrier to wait at after the pre-warmup
     """
     random: Final[Generator] = default_rng()
 
     for warmup in ([True, False] if perform_pre_warmup else [False]):
+        wss: str
+        if warmup:
+            wss = "pre-warmup"
+        else:
+            wss = "warmup"
+            if perform_pre_warmup:
+                gc.collect()  # do full garbage collection after pre-warmups
+                gc.collect()  # one more, to be double-safe
+                gc.freeze()  # whatever survived now, keep it permanently
+                if pre_warmup_barrier:
+                    logger(
+                        "reached pre-warmup barrier.", thread_id, stdio_lock)
+                    pre_warmup_barrier.wait()  # wait for all threads
+
         for runs in ([1] if warmup else n_runs):  # for each number of runs
-            random.shuffle(cast(Sequence, experiments))
+            random.shuffle(cast(Sequence, experiments))  # shuffle experiments
 
             for setup in experiments:  # for each setup
-                instance = setup[0]()
+                instance = setup[0]()  # load instance
                 if instance is None:
                     raise ValueError("None is not an instance.")
                 inst_name = sanitize_name(str(instance))
 
-                exp = setup[1](instance)
+                exp = setup[1](instance)  # setup algorithm for instance
                 if not isinstance(exp, Execution):
                     raise ValueError(
                         "Setup callable must produce instance of "
@@ -102,7 +119,7 @@ def __run_experiment(base_dir: Path,
                         cpy.set_log_improvements(False)
                         cpy.set_log_all_fes(False)
                         logger(
-                            f"warmup for '{filename}'.", thread_id, stdio_lock)
+                            f"{wss} for '{filename}'.", thread_id, stdio_lock)
                         with cpy.execute():
                             pass
                         del cpy
@@ -124,8 +141,7 @@ __CPU_PHYSICAL_CORES: Final[int] = psutil.cpu_count(logical=False)
 __CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
     max(1, int(ceil(__CPU_LOGICAL_CORES / __CPU_PHYSICAL_CORES)))
 #: The default number of threads to be used
-__DEFAULT_N_THREADS: Final[int] = max(
-    1, __CPU_LOGICAL_CORES - __CPU_LOGICAL_PER_PHYSICAL)
+__DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1)
 
 
 def __waiting_run_experiment(base_dir: Path,
@@ -139,17 +155,18 @@ def __waiting_run_experiment(base_dir: Path,
                              stdio_lock: ContextManager,
                              cache: Callable,
                              thread_id: str,
-                             event) -> None:
+                             event, pre_warmup_barrier) -> None:
     """Wait until event is set, then run experiment."""
     logger("waiting for start signal", thread_id, stdio_lock)
     if not event.wait():
         raise ValueError("Wait terminated unexpectedly.")
     logger("got start signal, beginning experiment", thread_id, stdio_lock)
     refresh_sys_info()
+    gc.collect()
     __run_experiment(base_dir, experiments, n_runs,
                      perform_warmup, warmup_fes, perform_pre_warmup,
                      pre_warmup_fes, file_lock, stdio_lock, cache,
-                     thread_id)
+                     thread_id, pre_warmup_barrier)
 
 
 def run_experiment(base_dir: str,
@@ -174,7 +191,15 @@ def run_experiment(base_dir: str,
     :param Union[int, Iterable[int]] n_runs: the number of runs per algorithm-
         instance combination
     :param int n_threads: the number of parallel threads of execution to use.
-        By default, we will use the number of processors - 1 threads
+        By default, we will use the number of physical cores - 1 processes.
+        We will try to distribute the threads over different logical and
+        physical cores to minimize their interactions. If n_threads is less
+        or equal the number of physical cores, then multiple logical cores
+        will be assigned to each process.
+        If less threads than the number of physical cores are spawned, we will
+        leave one physical core unoccupied. This core may be used by the
+        operating system or other processes for their work, thus reducing
+        interference of the os with our experiments.
     :param bool perform_warmup: should we perform a warm-up for each instance?
         If this parameter is `True`, then before the very first run of a
         thread on an instance, we will execute the algorithm for just a few
@@ -192,8 +217,12 @@ def run_experiment(base_dir: str,
         processes when code is encountered for the first time. This may or may
         not still cause strange timing issues even if `perform_warmup=True`.
         We therefore can do one complete round of warmups before starting the
-        actual experiment, in order to reduce this issue. I am not sure
-        whether this makes sense or not, but it also would not hurt.
+        actual experiment. After that, we perform one garbage collection run
+        and then freeze all objects surviving it to prevent them from future
+        garbage collection runs. All processes that execute the experiment in
+        parallel will complete their pre-warmup and only after all of them have
+        completed it, the actual experiment will begin. I am not sure whether
+        this makes sense or not, but it also would not hurt.
     :param int pre_warmup_fes: the FEs for the pre-warmup runs
 
     :returns: the canonicalized path to `base_dir`
@@ -280,6 +309,8 @@ def run_experiment(base_dir: str,
                "core).", "", stdio_lock)
 
         event: Final = mp.Event()
+        pre_warmup_barrier: Final = mp.Barrier(n_threads) \
+            if perform_pre_warmup else None
         processes = [mp.Process(target=__waiting_run_experiment,
                                 args=(use_dir,
                                       experiments.copy(),
@@ -292,17 +323,31 @@ def run_experiment(base_dir: str,
                                       stdio_lock,
                                       cache,
                                       ":" + hex(i)[2:],
-                                      event))
+                                      event,
+                                      pre_warmup_barrier))
                      for i in range(n_threads)]
         for i, p in enumerate(processes):
             p.start()
             logger(f"started processes {hex(i)[2:]} in waiting state.",
                    "", stdio_lock)
+
+        # try to distribute the load evenly over all cores
+        n_cpus: int = __CPU_PHYSICAL_CORES
+        core_ofs: int = 0
+        if n_threads < n_cpus:
+            n_cpus -= 1
+            core_ofs = __CPU_LOGICAL_PER_PHYSICAL
+        n_cores: Final[int] = n_cpus * __CPU_LOGICAL_PER_PHYSICAL
+        n_cores_per_thread: Final[int] = max(1, n_cores // n_threads)
+
+        last_core: int = 0
         for i, p in enumerate(processes):
             pid: int = int(p.pid)
-            aff: int = int((__CPU_LOGICAL_PER_PHYSICAL + i)
-                           % __CPU_LOGICAL_CORES)
-            psutil.Process(pid).cpu_affinity([aff])
+            aff: List[int] = []
+            for _ in range(n_cores_per_thread):
+                aff.append(int((last_core + core_ofs) % __CPU_LOGICAL_CORES))
+                last_core += 1
+            psutil.Process(pid).cpu_affinity(aff)
             logger(f"set affinity of processes {hex(i)[2:]} with "
                    f"pid {pid} ({hex(pid)}) to {aff}.", "", stdio_lock)
         logger("now releasing lock and starting all processes.",
@@ -326,10 +371,12 @@ def run_experiment(base_dir: str,
                          warmup_fes=warmup_fes,
                          perform_pre_warmup=perform_pre_warmup,
                          pre_warmup_fes=pre_warmup_fes,
+
                          file_lock=nullcontext(),
                          stdio_lock=stdio_lock,
                          cache=cache,
-                         thread_id="")
+                         thread_id="",
+                         pre_warmup_barrier=None)
 
     logger("finished experiment.", "", stdio_lock)
     return use_dir
