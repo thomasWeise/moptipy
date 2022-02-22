@@ -6,7 +6,7 @@ import os.path
 from contextlib import nullcontext
 from math import ceil
 from typing import Iterable, Union, Callable, Tuple, List, \
-    ContextManager, Final, Sequence, cast
+    ContextManager, Final, Sequence, cast, Any
 
 import psutil  # type: ignore
 from numpy.random import Generator, default_rng
@@ -29,7 +29,7 @@ def __run_experiment(base_dir: Path,
                      pre_warmup_fes: int,
                      file_lock: ContextManager,
                      stdio_lock: ContextManager,
-                     cache: Callable,
+                     cache: Callable[[str], bool],
                      thread_id: str,
                      pre_warmup_barrier) -> None:
     """
@@ -170,8 +170,8 @@ def __waiting_run_experiment(base_dir: Path,
 
 
 def run_experiment(base_dir: str,
-                   instances: Iterable[Callable],
-                   setups: Iterable[Callable],
+                   instances: Iterable[Callable[[], Any]],
+                   setups: Iterable[Callable[[Any], Execution]],
                    n_runs: Union[int, Iterable[int]] = 11,
                    n_threads: int = __DEFAULT_N_THREADS,
                    perform_warmup: bool = True,
@@ -271,7 +271,8 @@ def run_experiment(base_dir: str,
             raise TypeError("All setups must be callables, "
                             f"but encountered a {type(setup)}.")
 
-    experiments: Final[List[Tuple[Callable, Callable]]] = \
+    experiments: Final[List[Tuple[Callable[[], Any],
+                                  Callable[[Any], Execution]]]] = \
         [(ii, ss) for ii in instances for ss in setups]
 
     del instances
@@ -293,7 +294,7 @@ def run_experiment(base_dir: str,
                              f"positive, we cannot have {run} follow {last}.")
         last = run
 
-    cache = is_new()
+    cache: Final[Callable[[str], bool]] = is_new()
     use_dir: Final[Path] = Path.path(base_dir)
     use_dir.ensure_dir_exists()
 
@@ -311,21 +312,23 @@ def run_experiment(base_dir: str,
         event: Final = mp.Event()
         pre_warmup_barrier: Final = mp.Barrier(n_threads) \
             if perform_pre_warmup else None
-        processes = [mp.Process(target=__waiting_run_experiment,
-                                args=(use_dir,
-                                      experiments.copy(),
-                                      n_runs,
-                                      perform_warmup,
-                                      warmup_fes,
-                                      perform_pre_warmup,
-                                      pre_warmup_fes,
-                                      file_lock,
-                                      stdio_lock,
-                                      cache,
-                                      ":" + hex(i)[2:],
-                                      event,
-                                      pre_warmup_barrier))
-                     for i in range(n_threads)]
+        processes: Final[List[mp.Process]] = \
+            [mp.Process(target=__waiting_run_experiment,
+                        args=(use_dir,
+                              experiments.copy(),
+                              n_runs,
+                              perform_warmup,
+                              warmup_fes,
+                              perform_pre_warmup,
+                              pre_warmup_fes,
+                              file_lock,
+                              stdio_lock,
+                              cache,
+                              ":" + hex(i)[2:],
+                              event,
+                              pre_warmup_barrier))
+             for i in range(n_threads)]
+
         for i, p in enumerate(processes):
             p.start()
             logger(f"started processes {hex(i)[2:]} in waiting state.",
@@ -371,7 +374,6 @@ def run_experiment(base_dir: str,
                          warmup_fes=warmup_fes,
                          perform_pre_warmup=perform_pre_warmup,
                          pre_warmup_fes=pre_warmup_fes,
-
                          file_lock=nullcontext(),
                          stdio_lock=stdio_lock,
                          cache=cache,

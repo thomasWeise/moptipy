@@ -161,7 +161,7 @@ class CallableAlgorithm(_CallableComponent, Algorithm):
     """Wrapping a Callable such as a lambda into an algorithm."""
 
     def __init__(self,
-                 algorithm: Callable,
+                 algorithm: Callable[[Process], None],
                  name: str = None) -> None:
         """
         Create a wrapper mapping a Callable to an optimization algorithm.

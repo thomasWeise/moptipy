@@ -1,6 +1,6 @@
 """This module provides the class for implementing objective functions."""
 from math import inf
-from typing import Union, Callable, Optional, Final
+from typing import Union, Callable, Optional, Final, Any
 
 from moptipy.api import logging
 from moptipy.api.component import _CallableComponent, Component
@@ -56,7 +56,7 @@ class CallableObjective(_CallableComponent, Objective):
     """Wrapping a Callable such as a lambda into an objective function."""
 
     def __init__(self,
-                 function: Callable,
+                 function: Callable[[Any], Union[float, int]],
                  lower_bound: Union[float, int] = -inf,
                  upper_bound: Union[float, int] = inf,
                  name: Optional[str] = None) -> None:

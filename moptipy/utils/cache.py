@@ -2,7 +2,7 @@
 from typing import Any, Callable, Dict
 
 
-def is_new() -> Callable:
+def is_new() -> Callable[[str], bool]:
     """
     Create a function returning `True` when seeing new values.
 
