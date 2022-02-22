@@ -40,7 +40,7 @@ class Op0Shuffle(operators.Op0):
         random.shuffle(dest)
     # end book
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this operator.
 

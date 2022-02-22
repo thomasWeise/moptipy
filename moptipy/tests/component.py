@@ -15,7 +15,7 @@ def test_component(component: Component) -> None:
         raise ValueError("Expected to receive an instance of Component, but "
                          f"got a '{type(component)}'.")
 
-    name = component.get_name()
+    name = str(component)
     if not isinstance(name, str):
         raise ValueError(
             f"get_name() must return a string, but returns a '{type(name)}'.")
@@ -27,15 +27,9 @@ def test_component(component: Component) -> None:
             f" sanitized, but returned '{name}',"
             f" which becomes '{clean_name}'.")
 
-    strstr = str(component)
-    if strstr != name:
-        raise ValueError(
-            f"str(component) must equal get_name(), but got '{strstr}' "
-            f"vs. '{name}'.")
-
     strstr = repr(component)
     if strstr != name:
-        raise ValueError("repr(component) must equal get_name(), but got '"
+        raise ValueError("repr(component) must equal __str__(), but got '"
                          f"{strstr}' vs. '{name}'.")
 
     with InMemoryLogger() as log:

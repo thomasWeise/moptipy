@@ -124,5 +124,5 @@ class _ProcessNoSSLog(_ProcessNoSS):
         self.__log = None
         super()._write_log(logger)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         return "LoggingProcessWithoutSearchSpace"

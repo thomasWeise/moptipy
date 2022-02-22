@@ -106,14 +106,14 @@ class IntSpace(_NPArraySpace):
         """
         return (self.max_value - self.min_value + 1) ** self.dimension
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this integer space.
 
         :return: "ints" + dimension + dtype.char + min_value + "-" + max_value
         :rtype: int
 
-        >>> print(IntSpace(4, -1, 3).get_name())
+        >>> print(IntSpace(4, -1, 3))
         ints4b-1-3
         """
         return f"ints{self.dimension}{self.dtype.char}" \

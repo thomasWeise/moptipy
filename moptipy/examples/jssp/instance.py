@@ -266,7 +266,7 @@ class Instance(Component, np.ndarray):
         obj.makespan_upper_bound = ms_upper_bound
         return obj
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this JSSP instance.
 
@@ -414,7 +414,7 @@ class Instance(Component, np.ndarray):
         4
         >>> print(jssp.machines)
         5
-        >>> print(jssp.get_name())
+        >>> print(jssp)
         demo
         """
         with resources.open_text(package=str(__package__),

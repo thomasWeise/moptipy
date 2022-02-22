@@ -58,7 +58,7 @@ class Makespan(Objective):
         """
         return self.__instance.makespan_upper_bound
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of the makespan objective function.
 

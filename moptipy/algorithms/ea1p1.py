@@ -54,11 +54,11 @@ class EA1p1(Algorithm1):
                 best_f = new_f  # use its objective value
                 copy(best_x, new_x)  # and copy it to best_x
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this (1+1)-EA.
 
         :return: "ea1p1" + any non-standard operator suffixes
         :rtype: str
         """
-        return f"ea1p1{super().get_name()}"
+        return f"ea1p1{super().__str__()}"

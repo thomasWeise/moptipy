@@ -67,7 +67,7 @@ class OneMax(Objective):
         """
         return self.__ub
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of the onemax objective function.
 

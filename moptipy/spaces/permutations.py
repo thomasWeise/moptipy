@@ -68,14 +68,14 @@ class Permutations(IntSpace):
         """
         return factorial(self.dimension)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this permutation space.
 
         :return: "perm" + dimension
         :rtype: str
 
-        >>> print(Permutations(5).get_name())
+        >>> print(Permutations(5))
         perm5
         """
         return f"perm{self.dimension}"

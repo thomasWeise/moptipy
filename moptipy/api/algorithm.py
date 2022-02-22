@@ -48,9 +48,9 @@ class Algorithm0(Algorithm):
                             f"{type(op0_is_default)}.")
         #: The internal name suffix
         self._name_suffix: str = "" if op0_is_default else \
-            f"{logging.PART_SEPARATOR}{op0.get_name()}"
+            f"{logging.PART_SEPARATOR}{op0}"
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the suffix for the name of the algorithm by subclasses.
 
@@ -97,7 +97,7 @@ class Algorithm1(Algorithm0):
                             f"{type(op1_is_default)}.")
         #: the internal name suffix
         self._name_suffix += ("" if op1_is_default else
-                              f"{logging.PART_SEPARATOR}{op1.get_name()}")
+                              f"{logging.PART_SEPARATOR}{op1}")
 
     def log_parameters_to(self, logger: KeyValueSection):
         """
@@ -144,7 +144,7 @@ class Algorithm2(Algorithm1):
                             f"{type(op2_is_default)}.")
         #: the internal name suffix
         self._name_suffix += ("" if op2_is_default else
-                              f"{logging.PART_SEPARATOR}{op2.get_name()}")
+                              f"{logging.PART_SEPARATOR}{op2}")
 
     def log_parameters_to(self, logger: KeyValueSection):
         """

@@ -47,11 +47,11 @@ class RandomWalk(Algorithm1):
             op1(random, new_x, old_x)  # new_x = neighbor of old_x
             evaluate(new_x)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this random walk.
 
         :return: "rw" + any non-standard operator suffixes
         :rtype: str
         """
-        return f"rw{super().get_name()}"
+        return f"rw{super().__str__()}"

@@ -247,12 +247,12 @@ class GanttSpace(Space):
             raise ValueError(
                 f"Makespan {maxtime} computed, which is smaller than the "
                 f"lower bound {inst.makespan_lower_bound} of the JSSP "
-                f"instance '{inst.get_name()}'.")
+                f"instance '{inst}'.")
         if maxtime > inst.makespan_upper_bound:
             raise ValueError(
                 f"Makespan {maxtime} computed, which is larger than the "
                 f"upper bound {inst.makespan_upper_bound} of the JSSP "
-                f"instance '{inst.get_name()}'.")
+                f"instance '{inst}'.")
 
     def n_points(self) -> int:
         """
@@ -266,7 +266,7 @@ class GanttSpace(Space):
         """
         return gantt_space_size(self.instance.jobs, self.instance.machines)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of the Gantt space.
 
@@ -274,10 +274,10 @@ class GanttSpace(Space):
         :rtype: str
 
         >>> space = GanttSpace(Instance.from_resource("abz7"))
-        >>> print(space.get_name())
+        >>> print(space)
         gantt_abz7
         """
-        return f"gantt_{self.instance.get_name()}"
+        return f"gantt_{self.instance}"
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """

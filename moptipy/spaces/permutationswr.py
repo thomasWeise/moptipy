@@ -137,7 +137,7 @@ class PermutationsWithRepetitions(IntSpace):
         return permutations_with_repetitions_space_size(
             self.n, self.repetitions)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this space.
 

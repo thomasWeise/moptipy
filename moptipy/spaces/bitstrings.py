@@ -81,14 +81,14 @@ class BitStrings(_NPArraySpace):
         """
         return 1 << self.dimension  # = 2 ** self.dimension
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this space.
 
         :return: "bits" + dimension
         :rtype: str
 
-        >>> print(BitStrings(5).get_name())
+        >>> print(BitStrings(5))
         bits5
         """
         return f"bits{self.dimension}"

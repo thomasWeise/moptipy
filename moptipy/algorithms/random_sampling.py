@@ -31,11 +31,11 @@ class RandomSampling(Algorithm0):
             op0(random, x)  # sample a random solution
             evaluate(x)  # evaluate its quality... but ignore this info
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this random sampler.
 
         :return: "rs" + any non-standard operator suffixes
         :rtype: str
         """
-        return f"rs{super().get_name()}"
+        return f"rs{super().__str__()}"

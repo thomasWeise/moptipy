@@ -303,5 +303,5 @@ class _ProcessNoSS(_ProcessBase):
             if log_error:
                 raise log_error
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         return "ProcessWithoutSearchSpace"

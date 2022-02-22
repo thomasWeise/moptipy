@@ -11,7 +11,7 @@ from moptipy.utils.temp import TempFile
 def test_int():
     f = BitStrings(12)
     assert isinstance(f, Space)
-    assert f.get_name() == "bits12"
+    assert str(f) == "bits12"
 
     a = f.create()
     assert isinstance(a, np.ndarray)

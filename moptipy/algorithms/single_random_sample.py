@@ -18,11 +18,11 @@ class SingleRandomSample(Algorithm0):
         self.op0.op0(process.get_random(), x)  # randomize contents
         process.evaluate(x)  # evaluate quality
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this single random sampler.
 
         :return: "1rs" + any non-standard operator suffixes
         :rtype: str
         """
-        return f"1rs{super().get_name()}"
+        return f"1rs{super().__str__()}"

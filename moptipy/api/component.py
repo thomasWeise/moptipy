@@ -9,31 +9,14 @@ from moptipy.utils.types import classname
 class Component:
     """The base class for all components of the moptipy API."""
 
-    def get_name(self) -> str:
-        """
-        Get the canonical name of this component.
-
-        :return: the canonical name of this component
-        :rtype: str
-        """
-
-    def __str__(self):
-        """
-        Get the string representation of this object.
-
-        :return: the value returned by :meth:`get_name`
-        :rtype: str
-        """
-        return self.get_name()
-
     def __repr__(self):
         """
         Get the string representation of this object.
 
-        :return: the value returned by :meth:`get_name`
+        :return: the value returned by :meth:`__str__`
         :rtype: str
         """
-        return self.get_name()
+        return self.__str__()
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         """
@@ -41,7 +24,7 @@ class Component:
 
         :param moptipy.utils.KeyValueSection logger: the logger
         """
-        logger.key_value(logging.KEY_NAME, self.get_name())
+        logger.key_value(logging.KEY_NAME, self.__str__())
         logger.key_value(logging.KEY_CLASS, classname(self))
 
 
@@ -68,7 +51,7 @@ class _CallableComponent(Component):
         #: the name of the component
         self.__name: Final[str] = logging.sanitize_name(name)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this component.
 

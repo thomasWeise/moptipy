@@ -13,7 +13,7 @@ from moptipy.utils.temp import TempFile
 def test_int():
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
-    assert f.get_name() == "ints12b3-32"
+    assert str(f) == "ints12b3-32"
 
     a = f.create()
     assert isinstance(a, np.ndarray)

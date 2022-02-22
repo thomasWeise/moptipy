@@ -147,7 +147,7 @@ class Process(Space, Objective, ContextManager):
         :raises ValueError: if no FE was performed yet
         """
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this process implementation.
 

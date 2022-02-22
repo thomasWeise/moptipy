@@ -162,7 +162,7 @@ class _ProcessBase(Process):
         with logger.scope(logging.SCOPE_PROCESS) as sc:
             self._log_own_parameters(sc)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this process implementation.
 

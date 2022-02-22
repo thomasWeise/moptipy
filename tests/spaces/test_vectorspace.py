@@ -11,7 +11,7 @@ from moptipy.utils.temp import TempFile
 def test_vectors():
     f = VectorSpace(12)
     assert isinstance(f, Space)
-    assert f.get_name() == "vector12d"
+    assert str(f) == "vector12d"
 
     a = f.create()
     assert isinstance(a, np.ndarray)

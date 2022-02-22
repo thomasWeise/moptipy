@@ -125,5 +125,5 @@ class _ProcessSSLog(_ProcessSS):
         self.__log = None
         super()._write_log(logger)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         return "LoggingProcessWithSearchSpace"

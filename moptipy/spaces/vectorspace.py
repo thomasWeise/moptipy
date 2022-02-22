@@ -94,14 +94,14 @@ class VectorSpace(_NPArraySpace):
         base = 2 * ((2 ** exponent) - 1) * (2 ** mantissa) - 1
         return base ** self.dimension
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this space.
 
         :return: "vector" + dimension + dtype.char
         :rtype: str
 
-        >>> print(VectorSpace(3, np.dtype(np.float64)).get_name())
+        >>> print(VectorSpace(3, np.dtype(np.float64)))
         vector3d
         """
         return f"vector{self.dimension}{self.dtype.char}"

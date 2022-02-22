@@ -142,5 +142,5 @@ class _ProcessSS(_ProcessNoSS):
         """Validate x, if it exists."""
         self._search_space.validate(self._current_best_x)
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         return "ProcessWithSearchSpace"

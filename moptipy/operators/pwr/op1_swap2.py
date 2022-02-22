@@ -36,7 +36,7 @@ class Op1Swap2(operators.Op1):
                 dest[i1] = v2
                 return
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this unary operator.
 

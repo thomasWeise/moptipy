@@ -18,7 +18,6 @@ def test_pure_callable_objective_function():
 
     assert f.evaluate(7) == 5
     assert str(f) == "unnamed_function"
-    assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == +inf
     assert f.lower_bound() == -inf
 
@@ -39,7 +38,6 @@ def test_callable_objective_function_bounds():
     assert isinstance(f, Component)
     assert f.evaluate(7) == 13
     assert str(f) == "unnamed_function"
-    assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == +inf
     assert f.lower_bound() == 7
     tst.test_objective(f, lambda: 3)
@@ -49,7 +47,6 @@ def test_callable_objective_function_bounds():
     assert isinstance(f, Component)
     assert f.evaluate(7) == 3
     assert str(f) == "unnamed_function"
-    assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == 7
     assert f.lower_bound() == -inf
     tst.test_objective(f, lambda: 3)
@@ -59,7 +56,6 @@ def test_callable_objective_function_bounds():
     assert isinstance(f, Component)
     assert f.evaluate(7) == -3
     assert str(f) == "unnamed_function"
-    assert f.get_name() == "unnamed_function"
     assert f.upper_bound() == 7
     assert f.lower_bound() == -4
     tst.test_objective(f, lambda: 3)
@@ -82,13 +78,10 @@ def test_callable_objective_function_bounds():
 def test_named_callable_objective_function():
     f = CallableObjective(lambda x: -3, name="hallo")
     assert str(f) == "hallo"
-    assert f.get_name() == "hallo"
     f = CallableObjective(lambda x: -3, name=" hallo")
     assert str(f) == "hallo"
-    assert f.get_name() == "hallo"
     f = CallableObjective(lambda x: -3, name="hallo ")
     assert str(f) == "hallo"
-    assert f.get_name() == "hallo"
     tst.test_objective(f, lambda: 3)
 
     with raises(ValueError):

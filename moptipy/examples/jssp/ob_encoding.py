@@ -110,7 +110,7 @@ class OperationBasedEncoding(Encoding):
         decode(x, self.__machine_idx, self.__job_time,  # +book
                self.__job_idx, self.__instance, y)  # +book
 
-    def get_name(self) -> str:
+    def __str__(self) -> str:
         """
         Get the name of this encoding.
 
