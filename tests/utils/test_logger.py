@@ -11,6 +11,7 @@ from moptipy.utils.temp import TempFile
 
 
 def test_log_files():
+    """Test the generation of log files."""
     with TempFile.create() as path:
         with FileLogger(path) as log:
             with log.csv("A", ["x", "y"]) as xsv:

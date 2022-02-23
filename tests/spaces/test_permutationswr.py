@@ -3,7 +3,8 @@ import moptipy.tests.space as tst
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 
 
-def test_permutations():
+def test_permutations_with_repetitions():
+    """Test the permutations with repetitions."""
     tst.test_space(PermutationsWithRepetitions(10, 1))
     tst.test_space(PermutationsWithRepetitions(2, 1))
     tst.test_space(PermutationsWithRepetitions(2, 12))

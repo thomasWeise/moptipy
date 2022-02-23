@@ -10,10 +10,12 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_int():
+def test_int_space():
+    """Test the integer space."""
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
     assert str(f) == "ints12b3-32"
+    tst.test_space(f)
 
     a = f.create()
     assert isinstance(a, np.ndarray)
@@ -59,5 +61,3 @@ def test_int():
 
     a = f.from_str(text)
     assert f.is_equal(a, b)
-
-    tst.test_space(f)

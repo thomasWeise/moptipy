@@ -1,4 +1,4 @@
-"""Test the interaction with the file system."""
+"""Test the interaction with the file system and temp files."""
 from io import open
 from os.path import isfile, isdir, exists, dirname, basename, getsize, join
 
@@ -10,6 +10,7 @@ from moptipy.utils.temp import TempFile, TempDir
 
 
 def test_temp_file():
+    """Test the creation and deletion of temporary files."""
     with TempFile.create() as path:
         assert isinstance(path, str)
         assert len(path) > 0
@@ -31,6 +32,7 @@ def test_temp_file():
 
 
 def test_temp_dir():
+    """Test the creation and deletion of temporary directories."""
     with TempDir.create() as path:
         assert isinstance(path, str)
         assert len(path) > 0

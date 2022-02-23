@@ -33,7 +33,7 @@ def onemax(x: np.ndarray) -> int:
 
 
 class OneMax(Objective):
-    """This objective function returns the number of ones in a bit string."""
+    """Maximize the number of ones in a bit string."""
 
     def __init__(self, space: BitStrings) -> None:  # +book
         """

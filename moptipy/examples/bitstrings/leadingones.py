@@ -37,7 +37,7 @@ def leadingones(x: np.ndarray) -> int:
 
 
 class LeadingOnes(Objective):
-    """This objective function returns the leading ones in a bit string."""
+    """Maximize the number of leadings ones in a bit string."""
 
     def __init__(self, space: BitStrings) -> None:  # +book
         """

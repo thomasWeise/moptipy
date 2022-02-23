@@ -3,6 +3,7 @@ from moptipy.utils.cache import is_new
 
 
 def test_is_new():
+    """Test the is_new function."""
     is_new_1 = is_new()
     assert not (is_new_1 is None)
     is_new_2 = is_new()

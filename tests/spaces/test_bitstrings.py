@@ -8,15 +8,18 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_int():
+def test_bit_strings():
+    """Test the bit strings search space."""
     f = BitStrings(12)
     assert isinstance(f, Space)
     assert str(f) == "bits12"
+    tst.test_space(f)
 
     a = f.create()
     assert isinstance(a, np.ndarray)
     assert len(a) == 12
     assert a.dtype == np.dtype(np.bool_)
+    assert all([not b for b in a])
 
     for i in range(len(a)):
         a[i] = (i & 1) == 0
@@ -47,5 +50,3 @@ def test_int():
 
     a = f.from_str(text)
     assert f.is_equal(a, b)
-
-    tst.test_space(f)

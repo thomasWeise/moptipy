@@ -8,7 +8,8 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_vectors():
+def test_vector_space():
+    """Test the vector space."""
     f = VectorSpace(12)
     assert isinstance(f, Space)
     assert str(f) == "vector12d"
