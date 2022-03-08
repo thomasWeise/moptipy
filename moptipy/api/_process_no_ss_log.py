@@ -59,6 +59,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
         self.__log_all: Final[bool] = log_all_fes
         #: The in-memory log
         self.__log: List[Tuple[int, int, Union[int, float]]] = []
+        #: the quick access to the log appending method
+        self.__log_append = self.__log.append
 
     def evaluate(self, x) -> Union[float, int]:
         """
@@ -104,7 +106,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
                     int((monotonic_ns() + 999_999) // 1_000_000)
                 if ctm >= self._end_time_millis:
                     do_term = True
-            self.__log.append((current_fes,
+            self.__log_append((current_fes,
                                ctm - self._start_time_millis,
                                result))
 
