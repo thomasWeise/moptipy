@@ -10,6 +10,34 @@ from moptipy.api.process import Process, check_goal_f, check_max_fes, \
 from moptipy.utils.logger import KeyValueSection
 
 
+def _ns_to_ms(nanos: int) -> int:
+    """
+    Convert nanoseconds to milliseconds by rounding up.
+
+    :param int nanos: the nano seconds
+    :returns: the corresponding milliseconds, rounded up
+    :rtype: int
+
+    >>> _ns_to_ms(0)
+    0
+    >>> _ns_to_ms(1)
+    1
+    >>> _ns_to_ms(999_999)
+    1
+    >>> _ns_to_ms(1_000_000)
+    1
+    >>> _ns_to_ms(1_000_001)
+    2
+    >>> _ns_to_ms(1_999_999)
+    2
+    >>> _ns_to_ms(2_000_000)
+    2
+    >>> _ns_to_ms(2_000_001)
+    3
+    """
+    return (nanos + 999_999) // 1_000_000
+
+
 class _ProcessBase(Process):
     """The internal base class for implementing optimization processes."""
 
@@ -32,8 +60,8 @@ class _ProcessBase(Process):
         self._terminated: bool = False  # +book
         #: This becomes `True` when :meth:`should_terminate` returned `True`.
         self._knows_that_terminated: bool = False
-        #: The time when the process was started, in milliseconds.
-        self._start_time_millis: Final[int] = int(monotonic_ns() // 1_000_000)
+        #: The time when the process was started, in nanoseconds.
+        self._start_time_nanos: Final[int] = monotonic_ns()
         #: The internal lock, needed to protect :meth:`terminate`.
         self.__lock: Final[Lock] = Lock()
         #: The maximum FEs.
@@ -47,21 +75,25 @@ class _ProcessBase(Process):
         #: A comparable version of :attr:`self._goal_f`.
         self._end_f: Final[Union[int, float]] = \
             -inf if (self._goal_f is None) else self._goal_f
-        #: The currently consumed milliseconds.
-        self._current_time_millis: int = 0
+        #: The currently consumed nanoseconds.
+        self._current_time_nanos: int = 0
         #: The currently consumed objective function evaluations (FEs).
         self._current_fes: int = 0
-        #: The time (in milliseconds) when the last improvement was made.
-        self._last_improvement_time_millis: int = -1
+        #: The time (in nanoseconds) when the last improvement was made.
+        self._last_improvement_time_nanos: int = -1
         #: The FE when the last improvement was made.
         self._last_improvement_fe: int = -1
         #: The maximum runtime in milliseconds.
         self._max_time_millis: Final[Optional[int]] = \
             check_max_time_millis(max_time_millis, True)
-        #: A comparable version of :attr:`_max_time_millis`.
-        self._end_time_millis: Final[Union[float, int]] = \
+        #: A comparable version of :attr:`_max_time_millis`, but representing
+        #: the end time in nanoseconds rounded to the next highest
+        #: millisecond.
+        self._end_time_nanos: Final[Union[float, int]] = \
             inf if (self._max_time_millis is None) else \
-            int(self._start_time_millis + self._max_time_millis)
+            _ns_to_ms(int(self._start_time_nanos
+                          + (1_000_000 * self._max_time_millis))) \
+            * 1_000_000
         #: The timer until the end-of-run, or `None` if there is no end time.
         self.__timer: Final[Optional[Timer]] = None \
             if (self._max_time_millis is None) else \
@@ -88,11 +120,10 @@ class _ProcessBase(Process):
 
     def get_consumed_time_millis(self) -> int:
         if not self._terminated:
-            self._current_time_millis = int((monotonic_ns() + 999_999)
-                                            // 1_000_000)
-            if self._current_time_millis >= self._end_time_millis:
+            self._current_time_nanos = time = monotonic_ns()
+            if time >= self._end_time_nanos:
                 self.terminate()
-        return self._current_time_millis - self._start_time_millis
+        return _ns_to_ms(self._current_time_nanos - self._start_time_nanos)
 
     def get_max_time_millis(self) -> Optional[int]:
         return self._max_time_millis
@@ -107,10 +138,11 @@ class _ProcessBase(Process):
         return self._last_improvement_fe
 
     def get_last_improvement_time_millis(self) -> int:
-        if self._last_improvement_time_millis < 0:
+        if self._last_improvement_time_nanos < 0:
             raise ValueError("Did not perform FE yet, cannot query "
                              "last improvement time.")
-        return self._last_improvement_time_millis - self._start_time_millis
+        return _ns_to_ms(self._last_improvement_time_nanos
+                         - self._start_time_nanos)
 
     def terminate(self) -> None:
         with self.__lock:
@@ -120,8 +152,7 @@ class _ProcessBase(Process):
                 return
             if not (self.__timer is None):
                 self.__timer.cancel()
-            self._current_time_millis = int((monotonic_ns() + 999_999)
-                                            // 1_000_000)
+            self._current_time_nanos = monotonic_ns()
 
     def get_copy_of_current_best_y(self, y) -> None:
         """

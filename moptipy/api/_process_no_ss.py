@@ -9,7 +9,7 @@ from typing import Optional, Union, Final, Callable
 from numpy.random import Generator
 
 from moptipy.api import logging
-from moptipy.api._process_base import _ProcessBase
+from moptipy.api._process_base import _ProcessBase, _ns_to_ms
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space, check_space
@@ -183,10 +183,9 @@ class _ProcessNoSS(_ProcessBase):
         if (current_fes <= 1) or (result < self._current_best_f):
             self._last_improvement_fe = current_fes
             self._current_best_f = result
-            self._current_time_millis = ctm = int((monotonic_ns() + 999_999)
-                                                  // 1_000_000)
-            self._last_improvement_time_millis = ctm
-            if ctm >= self._end_time_millis:
+            self._current_time_nanos = ctn = monotonic_ns()
+            self._last_improvement_time_nanos = ctn
+            if ctn >= self._end_time_nanos:
                 do_term = True
             self._copy_y(self._current_best_y, x)
             self._has_current_best = True
@@ -234,15 +233,15 @@ class _ProcessNoSS(_ProcessBase):
         with logger.key_values(logging.SECTION_FINAL_STATE) as kv:
             kv.key_value(logging.KEY_TOTAL_FES, self._current_fes)
             kv.key_value(logging.KEY_TOTAL_TIME_MILLIS,
-                         self._current_time_millis
-                         - self._start_time_millis)
+                         _ns_to_ms(self._current_time_nanos
+                                   - self._start_time_nanos))
             if self._has_current_best:
                 kv.key_value(logging.KEY_BEST_F, self._current_best_f)
                 kv.key_value(logging.KEY_LAST_IMPROVEMENT_FE,
                              self._last_improvement_fe)
                 kv.key_value(logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                             self._last_improvement_time_millis
-                             - self._start_time_millis)
+                             _ns_to_ms(self._last_improvement_time_nanos
+                                       - self._start_time_nanos))
 
         with logger.key_values(logging.SECTION_SETUP) as kv:
             self.log_parameters_to(kv)
@@ -274,8 +273,7 @@ class _ProcessNoSS(_ProcessBase):
             x_error = be
 
         if self.__log_file is not None:
-            self._current_time_millis = int((monotonic_ns() + 999_999)
-                                            // 1_000_000)
+            self._current_time_nanos = monotonic_ns()
             with FileLogger(self.__log_file) as logger:
                 try:
                     self._write_log(logger)

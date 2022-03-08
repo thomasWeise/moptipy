@@ -4,6 +4,7 @@ from time import monotonic_ns
 from typing import Optional, Union, List, Tuple, Final
 
 from moptipy.api import logging
+from moptipy.api._process_base import _ns_to_ms
 from moptipy.api._process_ss import _ProcessSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
@@ -81,7 +82,7 @@ class _ProcessSSLog(_ProcessSS):
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all
-        ctm: int = 0
+        ctn: int = 0
 
         if (current_fes <= 1) or (result < self._current_best_f):
             # noinspection PyAttributeOutsideInit
@@ -89,10 +90,9 @@ class _ProcessSSLog(_ProcessSS):
             self._current_best_f = result
             self.copy(self._current_best_x, x)
             self._copy_y(self._current_best_y, current_y)
-            self._current_time_millis = ctm = int((monotonic_ns() + 999_999)
-                                                  // 1_000_000)
-            self._last_improvement_time_millis = ctm
-            if ctm >= self._end_time_millis:
+            self._current_time_nanos = ctn = monotonic_ns()
+            self._last_improvement_time_nanos = ctn
+            if ctn >= self._end_time_nanos:
                 do_term = True
 
             # noinspection PyAttributeOutsideInit
@@ -102,13 +102,12 @@ class _ProcessSSLog(_ProcessSS):
                 do_term = True
 
         if do_log and (not (self.__log is None)):
-            if ctm <= 0:
-                self._current_time_millis = ctm = \
-                    int((monotonic_ns() + 999_999) // 1_000_000)
-                if ctm >= self._end_time_millis:
+            if ctn <= 0:
+                self._current_time_nanos = ctn = monotonic_ns()
+                if ctn >= self._end_time_nanos:
                     do_term = True
             self.__log_append((current_fes,
-                               ctm - self._start_time_millis,
+                               ctn - self._start_time_nanos,
                                result))
 
         if do_term:
@@ -123,7 +122,7 @@ class _ProcessSSLog(_ProcessSS):
                              logging.PROGRESS_TIME_MILLIS,
                              logging.PROGRESS_CURRENT_F]) as csv:
                 for row in self.__log:
-                    csv.row(row)
+                    csv.row((row[0], _ns_to_ms(row[1]), row[2]))
         self.__log = None
         super()._write_log(logger)
 
