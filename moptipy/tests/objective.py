@@ -1,5 +1,6 @@
 """Functions that can be used to test objective functions."""
 from typing import Callable, Optional
+from math import isfinite, inf
 
 import moptipy.api.objective as mo
 from moptipy.tests.component import test_component
@@ -25,14 +26,20 @@ def test_objective(objective: mo.Objective,
     if not (isinstance(lower, (int, float))):
         raise ValueError("lower_bound() must return an int or float, but "
                          f"returned a {type(lower)}.")
+    if (not isfinite(lower)) and (not (lower <= (-inf))):
+        raise ValueError(
+            f"lower bound must be finite or -inf, but is {lower}.")
 
     upper = objective.upper_bound()
     if not (isinstance(upper, (int, float))):
         raise ValueError("upper_bound() must return an int or float, but "
                          f"returned a {type(upper)}.")
+    if (not isfinite(upper)) and (not (upper >= inf)):
+        raise ValueError(
+            f"upper bound must be finite or +inf, but is {upper}.")
 
-    if lower > upper:
-        raise ValueError("Result of lower_bound() must be <= to "
+    if lower >= upper:
+        raise ValueError("Result of lower_bound() must be smaller than "
                          f"upper_bound(), but got {lower} vs. {upper}.")
 
     if create_valid is None:
@@ -44,10 +51,15 @@ def test_objective(objective: mo.Objective,
 
     res = objective.evaluate(x)
     if not (isinstance(res, (int, float))):
-        raise ValueError("evaluate(x) must return an int or float, but "
-                         f"returned a {type(res)}.")
+        raise ValueError(f"evaluate(x) of {x} must return an int or float, "
+                         f"but returned a {type(res)}.")
 
     if (res < lower) or (res > upper):
-        raise ValueError("evaluate(x) must return a value in"
+        raise ValueError(f"evaluate(x) of {x} must return a value in"
                          "[lower_bound(), upper_bound()], but returned "
                          f"{res} vs. [{lower},{upper}].")
+
+    res2 = objective.evaluate(x)
+    if res != res2:
+        raise ValueError(f"evaluating {x} twice yielded the two different "
+                         f"results {res} and {res2}!")
