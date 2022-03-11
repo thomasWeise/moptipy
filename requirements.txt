@@ -9,7 +9,7 @@ numba >= 0.55.1
 # matplotlib is used to create plots in the evaluation procedures
 matplotlib >= 3.5.1
 
-# getting informat1in about the system configuration to enrich the log files
+# getting information about the system configuration to enrich the log files
 psutil >= 5.9.0
 
 # we need this to obtain some clusters of JSSP instances for our experiments

@@ -1,9 +1,9 @@
 """Test the bit-string space."""
 import numpy as np
 
-import moptipy.tests.space as tst
 from moptipy.api.space import Space
 from moptipy.spaces.bitstrings import BitStrings
+from moptipy.tests.space import validate_space
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
@@ -13,7 +13,7 @@ def test_bit_strings():
     f = BitStrings(12)
     assert isinstance(f, Space)
     assert str(f) == "bits12"
-    tst.test_space(f)
+    validate_space(f)
 
     a = f.create()
     assert isinstance(a, np.ndarray)

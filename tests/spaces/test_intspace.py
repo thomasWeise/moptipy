@@ -3,9 +3,9 @@ import numpy as np
 # noinspection PyPackageRequirements
 from pytest import raises
 
-import moptipy.tests.space as tst
 from moptipy.api.space import Space
 from moptipy.spaces.intspace import IntSpace
+from moptipy.tests.space import validate_space
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
@@ -15,7 +15,7 @@ def test_int_space():
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
     assert str(f) == "ints12b3-32"
-    tst.test_space(f)
+    validate_space(f)
 
     a = f.create()
     assert isinstance(a, np.ndarray)

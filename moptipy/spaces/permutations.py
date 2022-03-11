@@ -17,10 +17,9 @@ class Permutations(IntSpace):
         :param int n: the length of the permutations
         """
         super().__init__(dimension=n, min_value=0, max_value=n - 1)
-
-        self.__blueprint: Final[np.ndarray] = np.empty(
-            shape=self.dimension, dtype=self.dtype)
-        self.__blueprint[0:n] = list(range(n))
+        #: the internal blueprint array holding the canonical permutation
+        self.__blueprint: Final[np.ndarray] = np.array(
+            range(n), dtype=self.dtype)
 
     def create(self) -> np.ndarray:
         """

@@ -1,9 +1,9 @@
 """Test the space of permutations."""
-import moptipy.tests.space as tst
 from moptipy.spaces.permutations import Permutations
+from moptipy.tests.space import validate_space
 
 
 def test_permutations():
     """Test the permutation space."""
-    tst.test_space(Permutations(12))
-    tst.test_space(Permutations(1))
+    validate_space(Permutations(12))
+    validate_space(Permutations(1))

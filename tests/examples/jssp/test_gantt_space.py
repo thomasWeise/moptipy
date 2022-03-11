@@ -2,13 +2,13 @@
 
 from numpy.random import default_rng
 
-import moptipy.tests.space as sp
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.tests.space import validate_space
 
 
 def test_gantt_space():
@@ -26,4 +26,4 @@ def test_gantt_space():
             ob.map(xx, x)
             return x
 
-        sp.test_space(GanttSpace(insx), __make_valid)
+        validate_space(GanttSpace(insx), __make_valid)

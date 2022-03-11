@@ -7,7 +7,7 @@ from moptipy.api.algorithm import Algorithm1
 from moptipy.api.process import Process
 
 
-class EA1p1(Algorithm1):
+class EA1plus1(Algorithm1):
     """
     A (1+1)-EA is a simple local search accepting all non-worsening moves.
 

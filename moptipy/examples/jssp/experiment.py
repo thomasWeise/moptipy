@@ -5,7 +5,7 @@ from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any
 
 import moptipy.api.experiment as ex
-from moptipy.algorithms.ea1p1 import EA1p1
+from moptipy.algorithms.ea1plus1 import EA1plus1
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
@@ -46,7 +46,7 @@ DEFAULT_ALGORITHMS: Final[Tuple[
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
     lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
-    lambda inst, pwr: EA1p1(Op0Shuffle(pwr), Op1Swap2()),  # (1+1)-EA
+    lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),  # (1+1)-EA
     lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2())  # random walk
 )
 

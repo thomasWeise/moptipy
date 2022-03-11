@@ -6,12 +6,13 @@ from pytest import raises
 
 from moptipy.api.component import Component
 from moptipy.api.objective import CallableObjective, Objective
-import moptipy.tests.objective as tst
+from moptipy.tests.objective import validate_objective
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
 def test_pure_callable_objective_function():
+    """Test the pure callable objective function."""
     f = CallableObjective(lambda x: 5)
     assert isinstance(f, Objective)
     assert isinstance(f, Component)
@@ -29,10 +30,11 @@ def test_pure_callable_objective_function():
         # noinspection PyTypeChecker
         CallableObjective("blabla")
 
-    tst.test_objective(f, lambda: 3)
+    validate_objective(f, None, None)
 
 
 def test_callable_objective_function_bounds():
+    """Test the callable objective function with lower bounds."""
     f = CallableObjective(lambda x: 13, lower_bound=7)
     assert isinstance(f, Objective)
     assert isinstance(f, Component)
@@ -40,7 +42,7 @@ def test_callable_objective_function_bounds():
     assert str(f) == "unnamed_function"
     assert f.upper_bound() == +inf
     assert f.lower_bound() == 7
-    tst.test_objective(f, lambda: 3)
+    validate_objective(f, None, None)
 
     f = CallableObjective(lambda x: 3, upper_bound=7)
     assert isinstance(f, Objective)
@@ -49,7 +51,7 @@ def test_callable_objective_function_bounds():
     assert str(f) == "unnamed_function"
     assert f.upper_bound() == 7
     assert f.lower_bound() == -inf
-    tst.test_objective(f, lambda: 3)
+    validate_objective(f, None, None)
 
     f = CallableObjective(lambda x: -3, upper_bound=7, lower_bound=-4)
     assert isinstance(f, Objective)
@@ -58,7 +60,7 @@ def test_callable_objective_function_bounds():
     assert str(f) == "unnamed_function"
     assert f.upper_bound() == 7
     assert f.lower_bound() == -4
-    tst.test_objective(f, lambda: 3)
+    validate_objective(f, None, None)
 
     with raises(ValueError):
         CallableObjective(lambda x: -3, upper_bound=4, lower_bound=4)
@@ -76,19 +78,21 @@ def test_callable_objective_function_bounds():
 
 
 def test_named_callable_objective_function():
+    """Test the named callable objective function."""
     f = CallableObjective(lambda x: -3, name="hallo")
     assert str(f) == "hallo"
     f = CallableObjective(lambda x: -3, name=" hallo")
     assert str(f) == "hallo"
     f = CallableObjective(lambda x: -3, name="hallo ")
     assert str(f) == "hallo"
-    tst.test_objective(f, lambda: 3)
+    validate_objective(f, None, None)
 
     with raises(ValueError):
         CallableObjective(lambda x: -3, name=" ")
 
 
 def test_logged_args():
+    """Test the logged arguments of the callable objective function."""
     f = CallableObjective(lambda x: 5,
                           lower_bound=-5,
                           upper_bound=11,

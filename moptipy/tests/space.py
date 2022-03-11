@@ -1,26 +1,29 @@
 """Functions that can be used to test spaces."""
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 
 from moptipy.api.space import Space, check_space
-from moptipy.tests.component import test_component
+from moptipy.tests.component import validate_component
 
 
-def test_space(space: Space,
-               make_valid: Optional[Callable] = lambda x: x) -> None:
+def validate_space(space: Space,
+                   make_element_valid: Optional[Callable[[Any], Any]]
+                   = lambda x: x) -> None:
     """
     Check whether an object is a moptipy space.
 
     :param space: the space to test
-    :param make_valid: a method that can turn a point from the space into
-        a valid point
+    :param make_element_valid: a method that can turn a point from the
+        space into a valid point
     :raises ValueError: if `space` is not a valid Space
     """
     if not isinstance(space, Space):
         raise ValueError("Expected to receive an instance of Space, but "
                          f"got a {type(space)}.")
     check_space(space)
-    test_component(component=space)
+    validate_component(space)
 
+    if not (hasattr(space, 'create') and callable(getattr(space, 'create'))):
+        raise ValueError("space must have method create.")
     x1 = space.create()
     if x1 is None:
         raise ValueError("Spaces must create() valid objects, "
@@ -38,27 +41,47 @@ def test_space(space: Space,
         raise ValueError("The create() method must produce instances of "
                          f"the same type, but got {type(x1)} and {type(x2)}.")
 
+    if not (hasattr(space, 'copy')
+            and callable(getattr(space, 'copy'))):
+        raise ValueError("space must have method copy.")
     space.copy(x2, x1)
+
+    if not (hasattr(space, 'is_equal')
+            and callable(getattr(space, 'is_equal'))):
+        raise ValueError("space must have method is_equal.")
     if not space.is_equal(x1, x2):
         raise ValueError("space.copy(x1, x2) did not lead to "
                          "space.is_equal(x1, x2).")
 
-    if make_valid is None:
+    if make_element_valid is None:
         return
 
-    x1 = make_valid(x1)
+    x1 = make_element_valid(x1)
+
+    if not (hasattr(space, 'validate')
+            and callable(getattr(space, 'validate'))):
+        raise ValueError("space must have method validate.")
     space.validate(x1)
 
+    if not (hasattr(space, 'to_str') and callable(getattr(space, 'to_str'))):
+        raise ValueError("space must have method to_str.")
     strstr = space.to_str(x1)
     if not isinstance(strstr, str):
         raise ValueError(
             "space.to_str(x) must produce instances of str, but created "
             f"an instance of {type(strstr)}.")
-    if len(strstr.strip()) <= 0:
+    if len(strstr) <= 0:
         raise ValueError(
-            "space.to_str(x) must not produce strings just composed of white "
-            f"space, but we got '{strstr}'.")
+            "space.to_str(x) must not produce empty strings, "
+            f"but we got '{strstr}'.")
+    if strstr.strip() != strstr:
+        raise ValueError(
+            "space.to_str(x) must not include leading or trailing spaces,"
+            f" but we go '{strstr}'.")
 
+    if not (hasattr(space, 'from_str')
+            and callable(getattr(space, 'from_str'))):
+        raise ValueError("space must have method from_str.")
     x3 = space.from_str(strstr)
     if (x3 is x1) or (x3 is x2):
         raise ValueError("from_str() cannot return the same object as "

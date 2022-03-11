@@ -25,7 +25,7 @@ BEST_F: Final[int] = WORST_F - MAX_FES + 1
 
 
 def myalgorithm_1(process: Process):
-    """Perform a"""
+    """Perform a simple algorithm."""
     x = process.create()
     assert isinstance(x, np.ndarray)
     g = process.get_random()

@@ -4,33 +4,31 @@ from typing import Callable, Optional, Union
 
 import numpy.random as rnd
 
-import moptipy.api.algorithm as ma
+from moptipy.api.algorithm import Algorithm, check_algorithm, Algorithm0, \
+    Algorithm1, Algorithm2
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.api.operators import check_op0, check_op1, check_op2
 from moptipy.api.space import Space
-from moptipy.examples.bitstrings.leadingones import LeadingOnes
-from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
-from moptipy.tests.component import test_component
-from moptipy.tests.encoding import test_encoding
-from moptipy.tests.objective import test_objective
-from moptipy.tests.space import test_space
+from moptipy.tests.component import validate_component
+from moptipy.tests.encoding import validate_encoding
+from moptipy.tests.objective import validate_objective
+from moptipy.tests.space import validate_space
 
 
-def test_algorithm(algorithm: ma.Algorithm,
-                   solution_space: Optional[Space] = None,
-                   objective: Optional[Objective] = None,
-                   search_space: Optional[Space] = None,
-                   encoding: Optional[Encoding] = None,
-                   max_fes: int = 100,
-                   required_result: Optional[Union[int, float]] = None) \
+def validate_algorithm(algorithm: Algorithm,
+                       solution_space: Optional[Space] = None,
+                       objective: Optional[Objective] = None,
+                       search_space: Optional[Space] = None,
+                       encoding: Optional[Encoding] = None,
+                       max_fes: int = 100,
+                       required_result: Optional[Union[int, float]] = None) \
         -> None:
     """
     Check whether an algorithm follows the moptipy API specification.
@@ -45,24 +43,24 @@ def test_algorithm(algorithm: ma.Algorithm,
     :raises TypeError: if `algorithm` is not an Algorithm instance
     :raises ValueError: if `algorithm` does not behave like it should
     """
-    if not isinstance(algorithm, ma.Algorithm):
-        raise TypeError("Expected to receive an instance of Space, but "
+    if not isinstance(algorithm, Algorithm):
+        raise TypeError("Expected to receive an instance of Algorithm, but "
                         f"got a {type(algorithm)}.")
 
-    ma.check_algorithm(algorithm)
-    if isinstance(algorithm, ma.Algorithm0):
+    check_algorithm(algorithm)
+    if isinstance(algorithm, Algorithm0):
         check_op0(algorithm.op0)
-        if isinstance(algorithm, ma.Algorithm1):
+        if isinstance(algorithm, Algorithm1):
             check_op1(algorithm.op1)
-            if isinstance(algorithm, ma.Algorithm2):
+            if isinstance(algorithm, Algorithm2):
                 check_op2(algorithm.op2)
 
-    test_component(component=algorithm)
-    test_space(solution_space, make_valid=None)
-    test_objective(objective, create_valid=None)
-    if not (encoding is None):
-        test_encoding(encoding, make_search_space_valid=None)
-        test_space(search_space, make_valid=None)
+    validate_component(algorithm)
+    validate_space(solution_space, None)
+    validate_objective(objective, None, None)
+    if encoding is not None:
+        validate_encoding(encoding, None, None, None)
+        validate_space(search_space, None)
 
     if not isinstance(max_fes, int):
         raise ValueError(
@@ -156,10 +154,19 @@ def test_algorithm(algorithm: ma.Algorithm,
                 f"Inconsistent objective value {res_f} from process compared "
                 f"to {check_f} from objective function.")
 
+        if search_space is not None:
+            x = search_space.create()
+            process.get_copy_of_current_best_x(x)
+            search_space.validate(x)
 
-def test_algorithm_on_jssp(algorithm: Callable,
-                           instance: Optional[str] = None,
-                           max_fes: int = 100) -> None:
+
+def validate_algorithm_on_1_jssp(
+        algorithm: Union[Algorithm,
+                         Callable[[Instance, PermutationsWithRepetitions],
+                                  Algorithm]],
+        instance: Optional[str] = None,
+        max_fes: int = 100,
+        required_result: Optional[Union[int, float]] = None) -> None:
     """
     Check the validity of a black-box algorithm on the JSSP.
 
@@ -167,11 +174,12 @@ def test_algorithm_on_jssp(algorithm: Callable,
     :param Optional[str] instance: the instance name, or `None` to randomly
         pick one
     :param int max_fes: the maximum number of FEs
+    :param required_result: the optional required result quality
     """
-    if not callable(algorithm):
+    if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
         raise TypeError(
-            "'algorithm' parameter must be a callable that instantiates"
-            "an algorithm for a given JSSP instance, but got a "
+            "'algorithm' parameter must be an Algorithm or a callable that"
+            "instantiates an algorithm for a given JSSP instance, but got a "
             f"{type(algorithm)} instead.")
 
     if instance is None:
@@ -187,8 +195,9 @@ def test_algorithm_on_jssp(algorithm: Callable,
 
     search_space = PermutationsWithRepetitions(inst.jobs,
                                                inst.machines)
-    algorithm = algorithm(inst, search_space)
-    if not isinstance(algorithm, ma.Algorithm):
+    if callable(algorithm):
+        algorithm = algorithm(inst, search_space)
+    if not isinstance(algorithm, Algorithm):
         raise ValueError(
             "'algorithm' parameter must be a callable that instantiates "
             f"an algorithm for JSSP instance '{instance}', but it created a "
@@ -198,81 +207,31 @@ def test_algorithm_on_jssp(algorithm: Callable,
     encoding = OperationBasedEncoding(inst)
     objective = Makespan(inst)
 
-    test_algorithm(algorithm=algorithm,
-                   solution_space=solution_space,
-                   objective=objective,
-                   search_space=search_space,
-                   encoding=encoding,
-                   max_fes=max_fes)
+    validate_algorithm(algorithm=algorithm,
+                       solution_space=solution_space,
+                       objective=objective,
+                       search_space=search_space,
+                       encoding=encoding,
+                       max_fes=max_fes,
+                       required_result=(objective.upper_bound() - 1)
+                       if required_result is None else required_result)
 
 
-def test_algorithm_on_onemax(algorithm: Callable) -> None:
+def validate_algorithm_on_jssp(
+        algorithm: Callable[[Instance, PermutationsWithRepetitions],
+                            Algorithm]) -> None:
     """
-    Check the validity of a black-box algorithm on onemax.
+    Validate an algorithm on a set of JSSP instances.
 
     :param Callable algorithm: the algorithm factory
     """
-    if not callable(algorithm):
-        raise TypeError(
-            "'algorithm' parameter must be a callable that instantiates"
-            "an algorithm for a given BitStrings instance, but got a "
-            f"{type(algorithm)} instead.")
-
-    for xlen in range(2, 10):
-        space = BitStrings(xlen)
-        onemax = OneMax(space)
-
-        algorithm = algorithm(space)
-        if not isinstance(algorithm, ma.Algorithm):
-            raise ValueError(
-                "'algorithm' parameter must be a callable that instantiates "
-                f"an algorithm for problem '{onemax}', but it created a "
-                f"'{type(algorithm)}' instead.")
-
-        max_fes = 3 ** (xlen + 2)
-        required_result = 0
-        if max_fes > 10000:
-            max_fes = 10000
-            required_result = None
-
-        test_algorithm(algorithm=algorithm,
-                       solution_space=space,
-                       objective=onemax,
-                       max_fes=max_fes,
-                       required_result=required_result)
-
-
-def test_algorithm_on_leadingones(algorithm: Callable) -> None:
-    """
-    Check the validity of a black-box algorithm on leadingones.
-
-    :param Callable algorithm: the algorithm factory
-    """
-    if not callable(algorithm):
-        raise TypeError(
-            "'algorithm' parameter must be a callable that instantiates"
-            "an algorithm for a given BitStrings instance, but got a "
-            f"{type(algorithm)} instead.")
-
-    for xlen in range(2, 5):
-        space = BitStrings(xlen)
-        leadingones = LeadingOnes(space)
-
-        algorithm = algorithm(space)
-        if not isinstance(algorithm, ma.Algorithm):
-            raise ValueError(
-                "'algorithm' parameter must be a callable that instantiates "
-                f"an algorithm for problem '{leadingones}', but it created a "
-                f"'{type(algorithm)}' instead.")
-
-        max_fes = 3 ** (xlen + 3)
-        required_result = 0
-        if max_fes > 10000:
-            max_fes = 10000
-            required_result = None
-
-        test_algorithm(algorithm=algorithm,
-                       solution_space=space,
-                       objective=leadingones,
-                       max_fes=max_fes,
-                       required_result=required_result)
+    validate_algorithm_on_1_jssp(algorithm, "demo", 200, 190)
+    validate_algorithm_on_1_jssp(algorithm, "abz7", 100)
+    validate_algorithm_on_1_jssp(algorithm, "la37", 100)
+    validate_algorithm_on_1_jssp(algorithm, "orb07", 100)
+    validate_algorithm_on_1_jssp(algorithm, "yn3", 100)
+    validate_algorithm_on_1_jssp(algorithm, "swv13", 100)
+    validate_algorithm_on_1_jssp(algorithm, "dmu66", 100)
+    validate_algorithm_on_1_jssp(algorithm, "dmu73", 100)
+    validate_algorithm_on_1_jssp(algorithm, "ta71", 100)
+    validate_algorithm_on_1_jssp(algorithm, "ta69", 100)
