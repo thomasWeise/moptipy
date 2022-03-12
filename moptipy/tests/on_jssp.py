@@ -66,7 +66,7 @@ def validate_algorithm_on_1_jssp(
     """
     Check the validity of a black-box algorithm on the JSSP.
 
-    :param Callable algorithm: the algorithm factory
+    :param algorithm: the algorithm or algorithm factory
     :param Optional[str] instance: the instance name, or `None` to randomly
         pick one
     :param int max_fes: the maximum number of FEs

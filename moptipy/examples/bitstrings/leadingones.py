@@ -5,7 +5,6 @@ import numba  # type: ignore
 import numpy as np
 
 from moptipy.api.objective import Objective
-from moptipy.spaces.bitstrings import BitStrings
 
 
 @numba.njit(nogil=True, cache=True)
@@ -39,18 +38,18 @@ def leadingones(x: np.ndarray) -> int:
 class LeadingOnes(Objective):
     """Maximize the number of leadings ones in a bit string."""
 
-    def __init__(self, space: BitStrings) -> None:  # +book
+    def __init__(self, dimension: int) -> None:  # +book
         """
         Initialize the leading ones objective function.
 
-        :param BitStrings space: the bit string space
+        :param int dimension: the dimension of the problem
         """
         super().__init__()
-        if not isinstance(space, BitStrings):
+        if not isinstance(dimension, int):
             raise TypeError(
-                f"Must provide BitStrings, but got '{type(space)}'.")
+                f"Must provide int dimension, but got '{type(dimension)}'.")
         #: the upper bound = the length of the bit strings
-        self.__ub: Final[int] = space.dimension
+        self.__ub: Final[int] = dimension
         self.evaluate = leadingones  # type: ignore
 
     def lower_bound(self) -> int:

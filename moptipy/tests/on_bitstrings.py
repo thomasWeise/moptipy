@@ -1,13 +1,32 @@
 """Test stuff on bit strings."""
 
-from typing import Callable, Union, Iterable, List, Optional, Dict, Any, cast
+from typing import Callable, Union, Iterable, List, Optional, Dict, Any, \
+    cast, Final
 
 from numpy.random import default_rng
 
+from moptipy.api.algorithm import Algorithm
+from moptipy.api.objective import Objective
 from moptipy.api.operators import Op0, Op1
+from moptipy.examples.bitstrings.leadingones import LeadingOnes
+from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.spaces.bitstrings import BitStrings
+from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
+
+
+def dimensions_for_tests() -> Iterable[int]:
+    """
+    Get a sequence of dimensions for tests.
+
+    :returns: the sequence of integers
+    """
+    r = default_rng()
+    bs: List[int] = [1, 2, 3, 4, 5, 10, 16, 100,
+                     int(r.integers(20, 50)), int(r.integers(200, 300))]
+    r.shuffle(cast(List, bs))
+    return bs
 
 
 def bitstrings_for_tests() -> Iterable[BitStrings]:
@@ -16,14 +35,7 @@ def bitstrings_for_tests() -> Iterable[BitStrings]:
 
     :returns: the sequence of BitStrings
     """
-    r = default_rng()
-    bs: List[BitStrings] = [
-        BitStrings(1), BitStrings(2), BitStrings(3), BitStrings(4),
-        BitStrings(5), BitStrings(10), BitStrings(16), BitStrings(100),
-        BitStrings(int(r.integers(20, 50))),
-        BitStrings(int(r.integers(200, 300)))]
-    r.shuffle(cast(List, bs))
-    return bs
+    return [BitStrings(i) for i in dimensions_for_tests()]
 
 
 def validate_op0_on_1_bitstrings(
@@ -65,8 +77,8 @@ def validate_op0_on_bitstrings(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    for pwr in bitstrings_for_tests():
-        validate_op0_on_1_bitstrings(op0, pwr,
+    for bst in bitstrings_for_tests():
+        validate_op0_on_1_bitstrings(op0, bst,
                                      number_of_samples, min_unique_samples)
 
 
@@ -109,6 +121,107 @@ def validate_op1_on_bitstrings(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    for pwr in bitstrings_for_tests():
-        validate_op1_on_1_bitstrings(op1, pwr,
+    for bst in bitstrings_for_tests():
+        validate_op1_on_1_bitstrings(op1, bst,
                                      number_of_samples, min_unique_samples)
+
+
+def validate_algorithm_on_bitstrings(
+        objective: Union[Objective, Callable[[int], Objective]],
+        algorithm: Union[Algorithm,
+                         Callable[[BitStrings], Algorithm]],
+        dimension: int = 5,
+        max_fes: int = 100,
+        required_result: Optional[Union[int, Callable[
+            [int, int], int]]] = None) -> None:
+    """
+    Check the validity of a black-box algorithm on a bit strings problem.
+
+    :param algorithm: the algorithm or algorithm factory
+    :param objective: the instance or instance factory
+    :param int dimension: the dimension of the problem
+    :param int max_fes: the maximum number of FEs
+    :param required_result: the optional required result quality
+    """
+    if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
+        raise TypeError(
+            "'algorithm' parameter must be an Algorithm or a callable that"
+            "instantiates an algorithm for a given algorithm instance,"
+            f"but got a {type(algorithm)} instead.")
+    if not (isinstance(objective, Objective) or callable(objective)):
+        raise TypeError(
+            "'objective' parameter must be an Objective or a callable that"
+            "instantiates an objective for a given dimension,"
+            f"but got a {type(objective)} instead.")
+    if not isinstance(dimension, int):
+        raise TypeError(
+            f"'dimension' must be int but is {type(dimension)} instead.")
+    if dimension <= 0:
+        raise ValueError(f"dimension must be > 0, but got {dimension}.")
+
+    if callable(objective):
+        objective = objective(dimension)
+    if not isinstance(objective, Objective):
+        raise TypeError(
+            "invoking callable 'objective' must return Objective, "
+            f"but got a {type(objective)} instead.")
+    bs: Final[BitStrings] = BitStrings(dimension)
+    if callable(algorithm):
+        algorithm = algorithm(bs)
+    if not isinstance(algorithm, Algorithm):
+        raise TypeError("callable algorithm must return Algorithm, "
+                        f"but got {type(algorithm)}")
+
+    goal: Optional[int]
+    if callable(required_result):
+        goal = required_result(max_fes, dimension)
+    else:
+        goal = required_result
+
+    validate_algorithm(algorithm=algorithm,
+                       solution_space=bs,
+                       objective=objective,
+                       max_fes=max_fes,
+                       required_result=goal)
+
+
+def validate_algorithm_on_onemax(
+        algorithm: Union[Algorithm,
+                         Callable[[BitStrings], Algorithm]]) -> None:
+    """
+    Check the validity of a black-box algorithm on onemax.
+
+    :param algorithm: the algorithm or algorithm factory
+    """
+    max_fes: Final[int] = 100
+    for i in dimensions_for_tests():
+        rr: int = max(0, min(i - max(1, int(max_fes ** 0.4)),
+                             max(i ** 4, 10 * (i ** 3)) // max_fes))
+        validate_algorithm_on_bitstrings(
+            objective=OneMax,
+            algorithm=algorithm,
+            dimension=i,
+            max_fes=max_fes,
+            required_result=rr)
+
+
+def validate_algorithm_on_leadingones(
+        algorithm: Union[Algorithm,
+                         Callable[[BitStrings], Algorithm]]) -> None:
+    """
+    Check the validity of a black-box algorithm on leadingones.
+
+    :param algorithm: the algorithm or algorithm factory
+    """
+    max_fes: Final[int] = 100
+    for i in dimensions_for_tests():
+        rr: int = max(0, min(i - max(1, int(max_fes ** 0.3)),
+                             max(i ** 4, 10 * (i ** 3)) // max_fes))
+        if max_fes <= i ** i:
+            rr = i
+        validate_algorithm_on_bitstrings(
+            objective=LeadingOnes,
+            algorithm=algorithm,
+            dimension=i,
+            max_fes=max_fes,
+            required_result=rr)
