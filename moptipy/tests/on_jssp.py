@@ -1,8 +1,7 @@
 """Perform tests on the Job Shop Scheduling Problem."""
 
-from typing import Callable, Optional, Union, Iterable, List
+from typing import Callable, Optional, Union, Iterable, List, cast
 
-import numpy.random as rnd
 from numpy.random import default_rng
 
 from moptipy.api.algorithm import Algorithm
@@ -31,7 +30,7 @@ def jssp_instances_for_tests() -> Iterable[str]:
         "demo", "ft06", "ft10", f"abz{ri(5, 10)}", f"dmu{ri(10, 81)}",
         f"orb0{ri(1, 10)}", f"swv{ri(10, 21)}", f"ta{ri(10, 65)}",
         f"ta{ri(65, 70)}", f"ta{ri(70, 75)}", f"yn{ri(1, 5)}"]
-    r.shuffle(insts)
+    r.shuffle(cast(List, insts))
     return insts
 
 
@@ -80,7 +79,7 @@ def validate_algorithm_on_1_jssp(
             f"{type(algorithm)} instead.")
 
     if instance is None:
-        instance = str(rnd.default_rng().choice(Instance.list_resources()))
+        instance = str(default_rng().choice(Instance.list_resources()))
     if not isinstance(instance, str):
         raise ValueError("JSSP instance must either be a string or none, "
                          f"but is a {type(instance)}.")
