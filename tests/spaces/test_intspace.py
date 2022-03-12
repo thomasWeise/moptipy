@@ -15,7 +15,11 @@ def test_int_space():
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
     assert str(f) == "ints12b3-32"
-    validate_space(f)
+
+    def _invalid(x):
+        x[0] = 33
+        return x
+    validate_space(f, make_element_invalid=_invalid)
 
     a = f.create()
     assert isinstance(a, np.ndarray)

@@ -1,3 +1,4 @@
+"""Test the demo functions."""
 import numpy as np
 
 from moptipy.examples.jssp.demo_examples import demo_encoding, \

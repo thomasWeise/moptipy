@@ -5,7 +5,7 @@ from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
 from moptipy.operators.pwr.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutationswr import PermutationsWithRepetitions
-from moptipy.tests.algorithm import validate_algorithm_on_jssp
+from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
 def test_ea1plus1_on_jssp():

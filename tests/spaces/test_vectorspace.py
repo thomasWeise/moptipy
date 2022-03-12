@@ -1,4 +1,6 @@
 """Test the unconstrained real vector space."""
+from math import inf
+
 import numpy as np
 
 from moptipy.api.space import Space
@@ -49,4 +51,7 @@ def test_vector_space():
     a = f.from_str(text)
     assert f.is_equal(a, b)
 
-    validate_space(f)
+    def _invalid(x):
+        x[0] = inf
+        return x
+    validate_space(f, make_element_invalid=_invalid)

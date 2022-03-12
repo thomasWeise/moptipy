@@ -1,8 +1,6 @@
 """Functions that can be used to test algorithm implementations."""
 from math import isfinite
-from typing import Callable, Optional, Union
-
-import numpy.random as rnd
+from typing import Optional, Union
 
 from moptipy.api.algorithm import Algorithm, check_algorithm, Algorithm0, \
     Algorithm1, Algorithm2
@@ -11,11 +9,6 @@ from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.api.operators import check_op0, check_op1, check_op2
 from moptipy.api.space import Space
-from moptipy.examples.jssp.gantt_space import GanttSpace
-from moptipy.examples.jssp.instance import Instance
-from moptipy.examples.jssp.makespan import Makespan
-from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
 from moptipy.tests.component import validate_component
 from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.objective import validate_objective
@@ -158,80 +151,3 @@ def validate_algorithm(algorithm: Algorithm,
             x = search_space.create()
             process.get_copy_of_current_best_x(x)
             search_space.validate(x)
-
-
-def validate_algorithm_on_1_jssp(
-        algorithm: Union[Algorithm,
-                         Callable[[Instance, PermutationsWithRepetitions],
-                                  Algorithm]],
-        instance: Optional[str] = None,
-        max_fes: int = 100,
-        required_result: Optional[Union[int, float]] = None) -> None:
-    """
-    Check the validity of a black-box algorithm on the JSSP.
-
-    :param Callable algorithm: the algorithm factory
-    :param Optional[str] instance: the instance name, or `None` to randomly
-        pick one
-    :param int max_fes: the maximum number of FEs
-    :param required_result: the optional required result quality
-    """
-    if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
-        raise TypeError(
-            "'algorithm' parameter must be an Algorithm or a callable that"
-            "instantiates an algorithm for a given JSSP instance, but got a "
-            f"{type(algorithm)} instead.")
-
-    if instance is None:
-        instance = str(rnd.default_rng().choice(Instance.list_resources()))
-    if not isinstance(instance, str):
-        raise ValueError("JSSP instance must either be a string or none, "
-                         f"but is a {type(instance)}.")
-    inst = Instance.from_resource(instance)
-    if not isinstance(inst, Instance):
-        raise ValueError(
-            f"Error when loading JSSP instance '{instance}', "
-            f"obtained {type(inst)} instead.")
-
-    search_space = PermutationsWithRepetitions(inst.jobs,
-                                               inst.machines)
-    if callable(algorithm):
-        algorithm = algorithm(inst, search_space)
-    if not isinstance(algorithm, Algorithm):
-        raise ValueError(
-            "'algorithm' parameter must be a callable that instantiates "
-            f"an algorithm for JSSP instance '{instance}', but it created a "
-            f"'{type(algorithm)}' instead.")
-
-    solution_space = GanttSpace(inst)
-    encoding = OperationBasedEncoding(inst)
-    objective = Makespan(inst)
-
-    validate_algorithm(algorithm=algorithm,
-                       solution_space=solution_space,
-                       objective=objective,
-                       search_space=search_space,
-                       encoding=encoding,
-                       max_fes=max_fes,
-                       required_result=(objective.upper_bound() - 1)
-                       if required_result is None else required_result)
-
-
-def validate_algorithm_on_jssp(
-        algorithm: Callable[[Instance, PermutationsWithRepetitions],
-                            Algorithm]) -> None:
-    """
-    Validate an algorithm on a set of JSSP instances.
-
-    :param Callable algorithm: the algorithm factory
-    """
-    validate_algorithm_on_1_jssp(algorithm, "demo", 200, 190)
-    validate_algorithm_on_1_jssp(algorithm, "abz7", 100)
-    validate_algorithm_on_1_jssp(algorithm, "la37", 100)
-    validate_algorithm_on_1_jssp(algorithm, "orb07", 100)
-    validate_algorithm_on_1_jssp(algorithm, "yn3", 100)
-    validate_algorithm_on_1_jssp(algorithm, "swv13", 100)
-    validate_algorithm_on_1_jssp(algorithm, "dmu66", 100)
-    validate_algorithm_on_1_jssp(algorithm, "dmu73", 100)
-    validate_algorithm_on_1_jssp(algorithm, "ta71", 100)
-    validate_algorithm_on_1_jssp(algorithm, "ta69", 100)

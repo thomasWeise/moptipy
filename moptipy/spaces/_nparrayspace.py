@@ -91,10 +91,10 @@ class _NPArraySpace(Space):
             element is not finite.
         """
         if not isinstance(x, np.ndarray):
-            raise TypeError(
+            raise ValueError(
                 f"x must be an numpy.ndarray, but is a {type(x)}.")
         if x.dtype != self.dtype:
-            raise TypeError(
+            raise ValueError(
                 f"x must be of type {self.dtype} but is of type {x.dtype}.")
         if (len(x.shape) != 1) or (x.shape[0] != self.dimension):
             raise ValueError(f"x must be of shape ({self.dimension}) but is "

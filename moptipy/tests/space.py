@@ -1,19 +1,25 @@
 """Functions that can be used to test spaces."""
 from typing import Callable, Optional, Any
 
+# noinspection PyPackageRequirements
+from pytest import raises
+
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
 
 
-def validate_space(space: Space,
-                   make_element_valid: Optional[Callable[[Any], Any]]
-                   = lambda x: x) -> None:
+def validate_space(
+        space: Space,
+        make_element_valid: Optional[Callable[[Any], Any]] = lambda x: x,
+        make_element_invalid: Optional[Callable[[Any], Any]] = None) -> None:
     """
     Check whether an object is a moptipy space.
 
     :param space: the space to test
     :param make_element_valid: a method that can turn a point from the
         space into a valid point
+    :param make_element_invalid: a method can a valid point from the
+        space into an invalid one
     :raises ValueError: if `space` is not a valid Space
     """
     if not isinstance(space, Space):
@@ -92,3 +98,13 @@ def validate_space(space: Space,
         raise ValueError("to_str(from_str(to_str())) must return same "
                          "string.")
     space.validate(x3)
+
+    if make_element_invalid is None:
+        return
+    x2 = make_element_invalid(x3)
+    if space.is_equal(x1, x2):
+        raise ValueError(
+            "make_element_invalid did not lead to a change in element!")
+
+    with raises(ValueError):
+        space.validate(x2)
