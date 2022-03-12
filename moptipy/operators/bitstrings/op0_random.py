@@ -17,7 +17,7 @@ class Op0Random(operators.Op0):
         :param np.ndarray dest: the bit string to fill. Afterwards, its
             contents will be random.
         """
-        np.copyto(dest, random.integers(0, 2, dest.shape))
+        np.copyto(dest, random.integers(0, 2, dest.shape, dest.dtype))
 
     def __str__(self) -> str:
         """
