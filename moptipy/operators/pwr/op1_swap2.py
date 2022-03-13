@@ -1,5 +1,5 @@
 """An operator swapping two elements in a permutation with repetitions."""
-from typing import Final
+from typing import Final, Callable
 
 import numpy as np
 from numpy.random import Generator
@@ -24,16 +24,18 @@ class Op1Swap2(operators.Op1):
         :param np.ndarray dest: the array to be shuffled
         :param np.ndarray x: the existing point in the search space
         """
-        np.copyto(dest, x)
-        length: Final[int] = len(dest)
-        i1: Final[int] = random.integers(length)
-        v1: Final = dest[i1]
-        while True:
-            i2: int = random.integers(length)
-            v2 = dest[i2]
-            if v1 != v2:
-                dest[i2] = v1
-                dest[i1] = v2
+        np.copyto(dest, x)  # first copy source to dest
+        length: Final[int] = len(dest)  # get the length
+        ri: Final[Callable[[int], int]] = random.integers  # fast call!
+
+        i1: Final[int] = ri(length)  # get first index
+        v1: Final = dest[i1]  # get first value
+        while True:  # repeat until we find different value
+            i2: int = ri(length)  # get second index (fast call!)
+            v2 = dest[i2]  # get second value
+            if v1 != v2:  # are both values different?
+                dest[i2] = v1  # store v1 where v2 was
+                dest[i1] = v2  # store v2 where v1 was
                 return
 
     def __str__(self) -> str:

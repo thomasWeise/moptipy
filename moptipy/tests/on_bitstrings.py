@@ -195,8 +195,11 @@ def validate_algorithm_on_onemax(
     """
     max_fes: Final[int] = 100
     for i in dimensions_for_tests():
-        rr: int = max(0, min(i - max(1, int(max_fes ** 0.4)),
-                             max(i ** 4, 10 * (i ** 3)) // max_fes))
+        rr: int
+        if i < 3:
+            rr = 0
+        else:
+            rr = max(i // 2, i - int(max_fes ** 0.5))
         validate_algorithm_on_bitstrings(
             objective=OneMax,
             algorithm=algorithm,
@@ -215,9 +218,14 @@ def validate_algorithm_on_leadingones(
     """
     max_fes: Final[int] = 100
     for i in dimensions_for_tests():
-        rr: int = max(0, min(i - max(1, int(max_fes ** 0.3)),
-                             max(i ** 4, 10 * (i ** 3)) // max_fes))
-        if max_fes <= i ** i:
+        rr: int
+        if i <= 3:
+            rr = 0
+        elif max_fes > (10 * i):
+            rr = i - 2
+        elif max_fes > (3 * i):
+            rr = i - 1
+        else:
             rr = i
         validate_algorithm_on_bitstrings(
             objective=LeadingOnes,

@@ -87,7 +87,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
         do_log: bool = self.__log_all
         ctn: int = 0
 
-        if (current_fes <= 1) or (result < self._current_best_f):
+        if result < self._current_best_f:
             self._last_improvement_fe = current_fes
             self._current_best_f = result
             self._current_time_nanos = ctn = monotonic_ns()
@@ -100,7 +100,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
             if result <= self._end_f:
                 do_term = True
 
-        if do_log and (not (self.__log is None)):
+        if do_log and (self.__log is not None):
             if ctn <= 0:
                 self._current_time_nanos = ctn = monotonic_ns()
                 if ctn >= self._end_time_nanos:

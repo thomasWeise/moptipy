@@ -180,7 +180,7 @@ class _ProcessNoSS(_ProcessBase):
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
-        if (current_fes <= 1) or (result < self._current_best_f):
+        if result < self._current_best_f:
             self._last_improvement_fe = current_fes
             self._current_best_f = result
             self._current_time_nanos = ctn = monotonic_ns()

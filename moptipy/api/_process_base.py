@@ -67,7 +67,7 @@ class _ProcessBase(Process):
         #: The maximum FEs.
         self._max_fes: Final[Optional[int]] = check_max_fes(max_fes, True)
         #: A version of :attr:`_max_fes` that can be used in comparisons.
-        self._end_fes: Final[Union[int, float]] = inf \
+        self._end_fes: Final[int] = 9_223_372_036_854_775_800 \
             if (self._max_fes is None) else self._max_fes
         #: The goal objective value.
         self._goal_f: Final[Union[int, float, None]] = \
