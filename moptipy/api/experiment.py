@@ -5,7 +5,7 @@ import multiprocessing as mp
 import os.path
 from contextlib import nullcontext
 from math import ceil
-from typing import Iterable, Union, Callable, Tuple, List, \
+from typing import Iterable, Union, Callable, List, \
     ContextManager, Final, Sequence, cast, Any
 
 import psutil  # type: ignore
@@ -21,8 +21,8 @@ from moptipy.utils.sys_info import refresh_sys_info
 
 
 def __run_experiment(base_dir: Path,
-                     experiments: List[Tuple[Callable, Callable]],
-                     n_runs: Tuple[int, ...],
+                     experiments: List[List[Callable]],
+                     n_runs: List[int],
                      perform_warmup: bool,
                      warmup_fes: int,
                      perform_pre_warmup: bool,
@@ -36,7 +36,7 @@ def __run_experiment(base_dir: Path,
     Execute a single thread of experiments.
 
     :param str base_dir: the base directory
-    :param List[Tuple[Callable, Callable]] experiments: the stream of
+    :param List[List[Callable]] experiments: the stream of
         experiment setups
     :param bool perform_warmup: should we perform a warm-up per instance?
     :param int warmup_fes: the number of the FEs for the warm-up runs
@@ -145,8 +145,8 @@ __DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1)
 
 
 def __waiting_run_experiment(base_dir: Path,
-                             experiments: List[Tuple[Callable, Callable]],
-                             n_runs: Tuple[int, ...],
+                             experiments: List[List[Callable]],
+                             n_runs: List[int],
                              perform_warmup: bool,
                              warmup_fes: int,
                              perform_pre_warmup: bool,
@@ -271,9 +271,8 @@ def run_experiment(base_dir: str,
             raise TypeError("All setups must be callables, "
                             f"but encountered a {type(setup)}.")
 
-    experiments: Final[List[Tuple[Callable[[], Any],
-                                  Callable[[Any], Execution]]]] = \
-        [(ii, ss) for ii in instances for ss in setups]
+    experiments: Final[List[List[Callable]]] = \
+        [[ii, ss] for ii in instances for ss in setups]
 
     del instances
     del setups
@@ -282,9 +281,9 @@ def run_experiment(base_dir: str,
         raise ValueError("No experiments found?")
 
     if isinstance(n_runs, int):
-        n_runs = (n_runs,)
+        n_runs = [n_runs, ]
     else:
-        n_runs = tuple(n_runs)
+        n_runs = list(n_runs)
     last = 0
     for run in n_runs:
         if run is None:

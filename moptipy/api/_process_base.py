@@ -150,8 +150,9 @@ class _ProcessBase(Process):
             self._terminated = True
             if old_terminated:
                 return
-            if not (self.__timer is None):
+            if self.__timer is not None:
                 self.__timer.cancel()
+            del self.__timer
             self._current_time_nanos = monotonic_ns()
 
     def get_copy_of_current_best_y(self, y) -> None:

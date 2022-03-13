@@ -1,7 +1,7 @@
 """A process with logging, where search and solution space are the same."""
 from math import inf
 from time import monotonic_ns
-from typing import Optional, Union, List, Tuple, Final
+from typing import Optional, Union, List, Final, cast
 
 from moptipy.api import logging
 from moptipy.api._process_base import _ns_to_ms
@@ -59,7 +59,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
         #: The in-memory log
-        self.__log: List[Tuple[int, int, Union[int, float]]] = []
+        self.__log: List[List[Union[int, float]]] = []
         #: the quick access to the log appending method
         self.__log_append = self.__log.append
 
@@ -100,14 +100,14 @@ class _ProcessNoSSLog(_ProcessNoSS):
             if result <= self._end_f:
                 do_term = True
 
-        if do_log and (self.__log is not None):
+        if do_log:
             if ctn <= 0:
                 self._current_time_nanos = ctn = monotonic_ns()
                 if ctn >= self._end_time_nanos:
                     do_term = True
-            self.__log_append((current_fes,
+            self.__log_append([current_fes,
                                ctn - self._start_time_nanos,
-                               result))
+                               result])
 
         if do_term:
             self.terminate()
@@ -121,8 +121,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
                              logging.PROGRESS_TIME_MILLIS,
                              logging.PROGRESS_CURRENT_F]) as csv:
                 for row in self.__log:
-                    csv.row((row[0], _ns_to_ms(row[1]), row[2]))
-        self.__log = None
+                    csv.row([row[0], _ns_to_ms(cast(int, row[1])), row[2]])
+        del self.__log
         super()._write_log(logger)
 
     def __str__(self) -> str:
