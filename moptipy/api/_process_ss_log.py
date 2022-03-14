@@ -89,7 +89,8 @@ class _ProcessSSLog(_ProcessSS):
             self._last_improvement_fe = current_fes
             self._current_best_f = result
             self.copy(self._current_best_x, x)
-            self._copy_y(self._current_best_y, current_y)
+            self._current_y = self._current_best_y
+            self._current_best_y = current_y
             self._current_time_nanos = ctn = monotonic_ns()
             self._last_improvement_time_nanos = ctn
             if ctn >= self._end_time_nanos:

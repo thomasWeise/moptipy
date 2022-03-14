@@ -146,7 +146,7 @@ class _ProcessNoSS(_ProcessBase):
         #: The random number generator.
         self.__random: Final[Generator] = rand_generator(self.__rand_seed)
         #: The current best solution.
-        self._current_best_y: Final = self._solution_space.create()
+        self._current_best_y = self._solution_space.create()
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
         #: Do we have a current-best solution?

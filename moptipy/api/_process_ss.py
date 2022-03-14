@@ -60,7 +60,7 @@ class _ProcessSS(_ProcessNoSS):
         #: the internal encoder
         self._g: Final[Callable] = self._encoding.map
         #: The holder for the currently de-coded solution.
-        self._current_y: Final = self._solution_space.create()
+        self._current_y = self._solution_space.create()
         #: The current best point in the search space.
         self._current_best_x: Final = self._search_space.create()
         # wrappers
@@ -90,7 +90,8 @@ class _ProcessSS(_ProcessNoSS):
             self._last_improvement_fe = current_fes
             self._current_best_f = result
             self.copy(self._current_best_x, x)
-            self._copy_y(self._current_best_y, current_y)
+            self._current_y = self._current_best_y
+            self._current_best_y = current_y
             self._current_time_nanos = ctn = monotonic_ns()
             self._last_improvement_time_nanos = ctn
             if ctn >= self._end_time_nanos:
