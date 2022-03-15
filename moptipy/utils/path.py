@@ -127,37 +127,6 @@ class Path(str):
         if not self.contains(other):
             raise ValueError(f"Path '{self}' does not contain '{other}'.")
 
-    def enforce_neither_contains(self, other: str) -> None:
-        """
-        Enforce that neither path contains another one.
-
-        :param str other: the other path
-        :raises ValueError: if `other` is contained in this path or vice versa
-        """
-        other_path: Final[Path] = Path.path(other)
-        joint: Final[str] = os.path.commonpath([self, other_path])
-        if joint == os.path.commonpath([self]):
-            raise ValueError(f"Path '{self}' contains '{other_path}'.")
-        if joint == os.path.commonpath([other_path]):
-            raise ValueError(f"Path '{other_path}' contains '{self}'.")
-
-    def relative_to(self, base_path: str) -> str:
-        """
-        Compute a relative path of this path towards the given base path.
-
-        :param str base_path: the string
-        :return: a relative path
-        :rtype: str
-        :raises ValueError: if this path is not inside `base_path`
-        """
-        opath: Final[Path] = Path.path(base_path)
-        opath.enforce_contains(self)
-        rpath = os.path.relpath(self, opath)
-        if not rpath:
-            raise ValueError(
-                f"Relative path for '{self}' to '{opath}' is empty?")
-        return rpath
-
     def resolve_inside(self, relative_path: str) -> 'Path':
         """
         Resolve a relative path to an absolute path inside this path.
@@ -273,22 +242,6 @@ class Path(str):
             writer.write(all_text)
             if all_text[-1] != "\n":
                 writer.write("\n")
-
-    def create_file_or_fail(self) -> None:
-        """
-        Atomically create the file path and fail if it already exists.
-
-        :raises: ValueError if anything goes wrong during the file creation or
-            if the file already exists
-        """
-        try:
-            os.close(os.open(self, os.O_CREAT | os.O_EXCL))
-        except FileExistsError as err:
-            raise ValueError(f"File '{self}' already exists.") from err
-        except Exception as err:
-            raise ValueError(
-                f"Error when trying to create  file '{self}'.") from err
-        self.enforce_file()
 
     def create_file_or_truncate(self) -> None:
         """

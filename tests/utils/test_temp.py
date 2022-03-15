@@ -2,9 +2,6 @@
 from io import open
 from os.path import isfile, isdir, exists, dirname, basename, getsize, join
 
-# noinspection PyPackageRequirements
-from pytest import raises
-
 from moptipy.utils.path import Path
 from moptipy.utils.temp import TempFile, TempDir
 
@@ -76,16 +73,10 @@ def test_file_create_or_fail():
         assert s.startswith(tds)
         assert s.endswith("a.txt")
         assert not exists(s)
-        s.create_file_or_fail()
-        assert isinstance(s, str)
-        assert len(s) > 0
-        assert s.startswith(tds)
-        assert s.endswith("a.txt")
+        s.write_all("xx")
         assert exists(s)
         assert isfile(s)
-        assert getsize(s) == 0
-        with raises(ValueError):
-            s.create_file_or_fail()
+        assert getsize(s) > 0
 
 
 def test_file_create_or_truncate():
