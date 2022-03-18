@@ -134,14 +134,15 @@ In the unlikely case that an exception occurs during the writing of the log but 
 You can execute the following Python code to obtain an example log file:
 
 ```python
-from moptipy.algorithms.ea1p1 import EA1p1
+from moptipy.algorithms.ea1plus1 import EA1plus1
 from moptipy.examples.jssp.experiment import run_experiment
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
-from moptipy.operators.pwr.op1_swap2 import Op1Swap2
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.utils.temp import TempDir
 
 with TempDir.create() as td:
-    run_experiment(base_dir=td, algorithms=[lambda inst, pwr: EA1p1(Op0Shuffle(pwr), Op1Swap2())], instances=("demo", ), n_runs=1, n_threads=1)
+    run_experiment(base_dir=td, algorithms=[lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2())],
+                   instances=("demo",), n_runs=1, n_threads=1)
     print(td.resolve_inside("ea1p1_swap2/demo/ea1p1_swap2_demo_0x5a9363100a272f12.txt").read_all_str())
 ```
 
@@ -150,19 +151,20 @@ The example log file printed by the above code will then look as follows:
 ```
 BEGIN_PROGRESS
 fes;timeMS;f
-1;2;270
-8;2;235
-12;2;230
-17;2;210
-32;2;185
-66;3;180
+1;1;267
+5;1;235
+10;1;230
+20;1;227
+25;1;205
+40;1;200
+84;2;180
 END_PROGRESS
 BEGIN_STATE
-totalFEs: 66
-totalTimeMillis: 3
+totalFEs: 84
+totalTimeMillis: 2
 bestF: 180
-lastImprovementFE: 66
-lastImprovementTimeMillis: 3
+lastImprovementFE: 84
+lastImprovementTimeMillis: 2
 END_STATE
 BEGIN_SETUP
 p.name: LoggingProcessWithSearchSpace
@@ -174,37 +176,43 @@ p.randSeed(hex): 0x5a9363100a272f12
 p.randGenType: numpy.random._generator.Generator
 p.randBitGenType: numpy.random._pcg64.PCG64
 a.name: ea1p1_swap2
-a.class: moptipy.algorithms.ea1p1.EA1p1
+a.class: moptipy.algorithms.ea1plus1.EA1plus1
 a.op0.name: shuffle
-a.op0.class: moptipy.operators.pwr.op0_shuffle.Op0Shuffle
+a.op0.class: moptipy.operators.permutations.op0_shuffle.Op0Shuffle
 a.op1.name: swap2
-a.op1.class: moptipy.operators.pwr.op1_swap2.Op1Swap2
+a.op1.class: moptipy.operators.permutations.op1_swap2.Op1Swap2
 y.name: gantt_demo
 y.class: moptipy.examples.jssp.gantt_space.GanttSpace
 y.shape: (5, 4, 3)
+y.dtype: h
 y.inst.name: demo
 y.inst.class: moptipy.examples.jssp.instance.Instance
 y.inst.machines: 5
 y.inst.jobs: 4
 y.inst.makespanLowerBound: 180
 y.inst.makespanUpperBound: 482
-y.inst.dtype: h
+y.inst.dtype: b
 f.name: makespan
 f.class: moptipy.examples.jssp.makespan.Makespan
 x.name: perm4w5r
-x.class: moptipy.spaces.permutationswr.PermutationsWithRepetitions
+x.class: moptipy.spaces.permutations.Permutations
 x.nvars: 20
-x.dtype: h
+x.dtype: b
 x.min: 0
 x.max: 3
 x.repetitions: 5
 g.name: operation_based_encoding
 g.class: moptipy.examples.jssp.ob_encoding.OperationBasedEncoding
+g.dtypeMachineIdx: b
+g.dtypeJobIdx: b
+g.dtypeJobTime: h
 END_SETUP
 BEGIN_SYS_INFO
-session.start: 2022-02-14 06:14:01.799024
+session.start: 2022-03-18 14:43:51.707977
 session.node: home
-session.ip_address: 10.8.0.6
+session.procesId: 0x82a68
+session.cpuAffinity: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+session.ipAddress: 127.0.0.1
 version.moptipy: 0.8.1
 version.numpy: 1.21.5
 version.numba: 0.55.1
@@ -212,23 +220,23 @@ version.matplotlib: 3.5.1
 version.psutil: 5.9.0
 version.scikitlearn: 1.0.2
 hardware.machine: x86_64
-hardware.n_physical_cpus: 8
-hardware.n_logical_cpus: 16
-hardware.cpu_mhz: (2200MHz..3700MHz)*16
-hardware.byteorder: little
+hardware.nPhysicalCpus: 8
+hardware.nLogicalCpus: 16
+hardware.cpuMhz: (2200MHz..3700MHz)*16
+hardware.byteOrder: little
 hardware.cpu: AMD Ryzen 7 2700X Eight-Core Processor
-hardware.mem_size: 16719241216
+hardware.memSize: 33605500928
 python.version: 3.9.7 (default, Sep 10 2021, 14:59:43) [GCC 11.2.0]
 python.implementation: CPython
 os.name: Linux
-os.release: 5.13.0-28-generic
-os.version: #31-Ubuntu SMP Thu Jan 13 17:41:06 UTC 2022
+os.release: 5.13.0-35-generic
+os.version: #40-Ubuntu SMP Mon Mar 7 08:03:10 UTC 2022
 END_SYS_INFO
 BEGIN_RESULT_Y
-0,0,10,1,20,30,3,125,145,2,170,180,1,0,20,0,20,40,2,40,60,3,145,160,2,0,30,0,40,60,1,60,110,3,110,125,1,30,60,3,60,90,0,90,130,2,130,170,3,0,50,2,60,72,0,130,140,1,140,170
+1,20,30,0,30,40,3,145,165,2,170,180,1,0,20,0,40,60,2,60,80,3,165,180,2,0,30,0,60,80,1,80,130,3,130,145,1,30,60,3,60,90,0,90,130,2,130,170,3,0,50,2,80,92,1,130,160,0,160,170
 END_RESULT_Y
 BEGIN_RESULT_X
-2,0,1,1,0,1,3,2,3,0,1,3,3,2,0,3,2,2,0,1
+2,1,3,1,0,0,2,0,1,2,3,1,0,2,1,3,0,3,2,3
 END_RESULT_X
 ```
 

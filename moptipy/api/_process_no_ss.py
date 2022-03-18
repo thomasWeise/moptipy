@@ -12,6 +12,7 @@ from moptipy.api import logging
 from moptipy.api._process_base import _ProcessBase, _ns_to_ms
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.objective import Objective, check_objective
+from moptipy.api.process import check_goal_f
 from moptipy.api.space import Space, check_space
 from moptipy.utils.logger import KeyValueSection, FileLogger
 from moptipy.utils.logger import Logger
@@ -157,6 +158,9 @@ class _ProcessNoSS(_ProcessBase):
         self._copy_y: Final[Callable] = self._solution_space.copy
         #: set up the method forwards
         self.lower_bound = self.__objective.lower_bound  # type: ignore
+        if self._end_f <= -inf:
+            self._end_f = check_goal_f(self.lower_bound())
+            self.lower_bound = lambda: self._end_f  # type: ignore
         self.upper_bound = self.__objective.upper_bound  # type: ignore
         self.create = self._solution_space.create  # type: ignore
         self.copy = self._solution_space.copy  # type: ignore
@@ -185,12 +189,10 @@ class _ProcessNoSS(_ProcessBase):
             self._current_best_f = result
             self._current_time_nanos = ctn = monotonic_ns()
             self._last_improvement_time_nanos = ctn
-            if ctn >= self._end_time_nanos:
-                do_term = True
+            do_term = do_term or (result <= self._end_f) \
+                or (ctn >= self._end_time_nanos)
             self._copy_y(self._current_best_y, x)
             self._has_current_best = True
-            if result <= self._end_f:
-                do_term = True
 
         if do_term:
             self.terminate()

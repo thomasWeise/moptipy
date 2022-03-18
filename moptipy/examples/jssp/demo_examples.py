@@ -15,7 +15,7 @@ from moptipy.examples.jssp.instance import Instance, \
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart, \
     marker_lb, marker_makespan
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.spaces.permutations import Permutations
 from moptipy.utils.log import logger
 from moptipy.utils.path import Path, UTF8
 from moptipy.utils.plot_utils import create_figure, save_figure, \
@@ -35,7 +35,7 @@ def demo_instance() -> Instance:
     return getattr(demo_instance, attr)
 
 
-def demo_search_space() -> PermutationsWithRepetitions:
+def demo_search_space() -> Permutations:
     """
     Obtain an instance of the demo search space.
 
@@ -46,8 +46,8 @@ def demo_search_space() -> PermutationsWithRepetitions:
     if not hasattr(demo_search_space, attr):
         instance: Final[Instance] = demo_instance()
         setattr(demo_search_space, attr,
-                PermutationsWithRepetitions(instance.jobs,
-                                            instance.machines))
+                Permutations.with_repetitions(instance.jobs,
+                                              instance.machines))
     return getattr(demo_search_space, attr)
 
 
@@ -59,7 +59,7 @@ def demo_point_in_search_space(optimum: bool = False) -> np.ndarray:
     :return: the point
     :rtype: np.ndarray
     """
-    space: Final[PermutationsWithRepetitions] = demo_search_space()
+    space: Final[Permutations] = demo_search_space()
     res = space.create()
     if optimum:
         np.copyto(res, [0, 1, 2, 3, 1, 0, 1, 2, 0, 1,

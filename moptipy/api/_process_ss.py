@@ -94,13 +94,11 @@ class _ProcessSS(_ProcessNoSS):
             self._current_best_y = current_y
             self._current_time_nanos = ctn = monotonic_ns()
             self._last_improvement_time_nanos = ctn
-            if ctn >= self._end_time_nanos:
-                do_term = True
+            do_term = do_term or (result <= self._end_f) \
+                or (ctn >= self._end_time_nanos)
 
             # noinspection PyAttributeOutsideInit
             self._has_current_best = True
-            if result <= self._end_f:
-                do_term = True
 
         if do_term:
             self.terminate()

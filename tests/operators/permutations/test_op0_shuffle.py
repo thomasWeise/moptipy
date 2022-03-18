@@ -1,6 +1,6 @@
 """Test the nullary shuffle operation."""
 
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.tests.on_pwr import validate_op0_on_pwr
 
 

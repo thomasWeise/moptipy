@@ -73,7 +73,7 @@ class _ProcessBase(Process):
         self._goal_f: Final[Union[int, float, None]] = \
             check_goal_f(goal_f, True)
         #: A comparable version of :attr:`self._goal_f`.
-        self._end_f: Final[Union[int, float]] = \
+        self._end_f: Union[int, float] = \
             -inf if (self._goal_f is None) else self._goal_f
         #: The currently consumed nanoseconds.
         self._current_time_nanos: int = 0

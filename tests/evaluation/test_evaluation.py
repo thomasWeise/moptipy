@@ -20,9 +20,9 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
-from moptipy.operators.pwr.op1_swap2 import Op1Swap2
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.spaces.permutations import Permutations
 from moptipy.utils.temp import TempDir, TempFile
 
 instances = [lambda: Instance.from_resource("dmu21"),
@@ -31,7 +31,7 @@ instances = [lambda: Instance.from_resource("dmu21"),
 
 
 def algo_1(inst) -> Execution:
-    ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
+    ss = Permutations.with_repetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = Op0Shuffle(ss)
     op1 = Op1Swap2()
@@ -48,7 +48,7 @@ def algo_1(inst) -> Execution:
 
 
 def algo_2(inst) -> Execution:
-    ss = PermutationsWithRepetitions(inst.jobs, inst.machines)
+    ss = Permutations.with_repetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = Op0Shuffle(ss)
     algo = SingleRandomSample(op0)

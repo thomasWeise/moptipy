@@ -6,36 +6,35 @@ import numpy as np
 from numpy.random import default_rng
 
 from moptipy.api.operators import Op0, Op1
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.spaces.permutations import Permutations
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
 
 
-def pwrs_for_tests() -> Iterable[PermutationsWithRepetitions]:
+def pwrs_for_tests() -> Iterable[Permutations]:
     """
     Get a sequence of permutations with repetitions for tests.
 
-    :returns: the sequence of PermutationsWithRepetitions
+    :returns: the sequence of Permutations
     """
     r = default_rng()
-    pwrs: List[PermutationsWithRepetitions] = [
-        PermutationsWithRepetitions(2, 2),
-        PermutationsWithRepetitions(2, 3),
-        PermutationsWithRepetitions(3, 2),
-        PermutationsWithRepetitions(3, 3),
-        PermutationsWithRepetitions(5, 5),
-        PermutationsWithRepetitions(int(r.integers(6, 10)),
-                                    int(r.integers(2, 7))),
-        PermutationsWithRepetitions(int(r.integers(2, 5)),
-                                    int(r.integers(6, 10))),
-        PermutationsWithRepetitions(int(r.integers(130, 500)),
-                                    int(r.integers(2, 200)))]
+    pwrs: List[Permutations] = [
+        Permutations.with_repetitions(2, 2),
+        Permutations.with_repetitions(2, 3),
+        Permutations.with_repetitions(3, 2),
+        Permutations.with_repetitions(3, 3),
+        Permutations.with_repetitions(5, 5),
+        Permutations.with_repetitions(int(r.integers(6, 10)),
+                                      int(r.integers(2, 7))),
+        Permutations.with_repetitions(int(r.integers(2, 5)),
+                                      int(r.integers(6, 10))),
+        Permutations.with_repetitions(int(r.integers(130, 500)),
+                                      int(r.integers(2, 200)))]
     r.shuffle(cast(List, pwrs))
     return pwrs
 
 
-def make_pwr_valid(pwr: PermutationsWithRepetitions) \
-        -> Callable[[np.ndarray], np.ndarray]:
+def make_pwr_valid(pwr: Permutations) -> Callable[[np.ndarray], np.ndarray]:
     """
     Create a function that can make permutations with repetitions valid.
 
@@ -46,13 +45,8 @@ def make_pwr_valid(pwr: PermutationsWithRepetitions) \
 
     def __make_valid(x: np.ndarray,
                      prnd=rnd,
-                     n=pwr.n,
-                     r=pwr.repetitions) -> np.ndarray:
-        i: int = 0
-        for _ in range(r):
-            for k in range(n):
-                x[i] = k
-                i += 1
+                     ppp=pwr) -> np.ndarray:
+        np.copyto(x, ppp.blueprint)
         prnd.shuffle(x)
         return x
 
@@ -60,12 +54,12 @@ def make_pwr_valid(pwr: PermutationsWithRepetitions) \
 
 
 def validate_op0_on_1_pwr(
-        op0: Union[Op0, Callable[[PermutationsWithRepetitions], Op0]],
-        search_space: PermutationsWithRepetitions,
+        op0: Union[Op0, Callable[[Permutations], Op0]],
+        search_space: Permutations,
         number_of_samples: Optional[int] = None,
         min_unique_samples:
         Optional[Union[int, Callable[[int,
-                                      PermutationsWithRepetitions], int]]]
+                                      Permutations], int]]]
         = None) -> None:
     """
     Validate the unary operator on one PWR instance.
@@ -88,11 +82,11 @@ def validate_op0_on_1_pwr(
 
 
 def validate_op0_on_pwr(
-        op0: Union[Op0, Callable[[PermutationsWithRepetitions], Op0]],
+        op0: Union[Op0, Callable[[Permutations], Op0]],
         number_of_samples: Optional[int] = None,
         min_unique_samples:
         Optional[Union[int, Callable[[int,
-                                      PermutationsWithRepetitions], int]]]
+                                      Permutations], int]]]
         = None) -> None:
     """
     Validate the unary operator on several PWR instances.
@@ -106,12 +100,12 @@ def validate_op0_on_pwr(
 
 
 def validate_op1_on_1_pwr(
-        op1: Union[Op1, Callable[[PermutationsWithRepetitions], Op1]],
-        search_space: PermutationsWithRepetitions,
+        op1: Union[Op1, Callable[[Permutations], Op1]],
+        search_space: Permutations,
         number_of_samples: Optional[int] = None,
         min_unique_samples:
         Optional[Union[int, Callable[[int,
-                                      PermutationsWithRepetitions], int]]]
+                                      Permutations], int]]]
         = None) -> None:
     """
     Validate the unary operator on one PWR instance.
@@ -134,11 +128,11 @@ def validate_op1_on_1_pwr(
 
 
 def validate_op1_on_pwr(
-        op1: Union[Op1, Callable[[PermutationsWithRepetitions], Op1]],
+        op1: Union[Op1, Callable[[Permutations], Op1]],
         number_of_samples: Optional[int] = None,
         min_unique_samples:
         Optional[Union[int, Callable[[int,
-                                      PermutationsWithRepetitions], int]]]
+                                      Permutations], int]]]
         = None) -> None:
     """
     Validate the unary operator on several PWR instances.

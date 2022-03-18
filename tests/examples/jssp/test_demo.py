@@ -8,7 +8,7 @@ from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.spaces.permutations import Permutations
 from moptipy.utils.temp import TempDir
 
 
@@ -19,7 +19,7 @@ def test_demo_instance() -> None:
 
 def test_demo_search_space() -> None:
     """Test the demo search space."""
-    assert isinstance(demo_search_space(), PermutationsWithRepetitions)
+    assert isinstance(demo_search_space(), Permutations)
 
 
 def test_demo_point_in_search_space() -> None:

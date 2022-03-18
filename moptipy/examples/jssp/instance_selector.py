@@ -14,9 +14,9 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
-from moptipy.operators.pwr.op1_swap2 import Op1Swap2
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.spaces.permutations import Permutations
 from moptipy.utils.log import logger
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
     rand_generator, rand_seeds_from_str
@@ -31,8 +31,8 @@ def __can_solve_instance(inst: Instance, seed: int,
     :param int seed: the seed of this run
     :param multiprocessing.Queue queue: the queue for the return values
     """
-    x_space: Final[PermutationsWithRepetitions] = \
-        PermutationsWithRepetitions(inst.jobs, inst.machines)
+    x_space: Final[Permutations] = Permutations.with_repetitions(
+        inst.jobs, inst.machines)
     y_space: Final[GanttSpace] = GanttSpace(inst)
     g: Final[OperationBasedEncoding] = OperationBasedEncoding(inst)
     o0: Final[Op0Shuffle] = Op0Shuffle(x_space)

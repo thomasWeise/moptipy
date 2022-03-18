@@ -1,4 +1,4 @@
-"""An operator swapping two elements in a permutation with repetitions."""
+"""An operator swapping two elements in a permutation."""
 from typing import Final, Callable
 
 import numpy as np
@@ -11,9 +11,9 @@ class Op1Swap2(operators.Op1):
     """
     This unary search operation swaps two different elements.
 
-    In other words, it performs exactly one swap on a permutation with
-    repetitions. It spans a neighborhood of a rather limited size but is
-    easy and fast.
+    In other words, it performs exactly one swap on a permutation.
+    It spans a neighborhood of a rather limited size but is easy
+    and fast.
     """
 
     def op1(self, random: Generator, dest: np.ndarray, x: np.ndarray) -> None:

@@ -165,11 +165,11 @@ def validate_algorithm(algorithm: Algorithm,
                     f"if result={res_f} is as good as goal={goal}, then "
                     f"last_imp_fe={last_imp_fe} must equal"
                     f" consumed_fe={consumed_fes}.")
-            if last_imp_time != consumed_time:
+            if (10_000 + (1.05 * last_imp_time)) < consumed_time:
                 raise ValueError(
                     f"if result={res_f} is as good as goal={goal}, then "
-                    f"last_imp_fe={last_imp_time} must equal"
-                    f" consumed_fe={consumed_time}.")
+                    f"last_imp_time={last_imp_time} must not be much less"
+                    f" than consumed_time={consumed_time}.")
         else:
             if uses_all_fes_if_goal_not_reached and (consumed_fes != max_fes):
                 raise ValueError(

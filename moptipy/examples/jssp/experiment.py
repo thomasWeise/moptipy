@@ -16,9 +16,9 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
-from moptipy.operators.pwr.op1_swap2 import Op1Swap2
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.spaces.permutations import Permutations
 from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 
@@ -42,7 +42,7 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 #: Each of them is a Callable that receives two parameters, the instance
 #: `inst` and the permutation with repetitions-space `pwr`.
 DEFAULT_ALGORITHMS: Final[Tuple[
-    Callable[[Instance, PermutationsWithRepetitions], Algorithm], ...]] = (
+    Callable[[Instance, Permutations], Algorithm], ...]] = (
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
     lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
@@ -53,7 +53,7 @@ DEFAULT_ALGORITHMS: Final[Tuple[
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
                    algorithms: Iterable[
-                       Callable[[Instance, PermutationsWithRepetitions],
+                       Callable[[Instance, Permutations],
                                 Algorithm]] = DEFAULT_ALGORITHMS,
                    instances: Iterable[str] = EXPERIMENT_INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
@@ -120,8 +120,8 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
             :return: an Execution for the experiment
             :rtype: Execution
             """
-            pwr: PermutationsWithRepetitions = \
-                PermutationsWithRepetitions(inst.jobs, inst.machines)
+            pwr: Permutations = Permutations.with_repetitions(
+                inst.jobs, inst.machines)
 
             val: Union[Execution, Algorithm] = algor(inst, pwr)
             experiment: Execution

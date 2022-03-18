@@ -6,8 +6,8 @@ from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.spaces.permutations import Permutations
 from moptipy.tests.space import validate_space
 
 
@@ -17,7 +17,7 @@ def test_gantt_space():
         insx = Instance.from_resource(name)
 
         def __make_valid(x: Gantt, ins=insx) -> Gantt:
-            ssp = PermutationsWithRepetitions(ins.jobs, ins.machines)
+            ssp = Permutations.with_repetitions(ins.jobs, ins.machines)
             ob = OperationBasedEncoding(ins)
             op0 = Op0Shuffle(ssp)
             rg = default_rng()

@@ -5,7 +5,7 @@ import numpy.random as rnd
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.spaces.permutations import Permutations
 from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.space import validate_space
 
@@ -14,7 +14,7 @@ def __check_for_instance(instance: str,
                          random: rnd.Generator = rnd.default_rng()):
     inst = Instance.from_resource(instance)
 
-    x_space = PermutationsWithRepetitions(inst.jobs, inst.machines)
+    x_space = Permutations.with_repetitions(inst.jobs, inst.machines)
     validate_space(x_space)
 
     y_space = GanttSpace(inst)

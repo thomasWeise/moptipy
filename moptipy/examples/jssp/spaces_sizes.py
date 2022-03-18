@@ -38,9 +38,20 @@ from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp import experiment
 from moptipy.examples.jssp.gantt_space import gantt_space_size
 from moptipy.examples.jssp.instance import Instance
-from moptipy.spaces.permutationswr import \
-    permutations_with_repetitions_space_size
 from moptipy.utils.path import Path
+
+
+def permutations_with_repetitions_space_size(n: int, m: int) -> int:
+    """
+    Compute the number of n-permutations with m repetitions.
+
+    :param n: the number of different values
+    :param m: the number of repetitions
+    :returns: the space size
+    :rtype: int
+    """
+    return factorial(n * m) // (factorial(m) ** n)
+
 
 #: the pre-computed values
 __PRE_COMPUTED: Tuple[Tuple[int, int, int,

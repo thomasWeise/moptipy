@@ -11,8 +11,8 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.operators.pwr.op0_shuffle import Op0Shuffle
-from moptipy.spaces.permutationswr import PermutationsWithRepetitions
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.spaces.permutations import Permutations
 from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.objective import validate_objective
 
@@ -42,7 +42,7 @@ def make_gantt_valid(inst: Instance) -> Callable[[Gantt], Gantt]:
     :returns: a function that can make gantt charts valid
     :rtype: Callable
     """
-    pr = PermutationsWithRepetitions(inst.jobs, inst.machines)
+    pr = Permutations.with_repetitions(inst.jobs, inst.machines)
     op0 = Op0Shuffle(pr)
     oe = OperationBasedEncoding(inst)
     zrnd = default_rng()
@@ -58,8 +58,7 @@ def make_gantt_valid(inst: Instance) -> Callable[[Gantt], Gantt]:
 
 def validate_algorithm_on_1_jssp(
         algorithm: Union[Algorithm,
-                         Callable[[Instance, PermutationsWithRepetitions],
-                                  Algorithm]],
+                         Callable[[Instance, Permutations], Algorithm]],
         instance: Optional[str] = None,
         max_fes: int = 100,
         required_result: Optional[int] = None) -> None:
@@ -89,8 +88,8 @@ def validate_algorithm_on_1_jssp(
             f"Error when loading JSSP instance '{instance}', "
             f"obtained {type(inst)} instead.")
 
-    search_space = PermutationsWithRepetitions(inst.jobs,
-                                               inst.machines)
+    search_space = Permutations.with_repetitions(inst.jobs,
+                                                 inst.machines)
     if callable(algorithm):
         algorithm = algorithm(inst, search_space)
     if not isinstance(algorithm, Algorithm):
@@ -121,8 +120,7 @@ def validate_algorithm_on_1_jssp(
 
 
 def validate_algorithm_on_jssp(
-        algorithm: Callable[[Instance, PermutationsWithRepetitions],
-                            Algorithm]) -> None:
+        algorithm: Callable[[Instance, Permutations], Algorithm]) -> None:
     """
     Validate an algorithm on a set of JSSP instances.
 
