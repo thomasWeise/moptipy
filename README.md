@@ -126,6 +126,9 @@ The following exception sections are currently supported:
 If an exception is encountered during the algorithm run, it will be store in section `ERROR_IN_RUN`.
 If the validation of the finally returned candidate solution failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
 If the validation of the finally returned point in the search space failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
+If an inconsistency in the time measurement is discovered, this will result in the section `ERROR_TIMING`.
+Such an error may be caused when the computer clock is adjusted during the run of an optimization algorithm.
+It will also occur if an algorithm terminates without performing even a single objective function evaluation.
 In the unlikely case that an exception occurs during the writing of the log but writing can continue, this exception will be stored in section `ERROR_IN_LOG`.
 
 

@@ -1,9 +1,9 @@
 """An implementation of processes with different search and solution spaces."""
 from math import inf
-from time import monotonic_ns
 from typing import Optional, Union, Final, Callable
 
 from moptipy.api import logging
+from moptipy.api._process_base import _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
@@ -86,13 +86,12 @@ class _ProcessSS(_ProcessNoSS):
         do_term: bool = current_fes >= self._end_fes
 
         if result < self._current_best_f:
-            # noinspection PyAttributeOutsideInit
             self._last_improvement_fe = current_fes
             self._current_best_f = result
             self.copy(self._current_best_x, x)
             self._current_y = self._current_best_y
             self._current_best_y = current_y
-            self._current_time_nanos = ctn = monotonic_ns()
+            self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f) \
                 or (ctn >= self._end_time_nanos)

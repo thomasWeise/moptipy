@@ -1,20 +1,23 @@
 """An internal module with the base class for implementing Processes."""
 from math import inf
 from threading import Lock, Timer
-from time import monotonic_ns
-from typing import Optional, Final, Union
+from time import time_ns
+from typing import Optional, Final, Union, Callable
 
 from moptipy.api import logging
 from moptipy.api.process import Process, check_goal_f, check_max_fes, \
     check_max_time_millis
 from moptipy.utils.logger import KeyValueSection
 
+# the function used to get the time
+_TIME_IN_NS: Final[Callable[[], int]] = time_ns
+
 
 def _ns_to_ms(nanos: int) -> int:
     """
     Convert nanoseconds to milliseconds by rounding up.
 
-    :param int nanos: the nano seconds
+    :param int nanos: the nanoseconds
     :returns: the corresponding milliseconds, rounded up
     :rtype: int
 
@@ -61,7 +64,7 @@ class _ProcessBase(Process):
         #: This becomes `True` when :meth:`should_terminate` returned `True`.
         self._knows_that_terminated: bool = False
         #: The time when the process was started, in nanoseconds.
-        self._start_time_nanos: Final[int] = monotonic_ns()
+        self._start_time_nanos: Final[int] = _TIME_IN_NS()
         #: The internal lock, needed to protect :meth:`terminate`.
         self.__lock: Final[Lock] = Lock()
         #: The maximum FEs.
@@ -120,7 +123,7 @@ class _ProcessBase(Process):
 
     def get_consumed_time_millis(self) -> int:
         if not self._terminated:
-            self._current_time_nanos = time = monotonic_ns()
+            self._current_time_nanos = time = _TIME_IN_NS()
             if time >= self._end_time_nanos:
                 self.terminate()
         return _ns_to_ms(self._current_time_nanos - self._start_time_nanos)
@@ -153,7 +156,7 @@ class _ProcessBase(Process):
             if self.__timer is not None:
                 self.__timer.cancel()
             del self.__timer
-            self._current_time_nanos = monotonic_ns()
+            self._current_time_nanos = _TIME_IN_NS()
 
     def get_copy_of_current_best_y(self, y) -> None:
         """

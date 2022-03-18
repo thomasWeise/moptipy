@@ -2,14 +2,13 @@
 import os
 from io import StringIO
 from math import inf
-from time import monotonic_ns
 from traceback import print_tb
 from typing import Optional, Union, Final, Callable
 
 from numpy.random import Generator
 
 from moptipy.api import logging
-from moptipy.api._process_base import _ProcessBase, _ns_to_ms
+from moptipy.api._process_base import _ProcessBase, _ns_to_ms, _TIME_IN_NS
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import check_goal_f
@@ -187,7 +186,7 @@ class _ProcessNoSS(_ProcessBase):
         if result < self._current_best_f:
             self._last_improvement_fe = current_fes
             self._current_best_f = result
-            self._current_time_nanos = ctn = monotonic_ns()
+            self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f) \
                 or (ctn >= self._end_time_nanos)
@@ -257,6 +256,30 @@ class _ProcessNoSS(_ProcessBase):
     def _validate_x(self) -> None:
         """Validate x, if it exists."""
 
+    def _check_timing(self) -> None:
+        """
+        Check whether there has been any timing errors.
+
+        :raises ValueError: if there is any timing error
+        """
+        if self._current_time_nanos < self._start_time_nanos:
+            raise ValueError(
+                f"current_time_nanos={self._current_time_nanos} < "
+                f"start_time_nanos={self._start_time_nanos}")
+        if self._current_fes <= 0:
+            raise ValueError("no FE was performed")
+        if self._current_fes < self._last_improvement_fe:
+            raise ValueError(
+                f"current_fe={self._current_fes} < "
+                f"last_improvement_fe={self._last_improvement_fe}")
+        if not self._has_current_best:
+            raise ValueError("no current best solution set!")
+        if self._current_time_nanos < self._last_improvement_time_nanos:
+            raise ValueError(
+                f"current_time_nanos={self._current_time_nanos} < "
+                "last_improvement_time_nanos="
+                f"{self._last_improvement_time_nanos}")
+
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """Exit the process and write the log if necessary."""
         # noinspection PyProtectedMember
@@ -264,6 +287,7 @@ class _ProcessNoSS(_ProcessBase):
 
         y_error: Optional[BaseException] = None
         x_error: Optional[BaseException] = None
+        t_error: Optional[BaseException] = None
         log_error: Optional[BaseException] = None
         try:
             self._solution_space.validate(self._current_best_y)
@@ -273,9 +297,13 @@ class _ProcessNoSS(_ProcessBase):
             self._validate_x()
         except BaseException as be:
             x_error = be
+        try:
+            self._check_timing()
+        except BaseException as be:
+            t_error = be
 
         if self.__log_file is not None:
-            self._current_time_nanos = monotonic_ns()
+            self._current_time_nanos = _TIME_IN_NS()
             with FileLogger(self.__log_file) as logger:
                 try:
                     self._write_log(logger)
@@ -285,13 +313,12 @@ class _ProcessNoSS(_ProcessBase):
                 if exception_type or exception_value or traceback:
                     _error_1(logger, logging.SECTION_ERROR_IN_RUN,
                              exception_type, exception_value, traceback)
-
                 if y_error:
                     _error_2(logger, logging.SECTION_ERROR_INVALID_Y, y_error)
-
                 if x_error:
                     _error_2(logger, logging.SECTION_ERROR_INVALID_X, x_error)
-
+                if t_error:
+                    _error_2(logger, logging.SECTION_ERROR_TIMING, t_error)
                 if log_error:
                     _error_2(logger, logging.SECTION_ERROR_IN_LOG, log_error)
 
@@ -300,6 +327,8 @@ class _ProcessNoSS(_ProcessBase):
                 raise y_error
             if x_error:
                 raise x_error
+            if t_error:
+                raise t_error
             if log_error:
                 raise log_error
 

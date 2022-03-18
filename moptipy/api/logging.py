@@ -46,6 +46,8 @@ SECTION_ERROR_IN_RUN: Final[str] = f"{ERROR_SECTION_PREFIX}IN_RUN"
 SECTION_ERROR_INVALID_Y: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_Y"
 #: the section indicating an invalid point in the search space
 SECTION_ERROR_INVALID_X: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_X"
+#: the section indicating that the time measurement has an error
+SECTION_ERROR_TIMING: Final[str] = f"{ERROR_SECTION_PREFIX}TIMING"
 #: the section indicating an error caught during log writing
 SECTION_ERROR_IN_LOG: Final[str] = f"{ERROR_SECTION_PREFIX}IN_LOG"
 

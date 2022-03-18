@@ -1,10 +1,9 @@
 """A process with logging, where search and solution space are the same."""
 from math import inf
-from time import monotonic_ns
 from typing import Optional, Union, List, Final, cast
 
 from moptipy.api import logging
-from moptipy.api._process_base import _ns_to_ms
+from moptipy.api._process_base import _ns_to_ms, _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective
@@ -90,7 +89,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
         if result < self._current_best_f:
             self._last_improvement_fe = current_fes
             self._current_best_f = result
-            self._current_time_nanos = ctn = monotonic_ns()
+            self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f) \
                 or (ctn >= self._end_time_nanos)
@@ -100,17 +99,41 @@ class _ProcessNoSSLog(_ProcessNoSS):
 
         if do_log:
             if ctn <= 0:
-                self._current_time_nanos = ctn = monotonic_ns()
+                self._current_time_nanos = ctn = _TIME_IN_NS()
                 if ctn >= self._end_time_nanos:
                     do_term = True
-            self.__log_append([current_fes,
-                               ctn - self._start_time_nanos,
-                               result])
+            self.__log_append([current_fes, ctn, result])
 
         if do_term:
             self.terminate()
 
         return result
+
+    def _check_timing(self) -> None:
+        super()._check_timing()
+        last_time: int = -1
+        last_fe: int = -1
+        start_time: Final[int] = self._start_time_nanos
+        current_time: Final[int] = self._current_time_nanos
+        for row in self.__log:
+            fes: int = cast(int, row[0])
+            time: int = cast(int, row[1])
+            if fes < last_fe:
+                raise ValueError(f"fe={fes} after fe={last_fe}?")
+            if time < last_time:
+                raise ValueError(
+                    f"time={time} of fe={fes} is less than "
+                    f"last_time={last_time} of last_fe={last_fe}")
+            if time < start_time:
+                raise ValueError(
+                    f"time={time} of fe={fes} is less than "
+                    f"start_time_nanos={start_time}")
+            if time > current_time:
+                raise ValueError(
+                    f"time={time} of fe={fes} is greater than "
+                    f"current_time_nanos={current_time}")
+            last_time = time
+            last_fe = fes
 
     def _write_log(self, logger: Logger) -> None:
         if len(self.__log) > 0:
@@ -119,7 +142,9 @@ class _ProcessNoSSLog(_ProcessNoSS):
                              logging.PROGRESS_TIME_MILLIS,
                              logging.PROGRESS_CURRENT_F]) as csv:
                 for row in self.__log:
-                    csv.row([row[0], _ns_to_ms(cast(int, row[1])), row[2]])
+                    csv.row([row[0], _ns_to_ms(cast(int, row[1])
+                                               - self._start_time_nanos),
+                             row[2]])
         del self.__log
         super()._write_log(logger)
 
