@@ -91,17 +91,13 @@ class _ProcessNoSSLog(_ProcessNoSS):
             self._current_best_f = result
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
-            do_term = do_term or (result <= self._end_f) \
-                or (ctn >= self._end_time_nanos)
+            do_term = do_term or (result <= self._end_f)
             self._copy_y(self._current_best_y, x)
-            self._has_current_best = True
             do_log = True
 
         if do_log:
             if ctn <= 0:
                 self._current_time_nanos = ctn = _TIME_IN_NS()
-                if ctn >= self._end_time_nanos:
-                    do_term = True
             self.__log_append([current_fes, ctn, result])
 
         if do_term:

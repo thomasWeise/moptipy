@@ -93,32 +93,22 @@ class _ProcessSS(_ProcessNoSS):
             self._current_best_y = current_y
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
-            do_term = do_term or (result <= self._end_f) \
-                or (ctn >= self._end_time_nanos)
-
-            # noinspection PyAttributeOutsideInit
-            self._has_current_best = True
+            do_term = do_term or (result <= self._end_f)
 
         if do_term:
             self.terminate()
 
         return result
 
-    def has_current_best(self) -> bool:
-        return self._has_current_best
-
-    def get_current_best_f(self) -> float:
-        if self._has_current_best:
-            return self._current_best_f
-        raise ValueError('No current best available.')
-
     def get_copy_of_current_best_x(self, x) -> None:
-        if self._has_current_best:
+        if self._current_fes > 0:
             return self.copy(x, self._current_best_x)
-        raise ValueError('No current best available.')
+        raise ValueError('No current best x available.')
 
     def get_copy_of_current_best_y(self, y):
-        return self._copy_y(y, self._current_best_y)
+        if self._current_fes > 0:
+            return self._copy_y(y, self._current_best_y)
+        raise ValueError('No current best y available.')
 
     def log_parameters_to(self, logger: KeyValueSection) -> None:
         super().log_parameters_to(logger)
@@ -131,7 +121,7 @@ class _ProcessSS(_ProcessNoSS):
         # noinspection PyProtectedMember
         super()._write_log(logger)
 
-        if self._has_current_best:
+        if self._current_fes > 0:
             with logger.text(logging.SECTION_RESULT_X) as txt:
                 txt.write(self._search_space.to_str(self._current_best_x))
 

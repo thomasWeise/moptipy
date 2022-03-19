@@ -149,8 +149,6 @@ class _ProcessNoSS(_ProcessBase):
         self._current_best_y = self._solution_space.create()
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
-        #: Do we have a current-best solution?
-        self._has_current_best: bool = False
         #: The log file, or `None` is needed
         self.__log_file: Final[Optional[Path]] = log_file
         #: the method for copying y
@@ -188,10 +186,8 @@ class _ProcessNoSS(_ProcessBase):
             self._current_best_f = result
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
-            do_term = do_term or (result <= self._end_f) \
-                or (ctn >= self._end_time_nanos)
+            do_term = do_term or (result <= self._end_f)
             self._copy_y(self._current_best_y, x)
-            self._has_current_best = True
 
         if do_term:
             self.terminate()
@@ -199,15 +195,15 @@ class _ProcessNoSS(_ProcessBase):
         return result
 
     def has_current_best(self) -> bool:
-        return self._has_current_best
+        return self._current_fes > 0
 
     def get_current_best_f(self) -> Union[int, float]:
-        if self._has_current_best:
+        if self._current_fes > 0:
             return self._current_best_f
         raise ValueError('No current best available.')
 
     def get_copy_of_current_best_x(self, x) -> None:
-        if self._has_current_best:
+        if self._current_fes > 0:
             return self._copy_y(x, self._current_best_y)
         raise ValueError('No current best available.')
 
@@ -236,7 +232,7 @@ class _ProcessNoSS(_ProcessBase):
             kv.key_value(logging.KEY_TOTAL_TIME_MILLIS,
                          _ns_to_ms(self._current_time_nanos
                                    - self._start_time_nanos))
-            if self._has_current_best:
+            if self._current_fes > 0:
                 kv.key_value(logging.KEY_BEST_F, self._current_best_f)
                 kv.key_value(logging.KEY_LAST_IMPROVEMENT_FE,
                              self._last_improvement_fe)
@@ -249,7 +245,7 @@ class _ProcessNoSS(_ProcessBase):
 
         log_sys_info(logger)
 
-        if self._has_current_best:
+        if self._current_fes > 0:
             with logger.text(logging.SECTION_RESULT_Y) as txt:
                 txt.write(self._solution_space.to_str(self._current_best_y))
 
@@ -272,8 +268,6 @@ class _ProcessNoSS(_ProcessBase):
             raise ValueError(
                 f"current_fe={self._current_fes} < "
                 f"last_improvement_fe={self._last_improvement_fe}")
-        if not self._has_current_best:
-            raise ValueError("no current best solution set!")
         if self._current_time_nanos < self._last_improvement_time_nanos:
             raise ValueError(
                 f"current_time_nanos={self._current_time_nanos} < "
