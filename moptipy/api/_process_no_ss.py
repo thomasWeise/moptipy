@@ -209,8 +209,7 @@ class _ProcessNoSS(_ProcessBase):
 
     def _log_own_parameters(self, logger: KeyValueSection) -> None:
         super()._log_own_parameters(logger)
-        logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed,
-                         also_hex=True)
+        logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed, True)
         logger.key_value(logging.KEY_RAND_GENERATOR_TYPE,
                          classname(self.__random))
         logger.key_value(logging.KEY_RAND_BIT_GENERATOR_TYPE,

@@ -13,7 +13,7 @@ def test_op1_m_over_n_flips():
         for bs in bitstrings_for_tests():
             for m in range(1, 1 + min(bs.dimension, 5)):
                 def _min_diff(samples: int, bss: BitStrings) -> int:
-                    return max(1, min(samples, bss.dimension) // 2)
+                    return max(1, min(samples, bss.dimension) // 3)
 
                 validate_op1_on_1_bitstrings(
                     op1=Op1MoverNflip(bs.dimension, m, flip_1),
