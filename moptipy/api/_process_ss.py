@@ -99,6 +99,31 @@ class _ProcessSS(_ProcessNoSS):
 
         return result
 
+    def register(self, x, f: Union[int, float]) -> None:
+        if self._terminated:
+            if self._knows_that_terminated:
+                raise ValueError('The process has been terminated and the '
+                                 'algorithm knows it.')
+            return
+
+        self._current_fes = current_fes = self._current_fes + 1
+        do_term: bool = current_fes >= self._end_fes
+
+        if f < self._current_best_f:
+            self._last_improvement_fe = current_fes
+            self._current_best_f = f
+            self.copy(self._current_best_x, x)
+            current_y: Final = self._current_y
+            self._g(x, current_y)
+            self._current_y = self._current_best_y
+            self._current_best_y = current_y
+            self._current_time_nanos = ctn = _TIME_IN_NS()
+            self._last_improvement_time_nanos = ctn
+            do_term = do_term or (f <= self._end_f)
+
+        if do_term:
+            self.terminate()
+
     def get_copy_of_current_best_x(self, x) -> None:
         if self._current_fes > 0:
             return self.copy(x, self._current_best_x)

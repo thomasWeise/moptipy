@@ -62,17 +62,6 @@ class _ProcessNoSSLog(_ProcessNoSS):
         self.__log_append = self.__log.append
 
     def evaluate(self, x) -> Union[float, int]:
-        """
-        Evaluate a candidate solution.
-
-        This method internally forwards to :meth:`Objective.evaluate` of
-        :attr:`_objective` and keeps track of the best-so-far solution.
-        It also performs the logging of the progress.
-
-        :param x: the candidate solution
-        :return: the objective value
-        :rtype: Union[float, int]
-        """
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
@@ -103,6 +92,35 @@ class _ProcessNoSSLog(_ProcessNoSS):
             self.terminate()
 
         return result
+
+    def register(self, x, f: Union[int, float]) -> None:
+        if self._terminated:
+            if self._knows_that_terminated:
+                raise ValueError('The process has been terminated and '
+                                 'the algorithm knows it.')
+            return
+
+        self._current_fes = current_fes = self._current_fes + 1
+        do_term: bool = current_fes >= self._end_fes
+        do_log: bool = self.__log_all
+        ctn: int = 0
+
+        if f < self._current_best_f:
+            self._last_improvement_fe = current_fes
+            self._current_best_f = f
+            self._current_time_nanos = ctn = _TIME_IN_NS()
+            self._last_improvement_time_nanos = ctn
+            do_term = do_term or (f <= self._end_f)
+            self._copy_y(self._current_best_y, x)
+            do_log = True
+
+        if do_log:
+            if ctn <= 0:
+                self._current_time_nanos = ctn = _TIME_IN_NS()
+            self.__log_append([current_fes, ctn, f])
+
+        if do_term:
+            self.terminate()
 
     def _check_timing(self) -> None:
         super()._check_timing()

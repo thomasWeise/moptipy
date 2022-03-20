@@ -25,7 +25,7 @@ class Process(Space, Objective, ContextManager):
     best-so-far solution. It can also count the FEs and the runtime
     that has passed. Therefore, it also presents the termination
     criterion to the optimization algorithm. It also provides a random
-    number generator the algorithm. It can a write log files with the
+    number generator the algorithm. It can write log files with the
     progress of the search and the end result. Finally, it provides
     the end result to the user, who can access it after the algorithm
     has finished.
@@ -54,6 +54,29 @@ class Process(Space, Objective, ContextManager):
         :return: True if the process should terminate, False if not
         :rtype: Generator
         """
+
+    def register(self, x, f: Union[int, float]) -> None:
+        """
+        Register a solution `x` with externally-evaluated objective value.
+
+        This function is equivalent to :meth:`Objective.evaluate`, but
+        receives the objective value as parameter. In some problems,
+        algorithms can compute the objective value of a solution very
+        efficiently without passing it to the objective function. For
+        example, on the Traveling Salesperson Problem with n cities, if you
+        have a tour of known length and swap two cities in it, then you can
+        compute the overall tour length in O(1) instead of O(n) that you
+        would need to pay for a full evaluation. In such a case, you could
+        use `register` instead of `evaluate`.
+
+        :param x: the candidate solution
+        :param Union[int, float] f: the objective value
+        """
+        # This dummy code will be overwritten by subclasses.
+        # It only shows the general contract of this method.
+        r: Union[int, float] = self.evaluate(x)
+        if r != f:
+            raise ValueError(f"got {f} as quality but it's actually {r}.")
 
     def get_consumed_fes(self) -> int:
         """
