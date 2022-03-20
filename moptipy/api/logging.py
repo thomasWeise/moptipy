@@ -42,6 +42,10 @@ KEY_INSTANCE: Final[str] = "instance"
 ERROR_SECTION_PREFIX: Final[str] = "ERROR_"
 #: the section indicating an error during the algorithm run
 SECTION_ERROR_IN_RUN: Final[str] = f"{ERROR_SECTION_PREFIX}IN_RUN"
+#: the section indicating an error that occurred in the context of the
+#: process. this may be an error in the algorithm or, more likely, in the
+#: processing of the result.
+SECTION_ERROR_IN_CONTEXT: Final[str] = f"{ERROR_SECTION_PREFIX}IN_CONTEXT"
 #: the section indicating an invalid candidate solution
 SECTION_ERROR_INVALID_Y: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_Y"
 #: the section indicating an invalid point in the search space

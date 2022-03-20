@@ -103,6 +103,9 @@ class _ProcessBase(Process):
             Timer(interval=self._max_time_millis / 1_000.0,
                   function=self.terminate)
 
+        #: an internal base exception caught by the algorithm execution
+        self._caught: Optional[BaseException] = None
+
     def _after_init(self) -> None:
         """
         Finish initialization, start timer for termination if needed.

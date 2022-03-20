@@ -175,7 +175,7 @@ class _ProcessNoSS(_ProcessBase):
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
                                  'the algorithm knows it.')
-            return inf
+            return self._current_best_f
 
         result: Final[Union[int, float]] = self._f(x)
         self._current_fes = current_fes = self._current_fes + 1
@@ -303,8 +303,11 @@ class _ProcessNoSS(_ProcessBase):
                 except BaseException as be:
                     log_error = be
 
+                if self._caught is not None:
+                    _error_2(logger, logging.SECTION_ERROR_IN_RUN,
+                             self._caught)
                 if exception_type or exception_value or traceback:
-                    _error_1(logger, logging.SECTION_ERROR_IN_RUN,
+                    _error_1(logger, logging.SECTION_ERROR_IN_CONTEXT,
                              exception_type, exception_value, traceback)
                 if y_error:
                     _error_2(logger, logging.SECTION_ERROR_INVALID_Y, y_error)
@@ -316,6 +319,8 @@ class _ProcessNoSS(_ProcessBase):
                     _error_2(logger, logging.SECTION_ERROR_IN_LOG, log_error)
 
         if not exception_type:
+            if self._caught is not None:
+                raise self._caught  # pylint: disable=[E0702]
             if y_error:
                 raise y_error
             if x_error:

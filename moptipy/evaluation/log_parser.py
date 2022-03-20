@@ -229,7 +229,7 @@ class LogParser(ABC):
                             if state == 1 else
                             f"Error when reading lines from file '{file}'.") \
                             from be
-                    if buffer is None:
+                    if (buffer is None) or (len(buffer) <= 0):
                         break
                     index = 0
 

@@ -1,5 +1,4 @@
 """A process with logging and different search and solution space."""
-from math import inf
 from typing import Optional, Union, List, Final, cast
 
 from moptipy.api import logging
@@ -73,7 +72,7 @@ class _ProcessSSLog(_ProcessSS):
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '
                                  'algorithm knows it.')
-            return inf
+            return self._current_best_f
 
         current_y: Final = self._current_y
         self._g(x, current_y)

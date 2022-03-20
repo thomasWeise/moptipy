@@ -309,7 +309,11 @@ class Execution:
                                      max_fes=max_fes,
                                      max_time_millis=max_time_millis,
                                      goal_f=goal_f)
-        # noinspection PyProtectedMember
-        process._after_init()
-        algorithm.solve(process)
+        try:
+            # noinspection PyProtectedMember
+            process._after_init()
+            algorithm.solve(process)
+        except BaseException as be:
+            # noinspection PyProtectedMember
+            process._caught = be
         return process

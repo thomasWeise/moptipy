@@ -65,7 +65,6 @@ class FEA1plus1(Algorithm1):
         best_f: int  # the best objective value
         new_f: int  # the objective value of the new solution
         best_h: int  # the frequency fitness corresponding to best_f
-        new_h: int  # the frequency fitness corresponding to new_f
         if process.has_current_best():  # there already is a solution
             process.get_copy_of_current_best_x(best_x)  # get a copy
             best_f = cast(int, process.get_current_best_f()) - lb
@@ -77,9 +76,9 @@ class FEA1plus1(Algorithm1):
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
             new_f = cast(int, evaluate(new_x)) - lb
 
-            h[new_f] = new_h = h[new_f] + 1  # increase frequency of new_f
+            h[new_f] = h[new_f] + 1  # increase frequency of new_f
             h[best_f] = best_h = h[best_f] + 1  # increase frequency of best_f
-            if new_h <= best_h:  # new_x is no worse than best_x?
+            if h[new_f] <= best_h:  # new_x is no worse than best_x?
                 best_f = new_f  # use its objective value
                 copy(best_x, new_x)  # and copy it to best_x
 

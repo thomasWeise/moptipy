@@ -1,9 +1,10 @@
 """Evaluate the results of the example experiment."""
 import os.path as pp
 import sys
-from typing import Dict, Final, Optional, Any, List, Tuple, Set, Iterable
+from typing import Dict, Final, Optional, Any, List, Tuple, Set
 
 from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans
 from moptipy.utils.log import logger
@@ -71,7 +72,10 @@ def compute_end_results(results_dir: str,
     results.sort()
     logger(f"found {len(results)} log files in path '{source}', storing "
            f"them in file '{results_file}'.")
-    EndResult.to_csv(results, results_file)
+    rf: Path = EndResult.to_csv(results, results_file)
+    if rf != results_file:
+        raise ValueError(
+            f"results file should be {results_file}, but is {rf}.")
     results_file.enforce_file()
     logger(f"finished writing file '{results_file}'.")
     return results_file
@@ -79,7 +83,7 @@ def compute_end_results(results_dir: str,
 
 def get_end_results(file: str,
                     insts: Optional[Set[str]] = None,
-                    algos: Optional[Set[str]] = None) -> Iterable[EndResult]:
+                    algos: Optional[Set[str]] = None) -> List[EndResult]:
     """
     Get a specific set of end results..
 
@@ -106,6 +110,38 @@ def get_end_results(file: str,
     return col
 
 
+def compute_end_statistics(end_results_file: str,
+                           dest_dir: str) -> Path:
+    """
+    Get the end result statistics, compute them if necessary.
+
+    :param str end_results_file: the end results file
+    :param str dest_dir: the destination directory
+    :returns: the path to the end result statistics file.
+    :rtype: Path
+    """
+    dest: Final[Path] = Path.directory(dest_dir)
+    stats_file: Final[Path] = dest.resolve_inside("end_statistics.txt")
+    if stats_file.is_file():
+        return stats_file
+
+    results: Final[List[EndResult]] = get_end_results(end_results_file)
+    if len(results) <= 0:
+        raise TypeError("end results cannot be empty")
+    stats: Final[List[EndStatistics]] = []
+    EndStatistics.from_end_results(results, stats.append)
+    if len(stats) <= 0:
+        raise TypeError("end result statistics cannot be empty")
+    stats.sort()
+
+    sf: Path = EndStatistics.to_csv(stats, stats_file)
+    if sf != stats_file:
+        raise ValueError(f"stats file should be {stats_file} but is {sf}")
+    stats_file.enforce_file()
+    logger(f"finished writing file '{stats_file}'.")
+    return stats_file
+
+
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                         dest_dir: Optional[str] = None) -> None:
     """
@@ -123,6 +159,9 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     end_results: Final[Path] = compute_end_results(source, dest)
     if not end_results:
         raise ValueError("End results path is empty??")
+    end_stats: Final[Path] = compute_end_statistics(end_results, dest)
+    if not end_stats:
+        raise ValueError("End stats path is empty??")
 
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"1rs"}),
