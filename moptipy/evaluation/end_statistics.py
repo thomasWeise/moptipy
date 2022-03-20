@@ -274,11 +274,11 @@ class EndStatistics(MultiRunData):
                 raise ValueError(
                     f"n_success must be positive, but is {n_success}.")
 
-            if not isinstance(ert_fes, float):
-                raise TypeError(
-                    f"ert_fes must be float, but it's a {type(ert_fes)}.")
-            if not isinstance(ert_time_millis, float):
-                raise TypeError("ert_time_millis must be float, "
+            if not isinstance(ert_fes, (int, float)):
+                raise TypeError("ert_fes must be int or float, but "
+                                f"it's a {type(ert_fes)}.")
+            if not isinstance(ert_time_millis, (int, float)):
+                raise TypeError("ert_time_millis must be int or float, "
                                 f"but it's a {type(ert_time_millis)}.")
 
             if n_success > 0:
@@ -701,10 +701,10 @@ class EndStatistics(MultiRunData):
                 wrt(KEY_N_SUCCESS)
             if has_success_fes:
                 wrt(sep)
-                wrt(KEY_SUCCESS_FES)
+                h(KEY_SUCCESS_FES)
             if has_success_time_millis:
                 wrt(sep)
-                wrt(KEY_SUCCESS_TIME_MILLIS)
+                h(KEY_SUCCESS_TIME_MILLIS)
             if has_ert_fes:
                 wrt(sep)
                 wrt(KEY_ERT_FES)

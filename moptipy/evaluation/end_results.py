@@ -24,9 +24,9 @@ _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
           f"{logging.CSV_SEPARATOR}" \
           f"{logging.KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
           f"{logging.KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
+          f"{logging.KEY_GOAL_F}{logging.CSV_SEPARATOR}" \
           f"{logging.KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_MAX_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_GOAL_F}\n"
+          f"{logging.KEY_MAX_TIME_MILLIS}\n"
 
 
 @dataclass(frozen=True, init=False, order=True)

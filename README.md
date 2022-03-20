@@ -246,6 +246,177 @@ END_RESULT_X
 ```
 
 
+### 3.2. End Result CSV Files
+
+While a log file contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
+The class `moptipy.evaluation.end_results.EndResult` provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
+The files generated this way can easily be imported into applications like Microsoft Excel.
+
+#### 3.2.1. The End Results File Format
+
+An end results file contains a header line and then one line for each log file that was parsed.
+The 11 columns are separated by `;`.
+Cells without value are left empty.
+
+It presents the following columns:
+
+1. `algorithm`: the algorithm that was executed
+2. `instance`: the instance it was applied to
+3. `randSeed` the hexadecimal version of the random seed of the run
+4. `bestF`: the best objective value encountered during the run
+5. `lastImprovementFE`: the FE when the last improvement was registered
+6. `lastImprovementTimeMillis`: the time in milliseconds from the start of the run when the last improvement was registered
+7. `totalFEs`: the total number of FEs performed
+8. `totalTimeMillis`: the total time in milliseconds consumed by the run
+9. `goalF`: the goal objective value, if specified (otherwise empty)
+10. `maxFEs`: the computational budget in terms of the maximum number of permitted FEs, if specified (otherwise empty)
+11. `maxTimeMillis`: the computational budget in terms of the maximum runtime in milliseconds, if specified (otherwise empty)
+
+For each run, i.e., algorithm x instance x seed combination, one row with the above values is generated.
+Notice that from the algorithm and instance name together with the random seed, you can find the corresponding log file.
+
+### 3.2.2. An Example for End Results Files
+
+Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
+We can do that as follows
+
+```python
+from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.hill_climber import HillClimber
+from moptipy.evaluation.end_results import EndResult
+from moptipy.examples.jssp.experiment import run_experiment
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.utils.temp import TempDir
+
+with TempDir.create() as td:
+    results_dir = td.resolve_inside("results")
+    run_experiment(base_dir=results_dir,
+                   algorithms=[lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),
+                               lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],
+                   instances=("demo", "abz7", "la24"), max_fes=10240, n_runs=4)
+    end_results = []
+    EndResult.from_logs(results_dir, end_results.append)
+    er_csv = EndResult.to_csv(end_results, td.resolve_inside("end_results.txt"))
+    print(er_csv.read_all_str())
+```
+
+This will yield something like the following output:
+
+```
+algorithm;instance;randSeed;bestF;lastImprovementFE;lastImprovementTimeMillis;totalFEs;totalTimeMillis;goalF;maxFEs;maxTimeMillis
+hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;36;10240;157;935;10240;120000
+hc_swap2;la24;0x23098fe72e435030;1061;10203;131;10240;147;935;10240;120000
+hc_swap2;la24;0xb76a45e4f8b431ae;1118;2130;40;10240;151;935;10240;120000
+hc_swap2;la24;0xb4eab9a0c2193a9e;1111;2594;36;10240;142;935;10240;120000
+hc_swap2;abz7;0x3e96d853a69f369d;825;10052;146;10240;176;656;10240;120000
+hc_swap2;abz7;0x7e986b616543ff9b;850;6788;88;10240;156;656;10240;120000
+hc_swap2;abz7;0xeb6420da7243abbe;804;3798;58;10240;164;656;10240;120000
+hc_swap2;abz7;0xd3de359d5e3982fd;814;4437;73;10240;174;656;10240;120000
+hc_swap2;demo;0xdac201e7da6b455c;205;4;1;10240;154;180;10240;120000
+hc_swap2;demo;0x5a9363100a272f12;200;33;1;10240;134;180;10240;120000
+hc_swap2;demo;0x9ba8fd0486c59354;180;34;1;34;2;180;10240;120000
+hc_swap2;demo;0xd2866f0630434df;185;128;3;10240;133;180;10240;120000
+ea1p1_swap2;la24;0xb4eab9a0c2193a9e;1033;7503;117;10240;171;935;10240;120000
+ea1p1_swap2;la24;0x23098fe72e435030;1026;9114;125;10240;150;935;10240;120000
+ea1p1_swap2;la24;0xac5ca7763bbe7138;1015;9451;112;10240;130;935;10240;120000
+ea1p1_swap2;la24;0xb76a45e4f8b431ae;1031;5218;78;10240;154;935;10240;120000
+ea1p1_swap2;abz7;0x7e986b616543ff9b;767;9935;138;10240;176;656;10240;120000
+ea1p1_swap2;abz7;0xeb6420da7243abbe;756;8005;105;10240;160;656;10240;120000
+ea1p1_swap2;abz7;0xd3de359d5e3982fd;762;9128;131;10240;180;656;10240;120000
+ea1p1_swap2;abz7;0x3e96d853a69f369d;760;10175;147;10240;185;656;10240;120000
+ea1p1_swap2;demo;0xdac201e7da6b455c;180;83;2;83;3;180;10240;120000
+ea1p1_swap2;demo;0x5a9363100a272f12;180;84;2;84;3;180;10240;120000
+ea1p1_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;2;180;10240;120000
+ea1p1_swap2;demo;0xd2866f0630434df;180;63;2;63;2;180;10240;120000
+```
+
+### 3.3. End Result Statistics CSV Files
+
+We can also aggregate the end result data over either algorithm x instance combinations, over whole algorithms, over whole instances, or just over all.
+Such information can again be provided in a semicolon-separated-values format.
+The files generated this way can easily be imported into applications like Microsoft Excel.
+
+#### 3.3.1. The End Result Statistics File Format
+
+End result statistics files contain information in form of statistics aggregated over several runs.
+Therefore, they first contain columns identifying the data over which has been aggregated:
+
+1. `algorithm`: the algorithm used (empty if we aggregate over all algorithms)
+2. `instance`: the instance to which it was applied (empty if we aggregate over all instance)
+
+Then the column `n` denotes the number of runs that were performed in the above setting. 
+We have then the following data columns:
+
+1. `bestF.x`: the best objective value encountered during the run
+2. `lastImprovementFE.x`: the FE when the last improvement was registered
+3. `lastImprovementTimeMillis.x`: the time in milliseconds from the start of the run when the last improvement was registered
+4. `totalFEs.x`: the total number of FEs performed
+5. `totalTimeMillis.x`: the total time in milliseconds consumed by the run
+
+Here, the `.x` can stand for the following statistics:
+
+- `min`: the minimum
+- `med`: the median
+- `mean`: the mean
+- `geom`: the geometric mean
+- `max`: the maximum
+- `sd`: the standard deviation
+
+The column `goalF` denotes the goal objective value, if any.
+If it is not empty, then we also have the columns `bestFscaled.x`, which provide statistics of `bestF/goalF` as discussed above.
+If `goalF` is defined for at least some settings, we also get the following columns:
+
+1. `nSuccesses`: the number of runs that were successful in reaching the goal
+2. `successFEs.x`: the statistics about the FEs until success
+3. `successTimeMillis.x`: the statistics of the runtime until success
+4. `ertFEs`: the empirically estimated runtime to success in FEs
+5. `ertTimeMillis`: the empirically estimated runtime to success in milliseconds
+
+Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the computational budget limits in terms of FEs or milliseconds.
+
+
+#### 3.3.2. Example for End Result Statistics Files
+
+We can basically execute the same abridged experiment as in the previous section, but now take the aggregation of information one step further:
+
+```python
+from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.hill_climber import HillClimber
+from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.examples.jssp.experiment import run_experiment
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.utils.temp import TempDir
+
+with TempDir.create() as td:
+    results_dir = td.resolve_inside("results")
+    run_experiment(base_dir=results_dir,
+                   algorithms=[lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),
+                               lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],
+                   instances=("demo", "abz7", "la24"), max_fes=10240, n_runs=4)
+    end_results = []
+    EndResult.from_logs(results_dir, end_results.append)
+    end_stats = []
+    EndStatistics.from_end_results(end_results, end_stats.append)
+    es_csv = EndStatistics.to_csv(end_stats, td.resolve_inside("end_stats.txt"))
+    print(es_csv.read_all_str())
+```
+
+We will get the following output:
+
+```
+algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
+ea1p1_swap2;abz7;4;756;761;761.25;761.2397023397091;767;4.573474244670748;8005;9531.5;9310.75;9270.6420810448;10175;978.9444570556595;141;155.5;157;156.50853939166342;176;14.445299120013633;10240;10240;10240;10240;10240;0;183;207.5;204.5;203.91497600580072;220;17.710637105046974;656;1.1524390243902438;1.1600609756097562;1.1604420731707317;1.160426375517849;1.1692073170731707;0.0069717595193152;0;;;;;;;;;;;;;inf;inf;10240;120000
+ea1p1_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;2;1.75;1.681792830507429;2;0.5;33;73;65.75;61.7025293022418;84;23.879907872519105;2;3;2.75;2.7108060108295344;3;0.5;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;2;1.75;1.681792830507429;2;0.5;65.75;1.75;10240;120000
+ea1p1_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;84;120;120.5;117.47748336215864;158;30.75169372029233;10240;10240;10240;10240;10240;0;133;186.5;173.25;171.49914118246429;187;26.837473800639284;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10240;120000
+hc_swap2;abz7;4;804;819.5;823.25;823.0729556595575;850;19.788464653260327;3798;5612.5;6268.75;5823.172771584857;10052;2830.931221936226;59;86.5;101.75;91.64514854755575;175;54.646591842492796;10240;10240;10240;10240;10240;0;163;179;181.25;180.6171149317584;204;17.63282923034947;656;1.225609756097561;1.2492378048780488;1.2549542682926829;1.254684383627374;1.295731707317073;0.03016534245923826;0;;;;;;;;;;;;;inf;inf;10240;120000
+hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.5;1.3160740129524924;3;1;34;10240;7688.5;2458.0725488747207;10240;5103;2;165.5;125.75;55.24078087383381;170;82.5363556258695;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30754;502;10240;120000
+hc_swap2;la24;4;1061;1114.5;1130.75;1129.038055995197;1233;72.73868755116955;2130;2471.5;4319;3392.267719302876;10203;3927.242544075932;26;35;64.25;47.10333276524755;161;64.89157623811172;10240;10240;10240;10240;10240;0;122;154;152.75;150.3489640548046;181;31.084562084739105;935;1.13475935828877;1.1919786096256684;1.2093582887700536;1.207527332615184;1.3187165775401068;0.07779538775526149;0;;;;;;;;;;;;;inf;inf;10240;120000
+```
+
+
 ## 4. License
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see Contact).
