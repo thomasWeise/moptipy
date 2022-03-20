@@ -8,7 +8,7 @@ from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import KeyValueSection
 
 #: the base string to be permuted
-KEY_BASE_STRING: Final[str] = "base_string"
+KEY_BASE_STRING: Final[str] = "baseString"
 #: the number of times each value must occur
 KEY_REPETITIONS: Final[str] = "repetitions"
 
