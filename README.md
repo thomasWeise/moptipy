@@ -368,8 +368,8 @@ If it is not empty, then we also have the columns `bestFscaled.x`, which provide
 If `goalF` is defined for at least some settings, we also get the following columns:
 
 1. `nSuccesses`: the number of runs that were successful in reaching the goal
-2. `successFEs.x`: the statistics about the FEs until success
-3. `successTimeMillis.x`: the statistics of the runtime until success
+2. `successFEs.x`: the statistics about the FEs until success, but *only* computed over the successful runs
+3. `successTimeMillis.x`: the statistics of the runtime until success, but *only* computed over the successful runs
 4. `ertFEs`: the empirically estimated runtime to success in FEs
 5. `ertTimeMillis`: the empirically estimated runtime to success in milliseconds
 
