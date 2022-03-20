@@ -55,17 +55,25 @@ There are three types of sections:
 
 ##### The Section `PROGRESS`
 
-The `Progress` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
+When setting up an algorithm execution, you can specify whether you want to log the progress of the algorithm.
+If and only if you choose to log the progress, the `PROGRESS` section will be contained in the log file.
+You can also choose if you want to log all algorithm steps or only the improving moves, the latter being the default behavior.
+Notice that even if you do not choose to log the algorithm's progress, the section `STATE` with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the `RESULT_*` sections with the best encountered candidate solution and point in the search space will be included.
+
+The `PROGRESS` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
 It has an internal header describing the data columns.
 There will at least be the following columns:
 
 1. `fes` denoting the integer number of performed objective value evaluations
-2. `timeMS` the clock time that has passed since the start of the run, measured in milliseconds and stored as integer value
+2. `timeMS` the clock time that has passed since the start of the run, measured in milliseconds and stored as integer value.
+   Python actually provides the system clock time in terms of nanoseconds, however, we always round up to the next highest millisecond.
+   We believe that milliseconds are a more reasonable time measure here and a higher resolution is probably not helpful anyway.
 3. `f` the best-so-far objective value
 
 This configuration is denoted by the header `fes;timeMS;f`.
 After this header and until `END_PROGRESS`, each line will contain one data point with values for the specified columns.
 Notice that for each FE, there will be at most one data point but there might be multiple data points per millisecond.
+This is especially true if we log all FEs.
 Usually, we could log one data point for every improvement of the objective value.
 
 
