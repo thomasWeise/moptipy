@@ -123,15 +123,15 @@ Our package has mechanisms to catch and store errors that occurred during the ex
 Each type of error will be stored in a separate log section and each such sections may store the class of the error in form `exceptionType: error-class`, the error message in the form `exceptionValue: error-message` and the stack trace line by line after a line header `exceptionStackTrace:`.
 The following exception sections are currently supported:
 
-If an exception is encountered during the algorithm run, it will be store in section `ERROR_IN_RUN`.
-If an exception occurred in the context of the optimization process, it will be stored in `ERROR_IN_CONTEXT`.
-This may be an error during the execution of the algorithm, or, more likely, an error in the code that accesses the process data afterwards, e.g., that processes the best solution encountered.
-If the validation of the finally returned candidate solution failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
-If the validation of the finally returned point in the search space failed, the resulting error will be stored in section `ERROR_INVALID_X`.
-If an inconsistency in the time measurement is discovered, this will result in the section `ERROR_TIMING`.
-Such an error may be caused when the computer clock is adjusted during the run of an optimization algorithm.
-It will also occur if an algorithm terminates without performing even a single objective function evaluation.
-In the unlikely case that an exception occurs during the writing of the log but writing can continue, this exception will be stored in section `ERROR_IN_LOG`.
+- If an exception is encountered during the algorithm run, it will be store in section `ERROR_IN_RUN`.
+- If an exception occurred in the context of the optimization process, it will be stored in `ERROR_IN_CONTEXT`.
+  This may be an error during the execution of the algorithm, or, more likely, an error in the code that accesses the process data afterwards, e.g., that processes the best solution encountered.
+- If the validation of the finally returned candidate solution failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
+- If the validation of the finally returned point in the search space failed, the resulting error will be stored in section `ERROR_INVALID_X`.
+- If an inconsistency in the time measurement is discovered, this will result in the section `ERROR_TIMING`.
+  Such an error may be caused when the computer clock is adjusted during the run of an optimization algorithm.
+  It will also occur if an algorithm terminates without performing even a single objective function evaluation.
+- In the unlikely case that an exception occurs during the writing of the log but writing can somehow continue, this exception will be stored in section `ERROR_IN_LOG`.
 
 
 #### 3.1.3. Example
@@ -249,13 +249,13 @@ END_RESULT_X
 ### 3.2. End Result CSV Files
 
 While a log file contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
-The class `moptipy.evaluation.end_results.EndResult` provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
+The class [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
 #### 3.2.1. The End Results File Format
 
 An end results file contains a header line and then one line for each log file that was parsed.
-The 11 columns are separated by `;`.
+The eleven columns are separated by `;`.
 Cells without value are left empty.
 
 It presents the following columns:
@@ -333,8 +333,8 @@ ea1p1_swap2;demo;0xd2866f0630434df;180;63;2;63;2;180;10240;120000
 
 ### 3.3. End Result Statistics CSV Files
 
-We can also aggregate the end result data over either algorithm x instance combinations, over whole algorithms, over whole instances, or just over all.
-Such information can again be provided in a semicolon-separated-values format.
+We can also aggregate the end result data over either algorithm x instance combinations, over whole algorithms, over whole instances, or just over everything.
+The class [`moptipy.evaluation.end_statistics.EndStatistics`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_statistics.EndStatistics) provides the tools needed to aggregate statistics over sequences of [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) and to store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
 #### 3.3.1. The End Result Statistics File Format
