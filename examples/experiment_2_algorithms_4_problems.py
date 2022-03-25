@@ -89,5 +89,6 @@ with TempDir.create() as td:  # create temporary directory `td`
                            make_random_sampling],  # provide RS run creator
                    n_runs=5)  # we will execute 5 runs per setup
 
-    EndResult.from_logs(td, print)  # parse all log files, print end results
+    EndResult.from_logs(  # parse all log files and print end results
+        td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
 # The temp directory is deleted as soon as we leave the `with` block.

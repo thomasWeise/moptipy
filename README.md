@@ -7,8 +7,13 @@ Well, it will eventually be, because I first need to learn Python.
 
 - [Introduction](#1-introduction)
 - [Installation](#2-installation)
-- [How-Tos](#3-how-to)
-  - [Solving Optimization Problems](#31-how-to-solve-an-optimization-problem)
+- [How-To](#3-how-to)
+  - [Applying 1 Algorithm Once to 1 Problem](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance)
+  - [Run a Series of Experiments](#32-how-to-run-a-series-of-experiments)
+  - [How to Solve and Optimization Problem](#33-how-to-solve-an-optimization-problem)
+    - [Defining a New Problem](#331-define-a-new-problem-type)
+    - [Defining a New Algorithm](#332-define-a-new-algorithm)
+    - [Applying an Own Algorithm to an Own Problem](#333-applying-an-own-algorithm-to-an-own-problem)
 - [Data Formats](#4-data-formats)
   - [Log Files](#41-log-files)
   - [End Results CSV Files](#42-end-result-csv-files)
@@ -35,7 +40,279 @@ pip install git+https://github.com/thomasWeise/moptipy.git
 
 You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
 
-### 3.1. How to Solve an Optimization Problem
+### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
+
+The most basic task that we can do in the domain of optimization is to apply one algorithm to one instance of an optimization problem.
+In our framework, we refer to this as an "execution."
+You can prepare an execution using the class `Execution` in the module [moptipy.api.execution]( https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/execution.py).
+This class follows the [builder design pattern](https://python-patterns.guide/gang-of-four/builder/).
+A builder is basically an object that allows you to step-by-step set the parameters of another, more complicated object that should be created.
+Once you have set all parameters, you can create the object.
+In our case, the class [`Execution`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/execution.py) allows you to compose all the elements necessary for the algorithm run and then it performs it and provides you the end results of that execution.
+
+So first, you create an instance `ex` of `Execution`.
+Then you set the [algorithm](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/algorithm.py) that should be applied via the method `ex.set_algorithm(...)`.
+Then you set the [objective function](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/objective.py) via the method `set_objective_function(...)`.
+
+Then, via `ex.set_solution_space(...)` you set the solution [space](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/space.py) that contains all possible solutions and is explored by the algorithm.
+The solution space is an instance of the class [`Space`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/space.py).
+It provides all methods necessary to create a solution data structure, to copy the contents of one solution data structure to another one, to convert solution data structures to and from strings, and to verify whether a solution data structure is valid.
+It is used by the optimization algorithm for instantiating the solution data structures and for copying them.
+It is used internally by the `moptipy` system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#41-log-files).
+
+If the search and solution spaces are different, then you can also set a search [space](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/space.py) via `ex.set_search_space(...)` and an [encoding](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/encoding.py) via `ex.set_encoding(...)`.
+This is not necessary if the algorithm works directly on the solutions (as in our example below).
+
+Each application of an optimization algorithm to a problem instance will also be provided with a random number generator and it *must* only use this random number generator for randomization and no other sources of randomness.
+You can set the seed for this random number generator via `ex.set_rand_seed(...)`.
+If you create two identical executions and set the same seeds for both of them, the algorithms will make the same random decisions and hence should return the same results.
+
+Furthermore, you can also set the maximum number of candidate solutions that the optimization algorithm is allowed to investigate via `ex.set_max_fes(...)`, the maximum runtime budget in milliseconds via `ex.set_max_time_millis(...)`, and a goal objective value via `ex.set_goal_f(...)` (the algorithm should stop after reaching it).
+Notice that optimization algorithms may not terminate unless the system tells them so, so you should always specify at least either a maximum number of objective function evaluations or a runtime limit.
+If you only specify a goal objective value and the algorithm cannot reach it, it may not terminate.
+
+Finally, you can also set the path to a log file via `ex.set_log_file(...)`.
+If you specify a log file, the system will automatically gather system information, collect the progress of the algorithm (in terms of improving moves by default), and the final results.
+It will store all of that in a text file *after* the algorithm has completed and you have left the process scope (see below). 
+
+Anyway, after you have completed building the execution, you can run the process you have configured via `ex.execute()`.
+This method returns an instance of [`Process`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/process.py).
+From the algorithm perspective, this instance provides all the information and tools that is needed to create, copy, and evaluate solutions, as well as the termination criterion that tells it when to stop.
+For us, the algorithm user, it provides the information about the end result, the consumed FEs, and the end result quality.
+In the code below, we illustrate how to extract these information.
+Notice that you *must* always use the instances of `Process` in a `with` block:
+Once this block is left, the log file will be written.
+If you use it outside of a `with` block, no log file will be generated.
+
+Let us now look at a concrete example, which is also available as file [examples/single_run_ea1plus1_onemax](https://github.com/thomasWeise/moptipy/blob/main/examples/single_run_ea1plus1_onemax.py).
+As example domain, we use [bit strings](https://github.com/thomasWeise/moptipy/blob/main/moptipy/spaces/bitstrings.py) of length `n = 10` and try to solve the well-known [`OneMax`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/bitstrings/onemax.py) problem using the well-known [`(1+1) EA`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/algorithms/ea1plus1.py).
+
+```python
+from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.api.execution import Execution
+from moptipy.examples.bitstrings.onemax import OneMax
+from moptipy.operators.bitstrings.op0_random import Op0Random
+from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
+from moptipy.spaces.bitstrings import BitStrings
+from moptipy.utils.temp import TempFile
+
+n = 10  # we chose dimension 10
+space = BitStrings(n)  # search in bit strings of length 10
+problem = OneMax(n)  # we maximize the number of 1 bits
+algorithm = EA1plus1(  # create (1+1)-EA that
+    Op0Random(),  # starts with a random bit string and
+    Op1MoverNflip(n=n, m=1))  # flips each bit with probability=1/n
+
+# We execute the whole experiment in a temp directory.
+# For a real experiment, you would put an existing directory path in `td`
+# and not use the `with` block.
+with TempFile.create() as tf:  # create temporary file `tf`
+    ex = Execution()  # begin configuring execution
+    ex.set_solution_space(space)  # set solution space
+    ex.set_objective(problem)  # set objective function
+    ex.set_algorithm(algorithm)  # set algorithm
+    ex.set_rand_seed(199)  # set random seed to 199
+    ex.set_log_file(tf)  # set log file = temp file `tf`
+    ex.set_max_fes(100)  # allow at most 100 function evaluations
+    with ex.execute() as process:  # now run the algorithm*problem combination
+        end_result = process.create()  # create empty record to receive result
+        process.get_copy_of_current_best_y(end_result)  # obtain end result
+        print(f"Best solution found: {process.to_str(end_result)}")
+        print(f"Quality of best solution: {process.get_current_best_f()}")
+        print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
+        print(f"Total FEs: {process.get_consumed_fes()}")
+
+    print("\nNow reading and printing all the logged data:")
+    print(tf.read_all_str())  # instead, we load and print the log file
+# The temp file is deleted as soon as we leave the `with` block.
+```
+
+The output we would get from this program could look something like this:
+
+```
+Best solution found: TTTTTTTTTT
+Quality of best solution: 0
+Consumed Runtime: 114ms
+Total FEs: 31
+
+Now reading and printing all the logged data:
+BEGIN_STATE
+totalFEs: 31
+totalTimeMillis: 115
+bestF: 0
+lastImprovementFE: 31
+lastImprovementTimeMillis: 114
+END_STATE
+BEGIN_SETUP
+p.name: ProcessWithoutSearchSpace
+p.class: moptipy.api._process_no_ss._ProcessNoSS
+p.maxFEs: 100
+p.goalF: 0
+p.randSeed: 199
+...
+END_SETUP
+BEGIN_SYS_INFO
+...
+END_SYS_INFO
+BEGIN_RESULT_Y
+TTTTTTTTTT
+END_RESULT_Y
+```
+
+You can also compare this output to the [example for log files](#413-example) further down this text.
+
+
+### 3.2. How to Run a Series of Experiments
+
+When we develop algorithms or do research, then we cannot just apply an algorithm once to a problem instance and call it a day.
+Instead, we will apply multiple algorithms (or algorithm setups) to multiple problem instances and execute several runs for each algorithm * instance combination.
+Our system of course also provides the facilities for this.
+
+The concept for this is rather simple.
+We distinguish "instances" and "setups."
+An "instance" can be anything that a represents one specific problem instance.
+It could be a string with its identifying name, it could be the [objective function](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/objective.py) itself, or a data structure with the instance data (as is the case for the Job Shop Scheduling Problem used in our book, where we use the class [Instance](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instanc.py)).
+The important thing is that the `__str__` method of the instance object will return a short string that can be used in file names of [log files](#41-log-files).
+
+The second concept to understand here are "setups."
+A "setup" is basically an almost fully configured [`Execution`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/execution.py) (see the [previous section](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance) for a detailed discussion of Executions.)
+The only things that need to be left blank are the log file path and random seed, which will be filled automatically by our system.
+
+You will basically provide a sequence of callables, i.e., functions or lambdas, each of which will return one "instance."
+Additionally, you provide a sequence of callables (functions or lambdas), each of which receiving one "instance" as input and should return an almost fully configured [`Execution`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/execution.py).
+You also provide the number of runs to be executed per "setup" * "instance" combination and a base directory path identifying the directory where one log file should be written for each run.
+Additionally, you can specify the number of parallel processes to use, unless you want the system to automatically decide this.
+All of this is passed to the function `run_experiment` in module [`moptipy.api.experiment`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/experiment.py).
+
+This function will do all the work and generate a [folder structure](#411-file-names-and-folder-structure) of log files.
+It will spawn the right number of processes, use your functions to generate "instances" and "setups," execute and them.
+It will also automatically determine the random seed for each run.
+The random seed sequence per instance will be the same for algorithm setups, which means that different algorithms would still start with the same solutions if they sample the first solution in the same way.
+The system will even do "warmup" runs, i.e., very short dummy runs with the algorithms that are just used to make sure that the interpreter has seen all code before actually doing the experiments to avoid strange timing problems.
+
+Below, we show one example for the automated experiment execution facility, which applies two algorithms to four problem instances with five runs per setup.
+We use again the  [bit strings domain](https://github.com/thomasWeise/moptipy/blob/main/moptipy/spaces/bitstrings.py).
+We explore two problems ([`OneMax`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/bitstrings/onemax.py) and [`LeadingOnes`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/bitstrings/leadingones.py)) of two different sizes each, leading to four problem instances in total.
+We apply the well-known [`(1+1) EA`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/algorithms/ea1plus1.py) as well as the trivial [random sampling](https://github.com/thomasWeise/moptipy/blob/main/moptipy/algorithms/random_sampling.py).
+
+The code below is available as file [examples/experiment_2_algorithms_4_problems](https://github.com/thomasWeise/moptipy/blob/main/examples/experiment_2_algorithms_4_problems.py).
+Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#42-end-result-csv-files) for more information). 
+
+```python
+from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.api.execution import Execution
+from moptipy.api.experiment import run_experiment
+from moptipy.evaluation.end_results import EndResult
+from moptipy.examples.bitstrings.leadingones import LeadingOnes
+from moptipy.examples.bitstrings.onemax import OneMax
+from moptipy.operators.bitstrings.op0_random import Op0Random
+from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
+from moptipy.spaces.bitstrings import BitStrings
+from moptipy.utils.temp import TempDir
+
+# The four problems we want to try to solve:
+problems = [lambda: OneMax(10),  # 10-dimensional OneMax
+            lambda: OneMax(32),  # 32-dimensional OneMax
+            lambda: LeadingOnes(10),  # 10-dimensional LeadingOnes
+            lambda: LeadingOnes(32)]  # 32-dimensional LeadingOnes
+
+
+def make_ea1plus1(problem) -> Execution:
+    """
+    Create a (1+1)-EA Execution.
+
+    :param problem: the problem (OneMax or LeadingOnes)
+    :returns: the execution
+    """
+    ex = Execution()
+    ex.set_solution_space(BitStrings(problem.n))
+    ex.set_objective(problem)
+    ex.set_algorithm(
+        EA1plus1(  # create (1+1)-EA that
+            Op0Random(),  # starts with a random bit string and
+            Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
+    ex.set_max_fes(100)  # permit 100 FEs
+    return ex
+
+
+def make_random_sampling(problem) -> Execution:
+    """
+    Create a Random Sampling Execution.
+
+    :param problem: the problem (OneMax or LeadingOnes)
+    :returns: the execution
+    """
+    ex = Execution()
+    ex.set_solution_space(BitStrings(problem.n))
+    ex.set_objective(problem)
+    ex.set_algorithm(RandomSampling(Op0Random()))
+    ex.set_max_fes(100)
+    return ex
+
+
+# We execute the whole experiment in a temp directory.
+# For a real experiment, you would put an existing directory path in `td`
+# and not use the `with` block.
+with TempDir.create() as td:  # create temporary directory `td`
+    run_experiment(base_dir=td,  # set the base directory for log files
+                   instances=problems,  # define the problem instances
+                   setups=[make_ea1plus1,  # provide (1+1)-EA run creator
+                           make_random_sampling],  # provide RS run creator
+                   n_runs=5)  # we will execute 5 runs per setup
+
+    EndResult.from_logs(  # parse all log files and print end results
+        td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
+# The temp directory is deleted as soon as we leave the `with` block.
+```
+
+The output of this program, minus the status information, could look roughly like this:
+
+```
+ea1p1_1_over_n_flip_T on onemax_10: 0
+ea1p1_1_over_n_flip_T on onemax_10: 0
+ea1p1_1_over_n_flip_T on onemax_10: 0
+ea1p1_1_over_n_flip_T on onemax_10: 0
+ea1p1_1_over_n_flip_T on onemax_10: 0
+ea1p1_1_over_n_flip_T on onemax_32: 3
+ea1p1_1_over_n_flip_T on onemax_32: 2
+ea1p1_1_over_n_flip_T on onemax_32: 4
+ea1p1_1_over_n_flip_T on onemax_32: 1
+ea1p1_1_over_n_flip_T on onemax_32: 0
+ea1p1_1_over_n_flip_T on leadingones_32: 22
+ea1p1_1_over_n_flip_T on leadingones_32: 20
+ea1p1_1_over_n_flip_T on leadingones_32: 19
+ea1p1_1_over_n_flip_T on leadingones_32: 18
+ea1p1_1_over_n_flip_T on leadingones_32: 28
+ea1p1_1_over_n_flip_T on leadingones_10: 0
+ea1p1_1_over_n_flip_T on leadingones_10: 1
+ea1p1_1_over_n_flip_T on leadingones_10: 1
+ea1p1_1_over_n_flip_T on leadingones_10: 0
+ea1p1_1_over_n_flip_T on leadingones_10: 0
+rs on onemax_10: 0
+rs on onemax_10: 2
+rs on onemax_10: 1
+rs on onemax_10: 2
+rs on onemax_10: 1
+rs on onemax_32: 8
+rs on onemax_32: 8
+rs on onemax_32: 8
+rs on onemax_32: 9
+rs on onemax_32: 9
+rs on leadingones_32: 26
+rs on leadingones_32: 26
+rs on leadingones_32: 25
+rs on leadingones_32: 26
+rs on leadingones_32: 23
+rs on leadingones_10: 4
+rs on leadingones_10: 0
+rs on leadingones_10: 3
+rs on leadingones_10: 3
+rs on leadingones_10: 0
+```
+
+
+### 3.3. How to Solve an Optimization Problem
 
 If you want to solve an optimization problem with [moptipy](https://thomasweise.github.io/moptipy), then you need at least the following three things:
 
@@ -43,7 +320,272 @@ If you want to solve an optimization problem with [moptipy](https://thomasweise.
 2. an objective function `f`  rating the solutions, i.e., which maps elements `y` of `Y` to either integer or float numbers, where *smaller* values are better, and
 3. an optimization algorithm that navigates through `Y` and tries to find solutions `y` in `Y` with low corresponding values `f(y)`.
 
-You may need more components, but if you have these three, then you can run an experiment.
+You may need more components, but if you have these three, then you can [run an experiment](#32-how-to-run-a-series-of-experiments).
+
+
+#### 3.3.1. Define a New Problem Type
+
+At the core of all optimization problems lies the objective function.
+All objective functions in `moptipy` are instances of the class [Objective](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/objective.py).
+If you want to add a new optimization problem, you must derive a new subclass from this class. 
+
+There are two functions you must implement:
+
+- `evaluate(x)` receives a candidate solution `x` as input and must return either an `int` or a `float` rating its quality (smaller values are *better*) and
+- `__str__()` returns a string representation of the objective function and may be used in file names and folder structures (depending on how you execute your experiments).
+  It therefore must not contain spaces and other dodgy characters.
+
+Additionally, you *may* implement the following two functions
+
+- `lower_bound()` returns either an `int` or a `float` with the lower bound of the objective value.
+  This value does not need to be an objective value that can actually be reached, but if you implement this function, then the value must be small enough so that it is *impossible* to ever reach a smaller objective value.
+  If we execute an experiment and no goal objective value is specified, then the system will automatically use this lower bound if it is present.
+  Then, if any solution `x` with `f.evaluate(x)==f.lower_bound()` is encountered, the optimization process is automatically stopped.
+  Furthermore, after the optimization process is stopped, it is verified that the final solution does not have an objective value smaller than the lower bound.
+  If it does, then we throw an exception.
+- `upper_bound()` returns either an `int` or a `float` with the upper bound of the objective value.
+  This value does not need to be an objective value that can actually be reached, but if you implement this function, then the value must be large enough so that it is *impossible* to ever reach a larger objective value.
+  This function, if present, is used to validate the objective value of the final result of the optimization process.
+
+OK, with this information we are basically able to implement our own problem.
+Here, we define the task "sort n numbers" as optimization problem.
+Basically, we want that our optimization algorithm works on [permutations](https://github.com/thomasWeise/moptipy/blob/main/moptipy/spaces/permutations.py) of `n` numbers and is searching for the sorted permutation.
+As objective value, we count the number of "sorting errors" in a permutation.
+If the number at index `i` is bigger than the number at index `i+1`, then this is a sorting error.
+If `n=5`, then the permutation `0,1,2,3,4` has no sorting error, i.e., the best possible objective value `0`.
+The permutation `4,3,2,1,0` has `n-1=4` sorting errors, i.e., is the worst possible solution.
+The permutation `3,4,2,0,1` as `2` sorting errors.
+
+From these thoughts, we also know that we can implement `lower_bound()` to return 0 and `upper_bound()` to return `n-1`.
+`__str__` could be `"sort" + n`, i.e., `sort5` in the above example where `n=5`.
+
+We provide the corresponding code in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem) below.
+
+
+#### 3.3.2. Define a New Algorithm
+
+While `moptipy` comes with several well-known algorithms out-of-the-box, you can of course also implement your own algorithms.
+These can then make use of the existing [spaces](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/space.py) and [search operators](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/operators.py) &ndash; or not.
+Let us here create an example algorithm implementation that does *not* use any of the pre-defined [search operators](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/operators.py).
+
+All optimization algorithms must be subclasses of the class [Algorithm](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/algorithm.py).
+Each of them must implement two methods:
+
+- `solve(process)` receives an instance of [`Process`](https://github.com/thomasWeise/moptipy/api/process.py), which provides the operations to work with the search space, to evaluate solutions, the termination criterion, and the random number generator.
+- `__str__()` must return a short string representation identifying the algorithm and its setup.
+  This string will be used in file and folder names and therefore must not contain spaces or otherwise dodgy characters.
+
+The instance `process` of [`Process`](https://github.com/thomasWeise/moptipy/api/process.py) passed to the function `solve` is a key element of our `moptipy` API.
+If the algorithm needs a data structure to hold a point in the search space, it should invoke `process.create()`.
+If it needs to copy the point `source` to the point `dest`, it should invoke `process.copy(dest, source)`.
+
+If it wants to know the quality of the point `x`, it should invoke `process.evaluate(x)`.
+This function will actually forward the call to the actual objective function (see, e.g., [Section 3.3.1](#331-define-a-new-problem-type) above).
+However, it will do more:
+It will automatically keep track of the best-so-far solution and, if needed, build logging information in memory.
+
+Before every single call to `process.evaluate()`, you should invoke `process.should_terminate()`.
+This function returns `True` if the optimization algorithm should stop whatever it is doing and return.
+This can happen when a solution of sufficiently good quality is reached, when the maximum number of FEs is exhausted, or when the computational budget in terms of runtime is exhausted.
+
+Since many optimization algorithms make random choices, the function `process.get_random()` returns a [random number generator](https://numpy.org/doc/stable/reference/random/generator.html).
+This generator *must* be the only source of randomness used by an algorithm.
+It will automatically be seeded by our system, allowing for repeatable and reproducible runs.
+
+The `process` also can provide information about the best-so-far solution, the consumed runtime and FEs, as well as when the last improvement was achieved.
+Anyway, all interaction between the algorithm and the actual optimization algorithm will happen through the `process` object.
+
+Equipped with this information, we can develop a simple and rather stupid algorithm to attack the sorting problem.
+The search space that we use are the [permutations](https://github.com/thomasWeise/moptipy/blob/main/moptipy/spaces/permutations.py) of `n` numbers.
+(These will be internally represented as [numpy `ndarray`s](https://numpy.org/doc/stable/reference/arrays.ndarray.html), but we do not need to bother with this, as we this is done automatically for us.) 
+Our algorithm should start with allocating a point `x_cur` in the search space, filling it with the numbers `0..n-1`, and shuffling it randomly.
+For the shuffling, it will use than random number generator provided by `process`.
+It will evaluate this solution and remember its quality in variable `f_cur`.
+It will also allocate a second container `x_new` for permutations.
+
+In each step, our algorithm will copy `x_cur` to `x_new`.
+Then, it will use the random number generator to draw two numbers `i` and `j` from `0..n-1`.
+It will swap the two numbers at these indices in `x_new`, i.e., exchange `x_new[i], x_new[j] = x_new[j], x_new[i]`.
+We then evaluate `x_new` and if the resulting objective value `f_new` is better than `f_cur`, we swap `x_new` and `x_cur` (which is faster than copying `x_new` to `x_cur`) and store `f_new` in `f_cur`.
+We repeat this until `process.should_terminate()` becomes `True`.
+All of this is implemented in the source code example below in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem).
+
+
+#### 3.3.3. Applying an Own Algorithm to an Own Problem
+
+The following code combines our [own algorithm](#332-define-a-new-algorithm) and our [own problem type](#331-define-a-new-problem-type) that we discussed in the prior two sections and executes an experiment.
+It is available as file [examples/experiment_own_algorithm_and_problem](https://github.com/thomasWeise/moptipy/blob/main/examples/experiment_own_algorithm_and_problem.py).
+Notice how we provide functions for generating both the problem instances (here the objective functions) and the algorithm setups exactly as we described in [Section 3.2.](#32-how-to-run-a-series-of-experiments) above.
+
+```python
+from moptipy.api.algorithm import Algorithm
+from moptipy.api.execution import Execution
+from moptipy.api.experiment import run_experiment
+from moptipy.api.objective import Objective
+from moptipy.api.process import Process
+from moptipy.evaluation.end_results import EndResult
+from moptipy.spaces.permutations import Permutations
+from moptipy.utils.temp import TempDir
+
+
+class MySortProblem(Objective):
+    """An objective function that rates how well a permutation is sorted."""
+
+    def __init__(self, n: int) -> None:
+        """
+        Initialize: Set the number of values to sort.
+
+        :param n: the scale of the problem
+        """
+        super().__init__()
+        #: the number of numbers to sort
+        self.n = n
+
+    def evaluate(self, x) -> int:
+        """
+        Compute how often bigger number follows a smaller one.
+
+        :param x: the permutation
+        """
+        errors = 0  # we start at zero errors
+        for i in range(self.n - 1):  # for i in 0..n-2
+            if x[i] > x[i + 1]:  # that's a sorting error!
+                errors += 1  # so we increase the number
+        return errors  # return result
+
+    def lower_bound(self) -> int:
+        """
+        Get the lower bound: 0 errors is the optimum.
+
+        Implementing this function is optional, but it can help in two ways:
+        First, the optimization processes can be stopped automatically when a
+        solution of this quality is reached. Second, the lower bound is also
+        checked when the end results of the optimization process are verified.
+
+        :returns: 0
+        """
+        return 0
+
+    def upper_bound(self) -> int:
+        """
+        Get the upper bound: n-1 errors is the worst.
+
+        Implementing this function is optional, but it can help, e.g., when
+        the results of the optimization process are automatically checked.
+
+        :returns: 0
+        """
+        return self.n - 1
+
+    def __str__(self):
+        """
+        Get the name of this problem.
+
+        This name is used in the directory structure and file names of the
+        log files.
+
+        :returns: "sort" + n
+        """
+        return f"sort{self.n}"
+
+
+class MyAlgorithm(Algorithm):
+    """An example for a simple rigidly structured optimization algorithm."""
+
+    def solve(self, process: Process) -> None:
+        """
+        Solve the problem encapsulated in the provided process.
+
+        :param process: the process instance which provides random numbers,
+            functions for creating, copying, and evaluating solutions, as well
+            as the termination criterion
+        """
+        random = process.get_random()   # get the random number generator
+        x_cur = process.create()  # create the record for the current solution
+        x_new = process.create()  # create the record for the new solution
+        n = len(x_cur)  # get the scale of problem as length of the solution
+
+        x_cur[:] = range(n)  # We start by initializing the initial solution
+        random.shuffle(x_cur)  # as [0...n-1] and then randomly shuffle it.
+        f_cur = process.evaluate(x_cur)  # compute solution quality
+
+        while not process.should_terminate():  # repeat until we are finished
+            process.copy(x_new, x_cur)  # copy current to new solution
+            i = random.integers(n)  # choose the first random index
+            j = random.integers(n)  # choose the second random index
+            x_new[i], x_new[j] = x_new[j], x_new[i]  # swap values at i and j
+            f_new = process.evaluate(x_new)  # evaluate the new solution
+            if f_new < f_cur:  # if it is better than current solution
+                x_new, x_cur = x_cur, x_new  # swap current and new solution
+                f_cur = f_new  # and remember quality of new solution
+
+    def __str__(self):
+        """
+        Get the name of this algorithm.
+
+        This name is then used in the directory path and file name of the
+        log files.
+
+        :returns: myAlgo
+        """
+        return "myAlgo"
+
+
+# The four problems we want to try to solve:
+problems = [lambda: MySortProblem(5),  # sort 5 numbers
+            lambda: MySortProblem(10),  # sort 10 numbers
+            lambda: MySortProblem(100)]  # sort 100 numbers
+
+
+def make_execution(problem) -> Execution:
+    """
+    Create an application of our algorithm to our problem.
+
+    :param problem: the problem (MySortProblem)
+    :returns: the execution
+    """
+    ex = Execution()
+    ex.set_solution_space(
+        Permutations.standard(problem.n))  # we use permutations of [0..n-1]
+    ex.set_objective(problem)  # set the objective function
+    ex.set_algorithm(MyAlgorithm())  # apply our algorithm
+    ex.set_max_fes(100)  # permit 100 FEs
+    return ex
+
+
+# We execute the whole experiment in a temp directory.
+# For a real experiment, you would put an existing directory path in `td`
+# and not use the `with` block.
+with TempDir.create() as td:  # create temporary directory `td`
+    run_experiment(base_dir=td,  # set the base directory for log files
+                   instances=problems,  # define the problem instances
+                   setups=[make_execution],  # creator for our algorithm
+                   n_runs=5)  # we will execute 5 runs per setup
+
+    EndResult.from_logs(  # parse all log files and print end results
+        td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
+# The temp directory is deleted as soon as we leave the `with` block.
+```
+
+The output of this program, minus status output, could look like this:
+
+```
+myAlgo on sort10: 2
+myAlgo on sort10: 2
+myAlgo on sort10: 1
+myAlgo on sort10: 1
+myAlgo on sort10: 2
+myAlgo on sort100: 35
+myAlgo on sort100: 41
+myAlgo on sort100: 33
+myAlgo on sort100: 34
+myAlgo on sort100: 35
+myAlgo on sort5: 1
+myAlgo on sort5: 1
+myAlgo on sort5: 1
+myAlgo on sort5: 1
+myAlgo on sort5: 1
+```
 
 ## 4. Data Formats
 
@@ -167,7 +709,8 @@ The following exception sections are currently supported:
 
 #### 4.1.3. Example
 
-You can execute the following Python code to obtain an example log file:
+You can execute the following Python code to obtain an example log file.
+This code is also available in file [examples/log_file_jssp.py](https://github.com/thomasWeise/moptipy/blob/main/examples/log_file_jssp.py):
 
 ```python
 from moptipy.algorithms.ea1plus1 import EA1plus1  # the algorithm we use
@@ -294,7 +837,7 @@ END_RESULT_X
 
 ### 4.2. End Result CSV Files
 
-While a log file contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
+While a [log file](#41-log-files) contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
 The class [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
@@ -321,10 +864,11 @@ It presents the following columns:
 For each run, i.e., algorithm x instance x seed combination, one row with the above values is generated.
 Notice that from the algorithm and instance name together with the random seed, you can find the corresponding log file.
 
+
 ### 4.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
-We can do that as follows
+We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://github.com/thomasWeise/moptipy/blob/main/examples/end_results_jssp.py).
 
 ```python
 from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
@@ -435,7 +979,8 @@ Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the com
 
 #### 4.3.2. Example for End Result Statistics Files
 
-We can basically execute the same abridged experiment as in the previous section, but now take the aggregation of information one step further:
+We can basically execute the same abridged experiment as in the [previous section](#422-an-example-for-end-results-files), but now take the aggregation of information one step further with the code below.
+This code is also available as file [examples/end_statistics_jssp](https://github.com/thomasWeise/moptipy/blob/main/examples/end_statistics_jssp.py).
 
 ```python
 from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test

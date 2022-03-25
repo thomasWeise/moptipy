@@ -46,8 +46,14 @@ with TempFile.create() as tf:  # create temporary file `tf`
     ex.set_rand_seed(199)  # set random seed to 199
     ex.set_log_file(tf)  # set log file = temp file `tf`
     ex.set_max_fes(100)  # allow at most 100 function evaluations
-    with ex.execute():  # now run the algorithm*problem combination
-        pass  # we do not access the result or anything directly
+    with ex.execute() as process:  # now run the algorithm*problem combination
+        end_result = process.create()  # create empty record to receive result
+        process.get_copy_of_current_best_y(end_result)  # obtain end result
+        print(f"Best solution found: {process.to_str(end_result)}")
+        print(f"Quality of best solution: {process.get_current_best_f()}")
+        print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
+        print(f"Total FEs: {process.get_consumed_fes()}")
 
+    print("\nNow reading and printing all the logged data:")
     print(tf.read_all_str())  # instead, we load and print the log file
 # The temp file is deleted as soon as we leave the `with` block.
