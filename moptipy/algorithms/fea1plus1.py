@@ -39,8 +39,8 @@ class FEA1plus1(Algorithm1):
         :param moptipy.api.Process process: the process object
         """
         # create the records for the best and new point in the search space
-        best_x: Final = process.create()
-        new_x: Final = process.create()
+        best_x = process.create()
+        new_x = process.create()
         lb: Final[int] = cast(int, process.lower_bound())
 
         # h holds the encounter frequency of each objective value.
@@ -56,7 +56,6 @@ class FEA1plus1(Algorithm1):
         # to save time.
         evaluate: Final[Callable] = process.evaluate
         op1: Final[Callable] = self.op1.op1
-        copy: Final[Callable] = process.copy
         should_terminate: Final[Callable] = process.should_terminate
 
         # If the process already knows one solution, then we will copy
@@ -80,7 +79,7 @@ class FEA1plus1(Algorithm1):
             h[best_f] = best_h = h[best_f] + 1  # increase frequency of best_f
             if h[new_f] <= best_h:  # new_x is no worse than best_x?
                 best_f = new_f  # use its objective value
-                copy(best_x, new_x)  # and copy it to best_x
+                best_x, new_x = new_x, best_x  # swap best and new
 
     def __str__(self) -> str:
         """

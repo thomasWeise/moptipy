@@ -23,8 +23,8 @@ class HillClimber(Algorithm1):
         :param moptipy.api.Process process: the process object
         """
         # create the records for the best and new point in the search space
-        best_x: Final = process.create()
-        new_x: Final = process.create()
+        best_x = process.create()
+        new_x = process.create()
         # obtain the random number generator
         random: Final[Generator] = process.get_random()
 
@@ -33,7 +33,6 @@ class HillClimber(Algorithm1):
         # time.
         evaluate: Final[Callable] = process.evaluate
         op1: Final[Callable] = self.op1.op1
-        copy: Final[Callable] = process.copy
         should_terminate: Final[Callable] = process.should_terminate
 
         # Resolving things such as "process." or "self." costs time.
@@ -52,7 +51,7 @@ class HillClimber(Algorithm1):
             new_f: Union[int, float] = evaluate(new_x)
             if new_f < best_f:  # new_x is _better_ than best_x?
                 best_f = new_f  # use its objective value
-                copy(best_x, new_x)  # and copy it to best_x
+                best_x, new_x = new_x, best_x  # swap best and new
 
     def __str__(self) -> str:
         """
