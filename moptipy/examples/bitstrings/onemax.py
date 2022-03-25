@@ -34,18 +34,18 @@ def onemax(x: np.ndarray) -> int:
 class OneMax(Objective):
     """Maximize the number of ones in a bit string."""
 
-    def __init__(self, dimension: int) -> None:  # +book
+    def __init__(self, n: int) -> None:  # +book
         """
         Initialize the onemax objective function.
 
-        :param int dimension: the dimension of the problem
+        :param int n: the dimension of the problem
         """
         super().__init__()
-        if not isinstance(dimension, int):
+        if not isinstance(n, int):
             raise TypeError(
-                f"Must provide int dimension, but got '{type(dimension)}'.")
+                f"Must provide integer n, but got '{type(n)}'.")
         #: the upper bound = the length of the bit strings
-        self.__ub: Final[int] = dimension
+        self.n: Final[int] = n
         self.evaluate = onemax  # type: ignore
 
     def lower_bound(self) -> int:
@@ -64,7 +64,7 @@ class OneMax(Objective):
         :return: the length of the bit string
         :rtype: int
         """
-        return self.__ub
+        return self.n
 
     def __str__(self) -> str:
         """
@@ -73,4 +73,4 @@ class OneMax(Objective):
         :return: `onemax_` + length of string
         :rtype: str
         """
-        return f"onemax_{self.__ub}"
+        return f"onemax_{self.n}"

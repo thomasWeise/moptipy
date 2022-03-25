@@ -177,6 +177,8 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # temp directory tool
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
+# For a real experiment, you would put an existing directory path in `td`
+# and not use the `with` block.
 with TempDir.create() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.
     # As example domain, we use the job shop scheduling problem (JSSP).
@@ -334,6 +336,8 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
+# For a real experiment, you would put an existing directory path in `td`
+# and not use the `with` block.
 with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
@@ -444,6 +448,8 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
+# For a real experiment, you would put an existing directory path in `td`
+# and not use the `with` block.
 with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to

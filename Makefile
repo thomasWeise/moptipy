@@ -104,7 +104,7 @@ run_examples: install
   			echo "Empty module '$$f'?"; \
 	  	else \
 			echo "Now running example '$$f'." &&\
-			python3 "$$f" ;\
+			{ python3 "$$f" || exit 1; };\
 		fi \
     done &&\
     echo "Finished executing all examples."

@@ -38,18 +38,18 @@ def leadingones(x: np.ndarray) -> int:
 class LeadingOnes(Objective):
     """Maximize the number of leadings ones in a bit string."""
 
-    def __init__(self, dimension: int) -> None:  # +book
+    def __init__(self, n: int) -> None:  # +book
         """
         Initialize the leading ones objective function.
 
-        :param int dimension: the dimension of the problem
+        :param int n: the dimension of the problem
         """
         super().__init__()
-        if not isinstance(dimension, int):
+        if not isinstance(n, int):
             raise TypeError(
-                f"Must provide int dimension, but got '{type(dimension)}'.")
+                f"Must provide integer n, but got '{type(n)}'.")
         #: the upper bound = the length of the bit strings
-        self.__ub: Final[int] = dimension
+        self.n: Final[int] = n
         self.evaluate = leadingones  # type: ignore
 
     def lower_bound(self) -> int:
@@ -68,7 +68,7 @@ class LeadingOnes(Objective):
         :return: the length of the bit string
         :rtype: int
         """
-        return self.__ub
+        return self.n
 
     def __str__(self) -> str:
         """
@@ -77,4 +77,4 @@ class LeadingOnes(Objective):
         :return: `leadingones_` + lenth of string
         :rtype: str
         """
-        return f"leadingones_{self.__ub}"
+        return f"leadingones_{self.n}"
