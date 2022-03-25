@@ -223,7 +223,7 @@ def validate_algorithm_on_leadingones(
             rr = 0
         elif max_fes > (10 * i):
             rr = i - 2
-        elif max_fes > (3 * i):
+        elif max_fes > (4 * i):
             rr = i - 1
         else:
             rr = i

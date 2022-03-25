@@ -96,10 +96,23 @@ install: create_distribution
 	pip -v install . && \
 	echo "Successfully installed moptipy."
 
+# Now we run all examples
+run_examples: install
+	echo "Now we execute all the examples in 'examples'." &&\
+    for f in examples/*.py; do \
+    	if [ -z "$$f" ]; then \
+  			echo "Empty module '$$f'?"; \
+	  	else \
+			echo "Now running example '$$f'." &&\
+			python3 "$$f" ;\
+		fi \
+    done &&\
+    echo "Finished executing all examples."
+
 # The meta-goal for a full build
-build: clean init test static_analysis create_documentation create_distribution install
+build: clean init test static_analysis create_documentation create_distribution install run_examples
 	echo "The build has completed."
 
 # .PHONY means that the targets init and test are not associated with files.
 # see https://stackoverflow.com/questions/2145590
-.PHONY: build clean create_distribution create_documentation init install static_analysis test
+.PHONY: build clean create_distribution create_documentation init install run_examples static_analysis test

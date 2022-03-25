@@ -1,9 +1,8 @@
 """The configuration for sphinx to generate the documentation."""
-# path setup
+import datetime
 import io
 import os
 import sys
-import re
 from typing import List
 
 
@@ -14,7 +13,7 @@ doc_path = os.path.abspath(os.path.dirname(__file__))
 root_path = os.path.abspath(os.path.join(doc_path, "..", ".."))
 sys.path.insert(0, root_path)
 
-# We want to include the contents of our README.md file.
+# We want to include the contents of our GitHub README.md file.
 # So first, we need to load the README.md file.
 old_lines: List[str]
 with io.open(os.path.join(root_path, "README.md"),
@@ -24,11 +23,8 @@ with io.open(os.path.join(root_path, "README.md"),
 # Now, we need to fix the file contents.
 # We discard the top-level heading as well as the badge for the build status.
 # We need to move all sub-headings one step up.
-# And we need to fix references, as Commonmark markdown does them differently
-# compared to GitHub markdown.
 new_lines = []
 in_code: bool = False  # we only process non-code lines
-regex_search = re.compile("(\\[.+?])\\(#[0-9]+-(.+?)\\)")
 for line in old_lines:
     if in_code:
         if line.startswith("```"):
@@ -37,24 +33,25 @@ for line in old_lines:
         if line.startswith("```"):
             in_code = True  # toggle to code
         elif line.startswith("[![make build"):
-            continue  # strip build status batch
+            continue  # strip build status badge
         elif line.startswith("# "):
             continue  # strip top-level headline
         elif line.startswith("#"):
             line = line[1:]  # move all sub-headings one step up
-        else:
-            line = re.sub(regex_search, "\\1(#\\2)", line)
     new_lines.append(line)
 
 with io.open(os.path.join(doc_path, "README.md"), "wt",
              encoding="utf-8") as outf:
     outf.writelines(new_lines)
 
+# enable myst header anchors
+myst_heading_anchors = 6
+
 # project information
 project = 'moptipy'
 author = 'Thomas Weise'
 # noinspection PyShadowingBuiltins
-copyright = '2021, ' + author
+copyright = f"2021-{datetime.datetime.now ().year}, {author}"
 
 # The full version, including alpha/beta/rc tags
 release = {}

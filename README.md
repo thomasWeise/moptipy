@@ -5,6 +5,16 @@
 This will be a library with implementations of metaheuristic optimization methods in Python.
 Well, it will eventually be, because I first need to learn Python.
 
+- [Introduction](#1-introduction)
+- [Installation](#2-installation)
+- [How-Tos](#3-how-to)
+  - [Solving Optimization Problems](#31-how-to-solve-an-optimization-problem)
+- [Data Formats](#4-data-formats)
+  - [Log Files](#41-log-files)
+  - [End Results CSV Files](#42-end-result-csv-files)
+  - [End Result Statistics CSV Files](#43-end-result-statistics-csv-files)
+- [License](#5-license)
+- [Contact](#6-contact)
 
 ## 1. Introduction
 
@@ -21,16 +31,27 @@ You can easily install this library using `pip` by doing
 pip install git+https://github.com/thomasWeise/moptipy.git
 ```
 
+## 3. How-To
 
-## 3. Data Formats
+### 3.1. How to Solve an Optimization Problem
+
+If you want to solve an optimization problem with [moptipy](https://thomasweise.github.io/moptipy), then you need at least the following three things:
+
+1. a space `Y` of possible solutions,
+2. an objective function `f`  rating the solutions, i.e., which maps elements `y` of `Y` to either integer or float numbers, where *smaller* values are better, and
+3. an optimization algorithm that navigates through `Y` and tries to find solutions `y` in `Y` with low corresponding values `f(y)`.
+
+You may need more components, but if you have these three, then you can run an experiment.
+
+## 4. Data Formats
 
 We develop several data formats to store and evaluate the results of computational experiments with our `moptipy` software.
 Here you can find their basic definitions.
 
 
-### 3.1. Log Files
+### 4.1. Log Files
 
-#### 3.1.1. File Names and Folder Structure
+#### 4.1.1. File Names and Folder Structure
 
 One independent run of an algorithm on one problem instance produces one log file.
 Each run is identified by the algorithm that is applied, the problem instance to which it is applied, and the random seed.
@@ -40,7 +61,7 @@ The log files are grouped in a `algorithm`-`instance` folder structure.
 In the above example, there would be a folder `ea1p1_swap2` containing a folder `demo`, which, in turn, contains all the log files from all runs of that algorithm on this instance.
 
 
-#### 3.1.2. Log File Sections
+#### 4.1.2. Log File Sections
 
 A log file is a simple text file divided into several sections.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
@@ -142,7 +163,7 @@ The following exception sections are currently supported:
 - In the unlikely case that an exception occurs during the writing of the log but writing can somehow continue, this exception will be stored in section `ERROR_IN_LOG`.
 
 
-#### 3.1.3. Example
+#### 4.1.3. Example
 
 You can execute the following Python code to obtain an example log file:
 
@@ -254,13 +275,13 @@ END_RESULT_X
 ```
 
 
-### 3.2. End Result CSV Files
+### 4.2. End Result CSV Files
 
 While a log file contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
 The class [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
-#### 3.2.1. The End Results File Format
+#### 4.2.1. The End Results File Format
 
 An end results file contains a header line and then one line for each log file that was parsed.
 The eleven columns are separated by `;`.
@@ -283,7 +304,7 @@ It presents the following columns:
 For each run, i.e., algorithm x instance x seed combination, one row with the above values is generated.
 Notice that from the algorithm and instance name together with the random seed, you can find the corresponding log file.
 
-### 3.2.2. An Example for End Results Files
+### 4.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
 We can do that as follows
@@ -339,13 +360,13 @@ ea1p1_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;2;180;10240;120000
 ea1p1_swap2;demo;0xd2866f0630434df;180;63;2;63;2;180;10240;120000
 ```
 
-### 3.3. End Result Statistics CSV Files
+### 4.3. End Result Statistics CSV Files
 
 We can also aggregate the end result data over either algorithm x instance combinations, over whole algorithms, over whole instances, or just over everything.
 The class [`moptipy.evaluation.end_statistics.EndStatistics`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_statistics.EndStatistics) provides the tools needed to aggregate statistics over sequences of [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) and to store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
-#### 3.3.1. The End Result Statistics File Format
+#### 4.3.1. The End Result Statistics File Format
 
 End result statistics files contain information in form of statistics aggregated over several runs.
 Therefore, they first contain columns identifying the data over which has been aggregated:
@@ -384,7 +405,7 @@ If `goalF` is defined for at least some settings, we also get the following colu
 Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the computational budget limits in terms of FEs or milliseconds.
 
 
-#### 3.3.2. Example for End Result Statistics Files
+#### 4.3.2. Example for End Result Statistics Files
 
 We can basically execute the same abridged experiment as in the previous section, but now take the aggregation of information one step further:
 
@@ -425,13 +446,13 @@ hc_swap2;la24;4;1061;1114.5;1130.75;1129.038055995197;1233;72.73868755116955;213
 ```
 
 
-## 4. License
+## 5. License
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see Contact).
 The package is licensed under the GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007.
 
 
-## 5. Contact
+## 6. Contact
 
 If you have any questions or suggestions, please contact
 [Prof. Dr. Thomas Weise](http://iao.hfuu.edu.cn/5) of the
