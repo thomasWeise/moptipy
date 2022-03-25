@@ -73,7 +73,7 @@ class MySortProblem(Objective):
 
     def evaluate(self, x) -> int:
         """
-        Compute how often bigger number follows a smaller one.
+        Compute how often a bigger number follows a smaller one.
 
         :param x: the permutation
         """

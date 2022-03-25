@@ -443,7 +443,7 @@ class MySortProblem(Objective):
 
     def evaluate(self, x) -> int:
         """
-        Compute how often bigger number follows a smaller one.
+        Compute how often a bigger number follows a smaller one.
 
         :param x: the permutation
         """
@@ -663,7 +663,7 @@ There are at least the following keys:
   - `p.class`: the python class of the process wrapper
   - `p.maxTimeMillis`: the maximum clock time in milliseconds, if specified
   - `p.maxFEs`: the maximum number of objective function evaluations (FEs), if specified
-  - `p.goalF`: the goal objective value, if specified
+  - `p.goalF`: the goal objective value, if specified (or computed via the `lower_bound()` of the [objective function](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/objective.py))
   - `p.randSeed`: the random seed in decimal notation
   - `p.randSeed(hex)`: the random seed in hexadecimal notation
   - `p.randGenType`: the class of the random number generator
