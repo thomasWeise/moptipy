@@ -33,6 +33,8 @@ pip install git+https://github.com/thomasWeise/moptipy.git
 
 ## 3. How-To
 
+You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
+
 ### 3.1. How to Solve an Optimization Problem
 
 If you want to solve an optimization problem with [moptipy](https://thomasweise.github.io/moptipy), then you need at least the following three things:
@@ -168,16 +170,29 @@ The following exception sections are currently supported:
 You can execute the following Python code to obtain an example log file:
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1
-from moptipy.examples.jssp.experiment import run_experiment
-from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
-from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.utils.temp import TempDir
+from moptipy.algorithms.ea1plus1 import EA1plus1  # the algorithm we use
+from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
+from moptipy.utils.temp import TempDir  # temp directory tool
 
-with TempDir.create() as td:
-    run_experiment(base_dir=td, algorithms=[lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2())],
-                   instances=("demo",), n_runs=1, n_threads=1)
-    print(td.resolve_inside("ea1p1_swap2/demo/ea1p1_swap2_demo_0x5a9363100a272f12.txt").read_all_str())
+# We work in a temporary directory, i.e., delete all generated files on exit.
+with TempDir.create() as td:  # create temp directory
+    # Execute an experiment consisting of exactly one run.
+    # As example domain, we use the job shop scheduling problem (JSSP).
+    run_experiment(
+        base_dir=td,  # working directory = temp dir
+        algorithms=[  # the set of algorithms to use: we use only 1
+            lambda inst, pwr:  # an algorithm is created via a lambda
+            EA1plus1(Op0Shuffle(pwr), Op1Swap2())],  # we use (1+1)-EA
+        instances=("demo",),  # use the demo JSSP instance
+        n_runs=1,  # perform exactly one run
+        n_threads=1)  # use exactly one thread
+    # The random seed is automatically generated based on the instance name.
+    print(td.resolve_inside(  # so we know algorithm, instance, and seed
+        "ea1p1_swap2/demo/ea1p1_swap2_demo_0x5a9363100a272f12.txt")
+        .read_all_str())  # read file into string (which then gets printed)
+# When leaving "while", the temp dir will be deleted
 ```
 
 The example log file printed by the above code will then look as follows:
@@ -310,54 +325,63 @@ Let us execute an abridged example experiment, parse all log files, condense the
 We can do that as follows
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1
-from moptipy.algorithms.hill_climber import HillClimber
-from moptipy.evaluation.end_results import EndResult
-from moptipy.examples.jssp.experiment import run_experiment
-from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
-from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.utils.temp import TempDir
+from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
+from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
+from moptipy.evaluation.end_results import EndResult  # the end result record
+from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
+from moptipy.utils.temp import TempDir  # tool for temp directories
 
+# We work in a temporary directory, i.e., delete all generated files on exit.
 with TempDir.create() as td:
-    results_dir = td.resolve_inside("results")
-    run_experiment(base_dir=results_dir,
-                   algorithms=[lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),
-                               lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],
-                   instances=("demo", "abz7", "la24"), max_fes=10240, n_runs=4)
-    end_results = []
-    EndResult.from_logs(results_dir, end_results.append)
-    er_csv = EndResult.to_csv(end_results, td.resolve_inside("end_results.txt"))
-    print(er_csv.read_all_str())
+    run_experiment(  # run the JSSP experiment with the following parameters:
+        base_dir=td,  # base directory to write all log files to
+        algorithms=[  # the set of algorithm generators
+            lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
+            lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
+        instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
+        max_fes=10000,  # we grant 10000 FEs per run
+        n_runs=4)  # perform 4 runs per algorithm * instance combination
+
+    end_results = []  # this list will receive the end results records
+    EndResult.from_logs(td, end_results.append)  # get results from log files
+
+    er_csv = EndResult.to_csv(  # store end results to csv file (returns path)
+        end_results,  # the list of end results to store
+        td.resolve_inside("end_results.txt"))  # path to the file to generate
+    print(er_csv.read_all_str())  # read generated file as string and print it
+# When leaving "while", the temp dir will be deleted
 ```
 
 This will yield something like the following output:
 
 ```
 algorithm;instance;randSeed;bestF;lastImprovementFE;lastImprovementTimeMillis;totalFEs;totalTimeMillis;goalF;maxFEs;maxTimeMillis
-hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;36;10240;157;935;10240;120000
-hc_swap2;la24;0x23098fe72e435030;1061;10203;131;10240;147;935;10240;120000
-hc_swap2;la24;0xb76a45e4f8b431ae;1118;2130;40;10240;151;935;10240;120000
-hc_swap2;la24;0xb4eab9a0c2193a9e;1111;2594;36;10240;142;935;10240;120000
-hc_swap2;abz7;0x3e96d853a69f369d;825;10052;146;10240;176;656;10240;120000
-hc_swap2;abz7;0x7e986b616543ff9b;850;6788;88;10240;156;656;10240;120000
-hc_swap2;abz7;0xeb6420da7243abbe;804;3798;58;10240;164;656;10240;120000
-hc_swap2;abz7;0xd3de359d5e3982fd;814;4437;73;10240;174;656;10240;120000
-hc_swap2;demo;0xdac201e7da6b455c;205;4;1;10240;154;180;10240;120000
-hc_swap2;demo;0x5a9363100a272f12;200;33;1;10240;134;180;10240;120000
-hc_swap2;demo;0x9ba8fd0486c59354;180;34;1;34;2;180;10240;120000
-hc_swap2;demo;0xd2866f0630434df;185;128;3;10240;133;180;10240;120000
-ea1p1_swap2;la24;0xb4eab9a0c2193a9e;1033;7503;117;10240;171;935;10240;120000
-ea1p1_swap2;la24;0x23098fe72e435030;1026;9114;125;10240;150;935;10240;120000
-ea1p1_swap2;la24;0xac5ca7763bbe7138;1015;9451;112;10240;130;935;10240;120000
-ea1p1_swap2;la24;0xb76a45e4f8b431ae;1031;5218;78;10240;154;935;10240;120000
-ea1p1_swap2;abz7;0x7e986b616543ff9b;767;9935;138;10240;176;656;10240;120000
-ea1p1_swap2;abz7;0xeb6420da7243abbe;756;8005;105;10240;160;656;10240;120000
-ea1p1_swap2;abz7;0xd3de359d5e3982fd;762;9128;131;10240;180;656;10240;120000
-ea1p1_swap2;abz7;0x3e96d853a69f369d;760;10175;147;10240;185;656;10240;120000
-ea1p1_swap2;demo;0xdac201e7da6b455c;180;83;2;83;3;180;10240;120000
-ea1p1_swap2;demo;0x5a9363100a272f12;180;84;2;84;3;180;10240;120000
-ea1p1_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;2;180;10240;120000
-ea1p1_swap2;demo;0xd2866f0630434df;180;63;2;63;2;180;10240;120000
+hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;42;10000;187;935;10000;120000
+hc_swap2;la24;0x23098fe72e435030;1065;9868;167;10000;185;935;10000;120000
+hc_swap2;la24;0xb76a45e4f8b431ae;1118;2130;34;10000;138;935;10000;120000
+hc_swap2;la24;0xb4eab9a0c2193a9e;1111;2594;46;10000;148;935;10000;120000
+hc_swap2;abz7;0x3e96d853a69f369d;826;8335;111;10000;160;656;10000;120000
+hc_swap2;abz7;0x7e986b616543ff9b;850;6788;100;10000;189;656;10000;120000
+hc_swap2;abz7;0xeb6420da7243abbe;804;3798;67;10000;215;656;10000;120000
+hc_swap2;abz7;0xd3de359d5e3982fd;814;4437;60;10000;161;656;10000;120000
+hc_swap2;demo;0xdac201e7da6b455c;205;4;1;10000;132;180;10000;120000
+hc_swap2;demo;0x5a9363100a272f12;200;33;1;10000;127;180;10000;120000
+hc_swap2;demo;0x9ba8fd0486c59354;180;34;1;34;2;180;10000;120000
+hc_swap2;demo;0xd2866f0630434df;185;128;3;10000;139;180;10000;120000
+ea1p1_swap2;la24;0xb4eab9a0c2193a9e;1033;7503;127;10000;185;935;10000;120000
+ea1p1_swap2;la24;0x23098fe72e435030;1026;9114;157;10000;188;935;10000;120000
+ea1p1_swap2;la24;0xac5ca7763bbe7138;1015;9451;123;10000;140;935;10000;120000
+ea1p1_swap2;la24;0xb76a45e4f8b431ae;1031;5218;89;10000;185;935;10000;120000
+ea1p1_swap2;abz7;0x7e986b616543ff9b;767;9935;153;10000;183;656;10000;120000
+ea1p1_swap2;abz7;0xeb6420da7243abbe;756;8005;109;10000;164;656;10000;120000
+ea1p1_swap2;abz7;0xd3de359d5e3982fd;762;9128;129;10000;173;656;10000;120000
+ea1p1_swap2;abz7;0x3e96d853a69f369d;761;9663;134;10000;167;656;10000;120000
+ea1p1_swap2;demo;0xdac201e7da6b455c;180;83;2;83;3;180;10000;120000
+ea1p1_swap2;demo;0x5a9363100a272f12;180;84;2;84;3;180;10000;120000
+ea1p1_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;2;180;10000;120000
+ea1p1_swap2;demo;0xd2866f0630434df;180;63;2;63;3;180;10000;120000
 ```
 
 ### 4.3. End Result Statistics CSV Files
@@ -410,39 +434,49 @@ Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the com
 We can basically execute the same abridged experiment as in the previous section, but now take the aggregation of information one step further:
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1
-from moptipy.algorithms.hill_climber import HillClimber
-from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.examples.jssp.experiment import run_experiment
-from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
-from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.utils.temp import TempDir
+from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
+from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
+from moptipy.evaluation.end_results import EndResult  # the end result record
+from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
+from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
+from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
+from moptipy.utils.temp import TempDir  # tool for temp directories
 
+# We work in a temporary directory, i.e., delete all generated files on exit.
 with TempDir.create() as td:
-    results_dir = td.resolve_inside("results")
-    run_experiment(base_dir=results_dir,
-                   algorithms=[lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),
-                               lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],
-                   instances=("demo", "abz7", "la24"), max_fes=10240, n_runs=4)
-    end_results = []
-    EndResult.from_logs(results_dir, end_results.append)
-    end_stats = []
-    EndStatistics.from_end_results(end_results, end_stats.append)
-    es_csv = EndStatistics.to_csv(end_stats, td.resolve_inside("end_stats.txt"))
-    print(es_csv.read_all_str())
+    run_experiment(  # run the JSSP experiment with the following parameters:
+        base_dir=td,  # base directory to write all log files to
+        algorithms=[  # the set of algorithm generators
+            lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
+            lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
+        instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
+        max_fes=10000,  # we grant 10000 FEs per run
+        n_runs=4)  # perform 4 runs per algorithm * instance combination
+
+    end_results = []  # this list will receive the end results records
+    EndResult.from_logs(td, end_results.append)  # get results from log files
+
+    end_stats = []  # the list to receive the statistics records
+    EndStatistics.from_end_results(  # compute the end result statistics for
+        end_results, end_stats.append)  # each algorithm*instance combination
+
+    es_csv = EndStatistics.to_csv(  # store the statistics to a CSV file
+        end_stats, td.resolve_inside("end_stats.txt"))
+    print(es_csv.read_all_str())  # read and print the file
+# When leaving "while", the temp dir will be deleted
 ```
 
 We will get the following output:
 
 ```
 algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
-ea1p1_swap2;abz7;4;756;761;761.25;761.2397023397091;767;4.573474244670748;8005;9531.5;9310.75;9270.6420810448;10175;978.9444570556595;141;155.5;157;156.50853939166342;176;14.445299120013633;10240;10240;10240;10240;10240;0;183;207.5;204.5;203.91497600580072;220;17.710637105046974;656;1.1524390243902438;1.1600609756097562;1.1604420731707317;1.160426375517849;1.1692073170731707;0.0069717595193152;0;;;;;;;;;;;;;inf;inf;10240;120000
-ea1p1_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;2;1.75;1.681792830507429;2;0.5;33;73;65.75;61.7025293022418;84;23.879907872519105;2;3;2.75;2.7108060108295344;3;0.5;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;2;1.75;1.681792830507429;2;0.5;65.75;1.75;10240;120000
-ea1p1_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;84;120;120.5;117.47748336215864;158;30.75169372029233;10240;10240;10240;10240;10240;0;133;186.5;173.25;171.49914118246429;187;26.837473800639284;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10240;120000
-hc_swap2;abz7;4;804;819.5;823.25;823.0729556595575;850;19.788464653260327;3798;5612.5;6268.75;5823.172771584857;10052;2830.931221936226;59;86.5;101.75;91.64514854755575;175;54.646591842492796;10240;10240;10240;10240;10240;0;163;179;181.25;180.6171149317584;204;17.63282923034947;656;1.225609756097561;1.2492378048780488;1.2549542682926829;1.254684383627374;1.295731707317073;0.03016534245923826;0;;;;;;;;;;;;;inf;inf;10240;120000
-hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.5;1.3160740129524924;3;1;34;10240;7688.5;2458.0725488747207;10240;5103;2;165.5;125.75;55.24078087383381;170;82.5363556258695;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30754;502;10240;120000
-hc_swap2;la24;4;1061;1114.5;1130.75;1129.038055995197;1233;72.73868755116955;2130;2471.5;4319;3392.267719302876;10203;3927.242544075932;26;35;64.25;47.10333276524755;161;64.89157623811172;10240;10240;10240;10240;10240;0;122;154;152.75;150.3489640548046;181;31.084562084739105;935;1.13475935828877;1.1919786096256684;1.2093582887700536;1.207527332615184;1.3187165775401068;0.07779538775526149;0;;;;;;;;;;;;;inf;inf;10240;120000
+ea1p1_swap2;abz7;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9395.5;9182.75;9151.751195919433;9935;853.7393727986702;135;147.5;146.75;146.4445752344153;157;10.90489186863706;10000;10000;10000;10000;10000;0;175;184.5;184.75;184.61439137235973;195;8.180260794538684;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;;;;;;inf;inf;10000;120000
+ea1p1_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;2;1.75;1.681792830507429;2;0.5;33;73;65.75;61.7025293022418;84;23.879907872519105;2;3;2.75;2.7108060108295344;3;0.5;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;2;1.75;1.681792830507429;2;0.5;65.75;1.75;10000;120000
+ea1p1_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;73;119;117.75;112.23430494843578;160;40.59043401262585;10000;10000;10000;10000;10000;0;134;155.5;157.5;155.97336042658907;185;25.357444666211933;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10000;120000
+hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;66;100;104.25;98.56646468667634;151;39.76074278313556;10000;10000;10000;10000;10000;0;175;219;209;207.99300516271921;223;22.80350850198276;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
+hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.5;1.3160740129524924;3;1;34;10000;7508.5;2414.736402766418;10000;4983;2;158;120.5;53.49300611903788;164;79.05061669588669;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;481;10000;120000
+hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;2130;2471.5;4235.25;3364.07316907124;9868;3759.9463981108383;34;39;60;50.689571138401085;128;45.42392908295509;10000;10000;10000;10000;10000;0;136;139.5;147;146.2564370349321;173;17.644640357154728;935;1.13903743315508;1.1919786096256684;1.210427807486631;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;;;;;;inf;inf;10000;120000
 ```
 
 
