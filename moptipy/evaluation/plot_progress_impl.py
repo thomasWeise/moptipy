@@ -239,6 +239,8 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
 
     # plot the lines
     for line in plot_list:
+        if "edgecolor" in line:   # temporary fix
+            del line["edgecolor"]   # temporary fix
         axes.step(where="post", **line)
         x_axis.register_array(line["x"])
         y_axis.register_array(line["y"])

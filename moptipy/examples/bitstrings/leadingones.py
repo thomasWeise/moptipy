@@ -43,6 +43,11 @@ class LeadingOnes(Objective):
         Initialize the leading ones objective function.
 
         :param int n: the dimension of the problem
+
+        >>> print(LeadingOnes(55).n)
+        55
+        >>> print(LeadingOnes(4).evaluate(np.array([True, True, True, False])))
+        1
         """
         super().__init__()
         if not isinstance(n, int):
@@ -58,6 +63,9 @@ class LeadingOnes(Objective):
 
         :return: 0
         :rtype: int
+
+        >>> print(LeadingOnes(3).lower_bound())
+        0
         """
         return 0
 
@@ -67,6 +75,9 @@ class LeadingOnes(Objective):
 
         :return: the length of the bit string
         :rtype: int
+
+        >>> print(LeadingOnes(5).upper_bound())
+        5
         """
         return self.n
 
@@ -76,5 +87,8 @@ class LeadingOnes(Objective):
 
         :return: `leadingones_` + lenth of string
         :rtype: str
+
+        >>> print(LeadingOnes(10))
+        leadingones_10
         """
         return f"leadingones_{self.n}"

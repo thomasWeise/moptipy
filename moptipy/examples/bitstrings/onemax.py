@@ -28,7 +28,7 @@ def onemax(x: np.ndarray) -> int:
     >>> print(onemax(np.array([False, False, False, False, False])))
     5
     """
-    return len(x) - x.sum()
+    return int(len(x) - x.sum())
 
 
 class OneMax(Objective):
@@ -39,6 +39,11 @@ class OneMax(Objective):
         Initialize the onemax objective function.
 
         :param int n: the dimension of the problem
+
+        >>> print(OneMax(2).n)
+        2
+        >>> print(OneMax(4).evaluate(np.array([True, True, False, True])))
+        1
         """
         super().__init__()
         if not isinstance(n, int):
@@ -54,6 +59,9 @@ class OneMax(Objective):
 
         :return: 0
         :rtype: int
+
+        >>> print(OneMax(10).lower_bound())
+        0
         """
         return 0
 
@@ -63,6 +71,9 @@ class OneMax(Objective):
 
         :return: the length of the bit string
         :rtype: int
+
+        >>> print(OneMax(7).upper_bound())
+        7
         """
         return self.n
 
@@ -72,5 +83,8 @@ class OneMax(Objective):
 
         :return: `onemax_` + length of string
         :rtype: str
+
+        >>> print(OneMax(13))
+        onemax_13
         """
         return f"onemax_{self.n}"

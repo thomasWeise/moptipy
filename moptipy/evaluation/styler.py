@@ -247,4 +247,6 @@ class Styler:
             style["label"] = name
             style["xdata"] = []
             style["ydata"] = []
+            if "edgecolor" in style:  # temporary fix
+                del style["edgecolor"]  # temporary fix
             consumer(Line2D(**style))

@@ -184,7 +184,7 @@ class AxisRanger:
                 use_min = self.__chosen_min
                 replace_range = True
             elif self.__use_data_min:
-                if not self.__detected_min:
+                if not self.__has_detected_min:
                     raise ValueError("No minimum in data detected.")
                 use_min = self.__detected_min
                 replace_range = True
@@ -193,7 +193,7 @@ class AxisRanger:
                 use_max = self.__chosen_max
                 replace_range = True
             elif self.__use_data_max:
-                if not self.__detected_max:
+                if not self.__has_detected_max:
                     raise ValueError("No maximum in data detected.")
                 use_max = self.__detected_max
                 replace_range = True
