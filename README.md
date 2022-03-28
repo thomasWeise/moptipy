@@ -18,8 +18,11 @@ Well, it will eventually be, because I first need to learn Python.
   - [Log Files](#41-log-files)
   - [End Results CSV Files](#42-end-result-csv-files)
   - [End Result Statistics CSV Files](#43-end-result-statistics-csv-files)
-- [License](#5-license)
-- [Contact](#6-contact)
+- [Evaluating Experiments](#5-evaluating-experiments)
+  - [Exporting Data](#51-exporting-data)
+  - [Progress Plots](#52-progress-plots)
+- [License](#6-license)
+- [Contact](#7-contact)
 
 ## 1. Introduction
 
@@ -44,7 +47,7 @@ You can find many examples of how to use the [moptipy](https://thomasweise.githu
 
 The most basic task that we can do in the domain of optimization is to apply one algorithm to one instance of an optimization problem.
 In our framework, we refer to this as an "execution."
-You can prepare an execution using the class `Execution` in the module [moptipy.api.execution]( https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/execution.py).
+You can prepare an execution using the class `Execution` in the module [moptipy.api.execution](https://github.com/thomasWeise/moptipy/blob/main/moptipy/api/execution.py).
 This class follows the [builder design pattern](https://python-patterns.guide/gang-of-four/builder/).
 A builder is basically an object that allows you to step-by-step set the parameters of another, more complicated object that should be created.
 Once you have set all parameters, you can create the object.
@@ -1033,13 +1036,42 @@ hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;21
 ```
 
 
-## 5. License
+## 5. Evaluating Experiments
+
+The [moptipy](https://thomasweise.github.io/moptipy) system offers a set of tools to evaluate the results collected from experiments.
+On one hand, you can [export](#51-exporting-data) the data to formats that can be processed by other tools.
+On the other hand, you can plot a variety of different diagrams.
+These diagrams can then be [stored](https://github.com/thomasWeise/moptipy/blob/main/moptipy/utils/plot_utils.py) in different formats, such as `svg` (for the web) or `pdf` (for scientific papers). 
+
+### 5.1. Exporting Data
+
+We already discussed two formats that can be used to export data to Excel or other software tools.
+
+The [End Results CSV format](#42-end-result-csv-files) produces semicolon-separated-values files that include the states of each run.
+For every single run, there will be a row with the algorithm name, instance name, and random seed, as well as the best objective value, the last improvement time and FE, and the total time and consumed FEs.
+
+The [End Results Statistics CSV format](#43-end-result-statistics-csv-files) allows you to export statistics aggregated, e.g., over the instance-algorithm combinations, for instance over all algorithms, or for one algorithm over all instances.
+The format is otherwise similar to the End Results CSV format. 
+
+
+### 5.2. Progress Plots
+
+In the file [examples/progress_plot.py](https://github.com/thomasWeise/moptipy/blob/main/examples/progress_plot.py), you can find some code running a small experiment and creating "progress plots."
+A progress plot is a diagram that shows how an algorithm improves the solution quality over time.
+The solution quality can be the raw objective value, the objective value scaled by the goal objective value, or the objective value normalized with the goal objective value.
+The time can be measured in objective function evaluations (FEs) or in milliseconds and may be log-scaled or unscaled.
+A progress plot can illustrate groups of single runs that were performed in the experiments.
+It can also illustrate statistics over the runs, say, the arithmetic mean of the best-so-far objective value at a given point in time.
+Both types of data can also be combined in the same diagram.
+
+
+## 6. License
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see Contact).
 The package is licensed under the GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007.
 
 
-## 6. Contact
+## 7. Contact
 
 If you have any questions or suggestions, please contact
 [Prof. Dr. Thomas Weise](http://iao.hfuu.edu.cn/5) of the
