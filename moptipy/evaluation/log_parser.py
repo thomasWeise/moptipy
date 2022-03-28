@@ -3,12 +3,18 @@
 from abc import ABC
 from os import listdir
 from os.path import isfile, isdir, join, dirname, basename
-from typing import List, Final, Optional
+from typing import List, Final, Optional, Tuple
 
 from moptipy.api import logging
 from moptipy.utils.log import logger
+import moptipy.utils.logger
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
+
+
+#: the internal escape sequences for text
+_ESCAPES: Final[Tuple[Tuple[str, str], ...]] = \
+    tuple(reversed(moptipy.utils.logger.ESCAPES))
 
 
 class LogParser(ABC):
@@ -273,6 +279,8 @@ class LogParser(ABC):
                             if not do_next:
                                 break
                     elif wants_section:
+                        for dst, src in _ESCAPES:
+                            cur = cur.replace(src, dst)
                         lines.append(cur)
 
         if state == 0:

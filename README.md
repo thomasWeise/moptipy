@@ -608,6 +608,8 @@ In the above example, there would be a folder `ea1p1_swap2` containing a folder 
 #### 4.1.2. Log File Sections
 
 A log file is a simple text file divided into several sections.
+Except for in comments, two special characters are escaped in a [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible way:
+`\` is represented by `\u005c` and `#` is represented by `\u0023`.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
 There are three types of sections:
 
