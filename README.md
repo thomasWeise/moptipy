@@ -21,6 +21,7 @@ Well, it will eventually be, because I first need to learn Python.
 - [Evaluating Experiments](#5-evaluating-experiments)
   - [Exporting Data](#51-exporting-data)
   - [Progress Plots](#52-progress-plots)
+  - [ECDF Plots](#53-ecdf-plots)
 - [License](#6-license)
 - [Contact](#7-contact)
 
@@ -1063,6 +1064,24 @@ The time can be measured in objective function evaluations (FEs) or in milliseco
 A progress plot can illustrate groups of single runs that were performed in the experiments.
 It can also illustrate statistics over the runs, say, the arithmetic mean of the best-so-far objective value at a given point in time.
 Both types of data can also be combined in the same diagram.
+
+
+### 5.3. ECDF Plots
+
+In the file [examples/ecdf_plot.py](https://github.com/thomasWeise/moptipy/blob/main/examples/ecdf_plot.py), you can find some code running a small experiment and creating "ECDF plots."
+The empirical cumulative distribution function (ECDF) is a plot that aggregates data over several runs of an optimization algorithm.
+It has the consumed runtime (in FEs or milliseconds) on its horizontal axis and the fraction of runs that succeeded in reaching a specified goal on its vertical axis.
+Therefore, an ECDF curve is a monotonously increasing curve:
+It remains 0 until the very first (fastest) run of the algorithm reaches the goal, say at time `T1`.
+Then, it will increase a bit every single time another run reaches the goal.
+At the point in time `T2` when the slowest, last run reaches the goal, it becomes `1`.
+Of course, if not all runs reach the goal, it can also remain at a some other level in `[0,1]`.
+
+Let's say we execute 10 runs of our algorithm on a problem instance.
+The ECDF remains 0 until the first run reaches the goal.
+At this time, it would rise to value `1/10=0.1`.
+Once the second run reaches the goal, it will climb to `2/10=0.2`.
+If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECDF would climb to `7/10=0.7` and then remain there. 
 
 
 ## 6. License

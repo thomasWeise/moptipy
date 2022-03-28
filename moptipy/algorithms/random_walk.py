@@ -1,4 +1,17 @@
-"""A random walk allgorithm implmentation."""
+"""
+A random walk algorithm implementation.
+
+A random walk starts with a random point in the search space created with
+the nullary search operator. In each step, it applies the unary search
+operator to move a new point. It does not really care whether the new point
+is better or worse, it will always accept it.
+
+Of course, it still needs to call the objective function to make sure to
+inform the :class:`Process` about the new point so that, at the end, we can
+obtain the best point that was visited.
+But during the course of its run, it will walk around the search space
+randomly without direction.
+"""
 from typing import Final, Callable
 
 from numpy.random import Generator
@@ -21,7 +34,7 @@ class RandomWalk(Algorithm1):
 
         :param moptipy.api.Process process: the process object
         """
-        # create the records for the old and new point in the search space
+        # create records for old and new point in the search space
         old_x = process.create()
         new_x = process.create()
         # obtain the random number generator
@@ -34,18 +47,14 @@ class RandomWalk(Algorithm1):
         op1: Final[Callable] = self.op1.op1
         should_terminate: Final[Callable] = process.should_terminate
 
-        # If the process already knows one solution, then we will copy
-        # it and start from there. Otherwise, we will start a random point
-        # in the search space.
-        if process.has_current_best():  # there already is a solution
-            process.get_copy_of_current_best_x(new_x)  # get a copy
-        else:  # nope, no solution already known
-            self.op0.op0(random, new_x)  # create one randomly
+        # Start at a random point in the search space and evaluate it.
+        self.op0.op0(random, new_x)  # create one solution randomly
+        evaluate(new_x)  # and evaluate it
 
         while not should_terminate():  # until we need to quit...
             old_x, new_x = new_x, old_x  # swap old and new solution
             op1(random, new_x, old_x)  # new_x = neighbor of old_x
-            evaluate(new_x)
+            evaluate(new_x)  # evaluate the solution, ignore result
 
     def __str__(self) -> str:
         """

@@ -22,7 +22,7 @@ class EA1plus1(Algorithm1):
 
         :param moptipy.api.Process process: the process object
         """
-        # create the records for the best and new point in the search space
+        # create records for old and new point in the search space
         best_x = process.create()
         new_x = process.create()
         # obtain the random number generator
@@ -35,16 +35,9 @@ class EA1plus1(Algorithm1):
         op1: Final[Callable] = self.op1.op1
         should_terminate: Final[Callable] = process.should_terminate
 
-        # If the process already knows one solution, then we will copy
-        # it and start from there. Otherwise, we will start a random point
-        # in the search space.
-        best_f: Union[int, float]
-        if process.has_current_best():  # there already is a solution
-            process.get_copy_of_current_best_x(best_x)  # get a copy
-            best_f = process.get_current_best_f()  # and its quality
-        else:  # nope, no solution already known
-            self.op0.op0(random, best_x)  # create one randomly
-            best_f = evaluate(best_x)  # and evaluate it
+        # Start at a random point in the search space and evaluate it.
+        self.op0.op0(random, best_x)  # create one solution randomly
+        best_f: Union[int, float] = evaluate(best_x)  # and evaluate it
 
         while not should_terminate():  # until we need to quit...
             op1(random, new_x, best_x)  # new_x = neighbor of best_x

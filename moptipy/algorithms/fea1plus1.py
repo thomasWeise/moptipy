@@ -38,7 +38,7 @@ class FEA1plus1(Algorithm1):
 
         :param moptipy.api.Process process: the process object
         """
-        # create the records for the best and new point in the search space
+        # create records for old and new point in the search space
         best_x = process.create()
         new_x = process.create()
         lb: Final[int] = cast(int, process.lower_bound())
@@ -58,22 +58,13 @@ class FEA1plus1(Algorithm1):
         op1: Final[Callable] = self.op1.op1
         should_terminate: Final[Callable] = process.should_terminate
 
-        # If the process already knows one solution, then we will copy
-        # it and start from there. Otherwise, we will start a random point
-        # in the search space.
-        best_f: int  # the best objective value
-        new_f: int  # the objective value of the new solution
-        best_h: int  # the frequency fitness corresponding to best_f
-        if process.has_current_best():  # there already is a solution
-            process.get_copy_of_current_best_x(best_x)  # get a copy
-            best_f = cast(int, process.get_current_best_f()) - lb
-        else:  # nope, no solution already known
-            self.op0.op0(random, best_x)  # create one randomly
-            best_f = cast(int, evaluate(best_x)) - lb  # and evaluate it
+        # Start at a random point in the search space and evaluate it.
+        self.op0.op0(random, best_x)  # create one solution randomly
+        best_f: int = cast(int, evaluate(best_x)) - lb  # and evaluate it
 
         while not should_terminate():  # until we need to quit...
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
-            new_f = cast(int, evaluate(new_x)) - lb
+            new_f: int = cast(int, evaluate(new_x)) - lb
 
             h[new_f] = h[new_f] + 1  # increase frequency of new_f
             h[best_f] = best_h = h[best_f] + 1  # increase frequency of best_f

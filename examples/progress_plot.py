@@ -97,7 +97,7 @@ def make_ea1plus1(problem) -> Execution:
             Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
             op1_is_default=True))  # don't include op1 in algorithm name str
     ex.set_max_fes(200)  # permit 200 FEs
-    ex.set_log_improvements(True)   # log the progress!
+    ex.set_log_improvements(True)  # log the progress!
     return ex
 
 
@@ -117,7 +117,7 @@ def make_random_walk(problem) -> Execution:
             Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
             op1_is_default=True))  # don't include op1 in algorithm name str
     ex.set_max_fes(200)  # permit 200 FEs
-    ex.set_log_improvements(True)   # log the progress!
+    ex.set_log_improvements(True)  # log the progress!
     return ex
 
 
@@ -135,8 +135,8 @@ with TempDir.create() as td:  # create temporary directory `td`
     data = []  # we will load the data into this list
     Progress.from_logs(path=td,  # the result directory
                        consumer=data.append,  # put the data into data
-                       time_unit="FEs",
-                       f_name="plain")
+                       time_unit="FEs",  # time is in FEs (as opposed to "ms")
+                       f_name="plain")  # use raw, unscaled objective values
 
     # The first plot will contain every single one of the 20 runs.
     # The system will choose different styles for different algorithms

@@ -1,4 +1,4 @@
-"""Plot a set of ERT-ECDF objects into one figure."""
+"""Plot a set of ECDF or ERT-ECDF objects into one figure."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
     Optional, cast, Set
 
@@ -35,7 +35,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               xlabel: Union[None, str, Callable] = lambda x: x[0],
               xlabel_inside: bool = True,
               ylabel: Union[None, str, Callable] =
-              Lang.translate_func("ecdf"),
+              Lang.translate_func("ECDF"),
               ylabel_inside: bool = True,
               algo_priority: float = 5.0,
               goal_priority: float = 0.333) -> None:
@@ -104,8 +104,12 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
             raise ValueError(
                 f"Time units {t_dim} and {ee.time_unit} do not fit!")
 
-    if (f_dim is None) or (t_dim is None) or (len(source) <= 0):
-        raise ValueError("Illegal state?")
+    if f_dim is None:
+        raise ValueError("f_dim cannot be None")
+    if t_dim is None:
+        raise ValueError("t_dim cannot be None")
+    if (source is None) or (len(source) <= 0):
+        raise ValueError(f"source cannot be {source}.")
 
     source.sort(key=sort_key)
 
@@ -207,6 +211,8 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
             x[0] = min_x
         if changed:
             line["x"] = x
+        if "edgecolor" in line:  # temporary fix
+            del line["edgecolor"]  # temporary fix
         axes.step(where="post", **line)
     del plot_list
 
