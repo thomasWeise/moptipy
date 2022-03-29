@@ -11,10 +11,6 @@ from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
 from moptipy.utils.types import bool_to_str, float_to_str
 
-#: the internal escape sequences for text
-ESCAPES: Final[Tuple[Tuple[str, str], ...]] = \
-    (("\\", "\\u005c"), ("#", "\\u0023"))
-
 
 class Logger(ContextManager):
     """
@@ -158,9 +154,7 @@ class Logger(ContextManager):
             self._error(f"String '{self.__closer}' "
                         "must not be contained in output")
 
-        for src, dst in ESCAPES:
-            text = text.replace(src, dst)
-
+        text = text.replace("#", "")  # omit all # characters
         self._stream.write(text)
         self.__starts_new_line = text.endswith("\n")
 

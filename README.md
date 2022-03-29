@@ -612,8 +612,6 @@ In the above example, there would be a folder `ea1p1_swap2` containing a folder 
 #### 4.1.2. Log File Sections
 
 A log file is a simple text file divided into several sections.
-Except for in comments, two special characters are escaped in a [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible way:
-`\` is represented by `\u005c` and `#` is represented by `\u0023`.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
 There are three types of sections:
 
@@ -622,6 +620,9 @@ There are three types of sections:
   In other words, each line contains a key, followed by `: `, followed by the value.
   The keys can be hierarchically structured in scopes, for example `a.b` and `a.c` indicate two keys `b` and `c` that belong to scope `a`.
 - *Raw text* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
+
+In all the above sections, all the character `#` is removed from output.
+The character `#` indicates a starting comment and can only be written by the routines dedicated to produce comments.
 
 
 ##### The Section `PROGRESS`
@@ -830,7 +831,7 @@ python.version: 3.9.7 (default, Sep 10 2021, 14:59:43) [GCC 11.2.0]
 python.implementation: CPython
 os.name: Linux
 os.release: 5.13.0-35-generic
-os.version: #40-Ubuntu SMP Mon Mar 7 08:03:10 UTC 2022
+os.version: 40-Ubuntu SMP Mon Mar 7 08:03:10 UTC 2022
 END_SYS_INFO
 BEGIN_RESULT_Y
 1,20,30,0,30,40,3,145,165,2,170,180,1,0,20,0,40,60,2,60,80,3,165,180,2,0,30,0,60,80,1,80,130,3,130,145,1,30,60,3,60,90,0,90,130,2,130,170,3,0,50,2,80,92,1,130,160,0,160,170
