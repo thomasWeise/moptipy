@@ -213,6 +213,9 @@ class LogParser(ABC):
         wants_section: bool = False
         sec_end: str = ""
         section: str = ""
+        sect_start: Final[str] = logging.SECTION_START
+        sect_end: Final[str] = logging.SECTION_END
+        cmt_chr: Final[str] = logging.COMMENT_CHAR
 
         index: int = 0
         with file.open_for_read() as handle:
@@ -241,23 +244,23 @@ class LogParser(ABC):
                 if len(cur) <= 0:
                     continue
 
-                i = cur.find(logging.COMMENT_CHAR)
+                i = cur.find(cmt_chr)
                 if i >= 0:
                     cur = cur[:i].strip()
                     if len(cur) <= 0:
                         continue
 
                 if state in (0, 2):
-                    if not cur.startswith(logging.SECTION_START):
+                    if not cur.startswith(sect_start):
                         ValueError("Line should start with "
-                                   f"'{logging.SECTION_START}' but is "
+                                   f"'{sect_start}' but is "
                                    f"'{orig_cur}' in file '{file}'.")
-                    section = cur[len(logging.SECTION_START):]
+                    section = cur[len(sect_start):]
                     if len(section) <= 0:
                         ValueError("Section title cannot be empty in "
                                    f"'{file}', but encountered '{orig_cur}'.")
                     state = 1
-                    sec_end = logging.SECTION_END + section
+                    sec_end = sect_end + section
                     wants_section = self.start_section(section)
                 elif state == 1:
                     if cur == sec_end:

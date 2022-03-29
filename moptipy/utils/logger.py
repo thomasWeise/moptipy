@@ -472,15 +472,8 @@ class TextSection(_Section):
         :param Logger logger: the logger
         """
         super().__init__(title, logger)
-
-    def write(self, string: str) -> None:
-        """
-        Write a raw string to the logger.
-
-        :param str string: the string to be written
-        """
         # noinspection PyProtectedMember
-        self._logger._write(string)
+        self.write = self._logger._write  # type: ignore
 
 
 def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
