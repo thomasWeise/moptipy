@@ -96,7 +96,7 @@ def validate_algorithm(algorithm: Algorithm,
 
     with exp.execute() as process:
 
-        if not process.has_current_best():
+        if not process.has_best():
             raise ValueError("The algorithm did not produce any solution.")
 
         if not process.should_terminate():
@@ -146,7 +146,7 @@ def validate_algorithm(algorithm: Algorithm,
                 "Inconsistent upper bounds between process "
                 f"({process.upper_bound()}) and objective ({ub}).")
 
-        res_f: Final[Union[float, int]] = process.get_current_best_f()
+        res_f: Final[Union[float, int]] = process.get_best_f()
         if not isfinite(res_f):
             raise ValueError("Infinite objective value of result.")
         if (res_f < lb) or (res_f > ub):
@@ -178,7 +178,7 @@ def validate_algorithm(algorithm: Algorithm,
                     f"max_fes={max_fes}.")
 
         y = solution_space.create()
-        process.get_copy_of_current_best_y(y)
+        process.get_copy_of_best_y(y)
         solution_space.validate(y)
         check_f = objective.evaluate(y)
         if check_f != res_f:
@@ -189,7 +189,7 @@ def validate_algorithm(algorithm: Algorithm,
         x: Optional[Any] = None
         if search_space is not None:
             x = search_space.create()
-            process.get_copy_of_current_best_x(x)
+            process.get_copy_of_best_x(x)
             search_space.validate(x)
 
         if encoding is not None:

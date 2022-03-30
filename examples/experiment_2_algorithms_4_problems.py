@@ -87,7 +87,8 @@ with TempDir.create() as td:  # create temporary directory `td`
                    instances=problems,  # define the problem instances
                    setups=[make_ea1plus1,  # provide (1+1)-EA run creator
                            make_random_sampling],  # provide RS run creator
-                   n_runs=5)  # we will execute 5 runs per setup
+                   n_runs=5,  # we will execute 5 runs per setup
+                   n_threads=1)  # we use only a single thread here
 
     EndResult.from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))

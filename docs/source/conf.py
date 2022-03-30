@@ -25,17 +25,19 @@ with io.open(os.path.join(root_path, "README.md"),
 # We need to move all sub-headings one step up.
 new_lines = []
 in_code: bool = False  # we only process non-code lines
+skip: bool = True
 for line in old_lines:
+    if skip:  # we skip everything until the introduction section
+        if line.lstrip().startswith("## 1. Introduction"):
+            skip = False
+        else:
+            continue
     if in_code:
         if line.startswith("```"):
             in_code = False  # toggle to non-code
     else:
         if line.startswith("```"):
             in_code = True  # toggle to code
-        elif line.startswith("[![make build"):
-            continue  # strip build status badge
-        elif line.startswith("# "):
-            continue  # strip top-level headline
         elif line.startswith("#"):
             line = line[1:]  # move all sub-headings one step up
     new_lines.append(line)
@@ -80,7 +82,7 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'haiku'
+html_theme = 'bizstyle'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

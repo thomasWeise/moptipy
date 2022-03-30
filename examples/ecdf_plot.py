@@ -136,7 +136,8 @@ with TempDir.create() as td:  # create temporary directory `td`
                    instances=problems,  # define the problem instances
                    setups=[make_ea1plus1,  # provide (1+1)-EA run creator
                            make_random_walk],  # provide random walk creator
-                   n_runs=31)  # we will execute 31 runs per setup
+                   n_runs=31,  # we will execute 31 runs per setup
+                   n_threads=1)  # we use only a single thread here
     # Once we arrived here, the experiment with 2*1*31 = 62 runs has completed.
 
     data = []  # we will load the data into this list

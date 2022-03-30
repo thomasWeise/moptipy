@@ -55,28 +55,92 @@ class Process(Space, Objective, ContextManager):
         :rtype: Generator
         """
 
+    def evaluate(self, x) -> Union[float, int]:
+        """
+        Evaluate a solution `x` and return its objective value.
+
+        This method implements the :meth:`Objective.evaluate` method of
+        the :class:`Objective` function interface, but on
+        :class:`Process` level.
+
+        The return value is either an integer or a float and must be
+        finite. Smaller objective values are better, i.e., all objective
+        functions are subject to minimization.
+
+        This method here is a wrapper that internally invokes the actual
+        :class:`Objective` function, but it does more.
+
+        While it does use the :meth:`Objective.evaluate` method of the
+        objective function to compute the quality of a candidate solution,
+        it also internally increments the counter for the objective function
+        evaluations (FEs) that have passed. You can request the number of
+        these FEs via :meth:`get_consumed_fes` (and also the time that has
+        passed via :meth:`get_consumed_time_millis`, but this is unrelated
+        to the :meth:`evaluate` method).
+
+        Still, counting the FEs like this allows us to know when, e.g., the
+        computational budget in terms of a maximum permitted number of FEs
+        has been exhausted, in which case :meth:`should_terminate` will
+        become `True`.
+
+        Also, since this method will see all objective values and the
+        corresponding candidate solutions, it is able to internally remember
+        the best solution you have ever created and its corresponding
+        objective value. Therefore, the optimization :class:`Process` can
+        provide both to you via the methods :meth:`has_best`,
+        :meth:`get_copy_of_best_x`, :meth:`get_copy_of_best_y`, and
+        :meth:`get_best_f`. At the same time, if a goal objective value or
+        lower bound for the objective function is specified and one solution
+        is seen that has such a quality, :meth:`should_terminate` will again
+        become `True`.
+
+        Finally, this method also performs all logging, e.g., of improving
+        moves, in memory if logging is activated.
+
+        In some cases, you may not need to invoke the original objective
+        function via this wrapper to obtain the objective value of a solution.
+        Indeed, in some cases you *know* the objective value because of the
+        way you constructed the solution. However, you still need to tell our
+        system the objective value and provide the solution to ensure the
+        correct counting of FEs, the correct preservation of the best
+        solution, and the correct setting of the termination criterion. For
+        these situations, you will call :meth:`register` instead of
+        :meth:`evaluate`.
+
+        :param x: the candidate solution
+        :return: the objective value
+        :rtype: Union[float, int]
+        """
+
     def register(self, x, f: Union[int, float]) -> None:
         """
         Register a solution `x` with externally-evaluated objective value.
 
-        This function is equivalent to :meth:`Objective.evaluate`, but
-        receives the objective value as parameter. In some problems,
-        algorithms can compute the objective value of a solution very
-        efficiently without passing it to the objective function. For
-        example, on the Traveling Salesperson Problem with n cities, if you
-        have a tour of known length and swap two cities in it, then you can
-        compute the overall tour length in O(1) instead of O(n) that you
+        This function is equivalent to :meth:`evaluate`, but receives the
+        objective value as parameter. In some problems, algorithms can compute
+        the objective value of a solution very efficiently without passing it
+        to the objective function.
+
+        For example, on the Traveling Salesperson Problem with n cities, if
+        you have a tour of known length and swap two cities in it, then you
+        can compute the overall tour length in O(1) instead of O(n) that you
         would need to pay for a full evaluation. In such a case, you could
         use `register` instead of `evaluate`.
+
+        `x` must be provided if `f` marks an improvement. In this case, the
+        contents of `x` will be copied to an internal variable remembering the
+        best-so-far solution. If `f` is not an improvement, you may pass in
+        `None` for `x` or just any valid point in the search space.
+
+        For each candidate solution you construct, you must call either
+        :meth:`evaluate` or :meth:`register`. This is because these two
+        functions also count the objective function evaluations (FEs) that
+        have passed. This is needed to check the termination criterion, for
+        instance.
 
         :param x: the candidate solution
         :param Union[int, float] f: the objective value
         """
-        # This dummy code will be overwritten by subclasses.
-        # It only shows the general contract of this method.
-        r: Union[int, float] = self.evaluate(x)
-        if r != f:
-            raise ValueError(f"got {f} as quality but it's actually {r}.")
 
     def get_consumed_fes(self) -> int:
         """
@@ -118,43 +182,99 @@ class Process(Space, Objective, ContextManager):
         :rtype: Optional[int]
         """
 
-    def has_current_best(self) -> bool:  # +book
+    def has_best(self) -> bool:  # +book
         """
-        Check whethers a current best solution is available.
+        Check whether a current best solution is available.
 
         As soon as one objective function evaluation has been performed,
         the black-box process can provide a best-so-far solution. Then,
-        this method returns True. Otherwise, it returns False.
+        this method returns `True`. Otherwise, it returns `False`. This
+        means that this method returns `True` if and only if you have
+        called either :meth:`evaluate` or :meth:`register` at least once.
 
         :return: True if the current-best solution can be queried.
         :rtype: bool
+
+        See also:
+            - :meth:`get_best_f`
+            - :meth:`get_copy_of_best_x`
+            - :meth:`get_copy_of_best_y`
         """
 
-    def get_current_best_f(self) -> Union[int, float]:  # +book
+    def get_best_f(self) -> Union[int, float]:  # +book
         """
         Get the objective value of the current best solution.
 
+        This always corresponds to the best-so-far solution, i.e., the
+        best solution that you have passed to :meth:`evaluate` or
+        :meth:`register` so far. It is *NOT* the best possible objective
+        value for the optimization problem. It is the best objective value
+        that the process has seen *so far*, the current best objective value.
+
+        You should only call this method if you are either sure that you
+        have invoked meth:`evaluate` before :meth:`register` of if you called
+        :meth:`has_best` before and it returned `True`.
+
         :return: the objective value of the current best solution.
         :rtype: Union[int,float]
+
+        See also:
+            - :meth:`has_best`
+            - :meth:`get_copy_of_best_x`
+            - :meth:`get_copy_of_best_y`
         """
 
-    def get_copy_of_current_best_x(self, x) -> None:  # +book
+    def get_copy_of_best_x(self, x) -> None:  # +book
         """
         Get a copy of the current best point in the search space.
 
+        This always corresponds to the best-so-far solution, i.e., the
+        best solution that you have passed to :meth:`evaluate` or
+        :meth:`register` so far. It is *NOT* the best possible objective
+        value for the optimization problem. It is the best solution that
+        the process has seen *so far*, the current best solution.
+
+        You should only call this method if you are either sure that you
+        have invoked meth:`evaluate` before :meth:`register` of if you called
+        :meth:`has_best` before and it returned `True`.
+
         :param x: the destination data structure to be overwritten
+
+        See also:
+            - :meth:`has_best`
+            - :meth:`get_best_f`
+            - :meth:`get_copy_of_best_y`
         """
 
-    def get_copy_of_current_best_y(self, y) -> None:  # +book
+    def get_copy_of_best_y(self, y) -> None:  # +book
         """
         Get a copy of the current best point in the solution space.
 
+        This always corresponds to the best-so-far solution, i.e., the
+        best solution that you have passed to :meth:`evaluate` or
+        :meth:`register` so far. It is *NOT* the best possible objective
+        value for the optimization problem. It is the best solution that
+        the process has seen *so far*, the current best solution.
+
+        You should only call this method if you are either sure that you
+        have invoked meth:`evaluate` before :meth:`register` of if you called
+        :meth:`has_best` before and it returned `True`.
+
         :param y: the destination data structure to be overwritten
+
+        See also:
+            - :meth:`has_best`
+            - :meth:`get_best_f`
+            - :meth:`get_copy_of_best_x`
         """
 
     def get_last_improvement_fe(self) -> int:  # +book
         """
         Get the FE at which the last improvement was made.
+
+        You should only call this method if you are either sure that you
+        have invoked meth:`evaluate` before :meth:`register` of if you called
+        :meth:`has_best` before and it returned `True`.
 
         :return: the function evaluation when the last improvement was made
         :rtype: int
@@ -164,6 +284,10 @@ class Process(Space, Objective, ContextManager):
     def get_last_improvement_time_millis(self) -> int:
         """
         Get the FE at which the last improvement was made.
+
+        You should only call this method if you are either sure that you
+        have invoked meth:`evaluate` before :meth:`register` of if you called
+        :meth:`has_best` before and it returned `True`.
 
         :return: the function evaluation when the last improvement was made
         :rtype: int

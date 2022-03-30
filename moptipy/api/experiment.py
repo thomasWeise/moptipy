@@ -181,6 +181,20 @@ def run_experiment(base_dir: str,
     """
     Run an experiment and store the log files into the given folder.
 
+    This function will automatically run an experiment, i.e., apply a set
+    `setups` of algorithm setups to a set `instances` of problem instances for
+    `n_runs` each. It will collect log files and store them into an
+    appropriate folder structure under the path `base_dir`. It will use
+    `n_threads` separate processes to parallelize the whole experiment (if you
+    do not specify `n_threads`, it will be chosen automatically).
+
+    Note for Windows users: The parallelization will not work under Windows.
+    However, you can achieve *almost* the same effect and performance as for
+    `n_threads=N` if you set `n_threads=1` and simply start the program `N`
+    times separately (in separate terminals and in parallel). Of course, all
+    `N` processes must have the same `base_dir` parameter. They will then
+    automatically share the workload.hgv7
+
     :param str base_dir: the base directory where to store the results
     :param Iterable[Callable] instances: an iterable of callables, each of
         which should return an object representing a problem instance, whose

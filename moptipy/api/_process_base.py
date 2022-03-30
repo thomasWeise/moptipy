@@ -161,16 +161,16 @@ class _ProcessBase(Process):
             del self.__timer
             self._current_time_nanos = _TIME_IN_NS()
 
-    def get_copy_of_current_best_y(self, y) -> None:
+    def get_copy_of_best_y(self, y) -> None:
         """
         Get a copy of the current best point in the solution space.
 
         This method in this internal class just forwards to
-        :meth:`get_copy_of_current_best_x`.
+        :meth:`get_copy_of_best_x`.
 
         :param y: the destination data structure to be overwritten
         """
-        return self.get_copy_of_current_best_x(y)
+        return self.get_copy_of_best_x(y)
 
     def _log_own_parameters(self, logger: KeyValueSection) -> None:
         """

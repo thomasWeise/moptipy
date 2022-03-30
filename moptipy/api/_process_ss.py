@@ -124,12 +124,12 @@ class _ProcessSS(_ProcessNoSS):
         if do_term:
             self.terminate()
 
-    def get_copy_of_current_best_x(self, x) -> None:
+    def get_copy_of_best_x(self, x) -> None:
         if self._current_fes > 0:
             return self.copy(x, self._current_best_x)
         raise ValueError('No current best x available.')
 
-    def get_copy_of_current_best_y(self, y):
+    def get_copy_of_best_y(self, y):
         if self._current_fes > 0:
             return self._copy_y(y, self._current_best_y)
         raise ValueError('No current best y available.')

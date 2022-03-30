@@ -51,7 +51,7 @@ def __can_solve_instance(inst: Instance, seed: int,
     ex.set_goal_f(goal)
     ex.set_rand_seed(seed)
     with ex.execute() as P:
-        queue.put(P.get_current_best_f())
+        queue.put(P.get_best_f())
 
 
 def __is_instance_too_easy(inst: Instance) -> bool:

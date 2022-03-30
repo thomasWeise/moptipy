@@ -30,13 +30,13 @@ def myalgorithm_1(process: Process):
     assert isinstance(x, np.ndarray)
     g = process.get_random()
     assert isinstance(g, Generator)
-    assert not process.has_current_best()
+    assert not process.has_best()
 
     i = WORST_F
     while not process.should_terminate():
         x.fill(i)
         process.evaluate(x)
-        assert process.has_current_best()
+        assert process.has_best()
         i -= 1
     assert all(x < WORST_F)
 
@@ -47,14 +47,14 @@ def myalgorithm_2(process: Process):
     assert isinstance(x, np.ndarray)
     g = process.get_random()
     assert isinstance(g, Generator)
-    assert not process.has_current_best()
+    assert not process.has_best()
 
     i = 1000
     while not process.should_terminate():
         x.fill(i)
         process.evaluate(x)
         i -= 1
-        assert process.has_current_best()
+        assert process.has_best()
 
 
 def myobjective_1(x):
@@ -77,11 +77,11 @@ def test_process_noss_no_log():
     exp.set_objective(CallableObjective(myobjective_1))
     exp.set_max_fes(MAX_FES)
     with exp.execute() as p:
-        assert p.has_current_best()
-        assert p.get_current_best_f() == BEST_F
-        p.get_copy_of_current_best_x(x)
+        assert p.has_best()
+        assert p.get_best_f() == BEST_F
+        p.get_copy_of_best_x(x)
         assert all(x == BEST_F)
-        p.get_copy_of_current_best_y(x)
+        p.get_copy_of_best_y(x)
         assert all(x == BEST_F)
 
 
@@ -98,11 +98,11 @@ def test_process_noss_log():
         exp.set_log_file(path)
         exp.set_max_fes(MAX_FES)
         with exp.execute() as p:
-            assert p.has_current_best()
-            assert p.get_current_best_f() == BEST_F
-            p.get_copy_of_current_best_x(x)
+            assert p.has_best()
+            assert p.get_best_f() == BEST_F
+            p.get_copy_of_best_x(x)
             assert all(x == BEST_F)
-            p.get_copy_of_current_best_y(x)
+            p.get_copy_of_best_y(x)
             assert all(x == BEST_F)
         assert isfile(path)
         assert getsize(path) > 10
@@ -122,12 +122,12 @@ def test_process_noss_timed_log():
         exp.set_log_file(path)
         exp.set_max_time_millis(20)
         with exp.execute() as p:
-            assert p.has_current_best()
-            lll = p.get_current_best_f()
+            assert p.has_best()
+            lll = p.get_best_f()
             assert lll < WORST_F
-            p.get_copy_of_current_best_x(x)
+            p.get_copy_of_best_x(x)
             assert all(x == lll)
-            p.get_copy_of_current_best_y(x)
+            p.get_copy_of_best_y(x)
             assert all(x == lll)
         assert isfile(path)
         assert getsize(path) > 10
@@ -147,7 +147,7 @@ def test_process_noss_maxfes_log_state():
         exp.set_max_fes(500)
         exp.set_log_improvements()
         with exp.execute() as p:
-            assert p.has_current_best()
+            assert p.has_best()
         assert isfile(path)
         assert getsize(path) > 10
         result = path.read_all_list()
@@ -160,14 +160,14 @@ def myalgorithm_3(process: Process):
     assert isinstance(x, np.ndarray)
     g = process.get_random()
     assert isinstance(g, Generator)
-    assert not process.has_current_best()
+    assert not process.has_best()
 
     i = 1000
     while not process.should_terminate():
         x.fill(i)
         process.evaluate(x)
         i -= 1
-        assert process.has_current_best()
+        assert process.has_best()
         raise ValueError("Haha!")
 
 
@@ -184,7 +184,7 @@ def test_process_with_error():
         exp.set_log_improvements()
         with pytest.raises(ValueError):
             with exp.execute() as p:
-                assert p.has_current_best()
+                assert p.has_best()
             assert isfile(path)
             assert getsize(path) > 10
             result = path.read_all_list()

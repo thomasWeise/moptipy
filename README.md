@@ -35,15 +35,28 @@ Its full sources are available on GitHub at <https://github.com/thomasWeise/oa>.
 
 ## 2. Installation
 
-You can easily install this library using `pip` by doing
+You can install the newest version of this library using `pip` by doing
 
-```
+```shell
 pip install git+https://github.com/thomasWeise/moptipy.git
 ```
+
+Alternatively, if you have set up a private/public key for GitHub, you can also do:
+
+```shell
+git clone ssh://git@github.com/thomasWeise/moptipy
+git install moptipy
+```
+
+This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.
+
 
 ## 3. How-To
 
 You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
+Here, we talk mainly about directly applying one or multiple optimization algorithm(s) to one or multiple optimization problem instance(s).
+In [Section 4 on Data Formats](#4-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
+Later, in [Section 5 on Evaluating Experiments](#5-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
 
 ### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
 
@@ -105,30 +118,30 @@ n = 10  # we chose dimension 10
 space = BitStrings(n)  # search in bit strings of length 10
 problem = OneMax(n)  # we maximize the number of 1 bits
 algorithm = EA1plus1(  # create (1+1)-EA that
-    Op0Random(),  # starts with a random bit string and
-    Op1MoverNflip(n=n, m=1))  # flips each bit with probability=1/n
+  Op0Random(),  # starts with a random bit string and
+  Op1MoverNflip(n=n, m=1))  # flips each bit with probability=1/n
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
 # and not use the `with` block.
 with TempFile.create() as tf:  # create temporary file `tf`
-    ex = Execution()  # begin configuring execution
-    ex.set_solution_space(space)  # set solution space
-    ex.set_objective(problem)  # set objective function
-    ex.set_algorithm(algorithm)  # set algorithm
-    ex.set_rand_seed(199)  # set random seed to 199
-    ex.set_log_file(tf)  # set log file = temp file `tf`
-    ex.set_max_fes(100)  # allow at most 100 function evaluations
-    with ex.execute() as process:  # now run the algorithm*problem combination
-        end_result = process.create()  # create empty record to receive result
-        process.get_copy_of_current_best_y(end_result)  # obtain end result
-        print(f"Best solution found: {process.to_str(end_result)}")
-        print(f"Quality of best solution: {process.get_current_best_f()}")
-        print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
-        print(f"Total FEs: {process.get_consumed_fes()}")
+  ex = Execution()  # begin configuring execution
+  ex.set_solution_space(space)  # set solution space
+  ex.set_objective(problem)  # set objective function
+  ex.set_algorithm(algorithm)  # set algorithm
+  ex.set_rand_seed(199)  # set random seed to 199
+  ex.set_log_file(tf)  # set log file = temp file `tf`
+  ex.set_max_fes(100)  # allow at most 100 function evaluations
+  with ex.execute() as process:  # now run the algorithm*problem combination
+    end_result = process.create()  # create empty record to receive result
+    process.get_copy_of_best_y(end_result)  # obtain end result
+    print(f"Best solution found: {process.to_str(end_result)}")
+    print(f"Quality of best solution: {process.get_best_f()}")
+    print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
+    print(f"Total FEs: {process.get_consumed_fes()}")
 
-    print("\nNow reading and printing all the logged data:")
-    print(tf.read_all_str())  # instead, we load and print the log file
+  print("\nNow reading and printing all the logged data:")
+  print(tf.read_all_str())  # instead, we load and print the log file
 # The temp file is deleted as soon as we leave the `with` block.
 ```
 
@@ -264,7 +277,8 @@ with TempDir.create() as td:  # create temporary directory `td`
                    instances=problems,  # define the problem instances
                    setups=[make_ea1plus1,  # provide (1+1)-EA run creator
                            make_random_sampling],  # provide RS run creator
-                   n_runs=5)  # we will execute 5 runs per setup
+                   n_runs=5,  # we will execute 5 runs per setup
+                   n_threads=1)  # we use only a single thread here
 
     EndResult.from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
@@ -565,7 +579,8 @@ with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_execution],  # creator for our algorithm
-                   n_runs=5)  # we will execute 5 runs per setup
+                   n_runs=5,  # we will execute 5 runs per setup
+                   n_threads=1)  # we use only a single thread here
 
     EndResult.from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
@@ -873,7 +888,7 @@ For each run, i.e., algorithm x instance x seed combination, one row with the ab
 Notice that from the algorithm and instance name together with the random seed, you can find the corresponding log file.
 
 
-### 4.2.2. An Example for End Results Files
+#### 4.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
 We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://github.com/thomasWeise/moptipy/blob/main/examples/end_results_jssp.py).
@@ -898,7 +913,8 @@ with TempDir.create() as td:
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
-        n_runs=4)  # perform 4 runs per algorithm * instance combination
+        n_runs=4,  # perform 4 runs per algorithm * instance combination
+        n_threads=1)  # we use only a single thread here
 
     end_results = []  # this list will receive the end results records
     EndResult.from_logs(td, end_results.append)  # get results from log files
@@ -1011,7 +1027,8 @@ with TempDir.create() as td:
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
-        n_runs=4)  # perform 4 runs per algorithm * instance combination
+        n_runs=4,  # perform 4 runs per algorithm * instance combination
+        n_threads=1)  # we use only a single thread here
 
     end_results = []  # this list will receive the end results records
     EndResult.from_logs(td, end_results.append)  # get results from log files

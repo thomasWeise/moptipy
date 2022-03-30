@@ -190,7 +190,8 @@ with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_execution],  # creator for our algorithm
-                   n_runs=5)  # we will execute 5 runs per setup
+                   n_runs=5,  # we will execute 5 runs per setup
+                   n_threads=1)  # we use only a single thread here
 
     EndResult.from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))

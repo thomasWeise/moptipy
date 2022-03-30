@@ -48,9 +48,9 @@ with TempFile.create() as tf:  # create temporary file `tf`
     ex.set_max_fes(100)  # allow at most 100 function evaluations
     with ex.execute() as process:  # now run the algorithm*problem combination
         end_result = process.create()  # create empty record to receive result
-        process.get_copy_of_current_best_y(end_result)  # obtain end result
+        process.get_copy_of_best_y(end_result)  # obtain end result
         print(f"Best solution found: {process.to_str(end_result)}")
-        print(f"Quality of best solution: {process.get_current_best_f()}")
+        print(f"Quality of best solution: {process.get_best_f()}")
         print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
         print(f"Total FEs: {process.get_consumed_fes()}")
 

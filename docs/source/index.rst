@@ -1,4 +1,4 @@
-Welcome to the documentation of moptipy, the *Metaheuristic Optimization in Python* package.
+The *Metaheuristic Optimization in Python* Package.
 ============================================================================================
 
 * :ref:`genindex`

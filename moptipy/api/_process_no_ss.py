@@ -215,15 +215,15 @@ class _ProcessNoSS(_ProcessBase):
         if do_term:
             self.terminate()
 
-    def has_current_best(self) -> bool:
+    def has_best(self) -> bool:
         return self._current_fes > 0
 
-    def get_current_best_f(self) -> Union[int, float]:
+    def get_best_f(self) -> Union[int, float]:
         if self._current_fes > 0:
             return self._current_best_f
         raise ValueError('No current best available.')
 
-    def get_copy_of_current_best_x(self, x) -> None:
+    def get_copy_of_best_x(self, x) -> None:
         if self._current_fes > 0:
             return self._copy_y(x, self._current_best_y)
         raise ValueError('No current best available.')

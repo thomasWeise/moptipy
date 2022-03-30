@@ -19,7 +19,8 @@ with TempDir.create() as td:
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
-        n_runs=4)  # perform 4 runs per algorithm * instance combination
+        n_runs=4,  # perform 4 runs per algorithm * instance combination
+        n_threads=1)  # we use only a single thread here
 
     end_results = []  # this list will receive the end results records
     EndResult.from_logs(td, end_results.append)  # get results from log files
