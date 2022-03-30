@@ -120,6 +120,11 @@ class GanttSpace(Space):
         """
         Check if a Gantt chart if valid and feasible.
 
+        This means that the operations of the jobs must appear in the right
+        sequences and must not intersect in any way.
+        The only exception are operations that need 0 time units. They are
+        permitted to appear wherever.
+
         :param np.ndarray x: the Gantt chart
         :raises TypeError: if any component of the chart is of the wrong type
         :raises ValueError: if the Gantt chart is not feasible or the makespan
@@ -178,11 +183,6 @@ class GanttSpace(Space):
                         f"job {job} appears twice on machine {machinei} "
                         f"for instance {inst.name}: {x[machinei]}")
                 jobs_done.add(job)
-                if start < last_end:
-                    raise ValueError(
-                        f"job {job} starts at {start} on machine {machinei}, "
-                        f"for instance {inst.name} but cannot before "
-                        f"{last_name}: {x[machinei]}.")
                 time = -1
                 for z in range(machines):
                     if inst[job, z, 0] == machinei:
@@ -199,6 +199,14 @@ class GanttSpace(Space):
                         f"{machinei} for instance {inst.name}, but starts at "
                         f"{start} and ends at {end}: {x[machinei]}, "
                         f"{inst[job]}.")
+                if time <= 0:
+                    continue  # job requires zero time, can skip
+                if start < last_end:
+                    raise ValueError(
+                        f"job {job} starts at {start} on machine {machinei}, "
+                        f"for instance {inst.name} but cannot before "
+                        f"{last_name}: {x[machinei]}.")
+                last_end = end
 
         # now check the single jobs
         # we again check for operation overlaps and incorrect timing
@@ -207,25 +215,60 @@ class GanttSpace(Space):
                     for machine in range(machines)
                     for (idx, start, end) in x[machine, :, :] if idx == jobi]
             done.sort()
+            if len(done) != machines:
+                raise ValueError(
+                    f"Job {jobi} appears only {len(done)} times instead of "
+                    f"{machines} times on instance {inst.name}.")
 
+            # we allow operations of length 0 to appear at any position
             last_end = 0
             last_machine = "[start]"
-            for machinei in range(machines):
-                machine, time = inst[jobi, machinei]
-                start = int(done[machinei][0])
-                end = int(done[machinei][1])
-                used_machine = int(done[machinei][2])
-                if machine != used_machine:
-                    raise ValueError(
-                        f"Machine at index {machinei} of job {jobi} "
-                        f"must be {machine} for instance {inst.name}, "
-                        f"but is {used_machine}.")
+            done_i = 0
+            machine_i = 0
+            while True:
+                if machine_i < machines:
+                    machine, time = inst[jobi, machine_i]
+                else:
+                    machine = time = -1
+                if done_i < machines:
+                    start = int(done[machine_i][0])
+                    end = int(done[machine_i][1])
+                    used_machine = int(done[machine_i][2])
+                else:
+                    start = end = used_machine = -1
+
                 needed = end - start
+                if needed < 0:
+                    raise ValueError(
+                        f"Operation {machine_i} of job {jobi} scheduled "
+                        f"from {start} to {end}?")
+                if machine != used_machine:
+                    # This is only possible for operations that require zero
+                    # time units. We will skip such operations in the checks.
+                    if (time == 0) and (machine != -1):
+                        machine_i += 1
+                        continue
+                    if (needed == 0) and (machine != -1):
+                        done_i += 1
+                        continue
+                    raise ValueError(
+                        f"Machine at index {done_i} of job {jobi} "
+                        f"must be {machine} for instance {inst.name}, "
+                        f"for {time} time units, but is {used_machine}"
+                        f"from {start} to {end}.")
+                if machine == -1:
+                    if (machine_i < machines) or (done_i < machines):
+                        raise ValueError(  # this should never be possible
+                            f"Done {machine_i + 1} machines for job {jobi}, "
+                            f"which has {done_i + 1} operations done??")
+                    break  # we can stop
+
+                # ok, we are at a regular operation
                 if needed != time:
                     raise ValueError(
                         f"Job {jobi} must be processed on {machine} for "
                         f"{time} time units on instance {inst.name}, but "
-                        f"only {needed} are used.")
+                        f"only {needed} are used from {start} to {end}.")
                 if needed < 0:
                     raise ValueError(
                         f"Processing time of job {jobi} on machine {machine} "
@@ -235,12 +278,14 @@ class GanttSpace(Space):
                 if start < last_end:
                     raise ValueError(
                         f"Processing time window [{start},{end}] on "
-                        f"machine {machine} for instance {inst.name}"
-                        f"intersects with last operation end {last_end} on "
-                        f"machine {last_machine}.")
+                        f"machine {machine} for job {jobi} on instance "
+                        f"{inst.name} intersects with last operation end"
+                        f"{last_end} on machine {last_machine}.")
 
                 last_end = end
                 last_machine = machine
+                machine_i += 1
+                done_i += 1
 
         maxtime: Final[int] = int(x[:, -1, 2].max())
         if maxtime < inst.makespan_lower_bound:

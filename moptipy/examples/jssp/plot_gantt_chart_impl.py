@@ -187,6 +187,9 @@ def plot_gantt_chart(gantt: Gantt,
         for jobi in range(jobs):
             job, x_start, x_end = gantt[machine, jobi, :]
 
+            if x_end <= x_start:  # skip operations that take 0 time
+                continue
+
             background = colors[job]
             foreground = pd.text_color_for_background(colors[job])
             jobstr = str(job)
