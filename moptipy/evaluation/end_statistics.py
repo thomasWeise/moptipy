@@ -457,14 +457,16 @@ class EndStatistics(MultiRunData):
                 max_fes = None
             elif max_fes is not None:
                 if n > 1:
-                    max_fes_same &= (max_fes[-1] == er.max_fes)
+                    max_fes_same = max_fes_same \
+                        and (max_fes[-1] == er.max_fes)
                 max_fes.append(er.max_fes)
             if er.max_time_millis is None:
                 max_time_millis = None
             elif max_time_millis is not None:
                 if n > 1:
-                    max_time_same &= \
-                        (max_time_millis[-1] == er.max_time_millis)
+                    max_time_same = \
+                        max_time_same \
+                        and (max_time_millis[-1] == er.max_time_millis)
                 max_time_millis.append(er.max_time_millis)
 
             if er.goal_f is None:
@@ -476,7 +478,7 @@ class EndStatistics(MultiRunData):
             else:
                 if goal_f is not None:
                     if n > 1:
-                        goal_f_same &= (goal_f[-1] == er.goal_f)
+                        goal_f_same = goal_f_same and (goal_f[-1] == er.goal_f)
                     goal_f.append(er.goal_f)
 
                     if er.goal_f <= 0:

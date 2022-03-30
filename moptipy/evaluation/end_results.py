@@ -1,32 +1,121 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
 from dataclasses import dataclass
-from math import inf
-from typing import Union, List, Final, Optional, Iterable, Callable, Any
+from math import inf, isfinite
+from typing import Union, List, Final, Optional, Iterable, Callable, Any, Dict
 
 from moptipy.api import logging
+from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
+    KEY_TOTAL_TIME_MILLIS, KEY_GOAL_F, KEY_BEST_F, KEY_MAX_TIME_MILLIS, \
+    KEY_MAX_FES
 from moptipy.evaluation._utils import _FULL_KEY_RAND_SEED, _FULL_KEY_MAX_FES, \
     _FULL_KEY_GOAL_F, _FULL_KEY_MAX_TIME_MILLIS, _check_max_time_millis
+from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
+    F_NAME_NORMALIZED
 from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.log import logger
 from moptipy.utils.logger import parse_key_values
 from moptipy.utils.path import Path
 from moptipy.utils.types import intfloatnone_to_str, intnone_to_str, \
-    str_to_intfloat, str_to_intfloatnone, str_to_intnone, try_int, num_to_str
+    str_to_intfloat, str_to_intfloatnone, str_to_intnone, try_int, \
+    num_to_str, try_float_div
 
 #: The internal CSV header
 _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
           f"{logging.KEY_INSTANCE}{logging.CSV_SEPARATOR}" \
           f"{logging.KEY_RAND_SEED}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_BEST_F}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_LAST_IMPROVEMENT_FE}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
+          f"{KEY_BEST_F}{logging.CSV_SEPARATOR}" \
+          f"{KEY_LAST_IMPROVEMENT_FE}{logging.CSV_SEPARATOR}" \
+          f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
           f"{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_GOAL_F}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_MAX_TIME_MILLIS}\n"
+          f"{KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
+          f"{KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
+          f"{KEY_GOAL_F}{logging.CSV_SEPARATOR}" \
+          f"{KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
+          f"{KEY_MAX_TIME_MILLIS}\n"
+
+
+def __get_goal_f(e: 'EndResult') -> Union[int, float]:
+    """
+    Get the goal_f.
+
+    :param EndResult e: the end result
+    :returns: the goal objective value
+    """
+    g = e.goal_f
+    if g is None:
+        raise ValueError(f"goal_f of {e} is None!")
+    if not isfinite(g):
+        raise ValueError(f"goal_f {g} of {e} is not finite!")
+    return g
+
+
+def __get_max_fes(e: 'EndResult') -> Union[int, float]:
+    """
+    Get the max FEs.
+
+    :param EndResult e: the end result
+    :returns: the max fes
+    """
+    g = e.max_fes
+    if g is None:
+        raise ValueError(f"max_fes of {e} is None!")
+    return g
+
+
+def __get_max_time_millis(e: 'EndResult') -> Union[int, float]:
+    """
+    Get the maximum time in milliseconds.
+
+    :param EndResult e: the end result
+    :returns: the maximum time in milliseconds
+    """
+    g = e.max_time_millis
+    if g is None:
+        raise ValueError(f"max_time_millis of {e} is None!")
+    return g
+
+
+def __get_goal_f_for_div(e: 'EndResult') -> Union[int, float]:
+    """
+    Get the goal_f.
+
+    :param EndResult e: the end result
+    :returns: the goal objective value
+    """
+    g = __get_goal_f(e)
+    if g <= 0:
+        raise ValueError(f"goal_f {g} of {e}is not positive!")
+    return g
+
+
+def __get_f_norm(e: 'EndResult') -> Union[int, float]:
+    """
+    Get the normalized f.
+
+    :param EndResult e: the end result
+    :returns: the normalized f
+    """
+    g = __get_goal_f_for_div(e)
+    return try_float_div(e.best_f - g, g)
+
+
+#: A set of getters for accessing variables of the end result
+_GETTERS: Final[Dict[str, Callable[['EndResult'], Union[int, float]]]] = {
+    KEY_LAST_IMPROVEMENT_FE: lambda e: e.last_improvement_fe,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+        lambda e: e.last_improvement_time_millis,
+    KEY_TOTAL_FES: lambda e: e.total_fes,
+    KEY_TOTAL_TIME_MILLIS: lambda e: e.total_time_millis,
+    KEY_GOAL_F: __get_goal_f,
+    F_NAME_RAW: lambda e: e.best_f,
+    F_NAME_SCALED: lambda e: try_float_div(e.best_f, __get_goal_f_for_div(e)),
+    F_NAME_NORMALIZED: __get_f_norm,
+    KEY_MAX_FES: __get_max_fes,
+    KEY_MAX_TIME_MILLIS: __get_max_time_millis
+}
+_GETTERS[KEY_BEST_F] = _GETTERS[F_NAME_RAW]
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -168,6 +257,24 @@ class EndResult(PerRunData):
         :rtype: bool
         """
         return False if self.goal_f is None else self.best_f <= self.goal_f
+
+    @staticmethod
+    def getter(dimension: str) -> Callable[['EndResult'], Union[int, float]]:
+        """
+        Produce a function that obtains the given dimension from EndResults.
+
+        :param str dimension: the dimension record
+        :returns: a callable that returns the value corresponding to the
+            dimension
+        :rtype: Callable[[EndResult], Union[int, float]]
+        """
+        if not isinstance(dimension, str):
+            raise TypeError(
+                f"dimension must be str, but is {type(dimension)}.")
+        if dimension in _GETTERS:
+            return _GETTERS[dimension]
+        raise ValueError(f"unknown dimension '{dimension}', "
+                         f"should be one of {sorted(_GETTERS.keys())}.")
 
     @staticmethod
     def from_logs(path: str, consumer: Callable[['EndResult'], Any]) -> None:
@@ -395,16 +502,16 @@ class _InnerLogParser(ExperimentParser):
             return self.__state != 3
 
         if (self.__state & 8) != 0:
-            self.__total_fes = int(data[logging.KEY_TOTAL_FES])
+            self.__total_fes = int(data[KEY_TOTAL_FES])
             self.__total_time_millis = \
-                int(data[logging.KEY_TOTAL_TIME_MILLIS])
+                int(data[KEY_TOTAL_TIME_MILLIS])
 
-            self.__best_f = str_to_intfloat(data[logging.KEY_BEST_F])
+            self.__best_f = str_to_intfloat(data[KEY_BEST_F])
 
             self.__last_improvement_fe = \
-                int(data[logging.KEY_LAST_IMPROVEMENT_FE])
+                int(data[KEY_LAST_IMPROVEMENT_FE])
             self.__last_improvement_time_millis = \
-                int(data[logging.KEY_LAST_IMPROVEMENT_TIME_MILLIS])
+                int(data[KEY_LAST_IMPROVEMENT_TIME_MILLIS])
 
             self.__state = (self.__state | 2) & (~8)
             return self.__state != 3

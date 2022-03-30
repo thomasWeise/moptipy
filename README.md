@@ -22,6 +22,7 @@ Well, it will eventually be, because I first need to learn Python.
   - [Exporting Data](#51-exporting-data)
   - [Progress Plots](#52-progress-plots)
   - [ECDF Plots](#53-ecdf-plots)
+  - [End Result Plots](#54-end-results-plot)
 - [License](#6-license)
 - [Contact](#7-contact)
 
@@ -1066,6 +1067,8 @@ A progress plot can illustrate groups of single runs that were performed in the 
 It can also illustrate statistics over the runs, say, the arithmetic mean of the best-so-far objective value at a given point in time.
 Both types of data can also be combined in the same diagram.
 
+Progress plots are implemented in the module [moptipy.evaluation.plot_progress_impl](https://github.com/thomasWeise/moptipy/blob/main/moptipy/evaluation/plot_progress_impl.py).
+
 
 ### 5.3. ECDF Plots
 
@@ -1082,7 +1085,45 @@ Let's say we execute 10 runs of our algorithm on a problem instance.
 The ECDF remains 0 until the first run reaches the goal.
 At this time, it would rise to value `1/10=0.1`.
 Once the second run reaches the goal, it will climb to `2/10=0.2`.
-If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECDF would climb to `7/10=0.7` and then remain there. 
+If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECDF would climb to `7/10=0.7` and then remain there.
+
+ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://github.com/thomasWeise/moptipy/blob/main/moptipy/evaluation/plot_ecdf_impl.py).
+
+
+### 5.4. End Results Plot
+
+In the file [examples/end_results_plot.py](https://github.com/thomasWeise/moptipy/blob/main/examples/end_results_plot.py), you can find some code running a small experiment and creating "end results plots."
+An end results plot is basically a [box plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html) overlay on top of a [violin plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html).
+
+Imagine that you conduct multiple runs of one algorithm on one problem instance, let's say 50.
+Then you get 50 [log files](#41-log-files) and each of them contains the best solution discovered by the corresponding run.
+Now you may want to know how the corresponding 50 objective values are distributed.
+You want to get a visual impression about this distribution.
+Our end results diagram provide this impression by combining two visualizations:
+
+The [box plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html) in the foreground shows the
+- the median
+- the 25% and 75% quantile
+- the 95% confidence interval around the median (as notch)
+- the arithmetic mean (as a triangle symbol)
+- whiskers at the 5% and 95% quantiles, and
+- the outliers on both ends of the spectrum.
+
+The [violin plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html) in the background tries to show the approximate distribution of the values.
+A violin plot is something like a smoothed-out, vertical, and mirror-symmetric histogram.
+Whereas you can see and compare statistical properties of the end result distribution from the box plots, you cannot really see how they are actually distributed.
+For example, it is not clear if the distribution is uni-modal or multi-modal.
+You can see this from the violins plotted in the background.
+
+If you compute such plots over multiple algorithm-instance combinations, data will automatically be grouped by problem instance.
+This means that the violin-boxes of different algorithms on the same problem will be plotted next to each other.
+This, in turn, allows you to easily compare algorithm performance.
+
+In order to make comparing algorithm performance over different instances easier, this plot will use scaled objective values by default.
+It will use the goal objective values `g` from the log files to scale all objective values `f` to `f/g`.
+Ofcourse you can also use it to plot raw objective values, or even runtimes if you wish.
+
+The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://github.com/thomasWeise/moptipy/blob/main/moptipy/evaluation/plot_end_results_impl.py).
 
 
 ## 6. License

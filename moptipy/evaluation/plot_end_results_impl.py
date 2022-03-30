@@ -1,5 +1,4 @@
 """Violin plots for end results."""
-from math import isfinite
 from typing import List, Dict, Final, Callable, Iterable, Union, \
     Tuple, Set, Optional, Any
 
@@ -10,22 +9,11 @@ from matplotlib.lines import Line2D  # type: ignore
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
-from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
-    KEY_TOTAL_TIME_MILLIS
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
-    F_NAME_NORMALIZED
+from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.lang import Lang
 from moptipy.utils.log import logger
-from moptipy.utils.types import try_float_div
-
-#: the permitted dimensions
-__PERMITTED_DIMENSIONS: Final[Tuple[str, str, str, str, str, str, str]] = \
-    (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED,
-     KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES,
-     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_TIME_MILLIS)
 
 
 def plot_end_results(
@@ -40,7 +28,6 @@ def plot_end_results(
         pd.importance_to_font_size,
         ygrid: bool = True,
         xgrid: bool = True,
-        goal_f: Union[int, float, Callable] = lambda g: g.goal_f,
         xlabel: Union[None, str, Callable] = Lang.translate,
         xlabel_inside: bool = True,
         ylabel: Union[None, str, Callable] = Lang.translate,
@@ -50,6 +37,20 @@ def plot_end_results(
         algorithm_sort_key: Callable = lambda x: x) -> None:
     """
     Plot a set of end result boxes/violins functions into one chart.
+
+    In this plot, we combine two visualizations of data distributions: box
+    plots in the foreground and violin plots in the background.
+
+    The box plots show you the median, the 25% and 75% quantiles, the 95%
+    confidence interval around the median (as notches), the 5% and 95%
+    quantiles (as whiskers), the arithmetic mean (as triangle), and the
+    outliers on both ends of the spectrum. This allows you also to compare
+    data from different distributions rather comfortably, as you can, e.g.,
+    see whether the confidence intervals overlap.
+
+    The violin plots in the background are something like smoothed-out,
+    vertical, and mirror-symmetric histograms. They give you a better
+    impression about shape and modality of the distribution of the results.
 
     :param end_results: the iterable of end results
     :param Union[SubplotBase, Figure] figure: the figure to plot in
@@ -62,9 +63,6 @@ def plot_end_results(
         importance values to font sizes
     :param bool ygrid: should we have a grid along the y-axis?
     :param bool xgrid: should we have a grid along the x-axis?
-    :param Union[int, float, Callable] goal_f: the goal objective value for
-        normalized or standardized f display. Can be a constant or a callable
-        applied to the individual EndResult records.
     :param Union[None,str,Callable] xlabel: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
     :param bool xlabel_inside: put the x-axis label inside the plot (so that
@@ -77,11 +75,8 @@ def plot_end_results(
     :param Callable instance_sort_key: the sort key function for instances
     :param Callable algorithm_sort_key: the sort key function for algorithms
     """
-    if not isinstance(dimension, str):
-        raise TypeError(f"dimension must be str, but is {type(dimension)}.")
-    if dimension not in __PERMITTED_DIMENSIONS:
-        raise ValueError(f"dimension is '{dimension}', but must be one of "
-                         f"{__PERMITTED_DIMENSIONS}.")
+    getter: Final[Callable[[EndResult], Union[int, float]]] \
+        = EndResult.getter(dimension)
     logger(f"now plotting end violins for dimension {dimension}.")
 
     if callable(y_axis):
@@ -114,33 +109,7 @@ def plot_end_results(
         else:
             inst_algo_data = per_inst_data[res.algorithm]
 
-        value: Union[int, float]
-        if dimension == F_NAME_RAW:
-            value = res.best_f
-        elif dimension in (F_NAME_SCALED, F_NAME_NORMALIZED):
-            goal = goal_f(res) if callable(goal_f) else goal_f
-            if not isinstance(goal, (int, float)):
-                raise TypeError(
-                    f"goal must be int or float, but goal {goal} obtained"
-                    f"from {goal_f} for {res} is {type(goal)}.")
-            if not isfinite(goal):
-                raise ValueError(f"goal must be finite, but is {goal}.")
-            if goal == 0:
-                raise ValueError(f"goal must not be 0, but is {goal}.")
-            if dimension == F_NAME_SCALED:
-                value = try_float_div(res.best_f, goal)
-            else:
-                value = try_float_div(res.best_f - goal, goal)
-        elif dimension == KEY_TOTAL_FES:
-            value = res.total_fes
-        elif dimension == KEY_LAST_IMPROVEMENT_FE:
-            value = res.last_improvement_fe
-        elif dimension == KEY_TOTAL_TIME_MILLIS:
-            value = res.total_time_millis
-        elif dimension == KEY_LAST_IMPROVEMENT_TIME_MILLIS:
-            value = res.last_improvement_time_millis
-        else:
-            raise ValueError(f"huh? dimension is {dimension}??")
+        value: Union[int, float] = getter(res)
         if not isinstance(value, (int, float)):
             raise ValueError(
                 f"value must be int or float, but is {type(value)}.")

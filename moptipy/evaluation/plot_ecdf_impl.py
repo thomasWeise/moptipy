@@ -211,8 +211,6 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
             x[0] = min_x
         if changed:
             line["x"] = x
-        if "edgecolor" in line:  # temporary fix
-            del line["edgecolor"]  # temporary fix
         axes.step(where="post", **line)
     del plot_list
 

@@ -224,7 +224,6 @@ class Styler:
         """
         if self.__line_colors is not None:
             style["color"] = self.__line_colors[index]
-            style["edgecolor"] = self.__line_colors[index]
         if self.__line_dashes is not None:
             style["linestyle"] = self.__line_dashes[index]
         if self.__line_widths is not None:
@@ -247,6 +246,4 @@ class Styler:
             style["label"] = name
             style["xdata"] = []
             style["ydata"] = []
-            if "edgecolor" in style:  # temporary fix
-                del style["edgecolor"]  # temporary fix
             consumer(Line2D(**style))
