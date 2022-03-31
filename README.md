@@ -62,34 +62,34 @@ Later, in [Section 5 on Evaluating Experiments](#5-evaluating-experiments), we p
 
 The most basic task that we can do in the domain of optimization is to apply one algorithm to one instance of an optimization problem.
 In our framework, we refer to this as an "execution."
-You can prepare an execution using the class `Execution` in the module [moptipy.api.execution](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution).
+You can prepare an execution using the class [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) in the module [moptipy.api.execution](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution).
 This class follows the [builder design pattern](https://python-patterns.guide/gang-of-four/builder/).
 A builder is basically an object that allows you to step-by-step set the parameters of another, more complicated object that should be created.
 Once you have set all parameters, you can create the object.
-In our case, the class [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution) allows you to compose all the elements necessary for the algorithm run and then it performs it and provides you the end results of that execution.
+In our case, the class [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) allows you to compose all the elements necessary for the algorithm run and then it performs it and provides you the end results of that execution.
 
-So first, you create an instance `ex` of `Execution`.
-Then you set the [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.algorithm) that should be applied via the method `ex.set_algorithm(...)`.
-Then you set the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective) via the method `set_objective_function(...)`.
+So first, you create an instance `ex` of [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution).
+Then you set the [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm) that should be applied via the method [`ex.set_algorithm(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_algorithm).
+Then you set the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) via the method [`ex.set_objective(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_objective).
 
-Then, via `ex.set_solution_space(...)` you set the solution [space](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space) that contains all possible solutions and is explored by the algorithm.
-The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space).
+Then, via [`ex.set_solution_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_solution_space) you set the solution [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) that contains all possible solutions and is explored by the algorithm.
+The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
 It provides all methods necessary to create a solution data structure, to copy the contents of one solution data structure to another one, to convert solution data structures to and from strings, and to verify whether a solution data structure is valid.
 It is used by the optimization algorithm for instantiating the solution data structures and for copying them.
 It is used internally by the `moptipy` system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#41-log-files).
 
-If the search and solution spaces are different, then you can also set a search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space) via `ex.set_search_space(...)` and an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) via `ex.set_encoding(...)`.
+If the search and solution spaces are different, then you can also set a search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) via [`ex.set_search_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_search_space) and an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) via [`ex.set_encoding(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_encoding).
 This is not necessary if the algorithm works directly on the solutions (as in our example below).
 
 Each application of an optimization algorithm to a problem instance will also be provided with a random number generator and it *must* only use this random number generator for randomization and no other sources of randomness.
-You can set the seed for this random number generator via `ex.set_rand_seed(...)`.
+You can set the seed for this random number generator via [`ex.set_rand_seed(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_rand_seed).
 If you create two identical executions and set the same seeds for both of them, the algorithms will make the same random decisions and hence should return the same results.
 
-Furthermore, you can also set the maximum number of candidate solutions that the optimization algorithm is allowed to investigate via `ex.set_max_fes(...)`, the maximum runtime budget in milliseconds via `ex.set_max_time_millis(...)`, and a goal objective value via `ex.set_goal_f(...)` (the algorithm should stop after reaching it).
+Furthermore, you can also set the maximum number of candidate solutions that the optimization algorithm is allowed to investigate via [`ex.set_max_fes(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_fes), the maximum runtime budget in milliseconds via [`ex.set_max_time_millis(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_time_millis), and a goal objective value via [`ex.set_goal_f(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_goal_f) (the algorithm should stop after reaching it).
 Notice that optimization algorithms may not terminate unless the system tells them so, so you should always specify at least either a maximum number of objective function evaluations or a runtime limit.
 If you only specify a goal objective value and the algorithm cannot reach it, it may not terminate.
 
-Finally, you can also set the path to a log file via `ex.set_log_file(...)`.
+Finally, you can also set the path to a log file via [`ex.set_log_file(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_file).
 If you specify a log file, the system will automatically gather system information, collect the progress of the algorithm (in terms of improving moves by default), and the final results.
 It will store all of that in a text file *after* the algorithm has completed and you have left the process scope (see below). 
 
@@ -98,7 +98,7 @@ This method returns an instance of [`Process`](https://thomasweise.github.io/mop
 From the algorithm perspective, this instance provides all the information and tools that is needed to create, copy, and evaluate solutions, as well as the termination criterion that tells it when to stop.
 For us, the algorithm user, it provides the information about the end result, the consumed FEs, and the end result quality.
 In the code below, we illustrate how to extract these information.
-Notice that you *must* always use the instances of `Process` in a `with` block:
+Notice that you *must* always use the instances of `Process` in a [`with` block](https://peps.python.org/pep-0343/):
 Once this block is left, the log file will be written.
 If you use it outside of a `with` block, no log file will be generated.
 
@@ -189,7 +189,7 @@ Our system of course also provides the facilities for this.
 The concept for this is rather simple.
 We distinguish "instances" and "setups."
 An "instance" can be anything that a represents one specific problem instance.
-It could be a string with its identifying name, it could be the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective) itself, or a data structure with the instance data (as is the case for the Job Shop Scheduling Problem used in our book, where we use the class [Instance](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.instance)).
+It could be a string with its identifying name, it could be the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) itself, or a data structure with the instance data (as is the case for the Job Shop Scheduling Problem used in our book, where we use the class [Instance](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.instance)).
 The important thing is that the `__str__` method of the instance object will return a short string that can be used in file names of [log files](#41-log-files).
 
 The second concept to understand here are "setups."
@@ -345,24 +345,24 @@ You may need more components, but if you have these three, then you can [run an 
 #### 3.3.1. Define a New Problem Type
 
 At the core of all optimization problems lies the objective function.
-All objective functions in `moptipy` are instances of the class [Objective](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
+All objective functions in `moptipy` are instances of the class [Objective](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective).
 If you want to add a new optimization problem, you must derive a new subclass from this class. 
 
 There are two functions you must implement:
 
-- `evaluate(x)` receives a candidate solution `x` as input and must return either an `int` or a `float` rating its quality (smaller values are *better*) and
+- [`evaluate(x)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective.evaluate) receives a candidate solution `x` as input and must return either an `int` or a `float` rating its quality (smaller values are *better*) and
 - `__str__()` returns a string representation of the objective function and may be used in file names and folder structures (depending on how you execute your experiments).
   It therefore must not contain spaces and other dodgy characters.
 
 Additionally, you *may* implement the following two functions
 
-- `lower_bound()` returns either an `int` or a `float` with the lower bound of the objective value.
+- [`lower_bound()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective.lower_bound) returns either an `int` or a `float` with the lower bound of the objective value.
   This value does not need to be an objective value that can actually be reached, but if you implement this function, then the value must be small enough so that it is *impossible* to ever reach a smaller objective value.
   If we execute an experiment and no goal objective value is specified, then the system will automatically use this lower bound if it is present.
   Then, if any solution `x` with `f.evaluate(x)==f.lower_bound()` is encountered, the optimization process is automatically stopped.
   Furthermore, after the optimization process is stopped, it is verified that the final solution does not have an objective value smaller than the lower bound.
   If it does, then we throw an exception.
-- `upper_bound()` returns either an `int` or a `float` with the upper bound of the objective value.
+- [`upper_bound()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective.upper_bound) returns either an `int` or a `float` with the upper bound of the objective value.
   This value does not need to be an objective value that can actually be reached, but if you implement this function, then the value must be large enough so that it is *impossible* to ever reach a larger objective value.
   This function, if present, is used to validate the objective value of the final result of the optimization process.
 
@@ -383,31 +383,32 @@ We provide the corresponding code in [Section 3.3.3](#333-applying-an-own-algori
 
 #### 3.3.2. Define a New Algorithm
 
-While `moptipy` comes with several well-known algorithms out-of-the-box, you can of course also implement your own algorithms.
-These can then make use of the existing [spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space) and [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators) &ndash; or not.
+While `moptipy` comes with several well-known algorithms out-of-the-box, you can of course also implement your own [algorithms](You want to get a visual impression about this distribution.
+).
+These can then make use of the existing [spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) and [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators) &ndash; or not.
 Let us here create an example algorithm implementation that does *not* use any of the pre-defined [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators).
 
-All optimization algorithms must be subclasses of the class [Algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.algorithm).
+All optimization algorithms must be subclasses of the class [Algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
 Each of them must implement two methods:
 
-- `solve(process)` receives an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process), which provides the operations to work with the search space, to evaluate solutions, the termination criterion, and the random number generator.
+- [`solve(process)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm.solve) receives an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process), which provides the operations to work with the search space, to evaluate solutions, the termination criterion, and the random number generator.
 - `__str__()` must return a short string representation identifying the algorithm and its setup.
   This string will be used in file and folder names and therefore must not contain spaces or otherwise dodgy characters.
 
-The instance `process` of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process) passed to the function `solve` is a key element of our `moptipy` API.
-If the algorithm needs a data structure to hold a point in the search space, it should invoke `process.create()`.
-If it needs to copy the point `source` to the point `dest`, it should invoke `process.copy(dest, source)`.
+The instance `process` of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process) passed to the function [`solve`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm.solve) is a key element of our `moptipy` API.
+If the algorithm needs a data structure to hold a point in the search space, it should invoke [`process.create()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.create).
+If it needs to copy the point `source` to the point `dest`, it should invoke [`process.copy(dest, source)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.copy).
 
-If it wants to know the quality of the point `x`, it should invoke `process.evaluate(x)`.
+If it wants to know the quality of the point `x`, it should invoke [`process.evaluate(x)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.evaluate).
 This function will actually forward the call to the actual objective function (see, e.g., [Section 3.3.1](#331-define-a-new-problem-type) above).
 However, it will do more:
 It will automatically keep track of the best-so-far solution and, if needed, build logging information in memory.
 
-Before every single call to `process.evaluate()`, you should invoke `process.should_terminate()`.
+Before every single call to [`process.evaluate()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.evaluate), you should invoke [`process.should_terminate()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.should_terminate).
 This function returns `True` if the optimization algorithm should stop whatever it is doing and return.
 This can happen when a solution of sufficiently good quality is reached, when the maximum number of FEs is exhausted, or when the computational budget in terms of runtime is exhausted.
 
-Since many optimization algorithms make random choices, the function `process.get_random()` returns a [random number generator](https://numpy.org/doc/stable/reference/random/generator.html).
+Since many optimization algorithms make random choices, the function [`process.get_random()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_random) returns a [random number generator](https://numpy.org/doc/stable/reference/random/generator.html).
 This generator *must* be the only source of randomness used by an algorithm.
 It will automatically be seeded by our system, allowing for repeatable and reproducible runs.
 
@@ -426,7 +427,7 @@ In each step, our algorithm will copy `x_cur` to `x_new`.
 Then, it will use the random number generator to draw two numbers `i` and `j` from `0..n-1`.
 It will swap the two numbers at these indices in `x_new`, i.e., exchange `x_new[i], x_new[j] = x_new[j], x_new[i]`.
 We then evaluate `x_new` and if the resulting objective value `f_new` is better than `f_cur`, we swap `x_new` and `x_cur` (which is faster than copying `x_new` to `x_cur`) and store `f_new` in `f_cur`.
-We repeat this until `process.should_terminate()` becomes `True`.
+We repeat this until [`process.should_terminate()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.should_terminate) becomes `True`.
 All of this is implemented in the source code example below in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem).
 
 
@@ -631,11 +632,11 @@ A log file is a simple text file divided into several sections.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
 There are three types of sections:
 
-- *Semicolon-separated values* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`
-- *Key-values* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2/spec.html#mapping).
+- *[Semicolon-separated values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.CsvSection)* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`
+- *[Key-values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueSection)* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2/spec.html#mapping).
   In other words, each line contains a key, followed by `: `, followed by the value.
   The keys can be hierarchically structured in scopes, for example `a.b` and `a.c` indicate two keys `b` and `c` that belong to scope `a`.
-- *Raw text* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
+- *[Raw text](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.TextSection)* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
 
 In all the above sections, all the character `#` is removed from output.
 The character `#` indicates a starting comment and can only be written by the routines dedicated to produce comments.
@@ -643,9 +644,9 @@ The character `#` indicates a starting comment and can only be written by the ro
 
 ##### The Section `PROGRESS`
 
-When setting up an algorithm execution, you can specify whether you want to log the progress of the algorithm.
+When setting up an algorithm execution, you can specify whether you want to [log the progress](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements) of the algorithm (or not).
 If and only if you choose to log the progress, the `PROGRESS` section will be contained in the log file.
-You can also choose if you want to log all algorithm steps or only the improving moves, the latter being the default behavior.
+You can also choose if you want to [log all algorithm steps](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes) or [only the improving moves](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), the latter being the default behavior.
 Notice that even if you do not choose to log the algorithm's progress, the section `STATE` with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the `RESULT_*` sections with the best encountered candidate solution and point in the search space will be included.
 
 The `PROGRESS` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
@@ -662,7 +663,7 @@ This configuration is denoted by the header `fes;timeMS;f`.
 After this header and until `END_PROGRESS`, each line will contain one data point with values for the specified columns.
 Notice that for each FE, there will be at most one data point but there might be multiple data points per millisecond.
 This is especially true if we log all FEs.
-Usually, we could log one data point for every improvement of the objective value.
+Usually, we could log one data point for every improvement of the objective value, though.
 
 
 ##### The Section `STATE`
@@ -676,26 +677,33 @@ It holds at least the following keys:
 - `lastImprovementFE` the index of the last objective function evaluation where the objective value improved, as integer
 - `lastImprovementTimeMillis` the time in milliseconds at which the last objective function value improvement was registered, as integer
 
+
 ##### The Section `SETUP`
 
 In this key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
 There are at least the following keys:
 
-- process wrapper parameters (scope `p`):
+- [process](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process) wrapper parameters (scope `p`):
   - `p.name`: the name of the process wrapper, i.e., a short mnemonic describing its purpose
   - `p.class`: the python class of the process wrapper
   - `p.maxTimeMillis`: the maximum clock time in milliseconds, if specified
   - `p.maxFEs`: the maximum number of objective function evaluations (FEs), if specified
-  - `p.goalF`: the goal objective value, if specified (or computed via the `lower_bound()` of the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective))
+  - `p.goalF`: the goal objective value, if specified (or computed via the `lower_bound()` of the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective))
   - `p.randSeed`: the random seed in decimal notation
   - `p.randSeed(hex)`: the random seed in hexadecimal notation
   - `p.randGenType`: the class of the random number generator
   - `p.randBitGenType`: the class of the bit generator used by the random number generator
-- algorithm parameters: scope `a`, includes algorithm `name`, `class`, etc.
-- solution space scope `y`, includes `name` and `class` of solution space
-- objective function information: scope `f`
-- search space information (if search space is different from solution space): scope `x`
-- encoding information (if encoding is defined): scope `g` 
+- [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm) parameters: scope `a`, includes algorithm `name`, `class`, etc.
+- solution [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) scope `y`, includes `name` and `class` of solution space
+- [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) information: scope `f`
+- search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) information (if search space is different from solution space): scope `x`
+- [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.encoding.Encoding) information (if encoding is defined): scope `g` 
+
+If you implement an own [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm), [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective), [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space), or your own [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators), then you can overwrite the method [`log_parameters_to(logger)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.component.Component.log_parameters_to).
+This method will automatically be invoked when writing the log files of a run.
+It should *always* start with calling the super implementation (`super().log_parameters_to(logger)`).
+After that, you can store key-value pairs describing the parameterization of your component.
+This way, such information can be preserved in log files.
 
 
 ##### The Section `SYS_INFO`
@@ -712,6 +720,7 @@ Since we can use many different solution spaces, this section just contains raw 
 
 If the search and solution space are different, the section `RESULT_X` is included.
 It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
+
 
 ##### The `ERROR_*` Sections
 
