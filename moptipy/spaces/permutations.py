@@ -74,7 +74,7 @@ class Permutations(IntSpace):  # +book
     120
     """
 
-    def __init__(self, base_string: Iterable[int]) -> None:
+    def __init__(self, base_string: Iterable[int]) -> None:  # +book
         """
         Create the space of permutations of a base string.
 
