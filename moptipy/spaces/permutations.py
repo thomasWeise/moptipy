@@ -13,7 +13,7 @@ KEY_BASE_STRING: Final[str] = "baseString"
 KEY_REPETITIONS: Final[str] = "repetitions"
 
 
-class Permutations(IntSpace):
+class Permutations(IntSpace):  # +book
     """
     A space of permutations of a base string.
 
@@ -117,8 +117,11 @@ class Permutations(IntSpace):
         # creating super class
         super().__init__(total, minimum, maximum)
 
-        # setting up variables
-        self.blueprint: Final[np.ndarray] = np.array(string, dtype=self.dtype)
+        # start book
+        #: a numpy array of the right type with the base string
+        self.blueprint: Final[np.ndarray] = \
+            np.array(string, dtype=self.dtype)
+        # end book
 
         npoints: int = factorial(total)
         rep: Optional[int] = self.__shape.get(minimum)
@@ -283,8 +286,8 @@ class Permutations(IntSpace):
             raise ValueError(f"n must be >1, but is {n}.")
         return Permutations(range(n))
 
-    @staticmethod
-    def with_repetitions(n: int, repetitions: int) -> 'Permutations':
+    @staticmethod  # +book
+    def with_repetitions(n: int, repetitions: int) -> 'Permutations':  # +book
         """
         Create a space for permutations of `0..n-1` with repetitions.
 
@@ -305,4 +308,4 @@ class Permutations(IntSpace):
             raise TypeError(f"n must be int, but is {type(n)}.")
         if n <= 1:
             raise ValueError(f"n must be >1, but is {n}.")
-        return Permutations(list(range(n)) * repetitions)
+        return Permutations(list(range(n)) * repetitions)  # +book
