@@ -7,7 +7,7 @@ Well, it will eventually be, because I first need to learn Python.
 
 - [Introduction](#1-introduction)
 - [Installation](#2-installation)
-- [How-To](#3-how-to)
+- [How-Tos](#3-how-tos)
   - [Applying 1 Algorithm Once to 1 Problem](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance)
   - [Run a Series of Experiments](#32-how-to-run-a-series-of-experiments)
   - [How to Solve and Optimization Problem](#33-how-to-solve-an-optimization-problem)
@@ -26,15 +26,30 @@ Well, it will eventually be, because I first need to learn Python.
 - [License](#6-license)
 - [Contact](#7-contact)
 
+
 ## 1. Introduction
 
 Metaheuristic optimization algorithms are methods for solving hard problems.
 Here we provide an API that can be used to implement them and to experiment with them.
-The codes in this repository are ued as examples in the book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently writing.
+
+A metaheuristic algorithm can be a black-box method, which can solve problems without any knowledge about their nature.
+Such a black-box algorithm only requires methods to create points in the search space and to evaluate their quality.
+With these operations, it will try to step-by-step discover better points.
+Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
+White and gray-box algorithms, on the other hand, are tailored to specified problems.
+They have more knowledge about these problems.
+They make use of the problem structure and can implement more efficient search operations.
+
+Within our `moptipy` framework, you can implement all of these algorithms under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
+What `moptipy` also offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#4-data-formats) and [evaluate](#5-evaluating-experiments) the gathered results.
+
+The codes in this repository are used as examples in the book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently writing.
 Its full sources are available on GitHub at <https://github.com/thomasWeise/oa>.
+
 
 ## 2. Installation
 
+In order to use this package and to, e.g., run the example codes, you need to first install it using `pip`.
 You can install the newest version of this library using `pip` by doing
 
 ```shell
@@ -49,9 +64,11 @@ git install moptipy
 ```
 
 This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.
+You can also clone the repository and then run a `make` build, which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
+If this build completes successful, you can be sure that `moptipy` will work properly on your machine.
 
 
-## 3. How-To
+## 3. How-Tos
 
 You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
 Here, we talk mainly about directly applying one or multiple optimization algorithm(s) to one or multiple optimization problem instance(s).
@@ -383,8 +400,7 @@ We provide the corresponding code in [Section 3.3.3](#333-applying-an-own-algori
 
 #### 3.3.2. Define a New Algorithm
 
-While `moptipy` comes with several well-known algorithms out-of-the-box, you can of course also implement your own [algorithms](You want to get a visual impression about this distribution.
-).
+While `moptipy` comes with several well-known algorithms out-of-the-box, you can of course also implement your own [algorithms](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
 These can then make use of the existing [spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) and [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators) &ndash; or not.
 Let us here create an example algorithm implementation that does *not* use any of the pre-defined [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators).
 
@@ -1154,15 +1170,16 @@ The end result plots are implemented in the module [moptipy.evaluation.plot_end_
 
 ## 6. License
 
-The copyright holder of this package is Prof. Dr. Thomas Weise (see Contact).
-The package is licensed under the GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007.
+The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#7-contact)).
+The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
 
 ## 7. Contact
 
 If you have any questions or suggestions, please contact
-[Prof. Dr. Thomas Weise](http://iao.hfuu.edu.cn/5) of the
-[Institute of Applied Optimization](http://iao.hfuu.edu.cn/) at
-[Hefei University](http://www.hfuu.edu.cn) in
-Hefei, Anhui, China via
+Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
+Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the
+School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at
+[Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in
+Hefei, Anhui, China (中国安徽省合肥市) via
 email to [tweise@hfuu.edu.cn](mailto:tweise@hfuu.edu.cn) with CC to [tweise@ustc.edu.cn](mailto:tweise@ustc.edu.cn).
