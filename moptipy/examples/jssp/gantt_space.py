@@ -56,13 +56,13 @@ class GanttSpace(Space):
         #: The JSSP Instance to which the Gantt record apply.
         self.instance: Final[Instance] = instance  # +book
         #: The shape for the Gantt chart arrays.
-        self.shape: Final[Tuple[int, int, int]] = \
-            (instance.machines, instance.jobs, 3)
+        self.shape: Final[Tuple[int, int, int]] = (  # +book
+            instance.machines, instance.jobs, 3)  # +book
         #: the data to be used for Gantt charts
         self.dtype: Final[np.dtype] = int_range_to_dtype(
             min_value=0, max_value=instance.makespan_upper_bound)
         # function wrapper
-        self.copy = np.copyto  # type: ignore
+        self.copy = np.copyto  # +book # type: ignore
 
     def create(self) -> Gantt:  # +book
         """

@@ -14,10 +14,13 @@ def makespan(x: Gantt) -> int:
     """
     Get the makespan corresponding to a given :class:`Gantt` chart.
 
+    The makespan corresponds to the maximum of the end times of the
+    last operation on each machine.
+
     :param moptipy.examples.jssp.Gantt x: the Gantt chart.
     :return: the maximum of any time stored in the chart
     """
-    return int(x[:, -1, 2].max())
+    return int(x[:, -1, 2].max())  # maximum of end time of last op
     # end book
 
 
