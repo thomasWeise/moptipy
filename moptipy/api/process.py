@@ -6,7 +6,8 @@ state as handed to the optimization algorithm and, after the algorithm has
 finished, to the user.
 """
 from math import inf, isnan
-from typing import Optional, Union, ContextManager
+from typing import Optional, Union
+from contextlib import AbstractContextManager
 
 from numpy.random import Generator
 
@@ -15,7 +16,7 @@ from moptipy.api.space import Space
 
 
 # start book
-class Process(Space, Objective, ContextManager):
+class Process(Space, Objective, AbstractContextManager):
     """
     Processes offer data to the optimization algorithm and the user.
 
