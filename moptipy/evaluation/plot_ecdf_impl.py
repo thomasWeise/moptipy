@@ -44,32 +44,29 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
 
     :param ecdfs: the iterable of ECDF functions
     :param figure: the figure to plot in
-    :param Union[moptipy.evaluation.axis_ranger.AxisRanger, Callable] x_axis:
-        the x_axis
-    :param Union[moptipy.evaluation.axis_ranger.AxisRanger, Callable] y_axis:
-        the y_axis
-    :param bool legend: should we plot the legend?
-    :param Callable distinct_colors_func: the function returning the palette
-    :param Callable distinct_line_dashes_func: the function returning the line
-        styles
-    :param Callable importance_to_line_width_func: the function converting
-        importance values to line widths
-    :param Callable importance_to_alpha_func: the function converting
-        importance values to alphas
-    :param Callable importance_to_font_size_func: the function converting
-        importance values to font sizes
-    :param bool xgrid: should we have a grid along the x-axis?
-    :param bool ygrid: should we have a grid along the y-axis?
-    :param Union[None,str,Callable] xlabel: a callable returning the label for
-        the x-axis, a label string, or `None` if no label should be put
-    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+    :param x_axis: the x_axis ranger
+    :param y_axis: the y_axis ranger
+    :param legend: should we plot the legend?
+    :param distinct_colors_func: the function returning the palette
+    :param distinct_line_dashes_func: the function returning the line styles
+    :param importance_to_line_width_func: the function converting importance
+        values to line widths
+    :param importance_to_alpha_func: the function converting importance
+        values to alphas
+    :param importance_to_font_size_func: the function converting importance
+        values to font sizes
+    :param xgrid: should we have a grid along the x-axis?
+    :param ygrid: should we have a grid along the y-axis?
+    :param xlabel: a callable returning the label for the x-axis, a label
+        string, or `None` if no label should be put
+    :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param Union[None,str,Callable] ylabel: a callable returning the label for
-        the y-axis, a label string, or `None` if no label should be put
-    :param bool ylabel_inside: put the y-axis label inside the plot (so that
+    :param ylabel: a callable returning the label for the y-axis, a label
+        string, or `None` if no label should be put
+    :param ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
-    :param float algo_priority: the style priority for algorithms
-    :param float goal_priority: the style priority for goal values
+    :param algo_priority: the style priority for algorithms
+    :param goal_priority: the style priority for goal values
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.

@@ -1,4 +1,4 @@
-"""Some internal helper functions."""
+"""Some internal helper functions and base classes."""
 
 from dataclasses import dataclass
 from math import inf

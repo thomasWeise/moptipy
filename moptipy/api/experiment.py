@@ -1,4 +1,14 @@
-"""The experiment execution API."""
+"""
+The experiment execution API.
+
+Via the function :func:`run_experiment`, you can execute a complex experiment
+where multiple optimization algorithms are applied to multiple problem
+instances, where log files with the results and progress information about the
+runs are collected, and where multiprocessing is used to parallelize the
+experiment execution.
+Experiments are replicable, as random seeds are automatically generated based
+on problem instance names in a replicable fashion.
+"""
 import copy
 import gc
 import multiprocessing as mp

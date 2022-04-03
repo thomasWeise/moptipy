@@ -85,7 +85,7 @@ def intfloatnone_to_str(val: Union[int, float, None]) -> str:
     """
     Convert an integer ot float or `None` to a string.
 
-    :param Union[int, float, None] val: the value
+    :param val: the value
     :return: the string representation
     :rtype: str
 

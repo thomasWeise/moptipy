@@ -200,7 +200,7 @@ def __check_sorted(instance: np.ndarray,
     :param instance: the instance
     :param jobs: the number of jobs
     :param machines: the number of machines
-    :return: True if the instance is sorted, False otherwise
+    :return: `True` if the instance is sorted, `False` otherwise
     """
     i: np.int64 = jobs - 1
     arr1: np.ndarray = instance[i]

@@ -120,7 +120,7 @@ class Execution:
         This is the function translating from the search space to the
         solution space.
 
-        :param Encoding: the encoding, or `None` of none shall be used
+        :param encoding: the encoding, or `None` of none shall be used
         """
         self.__encoding = check_encoding(encoding, none_is_ok=True)
 
@@ -223,9 +223,25 @@ class Execution:
 
     def execute(self) -> Process:
         """
-        Execute the experiment and return the process after the run.
+        Execute the experiment and return the process *after* the run.
 
-        :return: the process that can be queried for the result
+        The optimization process constructed with this object is executed.
+        This means that first, an instance of
+        :class:`~moptipy.api.process.Process` is constructed.
+        Then, the method :meth:`~moptipy.api.algorithm.Algorithm.solve` is
+        applied to this instance.
+        In other words, the optimization algorithm is executed until it
+        terminates.
+        Finally, this method returns the :class:`~moptipy.api.process.Process`
+        instance *after* algorithm completion.
+        This instance then can be queried for the final result of the run (via
+        :meth:`~moptipy.api.process.Process.get_copy_of_best_y`), the
+        objective value of this final best solution (via
+        :meth:`~moptipy.api.process.Process.get_best_f`), and other
+        information.
+
+        :return: the process *after* the run, i.e., in the state where it can
+            be queried for the result
         """
         algorithm = check_algorithm(self.__algorithm)
         solution_space = check_space(self.__solution_space)

@@ -54,27 +54,26 @@ def plot_end_results(
 
     :param end_results: the iterable of end results
     :param figure: the figure to plot in
-    :param str dimension: the dimension to display
-    :param Union[moptipy.evaluation.axis_ranger.AxisRanger, Callable] y_axis:
-        the y_axis
-    :param Callable distinct_colors_func: the function returning the palette
-    :param Callable importance_to_line_width_func: the function converting
-        importance values to line widths
-    :param Callable importance_to_font_size_func: the function converting
-        importance values to font sizes
-    :param bool ygrid: should we have a grid along the y-axis?
-    :param bool xgrid: should we have a grid along the x-axis?
-    :param Union[None,str,Callable] xlabel: a callable returning the label for
-        the x-axis, a label string, or `None` if no label should be put
-    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+    :param dimension: the dimension to display
+    :param y_axis: the y_axis ranger
+    :param distinct_colors_func: the function returning the palette
+    :param importance_to_line_width_func: the function converting importance
+        values to line widths
+    :param importance_to_font_size_func: the function converting importance
+        values to font sizes
+    :param ygrid: should we have a grid along the y-axis?
+    :param xgrid: should we have a grid along the x-axis?
+    :param xlabel: a callable returning the label for the x-axis, a label
+        string, or `None` if no label should be put
+    :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param Union[None,str,Callable] ylabel: a callable returning the label for
-        the y-axis, a label string, or `None` if no label should be put
-    :param bool ylabel_inside: put the y-axis label inside the plot (so that
-        it does not consume additional horizontal space)
-    :param str legend_pos: the legend position
-    :param Callable instance_sort_key: the sort key function for instances
-    :param Callable algorithm_sort_key: the sort key function for algorithms
+    :param ylabel: a callable returning the label for the y-axis, a label
+        string, or `None` if no label should be put
+    :param ylabel_inside: put the y-axis label inside the plot (so that it
+        does not consume additional horizontal space)
+    :param legend_pos: the legend position
+    :param instance_sort_key: the sort key function for instances
+    :param algorithm_sort_key: the sort key function for algorithms
     """
     getter: Final[Callable[[EndResult], Union[int, float]]] \
         = EndResult.getter(dimension)

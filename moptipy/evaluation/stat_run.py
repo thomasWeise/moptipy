@@ -74,11 +74,9 @@ def __apply_fun(x_unique: np.ndarray,
     :param Callable stat_func: a statistic function which must have been
         jitted with numba
     :param out_len: the length of `dest_y` and `x_unique`
-    :param dest_y: the destination array for the computed
-        statistics
+    :param dest_y: the destination array for the computed statistics
     :param stat_dim: the dimension of the tuples `x_raw` and `y_raw`
-    :param values_buf: the buffer for the values to be passed to
-        `stat_func`
+    :param values_buf: the buffer for the values to be passed to `stat_func`
     :param pos_buf: the position buffer
     :return: the two-dimensional `np.ndarray` where the first column is the
         time and the second column is the statistic value

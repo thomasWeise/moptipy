@@ -211,7 +211,7 @@ class Path(str):
         Open the file for writing.
 
         :return: the text io wrapper for writing
-        :rtpye: io.TextIOWrapper
+        :rtype: io.TextIOWrapper
         """
         return cast(io.TextIOWrapper, io.open(
             self, mode="wt", encoding="utf-8", errors="strict"))

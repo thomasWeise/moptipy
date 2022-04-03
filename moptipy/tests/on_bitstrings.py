@@ -139,8 +139,8 @@ def validate_algorithm_on_bitstrings(
 
     :param algorithm: the algorithm or algorithm factory
     :param objective: the instance or instance factory
-    :param int dimension: the dimension of the problem
-    :param int max_fes: the maximum number of FEs
+    :param dimension: the dimension of the problem
+    :param max_fes: the maximum number of FEs
     :param required_result: the optional required result quality
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):

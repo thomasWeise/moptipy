@@ -61,12 +61,12 @@ class Statistics:
         """
         Initialize the statistics class.
 
-        :param Union[int, float] minimum: the minimum
-        :param Union[int, float] median: the median
-        :param Union[int, float] mean_arith: the arithmetic mean
-        :param Union[int, float, None] mean_geom: the geometric mean
-        :param Union[int, float] maximum: the maximum
-        :param Union[int, float] stddev: the standard deviation
+        :param minimum: the minimum
+        :param median: the median
+        :param mean_arith: the arithmetic mean
+        :param mean_geom: the geometric mean, or `None` if it is undefined
+        :param maximum: the maximum
+        :param stddev: the standard deviation (`0` is also used for undefined)
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be int but is {type(n)}.")

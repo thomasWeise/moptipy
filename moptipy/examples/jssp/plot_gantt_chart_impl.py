@@ -80,7 +80,7 @@ def plot_gantt_chart(gantt: Gantt,
     :param importance_to_line_width_func: the function converting
         importance values to line widths
     :param xgrid: should we have a grid along the x-axis?
-    :param ygrid: should we have a grid along the y-axis
+    :param ygrid: should we have a grid along the y-axis?
     :param xlabel: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
     :param xlabel_inside: put the x-axis label inside the plot (so that

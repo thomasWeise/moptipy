@@ -29,7 +29,7 @@ def _check_max_time_millis(max_time_millis: Union[int, float],
     :meth:`~moptipy.api.process.Process.should_terminate` will become `True`
     approximately after the time limit has expired. However, this also
     could be later (or maybe even earlier) due to the workings of the
-    unlderying operating system. And even if
+    underlying operating system. And even if
     :meth:`~moptipy.api.process.Process.should_terminate` if `True`, it is not
     clear whether the optimization algorithm can query it right away.
     Instead, it may be blocked in a long-running objective function

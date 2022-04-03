@@ -232,7 +232,6 @@ class Permutations(IntSpace):  # +book
         Get the name of this space.
 
         :return: "perm" + blueprint string
-        :rtype: str
 
         >>> print(Permutations([0, 1, 0, 2, 1]))
         perm_of_string
