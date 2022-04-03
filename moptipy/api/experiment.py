@@ -3,10 +3,10 @@ import copy
 import gc
 import multiprocessing as mp
 import os.path
-from contextlib import nullcontext
+from contextlib import nullcontext, AbstractContextManager
 from math import ceil
-from typing import Iterable, Union, Callable, List, \
-    ContextManager, Final, Sequence, cast, Any
+from typing import Iterable, Union, Callable, List, Final, Sequence, cast, \
+    Any
 
 import psutil  # type: ignore
 from numpy.random import Generator, default_rng
@@ -27,8 +27,8 @@ def __run_experiment(base_dir: Path,
                      warmup_fes: int,
                      perform_pre_warmup: bool,
                      pre_warmup_fes: int,
-                     file_lock: ContextManager,
-                     stdio_lock: ContextManager,
+                     file_lock: AbstractContextManager,
+                     stdio_lock: AbstractContextManager,
                      cache: Callable[[str], bool],
                      thread_id: str,
                      pre_warmup_barrier) -> None:
@@ -150,8 +150,8 @@ def __waiting_run_experiment(base_dir: Path,
                              warmup_fes: int,
                              perform_pre_warmup: bool,
                              pre_warmup_fes: int,
-                             file_lock: ContextManager,
-                             stdio_lock: ContextManager,
+                             file_lock: AbstractContextManager,
+                             stdio_lock: AbstractContextManager,
                              cache: Callable,
                              thread_id: str,
                              event, pre_warmup_barrier) -> None:
@@ -308,10 +308,10 @@ def run_experiment(base_dir: str,
     use_dir: Final[Path] = Path.path(base_dir)
     use_dir.ensure_dir_exists()
 
-    stdio_lock: ContextManager
+    stdio_lock: AbstractContextManager
 
     if n_threads > 1:
-        file_lock: ContextManager = mp.Lock()
+        file_lock: AbstractContextManager = mp.Lock()
         stdio_lock = mp.Lock()
         logger(f"starting experiment with {n_threads} threads "
                f"on {__CPU_LOGICAL_CORES} logical cores, "

@@ -1,12 +1,15 @@
 """The `logger` routine for writing a log string to stdout."""
 import datetime
-from contextlib import nullcontext
-from typing import Final, ContextManager
+from contextlib import nullcontext, AbstractContextManager
+from typing import Final
+
+#: the "now" function
+__DTN = datetime.datetime.now
 
 
 def logger(message: str,
            note: str = "",
-           lock: ContextManager = nullcontext()) -> None:
+           lock: AbstractContextManager = nullcontext()) -> None:
     """
     Write a message to the log.
 
@@ -15,6 +18,6 @@ def logger(message: str,
     :param lock: the lock to prevent multiple threads to write log
         output at the same time
     """
-    text: Final[str] = f"{datetime.datetime.now()}{note}: {message}"
+    text: Final[str] = f"{__DTN()}{note}: {message}"
     with lock:
         print(text, flush=True)

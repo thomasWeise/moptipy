@@ -5,9 +5,9 @@ They provide the information about the optimization process and its current
 state as handed to the optimization algorithm and, after the algorithm has
 finished, to the user.
 """
+from contextlib import AbstractContextManager
 from math import inf, isnan
 from typing import Optional, Union
-from contextlib import AbstractContextManager
 
 from numpy.random import Generator
 

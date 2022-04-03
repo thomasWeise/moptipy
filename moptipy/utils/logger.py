@@ -1,10 +1,11 @@
 """Classes for writing structured log files."""
+from contextlib import AbstractContextManager
 from io import StringIO
 from math import isfinite
 from os.path import realpath
 from re import sub
 from typing import Optional, List, Union, cast, Final, Callable, Tuple, \
-    ContextManager, Iterable, Dict
+    Iterable, Dict
 
 from moptipy.api import logging
 from moptipy.utils.cache import is_new
@@ -12,7 +13,7 @@ from moptipy.utils.path import Path
 from moptipy.utils.types import bool_to_str, float_to_str
 
 
-class Logger(ContextManager):
+class Logger(AbstractContextManager):
     """
     An abstract base class for logging data in a structured way.
 
@@ -276,7 +277,7 @@ class InMemoryLogger(Logger):
         return self._stream.getvalue().splitlines()
 
 
-class LogSection(ContextManager):
+class LogSection(AbstractContextManager):
     """An internal base class for logger sections."""
 
     def __init__(self, title: Optional[str], logger: Logger) -> None:
