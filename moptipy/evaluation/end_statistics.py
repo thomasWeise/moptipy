@@ -1,4 +1,4 @@
-"""Statistics aggregated over multiple instances of :class:`EndResult`."""
+"""Statistics aggregated over multiple instances of EndResult."""
 from dataclasses import dataclass
 from math import inf
 from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
@@ -89,46 +89,41 @@ class EndStatistics(MultiRunData):
         """
         Create the end statistics of an experiment-setup combination.
 
-        :param Optional[str] algorithm: the algorithm name, if all runs are
-            with the same algorithm
-        :param Optional[str] instance: the instance name, if all runs are
-            on the same instance
-        :param int n: the total number of runs
-        :param Statistics best_f: statistics about the best achieved result
-        :param Statistics last_improvement_fe: statistics about the last
-            improvement FE
-        :param Statistics last_improvement_time_millis: statistics about the
-            last improvement time
-        :param Statistics total_fes: statistics about the total FEs
-        :param Statistics total_time_millis: statistics about the total
-            runtime in milliseconds
-        :param Union[Statistics, int, float, None] goal_f: if the goal
-            objective value is not defined sometimes, this will be `None`.
-            If it is always defined and always the same, then this will be
-            that value. If different goal values exist, then this is the
-            `Statistics` record about them
-        :param Optional[Statistics] best_f_scaled: if `goal_f` is not `None`,
-            then here we provide statistics about `best_f` divided by the
-            corresponding `goal_f`
-        :param Optional[int] n_success: the number of successful runs is only
-            defined if `goal_f` is not `None` and counts the number of runs
-            that reach or surpass their corresponding `goal_f`
-        :param Optional[Statistics] success_fes: if `goal_f` is not `None`,
+        :param algorithm: the algorithm name, if all runs are with the same
+            algorithm
+        :param instance: the instance name, if all runs are on the same
+            instance
+        :param n: the total number of runs
+        :param best_f: statistics about the best achieved result
+        :param last_improvement_fe: statistics about the last improvement FE
+        :param last_improvement_time_millis: statistics about the last
+            improvement time
+        :param total_fes: statistics about the total FEs
+        :param total_time_millis: statistics about the total runtime in
+            milliseconds
+        :param goal_f: if the goal objective value is not defined sometimes,
+            this will be `None`. If it is always defined and always the same,
+            then this will be that value. If different goal values exist, then
+            this is the `Statistics` record about them
+        :param best_f_scaled: if `goal_f` is not `None`, then here we provide
+            statistics about `best_f` divided by the corresponding `goal_f`
+        :param n_success: the number of successful runs is only defined if
+            `goal_f` is not `None` and counts the number of runs that reach or
+            surpass their corresponding `goal_f`
+        :param success_fes: if `goal_f` is not `None`,
             then this holds statistics about the last improvement FE of only
             the successful runs
-        :param Optional[Statistics] success_time_millis: if `goal_f` is not
-            `None`, then this holds statistics about the last improvement
-            times of only the successful runs
-        :param Union[int, float, None] ert_fes: if `goal_f` is always defined,
-            then this is the empirically estimated running time to solve the
-            problem in FEs if `n_success>0` and `inf` otherwise
-        :param Union[int, float, None] ert_time_millis: if `goal_f` is always
-            defined, then this is the empirically estimated running time to
-            solve the problem in milliseconds if `n_success>0` and `inf`
-            otherwise
-        :param Union[Statistics, int, None] max_fes: the budget in FEs, if any
-        :param Union[Statistics, int, None] max_time_millis: the budget in
-            term of milliseconds
+        :param success_time_millis: if `goal_f` is not `None`, then this holds
+            statistics about the last improvement times of only the successful
+            runs
+        :param ert_fes: if `goal_f` is always defined, then this is the
+            empirically estimated running time to solve the problem in FEs if
+            `n_success>0` and `inf` otherwise
+        :param ert_time_millis: if `goal_f` is always defined, then this is
+            the empirically estimated running time to solve the problem in
+            milliseconds if `n_success>0` and `inf` otherwise
+        :param max_fes: the budget in FEs, if any
+        :param max_time_millis: the budget in term of milliseconds
         """
         super().__init__(algorithm, instance, n)
 
@@ -404,7 +399,7 @@ class EndStatistics(MultiRunData):
         """
         Create an `EndStatistics` Record from an Iterable of `EndResult`.
 
-        :param Iterable[moptipy.evaluation.EndResult] source: the source
+        :param source: the source
         :return: the statistics
         :rtype: EndStatistics
         """
@@ -535,13 +530,11 @@ class EndStatistics(MultiRunData):
         """
         Aggregate statistics over a stream of end results.
 
-        :param Iterable[moptipy.evaluation.EndResult] source: the stream
-            of end results
-        :param Callable[['EndStatistics'], Any] consumer: the destination
-            to which the new records will be appended
-        :param bool join_all_algorithms: should the statistics be aggregated
+        :param source: the stream of end results
+        :param consumer: the destination to which the new records will be sent
+        :param join_all_algorithms: should the statistics be aggregated
             over all algorithms
-        :param bool join_all_instances: should the statistics be aggregated
+        :param join_all_instances: should the statistics be aggregated
             over all algorithms
         """
         if not isinstance(source, Iterable):
@@ -594,11 +587,9 @@ class EndStatistics(MultiRunData):
         """
         Store a set of :class:`EndStatistics` in a CSV file.
 
-        :param Union['EndStatistics', Iterable['EndStatistics']] data: the
-            data to store
-        :param str file: the file to generate
+        :param data: the data to store
+        :param file: the file to generate
         :return: the path to the generated CSV file
-        :rtype: Path
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing end result statistics to CSV file '{path}'.")
@@ -828,9 +819,9 @@ class EndStatistics(MultiRunData):
         """
         Parse a CSV file and collect all encountered :class:`EndStatistics`.
 
-        :param str file: the file to parse
-        :param Callable[['EndStatistics'], Any] consumer: the consumer to
-            receive all the parsed instances of :class:`EndStatistics`.
+        :param file: the file to parse
+        :param consumer: the consumer to receive all the parsed instances of
+            :class:`~moptipy.evaluation.end_statistics.EndStatistics`.
         """
         path: Final[Path] = Path.file(file)
         logger(f"Begin reading end result statistics from CSV file '{path}'.")

@@ -16,7 +16,7 @@ class Op0Shuffle(operators.Op0):
         """
         Initialize this shuffle operation: use blueprint from space.
 
-        :param Permutations space: the search space
+        :param space: the search space
         """
         if not space:  # -book
             raise ValueError("space must not be None.")  # -book
@@ -31,8 +31,8 @@ class Op0Shuffle(operators.Op0):
         """
         Copy the base string to `dest` and shuffle it randomly.
 
-        :param Generator random: the random number generator
-        :param np.ndarray dest: the permutation that should be shuffled.
+        :param random: the random number generator
+        :param dest: the permutation that should be shuffled.
             Afterwards, the order of its elements if random.
         """
         np.copyto(dest, self.__blueprint)
@@ -44,6 +44,5 @@ class Op0Shuffle(operators.Op0):
         Get the name of this operator.
 
         :return: "shuffle"
-        :rtype: str
         """
         return "shuffle"

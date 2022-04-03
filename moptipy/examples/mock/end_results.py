@@ -20,12 +20,11 @@ def end_result(performance: BasePerformance,
     """
     Compute the end result of a mock run.
 
-    :param BasePerformance performance: the performance record
-    :param int seed: the random seed
-    :param Optional[int] max_fes: the maximum number of FEs
-    :param Optional[int] max_time_millis: the maximum time
+    :param performance: the performance record
+    :param seed: the random seed
+    :param max_fes: the maximum number of FEs
+    :param max_time_millis: the maximum time
     :returns: the end result record
-    :rtype: moptipy.evaluation.end_results.EndResult
     """
     if not isinstance(performance, BasePerformance):
         raise TypeError("performance must be BasePerformance, "
@@ -258,10 +257,9 @@ class EndResults:
         Create the end results for a given experiment.
 
         :param experiment: the experiment
-        :param Optional[int] max_fes: the maximum number of FEs
-        :param Optional[int] max_time_millis: the maximum time
+        :param max_fes: the maximum number of FEs
+        :param max_time_millis: the maximum time
         :returns: the end results
-        :rtype: EndResults
         """
         if not isinstance(experiment, Experiment):
             raise TypeError(
@@ -309,7 +307,6 @@ class EndResults:
 
         :param algorithm: the algorithm
         :returns: the end results
-        :rtype: moptipy.evaluation.end_results.EndResult
         """
         return self.__results_for_algo[algorithm]
 
@@ -320,6 +317,5 @@ class EndResults:
 
         :param instance: the instance
         :returns: the end results
-        :rtype: moptipy.evaluation.end_results.EndResult
         """
         return self.__results_for_inst[instance]

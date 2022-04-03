@@ -22,10 +22,10 @@ class Op1MoverNflip(operators.Op1):
         """
         Initialize the operator.
 
-        :param int n: the length of the bit strings
-        :param int m: the factor for computing the probability of flipping
+        :param n: the length of the bit strings
+        :param m: the factor for computing the probability of flipping
             the bits
-        :param bool at_least_1: should at least one bit be flipped?
+        :param at_least_1: should at least one bit be flipped?
         """
         super().__init__()
         if not isinstance(n, int):
@@ -54,10 +54,10 @@ class Op1MoverNflip(operators.Op1):
         Regardless of the probability, at least one bit will always be
         flipped if self.at_least_1 is True.
 
-        :param Op1MoverNflip self: the self pointer
-        :param Generator random: the random number generator
-        :param np.ndarray dest: the array to be shuffled
-        :param np.ndarray x: the existing point in the search space
+        :param self: the self pointer
+        :param random: the random number generator
+        :param dest: the array to be shuffled
+        :param x: the existing point in the search space
         """
         np.copyto(dest, x)  # copy source to destination
         length: Final[int] = len(dest)  # get n
@@ -89,6 +89,5 @@ class Op1MoverNflip(operators.Op1):
         Get the name of this unary operator.
 
         :return: "m_over_n_flip"
-        :rtype: str
         """
         return f"{self.__m}_over_n_flip_{bool_to_str(not self.__none_is_ok)}"

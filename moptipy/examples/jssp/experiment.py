@@ -65,16 +65,16 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     """
     Run the experiment.
 
-    :param Iterable[Callable] algorithms: the algorithm factories.
+    :param algorithms: the algorithm factories.
         Each factory receives as input one JSSP `Instance` and one instance
         of `PermutationWithRepetition`. It returns either an instance of
         `Algorithm` or of `Execution`.
-    :param Iterable[Callable] instances: the JSSP instance names
-    :param str base_dir: the base directory
-    :param int n_runs: the number of runs
-    :param Optional[int] max_time: the maximum runtime in milliseconds
-    :param Optional[int] max_fes: the maximum runtime in FEs
-    :param Optional[int] n_threads: the number of threads
+    :param instances: the JSSP instance names
+    :param base_dir: the base directory
+    :param n_runs: the number of runs
+    :param max_time: the maximum runtime in milliseconds
+    :param max_fes: the maximum runtime in FEs
+    :param n_threads: the number of threads
     """
     # The initial parameter validity checks.
     if not isinstance(base_dir, str):
@@ -117,10 +117,9 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
             """
             Create the algorithm for a given instance.
 
-            :param Instance inst: the JSSP instance
-            :param Callable algor: the algorithm creator
+            :param inst: the JSSP instance
+            :param algor: the algorithm creator
             :return: an Execution for the experiment
-            :rtype: Execution
             """
             pwr: Permutations = Permutations.with_repetitions(
                 inst.jobs, inst.machines)

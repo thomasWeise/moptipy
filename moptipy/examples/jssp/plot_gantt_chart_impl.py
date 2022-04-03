@@ -21,9 +21,8 @@ def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
     """
     Compute the marker for the lower bound.
 
-    :param moptipy.examples.jssp.gantt.Gantt x: the Gantt chart
+    :param x: the Gantt chart
     :return: the lower bound marker
-    :rtype: str
     """
     return Lang.current()["lower_bound_short"],\
         x.instance.makespan_lower_bound
@@ -33,9 +32,8 @@ def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
     """
     Compute the marker for the makespan.
 
-    :param moptipy.examples.jssp.gantt.Gantt x: the Gantt chart
+    :param x: the Gantt chart
     :return: the makespan marker
-    :rtype: str
     """
     return Lang.current()["makespan"], makespan(x)
 
@@ -72,24 +70,24 @@ def plot_gantt_chart(gantt: Gantt,
     """
     Plot a Gantt chart.
 
-    :param moptipy.examples.jssp.Gantt gantt: the gantt chart
-    :param Union[SubplotBase, Figure] figure: the figure
-    :param Iterable[Tuple[str,Union[int, Callable]]] markers: a set of markers
-    :param moptipy.evaluation.AxisRanger x_axis: the ranger for the x-axis
-    :param Union[None,str,Callable] info: the optional info header
-    :param Callable importance_to_font_size_func: the function converting
+    :param gantt: the gantt chart
+    :param figure: the figure
+    :param markers: a set of markers
+    :param x_axis: the ranger for the x-axis
+    :param info: the optional info header
+    :param importance_to_font_size_func: the function converting
         importance values to font sizes
-    :param Callable importance_to_line_width_func: the function converting
+    :param importance_to_line_width_func: the function converting
         importance values to line widths
-    :param bool xgrid: should we have a grid along the x-axis?
-    :param bool ygrid: should we have a grid along the y-axis
-    :param Union[None,str,Callable] xlabel: a callable returning the label for
+    :param xgrid: should we have a grid along the x-axis?
+    :param ygrid: should we have a grid along the y-axis
+    :param xlabel: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
-    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+    :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param Union[None,str,Callable] ylabel: a callable returning the label for
+    :param ylabel: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
-    :param bool ylabel_inside: put the y-axis label inside the plot (so that
+    :param ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     """
     if not isinstance(gantt, Gantt):

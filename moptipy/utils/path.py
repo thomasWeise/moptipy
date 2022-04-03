@@ -10,9 +10,8 @@ def _canonicalize_path(path: str) -> str:
     """
     Check and canonicalize a path.
 
-    :param str path: the path
+    :param path: the path
     :return: the canonicalized path
-    :rtype: str
     """
     if not isinstance(path, str):
         raise TypeError(
@@ -52,9 +51,8 @@ def _get_text_encoding(filename: str) -> str:
 
     Adapted from https://stackoverflow.com/questions/13590749.
 
-    :param str filename: the filename
+    :param filename: the filename
     :return: the encoding
-    :rtype: str
     """
     with open(filename, 'rb') as f:
         header = f.read(4)  # Read just the first four bytes.
@@ -92,7 +90,6 @@ class Path(str):
 
         :returns: True if this path identifies an existing file, False
             otherwise.
-        :rtype: bool
         """
         return os.path.isfile(self)
 
@@ -109,9 +106,8 @@ class Path(str):
         """
         Check whether another path is contained in this path.
 
-        :param str other: the other path
-        :return: `True` is this path contains the other path, `False` of mpt
-        :rtype: bool
+        :param other: the other path
+        :return: `True` is this path contains the other path, `False` of not
         """
         return os.path.commonpath([self]) == \
             os.path.commonpath([self, Path.path(other)])
@@ -120,7 +116,7 @@ class Path(str):
         """
         Raise an exception if this path does not contain the other path.
 
-        :param str other: the other path
+        :param other: the other path
         :raises ValueError: if `other` is not a sub-path of this path
         """
         self.enforce_dir()
@@ -131,9 +127,8 @@ class Path(str):
         """
         Resolve a relative path to an absolute path inside this path.
 
-        :param str relative_path: the path to resolve
+        :param relative_path: the path to resolve
         :return: the resolved child path
-        :rtype: Path
         :raises ValueError: If the path would resolve to something outside of
             this path and/or if it is empty.
         """
@@ -148,9 +143,8 @@ class Path(str):
         """
         Atomically ensure that the file exists and create it otherwise.
 
-        :return:  `True` if the file already existed and
+        :return: `True` if the file already existed and
             `False` if it was newly and atomically created.
-        :rtype: bool
         :raises: ValueError if anything goes wrong during the file creation
         """
         existed: bool = False
@@ -169,7 +163,7 @@ class Path(str):
         os.makedirs(name=self, exist_ok=True)
         self.enforce_dir()
 
-    def open_for_read(self) -> io.TextIOWrapper:
+    def open_for_read(self):
         """
         Open this file for reading.
 
@@ -185,7 +179,6 @@ class Path(str):
         Read all the lines in a file.
 
         :return: the list of strings of text
-        :rtype: List[str]
         """
         self.enforce_file()
         with self.open_for_read() as reader:
@@ -202,7 +195,6 @@ class Path(str):
         Read a file as a single string.
 
         :return: the single string of text
-        :rtype: str
         """
         self.enforce_file()
         with self.open_for_read() as reader:
@@ -214,12 +206,12 @@ class Path(str):
             raise ValueError(f"File '{self}' contains no text.")
         return ret
 
-    def open_for_write(self) -> io.TextIOWrapper:
+    def open_for_write(self):
         """
         Open the file for writing.
 
         :return: the text io wrapper for writing
-        :rtype: io.TextIOWrapper
+        :rtpye: io.TextIOWrapper
         """
         return cast(io.TextIOWrapper, io.open(
             self, mode="wt", encoding="utf-8", errors="strict"))
@@ -228,7 +220,7 @@ class Path(str):
         """
         Write all the lines to this file.
 
-        :param Iterable[str] contents: the contents to write
+        :param contents: the contents to write
         """
         self.ensure_file_exists()
         if not isinstance(contents, (str, Iterable)):
@@ -263,9 +255,8 @@ class Path(str):
         """
         Get a canonical path.
 
-        :param str path: the path to canonicalize
+        :param path: the path to canonicalize
         :return: the `Path` instance
-        :rtype: Path
         """
         if isinstance(path, Path):
             return cast(Path, path)
@@ -276,9 +267,8 @@ class Path(str):
         """
         Get a path identifying a file.
 
-        :param str path: the path
+        :param path: the path
         :return: the file
-        :rtype: Path
         """
         fi: Final[Path] = Path.path(path)
         fi.enforce_file()
@@ -289,9 +279,8 @@ class Path(str):
         """
         Get a path identifying a directory.
 
-        :param str path: the path
+        :param path: the path
         :return: the file
-        :rtype: Path
         """
         fi: Final[Path] = Path.path(path)
         fi.enforce_dir()

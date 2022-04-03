@@ -15,9 +15,8 @@ def default_name_func(key) -> str:
     """
     Compute the default name for a `key`: `str(key)`.
 
-    :param str key: the key
+    :param key: the key
     :return: the key, too
-    :rtype: str
     """
     return str(key)
 
@@ -78,9 +77,8 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
     """
     Obtain a set of `n` distinct colors.
 
-    :param int n: the number of colors required
+    :param n: the number of colors required
     :return: a tuple of colors
-    :rtype: Tuple[Tuple[float, float, float], ...]
     """
     if not isinstance(n, int):
         raise TypeError(f"n must be int but is {type(n)}.")
@@ -136,9 +134,8 @@ def distinct_line_dashes(n: int) -> \
     """
     Create a sequence of distinct line dashes.
 
-    :param int n: the number of styles
+    :param n: the number of styles
     :return: the styles
-    :rtype: Tuple[Union[str, Tuple[float, Tuple[float, float]]], ...]
     """
     if not isinstance(n, int):
         raise TypeError(f"n must be int but is {type(n)}.")
@@ -158,9 +155,8 @@ def distinct_markers(n: int) -> Tuple[str, ...]:
     """
     Create a sequence of distinct markers.
 
-    :param int n: the number of markers
+    :param n: the number of markers
     :return: the markers
-    :rtype: Tuple[str, ...]
     """
     if not isinstance(n, int):
         raise TypeError(f"n must be int but is {type(n)}.")
@@ -181,9 +177,8 @@ def importance_to_line_width(importance: int) -> float:
     A positive importance means that the line should be emphasized.
     A negative importance means that the line should be de-emphasized.
 
-    :param int importance: a value between -9 and 9
+    :param importance: a value between -9 and 9
     :return: the line width
-    :rtype: float
     """
     if not isinstance(importance, int):
         raise TypeError(f"importance must be int but is {type(importance)}.")
@@ -207,9 +202,8 @@ def importance_to_alpha(importance: int) -> float:
     A positive importance means that the line should be emphasized.
     A negative importance means that the line should be de-emphasized.
 
-    :param int importance: a value between -9 and 9
+    :param importance: a value between -9 and 9
     :return: the alpha
-    :rtype: float
     """
     if not isinstance(importance, int):
         raise TypeError(f"importance must be int but is {type(importance)}.")
@@ -244,7 +238,6 @@ def create_line_style(**kwargs) -> Dict[str, object]:
 
     :param kwargs: any additional overrides
     :return: a dictionary with the style elements
-    :rtype: Dict[str, object]
     """
     res = dict(__BASE_LINE_STYLE)
     res.update(kwargs)
@@ -255,9 +248,8 @@ def importance_to_font_size(importance: float) -> float:
     """
     Transform an importance value to a font size.
 
-    :param int importance: the importance value
+    :param importance: the importance value
     :return: the font size
-    :rtype: float
     """
     if not isinstance(importance, int):
         raise TypeError(f"importance must be int but is {type(importance)}.")
@@ -285,11 +277,10 @@ def rgb_to_gray(r: float, g: float, b: float) -> float:
     """
     Convert RGB values to gray scale.
 
-    :param float r: the red value
-    :param float g: the green value
-    :param float b: the blue value
+    :param r: the red value
+    :param g: the green value
+    :param b: the blue value
     :return: the gray value
-    :rtype: float
     """
     return (0.2989 * r) + (0.5870 * g) + (0.1140 * b)
 
@@ -299,9 +290,8 @@ def text_color_for_background(background: Tuple[float, float, float]) \
     """
     Get a reasonable text color for a given background color.
 
-    :param Tuple[float, float, float] background: the background color
+    :param background: the background color
     :return: the text color
-    :rtype: Tuple[float, float, float]
     """
     br: Final[float] = background[0]
     bg: Final[float] = background[1]

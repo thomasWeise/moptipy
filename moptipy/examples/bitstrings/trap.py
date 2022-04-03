@@ -12,7 +12,7 @@ def trap(x: np.ndarray) -> int:
     """
     Compute the trap objective value.
 
-    :param np.ndarray x: the np array
+    :param x: the np array
     :return: the trap function value
 
     >>> print(trap(np.array([True, True, False, False, False])))
@@ -44,7 +44,7 @@ class Trap(Objective):
         """
         Initialize the trap objective function.
 
-        :param int n: the dimension of the problem
+        :param n: the dimension of the problem
 
         >>> print(Trap(55).n)
         55
@@ -64,7 +64,6 @@ class Trap(Objective):
         Get the lower bound of the trap objective function.
 
         :return: 0
-        :rtype: int
 
         >>> print(Trap(20).lower_bound())
         0
@@ -76,7 +75,6 @@ class Trap(Objective):
         Get the upper bound of the trap objective function.
 
         :return: the length of the bit string
-        :rtype: int
 
         >>> print(Trap(40).upper_bound())
         40
@@ -88,7 +86,6 @@ class Trap(Objective):
         Get the name of the trap objective function.
 
         :return: `trap_` + length of string
-        :rtype: str
 
         >>> print(Trap(33))
         trap_33

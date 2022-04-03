@@ -2,7 +2,7 @@
 from typing import Callable, Final
 
 from moptipy.api import logging
-from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import classname
 
 
@@ -14,21 +14,20 @@ class Component:
         Get the string representation of this object.
 
         :return: the value returned by :meth:`__str__`
-        :rtype: str
         """
         return self.__str__()
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log all parameters of this component as key-value pairs.
 
-        :param moptipy.utils.KeyValueSection logger: the logger
+        :param logger: the logger for the parameters
         """
         logger.key_value(logging.KEY_NAME, self.__str__())
         logger.key_value(logging.KEY_CLASS, classname(self))
 
 
-class _CallableComponent(Component):
+class CallableComponent(Component):
     """Wrap a Callable such as a lambda into a component."""
 
     def __init__(self,
@@ -37,8 +36,8 @@ class _CallableComponent(Component):
         """
         Create a wrapper mapping a Callable to an component.
 
-        :param Callable inner: the function to wrap, e.g., a lambda
-        :param str name: the name of the component
+        :param inner: the function to wrap, e.g., a lambda
+        :param name: the name of the component
         :raises TypeError: if `inner` is not callable
         :raises ValueError: if name is `None`
         """
@@ -59,11 +58,11 @@ class _CallableComponent(Component):
         """
         return self.__name
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log all parameters of this component as key-value pairs.
 
-        :param moptipy.utils.KeyValueSection logger: the logger
+        :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
         logger.key_value(logging.KEY_INNER_CLASS, classname(self._inner))

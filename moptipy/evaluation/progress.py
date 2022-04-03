@@ -53,16 +53,16 @@ class Progress(PerRunData):
         """
         Create a consistent instance of :class:`EndResult`.
 
-        :param str algorithm: the algorithm name
-        :param str instance: the instance name
-        :param int rand_seed: the random seed
-        :param np.array time: the time axis data
-        :param str time_unit: the unit of the time axis
-        :param np.array f: the objective value axis data
-        :param str f_name: the name of the objective value axis data
-        :param f_standard Union[int, float, None]: the value used to
-            standardize of the objective value dimension
-        :param bool only_improvements: enforce that f-values should be
+        :param algorithm: the algorithm name
+        :param instance: the instance name
+        :param rand_seed: the random seed
+        :param time: the time axis data
+        :param time_unit: the unit of the time axis
+        :param f: the objective value axis data
+        :param f_name: the name of the objective value axis data
+        :param f_standard: the value used to standardize of the objective
+            value dimension
+        :param only_improvements: enforce that f-values should be
             improving and time values increasing
         """
         super().__init__(algorithm, instance, rand_seed)
@@ -159,14 +159,13 @@ class Progress(PerRunData):
         the `consumer`. The `consumer` is simply a callable function. You could
         pass in a list's `append` method.
 
-        :param str path: the path to parse
-        :param Callable[['Progress'], Any] consumer: the consumer
-        :param str time_unit: the time unit
-        :param str f_name: the objective name
-        :param Optional[Dict[str, Union[int, float]]] f_standard: a dictionary
-            mapping instances to standard values
-        :param bool only_improvements: enforce that f-values should be
-            improving and time values increasing
+        :param path: the path to parse
+        :param consumer: the consumer
+        :param time_unit: the time unit
+        :param f_name: the objective name
+        :param f_standard: a dictionary mapping instances to standard values
+        :param only_improvements: enforce that f-values should be improving and
+            time values increasing
         """
         _InnerLogParser(time_unit,
                         f_name,
@@ -179,10 +178,9 @@ class Progress(PerRunData):
         """
         Store a :class:`Progress` record in a CSV file.
 
-        :param str file: the file to generate
-        :param bool put_header: should we put a header with meta-data?
+        :param file: the file to generate
+        :param put_header: should we put a header with meta-data?
         :return: the fully resolved file name
-        :rtype: str
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing progress object to CSV file '{path}'.")
@@ -231,13 +229,12 @@ class _InnerLogParser(ExperimentParser):
         """
         Create the internal log parser.
 
-        :param str time_unit: the time unit
-        :param str f_name: the objective name
-        :param Callable[['Progress'], Any] consumer: the consumer
-        :param Optional[Dict[str, Union[int, float]]] f_standard: a dictionary
-            mapping instances to standard values
-        :param bool only_improvements: enforce that f-values should be
-            improving and time values increasing
+        :param time_unit: the time unit
+        :param f_name: the objective name
+        :param consumer: the consumer
+        :param f_standard: a dictionary mapping instances to standard values
+        :param only_improvements: enforce that f-values should be improving
+            and time values increasing
         """
         super().__init__()
         if not callable(consumer):

@@ -14,7 +14,7 @@ class Op0(Component):
 
         Afterwards `dest` will hold a valid point in the search space.
 
-        :param Generator random: the random number generator
+        :param random: the random number generator
         :param dest: the destination data structure
         """
 # end op0
@@ -24,7 +24,7 @@ def check_op0(op0: Op0) -> Op0:
     """
     Check whether an object is a valid instance of :class:`Op0`.
 
-    :param moptipy.api.operators.Op0 op0: the op0 object
+    :param op0: the op0 object
     :return: the object
     :raises TypeError: if `op0` is not an instance of :class:`Op0`
     """
@@ -44,7 +44,7 @@ class Op1(Component):
         """
         Turn `dest` into a modified copy of `x`.
 
-        :param Generator random: the random number generator
+        :param random: the random number generator
         :param dest: the destination data structure
         :param x: the source point in the search space
         """
@@ -55,7 +55,7 @@ def check_op1(op1: Op1) -> Op1:
     """
     Check whether an object is a valid instance of :class:`Op1`.
 
-    :param moptipy.api.operators.Op1 op1: the op1 object
+    :param op1: the op1 object
     :return: the object
     :raises TypeError: if `op1` is not an instance of :class:`Op1`
     """
@@ -75,7 +75,7 @@ class Op2(Component):
         """
         Fill `dest` with a combination of `x0` and `x1`.
 
-        :param Generator random: the random number generator
+        :param random: the random number generator
         :param dest: the destination data structure
         :param x0: the first source point in the search space
         :param x1: the second source point in the search space
@@ -87,7 +87,7 @@ def check_op2(op2: Op2) -> Op2:
     """
     Check whether an object is a valid instance of :class:`Op2`.
 
-    :param moptipy.api.operators.Op2 op2: the op2 object
+    :param op2: the op2 object
     :return: the object
     :raises TypeError: if `op2` is not an instance of :class:`Op2`
     """

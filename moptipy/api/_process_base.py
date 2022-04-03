@@ -7,7 +7,7 @@ from typing import Optional, Final, Union, Callable
 from moptipy.api import logging
 from moptipy.api.process import Process, check_goal_f, check_max_fes, \
     check_max_time_millis
-from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logger import KeyValueLogSection
 
 # the function used to get the time
 _TIME_IN_NS: Final[Callable[[], int]] = time_ns
@@ -19,7 +19,6 @@ def _ns_to_ms(nanos: int) -> int:
 
     :param int nanos: the nanoseconds
     :returns: the corresponding milliseconds, rounded up
-    :rtype: int
 
     >>> _ns_to_ms(0)
     0
@@ -51,12 +50,10 @@ class _ProcessBase(Process):
         """
         Initialize information that every black-box process must have.
 
-        :param Optional[int] max_fes: the maximum permitted function
-        evaluations
-        :param Optional[int] max_time_millis: the maximum runtime in
-        milliseconds
-        :param Union[int, float, None] goal_f: the goal objective
-        value: if it is reached, the process is terminated
+        :param max_fes: the maximum permitted function evaluations
+        :param max_time_millis: the maximum runtime in milliseconds
+        :param goal_f: the goal objective value. if it is reached, the process
+            is terminated
         """
         super().__init__()
         #: This will be `True` after :meth:`terminate` has been called.
@@ -172,13 +169,13 @@ class _ProcessBase(Process):
         """
         return self.get_copy_of_best_x(y)
 
-    def _log_own_parameters(self, logger: KeyValueSection) -> None:
+    def _log_own_parameters(self, logger: KeyValueLogSection) -> None:
         """
         Write the parameters of this process to the logger.
 
         This includes the limits on runtime and FEs.
 
-        :param Logger logger: the logger
+        :param logger: the logger
         """
         super().log_parameters_to(logger)
         if not (self._max_fes is None):
@@ -189,13 +186,13 @@ class _ProcessBase(Process):
         if not (self._goal_f is None):
             logger.key_value(logging.KEY_GOAL_F, self._goal_f)
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Write the standard parameters of this process to the logger.
 
         This includes the limits on runtime and FEs.
 
-        :param Logger logger: the logger
+        :param logger: the logger
         """
         with logger.scope(logging.SCOPE_PROCESS) as sc:
             self._log_own_parameters(sc)

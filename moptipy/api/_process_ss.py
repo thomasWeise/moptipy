@@ -8,7 +8,7 @@ from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space, check_space
-from moptipy.utils.logger import KeyValueSection, Logger
+from moptipy.utils.logger import KeyValueLogSection, Logger
 from moptipy.utils.path import Path
 
 
@@ -29,19 +29,17 @@ class _ProcessSS(_ProcessNoSS):
         """
         Perform the internal initialization. Do not call directly.
 
-        :param Space solution_space: the solution space.
-        :param Objective objective: the objective function
-        :param Algorithm algorithm: the optimization algorithm
-        :param Space search_space: the search space.
-        :param Encoding encoding: the encoding
-        :param Optional[Path] log_file: the optional log file
-        :param Optional[int] rand_seed: the optional random seed
-        :param Optional[int] max_fes: the maximum permitted function
-            evaluations
-        :param Optional[int] max_time_millis: the maximum runtime in
-            milliseconds
-        :param Union[int, float, None] goal_f: the goal objective
-            value: if it is reached, the process is terminated
+        :param solution_space: the solution space.
+        :param objective: the objective function
+        :param algorithm: the optimization algorithm
+        :param search_space: the search space.
+        :param encoding: the encoding
+        :param log_file: the optional log file
+        :param rand_seed: the optional random seed
+        :param max_fes: the maximum permitted function evaluations
+        :param max_time_millis: the maximum runtime in milliseconds
+        :param goal_f: the goal objective value. if it is reached, the
+            process is terminated
         """
         super().__init__(solution_space=solution_space,
                          objective=objective,
@@ -134,7 +132,7 @@ class _ProcessSS(_ProcessNoSS):
             return self._copy_y(y, self._current_best_y)
         raise ValueError('No current best y available.')
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_SEARCH_SPACE) as sc:
             self._search_space.log_parameters_to(sc)

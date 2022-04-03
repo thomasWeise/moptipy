@@ -20,10 +20,10 @@ class Lang:
         """
         Instantiate the language formatter.
 
-        :param str name: the short name
-        :param str font: the font name
-        :param int decimal_stepwidth: the decimal step width
-        :param Dict[str, str] data: the data
+        :param name: the short name
+        :param font: the font name
+        :param decimal_stepwidth: the decimal step width
+        :param data: the data
         """
         #: the name of the locale
         self.__name: Final[str] = sanitize_name(name)
@@ -53,7 +53,7 @@ class Lang:
         """
         Add a set of entries to this dictionary.
 
-        :param Dict[str, str] data: the language-specific data
+        :param data: the language-specific data
         """
         if not isinstance(data, dict):
             raise TypeError(f"Data must be Dict, but is {type(data)}.")
@@ -99,9 +99,8 @@ class Lang:
         """
         Get the language formatting code.
 
-        :param str item: the item to get
+        :param item: the item to get
         :return: the language-specific code
-        :rtype: str
         """
         if not isinstance(item, str):
             raise TypeError(f"Item must be str, but is {type(item)}.")
@@ -111,9 +110,8 @@ class Lang:
         """
         Return a string based on the specified format.
 
-        :param str item: the key
+        :param item: the key
         :param kwargs: the keyword-based arguments
-        :rtype: str
 
         >>> from moptipy.evaluation.lang import Lang
         >>> l = Lang.get("en")
@@ -134,7 +132,6 @@ class Lang:
         Get the default font for this language.
 
         :return: the default font for this language
-        :rtype: str
 
         >>> from moptipy.evaluation.lang import Lang
         >>> print(Lang.get("en").font())
@@ -148,9 +145,8 @@ class Lang:
         """
         Convert an integer to a string.
 
-        :param int value: the value
+        :param value: the value
         :returns: a string representation of the value
-        :rtype: str
 
         >>> from moptipy.evaluation.lang import Lang
         >>> print(Lang.get("en").format_int(100000))
@@ -188,7 +184,6 @@ class Lang:
         Get the languages map.
 
         :return: the languages map
-        :rtype: Dict[str, Lang]
         """
         att: Final[str] = "__map"
         if not hasattr(Lang.__get_langs, att):
@@ -207,9 +202,8 @@ class Lang:
         """
         Get the language of the given key.
 
-        :param str name: the language name
+        :param name: the language name
         :return: the language
-        :rtype: the type
         """
         name = sanitize_name(name)
         lang: Optional[Lang] = Lang.__get_langs().get(name, None)
@@ -223,7 +217,6 @@ class Lang:
         Get the current language.
 
         :return: the current language
-        :rtype: Lang
 
         >>> from moptipy.evaluation.lang import Lang
         >>> Lang.get("en").set_current()
@@ -249,7 +242,6 @@ class Lang:
         Get all presently loaded languages.
 
         :return: an Iterable of the languages
-        :rtype: Iterable['Lang']
         """
         val = list(Lang.__get_langs().values())
         val.sort(key=lambda x: x.__name)
@@ -260,9 +252,8 @@ class Lang:
         """
         Translate the given key to a string in the current language.
 
-        :param str key: the key
+        :param key: the key
         :returns: the value of the key in the current language
-        :rtype: str
 
         >>> from moptipy.evaluation.lang import Lang
         >>> Lang.get("en").set_current()
@@ -279,9 +270,8 @@ class Lang:
         """
         Create a lambda taking a dimensions and presenting a function thereof.
 
-        :param str func: the function name
+        :param func: the function name
         :returns: the function
-        :rtype: Callable
 
         >>> from moptipy.evaluation.lang import Lang
         >>> Lang.get("en").set_current()

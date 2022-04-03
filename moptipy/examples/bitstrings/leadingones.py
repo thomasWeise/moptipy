@@ -12,7 +12,7 @@ def leadingones(x: np.ndarray) -> int:
     """
     Get the length of the string minus the number of leading ones.
 
-    :param np.ndarray x: the np array
+    :param x: the np array
     :return: the number of leading ones
 
     >>> print(leadingones(np.array([False, False, True, False, False])))
@@ -42,7 +42,7 @@ class LeadingOnes(Objective):
         """
         Initialize the leading ones objective function.
 
-        :param int n: the dimension of the problem
+        :param n: the dimension of the problem
 
         >>> print(LeadingOnes(55).n)
         55
@@ -62,7 +62,6 @@ class LeadingOnes(Objective):
         Get the lower bound of the leadingones objective function.
 
         :return: 0
-        :rtype: int
 
         >>> print(LeadingOnes(3).lower_bound())
         0
@@ -74,7 +73,6 @@ class LeadingOnes(Objective):
         Get the upper bound of the leadingones objective function.
 
         :return: the length of the bit string
-        :rtype: int
 
         >>> print(LeadingOnes(5).upper_bound())
         5
@@ -86,7 +84,6 @@ class LeadingOnes(Objective):
         Get the name of the leadingones objective function.
 
         :return: `leadingones_` + lenth of string
-        :rtype: str
 
         >>> print(LeadingOnes(10))
         leadingones_10

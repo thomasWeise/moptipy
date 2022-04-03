@@ -12,7 +12,7 @@ import psutil  # type: ignore
 
 import moptipy.version as ver
 from moptipy.api import logging
-from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueSection
+from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueLogSection
 from moptipy.utils.path import Path
 
 
@@ -24,14 +24,13 @@ def __make_sys_info() -> str:
     This method is only used once and then deleted.
 
     :returns: the system info string.
-    :rtype: str
     """
-    def __v(sec: KeyValueSection, key: str, value) -> None:
+    def __v(sec: KeyValueLogSection, key: str, value) -> None:
         """
         Create a key-value pair if value is not empty.
 
-        :param KeyValueSection sec: the section to write to.
-        :param str key: the key
+        :param sec: the section to write to.
+        :param key: the key
         :param value: an arbitrary value, maybe consisting of multiple lines.
         """
         if value is None:
@@ -48,7 +47,6 @@ def __make_sys_info() -> str:
         Get the processor name.
 
         :returns: a string if there is any processor information
-        :rtype: Optional[str]
         """
         try:
             if platform.system() == "Windows":
@@ -67,7 +65,6 @@ def __make_sys_info() -> str:
         Get the memory size information from sysconf.
 
         :returns: an integer with the memory size if available
-        :rtype: Optional[int]
         """
         try:
             k1 = "SC_PAGESIZE"
@@ -100,7 +97,6 @@ def __make_sys_info() -> str:
         Get the memory size information from meminfo.
 
         :returns: an integer with the memory size if available
-        :rtype: Optional[int]
         """
         try:
             meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1]))
@@ -118,7 +114,6 @@ def __make_sys_info() -> str:
         Get the memory size information from any available source.
 
         :returns: an integer with the memory size if available
-        :rtype: Optional[int]
         """
         vs = __get_mem_size_sysconf()
         if vs is None:
@@ -229,7 +224,7 @@ def log_sys_info(logger: Logger) -> None:
     as a string to the logger. This is much more efficient than querying it
     every single time.
 
-    :param Logger logger: the logger
+    :param logger: the logger
     """
     with logger.text(logging.SECTION_SYS_INFO) as txt:
         txt.write(__SYS_INFO[0])

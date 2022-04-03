@@ -5,13 +5,15 @@ import os
 import sys
 from typing import List
 
-
-# the path of the documentation
+# the path of the documentation configuration
 doc_path = os.path.abspath(os.path.dirname(__file__))
 
 # get the path to the root directory of this project
 root_path = os.path.abspath(os.path.join(doc_path, "..", ".."))
 sys.path.insert(0, root_path)
+
+# set the base url
+html_baseurl = "https://thomasweise.github.io/moptipy/"
 
 # We want to include the contents of our GitHub README.md file.
 # So first, we need to load the README.md file.
@@ -40,6 +42,11 @@ for line in old_lines:
             in_code = True  # toggle to code
         elif line.startswith("#"):
             line = line[1:]  # move all sub-headings one step up
+        else:  # fix all internal urls
+            for k in [html_baseurl, f"http{html_baseurl[5:]}"]:
+                line = line.replace(f"]({k}", "](./")\
+                    .replace(f' src="{k}', ' src="./')\
+                    .replace(f' href="{k}', ' href="./')
     new_lines.append(line)
 
 with io.open(os.path.join(doc_path, "README.md"), "wt",
@@ -55,36 +62,37 @@ author = 'Thomas Weise'
 # noinspection PyShadowingBuiltins
 copyright = f"2021-{datetime.datetime.now ().year}, {author}"
 
-# The full version, including alpha/beta/rc tags
+# tell sphinx to go kaboom on errors
+nitpicky = True
+myst_all_links_external = True
+
+# The full version, including alpha/beta/rc tags.
 release = {}
 with open(os.path.abspath(os.path.sep.join([
         root_path, "moptipy", "version.py"]))) as fp:
     exec(fp.read(), release)
 release = release["__version__"]
 
-# -- General configuration ---------------------------------------------------
+# The Sphinx extension modules that we use.
+extensions = ['sphinx.ext.autodoc', 'myst_parser', 'sphinx.ext.intersphinx',
+              'sphinx_autodoc_typehints']
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-extensions = ['sphinx.ext.autodoc', 'myst_parser']
+# Location of dependency documentation for cross-referencing.
+intersphinx_mapping = {
+    'matplotlib': ('https://matplotlib.org/stable/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'sklearn': ('https://scikit-learn.org/stable/', None),
+    'abc': ("https://docs.python.org/3/", None)
+}
+
+# add default values after comma
+typehints_defaults = "comma"
 
 # the sources to be processed
 source_suffix = ['.rst', '.md']
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+# Additional files to include.
+html_static_path = ["_static"]
 
-# -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
+# The theme to use for HTML and HTML Help pages.
 html_theme = 'bizstyle'
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']

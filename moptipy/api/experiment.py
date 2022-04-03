@@ -35,17 +35,16 @@ def __run_experiment(base_dir: Path,
     """
     Execute a single thread of experiments.
 
-    :param str base_dir: the base directory
-    :param List[List[Callable]] experiments: the stream of
-        experiment setups
-    :param bool perform_warmup: should we perform a warm-up per instance?
-    :param int warmup_fes: the number of the FEs for the warm-up runs
-    :param bool perform_pre_warmup: should we do one warmup run for each
+    :param base_dir: the base directory
+    :param experiments: the stream of experiment setups
+    :param perform_warmup: should we perform a warm-up per instance?
+    :param warmup_fes: the number of the FEs for the warm-up runs
+    :param perform_pre_warmup: should we do one warmup run for each
         instance before we begin with the actual experiments?
-    :param int pre_warmup_fes: the FEs for the pre-warmup runs
-    :param ContextManager file_lock: the lock for file operations
-    :param ContextManager stdio_lock: the lock for log output
-    :param Callable cache: the cache
+    :param pre_warmup_fes: the FEs for the pre-warmup runs
+    :param file_lock: the lock for file operations
+    :param stdio_lock: the lock for log output
+    :param cache: the cache
     :param thread_id: the thread id
     :param pre_warmup_barrier: a barrier to wait at after the pre-warmup
     """
@@ -195,16 +194,15 @@ def run_experiment(base_dir: str,
     `N` processes must have the same `base_dir` parameter. They will then
     automatically share the workload.hgv7
 
-    :param str base_dir: the base directory where to store the results
-    :param Iterable[Callable] instances: an iterable of callables, each of
-        which should return an object representing a problem instance, whose
-        :func:`str` representation is a valid name
-    :param Iterable[Callable] setups: an iterable of callables, each receiving
-        an instance (as returned by instances) as input and producing an
-        :class:`Execution` as output
-    :param Union[int, Iterable[int]] n_runs: the number of runs per algorithm-
-        instance combination
-    :param int n_threads: the number of parallel threads of execution to use.
+    :param base_dir: the base directory where to store the results
+    :param instances: an iterable of callables, each of which should return an
+        object representing a problem instance, whose `__str__` representation
+        is a valid name
+    :param setups: an iterable of callables, each receiving an instance (as
+        returned by instances) as input and producing an
+        :class:`moptipy.api.execution.Execution` as output
+    :param n_runs: the number of runs per algorithm-instance combination
+    :param n_threads: the number of parallel threads of execution to use.
         By default, we will use the number of physical cores - 1 processes.
         We will try to distribute the threads over different logical and
         physical cores to minimize their interactions. If n_threads is less
@@ -214,7 +212,7 @@ def run_experiment(base_dir: str,
         leave one physical core unoccupied. This core may be used by the
         operating system or other processes for their work, thus reducing
         interference of the os with our experiments.
-    :param bool perform_warmup: should we perform a warm-up for each instance?
+    :param perform_warmup: should we perform a warm-up for each instance?
         If this parameter is `True`, then before the very first run of a
         thread on an instance, we will execute the algorithm for just a few
         function evaluations without logging and discard the results. The
@@ -223,8 +221,8 @@ def run_experiment(base_dir: str,
         measurement problems for JIT compilations taking place late in runs,
         it can at least somewhat solve the problem of delayed first FEs caused
         by compilation and parsing.
-    :param int warmup_fes: the number of the FEs for the warm-up runs
-    :param bool perform_pre_warmup: should we do one warmup run for each
+    :param warmup_fes: the number of the FEs for the warm-up runs
+    :param perform_pre_warmup: should we do one warmup run for each
         instance before we begin with the actual experiments? This complements
         the warmups defined by `perform_warmup`. It could be that, for some
         reason, JIT or other activities may lead to stalls between multiple
@@ -237,10 +235,9 @@ def run_experiment(base_dir: str,
         parallel will complete their pre-warmup and only after all of them have
         completed it, the actual experiment will begin. I am not sure whether
         this makes sense or not, but it also would not hurt.
-    :param int pre_warmup_fes: the FEs for the pre-warmup runs
+    :param pre_warmup_fes: the FEs for the pre-warmup runs
 
     :returns: the canonicalized path to `base_dir`
-    :rtype: Path
     """
     if not isinstance(instances, Iterable):
         raise TypeError(

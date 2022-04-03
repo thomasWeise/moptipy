@@ -27,9 +27,8 @@ def check_time_unit(time_unit: str) -> str:
     """
     Check that the time unit is OK.
 
-    :param str time_unit: the time unit
+    :param time_unit: the time unit
     :return: the time unit string
-    :rtype: str
     """
     if time_unit in (TIME_UNIT_FES, TIME_UNIT_MILLIS):
         return time_unit
@@ -42,9 +41,8 @@ def check_f_name(f_name: str) -> str:
     """
     Check whether an objective value name is valid.
 
-    :param str f_name: the name of the objective function dimension
+    :param f_name: the name of the objective function dimension
     :return: the name of the objective function dimension
-    :rtype: str
     """
     if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
         return f_name
@@ -137,11 +135,11 @@ class MultiRunData:
         """
         Create the dataset of an experiment-setup combination.
 
-        :param Optional[str] algorithm: the algorithm name, if all runs are
-            with the same algorithm
-        :param Optional[str] instance: the instance name, if all runs are
-            on the same instance
-        :param int n: the total number of runs
+        :param algorithm: the algorithm name, if all runs are with the same
+            algorithm
+        :param instance: the instance name, if all runs are on the same
+            instance
+        :param n: the total number of runs
         """
         if algorithm is not None:
             if algorithm != logging.sanitize_name(algorithm):
@@ -193,13 +191,13 @@ class MultiRun2DData(MultiRunData):
         """
         Create multi-run data based on one time and one objective dimension.
 
-        :param Optional[str] algorithm: the algorithm name, if all runs are
-            with the same algorithm
-        :param Optional[str] instance: the instance name, if all runs are
-            on the same instance
-        :param int n: the total number of runs
-        :param str time_unit: the time unit
-        :param str f_name: the objective dimension name
+        :param algorithm: the algorithm name, if all runs are with the same
+            algorithm
+        :param instance: the instance name, if all runs are on the same
+            instance
+        :param n: the total number of runs
+        :param time_unit: the time unit
+        :param f_name: the objective dimension name
         """
         super().__init__(algorithm, instance, n)
 
@@ -211,9 +209,8 @@ def get_instance(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
     """
     Get the instance of a given object.
 
-    :param Union[PerRunData, MultiRunData] obj: the object
+    :param obj: the object
     :return: the instance string, or `None` if no instance is specified
-    :rtype: Optional[str]
 
     >>> import moptipy.evaluation.base as b
     >>> p1 = b.MultiRunData("a", "i1", 3)
@@ -230,9 +227,8 @@ def get_algorithm(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
     """
     Get the algorithm of a given object.
 
-    :param Union[PerRunData, MultiRunData] obj: the object
+    :param obj: the object
     :return: the algorithm string, or `None` if no algorithm is specified
-    :rtype: Optional[str]
 
     >>> import moptipy.evaluation.base as b
     >>> p1 = b.MultiRunData("a1", "i1", 3)
@@ -255,9 +251,8 @@ def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
     the experiment evaluation data API. Sorting should work also for lists
     containing elements of different classes.
 
-    :param Union[PerRunData, MultiRunData] obj: the object
+    :param obj: the object
     :return: the sort key
-    :rtype: Tuple[str, str, int, int, str, str, float]
 
     >>> import moptipy.evaluation.base as b
     >>> p1 = b.MultiRunData("a1", "i1", 3)

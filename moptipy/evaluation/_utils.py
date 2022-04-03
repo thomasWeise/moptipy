@@ -26,11 +26,11 @@ def _check_max_time_millis(max_time_millis: Union[int, float],
     Check whether a max-time-millis value is permissible.
 
     If we set a time limit for a run, then the
-    :meth:`~moptipy.api.Process.should_terminate` will become `True`
+    :meth:`~moptipy.api.process.Process.should_terminate` will become `True`
     approximately after the time limit has expired. However, this also
     could be later (or maybe even earlier) due to the workings of the
     unlderying operating system. And even if
-    :meth:`~moptipy.api.Process.should_terminate` if `True`, it is not
+    :meth:`~moptipy.api.process.Process.should_terminate` if `True`, it is not
     clear whether the optimization algorithm can query it right away.
     Instead, it may be blocked in a long-running objective function
     evaluation or some other computation. Hence, it may actually stop
@@ -39,9 +39,9 @@ def _check_max_time_millis(max_time_millis: Union[int, float],
     enforceable. Instead, we will heuristically determine a feasible
     maximum limit for how much longer an algorithm might run.
 
-    :param Union[int, float] max_time_millis: the max time millis threshold
-    :param int total_fes: the total FEs performed
-    :param int total_time_millis: the measured total time millis
+    :param max_time_millis: the max time millis threshold
+    :param total_fes: the total FEs performed
+    :param total_time_millis: the measured total time millis
     """
     if total_fes == 1:
         return
@@ -62,11 +62,10 @@ def _get_reach_index(f: np.ndarray, goal_f: Union[int, float]):
     """
     Compute the offset from the end of `f` when `goal_f` was reached.
 
-    :param np.ndarray f: the raw data array, which must be sorted in
+    :param f: the raw data array, which must be sorted in
         descending order
-    :param Union[int, float] goal_f: the goal f value
+    :param goal_f: the goal f value
     :return: the index, or `0` if `goal_f` was not reached
-    :rtype: np.integer
 
     >>> ft = np.array([10, 9, 8, 5, 3, 2, 1])
     >>> _get_reach_index(ft, 11)

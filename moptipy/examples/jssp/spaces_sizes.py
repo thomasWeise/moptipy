@@ -77,11 +77,10 @@ def gantt_min_feasible(jobs: int, machines: int) \
     """
     Find the minimum number of feasible gantt charts.
 
-    :param int jobs: the number of jobs
-    :param int machines: the number of machines
+    :param jobs: the number of jobs
+    :param machines: the number of machines
     :return: the minimum number of feasible solutions for any instance
         of the given configuration and one example of such an instance
-    :rtype: Tuple[int, Tuple[Tuple[int, ...], ...]]
     """
     if not isinstance(jobs, int):
         raise TypeError(f"Number of jobs must be int, but is {type(jobs)}.")
@@ -128,9 +127,9 @@ def __copy(dest: np.ndarray, source: np.ndarray, n: np.int64) -> None:
     """
     Copy an array.
 
-    :param np.ndarray dest: the destination
-    :param np.ndarray source: the source
-    :param np.int64 n: the number of elements to copy
+    :param dest: the destination
+    :param source: the source
+    :param n: the number of elements to copy
     """
     for a in range(n):
         dest[a] = source[a]
@@ -140,12 +139,12 @@ def __copy(dest: np.ndarray, source: np.ndarray, n: np.int64) -> None:
 def __copy_instance(dest: np.ndarray, source: np.ndarray,
                     jobs: np.int64, machines: np.int64) -> None:
     """
-    Copy a instance.
+    Copy an instance.
 
-    :param np.ndarray dest: the destination
-    :param np.ndarray source: the source
-    :param np.int64 jobs: the number of jobs
-    :param np.int64 machines: the machines
+    :param dest: the destination
+    :param source: the source
+    :param jobs: the number of jobs
+    :param machines: the machines
     """
     for a in range(jobs):
         __copy(dest[a], source[a], machines)
@@ -157,12 +156,11 @@ def __find_min_feasible(jobs: np.int64, machines: np.int64,
     """
     Find the minimum number of feasible gantt charts.
 
-    :param np.int64 jobs: the number of jobs
-    :param np.int64 machines: the number of machines
-    :param np.ndarray dest: the destination array
+    :param jobs: the number of jobs
+    :param machines: the number of machines
+    :param dest: the destination array
     :return: the minimum number of feasible solutions for any instance
         of the given configuration
-    :rtype: np.int64
     """
     instance = np.empty(shape=(jobs, machines), dtype=np.uint8)
     gantt = np.empty(shape=(machines, jobs), dtype=np.uint8)
@@ -199,11 +197,10 @@ def __check_sorted(instance: np.ndarray,
     """
     Check if the instance is such that all jobs are sorted.
 
-    :param np.ndarray instance: the instance
-    :param np.int64 jobs: the number of jobs
-    :param np.int64 machines: the number of machines
+    :param instance: the instance
+    :param jobs: the number of jobs
+    :param machines: the number of machines
     :return: True if the instance is sorted, False otherwise
-    :rtype: bool
     """
     i: np.int64 = jobs - 1
     arr1: np.ndarray = instance[i]
@@ -230,14 +227,14 @@ def __is_feasible(instance: np.ndarray,
     """
     Check if a Gantt diagram populated until a given row is feasible.
 
-    :param np.ndarray instance: the JSSP instance, size jobs*machines
-    :param np.ndarray gantt: the gantt chart, size machines*jobs
-    :param np.ndarray job_state: the job state, of length jobs
-    :param np.ndarray gantt_state: the machine state, of length machines
-    :param np.int64 jobs: the number of jobs
-    :param np.int64 machines: the number of machines
-    :param np.int64 row: the number of valid rows of the Gantt chart
-    :return: True if the chart is feasible so far, False otherwise
+    :param instance: the JSSP instance, size jobs*machines
+    :param gantt: the gantt chart, size machines*jobs
+    :param job_state: the job state, of length jobs
+    :param gantt_state: the machine state, of length machines
+    :param jobs: the number of jobs
+    :param machines: the number of machines
+    :param row: the number of valid rows of the Gantt chart
+    :return: `True` if the chart is feasible so far, `False` otherwise
     """
     if row <= 1:
         return True
@@ -290,10 +287,10 @@ def __first_perm(arr: np.ndarray,
     """
     Create the first permutation for a given array of values.
 
-    :param np.ndarray arr: the array to permute over
-    :param np.ndarray index: the array with the index
-    :param np.int64 pi: the index of the index to use in pi
-    :param np.int64 n: the length of arr
+    :param arr: the array to permute over
+    :param index: the array with the index
+    :param pi: the index of the index to use in pi
+    :param n: the length of arr
     """
     for i in range(n):
         arr[i] = i
@@ -308,12 +305,11 @@ def __next_perm(arr: np.ndarray,
     """
     Get the next permutation for a given array of values.
 
-    :param np.ndarray arr: the array to permute over
-    :param np.ndarray index: the array with the index
-    :param int pi: the index of the index to use in pi
-    :param int n: the length of arr
-    :returns: True if there is a next permutation, False if not
-    :rtype: bool
+    :param arr: the array to permute over
+    :param index: the array with the index
+    :param pi: the index of the index to use in pi
+    :param n: the length of arr
+    :returns: `True` if there is a next permutation, `False` if not
     """
     idx = index[pi]
     if idx >= n - 1:
@@ -372,18 +368,17 @@ def __enumerate_feasible(instance: np.ndarray,
     """
     Enumerate the feasible gantt charts for an instance.
 
-    :param np.ndarray instance: the JSSP instance, size jobs*machines
-    :param np.ndarray gantt: the gantt chart array, size machines*jobs
-    :param np.ndarray job_state: the job state, of length jobs
-    :param np.ndarray gantt_state: the machine state, of length machines
-    :param np.int64 jobs: the number of jobs
-    :param np.int64 machines: the number of machines
-    :param np.int64 upper_bound: the upper bound - we won't enumerate more
+    :param instance: the JSSP instance, size jobs*machines
+    :param gantt: the gantt chart array, size machines*jobs
+    :param job_state: the job state, of length jobs
+    :param gantt_state: the machine state, of length machines
+    :param jobs: the number of jobs
+    :param machines: the number of machines
+    :param upper_bound: the upper bound - we won't enumerate more
         charts than this.
-    :param np.ndarray index: the index array
-    :param np.ndarray dest: the destination array
+    :param index: the index array
+    :param dest: the destination array
     :returns: the number of enumerated feasible gantt charts
-    :rtype: np.int64
     """
     counter: np.int64 = np.int64(0)
     for z in range(machines):
@@ -420,12 +415,11 @@ def __enumerate_feasible_for(jobs: np.int64, machines: np.int64,
     """
     Find the minimum number of feasible gantt charts.
 
-    :param np.int64 jobs: the number of jobs
-    :param np.int64 machines: the number of machines
-    :param np.ndarray instance: the provided instance array
+    :param jobs: the number of jobs
+    :param machines: the number of machines
+    :param instance: the provided instance array
     :return: the minimum number of feasible solutions for any instance
         of the given configuration
-    :rtype: np.int64
     """
     gantt = np.empty(shape=(machines, jobs), dtype=np.uint8)
     gantt_index = np.zeros(machines, dtype=np.int64)
@@ -442,9 +436,8 @@ def __long_str(value: int) -> str:
     """
     Convert a value to a string.
 
-    :param int value: the value
+    :param value: the value
     :returns: the string representation
-    :rtype: str
     """
     if value < 0:
         return ""
@@ -464,10 +457,9 @@ def make_gantt_space_size_table(
     """
     Print a table of solution space sizes.
 
-    :param str dest: the destination file
-    :param Iterable[str] instances: the instances to add
+    :param dest: the destination file
+    :param instances: the instances to add
     :returns: the fully-qualified path to the generated file
-    :rtype: Path
     """
     file = Path.path(dest)
     text = [f'|{Lang.current()["name"]}|'
@@ -546,10 +538,9 @@ def make_search_space_size_table(
     """
     Print a table of search space sizes.
 
-    :param str dest: the destination file
-    :param Iterable[str] instances: the instances to add
+    :param dest: the destination file
+    :param instances: the instances to add
     :returns: the fully-qualified path to the generated file
-    :rtype: Path
     """
     file = Path.path(dest)
     text = [f'|{Lang.current()["name"]}|'

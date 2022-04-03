@@ -20,8 +20,9 @@ def validate_encoding(encoding: Encoding,
     :param make_search_space_element_valid: a method that can turn a point
         from the space into a valid point
     :param solution_space: the solution space
-    :param bool is_deterministic: is the mapping deterministic?
-    :raises ValueError: if `encoding` is not a valid :class:`Encoding`
+    :param is_deterministic: is the mapping deterministic?
+    :raises ValueError: if `encoding` is not a valid
+        :class:`~moptipy.api.encoding.Encoding`
     """
     if not isinstance(encoding, Encoding):
         raise ValueError("Expected to receive an instance of Encoding, but "

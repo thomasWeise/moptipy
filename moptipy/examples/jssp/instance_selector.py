@@ -27,9 +27,9 @@ def __can_solve_instance(inst: Instance, seed: int,
     """
     Execute one run of a (1+1)-EA for 2.1min on the instance, return makespan.
 
-    :param Instance inst: the jssp instance to check
-    :param int seed: the seed of this run
-    :param multiprocessing.Queue queue: the queue for the return values
+    :param inst: the jssp instance to check
+    :param seed: the seed of this run
+    :param queue: the queue for the return values
     """
     x_space: Final[Permutations] = Permutations.with_repetitions(
         inst.jobs, inst.machines)
@@ -71,9 +71,8 @@ def __is_instance_too_easy(inst: Instance) -> bool:
     If any of these conditions hold, we consider the instance as too easy to
     be of any interest for our educational experiment.
 
-    :param Instance inst: the jssp instance to check
-    :returns: True if the instance is too easy to be interesting
-    :rtype: bool
+    :param inst: the jssp instance to check
+    :returns: `True` if the instance is too easy to be interesting
     """
     n_runs: Final[int] = 16
     seeds: Final[List[int]] = rand_seeds_from_str(string=inst.name,
@@ -148,8 +147,8 @@ def compute_instances_that_are_too_easy() -> Tuple[str, ...]:
     box plots of the end results will collapse to single lines. Then, it
     will also be impossible to really say which algorithm performs best on
     the instance.
-    See the documentation of :func:`__is_instance_too_easy` for the
-    conditions that lead to the rejection of an instance
+    See the documentation of `__is_instance_too_easy` for the conditions that
+    lead to the rejection of an instance
 
     :returns: the tuple of instance names that should not be included in
         the experiment
@@ -184,7 +183,6 @@ def __get_instances() -> List[Instance]:
     Get the instances.
 
     :return: a tuple of instances
-    :rtype: Tuple[Instance, ...]
     """
     return [Instance.from_resource(name) for name in
             Instance.list_resources() if name not in __TOO_EASY]
@@ -340,11 +338,9 @@ def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
     """
     Pick a diverse scale choice.
 
-    :param List[List[Tuple[int, int]]] scale_choices: the scale choices we
-        have per group
-    :param Generator random: the random number generator
+    :param scale_choices: the scale choices we have per group
+    :param random: the random number generator
     :returns: one chosen scale per group
-    :rtype: List[int]
     """
     n: Final[int] = len(scale_choices)
 
@@ -366,7 +362,6 @@ def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
         :param xx: the candidate solution
         :returns: a tuple with minimum distance, distance sum, and
             difference count
-        :rtype: Tuple[float, float, int]
         """
         dist_min: float = inf
         dist_sum: float = 0
@@ -433,10 +428,9 @@ def __scale(jobs: int, machines: int) -> int:
     """
     Compute the scale of a JSSP instance.
 
-    :param int jobs: the jobs
-    :param int machines: the machines
+    :param jobs: the jobs
+    :param machines: the machines
     :returns: the scale
-    :rtype: int
     """
     return factorial(jobs) ** machines
 
@@ -471,11 +465,10 @@ def propose_instances(n: int,
     (while trying to pick the minimum and maximum-scale instances). Finally,
     the chosen instance names are listed as sorted tuple and returned.
 
-    :param int n: the number of instances to be proposed
-    :param Callable get_instances: a function returning an
+    :param n: the number of instances to be proposed
+    :param get_instances: a function returning an
         iterable of instances.
     :return: a tuple with the instance names
-    :rtype: Tuple[str, ...]
     """
     if not (isinstance(n, int)):
         raise TypeError(f"n must be int but is {type(n)}.")

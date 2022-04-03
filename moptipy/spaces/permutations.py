@@ -2,10 +2,10 @@
 from math import factorial
 from typing import Final, Iterable, Dict, Optional, List
 
-import numpy as np
+import numpy
 
 from moptipy.spaces.intspace import IntSpace
-from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logger import KeyValueLogSection
 
 #: the base string to be permuted
 KEY_BASE_STRING: Final[str] = "baseString"
@@ -78,8 +78,7 @@ class Permutations(IntSpace):  # +book
         """
         Create the space of permutations of a base string.
 
-        :param Iterable[int] base_string: an iterable of integer to denote
-            the base string
+        :param base_string: an iterable of integer to denote the base string
         :raises TypeError: if one of the parameters has the wrong type
         :raises ValueError: if the parameters have the wrong value
         """
@@ -119,8 +118,8 @@ class Permutations(IntSpace):  # +book
 
         # start book
         #: a numpy array of the right type with the base string
-        self.blueprint: Final[np.ndarray] = \
-            np.array(string, dtype=self.dtype)
+        self.blueprint: Final[numpy.ndarray] = \
+            numpy.array(string, dtype=self.dtype)
         # end book
 
         npoints: int = factorial(total)
@@ -142,7 +141,6 @@ class Permutations(IntSpace):  # +book
 
         :returns: `True` if at least one element occurs more than once,
             `False` otherwise
-        :rtype: bool
         """
         return (self.__repetitions is None) or (self.__repetitions > 1)
 
@@ -151,7 +149,6 @@ class Permutations(IntSpace):  # +book
         Get the number of different values in the base string.
 
         :returns: the number of different values in the base string
-        :rtype: int
         """
         return len(self.__shape)
 
@@ -161,15 +158,14 @@ class Permutations(IntSpace):  # +book
 
         :returns: `True` if the permutation is dense in the sense that
             all values from `self.min_value` to `self.max_value` appear.
-        :rtype: bool
         """
         return len(self.__shape) == (self.max_value - self.min_value + 1)
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of this space to the given logger.
 
-        :param KeyValueLogger logger: the logger
+        :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
 
@@ -181,14 +177,13 @@ class Permutations(IntSpace):  # +book
         logger.key_value(KEY_BASE_STRING,
                          ",".join([str(xx) for xx in self.blueprint]))
 
-    def create(self) -> np.ndarray:  # +book
+    def create(self) -> numpy.ndarray:  # +book
         r"""
         Create a permutation equal to the base string.
 
         The result is of the form [0, 0, 1, 1, 1, 2, 2...].
 
         :return: the permutation of the base string
-        :rtype: np.ndarray
 
         >>> perm = Permutations([1, 5, 2, 2, 4, 3, 4])
         >>> x = perm.create()
@@ -197,11 +192,11 @@ class Permutations(IntSpace):  # +book
         """
         return self.blueprint.copy()  # +book
 
-    def validate(self, x: np.ndarray) -> None:
+    def validate(self, x: numpy.ndarray) -> None:
         """
         Validate a permutation of the base string.
 
-        :param np.ndarray x: the integer string
+        :param x: the integer string
         :raises TypeError: if the string is not an element of this space.
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
@@ -226,7 +221,6 @@ class Permutations(IntSpace):  # +book
         Get the number of possible different permutations of the base string.
 
         :return: factorial(simension) / Product(factorial(count(e)) for all e)
-        :rtype: int
 
         >>> print(Permutations([0, 1, 2, 3, 0, 1, 2, 3]).n_points())
         2520
@@ -276,9 +270,8 @@ class Permutations(IntSpace):  # +book
         """
         Create a space for permutations of 0..n-1.
 
-        :param int n: the range of the values
+        :param n: the range of the values
         :returns: the permutations space
-        :rtype: Permutations
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be int, but is {type(n)}.")
@@ -291,10 +284,9 @@ class Permutations(IntSpace):  # +book
         """
         Create a space for permutations of `0..n-1` with repetitions.
 
-        :param int n: the range of the values
-        :param int repetitions: how often each value occurs
+        :param n: the range of the values
+        :param repetitions: how often each value occurs
         :returns: the permutations space
-        :rtype: Permutations
         """
         if not isinstance(repetitions, int):
             raise TypeError(

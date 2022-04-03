@@ -40,7 +40,7 @@ def __get_goal_f(e: 'EndResult') -> Union[int, float]:
     """
     Get the goal_f.
 
-    :param EndResult e: the end result
+    :param e: the end result
     :returns: the goal objective value
     """
     g = e.goal_f
@@ -55,7 +55,7 @@ def __get_max_fes(e: 'EndResult') -> Union[int, float]:
     """
     Get the max FEs.
 
-    :param EndResult e: the end result
+    :param e: the end result
     :returns: the max fes
     """
     g = e.max_fes
@@ -68,7 +68,7 @@ def __get_max_time_millis(e: 'EndResult') -> Union[int, float]:
     """
     Get the maximum time in milliseconds.
 
-    :param EndResult e: the end result
+    :param e: the end result
     :returns: the maximum time in milliseconds
     """
     g = e.max_time_millis
@@ -81,7 +81,7 @@ def __get_goal_f_for_div(e: 'EndResult') -> Union[int, float]:
     """
     Get the goal_f.
 
-    :param EndResult e: the end result
+    :param e: the end result
     :returns: the goal objective value
     """
     g = __get_goal_f(e)
@@ -94,7 +94,7 @@ def __get_f_norm(e: 'EndResult') -> Union[int, float]:
     """
     Get the normalized f.
 
-    :param EndResult e: the end result
+    :param e: the end result
     :returns: the normalized f
     """
     g = __get_goal_f_for_div(e)
@@ -166,19 +166,17 @@ class EndResult(PerRunData):
         """
         Create a consistent instance of :class:`EndResult`.
 
-        :param str algorithm: the algorithm name
-        :param str instance: the instance name
-        :param int rand_seed: the random seed
-        :param Union[int,float] best_f: the best reached objective value
-        :param int last_improvement_fe: the FE when best_f was reached
-        :param int last_improvement_time_millis: the time when best_f
-            was reached
-        :param int total_fes: the total FEs
-        :param int total_time_millis: the total runtime
-        :param Union[int, float, None] goal_f: the goal objective value, if
-            provide
-        :param Optional[int] max_fes: the optional maximum FEs
-        :param Optional[int] max_time_millis: the optional maximum runtime
+        :param algorithm: the algorithm name
+        :param instance: the instance name
+        :param rand_seed: the random seed
+        :param best_f: the best reached objective value
+        :param last_improvement_fe: the FE when best_f was reached
+        :param last_improvement_time_millis: the time when best_f was reached
+        :param total_fes: the total FEs
+        :param total_time_millis: the total runtime
+        :param goal_f: the goal objective value, if provide
+        :param max_fes: the optional maximum FEs
+        :param max_time_millis: the optional maximum runtime
 
         :raises TypeError: if any parameter has a wrong type
         :raises ValueError: if the parameter values are inconsistent
@@ -253,8 +251,7 @@ class EndResult(PerRunData):
         This method returns `True` if and only if `goal_f` is defined and
         `best_f <= goal_f` (and `False` otherwise).
 
-        :return: True if `best_f<=goal_f`
-        :rtype: bool
+        :return: `True` if and only if `best_f<=goal_f`
         """
         return False if self.goal_f is None else self.best_f <= self.goal_f
 
@@ -263,10 +260,9 @@ class EndResult(PerRunData):
         """
         Produce a function that obtains the given dimension from EndResults.
 
-        :param str dimension: the dimension record
+        :param dimension: the dimension record
         :returns: a callable that returns the value corresponding to the
             dimension
-        :rtype: Callable[[EndResult], Union[int, float]]
         """
         if not isinstance(dimension, str):
             raise TypeError(
@@ -289,8 +285,8 @@ class EndResult(PerRunData):
         accepts instances of :class:`EndResult`, e.g., the `append` method of
         a list.
 
-        :param str path: the path to parse
-        :param Callable[['EndResult'], Any] consumer: the consumer
+        :param path: the path to parse
+        :param consumer: the consumer
         """
         _InnerLogParser(consumer).parse(path)
 
@@ -299,10 +295,9 @@ class EndResult(PerRunData):
         """
         Write a sequence of end results to a file in CSV format.
 
-        :param Iterable[EndResult] results: the end results
-        :param str file: the path
+        :param results: the end results
+        :param file: the path
         :return: the path of the file that was written
-        :rtype: Path
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing end results to CSV file '{path}'.")
@@ -332,9 +327,9 @@ class EndResult(PerRunData):
         """
         Parse a given CSV file to get :class:`EndResult` Records.
 
-        :param str file: the path to parse
-        :param Callable[['EndResult'], Any] consumer: the collector
-        :param Callable filterer: an optional filter function
+        :param file: the path to parse
+        :param consumer: the collector
+        :param filterer: an optional filter function
         """
         if not callable(consumer):
             raise TypeError(
@@ -381,8 +376,7 @@ class _InnerLogParser(ExperimentParser):
         """
         Create the internal log parser.
 
-        :param Callable[['EndResult'], Any] consumer: the consumer accepting
-            the parsed data
+        :param consumer: the consumer accepting the parsed data
         """
         super().__init__()
         if not callable(consumer):

@@ -32,7 +32,7 @@ class Ecdf(MultiRun2DData):
     #: The number of instances over which the ERT-ECDF is computed.
     n_insts: int
     #: The goal value, or None if different goals were used for different
-    #   instances
+    #: instances
     goal_f: Union[int, float, None]
 
     def __init__(self,
@@ -46,15 +46,15 @@ class Ecdf(MultiRun2DData):
         """
         Create the ECDF function.
 
-        :param Optional[str] algorithm: the algorithm name, if all runs are
-            with the same algorithm
-        :param int n: the total number of runs
-        :param int n_insts: the total number of instances
-        :param str time_unit: the time unit
-        :param str f_name: the objective dimension name
-        :param Union[int, float, None] goal_f: the goal value, or None if
-            different goals were used for different instances
-        :param np.ndarray ecdf: the ert-ecdf matrix
+        :param algorithm: the algorithm name, if all runs are with the same
+            algorithm
+        :param n: the total number of runs
+        :param n_insts: the total number of instances
+        :param time_unit: the time unit
+        :param f_name: the objective dimension name
+        :param goal_f: the goal value, or `None` if different goals were used
+            for different instances
+        :param numpy.ndarray ecdf: the ert-ecdf matrix
         """
         super().__init__(algorithm, None, n, time_unit, f_name)
 
@@ -108,7 +108,6 @@ class Ecdf(MultiRun2DData):
         Get the time label for x-axes.
 
         :return: the time key
-        :rtype: str
         """
         return Lang.translate(self.time_unit)
 
@@ -117,7 +116,6 @@ class Ecdf(MultiRun2DData):
         Get the time key.
 
         :return: the time key
-        :rtype: str
         """
         return self.time_unit
 
@@ -126,10 +124,9 @@ class Ecdf(MultiRun2DData):
         """
         Store a :class:`Ecdf` record in a CSV file.
 
-        :param str file: the file to generate
-        :param bool put_header: should we put a header with meta-data?
+        :param file: the file to generate
+        :param put_header: should we put a header with meta-data?
         :return: the fully resolved file name
-        :rtype: Path
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing ECDF to CSV file '{path}'.")
@@ -171,7 +168,6 @@ class Ecdf(MultiRun2DData):
         :param source: the source array
         :param goal: the goal value
         :return: a list of times
-        :rtype: List[float]
         """
         ret = []
         for pr in source:
@@ -187,10 +183,9 @@ class Ecdf(MultiRun2DData):
         """
         Get the divisor.
 
-        :param int n: the number of runs
-        :param int n_insts: the number of instances
+        :param n: the number of runs
+        :param n_insts: the number of instances
         :return: the divisor
-        :rtype: int
         """
         del n_insts
         return n
@@ -203,12 +198,10 @@ class Ecdf(MultiRun2DData):
         """
         Create one single Ecdf record from an iterable of Progress records.
 
-        :param Iterable[moptipy.evaluation.Progress] source: the set of
-            progress instances
-        :param Union[int,float,Callable, None] goal_f: the goal objective
-            value
-        :param bool use_default_goal_f: should we use the default lower
-            bounds as goals?
+        :param source: the set of progress instances
+        :param goal_f: the goal objective value
+        :param use_default_goal_f: should we use the default lower bounds as
+            goals?
         :return: the Ecdf record
         :rtype: Ecdf
         """
@@ -331,13 +324,12 @@ class Ecdf(MultiRun2DData):
         """
         Compute one or multiple ECDFs from a stream of end results.
 
-        :param Iterable[moptipy.evaluation.Progress] source: the set of
-            progress instances
+        :param source: the set of progress instances
         :param f_goal: one or multiple goal values
-        :param Callable[['Ecdf'], Any] consumer: the destination
-            to which the new records will be passed
-        :param bool join_all_algorithms: should the Ert-Ecdf be aggregated
-            over all algorithms
+        :param consumer: the destination to which the new records will be
+            passed
+        :param join_all_algorithms: should the Ert-Ecdf be aggregated over all
+            algorithms
         """
         if not isinstance(source, Iterable):
             raise TypeError(
@@ -382,7 +374,6 @@ def get_goal(ecdf: Ecdf) -> Union[int, float, None]:
 
     :param Ecdf ecdf: the ecdf instance
     :return: the goal value
-    :rtype: Union[int, float, None]
     """
     return ecdf.goal_f
 
@@ -391,9 +382,8 @@ def goal_to_str(goal_f: Union[int, float, None]) -> str:
     """
     Transform a goal to a string.
 
-    :param Union[int, float, None] goal_f: the goal value
+    :param goal_f: the goal value
     :return: the string representation
-    :rtype: str
     """
     return "undefined" if goal_f is None else \
         f"goal: \u2264{num_to_str(goal_f)}"

@@ -12,7 +12,7 @@ def onemax(x: np.ndarray) -> int:
     """
     Get the length of a string minus the number of ones in it.
 
-    :param np.ndarray x: the np array
+    :param x: the np array
     :return: the number of ones
 
     >>> print(onemax(np.array([True, True, False, False, False])))
@@ -38,7 +38,7 @@ class OneMax(Objective):
         """
         Initialize the onemax objective function.
 
-        :param int n: the dimension of the problem
+        :param n: the dimension of the problem
 
         >>> print(OneMax(2).n)
         2
@@ -58,7 +58,6 @@ class OneMax(Objective):
         Get the lower bound of the onemax objective function.
 
         :return: 0
-        :rtype: int
 
         >>> print(OneMax(10).lower_bound())
         0
@@ -70,7 +69,6 @@ class OneMax(Objective):
         Get the upper bound of the onemax objective function.
 
         :return: the length of the bit string
-        :rtype: int
 
         >>> print(OneMax(7).upper_bound())
         7
@@ -82,7 +80,6 @@ class OneMax(Objective):
         Get the name of the onemax objective function.
 
         :return: `onemax_` + length of string
-        :rtype: str
 
         >>> print(OneMax(13))
         onemax_13

@@ -4,54 +4,54 @@ from typing import Final, List, Iterable, cast
 from typing import Set, Dict, Tuple
 
 import numba  # type: ignore
-import numpy as np
+import numpy
 from numpy.random import default_rng, Generator, PCG64
 
 import moptipy.utils.types
 
 #: A map associating all numpy integer types associated to tuples
 #: of their respective minimum and maximum value.
-__NP_INTS_MAP: Final[Dict[np.dtype, Tuple[int, int]]] = \
+__NP_INTS_MAP: Final[Dict[numpy.dtype, Tuple[int, int]]] = \
     {t: (int(ti.min), int(ti.max)) for t, ti in
-     cast(List[Tuple[np.dtype, np.iinfo]],
-          ((dtt, np.iinfo(dtt)) for dtt in
-           cast(List[np.dtype], [np.dtype(dt) for dt in
-                                 cast(List[type],
-                                      [np.int8, np.uint8,
-                                       np.int16, np.uint16,
-                                       np.int32, np.uint32,
-                                       np.int64, np.uint64])])))}
+     cast(List[Tuple[numpy.dtype, numpy.iinfo]],
+          ((dtt, numpy.iinfo(dtt)) for dtt in
+           cast(List[numpy.dtype], [numpy.dtype(dt) for dt in
+                                    cast(List[type],
+                                         [numpy.int8, numpy.uint8,
+                                          numpy.int16, numpy.uint16,
+                                          numpy.int32, numpy.uint32,
+                                          numpy.int64, numpy.uint64])])))}
 
 #: A tuple of integer types with their corresponding minimum and maximum
 #: values in increasing orders of size. The tuple contains alternating
 #: signed and unsigned types. It starts with the smallest signed type,
-#: `np.int8` and ends with the largest unsigned type `np.uint64`.
+#: `numpy.int8` and ends with the largest unsigned type `numpy.uint64`.
 #: If we have a range `[min..max]` of valids values, then we can look up this
 #: range and find the integer type with the smallest memory footprint to
 #: accommodate it. This is what :meth:`int_range_to_dtype` does.
-__NP_INTS_LIST: Final[Tuple[Tuple[np.dtype, int, int], ...]] = \
+__NP_INTS_LIST: Final[Tuple[Tuple[numpy.dtype, int, int], ...]] = \
     tuple([(a[3], a[1], a[2]) for a in
            sorted([(t.itemsize, a[0], a[1], t)
                    for t, a in __NP_INTS_MAP.items()])])
 
 #: The default integer type: the signed 64 bit integer.
-DEFAULT_INT: Final[np.dtype] = (__NP_INTS_LIST[-2])[0]
+DEFAULT_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-2])[0]
 
 #: The default unsigned integer type: an unsigned 64 bit integer.
-__DEFAULT_UNSIGNED_INT: Final[np.dtype] = (__NP_INTS_LIST[-1])[0]
+__DEFAULT_UNSIGNED_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-1])[0]
 
 #: The default boolean type.
-DEFAULT_BOOL: Final[np.dtype] = np.dtype(np.bool_)
+DEFAULT_BOOL: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
 
 #: The default floating point type.
-DEFAULT_FLOAT: Final[np.dtype] = np.zeros(1).dtype
+DEFAULT_FLOAT: Final[numpy.dtype] = numpy.zeros(1).dtype
 
 
-def is_np_int(dtype: np.dtype) -> bool:
+def is_np_int(dtype: numpy.dtype) -> bool:
     """
-    Check whether a :class:`np.dtype` is an integer type.
+    Check whether a :class:`numpy.dtype` is an integer type.
 
-    :param np.dtype dtype: the type
+    :param dtype: the type
 
     >>> import numpy as npx
     >>> from moptipy.utils.nputils import is_np_int
@@ -65,11 +65,11 @@ def is_np_int(dtype: np.dtype) -> bool:
     return dtype.kind in ('i', 'u')
 
 
-def is_np_float(dtype: np.dtype) -> bool:
+def is_np_float(dtype: numpy.dtype) -> bool:
     """
-    Check whether a :class:`np.dtype` is an floating point type.
+    Check whether a :class:`numpy.dtype` is a floating point type.
 
-    :param np.dtype dtype: the type
+    :param dtype: the type
 
     >>> import numpy as npx
     >>> from moptipy.utils.nputils import is_np_float
@@ -83,19 +83,18 @@ def is_np_float(dtype: np.dtype) -> bool:
     return dtype.kind == 'f'
 
 
-def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
+def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
     """
     Convert an integer range to an appropriate numpy data type.
 
     The returned type is as compact as possible and signed types are
     preferred over unsigned types.
-    The returned :class:`np.dtype` will allow accommodating all values in the
-    inclusive interval `min_value..max_value`.
+    The returned :class:`numpy.dtype` will allow accommodating all values in
+    the inclusive interval `min_value..max_value`.
 
-    :param int min_value: the minimum value
-    :param int max_value: the maximum value
+    :param min_value: the minimum value
+    :param max_value: the maximum value
     :return: the numpy integer range
-    :rtype: np.dtype
     :raises TypeError: if the parameters are not integers
     :raises ValueError: if the range is invalid
 
@@ -145,43 +144,41 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
 
 
 @numba.jit(forceobj=True)
-def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
+def np_ints_max(shape, dtype: numpy.dtype = DEFAULT_INT) -> numpy.ndarray:
     """
     Create an integer array of the given length filled with the maximum value.
 
     :param shape: the requested shape
-    :param dtype: the data type (defaults to 64 bit integers)
+    :param dtype: the data type (defaults to 64bit integers)
     :return: the new array
-    :rtype: np.ndarray
 
     >>> import numpy as npx
     >>> from moptipy.utils.nputils import np_ints_max
     >>> print(np_ints_max(4, npx.dtype("uint8")))
     [255 255 255 255]
     """
-    return np.full(shape=shape,
-                   fill_value=__NP_INTS_MAP[dtype][1],
-                   dtype=dtype)
+    return numpy.full(shape=shape,
+                      fill_value=__NP_INTS_MAP[dtype][1],
+                      dtype=dtype)
 
 
 @numba.jit(forceobj=True)
-def np_ints_min(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
+def np_ints_min(shape, dtype: numpy.dtype = DEFAULT_INT) -> numpy.ndarray:
     """
     Create an integer array of the given length filled with the minimum value.
 
     :param shape: the requested shape
     :param dtype: the data type (defaults to 64 bit integers)
     :return: the new array
-    :rtype: np.ndarray
 
     >>> import numpy as npx
     >>> from moptipy.utils.nputils import np_ints_min
     >>> print(np_ints_min(3, npx.dtype("int16")))
     [-32768 -32768 -32768]
     """
-    return np.full(shape=shape,
-                   fill_value=__NP_INTS_MAP[dtype][0],
-                   dtype=dtype)
+    return numpy.full(shape=shape,
+                      fill_value=__NP_INTS_MAP[dtype][0],
+                      dtype=dtype)
 
 
 #: the default number of bytes for random seeds
@@ -196,10 +193,8 @@ def rand_seed_generate(random: Generator = default_rng()) -> int:
     """
     Generate a random seed.
 
-    :param Optional[Generator] random: the random number generator to be used
-        to generate the seed
+    :param random: the random number generator to be used to generate the seed
     :return: the random seed
-    :rtype: int
     :raises TypeError: if `random` is specified but is not an instance of
         `Generator`
     """
@@ -214,9 +209,8 @@ def rand_seed_check(rand_seed: int) -> int:
     """
     Make sure that a random seed is valid.
 
-    :param int rand_seed: the random seed to check
+    :param rand_seed: the random seed to check
     :return: the rand seed
-    :rtype: int
 
     :raises TypeError: if the random seed is not an `int`
     :raises ValueError: if the random seed is not valid
@@ -234,9 +228,8 @@ def rand_generator(seed: int) -> Generator:
     """
     Instantiate a random number generator from a seed.
 
-    :param int seed: the random seed
+    :param seed: the random seed
     :return: the random number generator
-    :rtype: Generator
     """
     return default_rng(rand_seed_check(seed))
 
@@ -253,10 +246,9 @@ def rand_seeds_from_str(string: str,
     in the two sets of random seeds, where the larger one (for the larger
     value of `n_seeds`) contains all elements of the smaller one.
 
-    :param str string: the string
-    :param int n_seeds: the number of seeds
+    :param string: the string
+    :param n_seeds: the number of seeds
     :return: a tuple of random seeds
-    :rtype: List[int]
     :raises TypeError: if the parameters do not follow the type contract
     :raises ValueError: if the parameter values are invalid
 
@@ -309,71 +301,66 @@ def rand_seeds_from_str(string: str,
     return result
 
 
-def strs_to_bools(lines: Iterable[str]) -> np.ndarray:
+def strs_to_bools(lines: Iterable[str]) -> numpy.ndarray:
     """
     Convert an array of strings to a boolean numpy array.
 
-    :param Iterable[str] lines: the lines
+    :param lines: the lines
     :return: the array
-    :rtype: np.ndarray
 
     >>> strs_to_bools(["T", "F", "T"])
     array([ True, False,  True])
     """
-    return np.array([moptipy.utils.types.str_to_bool(s) for s in lines],
-                    dtype=DEFAULT_BOOL)
+    return numpy.array([moptipy.utils.types.str_to_bool(s) for s in lines],
+                       dtype=DEFAULT_BOOL)
 
 
-def strs_to_uints(lines: Iterable[str]) -> np.ndarray:
+def strs_to_uints(lines: Iterable[str]) -> numpy.ndarray:
     """
     Convert an array of strings to a numpy array of unsigned ints.
 
-    :param Iterable[str] lines: the lines
+    :param lines: the lines
     :return: the array
-    :rtype: np.ndarray
 
     >>> strs_to_uints(["1", "2", "3"])
     array([1, 2, 3], dtype=uint64)
     """
-    return np.array(lines, dtype=__DEFAULT_UNSIGNED_INT)
+    return numpy.array(lines, dtype=__DEFAULT_UNSIGNED_INT)
 
 
-def strs_to_ints(lines: Iterable[str]) -> np.ndarray:
+def strs_to_ints(lines: Iterable[str]) -> numpy.ndarray:
     """
     Convert an array of strings to a numpy array of signed ints.
 
-    :param Iterable[str] lines: the lines
+    :param lines: the lines
     :return: the array
-    :rtype: np.ndarray
 
     >>> strs_to_ints(["-1", "2", "3"])
     array([-1,  2,  3])
     """
-    return np.array(lines, dtype=DEFAULT_INT)
+    return numpy.array(lines, dtype=DEFAULT_INT)
 
 
-def strs_to_floats(lines: Iterable[str]) -> np.ndarray:
+def strs_to_floats(lines: Iterable[str]) -> numpy.ndarray:
     """
     Convert an array of strings to a numpy array of floats.
 
-    :param Iterable[str] lines: the lines
+    :param lines: the lines
     :return: the array
-    :rtype: np.ndarray
 
     >>> strs_to_floats(["-1.6", "2", "3"])
     array([-1.6,  2. ,  3. ])
     """
-    return np.array(lines, dtype=DEFAULT_FLOAT)
+    return numpy.array(lines, dtype=DEFAULT_FLOAT)
 
 
 @numba.njit(nogil=True)
-def is_all_finite(a: np.ndarray) -> bool:
+def is_all_finite(a: numpy.ndarray) -> bool:
     """
     Check if an array is all finite.
 
-    :param np.ndarray a: the input array
+    :param a: the input array
     :return: `True` if all elements in the array are finite, `False` otherwise
-    :rtype: bool
 
     >>> import numpy as npx
     >>> from moptipy.utils.nputils import is_all_finite
@@ -385,7 +372,7 @@ def is_all_finite(a: np.ndarray) -> bool:
     False
     """
     for x in a:
-        if not np.isfinite(x):
+        if not numpy.isfinite(x):
             return False
     return True
 

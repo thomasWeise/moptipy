@@ -22,7 +22,6 @@ def jssp_instances_for_tests() -> Iterable[str]:
     Get a sequence of JSSP instances to test on.
 
     :returns: an iterable of JSSP instance names
-    :rtype: Iterable[str]
     """
     r = default_rng()
     ri = r.integers
@@ -40,7 +39,6 @@ def make_gantt_valid(inst: Instance) -> Callable[[Gantt], Gantt]:
 
     :param inst: the JSSP instance
     :returns: a function that can make gantt charts valid
-    :rtype: Callable
     """
     pr = Permutations.with_repetitions(inst.jobs, inst.machines)
     op0 = Op0Shuffle(pr)
@@ -66,9 +64,8 @@ def validate_algorithm_on_1_jssp(
     Check the validity of a black-box algorithm on the JSSP.
 
     :param algorithm: the algorithm or algorithm factory
-    :param Optional[str] instance: the instance name, or `None` to randomly
-        pick one
-    :param int max_fes: the maximum number of FEs
+    :param instance: the instance name, or `None` to randomly pick one
+    :param max_fes: the maximum number of FEs
     :param required_result: the optional required result quality
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
@@ -124,7 +121,7 @@ def validate_algorithm_on_jssp(
     """
     Validate an algorithm on a set of JSSP instances.
 
-    :param Callable algorithm: the algorithm factory
+    :param algorithm: the algorithm factory
     """
     for i in jssp_instances_for_tests():
         validate_algorithm_on_1_jssp(algorithm, i, 100)

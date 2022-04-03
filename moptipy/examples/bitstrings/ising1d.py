@@ -12,7 +12,7 @@ def ising1d(x: np.ndarray) -> int:
     """
     Compute the objective value of the 1-dimensional Ising problem.
 
-    :param np.ndarray x: the np array
+    :param x: the np array
     :return: the trap function value
 
     >>> print(ising1d(np.array([True, True, True, True, True])))
@@ -48,7 +48,7 @@ class Ising1d(Objective):
         """
         Initialize the one-dimensional Ising problem.
 
-        :param int n: the dimension of the problem
+        :param n: the dimension of the problem
 
         >>> print(Ising1d(7).n)
         7
@@ -68,7 +68,6 @@ class Ising1d(Objective):
         Get the lower bound of the one-dimensional Ising problem.
 
         :return: 0
-        :rtype: int
 
         >>> print(Ising1d(7).lower_bound())
         0
@@ -80,7 +79,6 @@ class Ising1d(Objective):
         Get the upper bound of the one-dimensional Ising problem.
 
         :return: the length of the bit string
-        :rtype: int
 
         >>> print(Ising1d(12).upper_bound())
         12
@@ -92,7 +90,6 @@ class Ising1d(Objective):
         Get the name of the one-dimensional Ising problem.
 
         :return: `ising1d_` + length of string
-        :rtype: str
 
         >>> print(Ising1d(5))
         ising1d_5

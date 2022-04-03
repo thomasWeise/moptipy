@@ -17,7 +17,6 @@ def fixed_random_generator() -> Generator:
     Get the single, fixed random generator for the dummy experiment API.
 
     :returns: the random number generator
-    :rtype: the generator
     """
     if not hasattr(fixed_random_generator, 'gen'):
         setattr(fixed_random_generator, "gen", rand_generator(1))
@@ -29,10 +28,9 @@ def _random_name(namelen: int,
     """
     Generate a random name of a given length.
 
-    :param int namelen: the length of the name
-    :param Generator random: a random number generator
+    :param namelen: the length of the name
+    :param random: a random number generator
     :returns: a name of the length
-    :rtype: str
     """
     if not isinstance(namelen, int):
         raise TypeError(f"namelen must be int, but is {type(namelen)}.")
@@ -101,7 +99,6 @@ def _make_not_allowed(forbidden: Optional[Iterable[Union[
 
     :param forbidden: the forbidden elements
     :returns: the set of not-allowed values
-    :rtype: Set[Union[str, float]]
     """
     not_allowed: Set[Any] = set()
     __append_not_allowed(forbidden, not_allowed)
@@ -138,13 +135,13 @@ class Instance:
         """
         Create a mock problem instance description.
 
-        :param str name: the instance name
-        :param float hardness: the instance hardness
-        :param float jitter: the instance jitter
-        :param float scale: the instance scale
-        :param int best: the best (smallest) possible objective value
-        :param int worst: the worst (largest) possible objective value
-        :param Tuple[int, ...] attractors: the set of attractors, i.e., local
+        :param name: the instance name
+        :param hardness: the instance hardness
+        :param jitter: the instance jitter
+        :param scale: the instance scale
+        :param best: the best (smallest) possible objective value
+        :param worst: the worst (largest) possible objective value
+        :param attractors: the set of attractors, i.e., local
             optima - including best and worst
         """
         if not isinstance(name, str):
@@ -225,11 +222,10 @@ class Instance:
         """
         Create a set of fixed problem instances.
 
-        :param int n: the number of instances to generate
-        :param Generator random: a random number generator
+        :param n: the number of instances to generate
+        :param random: a random number generator
         :param forbidden: the forbidden names and hardnesses
         :returns: a tuple of instances
-        :rtype: Tuple[Instance, ...]
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be int, but is {type(n)}.")
@@ -414,10 +410,10 @@ class Algorithm:
         """
         Create a mock algorithm description record.
 
-        :param str name: the algorithm name
-        :param float strength: the algorithm strength
-        :param float jitter: the algorithm jitter
-        :param float complexity: the algorithm complexity
+        :param name: the algorithm name
+        :param strength: the algorithm strength
+        :param jitter: the algorithm jitter
+        :param complexity: the algorithm complexity
         """
         if not isinstance(name, str):
             raise TypeError(
@@ -459,11 +455,10 @@ class Algorithm:
         """
         Create a set of fixed mock algorithms.
 
-        :param int n: the number of algorithms to generate
-        :param Generator random: a random number generator
+        :param n: the number of algorithms to generate
+        :param random: a random number generator
         :param forbidden: the forbidden names and strengths and so on
         :returns: a tuple of algorithms
-        :rtype: Tuple[Algorithm, ...]
         """
         if not isinstance(n, int):
             raise TypeError(f"n must be int, but is {type(n)}.")
@@ -622,11 +617,11 @@ class BasePerformance:
         """
         Create a mock algorithm-instance application description record.
 
-        :param Algorithm algorithm: the algorithm
-        :param Instance instance: the instance
-        :param float performance: the base performance
-        :param float jitter: the performance jitter
-        :param float speed: the time required per FE
+        :param algorithm: the algorithm
+        :param instance: the instance
+        :param performance: the base performance
+        :param jitter: the performance jitter
+        :param speed: the time required per FE
         """
         if not isinstance(algorithm, Algorithm):
             raise TypeError(
@@ -675,7 +670,6 @@ class BasePerformance:
         :param random: the random number generator
         :returns: a tuple of the performance in (0, 1); bigger values are
             worse, and a jitter in (0, 1), where bigger values are worse
-        :rtype: Tuple[float, float]
         """
         if not isinstance(instance, Instance):
             raise TypeError(
@@ -731,10 +725,9 @@ def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
     """
     Get the seeds for the runs.
 
-    :param Instance instance: the mock instance
-    :param int n_runs: the number of runs
+    :param instance: the mock instance
+    :param n_runs: the number of runs
     :returns: a tuple of seeds
-    :rtype: Tuple[int, ...]
     """
     if not isinstance(instance, Instance):
         raise TypeError(
@@ -910,10 +903,10 @@ class Experiment:
         """
         Create an experiment definition.
 
-        :param int n_instances: the number of instances
-        :param int n_algorithms: the number of algorithms
-        :param int n_runs: the number of per-instance runs
-        :param Generator random: the random number generator to use
+        :param n_instances: the number of instances
+        :param n_algorithms: the number of algorithms
+        :param n_runs: the number of per-instance runs
+        :param random: the random number generator to use
         """
         if not isinstance(n_instances, int):
             raise TypeError(
@@ -957,9 +950,8 @@ class Experiment:
         """
         Get the seeds for the specified instance.
 
-        :param Union[str, Instance] instance: the instance
+        :param instance: the instance
         :returns: the seeds
-        :rtype: Tuple[int, ...]
         """
         return self.__seeds_per_inst[instance]
 
@@ -968,9 +960,8 @@ class Experiment:
         """
         Get the applications of the algorithms to a specific instance.
 
-        :param Union[str, Instance] instance: the instance
+        :param instance: the instance
         :returns: the applications
-        :rtype: Tuple[BasePerformance, ...]
         """
         return self.__perf_per_inst[instance]
 
@@ -979,9 +970,8 @@ class Experiment:
         """
         Get the applications of an algorithm to the instances.
 
-        :param Union[str, Algorithm] algorithm: the algorithm
+        :param algorithm: the algorithm
         :returns: the applications
-        :rtype: Tuple[BasePerformance, ...]
         """
         return self.__perf_per_algo[algorithm]
 
@@ -989,9 +979,8 @@ class Experiment:
         """
         Get an algorithm by name.
 
-        :param str name: the algorithm name
+        :param name: the algorithm name
         :returns: the algorithm instance
-        :rtype: str
         """
         return self.__algo_by_name[name]
 
@@ -999,8 +988,7 @@ class Experiment:
         """
         Get an instance by name.
 
-        :param str name: the instance name
+        :param name: the instance name
         :returns: the instance
-        :rtype: str
         """
         return self.__inst_by_name[name]

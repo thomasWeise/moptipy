@@ -42,9 +42,11 @@ def plot_ert(erts: Iterable[Ert],
     Plot a set of Ert functions into one chart.
 
     :param erts: the iterable of Ert functions
-    :param Union[SubplotBase, Figure] figure: the figure to plot in
-    :param Union[moptipy.evaluation.AxisRanger, Callable] x_axis: the x_axis
-    :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
+    :param figure: the figure to plot in
+    :param Union[moptipy.evaluation.axis_ranger.AxisRanger, Callable] x_axis:
+        the x_axis
+    :param Union[moptipy.evaluation.axis_ranger.AxisRanger, Callable] y_axis:
+        the y_axis
     :param bool legend: should we plot the legend?
     :param Callable distinct_colors_func: the function returning the palette
     :param Callable distinct_line_dashes_func: the function returning the line

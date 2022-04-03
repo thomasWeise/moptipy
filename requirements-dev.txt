@@ -9,6 +9,7 @@ wheel >= 0.37.1
 
 # sphinx is needed for generating the documentation.
 sphinx >= 4.5.0
+sphinx-autodoc-typehints >= 1.17.0
 # myst-parser is needed for including README.md into the documentation
 myst-parser >= 0.17.0
 

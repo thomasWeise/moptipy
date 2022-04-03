@@ -53,9 +53,10 @@ def plot_end_results(
     impression about shape and modality of the distribution of the results.
 
     :param end_results: the iterable of end results
-    :param Union[SubplotBase, Figure] figure: the figure to plot in
+    :param figure: the figure to plot in
     :param str dimension: the dimension to display
-    :param Union[moptipy.evaluation.AxisRanger, Callable] y_axis: the y_axis
+    :param Union[moptipy.evaluation.axis_ranger.AxisRanger, Callable] y_axis:
+        the y_axis
     :param Callable distinct_colors_func: the function returning the palette
     :param Callable importance_to_line_width_func: the function converting
         importance values to line widths

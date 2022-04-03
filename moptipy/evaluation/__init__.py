@@ -6,7 +6,7 @@ results of optimization algorithms runs in text-based log files.
 With the methods in this package here, you can load and evaluate them. This
 usually follows a multi-step approach: For example, you can first extract the
 end results from several algorithms and instances into a single file via the
-:class:`moptipy.evaluation.EndResults`. This could then be processed to
-per-algorithm or per-instance statistics using
-:class:`moptipy.evaluation.EndResultStatistics`.
+:class:`~moptipy.evaluation.end_results.EndResult`. This could then be
+processed to per-algorithm or per-instance statistics using
+:class:`~moptipy.evaluation.end_statistics.EndStatistics`.
 """

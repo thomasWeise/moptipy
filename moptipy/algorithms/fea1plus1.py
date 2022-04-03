@@ -36,7 +36,7 @@ class FEA1plus1(Algorithm1):
         """
         Apply the (1+1)-FEA to the given black-box process.
 
-        :param moptipy.api.Process process: the process object
+        :param process: the process object
         """
         # create records for old and new point in the search space
         best_x = process.create()
@@ -77,6 +77,5 @@ class FEA1plus1(Algorithm1):
         Get the name of this (1+1)-FEA.
 
         :return: "fea1p1" + any non-standard operator suffixes
-        :rtype: str
         """
         return f"fea1p1{super().__str__()}"

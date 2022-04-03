@@ -32,14 +32,12 @@ class Styler:
         """
         Initialize the style grouper.
 
-        :param Callable key_func: the key function, obtaining keys from
-            objects
-        :param Union[str, Callable] namer: the name function, turning
-            keys into names, or the string to be used for replacing `None`
-            keys as names (in which case all non-`None` keys are used as
-            names as-is)
-        :param Union[int, float] priority: the base priority of this grouper
-        :param bool sort_by_name: Sort by name (`True`) or by key (`False`)
+        :param key_func: the key function, obtaining keys from objects
+        :param namer: the name function, turning keys into names, or the
+            string to be used for replacing `None` keys as names (in which
+            case all non-`None` keys are used as names as-is)
+        :param priority: the base priority of this grouper
+        :param sort_by_name: Sort by name (`True`) or by key (`False`)
         """
         if not callable(key_func):
             raise TypeError("Key function must be callable.")
@@ -119,7 +117,6 @@ class Styler:
 
         :param other: the other styler
         :return: `True` if it is, `False` if it is not.
-        :rtype: bool
         """
         if self.priority > other.priority:
             return True
@@ -139,7 +136,7 @@ class Styler:
         """
         Set that this styler should apply line colors.
 
-        :param Callable line_color_func: a function returning the palette
+        :param line_color_func: a function returning the palette
         """
         tmp = line_color_func(self.count)
         if not isinstance(tmp, Iterable):
@@ -155,7 +152,7 @@ class Styler:
         """
         Set that this styler should apply line dashes.
 
-        :param Callable line_dash_func: a function returning the dashes
+        :param line_dash_func: a function returning the dashes
         """
         tmp = line_dash_func(self.count)
         if not isinstance(tmp, Iterable):
@@ -171,7 +168,7 @@ class Styler:
         """
         Set that this styler should apply a line width.
 
-        :param Callable line_width_func: the line width function
+        :param line_width_func: the line width function
         """
         tmp = line_width_func(self.count)
         if not isinstance(tmp, Iterable):
@@ -187,7 +184,7 @@ class Styler:
         """
         Set that this styler should apply a line alpha.
 
-        :param Callable line_alpha_func: the line alpha function
+        :param line_alpha_func: the line alpha function
         """
         tmp = line_alpha_func(self.count)
         if not isinstance(tmp, Iterable):
@@ -205,8 +202,7 @@ class Styler:
         Apply this styler's contents based on the given object.
 
         :param obj: the object for which the style should be created
-        :param Dict[str, object] style: the map to which the styles should be
-            added
+        :param style: the map to which the styles should be added
         """
         key = self.key_func(obj)
         index = self.__indexes.setdefault(key, -1)
@@ -219,8 +215,7 @@ class Styler:
         Apply this styler's contents based on the given object.
 
         :param index: the index to be processed
-        :param Dict[str, object] style: the map to which the styles should be
-            added
+        :param style: the map to which the styles should be added
         """
         if self.__line_colors is not None:
             style["color"] = self.__line_colors[index]
@@ -235,7 +230,7 @@ class Styler:
         """
         Add this styler to the legend.
 
-        :param Callable[[Artist], Any] consumer: the consumer to add to
+        :param consumer: the consumer to add to
         """
         if not callable(consumer):
             raise TypeError(

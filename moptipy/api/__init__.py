@@ -6,7 +6,7 @@ This package provides two things:
 * the basic, abstract API for implementing optimization algorithms and
   problems
 * the abstraction and implementation of black-box processes in form of
-  :py:class:`~moptipy.api.Process` and its implementations
+  :py:class:`~moptipy.api.process.Process` and its implementations
 
 The former helps us to implement and plug together different components
 of optimization problems and optimization algorithms.

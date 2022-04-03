@@ -13,9 +13,9 @@ class Op0Random(operators.Op0):
         """
         Fill the string `dest` with radom values.
 
-        :param Generator random: the random number generator
-        :param np.ndarray dest: the bit string to fill. Afterwards, its
-            contents will be random.
+        :param random: the random number generator
+        :param dest: the bit string to fill. Afterwards, its contents will
+            be random.
         """
         np.copyto(dest, random.integers(0, 2, dest.shape, dest.dtype))
 
@@ -24,6 +24,5 @@ class Op0Random(operators.Op0):
         Get the name of this operator.
 
         :return: "randomize"
-        :rtype: str
         """
         return "randomize"

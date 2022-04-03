@@ -20,9 +20,8 @@ def instance_sort_key(name: str) -> Tuple[int, str]:
     """
     Get the instance sort key for a given instance name.
 
-    :param str name: the instance name
+    :param name: the instance name
     :returns: the sort key
-    :rtype: Tuple[int, str]
     """
     if not isinstance(name, str):
         raise TypeError(f"name must be str, but is {type(name)}.")
@@ -37,9 +36,8 @@ def algorithm_sort_key(name: str) -> str:
     """
     Get the algorithm sort key for a given algorithm name.
 
-    :param str name: the algorithm name
+    :param name: the algorithm name
     :returns: the sort key
-    :rtype: Tuple[int, str]
     """
     if not isinstance(name, str):
         raise TypeError(f"name must be str, but is {type(name)}.")
@@ -53,10 +51,9 @@ def compute_end_results(results_dir: str,
     """
     Get the end results, compute them if necessary.
 
-    :param str results_dir: the results directory
-    :param str dest_dir: the destination directory
+    :param results_dir: the results directory
+    :param dest_dir: the destination directory
     :returns: the path to the end results file.
-    :rtype: Path
     """
     dest: Final[Path] = Path.directory(dest_dir)
     results_file: Final[Path] = dest.resolve_inside("end_results.txt")
@@ -87,11 +84,11 @@ def get_end_results(file: str,
     """
     Get a specific set of end results..
 
-    :param str file: the end results file
-    :param Optional[Set[str]] insts: only these instances will be included if
-        this parameter is provided
-    :param Optional[Set[str]] algos: only these algorithms will be included if
-        this parameter is provided
+    :param file: the end results file
+    :param insts: only these instances will be included if this parameter is
+        provided
+    :param algos: only these algorithms will be included if this parameter is
+        provided
     """
     def __filter(er: EndResult, ins=insts, alg=algos) -> bool:
         if ins is not None:
@@ -115,10 +112,9 @@ def compute_end_statistics(end_results_file: str,
     """
     Get the end result statistics, compute them if necessary.
 
-    :param str end_results_file: the end results file
-    :param str dest_dir: the destination directory
+    :param end_results_file: the end results file
+    :param dest_dir: the destination directory
     :returns: the path to the end result statistics file.
-    :rtype: Path
     """
     dest: Final[Path] = Path.directory(dest_dir)
     stats_file: Final[Path] = dest.resolve_inside("end_statistics.txt")
@@ -147,8 +143,8 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     """
     Evaluate the experiment.
 
-    :param str results_dir: the results directory
-    :param str dest_dir: the destination directory
+    :param results_dir: the results directory
+    :param dest_dir: the destination directory
     """
     source: Final[Path] = Path.directory(results_dir)
     dest: Final[Path] = Path.path(dest_dir if dest_dir else

@@ -28,9 +28,8 @@ def _unique_floats_1d(data: Tuple[np.ndarray]) -> np.ndarray:
     """
     Get all unique values that are >= than the minimum of all arrays.
 
-    :param Iterable[np.ndarray] data: the data
+    :param data: the data
     :return: the `ndarray` with the sorted, unique values
-    :rtype: np.ndarray
     """
     res = np.unique(np.concatenate(data).astype(DEFAULT_FLOAT))
     mini = -9223372036854775808
@@ -69,21 +68,20 @@ def __apply_fun(x_unique: np.ndarray,
     point is deleted if it is not the last point in the list. As a result,
     a two-dimensional time/value array is returned.
 
-    :param np.ndarray x_unique: the unique time coordinates
-    :param Tuple[np.ndarray, ...] x_raw: a tuple of several x-data arrays
-    :param Tuple[np.ndarray, ...] y_raw: a tuple of several y-data arrays
+    :param x_unique: the unique time coordinates
+    :param x_raw: a tuple of several x-data arrays
+    :param y_raw: a tuple of several y-data arrays
     :param Callable stat_func: a statistic function which must have been
         jitted with numba
-    :param int out_len: the length of `dest_y` and `x_unique`
-    :param np.ndarray dest_y: the destination array for the computed
+    :param out_len: the length of `dest_y` and `x_unique`
+    :param dest_y: the destination array for the computed
         statistics
-    :param int stat_dim: the dimension of the tuples `x_raw` and `y_raw`
-    :param np.ndarray values_buf: the buffer for the values to be passed to
+    :param stat_dim: the dimension of the tuples `x_raw` and `y_raw`
+    :param values_buf: the buffer for the values to be passed to
         `stat_func`
-    :param np.ndarray pos_buf: the position buffer
-    :return: the two dimensional `np.ndarray` where the first column is the
+    :param pos_buf: the position buffer
+    :return: the two-dimensional `np.ndarray` where the first column is the
         time and the second column is the statistic value
-    :rtype: np.ndarray
     """
     for i in range(out_len - 1, -1, -1):  # reverse iteration
         x = x_unique[i]  # x_unique holds all unique x values
@@ -113,7 +111,7 @@ def _apply_fun(x_unique: np.ndarray,
     Compute a time-depending statistic.
 
     The unique x-values `x_unique` have separate been computed with
-    :meth:`_unique_floats_1d` from `x_raw` so that they can be reused.
+    `_unique_floats_1d` from `x_raw` so that they can be reused.
     `x_raw` and `y_raw` are tuples with the raw time and objective data,
     respectively. `stat_fun` is the statistic function that will be applied.
     In a final step, we will remove all redundant elements of both arrays: If
@@ -122,14 +120,13 @@ def _apply_fun(x_unique: np.ndarray,
     a two-dimensional time/value array is returned. This function uses
     :meth:`__apply_fun` as internal work horse.
 
-    :param np.ndarray x_unique: the unique time coordinates
-    :param Tuple[np.ndarray, ...] x_raw: a tuple of several x-data arrays
-    :param Tuple[np.ndarray, ...] y_raw: a tuple of several y-data arrays
-    :param Callable stat_func: a statistic function which must have been
-        jitted with numba
-    :return: the two dimensional `np.ndarray` where the first column is the
+    :param x_unique: the unique time coordinates
+    :param x_raw: a tuple of several x-data arrays
+    :param y_raw: a tuple of several y-data arrays
+    :param stat_func: a statistic function which must have been jitted with
+        numba
+    :return: the two-dimensional `numpy.ndarray` where the first column is the
         time and the second column is the statistic value
-    :rtype: np.ndarray
     """
     out_len: Final[int] = len(x_unique)
     dest_y: Final[np.ndarray] = np.zeros(out_len, DEFAULT_FLOAT)
@@ -146,9 +143,8 @@ def __stat_arith_mean(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the arithmetic mean
-    :rtype: np.number
     """
     return data.mean()
 
@@ -158,9 +154,8 @@ def __stat_geo_mean(data: np.ndarray) -> np.number:
     """
     Compute the geometric mean.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the geometric mean
-    :rtype: np.number
     """
     return np.exp(np.mean(np.log(data)))
 
@@ -170,9 +165,8 @@ def __stat_min(data: np.ndarray) -> np.number:
     """
     Compute the minimum.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the minimum
-    :rtype: np.number
     """
     return data.min()
 
@@ -182,21 +176,19 @@ def __stat_max(data: np.ndarray) -> np.number:
     """
     Compute the maximum.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the maximum
-    :rtype: np.number
     """
     return data.max()
 
 
 @numba.njit
-def __stat_median(data: np.ndarray) -> np.number:
+def __stat_median(data: np.ndarray):
     """
     Compute the median.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the median
-    :rtype: np.number
     """
     return np.median(data)
 
@@ -206,9 +198,8 @@ def __stat_sd(data: np.ndarray) -> np.number:
     """
     Compute the standard deviation.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the standard deviation
-    :rtype: np.number
     """
     return data.std()
 
@@ -218,9 +209,8 @@ def __stat_mean_minus_sd(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean minus the standard deviation.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the arithmetic mean minus the standard deviation
-    :rtype: np.number
     """
     return data.mean() - data.std()
 
@@ -230,21 +220,19 @@ def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean plus the standard deviation.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the arithmetic mean plus the standard deviation
-    :rtype: np.number
     """
     return data.mean() + data.std()
 
 
 @numba.njit
-def __stat_quantile_10(data: np.ndarray) -> np.number:
+def __stat_quantile_10(data: np.ndarray):
     """
     Compute the 10% quantile.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the 10% quantile
-    :rtype: np.number
     """
     length: Final[int] = len(data)
     if (length > 10) and ((length % 10) == 1):
@@ -254,13 +242,12 @@ def __stat_quantile_10(data: np.ndarray) -> np.number:
 
 
 @numba.njit
-def __stat_quantile_90(data: np.ndarray) -> np.number:
+def __stat_quantile_90(data: np.ndarray):
     """
     Compute the 90% quantile.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the 90% quantile
-    :rtype: np.number
     """
     length: Final[int] = len(data)
     if (length > 10) and ((length % 10) == 1):
@@ -270,25 +257,23 @@ def __stat_quantile_90(data: np.ndarray) -> np.number:
 
 
 @numba.njit
-def __stat_quantile_159(data: np.ndarray) -> np.number:
+def __stat_quantile_159(data: np.ndarray):
     """
     Compute the 15.9% quantile, which equals mean-sd in normal distributions.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the 15.9% quantile
-    :rtype: np.number
     """
     return np.quantile(data, __Q159)
 
 
 @numba.njit
-def __stat_quantile_841(data: np.ndarray) -> np.number:
+def __stat_quantile_841(data: np.ndarray):
     """
     Compute the 84.1% quantile, which equals mean+sd in normal distributions.
 
-    :param np.ndarray data: the data
+    :param data: the data
     :return: the 84.1% quantile
-    :rtype: np.number
     """
     return np.quantile(data, __Q841)
 
@@ -357,15 +342,15 @@ class StatRun(MultiRun2DData):
         """
         Create the time-based statistics of an algorithm-setup combination.
 
-        :param Optional[str] algorithm: the algorithm name, if all runs are
+        :param algorithm: the algorithm name, if all runs are
             with the same algorithm
-        :param Optional[str] instance: the instance name, if all runs are
+        :param instance: the instance name, if all runs are
             on the same instance
-        :param int n: the total number of runs
-        :param str time_unit: the time unit
-        :param str f_name: the objective dimension name
-        :param str stat_name: the name of the statistic
-        :param np.ndarray stat: the statistic itself
+        :param n: the total number of runs
+        :param time_unit: the time unit
+        :param f_name: the objective dimension name
+        :param stat_name: the name of the statistic
+        :param stat: the statistic itself
         """
         super().__init__(algorithm, instance, n, time_unit, f_name)
 
@@ -392,13 +377,11 @@ class StatRun(MultiRun2DData):
                statistics: Union[str, Iterable[str]],
                consumer: Callable[['StatRun'], Any]) -> None:
         """
-        Compute statistics from an iterable of :class:`Progress`.
+        Compute statistics from an iterable of `Progress` objects.
 
-        :param Iterable[moptipy.evaluation.Progress] source: the progress data
-        :param Union[str, Iterable[str]] statistics: the statistics to be
-            computed
-        :param Callable[['StatRun'], Any] consumer: the consumer for the
-            statistics
+        :param source: the progress data
+        :param statistics: the statistics to be computed
+        :param consumer: the consumer for the statistics
         """
         if not isinstance(source, Iterable):
             raise TypeError(
@@ -485,15 +468,13 @@ class StatRun(MultiRun2DData):
         """
         Aggregate statist runs over a stream of progress data.
 
-        :param Iterable[moptipy.evaluation.Progress] source: the stream
-            of progress data
-        :param Union[str, Iterable[str]] statistics: the statistics that
-            should be computed per group
-        :param Callable[['StatRun'], Any] consumer: the destination
-            to which the new stat runs will be passed
-        :param bool join_all_algorithms: should the statistics be aggregated
+        :param source: the stream of progress data
+        :param statistics: the statistics that should be computed per group
+        :param consumer: the destination to which the new stat runs will be
+            passed
+        :param join_all_algorithms: should the statistics be aggregated
             over all algorithms
-        :param bool join_all_instances: should the statistics be aggregated
+        :param join_all_instances: should the statistics be aggregated
             over all algorithms
         """
         if not isinstance(source, Iterable):
@@ -547,6 +528,5 @@ def get_statistic(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
 
     :param obj: the object
     :return: the statistic string, or `None` if no statistic is specified
-    :rtype: Optional[str]
     """
     return obj.stat_name if isinstance(obj, StatRun) else None

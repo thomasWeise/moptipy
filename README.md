@@ -1109,6 +1109,10 @@ A progress plot can illustrate groups of single runs that were performed in the 
 It can also illustrate statistics over the runs, say, the arithmetic mean of the best-so-far objective value at a given point in time.
 Both types of data can also be combined in the same diagram.
 
+<a href="https://thomasweise.github.io/moptipy/_static/progress_single_runs_and_mean_f_over_fes.png">
+<img alt="Example for a progress plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/progress_single_runs_and_mean_f_over_fes.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
 Progress plots are implemented in the module [moptipy.evaluation.plot_progress_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_progress_impl).
 
 
@@ -1128,6 +1132,10 @@ The ECDF remains 0 until the first run reaches the goal.
 At this time, it would rise to value `1/10=0.1`.
 Once the second run reaches the goal, it will climb to `2/10=0.2`.
 If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECDF would climb to `7/10=0.7` and then remain there.
+
+<a href="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png">
+<img alt="Example for an ECDF plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
 
 ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
 
@@ -1164,6 +1172,10 @@ This, in turn, allows you to easily compare algorithm performance.
 In order to make comparing algorithm performance over different instances easier, this plot will use scaled objective values by default.
 It will use the goal objective values `g` from the log files to scale all objective values `f` to `f/g`.
 Ofcourse you can also use it to plot raw objective values, or even runtimes if you wish.
+
+<a href="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png">
+<img alt="Example for an ECDF plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
 
 The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results_impl).
 

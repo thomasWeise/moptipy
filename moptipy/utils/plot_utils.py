@@ -27,12 +27,11 @@ def create_figure(width: Union[float, int, None] = 8.6,
     """
     Create a matplotlib figure.
 
-    :param Union[float,int,None] width: the optional width
-    :param Union[float,int,None] height: the optional height
-    :param Union[float,int,None] dpi: the dpi value
+    :param width: the optional width
+    :param height: the optional height
+    :param dpi: the dpi value
     :param kwargs: a set of optional arguments
     :return: the figure option
-    :rtype: Figure
     """
     # Check the size, i.e., width and height and use
     put_size: bool = True
@@ -89,14 +88,13 @@ def create_figure(width: Union[float, int, None] = 8.6,
 
 def __divide_evenly(items: int, chunks: int, reverse: bool) -> List[int]:
     """
-    Divide n items into k chunks, trying to create equally-sized chunks.
+    Divide `n` items into `k` chunks, trying to create equally-sized chunks.
 
-    :param int items: the number of items to divide
-    :param int chunks: the number of chunks
-    :param bool reverse: should we put the additional items at the end (True)
+    :param items: the number of items to divide
+    :param chunks: the number of chunks
+    :param reverse: should we put the additional items at the end (True)
         or front (False)
     :returns: the list of items
-    :rtype: List[int]
 
     >>> print(__divide_evenly(9, 3, reverse=True))
     [3, 3, 3]
@@ -158,26 +156,22 @@ def create_figure_with_subplots(
     """
     Divide a figure into nrows*ncols sub-plots.
 
-    :param int items: the number of items to divide
-    :param int max_items_per_plot: the maximum number of items per plot
-    :param int max_rows: the maximum number of rows
-    :param int max_cols: the maximum number of columns
-    :param int min_rows: the minimum number of rows
-    :param int min_cols: the minimum number of cols
-    :param Union[float,int,None] default_width_per_col: the optional default
-        width of a column
-    :param Union[float,int,None] default_height_per_row: the optional default
-        height per row
-    :param Union[float,int,None] max_height: the maximum height
-    :param Union[float,int,None] max_width: the maximum width
-    :param Union[float,int,None] dpi: the dpi value
+    :param items: the number of items to divide
+    :param max_items_per_plot: the maximum number of items per plot
+    :param max_rows: the maximum number of rows
+    :param max_cols: the maximum number of columns
+    :param min_rows: the minimum number of rows
+    :param min_cols: the minimum number of cols
+    :param default_width_per_col: the optional default width of a column
+    :param default_height_per_row: the optional default height per row
+    :param max_height: the maximum height
+    :param max_width: the maximum width
+    :param dpi: the dpi value
     :param kwargs: a set of optional arguments
     :returns: a tuple with the figure, followed by a series of tuples with
         each sub-figure, the index of the first item assigned to it, the
         index of the last item assigned to it + 1, their row, their column,
         and their overall index
-    :rtype: Tuple[Figure, Tuple[Tuple[Union[SubplotBase, Figure],
-        int, int, int, int, int], ...]]
     """
     # First, we do a lot of sanity checks
     if not isinstance(items, int):
@@ -400,12 +394,11 @@ def save_figure(fig: Figure,
     """
     Store the given figure in files of the given formats and dispose it.
 
-    :param Figure fig: the figure to save
-    :param str file_name: the basic file name
-    :param str dir_name: the directory name
-    :param Union[str, Iterable[str]] formats: the file format(s)
+    :param fig: the figure to save
+    :param file_name: the basic file name
+    :param dir_name: the directory name
+    :param formats: the file format(s)
     :return: a list of files
-    :rtype: List[str]
     """
     if not isinstance(fig, Figure):
         raise TypeError(f"Invalid figure type {type(fig)}.")
@@ -469,17 +462,17 @@ def label_box(axes: Axes,
     """
     Put a label text box near an axis.
 
-    :param Axes axes: the axes to add the label to
-    :param str text: the text to place
-    :param Optional[float] x: the location along the x-axis: `0` means left,
+    :param axes: the axes to add the label to
+    :param text: the text to place
+    :param x: the location along the x-axis: `0` means left,
         `0.5` means centered, `1` means right
-    :param Optional[float] y: the location along the x-axis: `0` means bottom,
+    :param y: the location along the x-axis: `0` means bottom,
         `0.5` means centered, `1` means top
-    :param float font_size: the font size
-    :param bool may_rotate_text: should we rotate the text by 90° if that
+    :param font_size: the font size
+    :param may_rotate_text: should we rotate the text by 90° if that
         makes sense (`True`) or always keep it horizontally (`False`)
-    :param Optional[float] zorder: an optional z-order value
-    :param Union[None, str, Callable] font: the font to use
+    :param zorder: an optional z-order value
+    :param font: the font to use
     """
     if x is None:
         if y is None:
@@ -547,21 +540,21 @@ def label_axes(axes: Axes,
     """
     Put labels on a figure.
 
-    :param Axes axes: the axes to add the label to
-    :param Optional[str] xlabel: a callable returning the label for
+    :param axes: the axes to add the label to
+    :param xlabel: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
-    :param bool xlabel_inside: put the x-axis label inside the plot (so that
+    :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param float xlabel_location: the location of the x-axis label if it is
+    :param xlabel_location: the location of the x-axis label if it is
         placed inside the plot area
-    :param Optional[str] ylabel: a callable returning the label for
+    :param ylabel: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
-    :param bool ylabel_inside: put the xyaxis label inside the plot (so that
+    :param ylabel_inside: put the xyaxis label inside the plot (so that
         it does not consume additional horizontal space)nal vertical space)
-    :param float ylabel_location: the location of the y-axis label if it is
+    :param ylabel_location: the location of the y-axis label if it is
         placed inside the plot area
-    :param float font_size: the font size to use
-    :param Optional[float] zorder: an optional z-order value
+    :param font_size: the font size to use
+    :param zorder: an optional z-order value
     """
     # put the label on the x-axis, if any
     if xlabel is not None:
@@ -591,9 +584,8 @@ def get_axes(figure: Union[Axes, SubplotBase, Figure]) -> Axes:
     """
     Obtain the axes from a figure or axes object.
 
-    :param Union[SubplotBase, Figure] figure: the figure
+    :param figure: the figure
     :return: the Axes
-    :rtype: Axes
     """
     if isinstance(figure, Figure):
         return figure.add_axes([0.005, 0.005, 0.99, 0.99])
@@ -624,9 +616,8 @@ def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
     """
     Get a renderer that can be used for determining figure element sizes.
 
-    :param Union[SubplotBase, Figure] figure: the figure element
+    :param figure: the figure element
     :return: the renderer
-    :rtype: RendererBase
     """
     if isinstance(figure, (Axes, SubplotBase)):
         figure = figure.figure
@@ -646,9 +637,8 @@ def cm_to_inch(cm: Union[int, float]) -> float:
     """
     Convert cm to inch.
 
-    :param float cm: the cm value
+    :param cm: the cm value
     :return: the value in inch
-    :rtype: float
     """
     if not isinstance(cm, int):
         if not isinstance(cm, float):
@@ -682,7 +672,6 @@ def get_label_colors(handles: Iterable[Artist], color_map: Optional[Dict[
     :param color_map: an optional color map
     :param default_color: the default color
     :returns: a list of label colors
-    :rtype: List[Union[Tuple[float, ...], str]]
     """
     if not isinstance(handles, Iterable):
         raise TypeError(f"expected Iterable, got {type(handles)}")

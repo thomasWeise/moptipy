@@ -55,7 +55,6 @@ class Space(Component):
 
         :param x: the instance
         :return: the string representation of x
-        :rtype: str
         """
 
     def is_equal(self, x1, x2) -> bool:  # +book
@@ -64,8 +63,7 @@ class Space(Component):
 
         :param x1: the first instance
         :param x2: the second instance
-        :return: True if the contents are equal, False otherwise
-        :rtype: bool
+        :return: `True` if the contents are equal, `False` otherwise
         """
 
     def from_str(self, text: str):  # +book
@@ -101,7 +99,6 @@ class Space(Component):
         approximation of the size of the space, then you should override it.
 
         :return: the approximate scale of the space
-        :rtype: int
         """
         return 2
 
@@ -112,10 +109,10 @@ def check_space(space: Optional[Space],
     Check whether an object is a valid instance of :class:`Space`.
 
     :param space: the object
-    :param bool none_is_ok: is it ok if `None` is passed in?
+    :param none_is_ok: is it ok if `None` is passed in?
     :return: the object
     :raises TypeError: if `space` is not an instance of
-        :class:`Space`
+        :class:`~moptipy.api.space.Space`
     """
     if space is None:
         if none_is_ok:

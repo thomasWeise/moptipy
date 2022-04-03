@@ -21,8 +21,8 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     :param end_results: the iterable of end results
     :param name_base: the basic name
     :param dest_dir: the destination directory
-    :param Callable instance_sort_key: the sort key function for instances
-    :param Callable algorithm_sort_key: the sort key function for algorithms
+    :param instance_sort_key: the sort key function for instances
+    :param algorithm_sort_key: the sort key function for algorithms
     """
     logger(f"beginning to plot chart {name_base}.")
     algorithms: Set[str] = set()

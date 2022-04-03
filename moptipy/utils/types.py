@@ -7,11 +7,10 @@ from typing import Union, Optional, Final
 
 def float_to_str(x: float) -> str:
     """
-    Convert float to a string.
+    Convert `float` to a string.
 
-    :param float x: the floating point value
+    :param x: the floating point value
     :return: the string representation
-    :rtype: str
 
     >>> float_to_str(1.3)
     '1.3'
@@ -32,9 +31,8 @@ def bool_to_str(value: bool) -> str:
     """
     Convert a Boolean value to a string.
 
-    :param bool value: the Boolean value
+    :param value: the Boolean value
     :return: the string
-    :rtype: str
 
     >>> print(bool_to_str(True))
     T
@@ -48,9 +46,8 @@ def str_to_bool(value: str) -> bool:
     """
     Convert a string to a boolean value.
 
-    :param str value: the string value
+    :param value: the string value
     :return: the boolean value
-    :rtype: bool
 
     >>> str_to_bool("T")
     True
@@ -73,9 +70,8 @@ def num_to_str(value: Union[int, float]) -> str:
     """
     Transform a numerical type to a string.
 
-    :param Union[int, float] value: the value
+    :param value: the value
     :return: the string
-    :type: str
 
     >>> num_to_str(1)
     '1'
@@ -107,9 +103,8 @@ def intnone_to_str(val: Optional[int]) -> str:
     """
     Convert an integer or `None` to a string.
 
-    :param Optional[int] val: the value
+    :param val: the value
     :return: the string representation
-    :rtype: str
 
     >>> print(repr(intnone_to_str(None)))
     ''
@@ -123,9 +118,8 @@ def str_to_intfloat(val: str) -> Union[int, float]:
     """
     Convert a string to an int or float.
 
-    :param str val: the string value
+    :param val: the string value
     :return: the int or float
-    :rtype: Union[int, float]
 
     >>> print(type(str_to_intfloat("15.0")))
     <class 'int'>
@@ -142,9 +136,8 @@ def str_to_intfloatnone(val: str) -> Union[int, float, None]:
     """
     Convert a string to an int or float or None.
 
-    :param str val: the string value
+    :param val: the string value
     :return: the int or float or None
-    :rtype: Union[int, float, None]
 
     >>> print(str_to_intfloatnone(""))
     None
@@ -160,9 +153,8 @@ def str_to_intnone(val: str) -> Optional[int]:
     """
     Convert a string to an int or None.
 
-    :param str val: the string value
+    :param val: the string value
     :return: the int or None
-    :rtype: Optional[int, None]
 
     >>> print(str_to_intnone(""))
     None
@@ -182,7 +174,7 @@ def __try_int(val: float) -> Union[int, float]:
     """
     Convert a float to an int without any fancy checks.
 
-    :param float val: the flot
+    :param val: the flot
     :returns: the float or int
     """
     if _DBL_INT_LIMIT_N <= val <= DBL_INT_LIMIT_P:
@@ -196,10 +188,9 @@ def try_int(val: Union[int, float]) -> Union[int, float]:
     """
     Attempt to convert a float to an integer.
 
-    :param Union[int, float] val: the input value
+    :param val: the input value
     :return: an `int` if `val` can be represented as `int` without loss of
         precision, `val` otherwise
-    :rtype: Union[int, float]
 
     >>> print(type(try_int(10.5)))
     <class 'float'>
@@ -223,10 +214,9 @@ def try_int_div(a: int, b: int) -> Union[int, float]:
     """
     Try to divide two integers at best precision.
 
-    :param int a: the first integer
-    :param int b: the second integer
+    :param a: the first integer
+    :param b: the second integer
     :return: a/b
-    :rtype: Union[int, float]
 
     >>> print(type(try_int_div(10, 2)))
     <class 'int'>
@@ -251,10 +241,9 @@ def try_float_div(a: Union[int, float], b: Union[int, float]) \
     """
     Try to divide two numbers at best precision.
 
-    :param int a: the first number
-    :param int b: the second number
+    :param a: the first number
+    :param b: the second number
     :return: a/b
-    :rtype: Union[int, float]
 
     >>> print(type(try_float_div(10, 2)))
     <class 'int'>
@@ -279,7 +268,6 @@ def classname(obj) -> str:
 
     :param obj: the object
     :returns: the fully-qualified class name of the object
-    :rtype: str
 
     >>> from moptipy.examples.jssp.instance import Instance
     >>> print(classname(Instance.from_resource("demo")))

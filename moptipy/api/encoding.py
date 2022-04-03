@@ -28,7 +28,7 @@ def check_encoding(encoding: Optional[Encoding],
     Check whether an object is a valid instance of :class:`Encoding`.
 
     :param encoding: the object
-    :param bool none_is_ok: is it ok if `None` is passed in?
+    :param none_is_ok: is it ok if `None` is passed in?
     :return: the object
     :raises TypeError: if `encoding` is not an instance of :class:`Encoding`
     """

@@ -23,10 +23,9 @@ def compute_single_ert(source: Iterable[Progress],
     """
     Compute a single ERT.
 
-    :param Iterable[moptipy.evaluation.Progress] source: the source array
-    :param Union[int, float] goal_f: the goal objective value
+    :param source: the source array
+    :param goal_f: the goal objective value
     :return: the ERT
-    :rtype: float
     """
     n_success: int = 0
     time_sum: int = 0
@@ -62,14 +61,14 @@ class Ert(MultiRun2DData):
         """
         Create the Ert function.
 
-        :param Optional[str] algorithm: the algorithm name, if all runs are
-            with the same algorithm
-        :param Optional[str] instance: the instance name, if all runs are
-            on the same instance
-        :param int n: the total number of runs
-        :param str time_unit: the time unit
-        :param str f_name: the objective dimension name
-        :param np.ndarray ert: the ert matrix
+        :param algorithm: the algorithm name, if all runs are with the same
+            algorithm
+        :param instance: the instance name, if all runs are on the same
+            instance
+        :param n: the total number of runs
+        :param time_unit: the time unit
+        :param f_name: the objective dimension name
+        :param ert: the ert matrix
         """
         super().__init__(algorithm, instance, n, time_unit, f_name)
         if not isinstance(ert, np.ndarray):
@@ -104,10 +103,9 @@ class Ert(MultiRun2DData):
         """
         Store a :class:`Ert` record in a CSV file.
 
-        :param str file: the file to generate
-        :param bool put_header: should we put a header with meta-data?
+        :param file: the file to generate
+        :param put_header: should we put a header with meta-data?
         :return: the fully resolved file name
-        :rtype: Path
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing ERT to CSV file '{path}'.")
@@ -142,15 +140,13 @@ class Ert(MultiRun2DData):
         """
         Create one single Ert record from an iterable of Progress records.
 
-        :param Iterable[moptipy.evaluation.Progress] source: the set of
-            progress instances
-        :param Union[int,float,Callable,None] f_lower_bound: the lower bound
-            for the objective value, or a callable that is applied to a
-            progress object to get the lower bound
-        :param bool use_default_lower_bounds: should we use the default lower
+        :param source: the set of progress instances
+        :param f_lower_bound: the lower bound for the objective value, or a
+            callable that is applied to a progress object to get the lower
+            bound
+        :param use_default_lower_bounds: should we use the default lower
             bounds
         :return: the Ert record
-        :rtype: Ert
         """
         if not isinstance(source, Iterable):
             raise TypeError(
@@ -276,16 +272,15 @@ class Ert(MultiRun2DData):
         """
         Compute one or multiple ERTs from a stream of end results.
 
-        :param Iterable[moptipy.evaluation.Progress] source: the set of
-            progress instances
-        :param float f_lower_bound: the lower bound for the objective value
-        :param bool use_default_lower_bounds: should we use the default lower
+        :param source: the set of progress instances
+        :param f_lower_bound: the lower bound for the objective value
+        :param use_default_lower_bounds: should we use the default lower
             bounds
-        :param Callable[['Ert'], Any] consumer: the destination
-            to which the new records will be passed
-        :param bool join_all_algorithms: should the Ert be aggregated over
-            all algorithms
-        :param bool join_all_instances: should the Ert be aggregated over all
+        :param consumer: the destination to which the new records will be
+            passed
+        :param join_all_algorithms: should the Ert be aggregated over all
+            algorithms
+        :param join_all_instances: should the Ert be aggregated over all
             algorithms
         """
         if not isinstance(source, Iterable):

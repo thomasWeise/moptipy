@@ -20,7 +20,7 @@ class Gantt(np.ndarray):
     additional attribute `instance` which references the JSSP instance
     for which the chart is constructed.
     Gantt charts must only be created by an instance of
-    :class:`moptipy.examples.jssp.gant_space.GanttSpace`.
+    :class:`moptipy.examples.jssp.gantt_space.GanttSpace`.
     """
 
     #: the JSSP instance for which the Gantt chart is created
@@ -31,8 +31,7 @@ class Gantt(np.ndarray):
         """
         Create the Gantt chart.
 
-        :param moptipy.examples.jssp.gant_space.GanttSpace space: the Gantt
-            space for which the instance is created.
+        :param space: the Gantt space for which the instance is created.
         """
         gnt: Final[Gantt] = np.ndarray.__new__(Gantt, space.shape, space.dtype)
         #: the JSSP instance for which the Gantt chart is created

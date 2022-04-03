@@ -27,7 +27,6 @@ def demo_instance() -> Instance:
     Get the demo instance we use.
 
     :return: the demo instance
-    :rtype: moptipy.examples.jssp.Instance
     """
     attr: Final[str] = "_res_"
     if not hasattr(demo_instance, attr):
@@ -40,7 +39,6 @@ def demo_search_space() -> Permutations:
     Obtain an instance of the demo search space.
 
     :return: the demo search space
-    :rtype: moptipy.examples.jssp.PermutationsWithRepetitions
     """
     attr: Final[str] = "_res_"
     if not hasattr(demo_search_space, attr):
@@ -55,9 +53,8 @@ def demo_point_in_search_space(optimum: bool = False) -> np.ndarray:
     """
     Create a demo point in the search space.
 
-    :param bool optimum: should we return the optimal solution?
+    :param optimum: should we return the optimal solution?
     :return: the point
-    :rtype: np.ndarray
     """
     space: Final[Permutations] = demo_search_space()
     res = space.create()
@@ -76,7 +73,6 @@ def demo_solution_space() -> GanttSpace:
     Obtain an instance of the demo solution space.
 
     :return: the demo solution space
-    :rtype: moptipy.examples.jssp.GanttSpace
     """
     attr: Final[str] = "_res_"
     if not hasattr(demo_solution_space, attr):
@@ -90,7 +86,6 @@ def demo_encoding() -> OperationBasedEncoding:
     Obtain an instance of the demo encoding.
 
     :return: the demo encoding
-    :rtype: moptipy.examples.jssp.OperationBasedEncoding
     """
     attr: Final[str] = "_res_"
     if not hasattr(demo_encoding, attr):
@@ -103,9 +98,8 @@ def demo_solution(optimum: bool = False) -> Gantt:
     """
     Create a demo solution.
 
-    :param bool optimum: should we return the optimal solution?
+    :param optimum: should we return the optimal solution?
     :return: the demo solution
-    :rtype: moptipy.examples.jssp.Gantt
     """
     space: Final[GanttSpace] = demo_solution_space()
     result: Final[Gantt] = space.create()
@@ -121,11 +115,10 @@ def __make_gantt_demo_name(optimum: bool,
     """
     Construct the name for the demo gantt chart.
 
-    :param bool optimum: should we return the optimal solution?
-    :param bool with_makespan: should the makespan be included?
-    :param bool with_lower_bound: should the lower bound be included?
+    :param optimum: should we return the optimal solution?
+    :param with_makespan: should the makespan be included?
+    :param with_lower_bound: should the lower bound be included?
     :return: the file name
-    :rtype: str
     """
     prefix: str = "gantt_demo_opt_" if optimum else "gantt_demo_"
     if with_makespan:
@@ -148,13 +141,13 @@ def demo_gantt_chart(dirname: str,
     """
     Plot the demo gantt chart.
 
-    :param str dirname: the directory
-    :param bool optimum: should we return the optimal solution?
-    :param bool with_makespan: should the makespan be included?
-    :param bool with_lower_bound: should the lower bound be included?
-    :param Union[float,int,None] width: the optional width
-    :param Union[float,int,None] height: the optional height
-    :param str filename: the file name
+    :param dirname: the directory
+    :param optimum: should we return the optimal solution?
+    :param with_makespan: should the makespan be included?
+    :param with_lower_bound: should the lower bound be included?
+    :param width: the optional width
+    :param height: the optional height
+    :param filename: the file name
     """
     the_dir: Final[Path] = Path.path(dirname)
     the_dir.ensure_dir_exists()
@@ -211,11 +204,10 @@ def makespan_lower_bound_table(
     Larger lower bounds are taken from the repository
     https://github.com/thomasWeise/jsspInstancesAndResults.
 
-    :param str dirname: the directory where to store the generated file.
-    :param str filename: the filename
-    :param Iterable[str] instances: the instances
+    :param dirname: the directory where to store the generated file.
+    :param filename: the filename
+    :param instances: the instances
     :returns: the generated file
-    :rtype: Path
     """
     insts = list(instances)
     insts.sort()

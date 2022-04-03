@@ -20,7 +20,7 @@ class HillClimber(Algorithm1):
         """
         Apply the hill climber to the given black-box process.
 
-        :param moptipy.api.Process process: the process object
+        :param process: the process object
         """
         # create records for old and new point in the search space
         best_x = process.create()
@@ -51,6 +51,5 @@ class HillClimber(Algorithm1):
         Get the name of this hill climber.
 
         :return: "hc" + any non-standard operator suffixes
-        :rtype: str
         """
         return f"hc{super().__str__()}"

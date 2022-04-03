@@ -1,4 +1,4 @@
-"""An objective function for minimizing the makespan of Gantt charts."""
+"""An objective function for minimizing the makespan of `Gantt` charts."""
 from typing import Final
 
 import numba  # type: ignore
@@ -12,12 +12,12 @@ from moptipy.examples.jssp.instance import Instance
 @numba.njit(nogil=True, cache=True)
 def makespan(x: Gantt) -> int:
     """
-    Get the makespan corresponding to a given :class:`Gantt` chart.
+    Get the makespan corresponding to a given `Gantt` chart.
 
     The makespan corresponds to the maximum of the end times of the
     last operation on each machine.
 
-    :param moptipy.examples.jssp.Gantt x: the Gantt chart.
+    :param x: the Gantt chart.
     :return: the maximum of any time stored in the chart
     """
     return int(x[:, -1, 2].max())  # maximum of end time of last op
@@ -26,15 +26,14 @@ def makespan(x: Gantt) -> int:
 
 # start book
 class Makespan(Objective):
-    """This objective function returns the makespan of a Gantt chart."""
+    """Compute the makespan of a `Gantt` chart."""
 
 # end book
     def __init__(self, instance: Instance) -> None:  # +book
         """
         Initialize the makespan objective function.
 
-        :param moptipy.examples.jssp.Instance instance: the instance to
-            load the bounds from
+        :param instance: the instance to load the bounds from
         """
         super().__init__()
         if not isinstance(instance, Instance):
@@ -48,7 +47,6 @@ class Makespan(Objective):
         Get the lower bound of the makespan.
 
         :return: the lower bound
-        :rtype: int
         """
         return self.__instance.makespan_lower_bound
 
@@ -57,7 +55,6 @@ class Makespan(Objective):
         Get the upper bound of the makespan.
 
         :return: the sum of all job execution times.
-        :rtype: int
         """
         return self.__instance.makespan_upper_bound
 
@@ -66,6 +63,5 @@ class Makespan(Objective):
         Get the name of the makespan objective function.
 
         :return: `makespan`
-        :rtype: str
         """
         return "makespan"

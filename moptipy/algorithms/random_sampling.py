@@ -14,7 +14,7 @@ class RandomSampling(Algorithm0):
         """
         Apply the random sampling approach to the given black-box process.
 
-        :param moptipy.api.Process process: the process object
+        :param process: the process object
         """
         x: Final = process.create()  # record for solution
         # obtain the random number generator
@@ -36,6 +36,5 @@ class RandomSampling(Algorithm0):
         Get the name of this random sampler.
 
         :return: "rs" + any non-standard operator suffixes
-        :rtype: str
         """
         return f"rs{super().__str__()}"

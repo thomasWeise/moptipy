@@ -7,7 +7,7 @@ import numpy as np
 import moptipy.utils.nputils as npu
 from moptipy.api import logging
 from moptipy.api.component import Component
-from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
 
 #: the recommended scope under which instance data should be stored
@@ -71,11 +71,10 @@ def compute_makespan_lower_bound(machines: int,
     """
     Compute the lower bound for the makespan of a JSSP instance data.
 
-    :param int machines: the number of machines
-    :param int jobs: the number of jobs
-    :param np.ndarray matrix: the matrix with the instance data
+    :param machines: the number of machines
+    :param jobs: the number of jobs
+    :param matrix: the matrix with the instance data
     :returns: the lower bound for the makespan
-    :rtype: int
     """
     # get the lower bound of the makespan with the algorithm by Taillard
     usedmachines = np.zeros(machines, np.bool_)  # -lb
@@ -137,8 +136,8 @@ class Instance(Component, np.ndarray):
     where the columns stand for jobs and the rows represent the
     operations of the jobs. Each row*column contains two values (third
     dimension), namely the machine where the operation goes and the time
-    it will consume at that machine: I[job, operation, 0] = machine,
-    I[job, operation, 1] = time job spents on machine.
+    it will consume at that machine: `I[job, operation, 0] = machine`,
+    `I[job, operation, 1] = time` that the job spents on machine.
     """
 
     # the name of the instance
@@ -160,15 +159,14 @@ class Instance(Component, np.ndarray):
         Create an instance of the Job Shop Scheduling Problem.
 
         :param cls: the class
-        :param str name: the name of the instance
-        :param int machines: the number of machines
-        :param int jobs: the number of jobs
-        :param np.ndarray matrix: the matrix with the data (will be copied)
-        :param Optional[int] makespan_lower_bound: the lower bound of the
-            makespan, which may be the known global optimum if the
-            instance has been solved to optimality or any other
-            approximation. If `None` is provided, a lower bound will be
-            computed.
+        :param name: the name of the instance
+        :param machines: the number of machines
+        :param jobs: the number of jobs
+        :param matrix: the matrix with the data (will be copied)
+        :param makespan_lower_bound: the lower bound of the makespan, which
+            may be the known global optimum if the instance has been solved
+            to optimality or any other approximation. If `None` is provided,
+            a lower bound will be computed.
         """
         use_name: Final[str] = logging.sanitize_name(name)
         if name != use_name:
@@ -271,15 +269,14 @@ class Instance(Component, np.ndarray):
         Get the name of this JSSP instance.
 
         :return: the name
-        :rtype: str
         """
         return self.name
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters describing this JSSP instance to the logger.
 
-        :param moptipy.utils.KeyValueSection logger: the logger
+        :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
         logger.key_value(MACHINES, self.machines)
@@ -293,10 +290,9 @@ class Instance(Component, np.ndarray):
         """
         Convert a name and a set of rows of text to an JSSP instance.
 
-        :param str name: the name of the instance
-        :param List[str] rows: the rows
+        :param name: the name of the instance
+        :param rows: the rows
         :return: the JSSP Instance
-        :rtype: Instance
         """
         if not isinstance(rows, list):
             raise TypeError(
@@ -356,10 +352,9 @@ class Instance(Component, np.ndarray):
         """
         Load an instance from a text stream.
 
-        :param str name: the name of the instance to be loaded
+        :param name: the name of the instance to be loaded
         :param stream: the text stream
         :return: the instance
-        :rtype: Instance
         """
         state = 0
         rows: Optional[List[str]] = None
@@ -405,9 +400,8 @@ class Instance(Component, np.ndarray):
         """
         Load the JSSP instances `name` provided as part of moptipy.
 
-        :param str name: the instance name
+        :param name: the instance name
         :return: the instance
-        :rtype: Instance
 
         >>> jssp = Instance.from_resource("demo")
         >>> print(jssp.jobs)
@@ -446,9 +440,8 @@ def check_instance(inst: Instance) -> Instance:
     experiments. All instances in our benchmark set listed above will
     pass this test.
 
-    :param Instance inst: the instance
+    :param inst: the instance
     :returns: the instance, if its contents are OK
-    :rtype: Instance
     """
     if inst is None:
         raise TypeError("Instance must not be None")

@@ -12,7 +12,7 @@ class SingleRandomSample(Algorithm0):
         """
         Apply the single random sampling approach.
 
-        :param moptipy.api.Process process: the process object
+        :param process: the process object
         """
         x: Final = process.create()  # create the solution record
         self.op0.op0(process.get_random(), x)  # randomize contents
@@ -23,6 +23,5 @@ class SingleRandomSample(Algorithm0):
         Get the name of this single random sampler.
 
         :return: "1rs" + any non-standard operator suffixes
-        :rtype: str
         """
         return f"1rs{super().__str__()}"

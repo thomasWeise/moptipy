@@ -29,12 +29,12 @@ class AxisRanger:
         """
         Initialize the axis ranger.
 
-        :param Optional[float] chosen_min: the chosen minimum
-        :param Optional[float] chosen_max: the chosen maximum
-        :param bool use_data_min: use the minimum found in the data?
-        :param bool use_data_max:  use the maximum found in the data?
-        :param bool log_scale: should the axis be log-scaled?
-        :param float log_base: the base to be used for the logarithm
+        :param chosen_min: the chosen minimum
+        :param chosen_max: the chosen maximum
+        :param use_data_min: use the minimum found in the data?
+        :param use_data_max:  use the maximum found in the data?
+        :param log_scale: should the axis be log-scaled?
+        :param log_base: the base to be used for the logarithm
         """
         if not isinstance(log_scale, bool):
             raise TypeError(
@@ -117,7 +117,7 @@ class AxisRanger:
         """
         Register a data array.
 
-        :param np.ndarray data: the data to register
+        :param data: the data to register
         """
         if self.__use_data_min or self.__use_data_max:
             d = data[np.isfinite(data)]
@@ -130,7 +130,7 @@ class AxisRanger:
         """
         Register a single value.
 
-        :param float value: the data to register
+        :param value: the data to register
         """
         if isfinite(value):
             if self.__use_data_min:
@@ -147,7 +147,7 @@ class AxisRanger:
         """
         Register a sequence of values.
 
-        :param Iterable[float] seq: the data to register
+        :param seq: the data to register
         """
         for value in seq:
             self.register_value(value)
@@ -156,9 +156,9 @@ class AxisRanger:
         """
         Apply this axis ranger to the given axis.
 
-        :param Axes axes: the axes object to apply the ranger to
-        :param str which_axis: the axis to which it should be applied, either
-            "x" or "y" or both
+        :param axes: the axes object to which the ranger shall be applied
+        :param which_axis: the axis to which it should be applied, either
+            `"x"` or `"y"` or both (`"xy"`)
         """
         if not isinstance(which_axis, str):
             raise TypeError(
@@ -228,7 +228,6 @@ class AxisRanger:
 
         :return: a reasonable finite value that can be used to replace
             positive infinity
-        :rtype: float
         """
         data_max: float = 0.0
         if self.__chosen_max is not None:
@@ -243,7 +242,6 @@ class AxisRanger:
 
         :return: a reasonable finite value that can be used to replace
             `0`
-        :rtype: float
         """
         data_min: float = 1e-100
         if self.__chosen_min is not None:
@@ -267,16 +265,15 @@ class AxisRanger:
         that usually make sense for the dimension, unless overridden by the
         optional arguments.
 
-        :param str name: the axis type name, supporting `"ms"`, `"FEs"`,
+        :param name: the axis type name, supporting `"ms"`, `"FEs"`,
             `"plain"`, `"scaled"`, and `"normalized"`
-        :param Optional[float] chosen_min: the chosen minimum
-        :param Optional[float] chosen_max: the chosen maximum
-        :param Optional[bool] use_data_min: should the data minimum be used
-        :param Optional[bool] use_data_max: should the data maximum be used
-        :param Optional[bool] log_scale: the log scale indicator
-        :param Optional[float] log_base: the log base
+        :param chosen_min: the chosen minimum
+        :param chosen_max: the chosen maximum
+        :param use_data_min: should the data minimum be used
+        :param use_data_max: should the data maximum be used
+        :param log_scale: the log scale indicator
+        :param log_base: the log base
         :return: the `AxisRanger`
-        :rtype: AxisRanger
         """
         if not isinstance(name, str):
             raise TypeError(f"Axis name must be str, but is {type(name)}.")
@@ -388,15 +385,14 @@ class AxisRanger:
         """
         Generate a function that provides the default per-axis ranger.
 
-        :param Optional[float] chosen_min: the chosen minimum
-        :param Optional[float] chosen_max: the chosen maximum
-        :param Optional[bool] use_data_min: should the data minimum be used
-        :param Optional[bool] use_data_max: should the data maximum be used
-        :param Optional[bool] log_scale: the log scale indicator
-        :param Optional[float] log_base: the log base
-        :return: the a function in the shape of :meth:`for_axis` with the
+        :param chosen_min: the chosen minimum
+        :param chosen_max: the chosen maximum
+        :param use_data_min: should the data minimum be used
+        :param use_data_max: should the data maximum be used
+        :param log_scale: the log scale indicator
+        :param log_base: the log base
+        :return: a function in the shape of :meth:`for_axis` with the
             provided defaults
-        :rtype: Callable
         """
         def __func(name: str,
                    cmi=chosen_min,

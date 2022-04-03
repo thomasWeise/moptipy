@@ -1,4 +1,4 @@
-"""Here we implement a space implementation for :class:`Gantt` charts."""
+"""Here we implement a space implementation for `Gantt` charts."""
 from math import factorial
 from typing import Final, Tuple, Set
 
@@ -7,7 +7,7 @@ import numpy as np
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
-from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
 
 #: the array shape
@@ -18,10 +18,9 @@ def gantt_space_size(jobs: int, machines: int) -> int:
     """
     Compute the size of the Gantt space.
 
-    :param int jobs: the number of jobs
-    :param int machines: the number of machines
+    :param jobs: the number of jobs
+    :param machines: the number of machines
     :return: the size of the search
-    :rtype: int
 
     >>> print(gantt_space_size(8, 5))
     106562062388507443200000
@@ -48,7 +47,7 @@ class GanttSpace(Space):
         """
         Create a Gantt chart space.
 
-        :param moptipy.examples.jssp.Instance instance: the JSSP instance
+        :param instance: the JSSP instance
         """
         if not isinstance(instance, Instance):
             ValueError("Must provide valid JSSP instance, "
@@ -62,14 +61,13 @@ class GanttSpace(Space):
         self.dtype: Final[np.dtype] = int_range_to_dtype(
             min_value=0, max_value=instance.makespan_upper_bound)
         # function wrapper
-        self.copy = np.copyto  # +book # type: ignore
+        self.copy = np.copyto  # type: ignore # +book
 
     def create(self) -> Gantt:  # +book
         """
         Create a Gantt chart object without assigning jobs to machines.
 
         :return: the Gantt chart
-        :rtype: np.ndarray
         """
         return Gantt(self)  # +book
 
@@ -77,10 +75,8 @@ class GanttSpace(Space):
         """
         Convert a Gantt chart to a string.
 
-        :param np.ndarray x: the Gantt chart
-        :return: a string corresponding to the flattened
-            :py:attr:`~Gantt.times` array
-        :rtype: str
+        :param x: the Gantt chart
+        :return: a string corresponding to the flattened `Gantt` array
         """
         return ",".join([str(xx) for xx in np.nditer(x)])  # +book
 
@@ -88,11 +84,10 @@ class GanttSpace(Space):
         """
         Check if two Gantt charts have the same contents.
 
-        :param np.ndarray x1: the first chart
-        :param np.ndarray x2: the second chart
+        :param x1: the first chart
+        :param x2: the second chart
         :return: `True` if both charts are for the same instance and have the
             same structure
-        :rtype: bool
         """
         # start book
         return (x1.instance is x2.instance) and np.array_equal(x1, x2)
@@ -102,9 +97,8 @@ class GanttSpace(Space):
         """
         Convert a string to a Gantt chart.
 
-        :param str text: the string
+        :param text: the string
         :return: the Gantt chart
-        :rtype: np.ndarray
         """
         if not isinstance(text, str):
             raise TypeError(f"text must be str, but is {type(text)}.")
@@ -125,7 +119,7 @@ class GanttSpace(Space):
         The only exception are operations that need 0 time units. They are
         permitted to appear wherever.
 
-        :param np.ndarray x: the Gantt chart
+        :param x: the Gantt chart
         :raises TypeError: if any component of the chart is of the wrong type
         :raises ValueError: if the Gantt chart is not feasible or the makespan
             is wrong
@@ -304,7 +298,6 @@ class GanttSpace(Space):
         Get the number of possible Gantt charts without useless delays.
 
         :return: `factorial(jobs) ** machines`
-        :rtype: int
 
         >>> print(GanttSpace(Instance.from_resource("demo")).n_points())
         7962624
@@ -316,7 +309,6 @@ class GanttSpace(Space):
         Get the name of the Gantt space.
 
         :return: the name
-        :rtype: str
 
         >>> space = GanttSpace(Instance.from_resource("abz7"))
         >>> print(space)
@@ -324,11 +316,11 @@ class GanttSpace(Space):
         """
         return f"gantt_{self.instance}"
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the Gantt space to the given logger.
 
-        :param moptipy.utils.KeyValueSection logger: the logger
+        :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SHAPE, repr(self.shape))

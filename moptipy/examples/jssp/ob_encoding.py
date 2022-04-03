@@ -6,7 +6,7 @@ import numpy as np
 
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.instance import Instance
-from moptipy.utils.logger import KeyValueSection
+from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
 
 #: the numpy data type for machine indices
@@ -28,12 +28,12 @@ def decode(x: np.ndarray,
     """
     Map an operation-based encoded array to a Gantt chart.
 
-    :param np.ndarray x: the source array, i.e., multi-permutation
-    :param np.ndarray machine_idx: array of length `m` for machine indices
-    :param np.ndarray job_time: array of length `n` for job times
-    :param np.ndarray job_idx: length `n` array of current job operations
-    :param np.ndarray matrix: the instance data matrix
-    :param np.ndarray y: the output array: `times` of the Gantt chart
+    :param x: the source array, i.e., multi-permutation
+    :param machine_idx: array of length `m` for machine indices
+    :param job_time: array of length `n` for job times
+    :param job_idx: length `n` array of current job operations
+    :param matrix: the instance data matrix
+    :param y: the output array: `times` of the Gantt chart
     """
     machine_idx.fill(-1)  # all machines start by having done no jobs
     job_time.fill(0)  # each job has initially consumed 0 time units
@@ -84,7 +84,7 @@ class OperationBasedEncoding(Encoding):
         """
         Instantiate the operation based encoding.
 
-        :param moptipy.examples.jssp.Instance instance: the JSSP instance
+        :param instance: the JSSP instance
         """
         if not isinstance(instance, Instance):
             raise ValueError("instance must be valid Instance, "
@@ -104,8 +104,8 @@ class OperationBasedEncoding(Encoding):
         """
         Map an operation-based encoded array to a Gantt chart.
 
-        :param np.array x: the array
-        :param moptipy.examples.jssp.Gantt y: the Gantt chart
+        :param x: the array
+        :param y: the Gantt chart
         """
         decode(x, self.__machine_idx, self.__job_time,  # +book
                self.__job_idx, self.__instance, y)  # +book
@@ -119,11 +119,11 @@ class OperationBasedEncoding(Encoding):
         """
         return "operation_based_encoding"
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log all parameters of this component as key-value pairs.
 
-        :param moptipy.utils.KeyValueSection logger: the logger
+        :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_NUMPY_TYPE_MACHINE_IDX,

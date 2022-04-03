@@ -27,7 +27,7 @@ class Logger(ContextManager):
         Create a new logger.
 
         :param stream: the stream to which we will log, will be closed when
-        the logger is closed
+            the logger is closed
         :param name: the name of the logger
         """
         if not isinstance(name, str):
@@ -55,7 +55,7 @@ class Logger(ContextManager):
         """
         Raise a :class:`ValueError` with context information.
 
-        :param str message: the message elements to merge
+        :param message: the message elements to merge
         :raises ValueError: an error with the message and some context
         information
         """
@@ -84,7 +84,7 @@ class Logger(ContextManager):
         """
         Open a new section.
 
-        :param str title: the section title
+        :param title: the section title
         """
         if self._stream is None:
             self._error(f"Cannot open section '{title}' "
@@ -111,7 +111,7 @@ class Logger(ContextManager):
         """
         Close a section.
 
-        :param str title: the section title
+        :param title: the section title
         """
         if (self.__section is None) or (self.__section != title):
             self._error(f"Cannot open section '{title}' since it is not open")
@@ -128,7 +128,7 @@ class Logger(ContextManager):
         """
         Write a comment.
 
-        :param str comment: the comment
+        :param comment: the comment
         """
         if self.__section is None:
             self._error("Cannot write if not inside section")
@@ -142,7 +142,7 @@ class Logger(ContextManager):
         """
         Write a string.
 
-        :param str text: the text to write
+        :param text: the text to write
         """
         if self.__section is None:
             self._error("Cannot write if not inside section")
@@ -158,7 +158,7 @@ class Logger(ContextManager):
         self._stream.write(text)
         self.__starts_new_line = text.endswith("\n")
 
-    def key_values(self, title: str) -> 'KeyValueSection':
+    def key_values(self, title: str) -> 'KeyValueLogSection':
         r"""
         Create a log section for key-value pairs.
 
@@ -168,9 +168,8 @@ class Logger(ContextManager):
         This means they can be parsed with a YAML parser (after removing the
         section start and end marker, of course).
 
-        :param str title: the title of the new section
+        :param title: the title of the new section
         :return: the new logger
-        :rtype: KeyValueSection
 
         >>> from moptipy.utils.temp import TempFile
         >>> with TempFile.create() as t:
@@ -189,19 +188,18 @@ class Logger(ContextManager):
         >>> print(list(dic.keys()))
         ['a', 'c.d', 'c.e', 'f']
         """
-        return KeyValueSection(title=title, logger=self, prefix="",
-                               done=None)
+        return KeyValueLogSection(title=title, logger=self, prefix="",
+                                  done=None)
 
-    def csv(self, title: str, header: List[str]) -> 'CsvSection':
+    def csv(self, title: str, header: List[str]) -> 'CsvLogSection':
         """
         Create a log section for CSV data with `;` as column separator.
 
         The first line will be the headline with the column names.
 
-        :param str title: the title of the new section
-        :param List[str] header: the list of column titles
+        :param title: the title of the new section
+        :param header: the list of column titles
         :return: the new logger
-        :rtype: CsvSection
 
         >>> from moptipy.utils.logger import FileLogger
         >>> from moptipy.utils.temp import TempFile
@@ -222,15 +220,14 @@ class Logger(ContextManager):
         ['3', '4']
         ['4', '12']
         """
-        return CsvSection(title=title, logger=self, header=header)
+        return CsvLogSection(title=title, logger=self, header=header)
 
-    def text(self, title: str) -> 'TextSection':
+    def text(self, title: str) -> 'TextLogSection':
         r"""
         Create a log section for unstructured text.
 
-        :param str title: the title of the new section
+        :param title: the title of the new section
         :return: the new logger
-        :rtype: TextSection
 
         >>> from moptipy.utils.logger import InMemoryLogger
         >>> with InMemoryLogger() as l:
@@ -242,7 +239,7 @@ class Logger(ContextManager):
         ...     print(l.get_log())
         ['BEGIN_C', 'aaaaaabbbbb', 'ccccc', 'END_C']
         """
-        return TextSection(title=title, logger=self)
+        return TextLogSection(title=title, logger=self)
 
 
 class FileLogger(Logger):
@@ -252,7 +249,7 @@ class FileLogger(Logger):
         """
         Initialize the logger.
 
-        :param str path: the path to the file to open
+        :param path: the path to the file to open
         """
         if not isinstance(path, str):
             raise ValueError("Path must be string but is {type(path)}.")
@@ -275,19 +272,19 @@ class InMemoryLogger(Logger):
         Obtain all the lines logged to this logger.
 
         :return: a list of strings with the logged lines
-        :rtype: List[str]
         """
         return self._stream.getvalue().splitlines()
 
 
-class _Section(ContextManager):
+class LogSection(ContextManager):
+    """An internal base class for logger sections."""
 
     def __init__(self, title: Optional[str], logger: Logger) -> None:
         """
         Perform internal construction. Do not call directly.
 
-        :param Optional[str] title: the section title
-        :param Logger logger: the logger
+        :param title: the section title
+        :param logger: the logger
         """
         self._logger: Logger = logger
         self._title: Optional[str] = title
@@ -322,22 +319,22 @@ class _Section(ContextManager):
         """
         Write a comment line.
 
-        :param str comment: the comment to write
+        :param comment: the comment to write
         """
         # noinspection PyProtectedMember
         self._logger._comment(comment)
 
 
-class CsvSection(_Section):
+class CsvLogSection(LogSection):
     """A logger that is designed to output CSV data."""
 
     def __init__(self, title: str, logger: Logger, header: List[str]) -> None:
         """
         Perform internal construction. Do not call directly.
 
-        :param str title: the title
-        :param Logger logger: the owning logger
-        :param List[str] header: the header
+        :param title: the title
+        :param logger: the owning logger
+        :param header: the header
         """
         super().__init__(title, logger)
 
@@ -360,7 +357,7 @@ class CsvSection(_Section):
         """
         Write a row of csv data.
 
-        :param List[Union[int,float,bool]] row: the row of data
+        :param row: the row of data
         """
         if self.__header_len != len(row):
             # noinspection PyProtectedMember
@@ -380,7 +377,7 @@ class CsvSection(_Section):
         self._logger._write(f"{logging.CSV_SEPARATOR.join(txt)}\n")
 
 
-class KeyValueSection(_Section):
+class KeyValueLogSection(LogSection):
     """A logger for key-value pairs."""
 
     def __init__(self, title: Optional[str],
@@ -388,10 +385,9 @@ class KeyValueSection(_Section):
         """
         Perform internal construction, do not call directly.
 
-        :param Optional[str] title: the section title, or `None` for nested
-        scopes.
-        :param Logger logger: the owning logger
-        :param str prefix: the prefix
+        :param title: the section title, or `None` for nested scopes.
+        :param logger: the owning logger
+        :param prefix: the prefix
         :param done: the set of already done keys and prefixes
         """
         if not isinstance(prefix, str):
@@ -413,9 +409,9 @@ class KeyValueSection(_Section):
         """
         Write a key-value pair.
 
-        :param str key: the key
+        :param key: the key
         :param value: the value
-        :param bool also_hex: also store the value as hexadecimal version
+        :param also_hex: also store the value as hexadecimal version
         """
         key = self._prefix + logging.sanitize_name(key)
         if not self.__done(key):
@@ -446,30 +442,29 @@ class KeyValueSection(_Section):
         # noinspection PyProtectedMember
         self._logger._write(txt)
 
-    def scope(self, prefix: str) -> 'KeyValueSection':
+    def scope(self, prefix: str) -> 'KeyValueLogSection':
         """
         Create a new scope for key prefixes.
 
-        :param str prefix: the key prefix
+        :param prefix: the key prefix
         :return: the new logger
-        :rtype: KeyValueSection
         """
-        return KeyValueSection(
+        return KeyValueLogSection(
             title=None, logger=self._logger,
             prefix=(prefix if (self._prefix is None) else
                     f"{self._prefix}{logging.sanitize_name(prefix)}."),
             done=self.__done)
 
 
-class TextSection(_Section):
+class TextLogSection(LogSection):
     """A logger for raw, unprocessed text."""
 
     def __init__(self, title: str, logger: Logger) -> None:
         """
         Perform internal construction. Do not call it directly.
 
-        :param str title: the title
-        :param Logger logger: the logger
+        :param title: the title
+        :param logger: the logger
         """
         super().__init__(title, logger)
         # noinspection PyProtectedMember
@@ -480,9 +475,8 @@ def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
     """
     Parse a :meth:`~moptipy.utils.logger.Logger.key_values` section's text.
 
-    :param Iterable[str] lines: the lines with the key-values pairs
+    :param lines: the lines with the key-values pairs
     :return: the dictionary with the
-    :rtype: Dict[str, str]
 
     >>> from moptipy.utils.logger import InMemoryLogger
     >>> with InMemoryLogger() as l:

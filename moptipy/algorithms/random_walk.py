@@ -7,8 +7,8 @@ operator to move a new point. It does not really care whether the new point
 is better or worse, it will always accept it.
 
 Of course, it still needs to call the objective function to make sure to
-inform the :class:`Process` about the new point so that, at the end, we can
-obtain the best point that was visited.
+inform the :class:`moptipy.api.process.Process` about the new point so that,
+at the end, we can obtain the best point that was visited.
 But during the course of its run, it will walk around the search space
 randomly without direction.
 """
@@ -32,7 +32,7 @@ class RandomWalk(Algorithm1):
         """
         Apply the random walk to the given black-box process.
 
-        :param moptipy.api.Process process: the process object
+        :param process: the process object
         """
         # create records for old and new point in the search space
         old_x = process.create()
@@ -61,6 +61,5 @@ class RandomWalk(Algorithm1):
         Get the name of this random walk.
 
         :return: "rw" + any non-standard operator suffixes
-        :rtype: str
         """
         return f"rw{super().__str__()}"

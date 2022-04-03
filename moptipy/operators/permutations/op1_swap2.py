@@ -20,9 +20,9 @@ class Op1Swap2(operators.Op1):
         """
         Create a copy `x` into `dest` and swap two different values in `dest`.
 
-        :param Generator random: the random number generator
-        :param np.ndarray dest: the array to be shuffled
-        :param np.ndarray x: the existing point in the search space
+        :param random: the random number generator
+        :param dest: the array to be shuffled
+        :param x: the existing point in the search space
         """
         np.copyto(dest, x)  # first copy source to dest
         length: Final[int] = len(dest)  # get the length
@@ -43,6 +43,5 @@ class Op1Swap2(operators.Op1):
         Get the name of this unary operator.
 
         :return: "swap2"
-        :rtype: str
         """
         return "swap2"

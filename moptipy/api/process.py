@@ -38,7 +38,6 @@ class Process(Space, Objective, ContextManager):
         Obtain the random number generator.
 
         :return: the random number generator
-        :rtype: Generator
         """
 
     def should_terminate(self) -> bool:  # +book
@@ -52,25 +51,26 @@ class Process(Space, Objective, ContextManager):
         at the end of a `with` statement.
 
         :return: True if the process should terminate, False if not
-        :rtype: Generator
         """
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> Union[float, int]:  # +book
         """
         Evaluate a solution `x` and return its objective value.
 
-        This method implements the :meth:`Objective.evaluate` method of
-        the :class:`Objective` function interface, but on
-        :class:`Process` level.
+        This method implements the
+        :meth:`~moptipy.api.objective.Objective.evaluate` method of
+        the :class:`moptipy.api.objective.Objective` function interface,
+        but on :class:`Process` level.
 
         The return value is either an integer or a float and must be
         finite. Smaller objective values are better, i.e., all objective
         functions are subject to minimization.
 
         This method here is a wrapper that internally invokes the actual
-        :class:`Objective` function, but it does more.
+        :class:`~moptipy.api.objective.Objective` function, but it does more.
 
-        While it does use the :meth:`Objective.evaluate` method of the
+        While it does use the
+        :meth:`~moptipy.api.objective.Objective.evaluate` method of the
         objective function to compute the quality of a candidate solution,
         it also internally increments the counter for the objective function
         evaluations (FEs) that have passed. You can request the number of
@@ -109,7 +109,6 @@ class Process(Space, Objective, ContextManager):
 
         :param x: the candidate solution
         :return: the objective value
-        :rtype: Union[float, int]
         """
 
     def register(self, x, f: Union[int, float]) -> None:
@@ -139,7 +138,7 @@ class Process(Space, Objective, ContextManager):
         instance.
 
         :param x: the candidate solution
-        :param Union[int, float] f: the objective value
+        :param f: the objective value
         """
 
     def get_consumed_fes(self) -> int:
@@ -149,7 +148,6 @@ class Process(Space, Objective, ContextManager):
         This is the number of calls to :meth:`evaluate`.
 
         :return: the number of objective function evaluations so far
-        :rtype: int
         """
 
     def get_consumed_time_millis(self) -> int:
@@ -168,7 +166,6 @@ class Process(Space, Objective, ContextManager):
 
         :return: the maximum number of objective function evaluations,
             or `None` if no limit is specified.
-        :rtype: Optional[int]
         """
 
     def get_max_time_millis(self) -> Optional[int]:
@@ -179,7 +176,6 @@ class Process(Space, Objective, ContextManager):
 
         :return: the maximum runtime permitted in milliseconds,
             or `None` if no limit is specified.
-        :rtype: Optional[int]
         """
 
     def has_best(self) -> bool:  # +book
@@ -193,7 +189,6 @@ class Process(Space, Objective, ContextManager):
         called either :meth:`evaluate` or :meth:`register` at least once.
 
         :return: True if the current-best solution can be queried.
-        :rtype: bool
 
         See also:
             - :meth:`get_best_f`
@@ -216,7 +211,6 @@ class Process(Space, Objective, ContextManager):
         :meth:`has_best` before and it returned `True`.
 
         :return: the objective value of the current best solution.
-        :rtype: Union[int,float]
 
         See also:
             - :meth:`has_best`
@@ -277,7 +271,6 @@ class Process(Space, Objective, ContextManager):
         :meth:`has_best` before and it returned `True`.
 
         :return: the function evaluation when the last improvement was made
-        :rtype: int
         :raises ValueError: if no FE was performed yet
         """
 
@@ -290,7 +283,6 @@ class Process(Space, Objective, ContextManager):
         :meth:`has_best` before and it returned `True`.
 
         :return: the function evaluation when the last improvement was made
-        :rtype: int
         :raises ValueError: if no FE was performed yet
         """
 
@@ -319,7 +311,6 @@ class Process(Space, Objective, ContextManager):
         Begin a `with` statement.
 
         :return: this process itself
-        :rtype: Process
         """
         return self
 
@@ -339,10 +330,9 @@ def check_max_fes(max_fes: Optional[int],
     """
     Check the maximum FEs.
 
-    :param Optional[int] max_fes: the maximum FEs
-    :param bool none_is_ok: is None ok?
+    :param max_fes: the maximum FEs
+    :param none_is_ok: is None ok?
     :return: the maximum fes, or None
-    :rtype: Optional[int]
     :raises TypeError: if max_fes is None or not an int
     :raises ValueError: if max_fes is invalid
     """
@@ -364,10 +354,9 @@ def check_max_time_millis(max_time_millis: Optional[int],
     """
     Check the maximum time in milliseconds.
 
-    :param Optional[int] max_time_millis: the maximum time in milliseconds
-    :param bool none_is_ok: is None ok?
+    :param max_time_millis: the maximum time in milliseconds
+    :param none_is_ok: is None ok?
     :return: the maximum time in millseconds, or None
-    :rtype: Optional[int]
     :raises TypeError: if max_time_millis is None or not an int
     :raises ValueError: if max_time_millis is invalid
     """
@@ -390,10 +379,9 @@ def check_goal_f(goal_f: Union[int, float, None],
     """
     Check the goal objective value.
 
-    :param Optional[int] goal_f: the goal objective value
-    :param bool none_is_ok: is None ok?
+    :param goal_f: the goal objective value
+    :param none_is_ok: is None ok?
     :return: the goal objective value, or None
-    :rtype: Union[int, float, None]
     :raises TypeError: if goal_f is None or neither an int nor a float
     :raises ValueError: if goal_f is invalid
     """

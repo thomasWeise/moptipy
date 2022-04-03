@@ -13,7 +13,7 @@ from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import check_goal_f
 from moptipy.api.space import Space, check_space
-from moptipy.utils.logger import KeyValueSection, FileLogger
+from moptipy.utils.logger import KeyValueLogSection, FileLogger
 from moptipy.utils.logger import Logger
 from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
@@ -27,8 +27,8 @@ def _error_1(logger: Logger, title: str, exception_type,
     """
     Create a text section with error information as from a contextmanager.
 
-    :param Logger logger: the logger to write to
-    :param str title: the title of the section with error information to be
+    :param logger: the logger to write to
+    :param title: the title of the section with error information to be
         created
     :param exception_type: the exception type
     :param exception_value: the exception value
@@ -66,8 +66,8 @@ def _error_2(logger: Logger, title: str, exception: BaseException):
     """
     Log an exception.
 
-    :param Logger logger: the logger to write to
-    :param str title: the title of the section with error information to be
+    :param logger: the logger to write to
+    :param title: the title of the section with error information to be
         created
     :param exception: the exception
 
@@ -115,17 +115,15 @@ class _ProcessNoSS(_ProcessBase):
         """
         Perform the internal initialization. Do not call directly.
 
-        :param Space solution_space: the search- and solution space.
-        :param Objective objective: the objective function
-        :param Algorithm algorithm: the optimization algorithm
-        :param Optional[Path] log_file: the optional log file
-        :param Optional[int] rand_seed: the optional random seed
-        :param Optional[int] max_fes: the maximum permitted function
-            evaluations
-        :param Optional[int] max_time_millis: the maximum runtime in
-            milliseconds
-        :param Union[int, float, None] goal_f: the goal objective
-            value: if it is reached, the process is terminated
+        :param solution_space: the search- and solution space.
+        :param objective: the objective function
+        :param algorithm: the optimization algorithm
+        :param log_file: the optional log file
+        :param rand_seed: the optional random seed
+        :param max_fes: the maximum permitted function evaluations
+        :param max_time_millis: the maximum runtime in milliseconds
+        :param goal_f: the goal objective value. if it is reached, the process
+            is terminated
         """
         super().__init__(max_fes=max_fes,
                          max_time_millis=max_time_millis,
@@ -228,7 +226,7 @@ class _ProcessNoSS(_ProcessBase):
             return self._copy_y(x, self._current_best_y)
         raise ValueError('No current best available.')
 
-    def _log_own_parameters(self, logger: KeyValueSection) -> None:
+    def _log_own_parameters(self, logger: KeyValueLogSection) -> None:
         super()._log_own_parameters(logger)
         logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed, True)
         logger.key_value(logging.KEY_RAND_GENERATOR_TYPE,
@@ -236,7 +234,7 @@ class _ProcessNoSS(_ProcessBase):
         logger.key_value(logging.KEY_RAND_BIT_GENERATOR_TYPE,
                          classname(self.__random.bit_generator))
 
-    def log_parameters_to(self, logger: KeyValueSection) -> None:
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         super().log_parameters_to(logger)
         with logger.scope(logging.SCOPE_ALGORITHM) as sc:
             self.__algorithm.log_parameters_to(sc)

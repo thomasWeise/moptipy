@@ -49,13 +49,19 @@ class LogParser(ABC):
         """
         Enter a directory to parse all files inside.
 
-        This method is called by :meth:`parse_dir`. If it returns `True`,
-        every sub-directory inside of it will be passed to :meth:`start_dir`
-        and every file will be passed to :meth:`start_file`.
-        Only if `True` is returned, :meth:`end_dir` will be invoked and its
-        return value will be the return value of :meth:`parse_dir`. If `False`
-        is returned, then :meth:`parse_dir` will return immediately and return
-        `True`.
+        This method is called by
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`.
+        If it returns `True`, every sub-directory inside of it will be passed
+        to :meth:`~moptipy.evaluation.log_parser.LogParser.start_dir`
+        and every file will be passed to
+        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file`.
+        Only if `True` is returned,
+        :meth:`~moptipy.evaluation.log_parser.LogParser.end_dir` will be
+        invoked and its return value will be the return value of
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`. If `False`
+        is returned, then
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir` will return
+        immediately and return `True`.
 
         :param Path path: the path of the directory
         :return: `True` if all the files and sub-directories inside the
@@ -73,9 +79,12 @@ class LogParser(ABC):
         """
         Enter a directory to parse all files inside.
 
-        This method is called by :meth:`parse_dir`. If it returns `True`,
-        every sub-directory inside of it will be passed to :meth:`start_dir`
-        and every file will be passed to :meth:`start_file`.
+        This method is called by
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`.
+        If it returns `True`, every sub-directory inside of it will be passed
+        to :meth:`~moptipy.evaluation.log_parser.LogParser.start_dir`
+        and every file will be passed to
+        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file`.
 
         :param Path path: the path of the directory
         :return: `True` if all the files and sub-directories inside the
@@ -93,14 +102,18 @@ class LogParser(ABC):
         """
         Decide whether to start parsing a file.
 
-        This method is called by :meth:`parse_file`. If it returns `True`,
-        then we will open and parse the file. If it returns `False`, then
-        the fill will not be parsed and :meth:`parse_file` will return
-        `True` immediately.
+        This method is called by
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file`. If it
+        returns `True`, then we will open and parse the file. If it returns
+        `False`, then the fill will not be parsed and
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` will
+        return `True` immediately.
 
         :param Path path: the file path
         :return: `True` if the file should be parsed, `False` if it should be
-            skipped (and :meth:`parse_file` should return `True`).
+            skipped (and
+            :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
+            return `True`).
         :rtype: bool
         """
         return path.endswith(logging.FILE_SUFFIX)
@@ -111,15 +124,17 @@ class LogParser(ABC):
         Start a section.
 
         If this method returns `True`, then all the lines of text of the
-        section `title` will be read and together passed to :meth:`lines`.
+        section `title` will be read and together passed to
+        :meth:`~moptipy.evaluation.log_parser.LogParser.lines`.
         If this method returns `False`, then the section will be skipped
         and we fast-forward to the next section, if any, or to the call
-        of :meth:`end_file`.
+        of :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`.
 
         :param str title: the section title
         :return: `True` if the section data should be loaded and passed to
             :meth:`lines`, `False` of the section can be skipped. In that
-            case, we will fast forward to the next :meth:`start_section`.
+            case, we will fast-forward to the next
+            :meth:`~moptipy.evaluation.log_parser.LogParser.start_section`.
         :rtype: bool
         """
         if not title:
@@ -139,14 +154,17 @@ class LogParser(ABC):
         from whitespace and comments, empty lines are omitted.
         If this method returns `True`, we will continue parsing the file and
         move to the next section, if any, or directly to the end of the file
-        parsing process (and call :meth:`end_file`) if there is no more
-        section in the file.
+        parsing process (and call
+        :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`) if there is
+        no more section in the file.
 
         :param List[str] lines: the line to consume
         :return: `True` if further parsing is necessary and the next section
-            should be fed to :meth:`start_section`, `False` if the parsing
-            process can be terminated, in which case we will fast forward to
-            :meth:`end_file`
+            should be fed to
+            :meth:`~moptipy.evaluation.log_parser.LogParser.start_section`,
+            `False` if the parsing
+            process can be terminated, in which case we will fast-forward to
+            :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`
         :rtype: bool
         """
         del lines
@@ -159,10 +177,11 @@ class LogParser(ABC):
 
         This method is invoked when we have reached the end of the current
         file. Its return value, `True` or `False`, will then be returned
-        by :meth:`parse_file`, which is the entry point for the file parsing
-        process.
+        by :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file`, which
+        is the entry point for the file parsing process.
 
-        :return: the return value to be returned by :meth:`parse_file`
+        :return: the return value to be returned by
+            :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file`
         :rtype: bool
         """
         return True
@@ -171,24 +190,32 @@ class LogParser(ABC):
         """
         Parse the contents of a file.
 
-        This method first calls the function :meth:`start_file` to see
-        whether the file should be parsed. If :meth:`start_file` returns
-        `True`, then the file is parsed. If :meth:`start_file` returns
+        This method first calls the function
+        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file` to see
+        whether the file should be parsed. If
+        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file` returns
+        `True`, then the file is parsed. If
+        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file` returns
         `False`, then this method returns `False` directly.
-        If the file is parsed, then :meth:`start_sections` will be invoked for
-        each section (until the parsing is finished) and :meth:`lines` for
-        each section content (if requested). At the end, :meth:`end_file` is
-        invoked.
+        If the file is parsed, then
+        :meth:`~moptipy.evaluation.log_parser.LogParser.start_section` will
+        be invoked for each section (until the parsing is finished) and
+        :meth:`~moptipy.evaluation.log_parser.LogParser.lines` for
+        each section content (if requested). At the end,
+        :meth:`~moptipy.evaluation.log_parser.LogParser.end_file` is invoked.
 
         This method can either be called directly or is called by
-        :meth:`parse_dir`. In the latter case, if :meth:`parse_file` returned
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`. In the
+        latter case, if
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` returned
         `True`, the next file in the current directory will be parsed. If it
         returns `False`, then no file located in the current directory will be
         parsed, while other directories and/or sub-directories will still be
         processed.
 
         :param str path: the file to parse
-        :return: the return value of :meth:`end_file`
+        :return: the return value received from invoking
+            :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`
         :rtype: bool
         """
         file: Final[Path] = Path.file(path)
@@ -298,8 +325,11 @@ class LogParser(ABC):
         Recursively parse the given directory.
 
         :param str path: the path to the directory
-        :return: `True` either if :meth:`start_dir` returned `False` or
-            :meth:`end_dir` returned `True`, `False` otherwise
+        :return: `True` either if
+            :meth:`~moptipy.evaluation.log_parser.LogParser.start_dir`
+            returned `False` or
+            :meth:`~moptipy.evaluation.log_parser.LogParser.end_dir` returned
+            `True`, `False` otherwise
         :rtype: bool
         """
         folder: Final[Path] = Path.directory(path)
@@ -361,9 +391,11 @@ class LogParser(ABC):
         """
         Parse either a directory or a file.
 
-        If `path` identifies a file, :meth:`parse_file` is invoked and its
-        result is returned. If `path` identifies a directory, then
-        :meth:`parse_dir` is invoked and its result is returned.
+        If `path` identifies a file,
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` is invoked
+        and its result is returned. If `path` identifies a directory, then
+        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir` is invoked
+        and its result is returned.
 
         :param str path: a path identifying either a directory or a file.
         :return: the result of the appropriate parsing routing
@@ -401,7 +433,9 @@ class ExperimentParser(LogParser):
 
         :param str path: the file path
         :return: `True` if the file should be parsed, `False` if it should be
-            skipped (and :meth:`parse_file` should return `True`).
+            skipped (and
+            :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
+            return `True`).
         :rtype: bool
         """
         if not super().start_file(path):

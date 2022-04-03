@@ -17,7 +17,6 @@ class ErtEcdf(Ecdf):
         Get the time axis label.
 
         :return: the time key
-        :rtype: str
         """
         return f"ERT\u2009[{self.time_unit}]"
 
@@ -26,7 +25,6 @@ class ErtEcdf(Ecdf):
         Get the time key.
 
         :return: the time key
-        :rtype: str
         """
         return f"ert[{super()._time_key()}]"
 
@@ -39,7 +37,6 @@ class ErtEcdf(Ecdf):
         :param source: the source array
         :param goal: the goal value
         :return: a list of times
-        :rtype: List[float]
         """
         return [compute_single_ert(source, goal)]
 
@@ -49,10 +46,9 @@ class ErtEcdf(Ecdf):
         """
         Get the divisor.
 
-        :param int n: the number of runs
-        :param int n_insts: the number of instances
+        :param n: the number of runs
+        :param n_insts: the number of instances
         :return: the divisor
-        :rtype: int
         """
         del n
         return n_insts

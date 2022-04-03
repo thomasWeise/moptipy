@@ -180,11 +180,10 @@ def __recursive_replace(find: str, replace: str, src: str) -> str:
     """
     Perform a recursive replacement of strings.
 
-    :param str find: the string to find
-    :param str replace: the string with which it will be replaced
-    :param str src: the string in which we search
+    :param find: the string to find
+    :param replace: the string with which it will be replaced
+    :param src: the string in which we search
     :return: the string src, with all occurrences of find replaced by replace
-    :rtype: str
     """
     new_len = len(src)
     while True:
@@ -210,9 +209,8 @@ def sanitize_name(name: str) -> str:
     >>> sanitize_name(" _ i _ am _ funny   --6 _ ")
     'i_am_funny_-6'
 
-    :param str name: the name that should be sanitized
+    :param name: the name that should be sanitized
     :return: the sanitized name
-    :rtype: str
     :raises ValueError: if the name is invalid or empty
     :raises TypeError: if the name is None or not a string
     """
@@ -256,7 +254,6 @@ def sanitize_names(names: List[str]) -> str:
 
     :param names: the list of names.
     :return: the sanitized name
-    :retype: str
     """
     return PART_SEPARATOR.join([
         sanitize_name(name) for name in names if len(name) > 0])

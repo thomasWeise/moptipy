@@ -24,10 +24,9 @@ def _check_log_file(log_file: Optional[str],
     """
     Check a log file.
 
-    :param Optional[str] log_file: the log file
-    :param bool none_is_ok: is `None` ok for log files?
+    :param log_file: the log file
+    :param none_is_ok: is `None` ok for log files?
     :return: the log file
-    :rtype: Optional[str]
     """
     if log_file is None:
         if none_is_ok:
@@ -42,9 +41,10 @@ class Execution:
     This class follows the builder pattern. It allows us to
     step-by-step store all the parameters needed to execute an
     experiment. Via the method :meth:`~Execution.execute`, we can then
-    run the experiment and obtain the instance of :class:`Process`
-    *after* the execution of the algorithm. From this instance, we can
-    query the final result of the algorithm application.
+    run the experiment and obtain the instance of
+    :class:`~moptipy.api.process.Process` *after* the execution of the
+    algorithm. From this instance, we can query the final result of the
+    algorithm application.
     """
 
     def __init__(self) -> None:
@@ -67,7 +67,7 @@ class Execution:
         """
         Set the algorithm to be used for this experiment.
 
-        :param moptipy.api.Algorithm algorithm: the algorithm
+        :param algorithm: the algorithm
         """
         self.__algorithm = check_algorithm(algorithm)
 
@@ -78,7 +78,6 @@ class Execution:
         Requires that :meth:`set_algorithm` was called first.
 
         :return: the algorithm
-        :rtype: moptipy.api.Algorithm
         """
         return check_algorithm(self.__algorithm)
 
@@ -89,7 +88,7 @@ class Execution:
         This is the space managing the data structure holding the candidate
         solutions.
 
-        :param moptipy.api.Space solution_space: the solution space
+        :param solution_space: the solution space
         """
         self.__solution_space = check_space(solution_space)
 
@@ -99,7 +98,7 @@ class Execution:
 
         This is the function rating the quality of candidate solutions.
 
-        :param moptipy.api.Objective objective: the objective function
+        :param objective: the objective function
         """
         self.__objective = check_objective(objective)
 
@@ -109,8 +108,8 @@ class Execution:
 
         This is the space from which the algorithm samples points.
 
-        :param Optional[moptipy.api.Space] search_space: the search space, or
-            `None` of none shall be used
+        :param search_space: the search space, or `None` of none shall be
+            used, i.e., if search and solution space are the same
         """
         self.__search_space = check_space(search_space, none_is_ok=True)
 
@@ -121,8 +120,7 @@ class Execution:
         This is the function translating from the search space to the
         solution space.
 
-        :param Optional[moptipy.api.Encoding] encoding: the encoding, or
-            `None` of none shall be used
+        :param Encoding: the encoding, or `None` of none shall be used
         """
         self.__encoding = check_encoding(encoding, none_is_ok=True)
 
@@ -130,8 +128,8 @@ class Execution:
         """
         Set the seed to be used for initializing the random number generator.
 
-        :param Optional[int] rand_seed: the random seed, or `None` if a seed
-            should automatically be chosen when the experiment is executed
+        :param rand_seed: the random seed, or `None` if a seed should
+            automatically be chosen when the experiment is executed
         """
         self.__rand_seed = None if rand_seed is None \
             else rand_seed_check(rand_seed)
@@ -145,9 +143,9 @@ class Execution:
         to evaluate. If this method is called multiple times, then the
         shortest limit is used unless `force_override` is `True`.
 
-        :param int max_fes: the maximum FEs
-        :param bool force_override: the use the value given in
-            `max_time_millis` regardless of what was specified before
+        :param max_fes: the maximum FEs
+        :param force_override: the use the value given in `max_time_millis`
+            regardless of what was specified before
         """
         max_fes = check_max_fes(max_fes)
         if not (self.__max_fes is None):
@@ -165,9 +163,9 @@ class Execution:
         method is called multiple times, the shortest time is used unless
         `force_override` is `True`.
 
-        :param int max_time_millis: the maximum time in milliseconds
-        :param bool force_override: the use the value given in
-            `max_time_millis` regardless of what was specified before
+        :param max_time_millis: the maximum time in milliseconds
+        :param force_override: the use the value given in `max_time_millis`
+            regardless of what was specified before
         """
         max_time_millis = check_max_time_millis(max_time_millis)
         if not (self.__max_time_millis is None):
@@ -183,7 +181,7 @@ class Execution:
         If this method is called multiple times, then the largest value is
         retained.
 
-        :param Union[int, float] goal_f: the goal objective value.
+        :param goal_f: the goal objective value.
         """
         goal_f = check_goal_f(goal_f)
         if not (self.__goal_f is None):
@@ -197,7 +195,7 @@ class Execution:
 
         This method can be called arbitrarily often.
 
-        :param str log_file: the log file
+        :param log_file: the log file
         """
         self.__log_file = _check_log_file(log_file, True)
 
@@ -205,7 +203,7 @@ class Execution:
         """
         Set whether improvements should be logged.
 
-        :param bool log_improvements: if improvements should be logged?
+        :param log_improvements: if improvements should be logged?
         """
         if not isinstance(log_improvements, bool):
             raise ValueError("log improvements must be bool, but is "
@@ -216,7 +214,7 @@ class Execution:
         """
         Set whether all FEs should be logged.
 
-        :param bool log_all_fes: if all FEs should be logged?
+        :param log_all_fes: if all FEs should be logged?
         """
         if not isinstance(log_all_fes, bool):
             raise ValueError(
@@ -228,7 +226,6 @@ class Execution:
         Execute the experiment and return the process after the run.
 
         :return: the process that can be queried for the result
-        :rtype: moptipy.api.Process
         """
         algorithm = check_algorithm(self.__algorithm)
         solution_space = check_space(self.__solution_space)
