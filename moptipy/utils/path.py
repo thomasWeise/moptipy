@@ -1,8 +1,8 @@
 """The base class with the information of a build."""
 
 import codecs
-import io
 import os.path
+from io import open, TextIOBase
 from typing import cast, List, Iterable, Final, Union, Tuple
 
 
@@ -163,14 +163,13 @@ class Path(str):
         os.makedirs(name=self, exist_ok=True)
         self.enforce_dir()
 
-    def open_for_read(self):
+    def open_for_read(self) -> TextIOBase:
         """
         Open this file for reading.
 
         :return: the file open for reading
-        :rtype: io.TextIOWrapper
         """
-        return cast(io.TextIOWrapper, io.open(
+        return cast(TextIOBase, open(
             self, mode="rt", encoding=_get_text_encoding(self),
             errors="strict"))
 
@@ -206,14 +205,13 @@ class Path(str):
             raise ValueError(f"File '{self}' contains no text.")
         return ret
 
-    def open_for_write(self):
+    def open_for_write(self) -> TextIOBase:
         """
         Open the file for writing.
 
         :return: the text io wrapper for writing
-        :rtype: io.TextIOWrapper
         """
-        return cast(io.TextIOWrapper, io.open(
+        return cast(TextIOBase, open(
             self, mode="wt", encoding="utf-8", errors="strict"))
 
     def write_all(self, contents: Union[str, Iterable[str]]) -> None:

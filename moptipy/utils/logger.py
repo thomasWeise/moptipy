@@ -1,6 +1,7 @@
 """Classes for writing structured log files."""
+
 from contextlib import AbstractContextManager
-from io import StringIO
+from io import StringIO, TextIOBase
 from math import isfinite
 from os.path import realpath
 from re import sub
@@ -23,7 +24,7 @@ class Logger(AbstractContextManager):
     experiments with `moptipy`.
     """
 
-    def __init__(self, stream, name: str) -> None:
+    def __init__(self, stream: TextIOBase, name: str) -> None:
         """
         Create a new logger.
 
@@ -35,9 +36,12 @@ class Logger(AbstractContextManager):
             raise ValueError(f"Name must be string but is {type(name)}.")
         if stream is None:
             raise ValueError("stream must be valid stream but is None.")
+        if not isinstance(stream, TextIOBase):
+            raise TypeError(
+                f"stream must be TextIOBase, but is {type(stream)}.")
 
         #: The internal stream
-        self._stream = stream
+        self._stream: TextIOBase = stream
         self.__section: Optional[str] = None
         self.__starts_new_line: bool = True
         self.__log_name: str = name
@@ -274,7 +278,7 @@ class InMemoryLogger(Logger):
 
         :return: a list of strings with the logged lines
         """
-        return self._stream.getvalue().splitlines()
+        return cast(StringIO, self._stream).getvalue().splitlines()
 
 
 class LogSection(AbstractContextManager):
