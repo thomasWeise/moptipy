@@ -80,6 +80,17 @@ create_documentation: static_analysis test
     rm -rf docs/source/*.rst && \
     rm -rf docs/source/*.md && \
     mv docs/source/index.tmp docs/source/index.rst && \
+	echo "Now we pygmentize all the examples in 'examples' to 'build/examples'." &&\
+    mkdir -p docs/build/examples &&\
+    for f in examples/*.py; do \
+    	if [ -z "$$f" ]; then \
+  			echo "Empty module '$$f'?"; \
+	  	else \
+			echo "Now pygmentizing example '$$f'." &&\
+			{ pygmentize -f html -l python -O full -o docs/build/"$${f%.py}.html" "$$f" || exit 1; };\
+		fi \
+    done &&\
+    echo "Finished pygmentizing all examples." &&\
     echo "Done creating the documentation."
 
 # Create different distribution formats, also to check if there is any error.

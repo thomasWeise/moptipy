@@ -37,6 +37,7 @@ algorithm = EA1plus1(  # create (1+1)-EA that
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempFile.create() as tf:  # create temporary file `tf`
     ex = Execution()  # begin configuring execution

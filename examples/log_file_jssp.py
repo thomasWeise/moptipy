@@ -7,6 +7,7 @@ from moptipy.utils.temp import TempDir  # temp directory tool
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.

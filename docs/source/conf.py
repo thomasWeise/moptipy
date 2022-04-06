@@ -74,8 +74,13 @@ with open(os.path.abspath(os.path.sep.join([
 release = release["__version__"]
 
 # The Sphinx extension modules that we use.
-extensions = ['sphinx.ext.autodoc', 'myst_parser', 'sphinx.ext.intersphinx',
-              'sphinx_autodoc_typehints']
+extensions = ['myst_parser',  # for processing README.md
+              'sphinx.ext.autodoc',  # to convert docstrings to documentation
+              'sphinx.ext.doctest',  # do the doc tests again
+              'sphinx.ext.intersphinx',  # to link to numpy et al.
+              'sphinx_autodoc_typehints',  # to infer types from hints
+              'sphinx.ext.viewcode',  # add rendered source code
+              ]
 
 # Location of dependency documentation for cross-referencing.
 intersphinx_mapping = {

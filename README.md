@@ -119,7 +119,7 @@ Notice that you *must* always use the instances of `Process` in a [`with` block]
 Once this block is left, the log file will be written.
 If you use it outside of a `with` block, no log file will be generated.
 
-Let us now look at a concrete example, which is also available as file [examples/single_run_ea1plus1_onemax](https://github.com/thomasWeise/moptipy/blob/main/examples/single_run_ea1plus1_onemax.py).
+Let us now look at a concrete example, which is also available as file [examples/single_run_ea1plus1_onemax](./examples/single_run_ea1plus1_onemax.html).
 As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`(1+1) EA`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.ea1plus1).
 
 ```python
@@ -140,6 +140,7 @@ algorithm = EA1plus1(  # create (1+1)-EA that
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempFile.create() as tf:  # create temporary file `tf`
   ex = Execution()  # begin configuring execution
@@ -230,7 +231,7 @@ We use again the  [bit strings domain](https://thomasweise.github.io/moptipy/mop
 We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones)) of two different sizes each, leading to four problem instances in total.
 We apply the well-known [`(1+1) EA`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.ea1plus1) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
-The code below is available as file [examples/experiment_2_algorithms_4_problems](https://github.com/thomasWeise/moptipy/blob/main/examples/experiment_2_algorithms_4_problems.py).
+The code below is available as file [examples/experiment_2_algorithms_4_problems](./examples/experiment_2_algorithms_4_problems.html).
 Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#42-end-result-csv-files) for more information). 
 
 ```python
@@ -288,6 +289,7 @@ def make_random_sampling(problem) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
@@ -450,7 +452,7 @@ All of this is implemented in the source code example below in [Section 3.3.3](#
 #### 3.3.3. Applying an Own Algorithm to an Own Problem
 
 The following code combines our [own algorithm](#332-define-a-new-algorithm) and our [own problem type](#331-define-a-new-problem-type) that we discussed in the prior two sections and executes an experiment.
-It is available as file [examples/experiment_own_algorithm_and_problem](https://github.com/thomasWeise/moptipy/blob/main/examples/experiment_own_algorithm_and_problem.py).
+It is available as file [examples/experiment_own_algorithm_and_problem](./examples/experiment_own_algorithm_and_problem.html).
 Notice how we provide functions for generating both the problem instances (here the objective functions) and the algorithm setups exactly as we described in [Section 3.2.](#32-how-to-run-a-series-of-experiments) above.
 
 ```python
@@ -591,6 +593,7 @@ def make_execution(problem) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
@@ -758,7 +761,7 @@ The following exception sections are currently supported:
 #### 4.1.3. Example
 
 You can execute the following Python code to obtain an example log file.
-This code is also available in file [examples/log_file_jssp.py](https://github.com/thomasWeise/moptipy/blob/main/examples/log_file_jssp.py):
+This code is also available in file [examples/log_file_jssp.py](./examples/log_file_jssp.html):
 
 ```python
 from moptipy.algorithms.ea1plus1 import EA1plus1  # the algorithm we use
@@ -769,6 +772,7 @@ from moptipy.utils.temp import TempDir  # temp directory tool
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.
@@ -916,7 +920,7 @@ Notice that from the algorithm and instance name together with the random seed, 
 #### 4.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
-We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://github.com/thomasWeise/moptipy/blob/main/examples/end_results_jssp.py).
+We can do that with the code below, which is also available as file [examples/end_results_jssp.py](./examples/end_results_jssp.html).
 
 ```python
 from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
@@ -929,6 +933,7 @@ from moptipy.utils.temp import TempDir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
@@ -1029,7 +1034,7 @@ Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the com
 #### 4.3.2. Example for End Result Statistics Files
 
 We can basically execute the same abridged experiment as in the [previous section](#422-an-example-for-end-results-files), but now take the aggregation of information one step further with the code below.
-This code is also available as file [examples/end_statistics_jssp](https://github.com/thomasWeise/moptipy/blob/main/examples/end_statistics_jssp.py).
+This code is also available as file [examples/end_statistics_jssp](./examples/end_statistics_jssp.html).
 
 ```python
 from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
@@ -1043,6 +1048,7 @@ from moptipy.utils.temp import TempDir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
@@ -1101,7 +1107,7 @@ The format is otherwise similar to the End Results CSV format.
 
 ### 5.2. Progress Plots
 
-In the file [examples/progress_plot.py](https://github.com/thomasWeise/moptipy/blob/main/examples/progress_plot.py), you can find some code running a small experiment and creating "progress plots."
+In the file [examples/progress_plot.py](./examples/progress_plot.html), you can find some code running a small experiment and creating "progress plots."
 A progress plot is a diagram that shows how an algorithm improves the solution quality over time.
 The solution quality can be the raw objective value, the objective value scaled by the goal objective value, or the objective value normalized with the goal objective value.
 The time can be measured in objective function evaluations (FEs) or in milliseconds and may be log-scaled or unscaled.
@@ -1118,7 +1124,7 @@ Progress plots are implemented in the module [moptipy.evaluation.plot_progress_i
 
 ### 5.3. ECDF Plots
 
-In the file [examples/ecdf_plot.py](https://github.com/thomasWeise/moptipy/blob/main/examples/ecdf_plot.py), you can find some code running a small experiment and creating "ECDF plots."
+In the file [examples/ecdf_plot.py](./examples/ecdf_plot.html), you can find some code running a small experiment and creating "ECDF plots."
 The empirical cumulative distribution function (ECDF) is a plot that aggregates data over several runs of an optimization algorithm.
 It has the consumed runtime (in FEs or milliseconds) on its horizontal axis and the fraction of runs that succeeded in reaching a specified goal on its vertical axis.
 Therefore, an ECDF curve is a monotonously increasing curve:
@@ -1142,7 +1148,7 @@ ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](htt
 
 ### 5.4. End Results Plot
 
-In the file [examples/end_results_plot.py](https://github.com/thomasWeise/moptipy/blob/main/examples/end_results_plot.py), you can find some code running a small experiment and creating "end results plots."
+In the file [examples/end_results_plot.py](./examples/end_results_plot.html), you can find some code running a small experiment and creating "end results plots."
 An end results plot is basically a [box plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html) overlay on top of a [violin plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html).
 
 Imagine that you conduct multiple runs of one algorithm on one problem instance, let's say 50.
