@@ -90,7 +90,8 @@ create_documentation: static_analysis test
 			{ pygmentize -f html -l python -O full -o docs/build/"$${f%.py}.html" "$$f" || exit 1; };\
 		fi \
     done &&\
-    echo "Finished pygmentizing all examples." &&\
+    echo "Finished pygmentizing all examples, now copying LICENSE." &&\
+    pygmentize -f html -l text -O full -o docs/build/LICENSE.html LICENSE &&\
     echo "Done creating the documentation."
 
 # Create different distribution formats, also to check if there is any error.

@@ -43,10 +43,14 @@ for line in old_lines:
         elif line.startswith("#"):
             line = line[1:]  # move all sub-headings one step up
         else:  # fix all internal urls
+            line = line.replace("https://github.com/thomasWeise/"
+                                "moptipy/blob/main/LICENSE",
+                                "./LICENSE.html")
             for k in [html_baseurl, f"http{html_baseurl[5:]}"]:
                 line = line.replace(f"]({k}", "](./")\
                     .replace(f' src="{k}', ' src="./')\
                     .replace(f' href="{k}', ' href="./')
+
     new_lines.append(line)
 
 with io.open(os.path.join(doc_path, "README.md"), "wt",
