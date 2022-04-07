@@ -105,3 +105,6 @@ html_static_path = ["_static"]
 
 # The theme to use for HTML and HTML Help pages.
 html_theme = 'bizstyle'
+
+# Code syntax highlighting style:
+pygments_style = 'default'
