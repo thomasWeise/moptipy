@@ -238,6 +238,8 @@ class Table(AbstractContextManager):
         self.__nrows += 1
         self.__in_row = True
         self.__cell = 0
+        if is_header:
+            self.__driver.begin_header(self.__stream, self.__cols)
         self.__driver.begin_row(self.__stream, self.__cols, self.__nrows,
                                 self.__ngroups, self.__nrows_in_group,
                                 is_header)
@@ -270,6 +272,8 @@ class Table(AbstractContextManager):
         self.__driver.end_row(self.__stream, self.__cols, self.__nrows,
                               self.__ngroups, self.__nrows_in_group,
                               is_header)
+        if is_header:
+            self.__driver.end_header(self.__stream, self.__cols)
 
     def _cell(self, text: str, bold: bool, italic: bool, code: bool,
               is_header: bool) -> None:
@@ -287,7 +291,7 @@ class Table(AbstractContextManager):
         if self.__header_mode <= 0:
             raise ValueError(f"Cannot have cell '{text}' before header.")
         if self.__header_mode >= 1:
-            if not self.__in_row_group:
+            if not (is_header or self.__in_row_group):
                 raise ValueError(
                     f"Can only start cell '{text}' inside of row group.")
         if (self.__header_mode == 1) != is_header:
@@ -369,6 +373,7 @@ class RowGroup(AbstractContextManager):
         """
         # noinspection PyProtectedMember
         self.__owner._start_group()
+        return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """
@@ -426,6 +431,7 @@ class Row(AbstractContextManager):
         """
         # noinspection PyProtectedMember
         self.__owner._start_row(self.__is_header)
+        return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """
@@ -440,7 +446,32 @@ class Row(AbstractContextManager):
 
 
 class Markdown(TableDriver):
-    """The markdown table driver."""
+    r"""
+    The markdown table driver.
+
+    >>> from io import StringIO
+    >>> s = StringIO()
+    >>> with Table(s, "lrc", Markdown()) as t:
+    ...     with t.header() as h:
+    ...         h.cell("1", bold=True)
+    ...         h.cell("2", code=True)
+    ...         h.cell("3", italic=True)
+    ...     with t.group() as g:
+    ...         with g.row() as r:
+    ...             r.cell("a")
+    ...             r.cell("b")
+    ...             r.cell("c")
+    ...         with g.row() as r:
+    ...             r.cell("d")
+    ...             r.cell("e")
+    ...             r.cell("f")
+    ...     print(f"'{s.getvalue()}'")
+    '|**1**|`2`|*3*|
+    |:--|--:|:-:|
+    |a|b|c|
+    |d|e|f|
+    '
+    """
 
     def end_header(self, stream: TextIOBase, cols: str) -> None:
         """End the header of a markdown table."""
