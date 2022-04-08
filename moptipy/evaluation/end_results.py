@@ -260,7 +260,7 @@ class EndResult(PerRunData):
         """
         Produce a function that obtains the given dimension from EndResults.
 
-        :param dimension: the dimension record
+        :param dimension: the dimension
         :returns: a callable that returns the value corresponding to the
             dimension
         """

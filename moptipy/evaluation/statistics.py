@@ -3,7 +3,7 @@
 import statistics
 from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
-from typing import Union, Iterable, Final, cast
+from typing import Union, Iterable, Final, cast, Dict, Callable
 
 from moptipy.utils.types import num_to_str
 from moptipy.api import logging
@@ -32,6 +32,17 @@ CSV_COLS: Final[int] = 6
 
 #: The empty csv row of statistics
 EMPTY_CSV_ROW: Final[str] = logging.CSV_SEPARATOR * (CSV_COLS - 1)
+
+#: the internal getters
+_GETTERS: Final[Dict[str, Callable[['Statistics'],
+                                   Union[int, float, None]]]] = {
+    KEY_MINIMUM: lambda s: s.minimum,
+    KEY_MEDIAN: lambda s: s.median,
+    KEY_MEAN_ARITH: lambda s: s.mean_arith,
+    KEY_MEAN_GEOM: lambda s: s.mean_geom,
+    KEY_MAXIMUM: lambda s: s.maximum,
+    KEY_STDDEV: lambda s: s.stddev
+}
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -435,3 +446,21 @@ class Statistics:
                           str_to_intfloatnone(geo),
                           str_to_intfloat(maxi),
                           str_to_intfloat(sd))
+
+    @staticmethod
+    def getter(dimension: str) -> Callable[['Statistics'],
+                                           Union[int, float, None]]:
+        """
+        Produce a function that obtains the given dimension from Statistics.
+
+        :param dimension: the dimension
+        :returns: a callable that returns the value corresponding to the
+            dimension
+        """
+        if not isinstance(dimension, str):
+            raise TypeError(
+                f"dimension must be str, but is {type(dimension)}.")
+        if dimension in _GETTERS:
+            return _GETTERS[dimension]
+        raise ValueError(f"unknown dimension '{dimension}', "
+                         f"should be one of {sorted(_GETTERS.keys())}.")

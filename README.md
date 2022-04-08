@@ -751,6 +751,7 @@ The following exception sections are currently supported:
 - If an exception occurred in the context of the optimization process, it will be stored in `ERROR_IN_CONTEXT`.
   This may be an error during the execution of the algorithm, or, more likely, an error in the code that accesses the process data afterwards, e.g., that processes the best solution encountered.
 - If the validation of the finally returned candidate solution failed, the resulting error will be stored in section `ERROR_INVALID_Y`.
+- If the internally remembered best objective value does not match to the objective value of the internally remembered best solution after re-evaluating it at the end, the corresponding information will be stored in section `ERROR_BEST_F_MISMATCH`.
 - If the validation of the finally returned point in the search space failed, the resulting error will be stored in section `ERROR_INVALID_X`.
 - If an inconsistency in the time measurement is discovered, this will result in the section `ERROR_TIMING`.
   Such an error may be caused when the computer clock is adjusted during the run of an optimization algorithm.

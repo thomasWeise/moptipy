@@ -48,6 +48,8 @@ SECTION_ERROR_IN_RUN: Final[str] = f"{ERROR_SECTION_PREFIX}IN_RUN"
 SECTION_ERROR_IN_CONTEXT: Final[str] = f"{ERROR_SECTION_PREFIX}IN_CONTEXT"
 #: the section indicating an invalid candidate solution
 SECTION_ERROR_INVALID_Y: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_Y"
+#: the section indicating a mismatch of the computed and registered best f
+SECTION_ERROR_BEST_F: Final[str] = f"{ERROR_SECTION_PREFIX}BEST_F_MISMATCH"
 #: the section indicating an invalid point in the search space
 SECTION_ERROR_INVALID_X: Final[str] = f"{ERROR_SECTION_PREFIX}INVALID_X"
 #: the section indicating that the time measurement has an error

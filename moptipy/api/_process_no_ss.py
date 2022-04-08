@@ -1,7 +1,7 @@
 """Providing a process without explicit logging with a single space."""
 import os
 from io import StringIO
-from math import inf
+from math import inf, isfinite
 from traceback import print_tb
 from typing import Optional, Union, Final, Callable
 
@@ -297,14 +297,32 @@ class _ProcessNoSS(_ProcessBase):
         # noinspection PyProtectedMember
         super().__exit__(exception_type, exception_value, traceback)
 
-        y_error: Optional[BaseException] = None
-        x_error: Optional[BaseException] = None
-        t_error: Optional[BaseException] = None
-        log_error: Optional[BaseException] = None
+        # Update the total consumed time, but not include the error checks
+        # below.
+        self._current_time_nanos = _TIME_IN_NS()
+
+        y_error: Optional[BaseException] = None  # error in solution?
+        v_error: Optional[BaseException] = None  # error in objective value?
+        x_error: Optional[BaseException] = None  # error in search space?
+        t_error: Optional[BaseException] = None  # error in timing?
+        log_error: Optional[BaseException] = None  # error while logging?
         try:
             self._solution_space.validate(self._current_best_y)
         except BaseException as be:
             y_error = be
+        try:
+            ff = self._f(self._current_best_y)
+            if ff != self._current_best_f:
+                raise ValueError(
+                    "We re-computed the objective value of the best solution"
+                    f"and got {ff}, but it has been registered as "
+                    f"{self._current_best_f}!")
+            if not isfinite(ff):
+                raise ValueError(
+                    f"Reproduced the objective value {ff} of the best "
+                    "solution, but it is not finite?")
+        except BaseException as be:
+            v_error = be
         try:
             self._validate_x()
         except BaseException as be:
@@ -315,7 +333,6 @@ class _ProcessNoSS(_ProcessBase):
             t_error = be
 
         if self.__log_file is not None:
-            self._current_time_nanos = _TIME_IN_NS()
             with FileLogger(self.__log_file) as logger:
                 try:
                     self._write_log(logger)
@@ -330,6 +347,8 @@ class _ProcessNoSS(_ProcessBase):
                              exception_type, exception_value, traceback)
                 if y_error:
                     _error_2(logger, logging.SECTION_ERROR_INVALID_Y, y_error)
+                if v_error:
+                    _error_2(logger, logging.SECTION_ERROR_BEST_F, v_error)
                 if x_error:
                     _error_2(logger, logging.SECTION_ERROR_INVALID_X, x_error)
                 if t_error:
@@ -338,10 +357,14 @@ class _ProcessNoSS(_ProcessBase):
                     _error_2(logger, logging.SECTION_ERROR_IN_LOG, log_error)
 
         if not exception_type:
+            # if no error happened when closing the process, raise any error
+            # caught during validation.
             if self._caught is not None:
                 raise self._caught  # pylint: disable=[E0702]
             if y_error:
                 raise y_error
+            if v_error:
+                raise v_error
             if x_error:
                 raise x_error
             if t_error:

@@ -12,6 +12,7 @@ from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
 from moptipy.utils.log import logger
 from moptipy.utils.path import Path
 from moptipy.utils.types import str_to_intfloat, try_int, try_int_div
+from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
@@ -25,6 +26,27 @@ KEY_SUCCESS_TIME_MILLIS: Final[str] = "successTimeMillis"
 KEY_ERT_FES: Final[str] = "ertFEs"
 #: The key for the ERT in milliseconds.
 KEY_ERT_TIME_MILLIS: Final[str] = "ertTimeMillis"
+
+#: the internal getters that can work directly
+_GETTERS_0: Final[Dict[str, Callable[['EndStatistics'],
+                                     Union[int, float, None]]]] = {
+    KEY_N_SUCCESS: lambda s: s.n_success,
+    KEY_ERT_FES: lambda s: s.ert_fes,
+    KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis
+}
+
+#: the internal getters that access end statistics
+_GETTERS_1: Final[Dict[str, Callable[['EndStatistics'],
+                                     Optional[Statistics]]]] = {
+    log.KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
+    log.KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+        lambda s: s.last_improvement_time_millis,
+    log.KEY_TOTAL_FES: lambda s: s.total_fes,
+    log.KEY_TOTAL_TIME_MILLIS: lambda s: s.total_time_millis,
+    F_NAME_RAW: lambda s: s.best_f,
+    F_NAME_SCALED: lambda s: s.best_f_scaled,
+}
+_GETTERS_1[log.KEY_BEST_F] = _GETTERS_1[F_NAME_RAW]
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -1110,3 +1132,43 @@ class EndStatistics(MultiRunData):
 
         logger("Finished reading end result statistics from CSV "
                f"file '{path}'.")
+
+    @staticmethod
+    def getter(dimension: str) -> Callable[['EndStatistics'],
+                                           Union[int, float, None]]:
+        """
+        Create a function that obtains the given dimension from EndStatistics.
+
+        :param dimension: the dimension
+        :returns: a callable that returns the value corresponding to the
+            dimension
+        """
+        if not isinstance(dimension, str):
+            raise TypeError(
+                f"dimension must be str, but is {type(dimension)}.")
+        if dimension in _GETTERS_0:
+            return _GETTERS_0[dimension]
+
+        ssi: int = dimension.find(log.SCOPE_SEPARATOR)
+        if ssi > 0:
+            scope: str = dimension[:ssi]
+            dim: str = dimension[ssi + 1:]
+            if (len(scope) <= 0) or (len(dim) <= 0):
+                raise ValueError(
+                    f"invalid dimension '{dimension}', has "
+                    f"scope '{scope}' and sub-dimension '{dim}'")
+            if scope in _GETTERS_1:
+                l1 = _GETTERS_1[scope]
+                l2 = Statistics.getter(dim)
+
+                def __inner(s: EndStatistics,
+                            ll1=l1,
+                            ll2=l2):
+                    a = ll1(s)
+                    if a is None:
+                        return None
+                    return ll2(a)
+
+                return __inner
+
+        raise ValueError(f"unknown dimension '{dimension}'.")
