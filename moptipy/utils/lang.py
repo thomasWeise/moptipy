@@ -1,11 +1,14 @@
-"""Utilities for creating visualizations in multiple languages."""
+"""
+The :class:`Lang` class provides facilities for easy internationalization.
+
+The idea here is to have simply tools that provide locale-specific keywords,
+texts, and number formats.
+"""
 
 from typing import Dict, Final, Optional, Iterable, List, Callable
 
 import matplotlib  # type: ignore
 
-import moptipy.api.logging as lg
-import moptipy.evaluation.base as bs
 from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
@@ -13,11 +16,8 @@ from moptipy.utils.types import type_error
 class Lang:
     """A language-based dictionary for locale-specific keywords."""
 
-    def __init__(self,
-                 name: str,
-                 font: str,
-                 decimal_stepwidth: int,
-                 data: Dict[str, str]):
+    def __init__(self, name: str, font: str, decimal_stepwidth: int = 3,
+                 data: Optional[Dict[str, str]] = None):
         """
         Instantiate the language formatter.
 
@@ -47,7 +47,8 @@ class Lang:
 
         #: the dictionary with the translation data
         self.__dict: Final[Dict[str, str]] = {}
-        self.extend(data)
+        if data:
+            self.extend(data)
 
     def extend(self, data: Dict[str, str]) -> None:
         """
@@ -59,7 +60,7 @@ class Lang:
             raise type_error(data, "data", Dict)
         for k, v in data.items():
             k = sanitize_name(k)
-            if k in self.__dict:
+            if (k in self.__dict) and (self.__dict[k] != v):
                 raise ValueError(
                     f"Key '{k}' appears twice, already assigned to "
                     f"'{self.__dict[k]}', cannot assign to '{v}'.")
@@ -77,7 +78,6 @@ class Lang:
         :return: the filename
         :rtype: str
 
-        >>> from moptipy.evaluation.lang import Lang
         >>> print(Lang.get("en").filename("test"))
         test_en
         >>> print(Lang.get("zh").filename("test"))
@@ -112,7 +112,6 @@ class Lang:
         :param item: the key
         :param kwargs: the keyword-based arguments
 
-        >>> from moptipy.evaluation.lang import Lang
         >>> l = Lang.get("en")
         >>> l.extend({"z": "{a}: bla{b}"})
         >>> print(l.format("z", a=5, b=6))
@@ -132,7 +131,6 @@ class Lang:
 
         :return: the default font for this language
 
-        >>> from moptipy.evaluation.lang import Lang
         >>> print(Lang.get("en").font())
         DejaVu Sans
         >>> print(Lang.get("zh").font())
@@ -147,7 +145,6 @@ class Lang:
         :param value: the value
         :returns: a string representation of the value
 
-        >>> from moptipy.evaluation.lang import Lang
         >>> print(Lang.get("en").format_int(100000))
         100'000
         >>> print(Lang.get("zh").format_int(100000))
@@ -217,7 +214,6 @@ class Lang:
 
         :return: the current language
 
-        >>> from moptipy.evaluation.lang import Lang
         >>> Lang.get("en").set_current()
         >>> print(Lang.current().filename("b"))
         b_en
@@ -254,13 +250,14 @@ class Lang:
         :param key: the key
         :returns: the value of the key in the current language
 
-        >>> from moptipy.evaluation.lang import Lang
-        >>> Lang.get("en").set_current()
-        >>> print(Lang.translate("feasible"))
-        feasible
+        >>> EN.extend({'a': 'b'})
+        >>> EN.set_current()
+        >>> print(Lang.translate("a"))
+        b
+        >>> DE.extend({'a': 'c'})
         >>> Lang.get("de").set_current()
-        >>> print(Lang.translate("feasible"))
-        realisierbar
+        >>> print(Lang.translate("a"))
+        c
         """
         return Lang.current()[key]
 
@@ -272,12 +269,15 @@ class Lang:
         :param func: the function name
         :returns: the function
 
-        >>> from moptipy.evaluation.lang import Lang
         >>> Lang.get("en").set_current()
+        >>> Lang.get("en").extend({"ERT": "ERT"})
+        >>> Lang.get("en").extend({"FEs": "time in FEs"})
         >>> f = Lang.translate_func("ERT")
         >>> print(f("FEs"))
         ERT [time in FEs]
         >>> Lang.get("de").set_current()
+        >>> Lang.get("de").extend({"ERT": "ERT"})
+        >>> Lang.get("de").extend({"FEs": "Zeit in FEs"})
         >>> print(f("FEs"))
         ERT [Zeit in FEs]
         """
@@ -286,75 +286,15 @@ class Lang:
         return __tf
 
 
-lang_en = Lang("en", "DejaVu Sans", 3, {
-    "f": "f",
-    "feasible": "feasible",
-    "name": "name",
-    "time": "time",
-    "time_in_fes": "time in FEs",
-    "time_in_ms": "time in ms",
-    "lower_bound": "lower bound",
-    "lower_bound_short": "lb",
-    bs.F_NAME_NORMALIZED: "normalized f",
-    bs.F_NAME_SCALED: "scaled f",
-    bs.F_NAME_RAW: "f",
-    bs.TIME_UNIT_FES: "time in FEs",
-    bs.TIME_UNIT_MILLIS: "time in ms",
-    lg.KEY_TOTAL_TIME_MILLIS: "total time in ms",
-    lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "last improvement time at ms",
-    lg.KEY_TOTAL_FES: "total time in FEs",
-    lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE",
-    "algorithm_on_instance": "algorithm \u00d7 instance",
-    "ERT": "ERT",
-    "ECDF": "ECDF"
-})
-lang_en.register()
-lang_en.set_current()
+#: the English language
+EN: Final[Lang] = Lang("en", "DejaVu Sans", 3)
+EN.register()
+EN.set_current()
 
-Lang("de", lang_en.font(), 3, {
-    "f": "f",
-    "feasible": "realisierbar",
-    "name": "Name",
-    "time": "Zeit",
-    "time_in_ms": "Zeit in ms",
-    "time_in_fes": "Zeit in FEs",
-    "lower_bound": "untere Schranke",
-    "lower_bound_short": "us",
-    bs.F_NAME_NORMALIZED: "normalisierte f",
-    bs.F_NAME_SCALED: "skalierte f",
-    bs.F_NAME_RAW: "f",
-    bs.TIME_UNIT_FES: "Zeit in FEs",
-    bs.TIME_UNIT_MILLIS: "Zeit in ms",
-    lg.KEY_TOTAL_TIME_MILLIS: "Gesamtzeit in ms",
-    lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "letzte Verbesserung bei ms",
-    lg.KEY_TOTAL_FES: "Gesamtzeit in FEs",
-    lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE",
-    "algorithm_on_instance": "Algorithmus \u00d7 Instanz",
-    "ERT": "ERT",
-    "ECDF": "ECDF"
-}).register()
+#: the German language
+DE: Final[Lang] = Lang("de", EN.font(), 3)
+DE.register()
 
-del lang_en
-
-Lang("zh", "Noto Sans SC", 4, {
-    "f": "f",
-    "feasible": "可行的",
-    "name": "名称",
-    "time": "时间",
-    "time_in_ms": "时间(毫秒)",
-    "time_in_fes": "时间(目标函数的评价)",
-    "lower_bound": "下界",
-    "lower_bound_short": "下界",
-    bs.F_NAME_NORMALIZED: "归一化f",
-    bs.F_NAME_SCALED: "标度f",
-    bs.F_NAME_RAW: "f",
-    bs.TIME_UNIT_FES: "时间(目标函数的评价)",
-    bs.TIME_UNIT_MILLIS: "时间(毫秒)",
-    lg.KEY_TOTAL_TIME_MILLIS: "总时间(毫秒)",
-    lg.KEY_LAST_IMPROVEMENT_TIME_MILLIS: "最后一次改进是在(毫秒)",
-    lg.KEY_TOTAL_FES: "总时间(目标函数的评价)",
-    lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)",
-    "algorithm_on_instance": "优化算法 \u00d7 优化问题实例",
-    "ERT": "经验估计运行时间",
-    "ECDF": "经验累积分布函数"
-}).register()
+#: the Chinese language
+ZH: Final[Lang] = Lang("zh", "Noto Sans SC", 4)
+ZH.register()

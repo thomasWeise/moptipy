@@ -34,10 +34,10 @@ from typing import Tuple, Iterable, List
 import numba  # type: ignore
 import numpy as np
 
-from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp import experiment
 from moptipy.examples.jssp.gantt_space import gantt_space_size
 from moptipy.examples.jssp.instance import Instance
+from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 

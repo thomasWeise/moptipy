@@ -12,8 +12,8 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.lang import Lang
 from moptipy.utils.console import logger
+from moptipy.utils.lang import Lang
 from moptipy.utils.types import type_error
 
 

@@ -5,9 +5,9 @@ from typing import Final, Callable, Iterable, Set, List
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.plot_end_results_impl import plot_end_results
 from moptipy.utils.console import logger
+from moptipy.utils.lang import Lang
 
 
 def plot_end_makespans(end_results: Iterable[EndResult],

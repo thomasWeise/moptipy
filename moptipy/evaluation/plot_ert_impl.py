@@ -12,8 +12,8 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
 from moptipy.evaluation.ert import Ert
-from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.styler import Styler
+from moptipy.utils.lang import Lang
 from moptipy.utils.types import type_error
 
 

@@ -6,7 +6,6 @@ from typing import Final, List, Union, Callable, Iterable
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
 
-from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -17,6 +16,7 @@ from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart, \
     marker_lb, marker_makespan
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
+from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path, UTF8
 from moptipy.utils.plot_utils import create_figure, save_figure, \
     cm_to_inch

@@ -10,10 +10,10 @@ import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
-from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, get_statistic
 from moptipy.evaluation.styler import Styler
+from moptipy.utils.lang import Lang
 from moptipy.utils.types import type_error
 
 

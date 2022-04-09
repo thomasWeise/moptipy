@@ -312,7 +312,7 @@ class Statistics:
                 else:  # variance is float
                     var = (int_sum_sqr - (int_sum2 / i_n)) / (n - 1)
 
-                stddev = sqrt(var)
+                stddev = try_int(sqrt(var))
 
             if minimum > 0:  # geometric mean only defined for all-positive
                 if int_prod == 0:
@@ -354,7 +354,7 @@ class Statistics:
             if minimum > 0:
                 mean_geom = statistics.geometric_mean(source)
             if n > 1:
-                stddev = statistics.stdev(source)
+                stddev = try_int(statistics.stdev(source))
 
         if mean_geom is not None:
             # Deal with errors that may have arisen due to

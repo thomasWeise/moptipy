@@ -11,9 +11,9 @@ import moptipy.utils.nputils as npu
 from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, KEY_N
-from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
+from moptipy.utils.lang import Lang
 from moptipy.utils.logger import CSV_SEPARATOR, KEY_VALUE_SEPARATOR, \
     COMMENT_CHAR
 from moptipy.utils.path import Path
