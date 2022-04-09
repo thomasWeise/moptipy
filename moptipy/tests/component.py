@@ -4,6 +4,7 @@ from typing import Final, Set
 from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import InMemoryLogger
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_name_of
 
 
@@ -32,7 +33,7 @@ def validate_component(component: Component) -> None:
                          "leading or trailing white space, "
                          f"but returns a '{name}'.")
 
-    clean_name = logging.sanitize_name(name)
+    clean_name = sanitize_name(name)
     if clean_name != name:
         raise ValueError(
             "str(component) must return a string which does not "

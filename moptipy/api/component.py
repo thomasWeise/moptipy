@@ -3,6 +3,7 @@ from typing import Callable, Final
 
 from moptipy.api import logging
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_name_of, type_error
 
 
@@ -46,7 +47,7 @@ class CallableComponent(Component):
         #: the inner callable
         self._inner: Final[Callable] = inner
         #: the name of the component
-        self.__name: Final[str] = logging.sanitize_name(name)
+        self.__name: Final[str] = sanitize_name(name)
 
     def __str__(self) -> str:
         """

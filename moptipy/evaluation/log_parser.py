@@ -9,6 +9,7 @@ from moptipy.api import logging
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
+from moptipy.utils.strings import sanitize_name, PART_SEPARATOR
 
 
 class LogParser(ABC):
@@ -433,11 +434,11 @@ class ExperimentParser(LogParser):
 
         inst_dir = dirname(path)
         algo_dir = dirname(inst_dir)
-        self.instance = logging.sanitize_name(basename(inst_dir))
-        self.algorithm = logging.sanitize_name(basename(algo_dir))
+        self.instance = sanitize_name(basename(inst_dir))
+        self.algorithm = sanitize_name(basename(algo_dir))
 
-        start = f"{self.algorithm}{logging.PART_SEPARATOR}" \
-                f"{self.instance}{logging.PART_SEPARATOR}0x"
+        start = f"{self.algorithm}{PART_SEPARATOR}" \
+                f"{self.instance}{PART_SEPARATOR}0x"
         base = basename(path)
         if not base.startswith(start):
             raise ValueError(

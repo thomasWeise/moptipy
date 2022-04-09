@@ -5,10 +5,10 @@ from typing import Final, List, Tuple, Optional
 import numpy as np
 
 import moptipy.utils.nputils as npu
-from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
 #: the recommended scope under which instance data should be stored
@@ -169,7 +169,7 @@ class Instance(Component, np.ndarray):
             to optimality or any other approximation. If `None` is provided,
             a lower bound will be computed.
         """
-        use_name: Final[str] = logging.sanitize_name(name)
+        use_name: Final[str] = sanitize_name(name)
         if name != use_name:
             raise ValueError(f"Name '{name}' is not a valid name.")
 
@@ -450,7 +450,7 @@ def check_instance(inst: Instance) -> Instance:
     if not isinstance(inst.name, str):
         raise type_error(inst.name, "inst.name", str)
     if (len(inst.name) <= 0) \
-            or (inst.name != logging.sanitize_name(inst.name)):
+            or (inst.name != sanitize_name(inst.name)):
         raise ValueError(f"invalid instance name '{inst.name}'")
     if inst.machines <= 0:
         raise ValueError(f"inst.machines must be > 0, but is {inst.machines}"

@@ -7,9 +7,9 @@ from typing import Tuple, Final, Set, List, Optional, Iterable, Union, \
 
 from numpy.random import Generator
 
-from moptipy.api import logging
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator, rand_seeds_from_str
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
 
@@ -146,7 +146,7 @@ class Instance:
         """
         if not isinstance(name, str):
             raise type_error(name, "name", str)
-        if name != logging.sanitize_name(name):
+        if name != sanitize_name(name):
             raise ValueError(f"Invalid name '{name}'.")
         object.__setattr__(self, "name", name)
 
@@ -409,7 +409,7 @@ class Algorithm:
         """
         if not isinstance(name, str):
             raise type_error(name, "name", str)
-        if name != logging.sanitize_name(name):
+        if name != sanitize_name(name):
             raise ValueError(f"Invalid name '{name}'.")
         object.__setattr__(self, "name", name)
 

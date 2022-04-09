@@ -11,7 +11,7 @@ from typing import Optional, List, Union, cast, Final, Callable, Tuple, \
 from moptipy.api import logging
 from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
-from moptipy.utils.strings import bool_to_str, float_to_str
+from moptipy.utils.strings import bool_to_str, float_to_str, sanitize_name
 from moptipy.utils.types import type_error
 
 
@@ -418,7 +418,7 @@ class KeyValueLogSection(LogSection):
         :param value: the value
         :param also_hex: also store the value as hexadecimal version
         """
-        key = self._prefix + logging.sanitize_name(key)
+        key = self._prefix + sanitize_name(key)
         if not self.__done(key):
             # noinspection PyProtectedMember
             self._logger._error("Key '{key}' already used")
@@ -457,7 +457,7 @@ class KeyValueLogSection(LogSection):
         return KeyValueLogSection(
             title=None, logger=self._logger,
             prefix=(prefix if (self._prefix is None) else
-                    f"{self._prefix}{logging.sanitize_name(prefix)}."),
+                    f"{self._prefix}{sanitize_name(prefix)}."),
             done=self.__done)
 
 

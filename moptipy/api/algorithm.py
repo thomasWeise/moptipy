@@ -1,12 +1,13 @@
 """The base classes for implementing optimization algorithms."""
 from typing import Callable, Final
 
-from moptipy.api import logging
 from moptipy.api.component import Component, CallableComponent
+from moptipy.api.logging import SCOPE_OP0, SCOPE_OP1, SCOPE_OP2
 from moptipy.api.operators import Op0, check_op0, Op1, check_op1, \
     Op2, check_op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.strings import PART_SEPARATOR
 from moptipy.utils.types import type_error
 
 
@@ -47,7 +48,7 @@ class Algorithm0(Algorithm):
             raise type_error(op0_is_default, "op0_is_default", bool)
         #: The internal name suffix
         self._name_suffix: str = "" if op0_is_default else \
-            f"{logging.PART_SEPARATOR}{op0}"
+            f"{PART_SEPARATOR}{op0}"
 
     def __str__(self) -> str:
         """
@@ -64,7 +65,7 @@ class Algorithm0(Algorithm):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        with logger.scope(logging.SCOPE_OP0) as sc:
+        with logger.scope(SCOPE_OP0) as sc:
             self.op0.log_parameters_to(sc)
 
 
@@ -93,8 +94,8 @@ class Algorithm1(Algorithm0):
         if not isinstance(op1_is_default, bool):
             raise type_error(op1_is_default, "op1_is_default", bool)
         #: the internal name suffix
-        self._name_suffix += ("" if op1_is_default else
-                              f"{logging.PART_SEPARATOR}{op1}")
+        if not op1_is_default:
+            self._name_suffix += f"{PART_SEPARATOR}{op1}"
 
     def log_parameters_to(self, logger: KeyValueLogSection):
         """
@@ -103,7 +104,7 @@ class Algorithm1(Algorithm0):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        with logger.scope(logging.SCOPE_OP1) as sc:
+        with logger.scope(SCOPE_OP1) as sc:
             self.op1.log_parameters_to(sc)
 
 
@@ -139,8 +140,8 @@ class Algorithm2(Algorithm1):
         if not isinstance(op2_is_default, bool):
             raise type_error(op2_is_default, "op2_is_default", bool)
         #: the internal name suffix
-        self._name_suffix += ("" if op2_is_default else
-                              f"{logging.PART_SEPARATOR}{op2}")
+        if not op2_is_default:
+            self._name_suffix += f"{PART_SEPARATOR}{op2}"
 
     def log_parameters_to(self, logger: KeyValueLogSection):
         """
@@ -149,7 +150,7 @@ class Algorithm2(Algorithm1):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        with logger.scope(logging.SCOPE_OP2) as sc:
+        with logger.scope(SCOPE_OP2) as sc:
             self.op2.log_parameters_to(sc)
 
 

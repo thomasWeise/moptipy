@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from math import inf
 from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 
+import moptipy.api.logging as log
 import moptipy.utils.types
-from moptipy.api import logging as log
 from moptipy.evaluation._utils import _check_max_time_millis
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
 from moptipy.evaluation.base import MultiRunData, KEY_N
@@ -14,7 +14,7 @@ from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, \
 from moptipy.utils.console import logger
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
-from moptipy.utils.strings import str_to_intfloat
+from moptipy.utils.strings import str_to_intfloat, sanitize_name
 from moptipy.utils.types import type_error, type_name_of
 
 #: The key for the best F.
@@ -1028,11 +1028,11 @@ class EndStatistics(MultiRunData):
 
                     try:
                         if has_algorithm:
-                            algo = log.sanitize_name(row[0])
+                            algo = sanitize_name(row[0])
                             idx += 1
 
                         if has_instance:
-                            inst = log.sanitize_name(row[idx])
+                            inst = sanitize_name(row[idx])
                             idx += 1
 
                         n = int(row[idx])

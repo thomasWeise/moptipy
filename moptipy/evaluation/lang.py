@@ -6,7 +6,7 @@ import matplotlib  # type: ignore
 
 import moptipy.api.logging as lg
 import moptipy.evaluation.base as bs
-from moptipy.api.logging import sanitize_name
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
 

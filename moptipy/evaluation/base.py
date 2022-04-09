@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from math import inf
 from typing import Final, Union, Optional, Tuple
 
-from moptipy.api import logging
 from moptipy.utils.nputils import rand_seed_check
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
 #: The key for the total number of runs.
@@ -93,13 +93,13 @@ class PerRunData:
         """
         if not isinstance(algorithm, str):
             raise type_error(algorithm, "algorithm", str)
-        if algorithm != logging.sanitize_name(algorithm):
+        if algorithm != sanitize_name(algorithm):
             raise ValueError(f"Invalid algorithm name '{algorithm}'.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if not isinstance(instance, str):
             raise type_error(instance, "instance", str)
-        if instance != logging.sanitize_name(instance):
+        if instance != sanitize_name(instance):
             raise ValueError(f"Invalid instance name '{instance}'.")
         object.__setattr__(self, "instance", instance)
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
@@ -145,12 +145,12 @@ class MultiRunData:
         :param n: the total number of runs
         """
         if algorithm is not None:
-            if algorithm != logging.sanitize_name(algorithm):
+            if algorithm != sanitize_name(algorithm):
                 raise ValueError(f"Invalid algorithm '{algorithm}'.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if instance is not None:
-            if instance != logging.sanitize_name(instance):
+            if instance != sanitize_name(instance):
                 raise ValueError(f"Invalid instance '{instance}'.")
         object.__setattr__(self, "instance", instance)
 

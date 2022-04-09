@@ -1,8 +1,7 @@
 """Shared constants and functions for dealing with logs."""
-from re import sub
-from typing import List, Final
 
-from moptipy.utils.types import type_error
+from typing import Final
+
 
 #: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
@@ -16,10 +15,6 @@ SCOPE_SEPARATOR: Final[str] = "."
 SECTION_START: Final[str] = "BEGIN_"
 #: the indicator of the end of a log section
 SECTION_END: Final[str] = "END_"
-#: the replacement for "." in a file name
-DECIMAL_DOT_REPLACEMENT: Final[str] = "d"
-#: the separator of different filename parts
-PART_SEPARATOR: Final[str] = "_"
 #: the replacement for special characters
 SPECIAL_CHAR_REPLACEMENT: Final[str] = "_"
 #: the YAML-conform separator between a key and a value
@@ -177,92 +172,3 @@ KEY_PYTHON_IMPLEMENTATION: Final[str] = "implementation"
 SECTION_RESULT_Y: Final[str] = "RESULT_Y"
 #: the resulting point in the search space
 SECTION_RESULT_X: Final[str] = "RESULT_X"
-
-
-def __recursive_replace(find: str, replace: str, src: str) -> str:
-    """
-    Perform a recursive replacement of strings.
-
-    :param find: the string to find
-    :param replace: the string with which it will be replaced
-    :param src: the string in which we search
-    :return: the string src, with all occurrences of find replaced by replace
-    """
-    new_len = len(src)
-    while True:
-        src = src.replace(find, replace)
-        old_len = new_len
-        new_len = len(src)
-        if new_len >= old_len:
-            return src
-
-
-def __replace_double(replace: str, src: str) -> str:
-    """
-    Replace any double-occurrence of a string with a single occurrence.
-
-    :param replace: the string to replace
-    :param src: the source string
-    :returns: the updated string
-    """
-    return __recursive_replace(replace + replace, replace, src)
-
-
-def sanitize_name(name: str) -> str:
-    """
-    Sanitize a name in such a way that it can be used as path component.
-
-    >>> sanitize_name(" hello world ")
-    'hello_world'
-    >>> sanitize_name(" 56.6-455 ")
-    '56d6-455'
-    >>> sanitize_name(" _ i _ am _ funny   --6 _ ")
-    'i_am_funny_-6'
-
-    :param name: the name that should be sanitized
-    :return: the sanitized name
-    :raises ValueError: if the name is invalid or empty
-    :raises TypeError: if the name is None or not a string
-    """
-    if name is None:
-        raise TypeError("Name string must not be None.")
-    name = str(name)
-    if not isinstance(name, str):
-        raise type_error(name, "string representation of name", str)
-    orig_name = name
-    name = name.strip()
-    name = __replace_double("-", name)
-    name = __replace_double("_", name)
-    name = __replace_double(".", name).replace(".", DECIMAL_DOT_REPLACEMENT)
-
-    name = sub(r"[^\w\s-]", '', name)
-    name = sub(r"\s+", PART_SEPARATOR, name)
-    name = __replace_double("_", name)
-
-    if name.startswith("_"):
-        name = name[1:]
-
-    if name.endswith("_"):
-        name = name[:len(name) - 1]
-
-    if len(name) <= 0:
-        raise ValueError(
-            f"Sanitized name must not become empty, but '{orig_name}' does.")
-
-    return name
-
-
-def sanitize_names(names: List[str]) -> str:
-    """
-    Sanitize a set of names.
-
-    >>> sanitize_names(["", " sdf ", "", "5-3"])
-    'sdf_5-3'
-    >>> sanitize_names([" a ", " b", " c", "", "6", ""])
-    'a_b_c_6'
-
-    :param names: the list of names.
-    :return: the sanitized name
-    """
-    return PART_SEPARATOR.join([
-        sanitize_name(name) for name in names if len(name) > 0])

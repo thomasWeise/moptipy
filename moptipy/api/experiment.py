@@ -22,11 +22,12 @@ import psutil  # type: ignore
 from numpy.random import Generator, default_rng
 
 from moptipy.api.execution import Execution
-from moptipy.api.logging import sanitize_name, sanitize_names, FILE_SUFFIX
+from moptipy.api.logging import FILE_SUFFIX
 from moptipy.utils.cache import is_new
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.path import Path
+from moptipy.utils.strings import sanitize_name, sanitize_names
 from moptipy.utils.sys_info import refresh_sys_info
 from moptipy.utils.types import type_error
 
