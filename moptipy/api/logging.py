@@ -5,22 +5,6 @@ from typing import Final
 
 #: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
-#: the separator used in CSV files to separate columns
-CSV_SEPARATOR: Final[str] = ";"
-#: the character indicating the begin of a comment
-COMMENT_CHAR: Final[str] = "#"
-#: the character separating a scope prefix in a key-value section
-SCOPE_SEPARATOR: Final[str] = "."
-#: the indicator of the start of a log section
-SECTION_START: Final[str] = "BEGIN_"
-#: the indicator of the end of a log section
-SECTION_END: Final[str] = "END_"
-#: the replacement for special characters
-SPECIAL_CHAR_REPLACEMENT: Final[str] = "_"
-#: the YAML-conform separator between a key and a value
-KEY_VALUE_SEPARATOR: Final[str] = ": "
-#: the hexadecimal version of a value
-KEY_HEX_VALUE: Final[str] = "(hex)"
 
 #: the key for the exception type
 KEY_EXCEPTION_TYPE: Final[str] = "exceptionType"

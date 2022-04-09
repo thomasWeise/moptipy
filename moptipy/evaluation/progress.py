@@ -12,7 +12,8 @@ from moptipy.evaluation.base import PerRunData, check_f_name, \
     F_NAME_SCALED
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
-from moptipy.utils.logger import parse_key_values
+from moptipy.utils.logger import parse_key_values, CSV_SEPARATOR, \
+    KEY_VALUE_SEPARATOR, COMMENT_CHAR
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
 from moptipy.utils.path import Path
@@ -184,10 +185,10 @@ class Progress(PerRunData):
         logger(f"Writing progress object to CSV file '{path}'.")
 
         with path.open_for_write() as out:
-            sep: Final[str] = logging.CSV_SEPARATOR
+            sep: Final[str] = CSV_SEPARATOR
             if put_header:
-                kv: Final[str] = logging.KEY_VALUE_SEPARATOR
-                cmt: Final[str] = logging.COMMENT_CHAR
+                kv: Final[str] = KEY_VALUE_SEPARATOR
+                cmt: Final[str] = COMMENT_CHAR
                 out.write(
                     f"{cmt} {logging.KEY_ALGORITHM}{kv}{self.algorithm}\n")
                 out.write(
@@ -403,7 +404,7 @@ class _InnerLogParser(ExperimentParser):
                                  f"but contains {n_rows}.")
 
             columns = [c.strip() for c in
-                       lines[0].split(logging.CSV_SEPARATOR)]
+                       lines[0].split(CSV_SEPARATOR)]
             n_cols = len(columns)
             if n_cols < 3:
                 raise ValueError("There must be at least three columns, "
@@ -433,7 +434,7 @@ class _InnerLogParser(ExperimentParser):
                 return splt[time_col_idx], splt[f_col_idx]
 
             time, f = zip(*[[c.strip()
-                             for c in aa(line.split(logging.CSV_SEPARATOR))]
+                             for c in aa(line.split(CSV_SEPARATOR))]
                             for line in lines[1:]])
             time = [int(t) for t in time]
             f = [str_to_intfloat(v) for v in f]
@@ -457,8 +458,7 @@ class _InnerLogParser(ExperimentParser):
                 self.__t_collector.extend(time)
                 self.__f_collector.extend(f)
 
-            self.__last_fe = int((lines[-1].split(
-                logging.CSV_SEPARATOR))[fe_col_idx])
+            self.__last_fe = int((lines[-1].split(CSV_SEPARATOR))[fe_col_idx])
             if self.__last_fe <= 0:
                 raise ValueError(f"Last FE cannot be {self.__last_fe}.")
 

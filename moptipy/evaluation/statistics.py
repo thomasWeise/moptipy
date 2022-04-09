@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast, Dict, Callable
 
-from moptipy.api import logging
+from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import DBL_INT_LIMIT_P, try_int, try_int_div
 from moptipy.utils.strings import num_to_str, str_to_intfloat, \
     str_to_intfloatnone
@@ -32,7 +32,7 @@ KEY_STDDEV: Final[str] = "sd"
 CSV_COLS: Final[int] = 6
 
 #: The empty csv row of statistics
-EMPTY_CSV_ROW: Final[str] = logging.CSV_SEPARATOR * (CSV_COLS - 1)
+EMPTY_CSV_ROW: Final[str] = CSV_SEPARATOR * (CSV_COLS - 1)
 
 #: the internal getters
 _GETTERS: Final[Dict[str, Callable[['Statistics'],
@@ -383,7 +383,7 @@ class Statistics:
         :return: the column header strings
         :rtype: Iterable[str]
         """
-        return [f"{prefix}{logging.SCOPE_SEPARATOR}{b}"
+        return [f"{prefix}{SCOPE_SEPARATOR}{b}"
                 for b in [KEY_MINIMUM, KEY_MEDIAN,
                           KEY_MEAN_ARITH, KEY_MEAN_GEOM,
                           KEY_MAXIMUM, KEY_STDDEV]]
@@ -397,7 +397,7 @@ class Statistics:
         :return: the CSV row.
         :rtype: str
         """
-        s: str = f"{num_to_str(value)}{logging.CSV_SEPARATOR}"
+        s: str = f"{num_to_str(value)}{CSV_SEPARATOR}"
         return f"{s * 5}0"
 
     def to_csv(self) -> str:
@@ -409,13 +409,13 @@ class Statistics:
         """
         q: Final[str] = "" if (self.mean_geom is None) \
             else num_to_str(self.mean_geom)
-        return f"{num_to_str(self.minimum)}{logging.CSV_SEPARATOR}" \
-               f"{num_to_str(self.median)}{logging.CSV_SEPARATOR}" \
+        return f"{num_to_str(self.minimum)}{CSV_SEPARATOR}" \
+               f"{num_to_str(self.median)}{CSV_SEPARATOR}" \
                f"{num_to_str(self.mean_arith)}" \
-               f"{logging.CSV_SEPARATOR}" \
+               f"{CSV_SEPARATOR}" \
                f"{q}" \
-               f"{logging.CSV_SEPARATOR}" \
-               f"{num_to_str(self.maximum)}{logging.CSV_SEPARATOR}" \
+               f"{CSV_SEPARATOR}" \
+               f"{num_to_str(self.maximum)}{CSV_SEPARATOR}" \
                f"{num_to_str(self.stddev)}"
 
     @staticmethod
@@ -429,7 +429,7 @@ class Statistics:
         :return: the :class:`Statistics` instance
         :rtype: Statistics
         """
-        cells = row.split(logging.CSV_SEPARATOR) \
+        cells = row.split(CSV_SEPARATOR) \
             if isinstance(row, str) else row
 
         mini, med, mean, geo, maxi, sd = cells

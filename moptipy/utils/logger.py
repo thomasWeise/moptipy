@@ -8,11 +8,28 @@ from re import sub
 from typing import Optional, List, Union, cast, Final, Callable, Tuple, \
     Iterable, Dict
 
-from moptipy.api import logging
 from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
-from moptipy.utils.strings import bool_to_str, float_to_str, sanitize_name
+from moptipy.utils.strings import bool_to_str, float_to_str, sanitize_name, \
+    PART_SEPARATOR
 from moptipy.utils.types import type_error
+
+#: the separator used in CSV files to separate columns
+CSV_SEPARATOR: Final[str] = ";"
+#: the character indicating the begin of a comment
+COMMENT_CHAR: Final[str] = "#"
+#: the character separating a scope prefix in a key-value section
+SCOPE_SEPARATOR: Final[str] = "."
+#: the indicator of the start of a log section
+SECTION_START: Final[str] = "BEGIN_"
+#: the indicator of the end of a log section
+SECTION_END: Final[str] = "END_"
+#: the replacement for special characters
+SPECIAL_CHAR_REPLACEMENT: Final[str] = PART_SEPARATOR
+#: the YAML-conform separator between a key and a value
+KEY_VALUE_SEPARATOR: Final[str] = ": "
+#: the hexadecimal version of a value
+KEY_HEX_VALUE: Final[str] = "(hex)"
 
 
 class Logger(AbstractContextManager):
@@ -107,8 +124,8 @@ class Logger(AbstractContextManager):
         if not self.__sections(title):
             self._error(f"Section '{title}' already done")
 
-        self._stream.write(f"{logging.SECTION_START}{title}\n")
-        self.__closer = f"{logging.SECTION_END}{title}\n"
+        self._stream.write(f"{SECTION_START}{title}\n")
+        self.__closer = f"{SECTION_END}{title}\n"
         self.__starts_new_line = True
         self.__section = title
 
@@ -140,7 +157,7 @@ class Logger(AbstractContextManager):
         if len(comment) <= 0:
             return
         comment = sub(r"\s+", " ", comment.strip())
-        self._stream.write(f"{logging.COMMENT_CHAR} {comment}\n")
+        self._stream.write(f"{COMMENT_CHAR} {comment}\n")
         self.__starts_new_line = True
 
     def _write(self, text: str) -> None:
@@ -349,12 +366,12 @@ class CsvLogSection(LogSection):
             logger._error(f"Empty header {header} invalid for a CSV section")
 
         for c in header:
-            if (not (isinstance(c, str))) or logging.CSV_SEPARATOR in c:
+            if (not (isinstance(c, str))) or CSV_SEPARATOR in c:
                 # noinspection PyProtectedMember
                 logger._error(f"Invalid column {c}")
 
         # noinspection PyProtectedMember
-        logger._write(logging.CSV_SEPARATOR.join(
+        logger._write(CSV_SEPARATOR.join(
             [c.strip() for c in header]) + "\n")
 
     def row(self, row: Union[Tuple[Union[int, float, bool], ...],
@@ -379,7 +396,7 @@ class CsvLogSection(LogSection):
                for c in row]
 
         # noinspection PyProtectedMember
-        self._logger._write(f"{logging.CSV_SEPARATOR.join(txt)}\n")
+        self._logger._write(f"{CSV_SEPARATOR.join(txt)}\n")
 
 
 class KeyValueLogSection(LogSection):
@@ -436,12 +453,12 @@ class KeyValueLogSection(LogSection):
             if also_hex and isinstance(value, int):
                 the_hex = hex(value)
 
-        txt = logging.KEY_VALUE_SEPARATOR.join([key, txt])
+        txt = KEY_VALUE_SEPARATOR.join([key, txt])
         txt = f"{txt}\n"
 
         if the_hex:
-            tmp = logging.KEY_VALUE_SEPARATOR.join(
-                [key + logging.KEY_HEX_VALUE, the_hex])
+            tmp = KEY_VALUE_SEPARATOR.join(
+                [key + KEY_HEX_VALUE, the_hex])
             txt = f"{txt}{tmp}\n"
 
         # noinspection PyProtectedMember
@@ -504,10 +521,10 @@ def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
         raise type_error(lines, "lines", Iterable)
     dct = {}
     for line in lines:
-        splt = line.split(logging.KEY_VALUE_SEPARATOR)
+        splt = line.split(KEY_VALUE_SEPARATOR)
         if len(splt) != 2:
             raise ValueError(
-                f"Two strings separated by '{logging.KEY_VALUE_SEPARATOR}' "
+                f"Two strings separated by '{KEY_VALUE_SEPARATOR}' "
                 f"expected, but encountered {len(splt)} in '{line}'.")
         key = splt[0].strip()
         if len(key) <= 0:

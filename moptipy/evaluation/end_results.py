@@ -15,6 +15,7 @@ from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
 from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
+from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.logger import parse_key_values
 from moptipy.utils.math import try_int, try_float_div
 from moptipy.utils.path import Path
@@ -23,17 +24,17 @@ from moptipy.utils.strings import intfloatnone_to_str, intnone_to_str, \
 from moptipy.utils.types import type_error
 
 #: The internal CSV header
-_HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_INSTANCE}{logging.CSV_SEPARATOR}" \
-          f"{logging.KEY_RAND_SEED}{logging.CSV_SEPARATOR}" \
-          f"{KEY_BEST_F}{logging.CSV_SEPARATOR}" \
-          f"{KEY_LAST_IMPROVEMENT_FE}{logging.CSV_SEPARATOR}" \
+_HEADER = f"{logging.KEY_ALGORITHM}{CSV_SEPARATOR}" \
+          f"{logging.KEY_INSTANCE}{CSV_SEPARATOR}" \
+          f"{logging.KEY_RAND_SEED}{CSV_SEPARATOR}" \
+          f"{KEY_BEST_F}{CSV_SEPARATOR}" \
+          f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}" \
           f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
-          f"{logging.CSV_SEPARATOR}" \
-          f"{KEY_TOTAL_FES}{logging.CSV_SEPARATOR}" \
-          f"{KEY_TOTAL_TIME_MILLIS}{logging.CSV_SEPARATOR}" \
-          f"{KEY_GOAL_F}{logging.CSV_SEPARATOR}" \
-          f"{KEY_MAX_FES}{logging.CSV_SEPARATOR}" \
+          f"{CSV_SEPARATOR}" \
+          f"{KEY_TOTAL_FES}{CSV_SEPARATOR}" \
+          f"{KEY_TOTAL_TIME_MILLIS}{CSV_SEPARATOR}" \
+          f"{KEY_GOAL_F}{CSV_SEPARATOR}" \
+          f"{KEY_MAX_FES}{CSV_SEPARATOR}" \
           f"{KEY_MAX_TIME_MILLIS}\n"
 
 
@@ -302,16 +303,16 @@ class EndResult(PerRunData):
             out.write(_HEADER)
             for e in results:
                 out.write(
-                    f"{e.algorithm}{logging.CSV_SEPARATOR}"
-                    f"{e.instance}{logging.CSV_SEPARATOR}"
-                    f"{hex(e.rand_seed)}{logging.CSV_SEPARATOR}"
-                    f"{num_to_str(e.best_f)}{logging.CSV_SEPARATOR}"
-                    f"{e.last_improvement_fe}{logging.CSV_SEPARATOR}"
-                    f"{e.last_improvement_time_millis}{logging.CSV_SEPARATOR}"
-                    f"{e.total_fes}{logging.CSV_SEPARATOR}"
-                    f"{e.total_time_millis}{logging.CSV_SEPARATOR}"
-                    f"{intfloatnone_to_str(e.goal_f)}{logging.CSV_SEPARATOR}"
-                    f"{intnone_to_str(e.max_fes)}{logging.CSV_SEPARATOR}"
+                    f"{e.algorithm}{CSV_SEPARATOR}"
+                    f"{e.instance}{CSV_SEPARATOR}"
+                    f"{hex(e.rand_seed)}{CSV_SEPARATOR}"
+                    f"{num_to_str(e.best_f)}{CSV_SEPARATOR}"
+                    f"{e.last_improvement_fe}{CSV_SEPARATOR}"
+                    f"{e.last_improvement_time_millis}{CSV_SEPARATOR}"
+                    f"{e.total_fes}{CSV_SEPARATOR}"
+                    f"{e.total_time_millis}{CSV_SEPARATOR}"
+                    f"{intfloatnone_to_str(e.goal_f)}{CSV_SEPARATOR}"
+                    f"{intnone_to_str(e.max_fes)}{CSV_SEPARATOR}"
                     f"{intnone_to_str(e.max_time_millis)}\n")
 
         logger(f"Done writing end results to CSV file '{path}'.")
@@ -345,7 +346,7 @@ class EndResult(PerRunData):
                 if (lines is None) or (len(lines) <= 0):
                     break
                 for line in lines:
-                    splt = line.strip().split(logging.CSV_SEPARATOR)
+                    splt = line.strip().split(CSV_SEPARATOR)
                     er = EndResult(
                         splt[0].strip(),  # algorithm
                         splt[1].strip(),  # instance

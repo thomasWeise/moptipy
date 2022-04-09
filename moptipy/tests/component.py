@@ -4,6 +4,8 @@ from typing import Final, Set
 from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import InMemoryLogger
+from moptipy.utils.logger import SECTION_END, SECTION_START, \
+    KEY_VALUE_SEPARATOR
 from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_name_of
 
@@ -61,12 +63,12 @@ def validate_component(component: Component) -> None:
         lines = log.get_log()
 
     ll = len(lines) - 1
-    if (lines[0] != logging.SECTION_START + secname) or \
-            (lines[ll] != logging.SECTION_END + secname):
+    if (lines[0] != SECTION_START + secname) or \
+            (lines[ll] != SECTION_END + secname):
         raise ValueError("Invalid log data produced '"
                          + "\n".join(lines) + "'.")
 
-    kvs: Final[str] = logging.KEY_VALUE_SEPARATOR
+    kvs: Final[str] = KEY_VALUE_SEPARATOR
     lines = lines[1:ll]
     if len(lines) < 2:
         raise ValueError("A component must produce at least two lines of "

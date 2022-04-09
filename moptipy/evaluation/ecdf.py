@@ -14,6 +14,8 @@ from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
 from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
+from moptipy.utils.logger import CSV_SEPARATOR, KEY_VALUE_SEPARATOR, \
+    COMMENT_CHAR
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error
@@ -132,10 +134,10 @@ class Ecdf(MultiRun2DData):
         logger(f"Writing ECDF to CSV file '{path}'.")
 
         with path.open_for_write() as out:
-            sep: Final[str] = lg.CSV_SEPARATOR
+            sep: Final[str] = CSV_SEPARATOR
             if put_header:
-                kv: Final[str] = lg.KEY_VALUE_SEPARATOR
-                cmt: Final[str] = lg.COMMENT_CHAR
+                kv: Final[str] = KEY_VALUE_SEPARATOR
+                cmt: Final[str] = COMMENT_CHAR
                 if self.algorithm is not None:
                     out.write(
                         f"{cmt} {lg.KEY_ALGORITHM}{kv}{self.algorithm}\n")

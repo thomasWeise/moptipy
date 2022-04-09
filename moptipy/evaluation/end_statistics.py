@@ -12,6 +12,7 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, \
     CSV_COLS, KEY_STDDEV
 from moptipy.utils.console import logger
+from moptipy.utils.logger import SCOPE_SEPARATOR, CSV_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
 from moptipy.utils.strings import str_to_intfloat, sanitize_name
@@ -673,7 +674,7 @@ class EndStatistics(MultiRunData):
 
         with path.open_for_write() as out:
             wrt: Final[Callable] = out.write
-            sep: Final[str] = log.CSV_SEPARATOR
+            sep: Final[str] = CSV_SEPARATOR
             if has_algorithm:
                 wrt(log.KEY_ALGORITHM)
                 wrt(sep)
@@ -841,7 +842,7 @@ class EndStatistics(MultiRunData):
         path: Final[Path] = Path.file(file)
         logger(f"Begin reading end result statistics from CSV file '{path}'.")
 
-        sep: Final[str] = log.CSV_SEPARATOR
+        sep: Final[str] = CSV_SEPARATOR
         with path.open_for_read() as rd:
             headerrow: Final[List[str]] = rd.readlines(1)
             if (headerrow is None) or (len(headerrow) <= 0):
@@ -1141,7 +1142,7 @@ class EndStatistics(MultiRunData):
         if dimension in _GETTERS_0:
             return _GETTERS_0[dimension]
 
-        ssi: int = dimension.find(log.SCOPE_SEPARATOR)
+        ssi: int = dimension.find(SCOPE_SEPARATOR)
         if ssi <= 0:
             raise ValueError(f"unknown dimension '{dimension}'.")
         scope: str = dimension[:ssi]

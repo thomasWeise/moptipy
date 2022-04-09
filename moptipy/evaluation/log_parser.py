@@ -10,6 +10,7 @@ from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
 from moptipy.utils.strings import sanitize_name, PART_SEPARATOR
+from moptipy.utils.logger import SECTION_START, SECTION_END, COMMENT_CHAR
 
 
 class LogParser(ABC):
@@ -234,9 +235,9 @@ class LogParser(ABC):
         wants_section: bool = False
         sec_end: str = ""
         section: str = ""
-        sect_start: Final[str] = logging.SECTION_START
-        sect_end: Final[str] = logging.SECTION_END
-        cmt_chr: Final[str] = logging.COMMENT_CHAR
+        sect_start: Final[str] = SECTION_START
+        sect_end: Final[str] = SECTION_END
+        cmt_chr: Final[str] = COMMENT_CHAR
 
         index: int = 0
         with file.open_for_read() as handle:
