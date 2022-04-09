@@ -43,7 +43,6 @@ _GETTERS_0: Final[Dict[str, Callable[['EndStatistics'],
     if isinstance(s.max_time_millis, (int, float)) else None,
     log.KEY_MAX_FES: lambda s: s.max_fes
     if isinstance(s.max_fes, (int, float)) else None,
-
 }
 
 #: the internal getters that access end statistics

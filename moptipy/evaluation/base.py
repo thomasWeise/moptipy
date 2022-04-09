@@ -17,11 +17,11 @@ TIME_UNIT_MILLIS: Final[str] = "ms"
 TIME_UNIT_FES: Final[str] = "FEs"
 
 #: The name of the raw objective values data.
-F_NAME_RAW: Final[str] = "plain"
+F_NAME_RAW: Final[str] = "plainF"
 #: The name of the scaled objective values data.
-F_NAME_SCALED: Final[str] = "scaled"
+F_NAME_SCALED: Final[str] = "scaledF"
 #: The name of the normalized objective values data.
-F_NAME_NORMALIZED: Final[str] = "normalized"
+F_NAME_NORMALIZED: Final[str] = "normalizedF"
 
 
 def check_time_unit(time_unit: str) -> str:
@@ -61,7 +61,6 @@ class PerRunData:
     """
     An immutable record of information over a single run.
 
-    >>> from moptipy.evaluation.base import PerRunData
     >>> p = PerRunData("a", "i", 234)
     >>> print(p.instance)
     i
@@ -114,7 +113,6 @@ class MultiRunData:
     defined. Otherwise, only the parameter which is the same over all recorded
     runs is defined.
 
-    >>> from moptipy.evaluation.base import MultiRunData
     >>> p = MultiRunData("a", "i", 3)
     >>> print(p.instance)
     i
@@ -166,8 +164,7 @@ class MultiRun2DData(MultiRunData):
     """
     A multi-run data based on one time and one objective dimension.
 
-    >>> import moptipy.evaluation.base as b
-    >>> p = b.MultiRun2DData("a", "i", 3, b.TIME_UNIT_FES, b.F_NAME_SCALED)
+    >>> p = MultiRun2DData("a", "i", 3, TIME_UNIT_FES, F_NAME_SCALED)
     >>> print(p.instance)
     i
     >>> print(p.algorithm)
@@ -177,7 +174,7 @@ class MultiRun2DData(MultiRunData):
     >>> print(p.time_unit)
     FEs
     >>> print(p.f_name)
-    scaled
+    scaledF
     """
 
     #: The unit of the time axis.
@@ -215,12 +212,11 @@ def get_instance(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
     :param obj: the object
     :return: the instance string, or `None` if no instance is specified
 
-    >>> import moptipy.evaluation.base as b
-    >>> p1 = b.MultiRunData("a", "i1", 3)
-    >>> print(b.get_instance(p1))
+    >>> p1 = MultiRunData("a", "i1", 3)
+    >>> print(get_instance(p1))
     i1
-    >>> p2 = b.PerRunData("a", "i2", 31)
-    >>> print(b.get_instance(p2))
+    >>> p2 = PerRunData("a", "i2", 31)
+    >>> print(get_instance(p2))
     i2
     """
     return obj.instance
@@ -233,12 +229,11 @@ def get_algorithm(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
     :param obj: the object
     :return: the algorithm string, or `None` if no algorithm is specified
 
-    >>> import moptipy.evaluation.base as b
-    >>> p1 = b.MultiRunData("a1", "i1", 3)
-    >>> print(b.get_algorithm(p1))
+    >>> p1 = MultiRunData("a1", "i1", 3)
+    >>> print(get_algorithm(p1))
     a1
-    >>> p2 = b.PerRunData("a2", "i2", 31)
-    >>> print(b.get_algorithm(p2))
+    >>> p2 = PerRunData("a2", "i2", 31)
+    >>> print(get_algorithm(p2))
     a2
     """
     return obj.algorithm
@@ -257,17 +252,16 @@ def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
     :param obj: the object
     :return: the sort key
 
-    >>> import moptipy.evaluation.base as b
-    >>> p1 = b.MultiRunData("a1", "i1", 3)
-    >>> p2 = b.PerRunData("a2", "i2", 31)
-    >>> print(b.sort_key(p1) < b.sort_key(p2))
+    >>> p1 = MultiRunData("a1", "i1", 3)
+    >>> p2 = PerRunData("a2", "i2", 31)
+    >>> print(sort_key(p1) < sort_key(p2))
     True
-    >>> print(b.sort_key(p1) >= b.sort_key(p2))
+    >>> print(sort_key(p1) >= sort_key(p2))
     False
-    >>> p3 = b.MultiRun2DData("a", "i", 3, b.TIME_UNIT_FES, b.F_NAME_SCALED)
-    >>> print(b.sort_key(p3) < b.sort_key(p1))
+    >>> p3 = MultiRun2DData("a", "i", 3, TIME_UNIT_FES, F_NAME_SCALED)
+    >>> print(sort_key(p3) < sort_key(p1))
     True
-    >>> print(b.sort_key(p3) >= b.sort_key(p1))
+    >>> print(sort_key(p3) >= sort_key(p1))
     False
     """
     if hasattr(obj, "goal_f"):

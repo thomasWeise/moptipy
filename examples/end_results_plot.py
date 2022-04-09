@@ -129,7 +129,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     fig = create_figure()  # create an empty figure
     plot_end_results(end_results=data,
                      figure=fig,
-                     dimension="scaled")
+                     dimension="scaledF")
     # Notice that save_figure returns a list of files that has been generated.
     # You can specify multiple formats, e.g., ("svg", "pdf", "png") and get
     # multiple files.
@@ -146,7 +146,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # Plot the end results in an un-scaled fashion: All objective values are
     # used as is. This makes the problems less comparable.
     fig = create_figure()  # create an empty figure
-    plot_end_results(end_results=data, figure=fig, dimension="plain")
+    plot_end_results(end_results=data, figure=fig, dimension="plainF")
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="end_results",  # base name
                              dir_name=td,  # store graphic in temp dir

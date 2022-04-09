@@ -16,7 +16,7 @@ single run.
 Its time dimensions can either be `FEs` or `ms`. In the former case, it
 records the time in objective function evaluations (FEs) and in the latter
 case, it records them in milliseconds.
-Its objective dimension can either be `plain`, `scaled` or `normalized`.
+Its objective dimension can either be `plainF`, `scaledF` or `normalizedF`.
 In the first case, all objective values `f` are represented as recorded in the
 log file. In the second case, they are divided by the goal objective value
 `goal_f` (as recorded in the log file) and in the last case, they are
@@ -138,7 +138,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     Progress.from_logs(path=td,  # the result directory
                        consumer=data.append,  # put the data into data
                        time_unit="FEs",  # time is in FEs (as opposed to "ms")
-                       f_name="plain")  # use raw, unscaled objective values
+                       f_name="plainF")  # use raw, unscaled objective values
 
     # The first plot will contain every single one of the 20 runs.
     # The system will choose different styles for different algorithms

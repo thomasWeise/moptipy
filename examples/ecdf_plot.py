@@ -33,8 +33,8 @@ single run.
 Its time dimensions can either be `FEs` or `ms`. In the former case, it
 records the time in objective function evaluations (FEs) and in the latter
 case, it records them in milliseconds.
-Its objective dimension can either be `plain`, `scaled` or `normalized`,
-but for ECDFs, we would usually keep them `plain`.
+Its objective dimension can either be `plainF`, `scaledF` or `normalizedF`,
+but for ECDFs, we would usually keep them `plainF`.
 
 The module `moptipy.evaluation.ecdf` includes the class `Ecdf`.
 An instance `Ecdf` represents a two-dimensional ECDF curve.
@@ -145,7 +145,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     Progress.from_logs(path=td,  # the result directory
                        consumer=data.append,  # put the data into data
                        time_unit="FEs",  # time is in FEs (as opposed to "ms")
-                       f_name="plain")  # use raw, unscaled objective values
+                       f_name="plainF")  # use raw, unscaled objective values
     ecdf = []  # we will load the ECDFs into this list
     # The below function uses the goal objective values from the log files to
     # compute the ECDF functions. It groups all runs of one algorithm together

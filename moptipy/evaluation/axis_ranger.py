@@ -260,7 +260,7 @@ class AxisRanger:
         optional arguments.
 
         :param name: the axis type name, supporting `"ms"`, `"FEs"`,
-            `"plain"`, `"scaled"`, and `"normalized"`
+            `"plainF"`, `"scaledF"`, and `"normalizedF"`
         :param chosen_min: the chosen minimum
         :param chosen_max: the chosen maximum
         :param use_data_min: should the data minimum be used
