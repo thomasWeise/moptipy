@@ -2,6 +2,7 @@
 from re import sub
 from typing import List, Final
 
+from moptipy.utils.types import type_error
 
 #: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
@@ -197,6 +198,13 @@ def __recursive_replace(find: str, replace: str, src: str) -> str:
 
 
 def __replace_double(replace: str, src: str) -> str:
+    """
+    Replace any double-occurrence of a string with a single occurrence.
+
+    :param replace: the string to replace
+    :param src: the source string
+    :returns: the updated string
+    """
     return __recursive_replace(replace + replace, replace, src)
 
 
@@ -220,8 +228,7 @@ def sanitize_name(name: str) -> str:
         raise TypeError("Name string must not be None.")
     name = str(name)
     if not isinstance(name, str):
-        raise TypeError("String representation of name must be instance "
-                        f"of str, but is {type(name)}.")
+        raise type_error(name, "string representation of name", str)
     orig_name = name
     name = name.strip()
     name = __replace_double("-", name)

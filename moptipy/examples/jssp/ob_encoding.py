@@ -8,6 +8,7 @@ from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
+from moptipy.utils.types import type_error
 
 #: the numpy data type for machine indices
 KEY_NUMPY_TYPE_MACHINE_IDX: Final[str] = f"{KEY_NUMPY_TYPE}MachineIdx"
@@ -87,8 +88,7 @@ class OperationBasedEncoding(Encoding):
         :param instance: the JSSP instance
         """
         if not isinstance(instance, Instance):
-            raise ValueError("instance must be valid Instance, "
-                             f"but is '{type(instance)}'.")
+            raise type_error(instance, "instance", Instance)
         self.__machine_idx: Final[np.ndarray] = \
             np.zeros(instance.machines,
                      int_range_to_dtype(-1, instance.jobs - 1))

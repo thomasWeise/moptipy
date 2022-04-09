@@ -3,7 +3,7 @@ from typing import Callable, Final
 
 from moptipy.api import logging
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import classname
+from moptipy.utils.types import type_name_of, type_error
 
 
 class Component:
@@ -24,7 +24,7 @@ class Component:
         :param logger: the logger for the parameters
         """
         logger.key_value(logging.KEY_NAME, self.__str__())
-        logger.key_value(logging.KEY_CLASS, classname(self))
+        logger.key_value(logging.KEY_CLASS, type_name_of(self))
 
 
 class CallableComponent(Component):
@@ -39,11 +39,9 @@ class CallableComponent(Component):
         :param inner: the function to wrap, e.g., a lambda
         :param name: the name of the component
         :raises TypeError: if `inner` is not callable
-        :raises ValueError: if name is `None`
         """
         if not callable(inner):
-            raise TypeError(
-                f"Inner function must be callable, but is a {type(inner)}.")
+            raise type_error(inner, "inner function", call=True)
 
         #: the inner callable
         self._inner: Final[Callable] = inner
@@ -65,4 +63,4 @@ class CallableComponent(Component):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        logger.key_value(logging.KEY_INNER_CLASS, classname(self._inner))
+        logger.key_value(logging.KEY_INNER_CLASS, type_name_of(self._inner))

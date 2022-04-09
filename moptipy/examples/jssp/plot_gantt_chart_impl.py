@@ -15,6 +15,7 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.lang import Lang
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.makespan import makespan
+from moptipy.utils.types import type_error
 
 
 def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
@@ -91,7 +92,7 @@ def plot_gantt_chart(gantt: Gantt,
         it does not consume additional horizontal space)
     """
     if not isinstance(gantt, Gantt):
-        raise TypeError(f"gantt must be Gantt, but is {type(gantt)}.")
+        raise type_error(gantt, "gantt", Gantt)
     axes: Final[Axes] = pu.get_axes(figure)
 
     # grab the data
@@ -102,14 +103,13 @@ def plot_gantt_chart(gantt: Gantt,
     if callable(x_axis):
         x_axis = x_axis(gantt)
     if not isinstance(x_axis, AxisRanger):
-        raise TypeError(f"x_axis must be AxisRanger, but is {type(x_axis)}.")
+        raise type_error(x_axis, "x_axis", AxisRanger)
 
     # Compute all the marks
     marks: Dict[Union[int, float], str] = {}
     if markers is not None:
         if not isinstance(markers, Iterable):
-            raise TypeError(
-                f"Expected markers to be Iterable, but got {type(markers)}.")
+            raise type_error(markers, "markers", Iterable)
         for marker in markers:
             if callable(marker):
                 marker = marker(gantt)
@@ -120,14 +120,11 @@ def plot_gantt_chart(gantt: Gantt,
                 if (not name) or (not val):
                     continue
             else:
-                raise TypeError("marker must be tuple or "
-                                f"callable, but is {type(marker)}")
+                raise type_error(marker, "marker", tuple, True)
             if not isinstance(name, str):
-                raise TypeError(
-                    f"marker name must be str, but is {type(name)}.")
+                raise type_error(name, "marker name", str)
             if not isinstance(val, (int, float)):
-                raise TypeError(
-                    f"marker must be int or float but is {type(val)}.")
+                raise type_error(val, "marker", (int, float))
             if val in marks:
                 marks[val] = f"{marks[val]}/{name}"
             else:
@@ -301,7 +298,7 @@ def plot_gantt_chart(gantt: Gantt,
         info = info(gantt)
     if info is not None:
         if not isinstance(info, str):
-            raise TypeError(f"info must be str, but is {type(info)}.")
+            raise type_error(info, "info", str)
         pu.label_box(axes=axes,
                      text=info,
                      x=0.5,

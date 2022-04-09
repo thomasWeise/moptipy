@@ -6,7 +6,7 @@ from os.path import isfile, isdir, join, dirname, basename
 from typing import List, Final, Optional
 
 from moptipy.api import logging
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
 

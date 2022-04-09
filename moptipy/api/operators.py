@@ -2,6 +2,7 @@
 from numpy.random import Generator
 
 from moptipy.api.component import Component
+from moptipy.utils.types import type_error
 
 
 # start op0
@@ -28,11 +29,8 @@ def check_op0(op0: Op0) -> Op0:
     :return: the object
     :raises TypeError: if `op0` is not an instance of :class:`Op0`
     """
-    if op0 is None:
-        raise TypeError("An Op0 must not be None.")
     if not isinstance(op0, Op0):
-        raise TypeError("An Op0 must be instance of Op0, "
-                        f"but is {type(op0)}.")
+        raise type_error(op0, "op0", Op0)
     return op0
 
 
@@ -59,11 +57,8 @@ def check_op1(op1: Op1) -> Op1:
     :return: the object
     :raises TypeError: if `op1` is not an instance of :class:`Op1`
     """
-    if op1 is None:
-        raise TypeError("An Op1 must not be None.")
     if not isinstance(op1, Op1):
-        raise TypeError("An Op1 must be instance of Op1, "
-                        f"but is {type(op1)}.")
+        raise type_error(op1, "op1", Op1)
     return op1
 
 
@@ -91,9 +86,6 @@ def check_op2(op2: Op2) -> Op2:
     :return: the object
     :raises TypeError: if `op2` is not an instance of :class:`Op2`
     """
-    if op2 is None:
-        raise TypeError("An Op2 must not be None.")
     if not isinstance(op2, Op2):
-        raise TypeError("An Op2 must be instance of Op2, "
-                        f"but is {type(op2)}.")
+        raise type_error(op2, "op2", Op2)
     return op2

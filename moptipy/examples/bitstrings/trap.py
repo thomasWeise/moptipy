@@ -5,6 +5,7 @@ import numba  # type: ignore
 import numpy as np
 
 from moptipy.api.objective import Objective
+from moptipy.utils.types import type_error
 
 
 @numba.njit(nogil=True, cache=True)
@@ -53,8 +54,7 @@ class Trap(Objective):
         """
         super().__init__()
         if not isinstance(n, int):
-            raise TypeError(
-                f"Must provide integer n, but got '{type(n)}'.")
+            raise type_error(n, "n", int)
         #: the upper bound = the length of the bit strings
         self.n: Final[int] = n
         self.evaluate = trap  # type: ignore

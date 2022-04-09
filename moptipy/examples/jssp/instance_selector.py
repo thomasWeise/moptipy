@@ -17,9 +17,10 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
     rand_generator, rand_seeds_from_str
+from moptipy.utils.types import type_error
 
 
 def __can_solve_instance(inst: Instance, seed: int,
@@ -471,19 +472,19 @@ def propose_instances(n: int,
     :return: a tuple with the instance names
     """
     if not (isinstance(n, int)):
-        raise TypeError(f"n must be int but is {type(n)}.")
+        raise type_error(n, "n", int)
     if n <= 1:
         raise ValueError(f"n must be > 1, but is {n}.")
     if not callable(get_instances):
-        raise TypeError("get_instances must be callable, but "
-                        f"is {type(get_instances)}.")
+        raise type_error(get_instances, "get_instances", call=True)
     instances = list(get_instances())
     n_instances: Final[int] = len(instances)
     if n_instances <= 0:
         raise ValueError("No instance returned by get_instance.")
-    if not all(isinstance(i, Instance) for i in instances):
-        raise TypeError("get_instances returned object which "
-                        "is not instance of Instance.")
+    for i in instances:
+        if isinstance(i, Instance):
+            raise type_error(
+                i, "value in list returned by get_instances", Instance)
     if n_instances <= n:
         if n_instances == n:  # nothing to do here
             return tuple(sorted([inst.get_name() for inst in instances]))

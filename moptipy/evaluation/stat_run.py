@@ -13,6 +13,7 @@ from moptipy.evaluation.base import MultiRun2DData, MultiRunData, \
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
 from moptipy.utils.nputils import is_np_float
+from moptipy.utils.types import type_error
 
 #: The value of the CDF of the standard normal distribution CDF at -1,
 #: which corresponds to "mean - 1 * sd".
@@ -353,12 +354,10 @@ class StatRun(MultiRun2DData):
         super().__init__(algorithm, instance, n, time_unit, f_name)
 
         if not isinstance(stat_name, str):
-            raise TypeError(
-                f"Statistic name must be str, but found {type(stat_name)}.")
+            raise type_error(stat_name, "stat_name", str)
         object.__setattr__(self, "stat_name", stat_name)
         if not isinstance(stat, np.ndarray):
-            raise TypeError(
-                f"Statistic data must be np.array, but is {type(stat)}.")
+            raise type_error(stat, "statistic data", np.ndarray)
         stat.flags.writeable = False
         if (len(stat.shape) != 2) or (stat.shape[1] != 2) or \
                 (stat.shape[0] <= 0):
@@ -382,16 +381,13 @@ class StatRun(MultiRun2DData):
         :param consumer: the consumer for the statistics
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
         if isinstance(statistics, str):
             statistics = [statistics]
         if not isinstance(statistics, Iterable):
-            raise TypeError(
-                f"statistics must be Iterable, but is {type(statistics)}.")
+            raise type_error(statistics, "statistics", Iterable)
         if not callable(consumer):
-            raise TypeError(
-                f"consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
 
         algorithm: Optional[str] = None
         instance: Optional[str] = None
@@ -403,8 +399,7 @@ class StatRun(MultiRun2DData):
 
         for progress in source:
             if not isinstance(progress, Progress):
-                raise TypeError("Only Progress records are permitted, but "
-                                f"encountered a {type(progress)}.")
+                raise type_error(progress, "stat run data source", Progress)
             if n <= 0:
                 algorithm = progress.algorithm
                 instance = progress.instance
@@ -436,7 +431,7 @@ class StatRun(MultiRun2DData):
 
         x_unique = _unique_floats_1d(x)
         if not isinstance(x_unique, np.ndarray):
-            raise TypeError(f"Invalid x_unique type {type(x_unique)}.")
+            raise type_error(x_unique, "x_unique", np.ndarray)
         if not is_np_float(x_unique.dtype):
             raise TypeError(
                 f"x_unique must be floats, but is {x_unique.dtype}.")
@@ -447,7 +442,7 @@ class StatRun(MultiRun2DData):
         count = 0
         for name in statistics:
             if not isinstance(name, str):
-                raise TypeError(f"Invalid statistic name type {type(name)}.")
+                raise type_error(name, "statistic name", str)
             if not (name in _FUNC_MAP):
                 raise ValueError(f"Unknown statistic name '{name}'.")
             consumer(StatRun(algorithm, instance, n, time_unit, f_name, name,
@@ -476,28 +471,22 @@ class StatRun(MultiRun2DData):
             over all algorithms
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
         if isinstance(statistics, str):
             statistics = [statistics]
         if not isinstance(statistics, Iterable):
-            raise TypeError(
-                f"statistics must be Iterable, but is {type(statistics)}.")
+            raise type_error(statistics, "statistics", Iterable)
         if not callable(consumer):
-            raise TypeError(
-                f"consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         if not isinstance(join_all_algorithms, bool):
-            raise TypeError("join_all_algorithms must be bool, "
-                            f"but is {type(join_all_algorithms)}.")
+            raise type_error(join_all_algorithms, "join_all_algorithms", bool)
         if not isinstance(join_all_instances, bool):
-            raise TypeError("join_all_instances must be bool, "
-                            f"but is {type(join_all_instances)}.")
+            raise type_error(join_all_instances, "join_all_instances", bool)
 
         sorter: Dict[str, List[Progress]] = {}
         for prog in source:
             if not isinstance(prog, Progress):
-                raise TypeError("source must contain only Progress, but "
-                                f"found a {type(prog)}.")
+                raise type_error(prog, "progress source", Progress)
             a: str = "" if join_all_algorithms else prog.algorithm
             i: str = "" if join_all_instances else prog.instance
             key: str = f"{a}/{i}/{prog.time_unit}/{prog.f_name}"

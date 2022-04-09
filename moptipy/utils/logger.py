@@ -11,7 +11,8 @@ from typing import Optional, List, Union, cast, Final, Callable, Tuple, \
 from moptipy.api import logging
 from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
-from moptipy.utils.types import bool_to_str, float_to_str
+from moptipy.utils.strings import bool_to_str, float_to_str
+from moptipy.utils.types import type_error
 
 
 class Logger(AbstractContextManager):
@@ -37,8 +38,7 @@ class Logger(AbstractContextManager):
         if stream is None:
             raise ValueError("stream must be valid stream but is None.")
         if not isinstance(stream, TextIOBase):
-            raise TypeError(
-                f"stream must be TextIOBase, but is {type(stream)}.")
+            raise type_error(stream, "stream", TextIOBase)
 
         #: The internal stream
         self._stream: TextIOBase = stream
@@ -396,7 +396,7 @@ class KeyValueLogSection(LogSection):
         :param done: the set of already done keys and prefixes
         """
         if not isinstance(prefix, str):
-            raise TypeError(f"prefix must be str but is {type(prefix)}")
+            raise type_error(prefix, "prefix", str)
         super().__init__(title=title, logger=logger)
         self._prefix: Final[str] = prefix
         self.__done: Callable
@@ -501,8 +501,7 @@ def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
     ['a', 'c.d', 'c.e', 'f']
     """
     if not isinstance(lines, Iterable):
-        raise TypeError(
-            f"lines must be Iterable of strings, but is {type(lines)}.")
+        raise type_error(lines, "lines", Iterable)
     dct = {}
     for line in lines:
         splt = line.split(logging.KEY_VALUE_SEPARATOR)

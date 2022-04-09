@@ -2,6 +2,7 @@
 from typing import Optional
 
 from moptipy.api.component import Component
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -32,12 +33,8 @@ def check_encoding(encoding: Optional[Encoding],
     :return: the object
     :raises TypeError: if `encoding` is not an instance of :class:`Encoding`
     """
-    if encoding is None:
-        if none_is_ok:
-            return None
-        raise TypeError("The encoding must not be None.")
     if not isinstance(encoding, Encoding):
-        raise TypeError(
-            "An encoding must be instance of Encoding, but encountered"
-            f" {type(encoding)}.")
+        if none_is_ok and (encoding is None):
+            return None
+        raise type_error(encoding, "encoding", Encoding)
     return encoding

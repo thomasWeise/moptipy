@@ -1,10 +1,10 @@
 """The `logger` routine for writing a log string to stdout."""
 import datetime
 from contextlib import nullcontext, AbstractContextManager
-from typing import Final
+from typing import Final, Callable
 
 #: the "now" function
-__DTN = datetime.datetime.now
+__DTN: Final[Callable[[], datetime.datetime]] = datetime.datetime.now
 
 
 def logger(message: str,

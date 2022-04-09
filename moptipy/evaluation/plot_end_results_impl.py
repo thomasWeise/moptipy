@@ -13,7 +13,8 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.lang import Lang
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
+from moptipy.utils.types import type_error
 
 
 def plot_end_results(
@@ -82,8 +83,7 @@ def plot_end_results(
     if callable(y_axis):
         y_axis = y_axis(dimension)
     if not isinstance(y_axis, AxisRanger):
-        raise TypeError(f"y_axis for {dimension} must be AxisRanger, "
-                        f"but is {type(y_axis)}.")
+        raise type_error(y_axis, f"y_axis for {dimension}", AxisRanger)
 
     # instance -> algorithm -> values
     data: Dict[str, Dict[str, List[Union[int, float]]]] = {}
@@ -92,9 +92,7 @@ def plot_end_results(
     # We now collect instances, the algorithms, and the measured values.
     for res in end_results:
         if not isinstance(res, EndResult):
-            raise TypeError(
-                "all violin plot elements must be instances of EndResult, "
-                f"but encountered an instance of {type(res)}.")
+            raise type_error(res, "violin plot element", EndResult)
 
         algo_set.add(res.algorithm)
 

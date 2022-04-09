@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast, Dict, Callable
 
-from moptipy.utils.types import num_to_str
 from moptipy.api import logging
-from moptipy.utils.types import str_to_intfloat, str_to_intfloatnone, \
-    DBL_INT_LIMIT_P, try_int, try_int_div
+from moptipy.utils.math import DBL_INT_LIMIT_P, try_int, try_int_div
+from moptipy.utils.strings import num_to_str, str_to_intfloat, \
+    str_to_intfloatnone
+from moptipy.utils.types import type_error
 
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(DBL_INT_LIMIT_P))
@@ -80,21 +81,19 @@ class Statistics:
         :param stddev: the standard deviation (`0` is also used for undefined)
         """
         if not isinstance(n, int):
-            raise TypeError(f"n must be int but is {type(n)}.")
+            raise type_error(n, "n", int)
         if n <= 0:
             raise ValueError(f"n must be >= 1, but is {n}.")
 
         # check minimum
         if not isinstance(minimum, (int, float)):
-            raise TypeError(
-                f"minimum must be float or int, but is {type(minimum)}.")
+            raise type_error(minimum, "minimum", (int, float))
         if isinstance(minimum, float) and (not isfinite(minimum)):
             raise ValueError(f"minimum must be finite, but is {minimum}.")
 
         # check median
         if not isinstance(median, (int, float)):
-            raise TypeError(
-                f"median must be int or float, but is {type(median)}.")
+            raise type_error(median, "median", (int, float))
         if isinstance(median, float) and (not isfinite(median)):
             raise ValueError(f"med must be finite, but is {median}.")
         if n == 1:
@@ -107,8 +106,7 @@ class Statistics:
 
         # check maximum
         if not isinstance(maximum, (int, float)):
-            raise TypeError(
-                f"maximum must be float or int, but is {type(maximum)}.")
+            raise type_error(maximum, "maximum", (int, float))
         if isinstance(maximum, float) and (not isfinite(maximum)):
             raise ValueError(f"maximum must be finite, but is {maximum}.")
         if n == 1:
@@ -121,8 +119,7 @@ class Statistics:
 
         # check arithmetic mean
         if not isinstance(mean_arith, (int, float)):
-            raise TypeError("mean_arith must be int or float, "
-                            f"but is {type(mean_arith)}.")
+            raise type_error(mean_arith, "mean_arith", (int, float))
         if isinstance(mean_arith, float) and (not isfinite(mean_arith)):
             raise ValueError(
                 f"mean_arith must be finite, but is {mean_arith}.")
@@ -152,8 +149,7 @@ class Statistics:
                     f"If minimum ({minimum}) <= 0, then mean_geom is "
                     f"undefined, but it is {mean_geom}.")
             if not isinstance(mean_geom, (int, float)):
-                raise TypeError("mean_geom must be int or float, "
-                                f"but is {type(mean_geom)}.")
+                raise type_error(mean_geom, "mean_geom", (int, float))
             if isinstance(mean_geom, float) and (not isfinite(mean_geom)):
                 raise ValueError(
                     f"mean_geom must be finite, but is {mean_geom}.")
@@ -177,8 +173,7 @@ class Statistics:
                         f"minimum ({minimum}) < maximum ({maximum}).")
 
         if not isinstance(stddev, (int, float)):
-            raise TypeError(
-                f"stddev must be int or float, but is {type(stddev)}.")
+            raise type_error(stddev, "stddev", (int, float))
         if isinstance(stddev, float) and (not isfinite(stddev)):
             raise ValueError(f"stddev must be finite, but is {stddev}.")
 
@@ -259,8 +254,7 @@ class Statistics:
         2.75
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
 
         minimum: Union[int, float] = inf
         maximum: Union[int, float] = -inf
@@ -458,8 +452,7 @@ class Statistics:
             dimension
         """
         if not isinstance(dimension, str):
-            raise TypeError(
-                f"dimension must be str, but is {type(dimension)}.")
+            raise type_error(dimension, "dimension", str)
         if dimension in _GETTERS:
             return _GETTERS[dimension]
         raise ValueError(f"unknown dimension '{dimension}', "

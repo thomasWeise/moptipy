@@ -11,12 +11,13 @@ from moptipy.evaluation.base import PerRunData, check_f_name, \
     check_time_unit, TIME_UNIT_MILLIS, TIME_UNIT_FES, F_NAME_RAW, \
     F_NAME_SCALED
 from moptipy.evaluation.log_parser import ExperimentParser
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.logger import parse_key_values
 from moptipy.utils.nputils import is_np_int, is_np_float, \
     is_all_finite
 from moptipy.utils.path import Path
-from moptipy.utils.types import str_to_intfloat, num_to_str
+from moptipy.utils.strings import str_to_intfloat, num_to_str
+from moptipy.utils.types import type_error
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -68,14 +69,14 @@ class Progress(PerRunData):
         super().__init__(algorithm, instance, rand_seed)
 
         if not isinstance(time, np.ndarray):
-            raise TypeError(
-                f"time data must be np.array, but is {type(time)}.")
+            raise type_error(time, "time data", np.ndarray)
         time.flags.writeable = False
         if len(time.shape) != 1:
             raise ValueError("time array must be one-dimensional, but "
                              f"has shape {time.shape}.")
         if not is_np_int(time.dtype):
-            raise TypeError("time data must be integer-valued.")
+            raise TypeError("time data must be integer-valued, "
+                            f"but has type {time.dtype}.")
         tl = time.size
         if tl <= 0:
             raise ValueError("time data must not be empty.")
@@ -98,8 +99,7 @@ class Progress(PerRunData):
                              f" time unit is {time_unit}.")
 
         if not isinstance(f, np.ndarray):
-            raise TypeError(
-                f"f data must be np.array, but is {type(f)}.")
+            raise type_error(f, "f data", np.ndarray)
         f.flags.writeable = False
         if len(f.shape) != 1:
             raise ValueError(
@@ -117,8 +117,7 @@ class Progress(PerRunData):
             raise ValueError(f"Length {fl} of f data and length {tl} of "
                              "time data must be the same.")
         if not isinstance(only_improvements, bool):
-            raise TypeError("only_improvements must be bool, "
-                            f"but is {type(only_improvements)}.")
+            raise type_error(only_improvements, "only_improvements", bool)
         if only_improvements and (fl > 1):
             if np.any(f[1:-1] >= f[:-2]):
                 raise ValueError(
@@ -138,8 +137,7 @@ class Progress(PerRunData):
                 if not isfinite(f_standard):
                     raise ValueError(f"f_standard cannot be {f_standard}.")
             elif not isinstance(f_standard, int):
-                raise TypeError("f_standard must be int or float, "
-                                f"but is {type(f_standard)}.")
+                raise type_error(f_standard, "f_standard", (int, float))
         object.__setattr__(self, "f_standard", f_standard)
 
     @staticmethod
@@ -238,8 +236,7 @@ class _InnerLogParser(ExperimentParser):
         """
         super().__init__()
         if not callable(consumer):
-            raise TypeError(
-                f"Consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[[Progress], Any]] = consumer
         self.__time_unit = check_time_unit(time_unit)
         self.__f_name = check_f_name(f_name)
@@ -250,12 +247,10 @@ class _InnerLogParser(ExperimentParser):
         self.__t_collector: Final[List[int]] = []
         self.__f_collector: Final[List[Union[int, float]]] = []
         if not isinstance(only_improvements, bool):
-            raise TypeError("only_improvements must be bool, "
-                            f"but is {type(only_improvements)}.")
+            raise type_error(only_improvements, "only_improvements", bool)
         self.__only_improvements = only_improvements
         if (f_standard is not None) and (not isinstance(f_standard, dict)):
-            raise TypeError(
-                f"f_standard must be dictionary, but is {type(f_standard)}.")
+            raise type_error(f_standard, "f_standard", Dict)
         self.__f_standard: Final[Union[None, Dict[str, Union[int, float]]]] \
             = f_standard
         self.__state = 0
@@ -365,8 +360,7 @@ class _InnerLogParser(ExperimentParser):
 
     def lines(self, lines: List[str]) -> bool:
         if not isinstance(lines, list):
-            raise TypeError(
-                f"lines must be list of strings, but is {type(lines)}.")
+            raise type_error(lines, "lines", List)
 
         if (self.__state & 24) != 0:  # final state or setup
             data = parse_key_values(lines)

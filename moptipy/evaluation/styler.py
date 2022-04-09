@@ -6,6 +6,7 @@ from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
 
 from moptipy.utils.plot_defaults import create_line_style
+from moptipy.utils.types import type_error
 
 
 class Styler:
@@ -40,21 +41,18 @@ class Styler:
         :param sort_by_name: Sort by name (`True`) or by key (`False`)
         """
         if not callable(key_func):
-            raise TypeError("Key function must be callable.")
+            raise type_error(key_func, "key function", call=True)
         if isinstance(namer, str):
             def name_f(x, nn=namer):
                 return nn if x is None else str(x)
         else:
             if not callable(namer):
-                raise TypeError(
-                    f"Name function must be callable but is {type(namer)}.")
+                raise type_error(namer, "namer function", call=True)
             name_f = namer
         if not isinstance(priority, (float, int)):
-            raise TypeError("priority must be float or int "
-                            f"but is {type(priority)}.")
+            raise type_error(priority, "priority", (int, float))
         if not isinstance(sort_by_name, bool):
-            raise TypeError(
-                f"sort_by_name must be bool but is {type(sort_by_name)}.")
+            raise type_error(sort_by_name, "sort_by_name", bool)
         #: Sort by name (`True`) or by key (`False`)
         self.__sort_by_name: Final[bool] = sort_by_name
 
@@ -140,8 +138,7 @@ class Styler:
         """
         tmp = line_color_func(self.count)
         if not isinstance(tmp, Iterable):
-            raise TypeError(
-                f"Line colors must be iterable, but are {type(tmp)}.")
+            raise type_error(tmp, "result of line color func", Iterable)
         self.__line_colors = tuple(tmp)
         if len(self.__line_colors) != self.count:
             raise ValueError(f"There must be {self.count} line colors,"
@@ -156,8 +153,7 @@ class Styler:
         """
         tmp = line_dash_func(self.count)
         if not isinstance(tmp, Iterable):
-            raise TypeError(
-                f"Line dashes must be iterable, but are {type(tmp)}.")
+            raise type_error(tmp, "result of line dash func", Iterable)
         self.__line_dashes = tuple(tmp)
         if len(self.__line_dashes) != self.count:
             raise ValueError(f"There must be {self.count} line dashes,"
@@ -172,8 +168,7 @@ class Styler:
         """
         tmp = line_width_func(self.count)
         if not isinstance(tmp, Iterable):
-            raise TypeError(
-                f"Line widths must be iterable, but are {type(tmp)}.")
+            raise type_error(tmp, "result of line width func", Iterable)
         self.__line_widths = tuple(tmp)
         if len(self.__line_widths) != self.count:
             raise ValueError(f"There must be {self.count} line widths,"
@@ -188,8 +183,7 @@ class Styler:
         """
         tmp = line_alpha_func(self.count)
         if not isinstance(tmp, Iterable):
-            raise TypeError(
-                f"Line alphas must be iterable, but are {type(tmp)}.")
+            raise type_error(tmp, "result of line alpha func", Iterable)
         self.__line_alphas = tuple(tmp)
         if len(self.__line_alphas) != self.count:
             raise ValueError(f"There must be {self.count} line alphas,"
@@ -233,8 +227,7 @@ class Styler:
         :param consumer: the consumer to add to
         """
         if not callable(consumer):
-            raise TypeError(
-                f"consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         for i, name in enumerate(self.names):
             style = create_line_style()
             self.__add_line_style(i, style)

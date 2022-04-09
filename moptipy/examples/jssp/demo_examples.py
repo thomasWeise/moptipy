@@ -16,10 +16,11 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart, \
     marker_lb, marker_makespan
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.path import Path, UTF8
 from moptipy.utils.plot_utils import create_figure, save_figure, \
     cm_to_inch
+from moptipy.utils.types import type_error
 
 
 def demo_instance() -> Instance:
@@ -157,7 +158,7 @@ def demo_gantt_chart(dirname: str,
                             with_makespan,
                             with_lower_bound)
     if not isinstance(filename, str):
-        raise TypeError(f"filename must be str, but is {type(filename)}.")
+        raise type_error(filename, "filename", str)
 
     result: Final[List[Path]] = []
     markers: List[Callable] = []

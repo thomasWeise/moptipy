@@ -7,6 +7,7 @@ import matplotlib  # type: ignore
 import moptipy.api.logging as lg
 import moptipy.evaluation.base as bs
 from moptipy.api.logging import sanitize_name
+from moptipy.utils.types import type_error
 
 
 class Lang:
@@ -29,7 +30,7 @@ class Lang:
         self.__name: Final[str] = sanitize_name(name)
 
         if not isinstance(font, str):
-            raise TypeError(f"The font must be str, but is {type(font)}.")
+            raise type_error(font, "font", str)
         font = font.strip()
         if not font:
             raise ValueError(f"The font cannot be '{font}'.")
@@ -37,11 +38,10 @@ class Lang:
         self.__font: Final[str] = font
 
         if not isinstance(decimal_stepwidth, int):
-            raise TypeError(f"The decimal stepwidth must be int, but "
-                            f"is {type(decimal_stepwidth)}.")
+            raise type_error(decimal_stepwidth, "decimal_stepwidth", int)
         if decimal_stepwidth <= 1:
-            raise TypeError(f"The decimal stepwidth must be > 1, but "
-                            f"is {decimal_stepwidth}.")
+            raise ValueError(f"The decimal stepwidth must be > 1, but "
+                             f"is {decimal_stepwidth}.")
         #: the decimal step width
         self.__decimal_stepwidth: Final[int] = decimal_stepwidth
 
@@ -56,7 +56,7 @@ class Lang:
         :param data: the language-specific data
         """
         if not isinstance(data, dict):
-            raise TypeError(f"Data must be Dict, but is {type(data)}.")
+            raise type_error(data, "data", Dict)
         for k, v in data.items():
             k = sanitize_name(k)
             if k in self.__dict:
@@ -64,8 +64,7 @@ class Lang:
                     f"Key '{k}' appears twice, already assigned to "
                     f"'{self.__dict[k]}', cannot assign to '{v}'.")
             if not isinstance(v, str):
-                raise TypeError(f"Value for key '{k}' must be str, "
-                                f"but is {type(v)}.")
+                raise type_error(v, f"value for key '{k}'", str)
             if not v:
                 raise ValueError(f"Value for key '{k}' cannot be '{v}'.")
             self.__dict[k] = v
@@ -103,7 +102,7 @@ class Lang:
         :return: the language-specific code
         """
         if not isinstance(item, str):
-            raise TypeError(f"Item must be str, but is {type(item)}.")
+            raise type_error(item, "item", str)
         return self.__dict[item]
 
     def format(self, item: str, **kwargs):
@@ -120,7 +119,7 @@ class Lang:
         5: bla6
         """
         if not isinstance(item, str):
-            raise TypeError(f"Item must be str, but is {type(item)}.")
+            raise type_error(item, "item", str)
         fstr = self.__dict[item]
         # pylint: disable=W0123
         return eval(f'f"""{fstr}"""',  # nosec # nosemgrep
@@ -155,7 +154,7 @@ class Lang:
         10'0000
         """
         if not isinstance(value, int):
-            raise TypeError(f"Value must be int, but is {type(value)}.")
+            raise type_error(value, "value", int)
         if value < 0:
             prefix = "-"
             value = -value

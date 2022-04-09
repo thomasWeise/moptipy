@@ -7,8 +7,9 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[Dict[str, Tuple[int, str]]] = {
@@ -24,7 +25,7 @@ def instance_sort_key(name: str) -> Tuple[int, str]:
     :returns: the sort key
     """
     if not isinstance(name, str):
-        raise TypeError(f"name must be str, but is {type(name)}.")
+        raise type_error(name, "name", str)
     if not name:
         raise ValueError("name must not be empty.")
     if name not in __INST_SORT_KEYS:
@@ -40,7 +41,7 @@ def algorithm_sort_key(name: str) -> str:
     :returns: the sort key
     """
     if not isinstance(name, str):
-        raise TypeError(f"name must be str, but is {type(name)}.")
+        raise type_error(name, "name", str)
     if not name:
         raise ValueError("name must not be empty.")
     return name
@@ -123,11 +124,11 @@ def compute_end_statistics(end_results_file: str,
 
     results: Final[List[EndResult]] = get_end_results(end_results_file)
     if len(results) <= 0:
-        raise TypeError("end results cannot be empty")
+        raise ValueError("end results cannot be empty")
     stats: Final[List[EndStatistics]] = []
     EndStatistics.from_end_results(results, stats.append)
     if len(stats) <= 0:
-        raise TypeError("end result statistics cannot be empty")
+        raise ValueError("end result statistics cannot be empty")
     stats.sort()
 
     sf: Path = EndStatistics.to_csv(stats, stats_file)

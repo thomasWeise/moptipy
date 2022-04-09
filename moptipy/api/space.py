@@ -8,6 +8,7 @@ during the optimization process.
 from typing import Optional
 
 from moptipy.api.component import Component
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -84,6 +85,8 @@ class Space(Component):
 
         :param x: the point
         :raises ValueError: if the point `x` is invalid
+        :raises TypeError: if the point `x` (or one of its elements, if
+            applicable) has the wrong data type
         """
 
     def n_points(self) -> int:
@@ -114,11 +117,8 @@ def check_space(space: Optional[Space],
     :raises TypeError: if `space` is not an instance of
         :class:`~moptipy.api.space.Space`
     """
-    if space is None:
-        if none_is_ok:
-            return None
-        raise TypeError("This space must not be None.")
     if not isinstance(space, Space):
-        raise TypeError(
-            f"A space must be instance of Space, but is {type(space)}.")
+        if none_is_ok and (space is None):
+            return None
+        raise type_error(space, "space", Space)
     return space

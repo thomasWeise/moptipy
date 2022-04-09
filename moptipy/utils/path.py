@@ -5,6 +5,8 @@ import os.path
 from io import open, TextIOBase
 from typing import cast, List, Iterable, Final, Union, Tuple
 
+from moptipy.utils.types import type_error
+
 
 def _canonicalize_path(path: str) -> str:
     """
@@ -14,8 +16,7 @@ def _canonicalize_path(path: str) -> str:
     :return: the canonicalized path
     """
     if not isinstance(path, str):
-        raise TypeError(
-            f"path must be instance of str, but is {type(path)}.")
+        raise type_error(path, "path", str)
     if len(path) <= 0:
         raise ValueError("Path must not be empty.")
 
@@ -25,8 +26,7 @@ def _canonicalize_path(path: str) -> str:
                 os.path.expanduser(
                     os.path.expandvars(path)))))
     if not isinstance(path, str):
-        raise TypeError("Path canonicalization should yield string, but "
-                        f"returned {type(path)}.")
+        raise type_error(path, "canonicalized path", str)
     if len(path) <= 0:
         raise ValueError("Canonicalization must yield non-empty string, "
                          f"but returned '{path}'.")
@@ -183,8 +183,7 @@ class Path(str):
         with self.open_for_read() as reader:
             ret = reader.readlines()
         if not isinstance(ret, List):
-            raise TypeError("List of strings expected, but "
-                            f"found {type(ret)} in '{self}'.")
+            raise type_error(ret, f"return value of reading '{self}'", List)
         if len(ret) <= 0:
             raise ValueError(f"File '{self}' contains no text.")
         return [s.rstrip() for s in ret]
@@ -199,8 +198,7 @@ class Path(str):
         with self.open_for_read() as reader:
             ret = reader.read()
         if not isinstance(ret, str):
-            raise TypeError("String expected, but "
-                            f"found {type(ret)} in '{self}'.")
+            raise type_error(ret, f"return value of reading '{self}'", str)
         if len(ret) <= 0:
             raise ValueError(f"File '{self}' contains no text.")
         return ret
@@ -222,8 +220,7 @@ class Path(str):
         """
         self.ensure_file_exists()
         if not isinstance(contents, (str, Iterable)):
-            raise TypeError(
-                f"Excepted str or Iterable, got {type(contents)}.")
+            raise type_error(contents, "contents", (str, Iterable))
         with self.open_for_write() as writer:
             all_text = contents if isinstance(contents, str) \
                 else "\n".join(contents)

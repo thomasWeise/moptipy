@@ -13,6 +13,7 @@ from numpy.random import Generator
 
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -337,14 +338,10 @@ def check_max_fes(max_fes: Optional[int],
     :raises TypeError: if max_fes is None or not an int
     :raises ValueError: if max_fes is invalid
     """
-    if max_fes is None:
-        if none_is_ok:
-            return None
-        raise TypeError("Maximum FEs must not be None.")
-
     if not isinstance(max_fes, int):
-        raise TypeError("Maximum number of function evaluations must be "
-                        f"int, but is {type(max_fes)}.")
+        if none_is_ok and (max_fes is None):
+            return None
+        raise type_error(max_fes, "max_fes", int)
     if max_fes <= 0:
         raise ValueError(f"Maximum FEs must be positive, but are {max_fes}.")
     return max_fes
@@ -361,14 +358,10 @@ def check_max_time_millis(max_time_millis: Optional[int],
     :raises TypeError: if max_time_millis is None or not an int
     :raises ValueError: if max_time_millis is invalid
     """
-    if max_time_millis is None:
-        if none_is_ok:
-            return None
-        raise TypeError("Maximum time in milliseconds must not be None.")
-
     if not isinstance(max_time_millis, int):
-        raise TypeError("Maximum time in milliseconds must be int, but is "
-                        f"{type(max_time_millis)}.")
+        if none_is_ok and (max_time_millis is None):
+            return None
+        raise type_error(max_time_millis, "max_time_millis", int)
     if max_time_millis <= 0:
         raise ValueError("Maximum time in milliseconds must be positive, "
                          f"but is {max_time_millis}.")
@@ -386,14 +379,10 @@ def check_goal_f(goal_f: Union[int, float, None],
     :raises TypeError: if goal_f is None or neither an int nor a float
     :raises ValueError: if goal_f is invalid
     """
-    if goal_f is None:
-        if none_is_ok:
-            return None
-        raise TypeError("Goal objective value cannot be None.")
-
     if not (isinstance(goal_f, (int, float))):
-        raise TypeError("Goal objective value must be int or float, but is "
-                        f"{type(goal_f)}.")
+        if none_is_ok and (goal_f is None):
+            return None
+        raise type_error(goal_f, "goal_f", (int, float))
     if isnan(goal_f):
         raise ValueError("Goal objective value must not be NaN, but is "
                          f"{goal_f}.")

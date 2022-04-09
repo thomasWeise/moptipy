@@ -13,6 +13,7 @@ from moptipy.tests.component import validate_component
 from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.objective import validate_objective
 from moptipy.tests.space import validate_space
+from moptipy.utils.types import type_error
 
 
 def validate_algorithm(algorithm: Algorithm,
@@ -42,8 +43,7 @@ def validate_algorithm(algorithm: Algorithm,
     :raises ValueError: if `algorithm` does not behave like it should
     """
     if not isinstance(algorithm, Algorithm):
-        raise TypeError("Expected to receive an instance of Algorithm, but "
-                        f"got a {type(algorithm)}.")
+        raise type_error(algorithm, "algorithm", Algorithm)
 
     check_algorithm(algorithm)
     if isinstance(algorithm, Algorithm0):

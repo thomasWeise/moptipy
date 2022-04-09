@@ -5,6 +5,7 @@ from typing import Union, Callable, Optional, Final, Any
 from moptipy.api import logging
 from moptipy.api.component import CallableComponent, Component
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -69,12 +70,10 @@ class CallableObjective(CallableComponent, Objective):
                          name="unnamed_function" if (name is None) else name)
 
         if not (isinstance(lower_bound, (int, float))):
-            raise TypeError("lower_bound must be either int or float, "
-                            f"but is {type(lower_bound)}.")
+            raise type_error(lower_bound, "lower_bound", (int, float))
 
         if not (isinstance(upper_bound, (int, float))):
-            raise TypeError("upper_bound must be either int or float, "
-                            f"but is {type(upper_bound)}.")
+            raise type_error(upper_bound, "upper_bound", (int, float))
 
         if lower_bound >= upper_bound:
             raise ValueError(f"lower_bound {lower_bound} "
@@ -113,9 +112,6 @@ def check_objective(objective: Objective) -> Objective:
     :raises TypeError: if `objective` is not an instance of
         :class:`Objective`
     """
-    if objective is None:
-        raise TypeError("An objective function must not be None.")
     if not isinstance(objective, Objective):
-        raise TypeError("An objective function must be instance of "
-                        f"Objective, but is {type(objective)}.")
+        raise type_error(objective, "objective function", Objective)
     return objective

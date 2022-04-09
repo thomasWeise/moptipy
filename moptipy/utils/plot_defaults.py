@@ -5,6 +5,8 @@ import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib import colors  # type: ignore
 
+from moptipy.utils.types import type_error
+
 #: The internal color black.
 COLOR_BLACK: Final[Tuple[float, float, float]] = (0.0, 0.0, 0.0)
 #: The internal color white.
@@ -81,7 +83,7 @@ def distinct_colors(n: int) -> Tuple[Tuple[float, float, float], ...]:
     :return: a tuple of colors
     """
     if not isinstance(n, int):
-        raise TypeError(f"n must be int but is {type(n)}.")
+        raise type_error(n, "n", int)
     if not (0 < n < 1000):
         raise ValueError(f"Invalid n={n}.")
 
@@ -138,7 +140,7 @@ def distinct_line_dashes(n: int) -> \
     :return: the styles
     """
     if not isinstance(n, int):
-        raise TypeError(f"n must be int but is {type(n)}.")
+        raise type_error(n, "n", int)
     if not (0 < n < len(__FIXED_LINE_DASHES)):
         raise ValueError(f"Invalid n={n} for line dash number, must be "
                          f"in 1..{len(__FIXED_LINE_DASHES)}.")
@@ -159,7 +161,7 @@ def distinct_markers(n: int) -> Tuple[str, ...]:
     :return: the markers
     """
     if not isinstance(n, int):
-        raise TypeError(f"n must be int but is {type(n)}.")
+        raise type_error(n, "n", int)
     if not (0 < n < len(__FIXED_MARKERS)):
         raise ValueError(f"Invalid n={n} for line dash number, must be "
                          f"in 1..{len(__FIXED_MARKERS)}.")
@@ -181,7 +183,7 @@ def importance_to_line_width(importance: int) -> float:
     :return: the line width
     """
     if not isinstance(importance, int):
-        raise TypeError(f"importance must be int but is {type(importance)}.")
+        raise type_error(importance, "importance", int)
     if not (-10 < importance < 10):
         raise ValueError(f"Invalid importance={importance}.")
     if importance >= 0:
@@ -206,7 +208,7 @@ def importance_to_alpha(importance: int) -> float:
     :return: the alpha
     """
     if not isinstance(importance, int):
-        raise TypeError(f"importance must be int but is {type(importance)}.")
+        raise type_error(importance, "importance", int)
     if not (-10 < importance < 10):
         raise ValueError(f"Invalid importance={importance}.")
     if importance >= 0:
@@ -252,7 +254,7 @@ def importance_to_font_size(importance: float) -> float:
     :return: the font size
     """
     if not isinstance(importance, int):
-        raise TypeError(f"importance must be int but is {type(importance)}.")
+        raise type_error(importance, "importance", int)
     if not (-10 < importance < 10):
         raise ValueError(f"Invalid importance={importance}.")
     if importance < 0:

@@ -6,6 +6,7 @@ import numpy
 
 from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.types import type_error
 
 #: the base string to be permuted
 KEY_BASE_STRING: Final[str] = "baseString"
@@ -83,8 +84,7 @@ class Permutations(IntSpace):  # +book
         :raises ValueError: if the parameters have the wrong value
         """
         if not isinstance(base_string, Iterable):
-            raise TypeError(
-                f"base_string must be iterable, but is {type(base_string)}.")
+            raise type_error(base_string, "base_string", Iterable)
 
         string: Final[List[int]] = sorted(base_string)
         total: Final[int] = len(string)
@@ -98,8 +98,7 @@ class Permutations(IntSpace):  # +book
         maximum: int = string[0]
         for i in string:
             if not isinstance(i, int):
-                raise TypeError(f"base_string must only contain int, but "
-                                f"contains {i}, which is {type(i)}.")
+                raise type_error(i, "element of base_string", int)
             self.__shape[i] = self.__shape.get(i, 0) + 1
             if i < minimum:
                 minimum = i
@@ -273,7 +272,7 @@ class Permutations(IntSpace):  # +book
         :returns: the permutations space
         """
         if not isinstance(n, int):
-            raise TypeError(f"n must be int, but is {type(n)}.")
+            raise type_error(n, "n", int)
         if n <= 1:
             raise ValueError(f"n must be >1, but is {n}.")
         return Permutations(range(n))
@@ -288,15 +287,14 @@ class Permutations(IntSpace):  # +book
         :returns: the permutations space
         """
         if not isinstance(repetitions, int):
-            raise TypeError(
-                f"repetitions must be int, but is {type(repetitions)}.")
+            raise type_error(repetitions, "repetitions", int)
         if repetitions < 1:
             raise ValueError(f"repetitions must be >0, but is {repetitions}.")
         if repetitions <= 1:
             return Permutations.standard(n)
 
         if not isinstance(n, int):
-            raise TypeError(f"n must be int, but is {type(n)}.")
+            raise type_error(n, "n", int)
         if n <= 1:
             raise ValueError(f"n must be >1, but is {n}.")
         return Permutations(list(range(n)) * repetitions)  # +book

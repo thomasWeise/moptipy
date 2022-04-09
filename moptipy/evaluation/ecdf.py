@@ -8,14 +8,15 @@ import numpy as np
 
 import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
-from moptipy.utils.types import num_to_str
 from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, KEY_N
 from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.path import Path
+from moptipy.utils.strings import num_to_str
+from moptipy.utils.types import type_error
 
 #: The number of instances.
 KEY_N_INSTS: Final[str] = f"{KEY_N}Insts"
@@ -59,7 +60,7 @@ class Ecdf(MultiRun2DData):
         super().__init__(algorithm, None, n, time_unit, f_name)
 
         if not isinstance(n_insts, int):
-            raise TypeError(f"n_insts must be int but is {type(n_insts)}.")
+            raise type_error(n_insts, "n_insts", int)
         if (n_insts < 1) or (n_insts > self.n):
             raise ValueError("n_insts must be > 0 and < n_runs "
                              f"({self.n}), but got {n_insts}.")
@@ -67,14 +68,13 @@ class Ecdf(MultiRun2DData):
 
         if goal_f is not None:
             if not isinstance(goal_f, (int, float)):
-                raise TypeError(f"Invalid goal_f type {type(goal_f)}.")
+                raise type_error(goal_f, "goal_f", (int, float))
             if not isfinite(goal_f):
                 raise ValueError(f"Invalid goal_f {goal_f}.")
         object.__setattr__(self, "goal_f", goal_f)
 
         if not isinstance(ecdf, np.ndarray):
-            raise TypeError(
-                f"ecdf must be numpy.ndarray, but is {type(ecdf)}.")
+            raise type_error(ecdf, "ecdf", np.ndarray)
         ecdf.flags.writeable = False
 
         time: Final[np.ndarray] = ecdf[:, 0]
@@ -206,8 +206,7 @@ class Ecdf(MultiRun2DData):
         :rtype: Ecdf
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
 
         algorithm: Optional[str] = None
         time_unit: Optional[str] = None
@@ -217,8 +216,7 @@ class Ecdf(MultiRun2DData):
 
         for progress in source:
             if not isinstance(progress, Progress):
-                raise TypeError("Only Progress records are permitted, but "
-                                f"encountered a {type(progress)}.")
+                raise type_error(progress, "progress", Progress)
             if n <= 0:
                 algorithm = progress.algorithm
                 time_unit = progress.time_unit
@@ -268,8 +266,7 @@ class Ecdf(MultiRun2DData):
                             raise ValueError("Inconsistent goals: "
                                              f"{goal} and {pp.f_standard}")
             if not isinstance(goal, (int, float)):
-                raise TypeError(
-                    f"Goal must be int or float but is {type(goal)}.")
+                raise type_error(goal, "goal", (int, float))
             if first:
                 same_goal_f = goal
             elif goal != same_goal_f:
@@ -332,22 +329,19 @@ class Ecdf(MultiRun2DData):
             algorithms
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
         if not callable(consumer):
-            raise TypeError(
-                "consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         if not isinstance(join_all_algorithms, bool):
-            raise TypeError("join_all_algorithms must be bool, "
-                            f"but is {type(join_all_algorithms)}.")
+            raise type_error(join_all_algorithms,
+                             "join_all_algorithms", bool)
         if not isinstance(f_goal, Iterable):
             f_goal = [f_goal]
 
         sorter: Dict[str, List[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
-                raise TypeError("source must contain only Progress, but "
-                                f"found a {type(er)}.")
+                raise type_error(er, "progress", Progress)
             key = er.algorithm
             if key in sorter:
                 lst = sorter[key]

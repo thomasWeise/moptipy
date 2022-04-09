@@ -6,6 +6,7 @@ from numpy.random import Generator
 
 from moptipy.api import operators
 from moptipy.spaces.permutations import Permutations
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -21,9 +22,7 @@ class Op0Shuffle(operators.Op0):
         if not space:  # -book
             raise ValueError("space must not be None.")  # -book
         if not isinstance(space, Permutations):  # -book
-            raise TypeError(  # -book
-                "space must be PermutationsWithRepetitions,"  # -book
-                f" but is {type(space)}.")  # -book
+            raise type_error(space, "space", Permutations)  # -book
         #: the internal blueprint for filling permutations
         self.__blueprint: Final[np.ndarray] = space.blueprint
 

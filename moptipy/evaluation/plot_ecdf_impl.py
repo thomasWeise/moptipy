@@ -14,6 +14,7 @@ from moptipy.evaluation.base import get_algorithm, sort_key
 from moptipy.evaluation.ecdf import Ecdf, get_goal, goal_to_str
 from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.styler import Styler
+from moptipy.utils.types import type_error
 
 
 def plot_ecdf(ecdfs: Iterable[Ecdf],
@@ -85,7 +86,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     # First pass: find out the goals and algorithms
     for ee in source:
         if not isinstance(ee, Ecdf):
-            raise TypeError(f"Type {type(ee)} is not supported.")
+            raise type_error(ee, "data source", Ecdf)
         goals.add(ee)
         algorithms.add(ee)
         x_labels.add(ee.time_label())
@@ -155,12 +156,12 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     if callable(x_axis):
         x_axis = x_axis(t_dim)
     if not isinstance(x_axis, AxisRanger):
-        raise TypeError(f"x_axis must be AxisRanger, but is {type(x_axis)}.")
+        raise type_error(x_axis, "x_axis", AxisRanger)
 
     if callable(y_axis):
         y_axis = y_axis("ecdf")
     if not isinstance(y_axis, AxisRanger):
-        raise TypeError(f"y_axis must be AxisRanger, but is {type(y_axis)}.")
+        raise type_error(y_axis, "y_axis", AxisRanger)
 
     # first we collect all progress object
     for ee in source:

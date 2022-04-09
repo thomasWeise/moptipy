@@ -4,7 +4,8 @@ import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.nputils import is_np_float, is_all_finite
-from moptipy.utils.types import float_to_str
+from moptipy.utils.strings import float_to_str
+from moptipy.utils.types import type_error
 
 
 class VectorSpace(NPArraySpace):
@@ -47,7 +48,7 @@ class VectorSpace(NPArraySpace):
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
         if not (isinstance(text, str)):
-            raise TypeError(f"text must be str, but is {type(text)}.")
+            raise type_error(text, "text", str)
         x = numpy.fromstring(text, dtype=self.dtype, sep=",")
         self.validate(x)
         return x
@@ -61,6 +62,7 @@ class VectorSpace(NPArraySpace):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
+        super().validate(x)
         if not is_all_finite(x):
             raise ValueError("All elements must be finite.")
 

@@ -15,6 +15,7 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.utils.plot_defaults as pd
 from moptipy.evaluation.lang import Lang
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error, type_name_of
 
 #: the golden ratio
 __GOLDEN_RATIO: Final[float] = 0.5 + (0.5 * sqrt(5))
@@ -175,32 +176,31 @@ def create_figure_with_subplots(
     """
     # First, we do a lot of sanity checks
     if not isinstance(items, int):
-        raise TypeError(f"items must be int, but is {type(items)}.")
+        raise type_error(items, "items", int)
     if items < 1:
         raise ValueError(f"items must be positive, but is {items}.")
     if not isinstance(max_items_per_plot, int):
-        raise TypeError("max_items_per_plot must be int, "
-                        f"but is {type(max_items_per_plot)}.")
+        raise type_error(max_items_per_plot, "max_items_per_plot", int)
     if max_items_per_plot < 1:
         raise ValueError(f"max_items_per_plot must be positive, "
                          f"but is {max_items_per_plot}.")
     if not isinstance(max_rows, int):
-        raise TypeError(f"max_rows must be int, but is {type(max_rows)}.")
+        raise type_error(max_rows, "max_rows", int)
     if max_rows < 1:
         raise ValueError(f"max_rows must be positive, but is {max_rows}.")
     if not isinstance(min_rows, int):
-        raise TypeError(f"min_rows must be int, but is {type(min_rows)}.")
+        raise type_error(min_rows, "min_rows", int)
     if min_rows < 1:
         raise ValueError(f"min_rows must be positive, but is {min_rows}.")
     if min_rows > max_rows:
         raise ValueError(
             f"min_rows ({min_rows}) must be <= max_rows ({max_rows}).")
     if not isinstance(max_cols, int):
-        raise TypeError(f"max_cols must be int, but is {type(max_cols)}.")
+        raise type_error(max_cols, "max_cols", int)
     if max_cols < 1:
         raise ValueError(f"max_cols must be positive, but is {max_cols}.")
     if not isinstance(min_cols, int):
-        raise TypeError(f"min_cols must be int, but is {type(min_cols)}.")
+        raise type_error(min_cols, "min_cols", int)
     if min_cols < 1:
         raise ValueError(f"min_cols must be positive, but is {min_cols}.")
     if min_cols > max_cols:
@@ -401,19 +401,19 @@ def save_figure(fig: Figure,
     :return: a list of files
     """
     if not isinstance(fig, Figure):
-        raise TypeError(f"Invalid figure type {type(fig)}.")
+        raise type_error(fig, "figure", Figure)
     if not isinstance(file_name, str):
-        raise TypeError(f"Invalid file_name type {type(file_name)}.")
+        raise type_error(file_name, "file_name", str)
     if len(file_name) <= 0:
         raise ValueError(f"Invalid filename '{file_name}'.")
     if not isinstance(dir_name, str):
-        raise TypeError(f"Invalid dirname type {type(dir_name)}.")
+        raise type_error(dir_name, "dir_name", str)
     if len(dir_name) <= 0:
         raise ValueError(f"Invalid dirname '{dir_name}'.")
     if isinstance(formats, str):
         formats = [formats]
     if not isinstance(formats, Iterable):
-        raise TypeError(f"Invalid format type {type(formats)}.")
+        raise type_error(formats, "formats", Iterable)
 
     size = fig.get_size_inches()
     if size[0] >= size[1]:
@@ -429,7 +429,7 @@ def save_figure(fig: Figure,
     files = []
     for fmt in formats:
         if not isinstance(fmt, str):
-            raise TypeError(f"Invalid format type {type(fmt)}.")
+            raise type_error(fmt, "element of formats", str)
         dest_file = Path.path(os.path.join(use_dir, f"{file_name}.{fmt}"))
         dest_file.ensure_file_exists()
         fig.savefig(dest_file, transparent=True, format=fmt,
@@ -522,7 +522,7 @@ def label_box(axes: Axes,
         font = font()
     if font is not None:
         if not isinstance(font, str):
-            raise TypeError(f"Font must be string, but is {type(font)}.")
+            raise type_error(font, "font", str)
         args['fontname'] = font
 
     axes.annotate(**args)
@@ -559,7 +559,7 @@ def label_axes(axes: Axes,
     # put the label on the x-axis, if any
     if xlabel is not None:
         if not isinstance(xlabel, str):
-            raise TypeError(f"xlabel must be str but is {type(xlabel)}.")
+            raise type_error(xlabel, "xlabel", str)
         if len(xlabel) > 0:
             if xlabel_inside:
                 label_box(axes, text=xlabel, x=xlabel_location, y=0,
@@ -570,7 +570,7 @@ def label_axes(axes: Axes,
     # put the label on the y-axis, if any
     if ylabel is not None:
         if not isinstance(ylabel, str):
-            raise TypeError(f"ylabel must be str but is {type(ylabel)}.")
+            raise type_error(ylabel, "ylabel", str)
         if len(ylabel) > 0:
             if ylabel_inside:
                 label_box(axes, text=ylabel, x=0, y=ylabel_location,
@@ -609,7 +609,8 @@ def get_axes(figure: Union[Axes, SubplotBase, Figure]) -> Axes:
             pass
     if isinstance(figure, Axes):
         return cast(Axes, figure)
-    raise TypeError(f"Cannot get Axes of object of type {type(figure)}.")
+    raise TypeError(
+        f"Cannot get Axes of object of type {type_name_of(figure)}.")
 
 
 def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
@@ -622,7 +623,7 @@ def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
     if isinstance(figure, (Axes, SubplotBase)):
         figure = figure.figure
     if not isinstance(figure, Figure):
-        raise TypeError(f"Figure expected, but got {type(figure)}.")
+        raise type_error(figure, "figure", Figure)
     canvas = figure.canvas
     if hasattr(canvas, "renderer"):
         return canvas.renderer
@@ -642,7 +643,7 @@ def cm_to_inch(cm: Union[int, float]) -> float:
     """
     if not isinstance(cm, int):
         if not isinstance(cm, float):
-            raise TypeError(f"cm must be int or float, but is {type(cm)}.")
+            raise type_error(cm, "cm", (int, float))
         if not isfinite(cm):
             raise ValueError(f"cm must be finite, but is {cm}.")
     res: float = cm / 2.54
@@ -674,11 +675,11 @@ def get_label_colors(handles: Iterable[Artist], color_map: Optional[Dict[
     :returns: a list of label colors
     """
     if not isinstance(handles, Iterable):
-        raise TypeError(f"expected Iterable, got {type(handles)}")
+        raise type_error(handles, "handles", Iterable)
 
     def __get_color(a: Artist, colmap=color_map, defcol=default_color):
         if not isinstance(a, Artist):
-            raise TypeError(f"expected Artist, got {type(a)}")
+            raise type_error(a, "artist", Artist)
 
         for acall, astr, aname in __COLOR_ATTRS:
             if hasattr(a, aname):

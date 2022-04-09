@@ -19,7 +19,7 @@ from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
 from moptipy.utils.path import Path
 from moptipy.utils.sys_info import log_sys_info
-from moptipy.utils.types import classname
+from moptipy.utils.types import type_name_of
 
 
 def _error_1(logger: Logger, title: str, exception_type,
@@ -44,7 +44,7 @@ def _error_1(logger: Logger, title: str, exception_type,
                         exception_type = exception_type[8:-2]
                     ts.write(exception_type.strip())
                 else:
-                    ts.write(classname(exception_type))
+                    ts.write(type_name_of(exception_type))
                 ts.write(os.linesep)
             if exception_value:
                 ts.write(logging.KEY_EXCEPTION_VALUE)
@@ -230,9 +230,9 @@ class _ProcessNoSS(_ProcessBase):
         super()._log_own_parameters(logger)
         logger.key_value(logging.KEY_RAND_SEED, self.__rand_seed, True)
         logger.key_value(logging.KEY_RAND_GENERATOR_TYPE,
-                         classname(self.__random))
+                         type_name_of(self.__random))
         logger.key_value(logging.KEY_RAND_BIT_GENERATOR_TYPE,
-                         classname(self.__random.bit_generator))
+                         type_name_of(self.__random.bit_generator))
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         super().log_parameters_to(logger)

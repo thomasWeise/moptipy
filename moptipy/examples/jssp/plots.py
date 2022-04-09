@@ -7,7 +7,7 @@ from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.lang import Lang
 from moptipy.evaluation.plot_end_results_impl import plot_end_results
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 
 
 def plot_end_makespans(end_results: Iterable[EndResult],

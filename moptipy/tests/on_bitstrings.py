@@ -14,6 +14,7 @@ from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
+from moptipy.utils.types import type_error
 
 
 def dimensions_for_tests() -> Iterable[int]:
@@ -144,33 +145,25 @@ def validate_algorithm_on_bitstrings(
     :param required_result: the optional required result quality
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
-        raise TypeError(
-            "'algorithm' parameter must be an Algorithm or a callable that"
-            "instantiates an algorithm for a given algorithm instance,"
-            f"but got a {type(algorithm)} instead.")
+        raise type_error(algorithm, 'algorithm', Algorithm, True)
     if not (isinstance(objective, Objective) or callable(objective)):
-        raise TypeError(
-            "'objective' parameter must be an Objective or a callable that"
-            "instantiates an objective for a given dimension,"
-            f"but got a {type(objective)} instead.")
+        raise type_error(objective, "objective", Objective, True)
     if not isinstance(dimension, int):
-        raise TypeError(
-            f"'dimension' must be int but is {type(dimension)} instead.")
+        raise type_error(dimension, 'dimension', int)
     if dimension <= 0:
         raise ValueError(f"dimension must be > 0, but got {dimension}.")
 
     if callable(objective):
         objective = objective(dimension)
     if not isinstance(objective, Objective):
-        raise TypeError(
-            "invoking callable 'objective' must return Objective, "
-            f"but got a {type(objective)} instead.")
+        raise type_error(objective, "result of callable 'objective'",
+                         Objective)
     bs: Final[BitStrings] = BitStrings(dimension)
     if callable(algorithm):
         algorithm = algorithm(bs)
     if not isinstance(algorithm, Algorithm):
-        raise TypeError("callable algorithm must return Algorithm, "
-                        f"but got {type(algorithm)}")
+        raise type_error(algorithm, "result of callable 'algorithm'",
+                         Algorithm)
 
     goal: Optional[int]
     if callable(required_result):

@@ -20,8 +20,9 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
@@ -78,26 +79,23 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     """
     # The initial parameter validity checks.
     if not isinstance(base_dir, str):
-        raise TypeError(
-            f"base_dir must be str, but is {type(base_dir)}.")
+        raise type_error(base_dir, "base_dir", str)
     if not isinstance(algorithms, Iterable):
-        raise TypeError(
-            f"algorithms must be iterable, but is {type(algorithms)}.")
+        raise type_error(algorithms, "algorithms", Iterable)
     if not isinstance(instances, Iterable):
-        raise TypeError(
-            f"Instances must be iterable, but is {type(instances)}.")
+        raise type_error(instances, "instances", Iterable)
     if not isinstance(n_runs, int):
-        raise TypeError(f"n_runs must be int but is {type(n_runs)}.")
+        raise type_error(n_runs, "n_runs", int)
     if n_runs <= 0:
         raise ValueError(f"n_runs must be positive, but is {n_runs}.")
     if max_time is not None:
         if not isinstance(max_time, int):
-            raise TypeError(f"max_time must be int but is {type(max_time)}.")
+            raise type_error(max_time, "max_time", int)
         if max_time <= 0:
             raise ValueError(f"max_time must be positive, but is {max_time}.")
     if max_fes is not None:
         if not isinstance(max_fes, int):
-            raise TypeError(f"max_fes must be int but is {type(max_fes)}.")
+            raise type_error(max_fes, "max_fes", int)
         if max_time <= 0:
             raise ValueError(f"max_fes must be positive, but is {max_fes}.")
     if (max_fes is None) and (max_time is None):
@@ -130,8 +128,8 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                 experiment = cast(Execution, val)
             else:
                 if not isinstance(val, Algorithm):
-                    raise TypeError("Factory must return Algorithm or "
-                                    f"Execution, but returns {type(val)}.")
+                    raise type_error(val, "result of factory function",
+                                     Algorithm)
                 experiment = Execution()
                 experiment.set_algorithm(cast(Algorithm, val))
 

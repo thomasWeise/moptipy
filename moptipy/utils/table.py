@@ -4,6 +4,8 @@ from contextlib import AbstractContextManager
 from io import TextIOBase
 from typing import Final
 
+from moptipy.utils.types import type_error
+
 
 class TableDriver:
     """
@@ -141,13 +143,11 @@ class Table(AbstractContextManager):
         """
         super().__init__()
         if not isinstance(stream, TextIOBase):
-            raise TypeError(
-                f"stream should be TextIOBase, but is {type(stream)}.")
+            raise type_error(stream, "stream", TextIOBase)
         if not isinstance(cols, str):
-            raise TypeError(f"cols should be str, but is {type(cols)}.")
+            raise type_error(cols, "cols", str)
         if not isinstance(driver, TableDriver):
-            raise TypeError(
-                f"driver must be TableDriver, but is {type(driver)}.")
+            raise type_error(driver, "driver", TableDriver)
 
         cols = cols.strip()
         if len(cols) <= 0:

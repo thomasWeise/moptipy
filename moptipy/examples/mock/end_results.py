@@ -9,8 +9,9 @@ from numpy.random import Generator
 from moptipy.evaluation.end_results import EndResult
 from moptipy.examples.mock.components import Algorithm, Instance, \
     BasePerformance, Experiment
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator
+from moptipy.utils.types import type_error
 
 
 def end_result(performance: BasePerformance,
@@ -27,22 +28,20 @@ def end_result(performance: BasePerformance,
     :returns: the end result record
     """
     if not isinstance(performance, BasePerformance):
-        raise TypeError("performance must be BasePerformance, "
-                        f"but is {type(performance)}.")
+        raise type_error(performance, "performance", BasePerformance)
 
     limit_time: Union[int, float] = inf
     limit_fes: Union[int, float] = inf
     if max_time_millis is not None:
         if not isinstance(max_time_millis, int):
-            raise TypeError(
-                f"max_time must be int, but is {type(max_time_millis)}")
+            raise type_error(max_time_millis, "max_time_millis", int)
         if max_time_millis <= 10:
             raise ValueError(
-                f"max_time must be > 10, but is {max_time_millis}.")
+                f"max_time_millis must be > 10, but is {max_time_millis}.")
         limit_time = max_time_millis
     if max_fes is not None:
         if not isinstance(max_fes, int):
-            raise TypeError(f"max_fes must be int, but is {type(max_fes)}")
+            raise type_error(max_fes, "max_fes", int)
         if max_fes <= 10:
             raise ValueError(f"max_fes must be > 10, but is {max_fes}.")
         limit_fes = max_fes
@@ -190,21 +189,18 @@ class EndResults:
         :param max_time_millis: the maximum permitted milliseconds.
         """
         if not isinstance(experiment, Experiment):
-            raise TypeError(
-                f"experiment must be Experiment, but is {type(experiment)}.")
+            raise type_error(experiment, "experiment", Experiment)
         object.__setattr__(self, "experiment", experiment)
 
         per_algo: Final[Dict[Union[str, Algorithm], List[EndResult]]] = {}
         per_inst: Final[Dict[Union[str, Instance], List[EndResult]]] = {}
         if not isinstance(results, tuple):
-            raise TypeError(
-                f"end_results must be Tuple, but is {type(results)}.")
+            raise type_error(results, "results", Tuple)
         if len(results) <= 0:
             raise ValueError("end_results must not be empty.")
         for a in results:
             if not isinstance(a, EndResult):
-                raise TypeError(f"end_results contains {a}, "
-                                f"which is {type(a)} and not EndResult.")
+                raise type_error(a, "element of results", EndResult)
             aa = experiment.get_algorithm(a.algorithm)
             if aa in per_algo:
                 per_algo[aa].append(a)
@@ -234,16 +230,14 @@ class EndResults:
 
         if max_fes is not None:
             if not isinstance(max_fes, int):
-                raise TypeError(
-                    f"max_fes must be int, but is {type(max_fes)}.")
+                raise type_error(max_fes, "max_fes", int)
             if max_fes <= 0:
                 raise ValueError(f"max_fes must be > 0, but are {max_fes}.")
         object.__setattr__(self, "max_fes", max_fes)
 
         if max_time_millis is not None:
             if not isinstance(max_time_millis, int):
-                raise TypeError("max_time_millis must be int, "
-                                f"but is {type(max_time_millis)}.")
+                raise type_error(max_time_millis, "max_time_millis", int)
             if max_time_millis <= 0:
                 raise ValueError("max_time_millis must be > 0, "
                                  f"but are {max_time_millis}.")
@@ -262,8 +256,7 @@ class EndResults:
         :returns: the end results
         """
         if not isinstance(experiment, Experiment):
-            raise TypeError(
-                f"experiment must be Experiment, but is {type(experiment)}.")
+            raise type_error(experiment, "experiment", Experiment)
         logger(
             "now creating all end results for an experiment with "
             f"{len(experiment.algorithms)} algorithms, "
@@ -272,15 +265,13 @@ class EndResults:
 
         if max_fes is not None:
             if not isinstance(max_fes, int):
-                raise TypeError(
-                    f"max_fes must be int, but is {type(max_fes)}.")
+                raise type_error(max_fes, "max_fes", int)
             if max_fes <= 0:
                 raise ValueError(f"max_fes must be > 0, but are {max_fes}.")
 
         if max_time_millis is not None:
             if not isinstance(max_time_millis, int):
-                raise TypeError("max_time_millis must be int, "
-                                f"but is {type(max_time_millis)}.")
+                raise type_error(max_time_millis, "max_time_millis", int)
             if max_time_millis <= 0:
                 raise ValueError("max_time_millis must be > 0, "
                                  f"but are {max_time_millis}.")

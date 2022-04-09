@@ -6,13 +6,16 @@ from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 import moptipy.utils.types
 from moptipy.api import logging as log
 from moptipy.evaluation._utils import _check_max_time_millis
+from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
 from moptipy.evaluation.base import MultiRunData, KEY_N
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, CSV_COLS
-from moptipy.utils.log import logger
+from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, \
+    CSV_COLS, KEY_STDDEV
+from moptipy.utils.console import logger
+from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
-from moptipy.utils.types import str_to_intfloat, try_int, try_int_div
-from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
+from moptipy.utils.strings import str_to_intfloat
+from moptipy.utils.types import type_error, type_name_of
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
@@ -32,12 +35,20 @@ _GETTERS_0: Final[Dict[str, Callable[['EndStatistics'],
                                      Union[int, float, None]]]] = {
     KEY_N_SUCCESS: lambda s: s.n_success,
     KEY_ERT_FES: lambda s: s.ert_fes,
-    KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis
+    KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis,
+    log.KEY_GOAL_F: lambda s: s.goal_f if isinstance(s.goal_f,
+                                                     (int, float)) else None,
+    log.KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis
+    if isinstance(s.max_time_millis, (int, float)) else None,
+    log.KEY_MAX_FES: lambda s: s.max_fes
+    if isinstance(s.max_fes, (int, float)) else None,
+
 }
 
 #: the internal getters that access end statistics
-_GETTERS_1: Final[Dict[str, Callable[['EndStatistics'],
-                                     Optional[Statistics]]]] = {
+_GETTERS_1: Final[Dict[
+    str, Callable[['EndStatistics'], Union[int, float, Statistics,
+                                           None]]]] = {
     log.KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
     log.KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         lambda s: s.last_improvement_time_millis,
@@ -45,6 +56,9 @@ _GETTERS_1: Final[Dict[str, Callable[['EndStatistics'],
     log.KEY_TOTAL_TIME_MILLIS: lambda s: s.total_time_millis,
     F_NAME_RAW: lambda s: s.best_f,
     F_NAME_SCALED: lambda s: s.best_f_scaled,
+    log.KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis,
+    log.KEY_MAX_FES: lambda s: s.max_fes,
+    log.KEY_GOAL_F: lambda s: s.goal_f,
 }
 _GETTERS_1[log.KEY_BEST_F] = _GETTERS_1[F_NAME_RAW]
 
@@ -150,28 +164,26 @@ class EndStatistics(MultiRunData):
         super().__init__(algorithm, instance, n)
 
         if not isinstance(best_f, Statistics):
-            raise TypeError(f"best_f must Statistics, but is {type(best_f)}.")
+            raise type_error(best_f, "best_f", Statistics)
         object.__setattr__(self, "best_f", best_f)
 
         if not isinstance(last_improvement_fe, Statistics):
-            raise TypeError("last_improvement_fe must Statistics, "
-                            f"but is {type(last_improvement_fe)}.")
+            raise type_error(last_improvement_fe, "last_improvement_fe",
+                             Statistics)
         if last_improvement_fe.minimum <= 0:
             raise ValueError("No last_improvement_fe can be <= 0, but "
                              f"encountered {last_improvement_fe.minimum}.")
         if not isinstance(last_improvement_fe.minimum, int):
-            raise ValueError(
-                "Minimum last_improvement_fe must be int, but encountered "
-                f"{type(last_improvement_fe.minimum)}.")
+            raise type_error(last_improvement_fe.minimum,
+                             "minimum last_improvement_fe", int)
         if not isinstance(last_improvement_fe.maximum, int):
-            raise ValueError(
-                "Maximum last_improvement_fe must be int, but encountered "
-                f"{type(last_improvement_fe.maximum)}.")
+            raise type_error(last_improvement_fe.maximum,
+                             "maximum last_improvement_fe", int)
         object.__setattr__(self, "last_improvement_fe", last_improvement_fe)
 
         if not isinstance(last_improvement_time_millis, Statistics):
-            raise TypeError("last_improvement_time_millis must Statistics, "
-                            f"but is {type(last_improvement_time_millis)}.")
+            raise type_error(last_improvement_time_millis,
+                             "last_improvement_time_millis", Statistics)
         object.__setattr__(self, "last_improvement_time_millis",
                            last_improvement_time_millis)
         if last_improvement_time_millis.minimum < 0:
@@ -179,28 +191,21 @@ class EndStatistics(MultiRunData):
                 "No last_improvement_time_millis can be < 0, but encountered "
                 f"{last_improvement_time_millis.minimum}.")
         if not isinstance(last_improvement_time_millis.minimum, int):
-            raise ValueError(
-                "Minimum last_improvement_time_millis must be int, but "
-                f"encountered {type(last_improvement_time_millis.minimum)}.")
+            raise type_error(last_improvement_time_millis.minimum,
+                             "minimum last_improvement_time_millis", int)
         if not isinstance(last_improvement_time_millis.maximum, int):
-            raise ValueError(
-                "Maximum last_improvement_time_millis must be int, but "
-                f"encountered {type(last_improvement_time_millis.maximum)}.")
+            raise type_error(last_improvement_time_millis.maximum,
+                             "maximum last_improvement_time_millis", int)
 
         if not isinstance(total_fes, Statistics):
-            raise TypeError("total_fes must Statistics, "
-                            f"but is {type(total_fes)}.")
+            raise type_error(total_fes, "total_fes", Statistics)
         if total_fes.minimum <= 0:
             raise ValueError("No total_fes can be <= 0, but "
                              f"encountered {total_fes.minimum}.")
         if not isinstance(total_fes.minimum, int):
-            raise ValueError(
-                "Minimum total_fes must be int, but encountered "
-                f"{type(total_fes.minimum)}.")
+            raise type_error(total_fes.minimum, "minimum total_fes", int)
         if not isinstance(total_fes.maximum, int):
-            raise ValueError(
-                "Maximum total_fes must be int, but encountered "
-                f"{type(total_fes.maximum)}.")
+            raise type_error(total_fes.maximum, "maximum total_fes", int)
         if total_fes.minimum < last_improvement_fe.minimum:
             raise ValueError(
                 f"Minimum total_fes ({total_fes.minimum}) cannot be"
@@ -214,19 +219,17 @@ class EndStatistics(MultiRunData):
         object.__setattr__(self, "total_fes", total_fes)
 
         if not isinstance(total_time_millis, Statistics):
-            raise TypeError("total_time_millis must Statistics, "
-                            f"but is {type(total_time_millis)}.")
+            raise type_error(total_time_millis, "total_time_millis",
+                             Statistics)
         if total_time_millis.minimum < 0:
             raise ValueError("No total_time_millis can be < 0, but "
                              f"encountered {total_time_millis.minimum}.")
         if not isinstance(total_time_millis.minimum, int):
-            raise ValueError(
-                "Minimum total_time_millis must be int, but encountered "
-                f"{type(total_time_millis.minimum)}.")
+            raise type_error(total_time_millis.minimum,
+                             "minimum total_time_millis", int)
         if not isinstance(total_time_millis.maximum, int):
-            raise ValueError(
-                "Maximum total_time_millis must be int, but encountered "
-                f"{type(total_time_millis.maximum)}.")
+            raise type_error(total_time_millis.maximum,
+                             "maximum total_time_millis", int)
         if total_time_millis.minimum < last_improvement_time_millis.minimum:
             raise ValueError(
                 f"Minimum total_time_millis ({total_time_millis.minimum}) "
@@ -272,37 +275,34 @@ class EndStatistics(MultiRunData):
                 else:
                     goal_f = try_int(goal_f)
             elif not isinstance(goal_f, (int, Statistics)):
-                raise TypeError("goal_f must be int, float, None, or "
-                                f"Statistics, but is {type(goal_f)}.")
+                raise type_error(goal_f, "goal_f", (int, Statistics))
 
             if best_f_scaled is not None:
                 if not isinstance(best_f_scaled, Statistics):
-                    raise TypeError("best_f_scaled must be Statistics, "
-                                    f"but is {type(best_f_scaled)}.")
+                    raise type_error(best_f_scaled, "best_f_scaled",
+                                     Statistics)
                 if best_f_scaled.minimum < 0:
                     raise ValueError(
                         "best_f_scaled cannot be negative, but encountered "
                         f"{best_f_scaled.minimum}.")
 
             if not isinstance(n_success, int):
-                raise TypeError("n_success must be int, "
-                                f"but is {type(n_success)}.")
+                raise type_error(n_success, "n_success", int)
             if n_success < 0:
                 raise ValueError(
                     f"n_success must be positive, but is {n_success}.")
 
             if not isinstance(ert_fes, (int, float)):
-                raise TypeError("ert_fes must be int or float, but "
-                                f"it's a {type(ert_fes)}.")
+                raise type_error(ert_fes, "ert_fes", (int, float))
             if not isinstance(ert_time_millis, (int, float)):
-                raise TypeError("ert_time_millis must be int or float, "
-                                f"but it's a {type(ert_time_millis)}.")
+                raise type_error(ert_time_millis, "ert_time_millis",
+                                 (int, float))
 
             if n_success > 0:
                 if not isinstance(success_fes, Statistics):
-                    raise ValueError(
-                        "If n_success>0, then success_fes must be"
-                        f" Statistics, but it's a {type(success_fes)}.")
+                    raise type_error(success_fes,
+                                     "if n_success>0, then success_fes",
+                                     Statistics)
                 if success_fes.minimum < last_improvement_fe.minimum:
                     raise ValueError(
                         "success_fes.minimum must be >= "
@@ -314,10 +314,10 @@ class EndStatistics(MultiRunData):
                         f"{last_improvement_fe.maximum}, but is "
                         f"{success_fes.maximum}.")
                 if not isinstance(success_time_millis, Statistics):
-                    raise ValueError(
-                        "If n_success>0, then success_time_millis must be"
-                        " Statistics, but it's a"
-                        f" {type(success_time_millis)}.")
+                    raise type_error(
+                        success_time_millis,
+                        "if n_success>0, then success_time_millis",
+                        Statistics)
                 if success_time_millis.minimum < \
                         last_improvement_time_millis.minimum:
                     raise ValueError(
@@ -357,11 +357,12 @@ class EndStatistics(MultiRunData):
                 if success_fes is not None:
                     raise ValueError(
                         "If n_success<=0, then success_fes must be None, "
-                        f"but it's a {type(success_fes)}.")
+                        f"but it's a {type_name_of(success_fes)}.")
                 if success_time_millis is not None:
                     raise ValueError(
-                        "If n_success<=0, then success_time_millis must "
-                        f"be None, but it's a {type(success_time_millis)}.")
+                        "If n_success<=0, then success_time_millis must be "
+                        f"None, but it is a "
+                        f"{type_name_of(success_time_millis)}.")
                 if ert_fes < inf:
                     raise ValueError(
                         "If n_success<=0, then ert_fes must "
@@ -394,9 +395,7 @@ class EndStatistics(MultiRunData):
                     f"max_fes.maximum must be >= {total_fes.maximum},"
                     f" but is {max_fes.maximum}.")
         elif max_fes is not None:
-            raise TypeError(
-                "max_fes must be int, Statistics, or None, but is "
-                f"{type(max_fes)}.")
+            raise type_error(max_fes, "max_fes", (int, Statistics, None))
         object.__setattr__(self, "max_fes", max_fes)
 
         if isinstance(max_time_millis, int):
@@ -411,9 +410,8 @@ class EndStatistics(MultiRunData):
                                    total_fes.minimum,
                                    total_time_millis.maximum)
         elif max_time_millis is not None:
-            raise TypeError(
-                "max_time_millis must be int, Statistics, or None, but is "
-                f"{type(max_time_millis)}.")
+            raise type_error(max_time_millis, "max_time_millis",
+                             (int, Statistics, None))
         object.__setattr__(self, "max_time_millis", max_time_millis)
 
     @staticmethod
@@ -426,8 +424,7 @@ class EndStatistics(MultiRunData):
         :rtype: EndStatistics
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
 
         n: int = 0
         best_f: List[Union[int, float]] = []
@@ -453,8 +450,7 @@ class EndStatistics(MultiRunData):
 
         for er in source:
             if not isinstance(er, EndResult):
-                raise TypeError("Only end results are permitted, but "
-                                f"encountered a {type(er)}.")
+                raise type_error(er, "end result", EndResult)
             if n == 0:
                 algorithm = er.algorithm
                 instance = er.instance
@@ -560,17 +556,14 @@ class EndStatistics(MultiRunData):
             over all algorithms
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
         if not callable(consumer):
-            raise TypeError(
-                "consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         if not isinstance(join_all_algorithms, bool):
-            raise TypeError("join_all_algorithms must be bool, "
-                            f"but is {type(join_all_algorithms)}.")
+            raise type_error(join_all_algorithms,
+                             "join_all_algorithms", bool)
         if not isinstance(join_all_instances, bool):
-            raise TypeError("join_all_instances must be bool, "
-                            f"but is {type(join_all_instances)}.")
+            raise type_error(join_all_instances, "join_all_instances", bool)
 
         if join_all_algorithms and join_all_instances:
             consumer(EndStatistics.create(source))
@@ -579,8 +572,8 @@ class EndStatistics(MultiRunData):
         sorter: Dict[str, List[EndResult]] = {}
         for er in source:
             if not isinstance(er, EndResult):
-                raise TypeError("source must contain only EndResults, but "
-                                f"found a {type(er)}.")
+                raise type_error(source, "end results from source",
+                                 EndResult)
             key = er.instance if join_all_algorithms else \
                 er.algorithm if join_all_instances else \
                 f"{er.algorithm}/{er.instance}"
@@ -741,7 +734,7 @@ class EndStatistics(MultiRunData):
             out.write("\n")
 
             csv: Final[Callable] = Statistics.value_to_csv
-            num: Final[Callable] = moptipy.utils.types.num_to_str
+            num: Final[Callable] = moptipy.utils.strings.num_to_str
 
             for er in data:
                 if has_algorithm:
@@ -1144,31 +1137,44 @@ class EndStatistics(MultiRunData):
             dimension
         """
         if not isinstance(dimension, str):
-            raise TypeError(
-                f"dimension must be str, but is {type(dimension)}.")
+            raise type_error(dimension, "dimension", str)
         if dimension in _GETTERS_0:
             return _GETTERS_0[dimension]
 
         ssi: int = dimension.find(log.SCOPE_SEPARATOR)
-        if ssi > 0:
-            scope: str = dimension[:ssi]
-            dim: str = dimension[ssi + 1:]
-            if (len(scope) <= 0) or (len(dim) <= 0):
-                raise ValueError(
-                    f"invalid dimension '{dimension}', has "
-                    f"scope '{scope}' and sub-dimension '{dim}'")
-            if scope in _GETTERS_1:
-                l1 = _GETTERS_1[scope]
-                l2 = Statistics.getter(dim)
+        if ssi <= 0:
+            raise ValueError(f"unknown dimension '{dimension}'.")
+        scope: str = dimension[:ssi]
+        dim: str = dimension[ssi + 1:]
+        if (len(scope) <= 0) or (len(dim) <= 0):
+            raise ValueError(
+                f"invalid dimension '{dimension}', has "
+                f"scope '{scope}' and sub-dimension '{dim}'")
 
-                def __inner(s: EndStatistics,
-                            ll1=l1,
-                            ll2=l2):
-                    a = ll1(s)
-                    if a is None:
-                        return None
-                    return ll2(a)
+        if scope not in _GETTERS_1:
+            raise ValueError(
+                f"invalid dimension '{dimension}', has "
+                f"unknown scope '{scope}' and sub-dimension '{dim}'")
 
-                return __inner
+        l1 = _GETTERS_1[scope]
 
-        raise ValueError(f"unknown dimension '{dimension}'.")
+        if dim != KEY_STDDEV:
+            l2 = Statistics.getter(dim)
+
+            def __inner_sat(s: EndStatistics, ll1=l1, ll2=l2):
+                a: Final[Statistics] = ll1(s)
+                if a is None:
+                    return None
+                if isinstance(a, (int, float)):
+                    return a  # max, min, med, mean = a
+                return ll2(a)  # apply statistics getter
+            return __inner_sat
+
+        def __inner_sd(s: EndStatistics, ll1=l1):
+            a: Final[Statistics] = ll1(s)
+            if a is None:
+                return None
+            if isinstance(a, (int, float)):
+                return 0  # sd of a single number = 0
+            return a.stddev
+        return __inner_sd

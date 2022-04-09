@@ -9,13 +9,14 @@ import numpy as np
 
 import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
-from moptipy.utils.types import num_to_str
 from moptipy.evaluation._utils import _get_reach_index
 from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
     F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.path import Path
+from moptipy.utils.strings import num_to_str
+from moptipy.utils.types import type_error
 
 
 def compute_single_ert(source: Iterable[Progress],
@@ -72,7 +73,7 @@ class Ert(MultiRun2DData):
         """
         super().__init__(algorithm, instance, n, time_unit, f_name)
         if not isinstance(ert, np.ndarray):
-            raise TypeError(f"ert must be numpy.ndarray, but is {type(ert)}.")
+            raise type_error(ert, "ert", np.ndarray)
         ert.flags.writeable = False
 
         f: Final[np.ndarray] = ert[:, 0]
@@ -149,8 +150,7 @@ class Ert(MultiRun2DData):
         :return: the Ert record
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
 
         lower_bound: Union[int, float] = inf
         if f_lower_bound is not None:
@@ -173,8 +173,7 @@ class Ert(MultiRun2DData):
 
         for progress in prgs:
             if not isinstance(progress, Progress):
-                raise TypeError("Only Progress records are permitted, but "
-                                f"encountered a {type(progress)}.")
+                raise type_error(progress, "progress input", Progress)
             if n <= 0:
                 algorithm = progress.algorithm
                 instance = progress.instance
@@ -201,8 +200,7 @@ class Ert(MultiRun2DData):
             if f_lower_bound is not None:
                 lb = f_lower_bound(progress)
                 if not isinstance(lb, (int, float)):
-                    raise TypeError("Computed lower bound must be int or "
-                                    f"float, but is {type(lb)}.")
+                    raise type_error(lb, "computed lower bound", (int, float))
                 if not isfinite(lb):
                     raise ValueError(f"Invalid computed lower bound {lb}.")
                 if lb < lower_bound:
@@ -284,17 +282,13 @@ class Ert(MultiRun2DData):
             algorithms
         """
         if not isinstance(source, Iterable):
-            raise TypeError(
-                f"source must be Iterable, but is {type(source)}.")
+            raise type_error(source, "source", Iterable)
         if not callable(consumer):
-            raise TypeError(
-                "consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         if not isinstance(join_all_algorithms, bool):
-            raise TypeError("join_all_algorithms must be bool, "
-                            f"but is {type(join_all_algorithms)}.")
+            raise type_error(join_all_algorithms, "join_all_algorithms", bool)
         if not isinstance(join_all_instances, bool):
-            raise TypeError("join_all_instances must be bool, "
-                            f"but is {type(join_all_instances)}.")
+            raise type_error(join_all_instances, "join_all_instances", bool)
 
         if join_all_algorithms and join_all_instances:
             consumer(Ert.create(source, f_lower_bound,
@@ -304,8 +298,7 @@ class Ert(MultiRun2DData):
         sorter: Dict[str, List[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
-                raise TypeError("source must contain only Progress, but "
-                                f"found a {type(er)}.")
+                raise type_error(er, "progress source", Progress)
             key = er.instance if join_all_algorithms else \
                 er.algorithm if join_all_instances else \
                 f"{er.algorithm}/{er.instance}"

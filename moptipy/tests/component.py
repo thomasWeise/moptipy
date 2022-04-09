@@ -4,7 +4,7 @@ from typing import Final, Set
 from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import InMemoryLogger
-from moptipy.utils.types import classname
+from moptipy.utils.types import type_name_of
 
 
 def validate_component(component: Component) -> None:
@@ -98,7 +98,7 @@ def validate_component(component: Component) -> None:
             f"Second log line must begin with '{keystr}', but "
             f"starts with '{line}'.")
     rest = line[len(keystr):]
-    want = classname(component)
+    want = type_name_of(component)
     if rest != want:
         raise ValueError(
             f"value of key '{keystr}' should equal "

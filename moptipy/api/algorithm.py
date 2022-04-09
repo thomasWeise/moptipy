@@ -7,6 +7,7 @@ from moptipy.api.operators import Op0, check_op0, Op1, check_op1, \
     Op2, check_op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -43,8 +44,7 @@ class Algorithm0(Algorithm):
         self.op0: Final[Op0] = check_op0(op0)
 
         if not isinstance(op0_is_default, bool):
-            raise TypeError("op0_is_default must be bool, but is "
-                            f"{type(op0_is_default)}.")
+            raise type_error(op0_is_default, "op0_is_default", bool)
         #: The internal name suffix
         self._name_suffix: str = "" if op0_is_default else \
             f"{logging.PART_SEPARATOR}{op0}"
@@ -91,8 +91,7 @@ class Algorithm1(Algorithm0):
         #: The unary search operator.
         self.op1: Final[Op1] = check_op1(op1)
         if not isinstance(op1_is_default, bool):
-            raise TypeError("op1_is_default must be bool, but is "
-                            f"{type(op1_is_default)}.")
+            raise type_error(op1_is_default, "op1_is_default", bool)
         #: the internal name suffix
         self._name_suffix += ("" if op1_is_default else
                               f"{logging.PART_SEPARATOR}{op1}")
@@ -138,8 +137,7 @@ class Algorithm2(Algorithm1):
         #: The binary search operator.
         self.op2: Final[Op2] = check_op2(op2)
         if not isinstance(op2_is_default, bool):
-            raise TypeError("op2_is_default must be bool, but is "
-                            f"{type(op2_is_default)}.")
+            raise type_error(op2_is_default, "op2_is_default", bool)
         #: the internal name suffix
         self._name_suffix += ("" if op2_is_default else
                               f"{logging.PART_SEPARATOR}{op2}")
@@ -181,9 +179,6 @@ def check_algorithm(algorithm: Algorithm) -> Algorithm:
     :return: the object
     :raises TypeError: if `algorithm` is not an instance of :class:`Algorithm`
     """
-    if algorithm is None:
-        raise TypeError("An algorithm must not be None.")
     if not isinstance(algorithm, Algorithm):
-        raise TypeError("An algorithm must be instance of Algorithm, "
-                        f"but is {type(algorithm)}.")
+        raise type_error(algorithm, "algorithm", Algorithm)
     return algorithm

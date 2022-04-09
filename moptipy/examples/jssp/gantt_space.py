@@ -9,6 +9,7 @@ from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
+from moptipy.utils.types import type_error
 
 #: the array shape
 KEY_SHAPE: Final[str] = "shape"
@@ -26,12 +27,11 @@ def gantt_space_size(jobs: int, machines: int) -> int:
     106562062388507443200000
     """
     if not isinstance(jobs, int):
-        raise TypeError(f"Number of jobs must be int, but is {type(jobs)}.")
+        raise type_error(jobs, "number of jobs", int)
     if jobs <= 0:
         raise ValueError(f"Number of jobs must be > 0, but is {jobs}.")
     if not isinstance(machines, int):
-        raise TypeError(
-            f"Number of machines must be int, but is {type(machines)}.")
+        raise type_error(machines, "number of machines", int)
     if machines <= 0:
         raise ValueError(
             f"Number of machines must be > 0, but is {machines}.")
@@ -101,7 +101,7 @@ class GanttSpace(Space):
         :return: the Gantt chart
         """
         if not isinstance(text, str):
-            raise TypeError(f"text must be str, but is {type(text)}.")
+            raise type_error(text, "instance text", str)
         # start book
         x: Final[Gantt] = self.create()
         np.copyto(x, np.fromstring(text, dtype=self.dtype, sep=",")
@@ -127,7 +127,7 @@ class GanttSpace(Space):
         # start book
         # Checks if a Gantt chart if valid and feasible.
         if not isinstance(x, Gantt):
-            raise TypeError(f"x must be Gantt, but is {type(x)}.")
+            raise type_error(x, "x", Gantt)
         # the rest of the checks is not printed for brevity reasons...
         # end book
         inst: Final[Instance] = self.instance

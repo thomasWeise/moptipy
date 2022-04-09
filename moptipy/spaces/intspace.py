@@ -6,6 +6,7 @@ import numpy
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
+from moptipy.utils.types import type_error
 
 #: the minimum value
 KEY_MIN: Final[str] = "min"
@@ -68,7 +69,7 @@ class IntSpace(NPArraySpace):
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
         if not (isinstance(text, str)):
-            raise TypeError(f"text must be str, but is {type(text)}.")
+            raise type_error(text, "text", str)
         x = numpy.fromstring(text, dtype=self.dtype, sep=",")
         self.validate(x)
         return x

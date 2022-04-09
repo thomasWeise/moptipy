@@ -10,6 +10,7 @@ from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils.logger import Logger
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error
 
 
 class _ProcessSSLog(_ProcessSS):
@@ -53,11 +54,10 @@ class _ProcessSSLog(_ProcessSS):
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
                          goal_f=goal_f)
-        if not log_file:
-            raise ValueError("Log file cannot be None in this class.")
+        if not isinstance(log_file, str):
+            raise type_error(log_file, "log_file", str)
         if not isinstance(log_all_fes, bool):
-            raise TypeError(
-                f"log_all must be boolean, but is {type(log_all_fes)}.")
+            raise type_error(log_all_fes, "log_all_fes", bool)
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
         #: The in-memory log

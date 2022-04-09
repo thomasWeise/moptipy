@@ -8,8 +8,9 @@ from typing import Tuple, Final, Set, List, Optional, Iterable, Union, \
 from numpy.random import Generator
 
 from moptipy.api import logging
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator, rand_seeds_from_str
+from moptipy.utils.types import type_error
 
 
 def fixed_random_generator() -> Generator:
@@ -33,7 +34,7 @@ def _random_name(namelen: int,
     :returns: a name of the length
     """
     if not isinstance(namelen, int):
-        raise TypeError(f"namelen must be int, but is {type(namelen)}.")
+        raise type_error(namelen, "namelen", int)
     if namelen <= 0:
         raise ValueError(f"namelen must be > 0, but is {namelen}.")
     namer: Final[Tuple[str, str, str]] = ("bcdfghjklmnpqrstvwxyz", "aeiou",
@@ -86,9 +87,8 @@ def __append_not_allowed(forbidden,
         for item in forbidden:
             __append_not_allowed(item, dest)
     else:
-        raise TypeError(
-            f"element to add must be str, int, float, Instance, Algorithm, "
-            f"or an Iterable thereof, but is {type(forbidden)}.")
+        raise type_error(forbidden, "element to add",
+                         (str, int, float, Instance, Algorithm, Iterable))
 
 
 def _make_not_allowed(forbidden: Optional[Iterable[Union[
@@ -145,55 +145,48 @@ class Instance:
             optima - including best and worst
         """
         if not isinstance(name, str):
-            raise TypeError(
-                f"name must be str, but is {type(name)}.")
+            raise type_error(name, "name", str)
         if name != logging.sanitize_name(name):
             raise ValueError(f"Invalid name '{name}'.")
         object.__setattr__(self, "name", name)
 
         if not isinstance(hardness, float):
-            raise TypeError(
-                f"hardness must be float, but is {type(hardness)}.")
+            raise type_error(hardness, "hardness", float,)
         if (not isfinite(hardness)) or (hardness <= 0) or (hardness >= 1):
             raise ValueError(
                 f"hardness must be in (0, 1), but is {hardness}.")
         object.__setattr__(self, "hardness", hardness)
 
         if not isinstance(jitter, float):
-            raise TypeError(
-                f"jitter must be float, but is {type(jitter)}.")
+            raise type_error(jitter, "jitter", float)
         if (not isfinite(jitter)) or (jitter <= 0) or (jitter >= 1):
             raise ValueError(
                 f"jitter must be in (0, 1), but is {jitter}.")
         object.__setattr__(self, "jitter", jitter)
 
         if not isinstance(scale, float):
-            raise TypeError(
-                f"scale must be float, but is {type(scale)}.")
+            raise type_error(scale, "scale", float)
         if (not isfinite(scale)) or (scale <= 0) or (scale >= 1):
             raise ValueError(
                 f"scale must be in (0, 1), but is {scale}.")
         object.__setattr__(self, "scale", scale)
 
         if not isinstance(best, int):
-            raise TypeError(
-                f"best must be int, but is {type(best)}.")
+            raise type_error(best, "best", int)
         if (best <= 0) or (best >= 1_000_000_000):
             raise ValueError(
                 f"best must be in 1...999999999, but is {best}.")
         object.__setattr__(self, "best", best)
 
         if not isinstance(worst, int):
-            raise TypeError(
-                f"worst must be int, but is {type(worst)}.")
+            raise type_error(worst, "worst", int)
         if (worst <= (best + 7)) or (worst >= 1_000_000_000):
             raise ValueError(
                 f"worst must be in {best + 8}...999999999, but is {worst}.")
         object.__setattr__(self, "worst", worst)
 
         if not isinstance(attractors, tuple):
-            raise TypeError(
-                f"attractors must be Tuple, but is {type(attractors)}.")
+            raise type_error(attractors, "attractors", Tuple)
         if len(attractors) < 4:
             raise ValueError("attractors must contain at least 2 values,"
                              f" but contains only {len(attractors)}.")
@@ -206,8 +199,7 @@ class Instance:
         prev = -1
         for att in attractors:
             if not isinstance(att, int):
-                raise TypeError(f"each attractor must be int, but "
-                                f"encountered {att}, which is {type(att)}.")
+                raise type_error(att, "each attractor", int)
             if (att < best) or (att > worst) or (att <= prev):
                 raise ValueError(f"{att} not permitted after {prev} "
                                  f"for best={best} and worst={worst}.")
@@ -228,7 +220,7 @@ class Instance:
         :returns: a tuple of instances
         """
         if not isinstance(n, int):
-            raise TypeError(f"n must be int, but is {type(n)}.")
+            raise type_error(n, "n", int)
         if n <= 0:
             raise ValueError(f"n must be > 0, but is {n}.")
         logger(f"now creating {n} instances.")
@@ -416,31 +408,27 @@ class Algorithm:
         :param complexity: the algorithm complexity
         """
         if not isinstance(name, str):
-            raise TypeError(
-                f"name must be str, but is {type(name)}.")
+            raise type_error(name, "name", str)
         if name != logging.sanitize_name(name):
             raise ValueError(f"Invalid name '{name}'.")
         object.__setattr__(self, "name", name)
 
         if not isinstance(strength, float):
-            raise TypeError(
-                f"strength must be float, but is {type(strength)}.")
+            raise type_error(strength, "strength", float)
         if (not isfinite(strength)) or (strength <= 0) or (strength >= 1):
             raise ValueError(
                 f"strength must be in (0, 1), but is {strength}.")
         object.__setattr__(self, "strength", strength)
 
         if not isinstance(jitter, float):
-            raise TypeError(
-                f"jitter must be float, but is {type(jitter)}.")
+            raise type_error(jitter, "jitter", float)
         if (not isfinite(jitter)) or (jitter <= 0) or (jitter >= 1):
             raise ValueError(
                 f"jitter must be in (0, 1), but is {jitter}.")
         object.__setattr__(self, "jitter", jitter)
 
         if not isinstance(complexity, float):
-            raise TypeError(
-                f"complexity must be float, but is {type(complexity)}.")
+            raise type_error(complexity, "complexity", float)
         if (not isfinite(complexity)) or (complexity <= 0) \
                 or (complexity >= 1):
             raise ValueError(
@@ -461,7 +449,7 @@ class Algorithm:
         :returns: a tuple of algorithms
         """
         if not isinstance(n, int):
-            raise TypeError(f"n must be int, but is {type(n)}.")
+            raise type_error(n, "n", int)
         if n <= 0:
             raise ValueError(f"n must be > 0, but is {n}.")
         logger(f"now creating {n} algorithms.")
@@ -624,17 +612,14 @@ class BasePerformance:
         :param speed: the time required per FE
         """
         if not isinstance(algorithm, Algorithm):
-            raise TypeError(
-                f"algorithm must be Algorithm, but is {type(algorithm)}.")
+            raise type_error(algorithm, "algorithm", Algorithm)
         object.__setattr__(self, "algorithm", algorithm)
         if not isinstance(instance, Instance):
-            raise TypeError(
-                f"instance must be Instance, but is {type(instance)}.")
+            raise type_error(instance, "instance", Instance)
         object.__setattr__(self, "instance", instance)
 
         if not isinstance(performance, float):
-            raise TypeError(
-                f"performance must be float, but is {type(performance)}.")
+            raise type_error(performance, "performance", float)
         if (not isfinite(performance)) or (performance <= 0) \
                 or (performance >= 1):
             raise ValueError(
@@ -642,16 +627,14 @@ class BasePerformance:
         object.__setattr__(self, "performance", performance)
 
         if not isinstance(jitter, float):
-            raise TypeError(
-                f"jitter must be float, but is {type(jitter)}.")
+            raise type_error(jitter, "jitter", float)
         if (not isfinite(jitter)) or (jitter <= 0) or (jitter >= 1):
             raise ValueError(
                 f"jitter must be in (0, 1), but is {jitter}.")
         object.__setattr__(self, "jitter", jitter)
 
         if not isinstance(speed, float):
-            raise TypeError(
-                f"speed must be float, but is {type(speed)}.")
+            raise type_error(speed, "speed", float)
         if (not isfinite(speed)) or (speed <= 0) or (speed >= 1):
             raise ValueError(
                 f"speed must be in (0, 1), but is {speed}.")
@@ -672,11 +655,9 @@ class BasePerformance:
             worse, and a jitter in (0, 1), where bigger values are worse
         """
         if not isinstance(instance, Instance):
-            raise TypeError(
-                f"instance must be Instance, but is {type(instance)}.")
+            raise type_error(instance, "instance", Instance)
         if not isinstance(algorithm, Algorithm):
-            raise TypeError(
-                f"algorithm must be Algorithm, but is {type(algorithm)}.")
+            raise type_error(algorithm, "algorithm", Algorithm)
         logger("now creating base performance for algorithm "
                f"{algorithm.name} on instance {instance.name}.")
 
@@ -730,10 +711,9 @@ def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
     :returns: a tuple of seeds
     """
     if not isinstance(instance, Instance):
-        raise TypeError(
-            f"instance must be Instance, but is {type(instance)}.")
+        raise type_error(instance, "instance", Instance)
     if not isinstance(n_runs, int):
-        raise TypeError(f"n_runs must be int, but is {type(n_runs)}.")
+        raise type_error(n_runs, "n_runs", int)
     if n_runs <= 0:
         raise ValueError(f"n_runs must be > 0, but is {n_runs}.")
     res: Final[Tuple[int, ...]] = tuple(sorted(rand_seeds_from_str(
@@ -784,15 +764,13 @@ class Experiment:
         :param per_instance_seeds: the seeds
         """
         if not isinstance(instances, tuple):
-            raise TypeError(
-                f"instances must be Tuple, but is {type(instances)}.")
+            raise type_error(instances, "instances", Tuple)
         if len(instances) <= 0:
             raise ValueError("instances must not be empty.")
         inst_bn: Dict[str, Instance] = {}
         for a in instances:
             if not isinstance(a, Instance):
-                raise TypeError(f"instances contains {a}, "
-                                f"which is {type(a)} and not Instance.")
+                raise type_error(a, "element of instances", Instance)
             if a.name in inst_bn:
                 raise ValueError(f"double instance name {a.name}.")
             inst_bn[a.name] = a
@@ -802,15 +780,13 @@ class Experiment:
                            tuple(sorted(inst_bn.keys())))
 
         if not isinstance(algorithms, tuple):
-            raise TypeError(
-                f"algorithms must be Tuple, but is {type(algorithms)}.")
+            raise type_error(algorithms, "algorithms", Tuple)
         if len(algorithms) <= 0:
             raise ValueError("algorithms must not be empty.")
         algo_bn: Dict[str, Algorithm] = {}
         for b in algorithms:
             if not isinstance(b, Algorithm):
-                raise TypeError(f"algorithms contains {b}, "
-                                f"which is {type(b)} and not Algorithm.")
+                raise type_error(b, "element of algorithms", Algorithm)
             if b.name in algo_bn:
                 raise ValueError(f"double algorithm name {b.name}.")
             if b.name in inst_bn:
@@ -822,8 +798,7 @@ class Experiment:
                            tuple(sorted(algo_bn.keys())))
 
         if not isinstance(applications, tuple):
-            raise TypeError(
-                f"applications must be Tuple, but is {type(applications)}.")
+            raise type_error(applications, "applications", Tuple)
         if len(applications) != len(algorithms) * len(instances):
             raise ValueError(
                 f"There must be {len(algorithms) * len(instances)} "
@@ -835,8 +810,7 @@ class Experiment:
         done: Set[str] = set()
         for c in applications:
             if not isinstance(c, BasePerformance):
-                raise TypeError(f"applications contains {c}, "
-                                f"which is {type(c)} and not BasePerformance.")
+                raise type_error(c, "element of applications", BasePerformance)
             s = c.algorithm.name + "+" + c.instance.name
             if s in done:
                 raise ValueError(f"Encountered application {s} twice.")
@@ -865,8 +839,7 @@ class Experiment:
         object.__setattr__(self, "_Experiment__perf_per_inst", pi)
 
         if not isinstance(per_instance_seeds, tuple):
-            raise TypeError("per_instance_seeds must be Tuple, "
-                            f"but is {type(per_instance_seeds)}.")
+            raise type_error(per_instance_seeds, "per_instance_seeds", Tuple)
         if len(per_instance_seeds) != len(instances):
             raise ValueError(
                 f"There must be one entry for each of the {len(instances)} "
@@ -876,8 +849,7 @@ class Experiment:
         inst_seeds: Final[Dict[Union[str, Instance], Tuple[int, ...]]] = {}
         for idx, d in enumerate(per_instance_seeds):
             if not isinstance(d, tuple):
-                raise TypeError(f"per_instance_seeds contains {d}, "
-                                f"which is {type(d)} and not Tuple.")
+                raise type_error(d, "element of per_instance_seeds", Tuple)
             if len(d) <= 0:
                 raise ValueError(f"there must be at least one per "
                                  f"instance seed, but found {len(d)}.")
@@ -888,8 +860,7 @@ class Experiment:
                                  f"instance seeds, but found {len(d)}.")
             for e in d:
                 if not isinstance(e, int):
-                    raise TypeError(f"seeds contains {e}, "
-                                    f"which is {type(e)} and not int.")
+                    raise type_error(e, "element of seeds", int)
             inst_seeds[instances[idx]] = d
             inst_seeds[instances[idx].name] = d
         object.__setattr__(self, "per_instance_seeds", per_instance_seeds)
@@ -909,20 +880,17 @@ class Experiment:
         :param random: the random number generator to use
         """
         if not isinstance(n_instances, int):
-            raise TypeError(
-                f"n_instances must be int, but is {type(n_instances)}.")
+            raise type_error(n_instances, "n_instances", int)
         if n_instances <= 0:
             raise ValueError(
                 f"n_instances must be > 0, but is {n_instances}.")
         if not isinstance(n_algorithms, int):
-            raise TypeError(
-                f"n_algorithms must be int, but is {type(n_algorithms)}.")
+            raise type_error(n_algorithms, "n_algorithms", int)
         if n_algorithms <= 0:
             raise ValueError(
                 f"n_algorithms must be > 0, but is {n_algorithms}.")
         if not isinstance(n_runs, int):
-            raise TypeError(
-                f"n_runs must be int, but is {type(n_runs)}.")
+            raise type_error(n_runs, "n_runs", int)
         if n_algorithms <= 0:
             raise ValueError(
                 f"n_runs must be > 0, but is {n_runs}.")

@@ -14,12 +14,13 @@ from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
     F_NAME_NORMALIZED
 from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.logger import parse_key_values
+from moptipy.utils.math import try_int, try_float_div
 from moptipy.utils.path import Path
-from moptipy.utils.types import intfloatnone_to_str, intnone_to_str, \
-    str_to_intfloat, str_to_intfloatnone, str_to_intnone, try_int, \
-    num_to_str, try_float_div
+from moptipy.utils.strings import intfloatnone_to_str, intnone_to_str, \
+    str_to_intfloat, str_to_intfloatnone, str_to_intnone, num_to_str
+from moptipy.utils.types import type_error
 
 #: The internal CSV header
 _HEADER = f"{logging.KEY_ALGORITHM}{logging.CSV_SEPARATOR}" \
@@ -185,16 +186,15 @@ class EndResult(PerRunData):
         object.__setattr__(self, "best_f", try_int(best_f))
 
         if not isinstance(last_improvement_fe, int):
-            raise TypeError("last_improvement_fe must be int, "
-                            f"but is {type(last_improvement_fe)}.")
+            raise type_error(last_improvement_fe, "last_improvement_fe", int)
         if last_improvement_fe <= 0:
             raise ValueError("last_improvement_fe must be > 0, "
                              f"but is {last_improvement_fe}.")
         object.__setattr__(self, "last_improvement_fe", last_improvement_fe)
 
         if not isinstance(last_improvement_time_millis, int):
-            raise TypeError("last_improvement_time_millis must be int, "
-                            f"but is {type(last_improvement_time_millis)}.")
+            raise type_error(last_improvement_time_millis,
+                             "last_improvement_time_millis", int)
         if last_improvement_fe < 0:
             raise ValueError("last_improvement_time_millis must be >= 0, "
                              f"but is {last_improvement_time_millis}.")
@@ -202,8 +202,7 @@ class EndResult(PerRunData):
                            last_improvement_time_millis)
 
         if not isinstance(total_fes, int):
-            raise TypeError("total_fes must be int, "
-                            f"but is {type(total_fes)}.")
+            raise type_error(total_fes, "total_fes", int)
         if last_improvement_fe > total_fes:
             raise ValueError("last_improvement_fe must be <= total_fes, "
                              f"but is {last_improvement_fe} vs. "
@@ -211,8 +210,8 @@ class EndResult(PerRunData):
         object.__setattr__(self, "total_fes", total_fes)
 
         if not isinstance(total_time_millis, int):
-            raise TypeError("total_time_millis must be int, "
-                            f"but is {type(total_time_millis)}.")
+            raise type_error(total_time_millis,
+                             "total_time_millis", int)
         if last_improvement_time_millis > total_time_millis:
             raise ValueError("last_improvement_fe must be <= total_fes, "
                              f"but is {last_improvement_time_millis} vs. "
@@ -228,8 +227,7 @@ class EndResult(PerRunData):
 
         if max_fes is not None:
             if not isinstance(max_fes, int):
-                raise TypeError(
-                    f"max_fes must be int but are {type(max_fes)}.")
+                raise type_error(max_fes, "max_fes", int)
             if max_fes < total_fes:
                 raise ValueError(f"max_fes ({max_fes}) must be >= total_fes "
                                  f"({total_fes}), but are not.")
@@ -237,8 +235,7 @@ class EndResult(PerRunData):
 
         if max_time_millis is not None:
             if not isinstance(max_time_millis, int):
-                raise TypeError("max_time_millis must be int but "
-                                f"are {type(max_time_millis)}.")
+                raise type_error(max_time_millis, "max_time_millis", int)
             _check_max_time_millis(max_time_millis,
                                    total_fes,
                                    total_time_millis)
@@ -265,8 +262,7 @@ class EndResult(PerRunData):
             dimension
         """
         if not isinstance(dimension, str):
-            raise TypeError(
-                f"dimension must be str, but is {type(dimension)}.")
+            raise type_error(dimension, "dimension", str)
         if dimension in _GETTERS:
             return _GETTERS[dimension]
         raise ValueError(f"unknown dimension '{dimension}', "
@@ -332,8 +328,7 @@ class EndResult(PerRunData):
         :param filterer: an optional filter function
         """
         if not callable(consumer):
-            raise TypeError(
-                f"Consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         path: Final[Path] = Path.file(file)
         logger(f"Now reading CSV file '{path}'.")
 
@@ -380,8 +375,7 @@ class _InnerLogParser(ExperimentParser):
         """
         super().__init__()
         if not callable(consumer):
-            raise TypeError(
-                f"Consumer must be callable, but is {type(consumer)}.")
+            raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[['EndResult'], Any]] = consumer
         self.__total_fes: Optional[int] = None
         self.__total_time_millis: Optional[int] = None

@@ -11,6 +11,7 @@ from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
     KEY_TOTAL_TIME_MILLIS
 from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
     F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
+from moptipy.utils.types import type_error
 
 #: The internal minimum float value for log-scaled axes.
 _MIN_LOG_FLOAT: Final[float] = sys.float_info.min
@@ -37,8 +38,7 @@ class AxisRanger:
         :param log_base: the base to be used for the logarithm
         """
         if not isinstance(log_scale, bool):
-            raise TypeError(
-                f"log_scale must be bool, but is {type(log_scale)}.")
+            raise type_error(log_scale, "log_scale", bool)
         #: Should the axis be log-scaled?
         self.log_scale: Final[bool] = log_scale
 
@@ -46,15 +46,13 @@ class AxisRanger:
             log_base if self.log_scale else None
         if self.__log_base is not None:
             if not isinstance(log_base, float):
-                raise TypeError("log_base must be float if specified, "
-                                f"but encountered {type(log_base)}.")
+                raise type_error(log_base, "log_base", float)
             if log_base <= 1.0:
                 raise ValueError(f"log_base must be > 1, but is {log_base}.")
 
         if chosen_min is not None:
             if not isinstance(chosen_min, (float, int)):
-                raise TypeError("chosen_min must be float, int, or None, "
-                                f"but is {type(chosen_min)}.")
+                raise type_error(chosen_min, "chosen_min", (int, float))
             chosen_min = float(chosen_min)
             if not isfinite(chosen_min):
                 raise ValueError(f"chosen_min cannot be {chosen_min}.")
@@ -68,8 +66,7 @@ class AxisRanger:
 
         if chosen_max is not None:
             if not isinstance(chosen_max, (float, int)):
-                raise TypeError("chosen_max must be float, int, or None, "
-                                f"but is {type(chosen_max)}.")
+                raise type_error(chosen_max, "chosen_max", (int, float))
             chosen_max = float(chosen_max)
             if not isfinite(chosen_max):
                 raise ValueError(f"chosen_max cannot be {chosen_max}.")
@@ -83,14 +80,12 @@ class AxisRanger:
         self.__chosen_max: Final[Optional[float]] = chosen_max
 
         if not isinstance(use_data_min, bool):
-            raise TypeError(
-                f"use_data_min must be bool, but is {type(use_data_min)}.")
+            raise type_error(use_data_min, "use_data_min", bool)
         #: Should we use the data min value?
         self.__use_data_min: Final[bool] = use_data_min
 
         if not isinstance(use_data_max, bool):
-            raise TypeError(
-                f"use_data_max must be bool, but is {type(use_data_max)}.")
+            raise type_error(use_data_max, "use_data_max", bool)
         #: Should we use the data max value?
         self.__use_data_max: Final[bool] = use_data_max
 
@@ -161,8 +156,7 @@ class AxisRanger:
             `"x"` or `"y"` or both (`"xy"`)
         """
         if not isinstance(which_axis, str):
-            raise TypeError(
-                f"which_axis must be str but is {type(which_axis)}.")
+            raise type_error(which_axis, "which_axis", str)
 
         for is_x_axis in (True, False):
             if not (("x" if is_x_axis else "y") in which_axis):
@@ -276,7 +270,7 @@ class AxisRanger:
         :return: the `AxisRanger`
         """
         if not isinstance(name, str):
-            raise TypeError(f"Axis name must be str, but is {type(name)}.")
+            raise type_error(name, "axis name", str)
 
         __log: bool = False
         __min: Optional[float] = None
@@ -293,9 +287,9 @@ class AxisRanger:
                 __log = (chosen_min > 0)
                 if log_scale is not None:
                     if log_scale and (not __log):
-                        raise TypeError(f"Cannot set log_scale={log_scale} "
-                                        f"and chosen_min={chosen_min} for "
-                                        f"axis type {name}.")
+                        raise ValueError(f"Cannot set log_scale={log_scale} "
+                                         f"and chosen_min={chosen_min} for "
+                                         f"axis type {name}.")
                     __log = log_scale
             elif log_scale is None:
                 __log = True

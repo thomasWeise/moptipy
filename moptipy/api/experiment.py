@@ -24,10 +24,11 @@ from numpy.random import Generator, default_rng
 from moptipy.api.execution import Execution
 from moptipy.api.logging import sanitize_name, sanitize_names, FILE_SUFFIX
 from moptipy.utils.cache import is_new
-from moptipy.utils.log import logger
+from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.path import Path
 from moptipy.utils.sys_info import refresh_sys_info
+from moptipy.utils.types import type_error
 
 
 def __run_experiment(base_dir: Path,
@@ -81,14 +82,13 @@ def __run_experiment(base_dir: Path,
             for setup in experiments:  # for each setup
                 instance = setup[0]()  # load instance
                 if instance is None:
-                    raise ValueError("None is not an instance.")
+                    raise TypeError("None is not an instance.")
                 inst_name = sanitize_name(str(instance))
 
                 exp = setup[1](instance)  # setup algorithm for instance
                 if not isinstance(exp, Execution):
-                    raise ValueError(
-                        "Setup callable must produce instance of "
-                        f"Execution, but generates {type(exp)}.")
+                    raise type_error(exp, "result of setup callable",
+                                     Execution)
                 algo_name = sanitize_name(str(exp.get_algorithm()))
 
                 cd = Path.path(os.path.join(base_dir, algo_name, inst_name))
@@ -250,29 +250,23 @@ def run_experiment(base_dir: str,
     :returns: the canonicalized path to `base_dir`
     """
     if not isinstance(instances, Iterable):
-        raise TypeError(
-            f"instances must be a iterable object, but is {type(instances)}.")
+        raise type_error(instances, "instances", Iterable)
     if not isinstance(setups, Iterable):
-        raise TypeError(
-            f"setups must be a iterable object, but is {type(setups)}.")
+        raise type_error(setups, "setups", Iterable)
     if not isinstance(perform_warmup, bool):
-        raise TypeError(
-            f"perform_warmup must be a bool, but is {type(perform_warmup)}.")
+        raise type_error(perform_warmup, "perform_warmup", bool)
     if not isinstance(perform_pre_warmup, bool):
-        raise TypeError(f"perform_pre_warmup must be a bool, "
-                        f"but is {type(perform_pre_warmup)}.")
+        raise type_error(perform_pre_warmup, "perform_pre_warmup", bool)
     if not isinstance(warmup_fes, int):
-        raise TypeError(f"warmup_fes must be int, but is {type(warmup_fes)}.")
+        raise type_error(warmup_fes, "warmup_fes", int)
     if warmup_fes <= 0:
-        raise TypeError(f"warmup_fes must > 0, but is {warmup_fes}.")
+        raise ValueError(f"warmup_fes must > 0, but is {warmup_fes}.")
     if not isinstance(pre_warmup_fes, int):
-        raise TypeError(
-            f"pre_warmup_fes must be int, but is {type(pre_warmup_fes)}.")
+        raise type_error(pre_warmup_fes, "pre_warmup_fes", int)
     if pre_warmup_fes <= 0:
-        raise TypeError(f"warmup_fes must > 0, but is {pre_warmup_fes}.")
-
+        raise ValueError(f"warmup_fes must > 0, but is {pre_warmup_fes}.")
     if not isinstance(n_threads, int):
-        raise TypeError(f"n_threads must be int, but is {type(n_threads)}.")
+        raise type_error(n_threads, "n_threads", int)
     if n_threads <= 0:
         raise ValueError(f"n_threads must be positive, but is {n_threads}.")
 
@@ -281,16 +275,14 @@ def run_experiment(base_dir: str,
         raise ValueError("Instance enumeration is empty.")
     for instance in instances:
         if not callable(instance):
-            raise TypeError("All instances must be callables, "
-                            f"but encountered a {type(instance)}.")
+            raise type_error(instance, "all instances", call=True)
 
     setups = list(setups)
     if len(setups) <= 0:
         raise ValueError("Setup enumeration is empty.")
     for setup in setups:
         if not callable(setup):
-            raise TypeError("All setups must be callables, "
-                            f"but encountered a {type(setup)}.")
+            raise type_error(setup, "all setups", call=True)
 
     experiments: Final[List[List[Callable]]] = \
         [[ii, ss] for ii in instances for ss in setups]
@@ -307,11 +299,12 @@ def run_experiment(base_dir: str,
         n_runs = list(n_runs)
     last = 0
     for run in n_runs:
-        if run is None:
-            raise ValueError("n_runs must not be None.")
+        if not isinstance(run, int):
+            raise type_error(run, "n_runs", int)
         if run <= last:
-            raise ValueError("n_runs sequence must be increasing and "
-                             f"positive, we cannot have {run} follow {last}.")
+            raise ValueError(
+                "n_runs sequence must be strictly increasing and "
+                f"positive, we cannot have {run} follow {last}.")
         last = run
 
     cache: Final[Callable[[str], bool]] = is_new()

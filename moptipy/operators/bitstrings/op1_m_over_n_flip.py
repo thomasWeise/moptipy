@@ -6,7 +6,8 @@ from numpy.random import Generator
 
 from moptipy.api import operators
 from moptipy.utils.nputils import int_range_to_dtype
-from moptipy.utils.types import bool_to_str
+from moptipy.utils.strings import bool_to_str
+from moptipy.utils.types import type_error
 
 
 class Op1MoverNflip(operators.Op1):
@@ -29,16 +30,15 @@ class Op1MoverNflip(operators.Op1):
         """
         super().__init__()
         if not isinstance(n, int):
-            raise TypeError(f"n must be int but is {type(n)}.")
+            raise type_error(n, "n", int)
         if not isinstance(m, int):
-            raise TypeError(f"m must be int but is {type(m)}.")
+            raise type_error(m, "m", int)
         if not (0 < m <= n):
             raise ValueError(f"m must be in 1..{n}, but is {m}.")
         #: the value of m in p=m/n
         self.__m: Final[int] = m
         if not isinstance(at_least_1, bool):
-            raise TypeError(
-                f"at_least_1 must be bool but is {type(at_least_1)}.")
+            raise type_error(at_least_1, "at_least_1", bool)
         #: is it OK to not flip any bit?
         self.__none_is_ok: Final[bool] = not at_least_1
         #: the internal permutation

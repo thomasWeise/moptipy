@@ -7,7 +7,8 @@ import numba  # type: ignore
 import numpy
 from numpy.random import default_rng, Generator, PCG64
 
-import moptipy.utils.types
+from moptipy.utils.strings import str_to_bool
+from moptipy.utils.types import type_error
 
 #: A map associating all numpy integer types associated to tuples
 #: of their respective minimum and maximum value.
@@ -119,9 +120,9 @@ def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
     uint64
     """
     if not isinstance(min_value, int):
-        raise TypeError(f"min_value must be int, but is {type(min_value)}.")
+        raise type_error(min_value, "min_value", int)
     if not isinstance(max_value, int):
-        raise TypeError(f"max_value must be int, but is {type(max_value)}.")
+        raise type_error(max_value, "max_value", int)
     if min_value > max_value:
         raise ValueError(
             f"min_value must be <= max_value, but min_value={min_value} "
@@ -199,8 +200,7 @@ def rand_seed_generate(random: Generator = default_rng()) -> int:
         `Generator`
     """
     if not isinstance(random, Generator):
-        raise TypeError(
-            f"random must be instance of Generator, but is {type(random)}.")
+        raise type_error(random, "random", Generator)
     return int.from_bytes(random.bytes(__SEED_BYTES),
                           byteorder='big', signed=False)
 
@@ -216,8 +216,7 @@ def rand_seed_check(rand_seed: int) -> int:
     :raises ValueError: if the random seed is not valid
     """
     if not isinstance(rand_seed, int):
-        raise TypeError(
-            f"rand_seed should be instance of int, but is {type(rand_seed)}.")
+        raise type_error(rand_seed, "rand_seed", int)
     if (rand_seed < __MIN_RAND_SEED) or (rand_seed > __MAX_RAND_SEED):
         raise ValueError(f"rand_seed must be in {__MIN_RAND_SEED}.."
                          f"{__MAX_RAND_SEED}, but is {rand_seed}.")
@@ -267,13 +266,11 @@ def rand_seeds_from_str(string: str,
     [12323230366215963648, 13673960948036381176, 18426184104943646060]
     """
     if not isinstance(string, str):
-        raise TypeError(
-            f"string must be a str, but is {type(string)}.")
+        raise type_error(string, "string", str)
     if len(string) <= 0:
         raise ValueError("string must not be empty.")
     if not isinstance(n_seeds, int):
-        raise TypeError(
-            f"n_seeds must be an int, but is {type(string)}.")
+        raise type_error(n_seeds, "n_seeds", int)
     if n_seeds <= 0:
         raise ValueError(
             f"n_seeds must be positive, but is {n_seeds}.")
@@ -311,7 +308,7 @@ def strs_to_bools(lines: Iterable[str]) -> numpy.ndarray:
     >>> strs_to_bools(["T", "F", "T"])
     array([ True, False,  True])
     """
-    return numpy.array([moptipy.utils.types.str_to_bool(s) for s in lines],
+    return numpy.array([str_to_bool(s) for s in lines],
                        dtype=DEFAULT_BOOL)
 
 

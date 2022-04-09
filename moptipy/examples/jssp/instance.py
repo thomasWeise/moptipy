@@ -9,6 +9,7 @@ from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
+from moptipy.utils.types import type_error
 
 #: the recommended scope under which instance data should be stored
 SCOPE_INSTANCE: Final = "inst"
@@ -181,8 +182,7 @@ class Instance(Component, np.ndarray):
                              f"but '{jobs}' were specified in "
                              f"instance '{name}'.")
         if not isinstance(matrix, np.ndarray):
-            raise TypeError("The matrix must be an numpy.ndarray, but is a "
-                            f"'{type(matrix)}' in instance '{name}'.")
+            raise type_error(matrix, "matrix", np.ndarray)
 
         use_shape: Tuple[int, int, int] = (jobs, machines, 2)
         if matrix.shape[0] != jobs:
@@ -231,9 +231,9 @@ class Instance(Component, np.ndarray):
             makespan_lower_bound = ms_lower_bound
         else:
             if not isinstance(makespan_lower_bound, int):
-                raise TypeError("Makespan lower bound, if provided, must int,"
-                                f" but is {type(makespan_lower_bound)} in "
-                                f"instance '{name}'.")
+                raise type_error(makespan_lower_bound,
+                                 f"makespan lower bound of instance {name}",
+                                 int)
             if makespan_lower_bound <= 0:
                 raise ValueError("If specified, makespan_lower_bound must be "
                                  f"positive, but is {makespan_lower_bound} "
@@ -295,15 +295,13 @@ class Instance(Component, np.ndarray):
         :return: the JSSP Instance
         """
         if not isinstance(rows, list):
-            raise TypeError(
-                f"rows must be list of str, but are {type(rows)}.")
+            raise type_error(rows, "rows", List)
         if len(rows) < 3:
             raise ValueError(
                 f"Must have at least 3 rows, but found {rows}.")
         description = rows[0]
         if not isinstance(description, str):
-            raise TypeError("rows must be list of str, "
-                            f"but are List[{type(description)}].")
+            raise type_error(description, "first element of rows", str)
         jobs_machines_txt = rows[1]
 
         matrix = np.asanyarray([np.fromstring(row, dtype=npu.DEFAULT_INT,
@@ -443,19 +441,14 @@ def check_instance(inst: Instance) -> Instance:
     :param inst: the instance
     :returns: the instance, if its contents are OK
     """
-    if inst is None:
-        raise TypeError("Instance must not be None")
     if not isinstance(inst, Instance):
-        raise TypeError(
-            f"Instance must instance of Instance, but is {type(inst)}.")
+        raise type_error(inst, "instance", Instance)
     if not isinstance(inst, np.ndarray):
-        raise TypeError(
-            f"Instance must instance of ndarray, but is {type(inst)}.")
+        raise type_error(inst, "instance", np.ndarray)
     if not isinstance(inst.machines, int):
-        raise TypeError(
-            f"inst.machines must be int, but is {type(inst.machines)}.")
+        raise type_error(inst.machines, "inst.machines", int)
     if not isinstance(inst.name, str):
-        raise TypeError(f"inst.name must be str, but is {type(inst.name)}")
+        raise type_error(inst.name, "inst.name", str)
     if (len(inst.name) <= 0) \
             or (inst.name != logging.sanitize_name(inst.name)):
         raise ValueError(f"invalid instance name '{inst.name}'")
@@ -463,26 +456,20 @@ def check_instance(inst: Instance) -> Instance:
         raise ValueError(f"inst.machines must be > 0, but is {inst.machines}"
                          f" for instance {inst.name}")
     if not isinstance(inst.jobs, int):
-        raise TypeError(
-            f"inst.jobs must be int, but is {type(inst.jobs)}"
-            f" for instance {inst.name}.")
+        raise type_error(inst.jobs, "inst.jobs", int)
     if inst.machines <= 0:
         raise ValueError(f"inst.jobs must be > 0, but is {inst.jobs}"
                          f" for instance {inst.name}.")
     if not isinstance(inst.makespan_lower_bound, int):
-        raise TypeError(
-            "inst.makespan_lower_bound must be int, but is "
-            f"{type(inst.makespan_lower_bound)}"
-            f" for instance {inst.name}.")
+        raise type_error(inst.makespan_lower_bound,
+                         f"inst.makespan_lower_bound of {inst.name}", int)
     if inst.makespan_lower_bound <= 0:
         raise ValueError("inst.makespan_lower_bound must be > 0,"
                          f" but is {inst.makespan_lower_bound}"
                          f" for instance {inst.name}.")
     if not isinstance(inst.makespan_upper_bound, int):
-        raise TypeError(
-            "inst.makespan_upper_bound must be int, but is "
-            f"{type(inst.makespan_upper_bound)}"
-            f" for instance {inst.name}..")
+        raise type_error(inst.makespan_upper_bound,
+                         f"inst.makespan_upper_bound of {inst.name}", int)
     if inst.makespan_upper_bound <= 0:
         raise ValueError("inst.makespan_upper_bound must be > 0,"
                          f" but is {inst.makespan_upper_bound}"

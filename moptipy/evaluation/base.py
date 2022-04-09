@@ -6,6 +6,7 @@ from typing import Final, Union, Optional, Tuple
 
 from moptipy.api import logging
 from moptipy.utils.nputils import rand_seed_check
+from moptipy.utils.types import type_error
 
 #: The key for the total number of runs.
 KEY_N: Final[str] = "n"
@@ -30,6 +31,8 @@ def check_time_unit(time_unit: str) -> str:
     :param time_unit: the time unit
     :return: the time unit string
     """
+    if not isinstance(time_unit, str):
+        raise type_error(time_unit, "time_unit", str)
     if time_unit in (TIME_UNIT_FES, TIME_UNIT_MILLIS):
         return time_unit
     raise ValueError(
@@ -44,6 +47,8 @@ def check_f_name(f_name: str) -> str:
     :param f_name: the name of the objective function dimension
     :return: the name of the objective function dimension
     """
+    if not isinstance(f_name, str):
+        raise type_error(f_name, "f_name", str)
     if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
         return f_name
     raise ValueError(
@@ -87,15 +92,13 @@ class PerRunData:
         :param int rand_seed: the random seed
         """
         if not isinstance(algorithm, str):
-            raise TypeError(
-                f"algorithm must be str, but is {type(algorithm)}.")
+            raise type_error(algorithm, "algorithm", str)
         if algorithm != logging.sanitize_name(algorithm):
             raise ValueError(f"Invalid algorithm name '{algorithm}'.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if not isinstance(instance, str):
-            raise TypeError(
-                f"instance must be str, but is {type(instance)}.")
+            raise type_error(instance, "instance", str)
         if instance != logging.sanitize_name(instance):
             raise ValueError(f"Invalid instance name '{instance}'.")
         object.__setattr__(self, "instance", instance)
@@ -152,7 +155,7 @@ class MultiRunData:
         object.__setattr__(self, "instance", instance)
 
         if not isinstance(n, int):
-            raise TypeError(f"n must be int, but is {type(n)}.")
+            raise type_error(n, "n", int)
         if n <= 0:
             raise ValueError(f"n must be > 0, but is {n}.")
         object.__setattr__(self, "n", n)

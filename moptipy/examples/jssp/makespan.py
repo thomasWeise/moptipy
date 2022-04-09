@@ -6,6 +6,7 @@ import numba  # type: ignore
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance
+from moptipy.utils.types import type_error
 
 
 # start book
@@ -37,8 +38,7 @@ class Makespan(Objective):
         """
         super().__init__()
         if not isinstance(instance, Instance):
-            raise TypeError(
-                f"Must provide Instance, but got '{type(instance)}'.")
+            raise type_error(instance, "instance", Instance)
         self.__instance: Final[Instance] = instance
         self.evaluate = makespan  # type: ignore # +book
 

@@ -2,10 +2,12 @@
 from typing import Final
 
 import numpy
+
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import KEY_NUMPY_TYPE
+from moptipy.utils.types import type_error
 
 
 class NPArraySpace(Space):
@@ -25,15 +27,13 @@ class NPArraySpace(Space):
         :param dtype: the data type
         """
         if not isinstance(dimension, int):
-            raise TypeError(
-                f"dimension must be integer, but got {type(dimension)}.")
+            raise type_error(dimension, "dimension", int)
         if (dimension < 1) or (dimension > 1_000_000_000):
             raise ValueError("dimension must be in 1..1_000_000_000, "
                              f"but got {dimension}.")
 
         if not isinstance(dtype, numpy.dtype):
-            raise TypeError(
-                f"dtype must be numpy.dtype, but is {type(dtype)}.")
+            raise type_error(dtype, "dtype", numpy.dtype)
         if (not isinstance(dtype.char, str)) or (len(dtype.char) != 1):
             raise ValueError(
                 f"dtype.char must be str of length 1, but is {dtype.char}")
@@ -73,7 +73,7 @@ class NPArraySpace(Space):
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
         if not isinstance(text, str):
-            raise TypeError(f"text must be str, but is {type(text)}.")
+            raise type_error(text, "text", str)
         x = numpy.fromstring(text, dtype=self.dtype, sep=",")
         self.validate(x)
         return x
@@ -88,8 +88,7 @@ class NPArraySpace(Space):
             element is not finite.
         """
         if not isinstance(x, numpy.ndarray):
-            raise ValueError(
-                f"x must be an numpy.ndarray, but is a {type(x)}.")
+            raise type_error(x, "x", numpy.ndarray)
         if x.dtype != self.dtype:
             raise ValueError(
                 f"x must be of type {self.dtype} but is of type {x.dtype}.")

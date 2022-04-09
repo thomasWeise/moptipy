@@ -4,7 +4,8 @@ from typing import Final
 import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
-from moptipy.utils.types import bool_to_str, str_to_bool
+from moptipy.utils.strings import bool_to_str, str_to_bool
+from moptipy.utils.types import type_error
 
 #: the internal type for but strings
 _DTYPE: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
@@ -61,7 +62,7 @@ class BitStrings(NPArraySpace):
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
         if not (isinstance(text, str)):
-            raise TypeError(f"text must be str, but is {type(text)}.")
+            raise type_error(text, "text", str)
         x: Final[numpy.ndarray] = self.create()
         x[:] = [str_to_bool(t) for t in text]
         self.validate(x)

@@ -15,6 +15,7 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.objective import validate_objective
+from moptipy.utils.types import type_error
 
 
 def jssp_instances_for_tests() -> Iterable[str]:
@@ -69,10 +70,7 @@ def validate_algorithm_on_1_jssp(
     :param required_result: the optional required result quality
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
-        raise TypeError(
-            "'algorithm' parameter must be an Algorithm or a callable that"
-            "instantiates an algorithm for a given JSSP instance, but got a "
-            f"{type(algorithm)} instead.")
+        raise type_error(algorithm, "algorithm", Algorithm, True)
 
     if instance is None:
         instance = str(default_rng().choice(Instance.list_resources()))
