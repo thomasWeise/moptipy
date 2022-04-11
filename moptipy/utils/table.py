@@ -2,7 +2,7 @@
 
 from contextlib import AbstractContextManager
 from io import TextIOBase
-from typing import Final
+from typing import Final, Optional
 
 from moptipy.utils.types import type_error
 
@@ -34,7 +34,7 @@ class TableDriver:
 
     def begin_header(self, stream: TextIOBase, cols: str) -> None:
         """
-        Write the beginning of the header.
+        Begin the header row of the table.
 
         :param stream: the stream to write to
         :param cols: the column definition
@@ -42,83 +42,103 @@ class TableDriver:
 
     def end_header(self, stream: TextIOBase, cols: str) -> None:
         """
-        Write the ending of the header.
+        End the header row of the table.
 
         :param stream: the stream to write to
         :param cols: the column definition
         """
 
-    def begin_row_group(self, stream: TextIOBase, cols: str, nrows: int,
-                        ngroups: int) -> None:
+    def begin_section(self, stream: TextIOBase, cols: str,
+                      section_index: int) -> None:
         """
-        Write the beginning of a new row group begins.
+        Begin a new section of the table.
 
         :param stream: the stream to write to
         :param cols: the column definition
-        :param nrows: the number of rows that have started so far
-        :param ngroups: the number of row groups that have started so far
+        :param section_index: the index of the section, `0` for the first
+            section
         """
 
-    def end_row_group(self, stream: TextIOBase, cols: str, nrows: int,
-                      ngroups: int, nrow_in_group: int) -> None:
+    def end_section(self, stream: TextIOBase, cols: str,
+                    section_index: int, had_header: bool, n_rows: int) -> None:
         """
-        Write the ending of a group of rows.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param nrows: the number of rows that have started so far
-        :param ngroups: the number of row groups that have started so far
-        :param nrow_in_group: the number of rows that have started so far in
-            the current row group
-        """
-
-    def begin_row(self, stream: TextIOBase, cols: str, nrows: int,
-                  ngroups: int, nrow_in_group: int, is_header: bool) -> None:
-        """
-        Write the beginning of a row.
+        End a section of the table.
 
         :param stream: the stream to write to
         :param cols: the column definition
-        :param nrows: the number of rows that have started so far
-        :param ngroups: the number of row groups that have started so far
-        :param nrow_in_group: the number of rows that have started so far in
-            the current row group
-        :param is_header: is this a header row?
+        :param section_index: the index of the section, `0` for the first
+            section
+        :param had_header: did the section have a header?
+        :param n_rows: the number of rows that were written in the section
         """
 
-    def end_row(self, stream: TextIOBase, cols: str, nrows: int,
-                ngroups: int, nrow_in_group: int, is_header: bool) -> None:
+    def begin_section_header(self, stream: TextIOBase, cols: str,
+                             section_index: int) -> None:
         """
-        Write the ending of a row.
+        Begin the header row of a section.
 
         :param stream: the stream to write to
         :param cols: the column definition
-        :param nrows: the number of rows that have started so far
-        :param ngroups: the number of row groups that have started so far
-        :param nrow_in_group: the number of rows that have started so far in
-            the current row group
-        :param is_header: is this a header row?
+        :param section_index: the index of the section, `0` for the first
+            section
+        """
+
+    def end_section_header(self, stream: TextIOBase, cols: str,
+                           section_index: int) -> None:
+        """
+        End the header row of a section.
+
+        :param stream: the stream to write to
+        :param cols: the column definition
+        :param section_index: the index of the section, `0` for the first
+            section
+        """
+
+    def begin_row(self, stream: TextIOBase, cols: str,
+                  section_index: int, row_index: int) -> None:
+        """
+        Begin a table header row, section row, or normal row in a section.
+
+        :param stream: the stream to write to
+        :param cols: the column definition
+        :param section_index: the index of the current section, `-1` if we
+            are in the table header
+        :param row_index: the row index in the section: `0` for the first
+            actual row, `-1` for a section header row, `-2` for a table
+            header row
+        """
+
+    def end_row(self, stream: TextIOBase, cols: str,
+                section_index: int, row_index: int) -> None:
+        """
+        End a table header row, section row, or normal row in a section.
+
+        :param stream: the stream to write to
+        :param cols: the column definition
+        :param section_index: the index of the current section
+        :param row_index: the row index in the section: `0` for the first
+            actual row, `-1` for a section header row, `-2` for a table
+            header row
         """
 
     def cell(self, stream: TextIOBase, text: str, cols: str,
-             colidx: int, bold: bool, italic: bool, code: bool,
-             nrows: int, ngroups: int, nrow_in_group: int,
-             is_header: bool) -> None:
+             section_index: int, row_index: int, col_index: int,
+             bold: bool, italic: bool, code: bool) -> None:
         """
-        Write the text of a cell.
+        Write the text of a header cell, section header cell, or normal cell.
 
         :param stream: the stream to write to
         :param text: the text to write
         :param cols: the column definitions
-        :param colidx: the index of this cell
+        :param section_index: the index of the current section, `-1` if this
+            is a table header cell
+        :param row_index: the row index in the section: `0` for the first
+            actual row, `-1` for a section header row, `-2` for a table
+            header row
+        :param col_index: the column index, `0` for the first column
         :param bold: should the text be in bold face?
         :param italic: should the text be in italic face?
         :param code: should the text be in code face?
-        :param nrows: the number of rows that have started so far
-        :param ngroups: the number of row groups that have started so far
-        :param nrow_in_group: the number of rows that have started so far in
-            the current row group
-        :param is_header: is this a header cell?
         """
 
 
@@ -130,6 +150,14 @@ class Table(AbstractContextManager):
     tables in different formats. It only supports the most rudimentary
     formatting and nothing fancy (such as references, etc.). However, it may
     be totally enough to quickly produce tables with results of experiments.
+
+    Every table must have a table header (see :meth:`header`).
+    Every table then consists of a sequence of one or multiple sections
+    (see :meth:`section` and :class:`Section`).
+    Each table section itself may or may not have a header
+    (see :meth:`Section.header`) and must have at least one row (see
+    :meth:`Section.row` and :class:`Row`).
+    Each row must have the exact right number of cells (see :meth:`Row.cell`).
     """
 
     def __init__(self, stream: TextIOBase, cols: str,
@@ -164,119 +192,238 @@ class Table(AbstractContextManager):
         self.__cols: Final[str] = cols
         #: the internal table driver
         self.__driver: Final[TableDriver] = driver
-        #: the number of rows
-        self.__nrows: int = 0
-        #: the number of row groups
-        self.__ngroups: int = 0
-        #: the number of rows in the current row group
-        self.__nrows_in_group: int = 0
-        #: are we in a row group?
-        self.__in_row_group: bool = False
-        #: are we in a row?
-        self.__in_row: bool = False
-        #: the cell index inside the row
-        self.__cell: int = 0
-        #: 0=no header yet, 1=in header, 2=after header
-        self.__header_mode: int = 0
+        #: the header state: 0=no header, 1=in header, 2=after header
+        self.__header_state: int = 0
+        #: the section index
+        self.__section_index: int = 0
+        #: the row index
+        self.__row_index: int = 0
+        #: the column index
+        self.__col_index: int = 0
+        #: the section state: 0 outside of section, 1 inside of section,
+        #: 2 after section
+        self.__section_state: int = 0
+        #: the section header state: 0=no header, 1=in header, 2=after header
+        self.__section_header_state: int = 0
+        #: the row state: 0=before row, 1=in row, 2=after row
+        self.__row_state: int = 0
 
-    def _start_group(self) -> None:
-        """Start a row group."""
-        if self.__in_row_group:
-            raise ValueError("Cannot start row group inside row!")
-        if self.__in_row:
-            raise ValueError("Cannot start row group inside row!")
-        if self.__header_mode <= 0:
-            raise ValueError("Cannot start row group before header.")
-        if self.__header_mode <= 1:
-            raise ValueError("Cannot start row group while in header.")
-        self.__in_row_group = True
-        self.__ngroups += 1
-        self.__nrows_in_group = 0
-        self.__cell = 0
-        self.__driver.begin_row_group(self.__stream, self.__cols,
-                                      self.__nrows, self.__ngroups)
+    def _begin_section(self):
+        """Start a section."""
+        if self.__stream is None:
+            raise ValueError("table already closed, cannot start section.")
+        if self.__header_state <= 0:
+            raise ValueError("cannot start section before table header.")
+        if self.__header_state <= 1:
+            raise ValueError("cannot start section inside table header.")
+        if self.__section_state == 1:
+            raise ValueError("cannot start section inside section.")
+        if self.__section_header_state == 1:
+            raise ValueError("cannot start section inside section header.")
+        if self.__section_header_state >= 1:
+            raise ValueError(
+                "cannot start section inside section after header.")
+        if self.__row_state == 1:
+            raise ValueError("cannot start section inside row.")
+        self.__driver.begin_section(self.__stream, self.__cols,
+                                    self.__section_index)
+        self.__row_index = 0
+        self.__section_state = 1
+        self.__row_state = 0
 
-    def _end_group(self) -> None:
-        """End a row group."""
-        if self.__header_mode <= 0:
-            raise ValueError("Cannot end row group before header.")
-        if self.__header_mode <= 1:
-            raise ValueError("Cannot end row group while in header.")
-        if self.__in_row:
-            raise ValueError("Cannot end row group inside row!")
-        if not self.__in_row_group:
-            raise ValueError("Cannot end row group if not inside row group!")
-        if self.__nrows_in_group <= 0:
-            raise ValueError("No row in group?")
-        self.__in_row_group = False
-        self.__cell = 0
-        self.__driver.end_row_group(self.__stream, self.__cols,
-                                    self.__nrows, self.__ngroups,
-                                    self.__nrows_in_group)
-        self.__nrows_in_group = 0
+    def _end_section(self):
+        """End a section."""
+        if self.__stream is None:
+            raise ValueError("table already closed, cannot end section.")
+        if self.__header_state <= 0:
+            raise ValueError("cannot end section before table header.")
+        if self.__header_state <= 1:
+            raise ValueError("cannot end section inside table header.")
+        if self.__section_state <= 0:
+            raise ValueError("cannot start section outside section.")
+        if self.__section_state >= 2:
+            raise ValueError("cannot end section after section.")
+        if self.__section_header_state == 1:
+            raise ValueError("cannot end section inside section header.")
+        if self.__row_index <= 0:
+            raise ValueError(
+                "cannot end section before writing any row.")
+        if self.__row_state <= 0:
+            raise ValueError("cannot end a section before a row.")
+        if self.__row_state <= 1:
+            raise ValueError("cannot end section inside of row.")
+        self.__driver.end_section(self.__stream, self.__cols,
+                                  self.__section_index,
+                                  self.__section_header_state == 2,
+                                  self.__row_index)
+        self.__row_index = 0
+        self.__section_state = 2
+        self.__section_header_state = 0
+        self.__section_index += 1
 
-    def _start_row(self, is_header: bool) -> None:
+    def _begin_row(self, header_mode: int):
         """
         Start a row.
 
-        :param is_header: are we in the header?
+        :param header_mode: the header mode: -2 table header, -1 section
+            header, 0 normal row
         """
-        if is_header:
-            if self.__header_mode >= 2:
-                raise ValueError("Cannot start header row after header.")
-            if self.__header_mode >= 1:
-                raise ValueError("Cannot start header row inside header row.")
-            self.__header_mode = 1
-        else:
-            if self.__header_mode < 2:
-                raise ValueError("Can end row only after header.")
-            if not self.__in_row_group:
-                raise ValueError("Cannot start row outside of row group!")
-        if self.__in_row:
-            raise ValueError("Cannot start row inside row!")
-        self.__nrows_in_group += 1
-        self.__nrows += 1
-        self.__in_row = True
-        self.__cell = 0
-        if is_header:
-            self.__driver.begin_header(self.__stream, self.__cols)
-        self.__driver.begin_row(self.__stream, self.__cols, self.__nrows,
-                                self.__ngroups, self.__nrows_in_group,
-                                is_header)
+        if self.__stream is None:
+            raise ValueError("table already closed, cannot start row.")
+        if self.__header_state == 1:
+            raise ValueError(
+                "cannot start row inside table header.")
+        if self.__section_header_state == 1:
+            raise ValueError(
+                "cannot start row inside section header.")
+        if self.__section_state >= 2:
+            raise ValueError(
+                "cannot start row after section.")
+        if self.__row_state == 1:
+            raise ValueError("cannot start row inside row.")
 
-    def _end_row(self, is_header: bool) -> None:
+        row_index: int
+        sec_index: int
+
+        if header_mode == -2:  # start table header
+            if self.__header_state >= 2:
+                raise ValueError(
+                    "cannot start table header row after table header.")
+            if self.__section_state == 1:
+                raise ValueError(
+                    "cannot start table header row inside section.")
+            if self.__section_header_state >= 2:
+                raise ValueError(
+                    "cannot start table header row after section header.")
+            if self.__row_state >= 2:
+                raise ValueError("cannot start table header after row.")
+            self.__header_state = 1
+            self.__driver.begin_header(self.__stream, self.__cols)
+            row_index = -2
+            sec_index = -1
+
+        elif header_mode == -1:  # start section header
+            if self.__header_state < 2:
+                raise ValueError(
+                    "can only start section header row after table header.")
+            if self.__section_header_state >= 2:
+                raise ValueError(
+                    "cannot start section header row after section header.")
+            if self.__section_state <= 0:
+                raise ValueError(
+                    "cannot start section header row outside of section.")
+            if self.__row_index > 0:
+                raise ValueError("cannot start section header row "
+                                 f"after {self.__row_index} rows.")
+            if self.__row_state >= 2:
+                raise ValueError("cannot start section header after row.")
+            self.__section_header_state = 1
+            sec_index = self.__section_index
+            self.__driver.begin_section_header(self.__stream, self.__cols,
+                                               sec_index)
+            row_index = -1
+
+        elif header_mode == 0:
+            if self.__header_state < 2:
+                raise ValueError("can only start row after table header.")
+            if self.__section_state <= 0:
+                raise ValueError("cannot start row outside of section.")
+            sec_index = self.__section_index
+            row_index = self.__row_index
+        else:
+            raise ValueError(f"invalid header mode {header_mode}.")
+
+        self.__col_index = 0
+        self.__row_state = 1
+        self.__driver.begin_row(self.__stream, self.__cols,
+                                sec_index, row_index)
+
+    def _end_row(self, header_mode: int):
         """
         End a row.
 
-        :param is_header: are we in the header?
+        :param header_mode: the header mode: -2 table header, -1 section
+            header, 0 normal row
         """
-        if is_header:
-            if self.__header_mode <= 0:
-                raise ValueError("Cannot end header row before header.")
-            if self.__header_mode >= 2:
-                raise ValueError("Cannot end header row after header.")
-            self.__header_mode = 2
+        if self.__stream is None:
+            raise ValueError("table already closed, cannot start row.")
+        if self.__header_state == 0:
+            raise ValueError(
+                "cannot end row before table header.")
+        if self.__section_state >= 2:
+            raise ValueError("cannot end row after section.")
+        if self.__row_state <= 0:
+            raise ValueError("cannot end row before row begins.")
+        if self.__row_state >= 2:
+            raise ValueError("cannot end row after row has already ended.")
+        if self.__col_index != len(self.__cols):
+            raise ValueError(
+                f"cannot end row after {self.__col_index} columns for table "
+                f"with column definition {self.__cols}.")
+
+        row_index: int
+        sec_index: int
+
+        if header_mode == -2:  # end table header
+            if self.__header_state >= 2:
+                raise ValueError(
+                    "cannot end table header row after table header.")
+            if self.__section_state == 1:
+                raise ValueError(
+                    "cannot end table header row inside section.")
+            if self.__section_header_state == 1:
+                raise ValueError(
+                    "cannot end table header row inside section header.")
+            if self.__section_header_state >= 2:
+                raise ValueError(
+                    "cannot end table header row after section header.")
+            self.__header_state = 2
+            row_index = -2
+            sec_index = -1
+
+        elif header_mode == -1:  # end section header
+            if self.__header_state < 2:
+                raise ValueError(
+                    "can only end section header row after table header.")
+            if self.__section_header_state <= 0:
+                raise ValueError(
+                    "cannot end section header row before section header.")
+            if self.__section_header_state >= 2:
+                raise ValueError(
+                    "cannot end section header row after section header.")
+            if self.__section_state <= 0:
+                raise ValueError(
+                    "cannot start section header row outside of section.")
+            if self.__row_index > 0:
+                raise ValueError("cannot end section header row "
+                                 f"after {self.__row_index} rows.")
+            self.__section_header_state = 2
+            sec_index = self.__section_index
+            row_index = -1
+
+        elif header_mode == 0:
+            if self.__header_state < 2:
+                raise ValueError("can only end row after table header.")
+            if self.__section_state <= 0:
+                raise ValueError("cannot end row outside of section.")
+            sec_index = self.__section_index
+            row_index = self.__row_index
+            self.__row_index += 1
         else:
-            if self.__header_mode < 2:
-                raise ValueError("Can end row only after header.")
-            if not self.__in_row_group:
-                raise ValueError("Cannot end row if not inside row group!")
+            raise ValueError(f"invalid header mode {header_mode}.")
 
-        if not self.__in_row:
-            raise ValueError("Cannot end row group outside row!")
-        if self.__cell != len(self.__cols):
-            raise ValueError(f"Only specified {self.__cell} cells in "
-                             f"row of type '{self.__cols}'.")
-        self.__in_row = False
-        self.__cell = 0
-        self.__driver.end_row(self.__stream, self.__cols, self.__nrows,
-                              self.__ngroups, self.__nrows_in_group,
-                              is_header)
-        if is_header:
+        self.__col_index = 0
+        self.__row_state = 2
+        self.__driver.end_row(self.__stream, self.__cols,
+                              sec_index, row_index)
+        if header_mode == -2:
             self.__driver.end_header(self.__stream, self.__cols)
+        elif header_mode == -1:
+            self.__driver.end_section_header(self.__stream, self.__cols,
+                                             sec_index)
 
-    def _cell(self, text: str, bold: bool, italic: bool, code: bool,
-              is_header: bool) -> None:
+    def _cell(self, text: Optional[str] = None, bold: bool = False,
+              italic: bool = False, code: bool = False):
         """
         Render a cell.
 
@@ -284,43 +431,56 @@ class Table(AbstractContextManager):
         :param bold: should the text be in bold face?
         :param italic: should the text be in italic face?
         :param code: should the text be in code face?
-        :param is_header: are we in the header?
         """
-        if not self.__in_row:
-            raise ValueError(f"Can only start cell '{text}' inside of row.")
-        if self.__header_mode <= 0:
-            raise ValueError(f"Cannot have cell '{text}' before header.")
-        if self.__header_mode >= 1:
-            if not (is_header or self.__in_row_group):
+        if self.__stream is None:
+            raise ValueError("table already closed, cannot start row.")
+        if self.__header_state == 0:
+            raise ValueError(
+                "cannot have a cell before the table header starts.")
+        if self.__section_state >= 2:
+            raise ValueError(
+                "cannot have cell after section end.")
+        col_index: Final[int] = self.__col_index
+        if col_index >= len(self.__cols):
+            raise ValueError(
+                f"cannot add cell after {col_index} columns for table "
+                f"with column definition {self.__cols}.")
+        if self.__row_state <= 0:
+            raise ValueError("cannot begin cell before beginning a row.")
+        if self.__row_state >= 2:
+            raise ValueError("cannot begin cell after end of a row.")
+
+        row_index: int
+        section_index: int = self.__section_index
+        if self.__header_state >= 2:
+            if self.__section_state <= 0:
                 raise ValueError(
-                    f"Can only start cell '{text}' inside of row group.")
-        if (self.__header_mode == 1) != is_header:
-            raise ValueError(f"expected {self.__header_mode} == 1 to "
-                             f"be {is_header} for cell '{text}'.")
-        c: Final[int] = self.__cell
-        if c >= len(self.__cols):
-            raise ValueError(f"Cannot put cell '{text}' at index "
-                             f"{c + 1} for cols '{self.__cols}'.")
-        self.__cell = c + 1
-        self.__driver.cell(self.__stream, text.strip(), self.__cols, c, bold,
-                           italic, code, self.__nrows, self.__ngroups,
-                           self.__nrows_in_group, is_header)
+                    "cannot begin cell after header outside of section.")
+            row_index = -2
+            section_index = -1
+        elif self.__section_header_state == 1:
+            row_index = -1
+        else:
+            row_index = self.__row_index
+        self.__col_index = col_index + 1
+        self.__driver.cell(self.__stream, text, self.__cols, section_index,
+                           row_index, col_index, bold, italic, code)
 
     def header(self) -> 'Row':
         """
-        Start the header row.
+        Construct the header of the table.
 
-        :returns: the header row
+        :returns: a new managed header row
         """
-        return Row(self, True)
+        return Row(self, -2)
 
-    def group(self) -> 'RowGroup':
+    def section(self) -> 'Section':
         """
-        Create a new group of rows.
+        Create a new section of rows.
 
-        :returns: a new managed row group
+        :returns: a new managed row section
         """
-        return RowGroup(self)
+        return Section(self)
 
     def __enter__(self):
         """
@@ -345,46 +505,60 @@ class Table(AbstractContextManager):
             self.__driver.end_table(self.__stream, self.__cols)
             self.__stream.close()
             self.__stream = None
-        if self.__header_mode != 2:
-            raise ValueError("Cannot exit table before closing header.")
-        if self.__in_row:
-            raise ValueError("Cannot exit table inside row!")
-        if self.__in_row_group:
-            raise ValueError("Cannot exit table inside row group!")
+        if self.__section_state <= 0:
+            raise ValueError("cannot end table before any section")
+        if self.__section_state <= 1:
+            raise ValueError("cannot end table inside a section")
+        if self.__header_state <= 0:
+            raise ValueError("cannot end table before table header")
+        if self.__header_state <= 1:
+            raise ValueError("cannot end table inside table header")
+        if self.__section_header_state == 1:
+            raise ValueError("cannot end table inside section header")
 
 
-class RowGroup(AbstractContextManager):
-    """A group of rows."""
+class Section(AbstractContextManager):
+    """A table section is a group of rows, potentially with a header."""
 
     def __init__(self, owner: Table):
         """
-        Initialize the row group.
+        Initialize the row section.
 
         :param owner: the owning table
         """
+        if not isinstance(owner, Table):
+            raise type_error(owner, "owner", Table)
         #: the owner
         self.__owner: Final[Table] = owner
 
     def __enter__(self):
         """
-        Enter the row group in a `with` statement.
+        Enter the row section in a `with` statement.
 
         :return: `self`
         """
         # noinspection PyProtectedMember
-        self.__owner._start_group()
+        self.__owner._begin_section()
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """
-        Close the row group after leaving the `with` statement.
+        Close the row section after leaving the `with` statement.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
         """
         # noinspection PyProtectedMember
-        self.__owner._end_group()
+        self.__owner._end_section()
+
+    def header(self) -> 'Row':
+        """
+        Print the section header.
+
+        :return: the header row
+        """
+        return Row(self.__owner, -1)
 
     def row(self) -> 'Row':
         """
@@ -392,25 +566,31 @@ class RowGroup(AbstractContextManager):
 
         :return: the new row
         """
-        return Row(self.__owner, False)
+        return Row(self.__owner, 0)
 
 
 class Row(AbstractContextManager):
     """A row class."""
 
-    def __init__(self, owner: Table, is_header: bool):
+    def __init__(self, owner: Table, header_mode: int):
         """
         Initialize the row.
 
         :param owner: the owning table
-        :param is_header: are we in the header
+        :param header_mode: the header mode
         """
+        if not isinstance(owner, Table):
+            raise type_error(owner, "owner", Table)
+        if not isinstance(header_mode, int):
+            raise type_error(header_mode, "header_mode", int)
+        if not -2 <= header_mode <= 0:
+            raise ValueError(f"Invalid header mode {header_mode}.")
         #: the owner
         self.__owner: Final[Table] = owner
-        #: are we in the header?
-        self.__is_header = is_header
+        #: the header mode
+        self.__header_mode: Final[int] = header_mode
 
-    def cell(self, text: str = "", bold: bool = False,
+    def cell(self, text: Optional[str] = None, bold: bool = False,
              italic: bool = False, code: bool = False) -> None:
         """
         Render a cell.
@@ -421,7 +601,7 @@ class Row(AbstractContextManager):
         :param code: should the text be in code face?
         """
         # noinspection PyProtectedMember
-        self.__owner._cell(text, bold, italic, code, self.__is_header)
+        self.__owner._cell(text, bold, italic, code)
 
     def __enter__(self):
         """
@@ -430,7 +610,7 @@ class Row(AbstractContextManager):
         :return: `self`
         """
         # noinspection PyProtectedMember
-        self.__owner._start_row(self.__is_header)
+        self.__owner._begin_row(self.__header_mode)
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
@@ -442,7 +622,7 @@ class Row(AbstractContextManager):
         :param traceback: ignored
         """
         # noinspection PyProtectedMember
-        self.__owner._end_row(self.__is_header)
+        self.__owner._end_row(self.__header_mode)
 
 
 class Markdown(TableDriver):
@@ -456,7 +636,7 @@ class Markdown(TableDriver):
     ...         h.cell("1", bold=True)
     ...         h.cell("2", code=True)
     ...         h.cell("3", italic=True)
-    ...     with t.group() as g:
+    ...     with t.section() as g:
     ...         with g.row() as r:
     ...             r.cell("a")
     ...             r.cell("b")
@@ -486,15 +666,14 @@ class Markdown(TableDriver):
                 raise ValueError(f"Invalid col '{c}' in '{cols}'.")
         stream.write("|\n")
 
-    def end_row(self, stream: TextIOBase, cols: str, nrows: int,
-                ngroups: int, nrow_in_group: int, is_header: bool) -> None:
+    def end_row(self, stream: TextIOBase, cols: str,
+                section_index: int, row_index: int) -> None:
         """End a row in a Markdown table."""
         stream.write("|\n")
 
     def cell(self, stream: TextIOBase, text: str, cols: str,
-             colidx: int, bold: bool, italic: bool, code: bool,
-             nrows: int, ngroups: int, nrow_in_group: int,
-             is_header: bool) -> None:
+             section_index: int, row_index: int, col_index: int,
+             bold: bool, italic: bool, code: bool) -> None:
         """Write a Markdown table cell."""
         stream.write("|")
         if len(text) <= 0:
