@@ -1,10 +1,10 @@
 """Routines for handling strings."""
 
-import math
+from math import isnan, isfinite, inf
 from re import sub
-from typing import Union, Optional, Final, Iterable
+from typing import Union, Optional, Final, Iterable, List, cast, Callable
 
-from moptipy.utils.math import __try_int
+from moptipy.utils.math import __try_int, try_int
 from moptipy.utils.types import type_error
 
 
@@ -23,7 +23,7 @@ def float_to_str(x: float) -> str:
     if x == 0:
         return "0"
     s = repr(x)
-    if math.isnan(x):
+    if isnan(x):
         raise ValueError(f"'{s}' not permitted.")
     if s.endswith(".0"):
         return s[:-2]
@@ -269,3 +269,265 @@ def sanitize_names(names: Iterable[str]) -> str:
     """
     return PART_SEPARATOR.join([
         sanitize_name(name) for name in names if len(name) > 0])
+
+
+def __make_int_formatter() -> Callable[[int], str]:
+    """
+    Construct the integer formatter.
+
+    :returns: the integer formatter
+    """
+    from moptipy.utils.lang import Lang  # pylint: disable=C0415,R0401
+
+    def __if(i: int, lc=Lang.current) -> str:
+        return lc().format_int(i)
+    return __if
+
+
+#: the internal integer to float conversion threshold
+__INT_TO_FLOAT_THRESHOLD: Final[float] = 1E10
+
+
+def default_float_format(min_finite: Union[int, float] = 0,
+                         max_finite: Union[int, float] = 0,
+                         frac_len: int = 2) -> str:
+    """
+    Get the default float format.
+
+    :param min_finite: the minimum finite value
+    :param max_finite: the maximum finite value
+    :param frac_len: the longest fraction
+    """
+    if not isinstance(min_finite, (int, float)):
+        raise type_error(min_finite, "min_finite", (int, float))
+    if not isinstance(max_finite, (int, float)):
+        raise type_error(max_finite, "max_finite", (int, float))
+    if not (isfinite(min_finite) and isfinite(max_finite)
+            and (min_finite <= max_finite)):
+        raise ValueError("invalid min_finite, max_finite pair "
+                         f"{min_finite}, {max_finite}.")
+    if not isinstance(frac_len, int):
+        raise type_error(frac_len, "frac_len", int)
+    if not (0 <= frac_len < 100):
+        raise ValueError(f"invalid frac_len {frac_len}.")
+
+    if ((-__INT_TO_FLOAT_THRESHOLD) <= min_finite) \
+            and (max_finite <= __INT_TO_FLOAT_THRESHOLD):
+        if frac_len <= 0:
+            return "{:.0f}"
+        if frac_len <= 1:
+            return "{:.1f}"
+        if frac_len <= 2:
+            return "{:.2f}"
+        return "{:.3f}"
+    return "{:.2e}"
+
+
+def numbers_to_strings(source: Iterable[Union[int, float, None]],
+                       none_str: Optional[str] = None,
+                       nan_str: Optional[str] = r"$\emptyset$",
+                       positive_infty_str: Optional[str] = r"$\infty$",
+                       negative_infty_str: Optional[str] = r"$-\infty$",
+                       int_renderer: Callable[[int], str] =
+                       __make_int_formatter(),
+                       float_format_getter: Callable[
+                           [Union[int, float], Union[int, float], int], str]
+                       = default_float_format,
+                       exponent_renderer: Callable[[str], str] =
+                       lambda e: f"*10^{e}^",
+                       int_to_float_threshold:
+                       Union[int, float] = __INT_TO_FLOAT_THRESHOLD) \
+        -> List[Optional[str]]:
+    r"""
+    Convert a numerical column to text with uniform shape.
+
+    :param source: the column data
+    :param none_str: the string replacement for `None`
+    :param nan_str: the string to be used for NaN
+    :param positive_infty_str: the string to be used for positive infinity
+    :param negative_infty_str: the string to be used for negative infinity
+    :param int_renderer: the renderer for integers
+    :param float_format_getter: a float format getter
+    :param exponent_renderer: the renderer for exponents
+    :param int_to_float_threshold: the absolute threshold after which integers
+        will be force-converted to floating point numbers to ensure that we do
+        not express uselessly large numbers as integers
+    :returns: a list with the text representation
+
+    >>> from moptipy.utils.lang import EN
+    >>> EN.set_current()
+    >>> numbers_to_strings([1.7565, 212, 3234234])
+    ['1.756', '212.000', "3'234'234.000"]
+    >>> numbers_to_strings([1.5, 212, 3234234])
+    ['1.5', '212.0', "3'234'234.0"]
+    >>> numbers_to_strings([1.5, 2e12, 3234234])
+    ['1.50*10^0^', '2.00*10^12^', '3.23*10^6^']
+    >>> numbers_to_strings([233, 22139283482834, 3234234])
+    ['2.33*10^2^', '2.21*10^13^', '3.23*10^6^']
+    >>> numbers_to_strings([233, 22139283, 3234234])
+    ['233', "22'139'283", "3'234'234"]
+    >>> from math import nan, inf
+    >>> numbers_to_strings([22139283, inf, -inf, nan, None])
+    ["22'139'283", '$\\infty$', '$-\\infty$', '$\\emptyset$', None]
+    """
+    # perform type checks
+    if not isinstance(source, Iterable):
+        raise type_error(source, "source", Iterable)
+    if (none_str is not None) and (not isinstance(none_str, str)):
+        raise type_error(none_str, "none_str", (str, None))
+    if (nan_str is not None) and (not isinstance(nan_str, str)):
+        raise type_error(nan_str, "nan_str", (str, None))
+    if (positive_infty_str is not None) \
+            and (not isinstance(positive_infty_str, str)):
+        raise type_error(positive_infty_str, "positive_infty_str",
+                         (str, None))
+    if (negative_infty_str is not None) \
+            and (not isinstance(negative_infty_str, str)):
+        raise type_error(negative_infty_str, "negative_infty_str",
+                         (str, None))
+    if not callable(int_renderer):
+        raise type_error(int_renderer, "int_renderer", call=True)
+    if not callable(float_format_getter):
+        raise type_error(float_format_getter,
+                         "float_format_getter", call=True)
+    if not callable(exponent_renderer):
+        raise type_error(exponent_renderer,
+                         "exponent_renderer", call=True)
+    if not isinstance(int_to_float_threshold, (int, float)):
+        raise type_error(int_to_float_threshold, "int_to_float_threshold",
+                         (int, float))
+    if isnan(int_to_float_threshold) or (int_to_float_threshold <= 0):
+        raise ValueError(
+            f"invalid int_to_float_threshold: {int_to_float_threshold}.")
+
+    # step one: get the raw numerical data
+    data: Final[List[Union[int, float, None]]] = \
+        cast(List, source) if isinstance(source, List) else list(source)
+    dlen: Final[int] = len(data)
+    if dlen <= 0:
+        raise ValueError("Data cannot be empty.")
+
+    # step two: investigate the data ranges and structure
+    all_is_none: bool = True
+    all_is_int: bool = True
+    max_finite: Union[int, float] = -inf
+    min_finite: Union[int, float] = inf
+    longest_fraction: int = -1
+
+    for i, d in enumerate(data):
+        if d is None:
+            continue
+        all_is_none = False
+        d2 = try_int(d) if isfinite(d) else d
+        if isinstance(d2, int):
+            if d2 < min_finite:
+                min_finite = d2
+            if d2 > max_finite:
+                max_finite = d2
+            if not ((-int_to_float_threshold) <= d2
+                    <= int_to_float_threshold):
+                d2 = float(d2)
+        if d2 is not d:
+            data[i] = d2
+
+        if isfinite(d2):
+            if not isinstance(d2, int):
+                all_is_int = False
+                s = str(d2)
+                if not (("E" in s) or ("e" in s)):
+                    i = s.find(".")
+                    if i >= 0:
+                        i = len(s) - i - 1
+                        if i > longest_fraction:
+                            longest_fraction = i
+            if d2 < min_finite:
+                min_finite = d2
+            if d2 > max_finite:
+                max_finite = d2
+
+    # step three: if all data is None, we can return here
+    if all_is_none:
+        return [none_str] * dlen
+
+    # create the protected integer renderer
+    def __toint(value: int, form=int_renderer) -> str:
+        sv: str = form(value).strip()
+        if (sv is not None) and (not isinstance(sv, str)):
+            raise type_error(s, f"conversion of {value}", (str, None))
+        return sv
+
+    # step four: if all data are integer, we can convert them directly
+    if all_is_int:
+        # an int render also processing None and special floats
+        def __toint2(value: Union[None, int, float],
+                     form=__toint,
+                     na=nan_str,
+                     pi=positive_infty_str,
+                     ni=negative_infty_str) -> Optional[str]:
+            if value is None:
+                return None
+            return form(cast(int, value)) if isfinite(value)\
+                else na if isnan(value) else pi if value >= inf else ni
+        return [__toint2(i) for i in data]
+
+    # ok, we have at least some finite floats that cannot be converted to
+    # integers. therefore, we need to convert them to strings based on a
+    # floating point number format.
+    float_format = float_format_getter(min_finite, max_finite,
+                                       longest_fraction)
+    if not isinstance(float_format, str):
+        raise type_error(float_format,
+                         "float format from float_format_getter", str)
+    if (len(float_format) <= 0) or ('{' not in float_format) \
+            or ('}' not in float_format) or (':' not in float_format):
+        raise ValueError(f"invalid float format '{float_format}'.")
+
+    # step five: first, create the raw float strings and mark special values
+    result: Final[List[Union[int, str]]] = [
+        0 if value is None
+        else float_format.format(value).strip() if isfinite(value)
+        else 1 if isnan(value)
+        else 2 if value >= inf
+        else 3 for value in data]
+
+    # step six: fix special values and float strings
+    for i, value in enumerate(result):
+        if value == 0:
+            result[i] = none_str
+        elif value == 1:
+            result[i] = nan_str
+        elif value == 2:
+            result[i] = positive_infty_str
+        elif value == 3:
+            result[i] = negative_infty_str
+        elif not isinstance(value, str):
+            raise type_error(value, "computed value", str)
+        else:
+            # if we get here, we have to deal with actual floats.
+            # we split them into int, frac, and exp parts.
+            # if the int and exp part exist, we format them as ints.
+            int_part: str
+            frac_part: str = ""
+            exp_part: str = ""
+            eidx: int = value.find("e")
+            if eidx < 0:
+                eidx = value.find("E")
+            if eidx >= 0:
+                exp_part = exponent_renderer(__toint(int(
+                    value[eidx + 1:])).strip()).strip()
+                if not isinstance(exp_part, str):
+                    raise type_error(exp_part,
+                                     "exponent part rendering result", str)
+                value = value[:eidx].strip()
+
+            dotidx: int = value.find(".")
+            if dotidx <= 0:
+                int_part = __toint(int(value))
+            else:
+                int_part = __toint(int(value[:dotidx]))
+                frac_part = value[dotidx:].strip()
+            if len(int_part) <= 0:
+                int_part = "0"
+            result[i] = f"{int_part}{frac_part}{exp_part}"
+
+    return cast(List[str], result)

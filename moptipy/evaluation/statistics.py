@@ -350,9 +350,9 @@ class Statistics:
                         else:  # too dangerous, there may be overflow
                             mean_geom = statistics.geometric_mean(source)
         else:  # ok, we do not have only integer-like values
-            mean_arith = statistics.mean(source)
+            mean_arith = try_int(statistics.mean(source))
             if minimum > 0:
-                mean_geom = statistics.geometric_mean(source)
+                mean_geom = try_int(statistics.geometric_mean(source))
             if n > 1:
                 stddev = try_int(statistics.stdev(source))
 

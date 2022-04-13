@@ -61,6 +61,7 @@ _GETTERS_1: Final[Dict[
     log.KEY_GOAL_F: lambda s: s.goal_f,
 }
 _GETTERS_1[log.KEY_BEST_F] = _GETTERS_1[F_NAME_RAW]
+_GETTERS_1[KEY_BEST_F_SCALED] = _GETTERS_1[F_NAME_SCALED]
 
 
 @dataclass(frozen=True, init=False, order=True)

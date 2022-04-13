@@ -4,6 +4,7 @@ from contextlib import AbstractContextManager
 from io import TextIOBase
 from typing import Final, Optional
 
+from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
 
@@ -140,6 +141,114 @@ class TableDriver:
         :param italic: should the text be in italic face?
         :param code: should the text be in code face?
         """
+
+    def filename(self,
+                 file_name: str = "table",
+                 dir_name: str = ".") -> Path:
+        """
+        Get the right filename for this table driver.
+
+        :param file_name: the base file name
+        :param dir_name: the base directory
+        :returns: the path to the file to generate
+        """
+        if not isinstance(dir_name, str):
+            raise type_error(dir_name, "dir_name", str)
+        if len(dir_name) <= 0:
+            raise ValueError(f"invalid dir_name: '{dir_name}'.")
+        if not isinstance(file_name, str):
+            raise type_error(file_name, "file_name", str)
+        if len(file_name) <= 0:
+            raise ValueError(f"invalid file_name: '{file_name}'.")
+        out_dir = Path.directory(dir_name)
+        suffix = self.__str__()
+        if not isinstance(suffix, str):
+            raise type_error(suffix, "result of str(table driver)", str)
+        if len(suffix) <= 0:
+            raise ValueError(f"invalid driver suffix: '{suffix}'")
+        file: Final[Path] = out_dir.resolve_inside(f"{file_name}.{suffix}")
+        file.ensure_file_exists()
+        return file
+
+
+class Markdown(TableDriver):
+    r"""
+    The markdown table driver.
+
+    >>> from io import StringIO
+    >>> s = StringIO()
+    >>> md = Markdown()
+    >>> print(str(md))
+    md
+    >>> with Table(s, "lrc", md) as t:
+    ...     with t.header() as h:
+    ...         h.cell("1", bold=True)
+    ...         h.cell("2", code=True)
+    ...         h.cell("3", italic=True)
+    ...     with t.section() as g:
+    ...         with g.row() as r:
+    ...             r.cell("a")
+    ...             r.cell("b")
+    ...             r.cell("c")
+    ...         with g.row() as r:
+    ...             r.cell("d")
+    ...             r.cell("e")
+    ...             r.cell("f")
+    ...     print(f"'{s.getvalue()}'")
+    '|**1**|`2`|*3*|
+    |:--|--:|:-:|
+    |a|b|c|
+    |d|e|f|
+    '
+    """
+
+    def end_header(self, stream: TextIOBase, cols: str) -> None:
+        """End the header of a markdown table."""
+        for c in cols:
+            if c == "l":
+                stream.write("|:--")
+            elif c == "c":
+                stream.write("|:-:")
+            elif c == "r":
+                stream.write("|--:")
+            else:
+                raise ValueError(f"Invalid col '{c}' in '{cols}'.")
+        stream.write("|\n")
+
+    def end_row(self, stream: TextIOBase, cols: str,
+                section_index: int, row_index: int) -> None:
+        """End a row in a Markdown table."""
+        stream.write("|\n")
+
+    def cell(self, stream: TextIOBase, text: str, cols: str,
+             section_index: int, row_index: int, col_index: int,
+             bold: bool, italic: bool, code: bool) -> None:
+        """Write a Markdown table cell."""
+        stream.write("|")
+        if len(text) <= 0:
+            return
+        if bold:
+            stream.write("**")
+        if italic:
+            stream.write("*")
+        if code:
+            stream.write("`")
+        stream.write(text)
+        if code:
+            stream.write("`")
+        if italic:
+            stream.write("*")
+        if bold:
+            stream.write("**")
+
+    def __str__(self):
+        """
+        Get the file suffix.
+
+        :returns: the file suffix
+        :retval 'md': always
+        """
+        return "md"
 
 
 class Table(AbstractContextManager):
@@ -623,71 +732,3 @@ class Row(AbstractContextManager):
         """
         # noinspection PyProtectedMember
         self.__owner._end_row(self.__header_mode)
-
-
-class Markdown(TableDriver):
-    r"""
-    The markdown table driver.
-
-    >>> from io import StringIO
-    >>> s = StringIO()
-    >>> with Table(s, "lrc", Markdown()) as t:
-    ...     with t.header() as h:
-    ...         h.cell("1", bold=True)
-    ...         h.cell("2", code=True)
-    ...         h.cell("3", italic=True)
-    ...     with t.section() as g:
-    ...         with g.row() as r:
-    ...             r.cell("a")
-    ...             r.cell("b")
-    ...             r.cell("c")
-    ...         with g.row() as r:
-    ...             r.cell("d")
-    ...             r.cell("e")
-    ...             r.cell("f")
-    ...     print(f"'{s.getvalue()}'")
-    '|**1**|`2`|*3*|
-    |:--|--:|:-:|
-    |a|b|c|
-    |d|e|f|
-    '
-    """
-
-    def end_header(self, stream: TextIOBase, cols: str) -> None:
-        """End the header of a markdown table."""
-        for c in cols:
-            if c == "l":
-                stream.write("|:--")
-            elif c == "c":
-                stream.write("|:-:")
-            elif c == "r":
-                stream.write("|--:")
-            else:
-                raise ValueError(f"Invalid col '{c}' in '{cols}'.")
-        stream.write("|\n")
-
-    def end_row(self, stream: TextIOBase, cols: str,
-                section_index: int, row_index: int) -> None:
-        """End a row in a Markdown table."""
-        stream.write("|\n")
-
-    def cell(self, stream: TextIOBase, text: str, cols: str,
-             section_index: int, row_index: int, col_index: int,
-             bold: bool, italic: bool, code: bool) -> None:
-        """Write a Markdown table cell."""
-        stream.write("|")
-        if len(text) <= 0:
-            return
-        if bold:
-            stream.write("**")
-        if italic:
-            stream.write("*")
-        if code:
-            stream.write("`")
-        stream.write(text)
-        if code:
-            stream.write("`")
-        if italic:
-            stream.write("*")
-        if bold:
-            stream.write("**")

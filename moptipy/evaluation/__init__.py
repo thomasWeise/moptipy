@@ -38,7 +38,10 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE",
         "algorithm_on_instance": "algorithm \u00d7 instance",
         "ERT": "ERT",
-        "ECDF": "ECDF"
+        "ECDF": "ECDF",
+        "setup": "setup",
+        "best": "best",
+        "worst": "worst"
     })
 
     DE.extend({
@@ -61,7 +64,10 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE",
         "algorithm_on_instance": "Algorithmus \u00d7 Instanz",
         "ERT": "ERT",
-        "ECDF": "ECDF"
+        "ECDF": "ECDF",
+        "setup": "setup",
+        "best": "beste",
+        "worst": "schlechteste"
     })
 
     ZH.extend({
@@ -84,7 +90,10 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)",
         "algorithm_on_instance": "优化算法 \u00d7 优化问题实例",
         "ERT": "经验估计运行时间",
-        "ECDF": "经验累积分布函数"
+        "ECDF": "经验累积分布函数",
+        "setup": "算法配置",
+        "best": "最好的",
+        "worst": "最糟糕的"
     })
 
 
