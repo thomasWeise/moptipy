@@ -20,6 +20,8 @@ from moptipy.utils.types import type_error, type_name_of
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
+#: the number of FEs per second
+KEY_FES_PER_S: Final[str] = "fesPerTimeSec"
 #: The key for the number of successful runs.
 KEY_N_SUCCESS: Final[str] = "successN"
 #: The key for the success FEs.
@@ -54,6 +56,7 @@ _GETTERS_1: Final[Dict[
         lambda s: s.last_improvement_time_millis,
     log.KEY_TOTAL_FES: lambda s: s.total_fes,
     log.KEY_TOTAL_TIME_MILLIS: lambda s: s.total_time_millis,
+    KEY_FES_PER_S: lambda s: s.fes_per_s,
     F_NAME_RAW: lambda s: s.best_f,
     F_NAME_SCALED: lambda s: s.best_f_scaled,
     log.KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis,
@@ -84,6 +87,8 @@ class EndStatistics(MultiRunData):
     total_fes: Statistics
     #: The statistics about the total time.
     total_time_millis: Statistics
+    #: the number of function evaluations per seconds
+    fes_per_s: Statistics
     #: The goal objective value.
     goal_f: Union[Statistics, int, float, None]
     #: best_f / goal_f if goal_f is consistently defined and always positive.
@@ -114,6 +119,7 @@ class EndStatistics(MultiRunData):
                  last_improvement_time_millis: Statistics,
                  total_fes: Statistics,
                  total_time_millis: Statistics,
+                 fes_per_s: Statistics,
                  goal_f: Union[float, int, Statistics, None],
                  best_f_scaled: Optional[Statistics],
                  n_success: Optional[int],
@@ -138,12 +144,14 @@ class EndStatistics(MultiRunData):
         :param total_fes: statistics about the total FEs
         :param total_time_millis: statistics about the total runtime in
             milliseconds
+        :param fes_per_s: the number of function evaluations per seconds
         :param goal_f: if the goal objective value is not defined sometimes,
             this will be `None`. If it is always defined and always the same,
             then this will be that value. If different goal values exist, then
             this is the `Statistics` record about them
-        :param best_f_scaled: if `goal_f` is not `None`, then here we provide
-            statistics about `best_f` divided by the corresponding `goal_f`
+        :param best_f_scaled: if `goal_f` is not `None` and greater than zero,
+            then here we provide statistics about `best_f` divided by the
+            corresponding `goal_f`
         :param n_success: the number of successful runs is only defined if
             `goal_f` is not `None` and counts the number of runs that reach or
             surpass their corresponding `goal_f`
@@ -200,21 +208,23 @@ class EndStatistics(MultiRunData):
 
         if not isinstance(total_fes, Statistics):
             raise type_error(total_fes, "total_fes", Statistics)
-        if total_fes.minimum <= 0:
+        total_fes_min: Final[Union[int, float]] = total_fes.minimum
+        total_fes_max: Final[Union[int, float]] = total_fes.maximum
+        if total_fes_min <= 0:
             raise ValueError("No total_fes can be <= 0, but "
-                             f"encountered {total_fes.minimum}.")
-        if not isinstance(total_fes.minimum, int):
-            raise type_error(total_fes.minimum, "minimum total_fes", int)
-        if not isinstance(total_fes.maximum, int):
-            raise type_error(total_fes.maximum, "maximum total_fes", int)
-        if total_fes.minimum < last_improvement_fe.minimum:
+                             f"encountered {total_fes_min}.")
+        if not isinstance(total_fes_min, int):
+            raise type_error(total_fes_min, "minimum total_fes", int)
+        if not isinstance(total_fes_max, int):
+            raise type_error(total_fes_max, "maximum total_fes", int)
+        if total_fes_min < last_improvement_fe.minimum:
             raise ValueError(
-                f"Minimum total_fes ({total_fes.minimum}) cannot be"
+                f"Minimum total_fes ({total_fes_min}) cannot be"
                 "less than minimum last_improvement_fe "
                 f"({last_improvement_fe.minimum}).")
-        if total_fes.maximum < last_improvement_fe.maximum:
+        if total_fes_max < last_improvement_fe.maximum:
             raise ValueError(
-                f"Maximum total_fes ({total_fes.maximum}) cannot be"
+                f"Maximum total_fes ({total_fes_max}) cannot be"
                 "less than maximum last_improvement_fe "
                 f"({last_improvement_fe.maximum}).")
         object.__setattr__(self, "total_fes", total_fes)
@@ -222,26 +232,58 @@ class EndStatistics(MultiRunData):
         if not isinstance(total_time_millis, Statistics):
             raise type_error(total_time_millis, "total_time_millis",
                              Statistics)
-        if total_time_millis.minimum < 0:
+        total_time_min: Final[Union[int, float]] = total_time_millis.minimum
+        total_time_max: Final[Union[int, float]] = total_time_millis.maximum
+
+        if total_time_min < 0:
             raise ValueError("No total_time_millis can be < 0, but "
-                             f"encountered {total_time_millis.minimum}.")
-        if not isinstance(total_time_millis.minimum, int):
-            raise type_error(total_time_millis.minimum,
-                             "minimum total_time_millis", int)
-        if not isinstance(total_time_millis.maximum, int):
-            raise type_error(total_time_millis.maximum,
-                             "maximum total_time_millis", int)
-        if total_time_millis.minimum < last_improvement_time_millis.minimum:
+                             f"encountered {total_time_min}.")
+        if not isinstance(total_time_min, int):
+            raise type_error(total_time_min, "minimum total_time_millis", int)
+        if not isinstance(total_time_max, int):
+            raise type_error(total_time_max, "maximum total_time_millis", int)
+        if total_time_min < last_improvement_time_millis.minimum:
             raise ValueError(
-                f"Minimum total_time_millis ({total_time_millis.minimum}) "
+                f"Minimum total_time_millis ({total_time_min}) "
                 "cannot be less than minimum last_improvement_time_millis "
                 f"({last_improvement_time_millis.minimum}).")
-        if total_time_millis.maximum < last_improvement_time_millis.maximum:
+        if total_time_max < last_improvement_time_millis.maximum:
             raise ValueError(
-                f"Maximum total_time_millis ({total_time_millis.maximum}) "
+                f"Maximum total_time_millis ({total_time_max}) "
                 "cannot be less than maximum last_improvement_time_millis "
                 f"({last_improvement_time_millis.maximum}).")
         object.__setattr__(self, "total_time_millis", total_time_millis)
+
+        if not isinstance(fes_per_s, Statistics):
+            raise type_error(fes_per_s, "fes_per_s", Statistics)
+        if fes_per_s.minimum <= 0:
+            raise ValueError("minimum of fes per s must be larger than 0, "
+                             f"but is {fes_per_s.minimum}.")
+        if fes_per_s.minimum > ((1000 * total_fes_min) / total_time_min):
+            raise ValueError(
+                f"minimum of fes per s ({fes_per_s.minimum}) cannot be "
+                f"larger than 1000 * minimum total FEs ({total_fes_min}) "
+                f"divided by the minimum total time ({total_time_min}), i.e.,"
+                f"{(1000 * total_fes_min) / total_time_min}.")
+        if fes_per_s.minimum < ((1000 * total_fes_min) / total_time_max):
+            raise ValueError(
+                f"minimum of fes per s ({fes_per_s.minimum}) cannot be "
+                f"smaller than 1000 * minimum total FEs ({total_fes_min}) "
+                f"divided by the maximum total time ({total_time_max}), i.e.,"
+                f"{(1000 * total_fes_min) / total_time_max}.")
+        if fes_per_s.maximum > ((1000 * total_fes_max) / total_time_min):
+            raise ValueError(
+                f"maximum of fes per s ({fes_per_s.maximum}) cannot be "
+                f"larger than 1000 * maximum total FEs ({total_fes_max}) "
+                f"divided by the minimum total time ({total_time_min}), i.e.,"
+                f"{(1000 * total_fes_max) / total_time_min}.")
+        if fes_per_s.maximum < ((1000 * total_fes_max) / total_time_max):
+            raise ValueError(
+                f"maximum of fes per ms ({fes_per_s.maximum}) cannot be "
+                f"smaller than 1000 * maximum total FEs ({total_fes_max}) "
+                f"divided by the maximum total time ({total_time_max}), i.e.,"
+                f"{(1000 * total_fes_max) / total_time_max}.")
+        object.__setattr__(self, "fes_per_s", fes_per_s)
 
         if goal_f is None:
             if best_f_scaled is not None:
@@ -279,6 +321,14 @@ class EndStatistics(MultiRunData):
                 raise type_error(goal_f, "goal_f", (int, Statistics))
 
             if best_f_scaled is not None:
+                goal_f_min: Final[Union[int, float]] = \
+                    goal_f.minimum if isinstance(goal_f, Statistics) \
+                    else goal_f
+                if goal_f_min <= 0:
+                    raise ValueError(
+                        f"best_f_scaled must be None if minimum goal_f "
+                        f"({goal_f_min}) of goal_f {goal_f} is not positive,"
+                        f" but is {best_f_scaled}.")
                 if not isinstance(best_f_scaled, Statistics):
                     raise type_error(best_f_scaled, "best_f_scaled",
                                      Statistics)
@@ -382,18 +432,17 @@ class EndStatistics(MultiRunData):
         object.__setattr__(self, "ert_time_millis", ert_time_millis)
 
         if isinstance(max_fes, int):
-            if max_fes < total_fes.maximum:
+            if max_fes < total_fes_max:
                 raise ValueError(
-                    f"max_fes must be >= {total_fes.maximum},"
-                    f" but is {max_fes}.")
+                    f"max_fes must be >= {total_fes_max}, but is {max_fes}.")
         elif isinstance(max_fes, Statistics):
-            if max_fes.minimum < total_fes.minimum:
+            if max_fes.minimum < total_fes_min:
                 raise ValueError(
-                    f"max_fes.minimum must be >= {total_fes.minimum},"
+                    f"max_fes.minimum must be >= {total_fes_min},"
                     f" but is {max_fes.minimum}.")
-            if max_fes.maximum < total_fes.maximum:
+            if max_fes.maximum < total_fes_max:
                 raise ValueError(
-                    f"max_fes.maximum must be >= {total_fes.maximum},"
+                    f"max_fes.maximum must be >= {total_fes_max},"
                     f" but is {max_fes.maximum}.")
         elif max_fes is not None:
             raise type_error(max_fes, "max_fes", (int, Statistics, None))
@@ -401,15 +450,15 @@ class EndStatistics(MultiRunData):
 
         if isinstance(max_time_millis, int):
             _check_max_time_millis(max_time_millis,
-                                   total_fes.minimum,
-                                   total_time_millis.maximum)
+                                   total_fes_min,
+                                   total_time_max)
         elif isinstance(max_time_millis, Statistics):
             _check_max_time_millis(max_time_millis.minimum,
-                                   total_fes.minimum,
-                                   total_time_millis.minimum)
+                                   total_fes_min,
+                                   total_time_min)
             _check_max_time_millis(max_time_millis.maximum,
-                                   total_fes.minimum,
-                                   total_time_millis.maximum)
+                                   total_fes_min,
+                                   total_time_max)
         elif max_time_millis is not None:
             raise type_error(max_time_millis, "max_time_millis",
                              (int, Statistics, None))
@@ -433,6 +482,7 @@ class EndStatistics(MultiRunData):
         last_improvement_time_millis: List[int] = []
         total_fes: List[int] = []
         total_time_millis: List[int] = []
+        fes_per_s: Optional[List[Union[int, float]]] = []
         max_fes: Optional[List[int]] = []
         max_fes_same: bool = True
         max_time_millis: Optional[List[int]] = []
@@ -467,6 +517,8 @@ class EndStatistics(MultiRunData):
                 er.last_improvement_time_millis)
             total_fes.append(er.total_fes)
             total_time_millis.append(er.total_time_millis)
+            fes_per_s.append(try_int_div(1000 * er.total_fes,
+                                         er.total_time_millis))
             if er.max_fes is None:
                 max_fes = None
             elif max_fes is not None:
@@ -522,6 +574,7 @@ class EndStatistics(MultiRunData):
             Statistics.create(last_improvement_time_millis),
             Statistics.create(total_fes),
             Statistics.create(total_time_millis),
+            Statistics.create(fes_per_s),
             None if (goal_f is None)
             else (goal_f[0] if goal_f_same else Statistics.create(goal_f)),
             None if (best_f_scaled is None)
@@ -696,6 +749,8 @@ class EndStatistics(MultiRunData):
             h(log.KEY_TOTAL_FES)
             wrt(sep)
             h(log.KEY_TOTAL_TIME_MILLIS)
+            wrt(sep)
+            h(KEY_FES_PER_S)
             if has_goal_f == 1:
                 wrt(sep)
                 wrt(log.KEY_GOAL_F)
@@ -757,6 +812,8 @@ class EndStatistics(MultiRunData):
                 wrt(er.total_fes.to_csv())
                 wrt(sep)
                 wrt(er.total_time_millis.to_csv())
+                wrt(sep)
+                wrt(er.fes_per_s.to_csv())
                 if has_goal_f == 1:
                     wrt(sep)
                     if er.goal_f is not None:
@@ -879,7 +936,8 @@ class EndStatistics(MultiRunData):
 
             for key in [log.KEY_BEST_F, log.KEY_LAST_IMPROVEMENT_FE,
                         log.KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                        log.KEY_TOTAL_FES, log.KEY_TOTAL_TIME_MILLIS]:
+                        log.KEY_TOTAL_FES, log.KEY_TOTAL_TIME_MILLIS,
+                        KEY_FES_PER_S]:
                 if csv(key) != header[idx:(idx + CSV_COLS)]:
                     raise ValueError(
                         f"Expected to find '{key}.*' keys from index "
@@ -1039,23 +1097,27 @@ class EndStatistics(MultiRunData):
                         n = int(row[idx])
                         idx += 1
 
-                        best_f = Statistics.from_csv(
+                        best_f: Statistics = Statistics.from_csv(
                             n, row[idx:(idx + CSV_COLS)])
                         idx += CSV_COLS
 
-                        last_improv_fe = Statistics.from_csv(
+                        last_improv_fe: Statistics = Statistics.from_csv(
                             n, row[idx:(idx + CSV_COLS)])
                         idx += CSV_COLS
 
-                        last_improv_time = Statistics.from_csv(
+                        last_improv_time: Statistics = Statistics.from_csv(
                             n, row[idx:(idx + CSV_COLS)])
                         idx += CSV_COLS
 
-                        total_fes = Statistics.from_csv(
+                        total_fes: Statistics = Statistics.from_csv(
                             n, row[idx:(idx + CSV_COLS)])
                         idx += CSV_COLS
 
-                        total_time = Statistics.from_csv(
+                        total_time: Statistics = Statistics.from_csv(
+                            n, row[idx:(idx + CSV_COLS)])
+                        idx += CSV_COLS
+
+                        fes_per_s: Statistics = Statistics.from_csv(
                             n, row[idx:(idx + CSV_COLS)])
                         idx += CSV_COLS
 
@@ -1120,9 +1182,9 @@ class EndStatistics(MultiRunData):
                     consumer(EndStatistics(
                         algo, inst, n, best_f,
                         last_improv_fe, last_improv_time, total_fes,
-                        total_time, goal_f, best_f_scaled, n_success,
-                        success_fes, success_time, ert_fes, ert_time,
-                        max_fes, max_time))
+                        total_time, fes_per_s, goal_f, best_f_scaled,
+                        n_success, success_fes, success_time, ert_fes,
+                        ert_time, max_fes, max_time))
 
         logger("Finished reading end result statistics from CSV "
                f"file '{path}'.")

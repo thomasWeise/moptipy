@@ -271,19 +271,6 @@ def sanitize_names(names: Iterable[str]) -> str:
         sanitize_name(name) for name in names if len(name) > 0])
 
 
-def __make_int_formatter() -> Callable[[int], str]:
-    """
-    Construct the integer formatter.
-
-    :returns: the integer formatter
-    """
-    from moptipy.utils.lang import Lang  # pylint: disable=C0415,R0401
-
-    def __if(i: int, lc=Lang.current) -> str:
-        return lc().format_int(i)
-    return __if
-
-
 #: the internal integer to float conversion threshold
 __INT_TO_FLOAT_THRESHOLD: Final[float] = 1E10
 
@@ -323,13 +310,13 @@ def default_float_format(min_finite: Union[int, float] = 0,
     return "{:.2e}"
 
 
-def numbers_to_strings(source: Iterable[Union[int, float, None]],
+def numbers_to_strings(source: Union[int, float, None,
+                                     Iterable[Union[int, float, None]]],
                        none_str: Optional[str] = None,
                        nan_str: Optional[str] = r"$\emptyset$",
                        positive_infty_str: Optional[str] = r"$\infty$",
                        negative_infty_str: Optional[str] = r"$-\infty$",
-                       int_renderer: Callable[[int], str] =
-                       __make_int_formatter(),
+                       int_renderer: Optional[Callable[[int], str]] = None,
                        float_format_getter: Callable[
                            [Union[int, float], Union[int, float], int], str]
                        = default_float_format,
@@ -371,6 +358,8 @@ def numbers_to_strings(source: Iterable[Union[int, float, None]],
     ["22'139'283", '$\\infty$', '$-\\infty$', '$\\emptyset$', None]
     """
     # perform type checks
+    if (source is None) or isinstance(source, (int, float)):
+        source = [source]
     if not isinstance(source, Iterable):
         raise type_error(source, "source", Iterable)
     if (none_str is not None) and (not isinstance(none_str, str)):
@@ -385,6 +374,9 @@ def numbers_to_strings(source: Iterable[Union[int, float, None]],
             and (not isinstance(negative_infty_str, str)):
         raise type_error(negative_infty_str, "negative_infty_str",
                          (str, None))
+    if int_renderer is None:
+        from moptipy.utils.lang import Lang  # pylint: disable=C0415,R0401
+        int_renderer = Lang.current().format_int
     if not callable(int_renderer):
         raise type_error(int_renderer, "int_renderer", call=True)
     if not callable(float_format_getter):
