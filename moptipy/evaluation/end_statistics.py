@@ -6,9 +6,9 @@ from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 import moptipy.api.logging as log
 import moptipy.utils.types
 from moptipy.evaluation._utils import _check_max_time_millis
-from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
-from moptipy.evaluation.base import MultiRunData, KEY_N
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED,\
+    MultiRunData, KEY_N
+from moptipy.evaluation.end_results import EndResult, KEY_FES_PER_S
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, \
     CSV_COLS, KEY_STDDEV
 from moptipy.utils.console import logger
@@ -20,8 +20,6 @@ from moptipy.utils.types import type_error, type_name_of
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
-#: the number of FEs per second
-KEY_FES_PER_S: Final[str] = "fesPerTimeSec"
 #: The key for the number of successful runs.
 KEY_N_SUCCESS: Final[str] = "successN"
 #: The key for the success FEs.

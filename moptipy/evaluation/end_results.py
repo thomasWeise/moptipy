@@ -17,7 +17,7 @@ from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.logger import parse_key_values
-from moptipy.utils.math import try_int, try_float_div
+from moptipy.utils.math import try_int, try_float_div, try_int_div
 from moptipy.utils.path import Path
 from moptipy.utils.strings import intfloatnone_to_str, intnone_to_str, \
     str_to_intfloat, str_to_intfloatnone, str_to_intnone, num_to_str
@@ -36,6 +36,9 @@ _HEADER = f"{logging.KEY_ALGORITHM}{CSV_SEPARATOR}" \
           f"{KEY_GOAL_F}{CSV_SEPARATOR}" \
           f"{KEY_MAX_FES}{CSV_SEPARATOR}" \
           f"{KEY_MAX_TIME_MILLIS}\n"
+
+#: the number of FEs per second
+KEY_FES_PER_S: Final[str] = "fesPerTimeSec"
 
 
 def __get_goal_f(e: 'EndResult') -> Union[int, float]:
@@ -115,7 +118,9 @@ _GETTERS: Final[Dict[str, Callable[['EndResult'], Union[int, float]]]] = {
     F_NAME_SCALED: lambda e: try_float_div(e.best_f, __get_goal_f_for_div(e)),
     F_NAME_NORMALIZED: __get_f_norm,
     KEY_MAX_FES: __get_max_fes,
-    KEY_MAX_TIME_MILLIS: __get_max_time_millis
+    KEY_MAX_TIME_MILLIS: __get_max_time_millis,
+    KEY_FES_PER_S: lambda e: try_int_div(1000 * e.total_fes,
+                                         e.total_time_millis)
 }
 _GETTERS[KEY_BEST_F] = _GETTERS[F_NAME_RAW]
 
