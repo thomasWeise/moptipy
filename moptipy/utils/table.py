@@ -2,10 +2,50 @@
 
 from contextlib import AbstractContextManager
 from io import TextIOBase
-from typing import Final, Optional
+from typing import Final, Optional, Iterable, Union, Callable, List
 
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
+
+
+class FormattedStr(str):
+    """
+    A subclass of `str` capable of holding formatting information.
+
+    This is a very clunky method to pass either normal strings (instances
+    of `str`) or formatted strings (instances of :class:`FormattedStr`) to
+    the method :meth:`Row.cell` for rendering. The idea is that you can
+    construct a list of strings in memory and attach formatting to them
+    as needed and then render all of them via the same outlet.
+    """
+
+    #: should this string be formatted in bold face?
+    bold: bool
+    #: should this string be formatted in italic face?
+    italic: bool
+    #: should this string be formatted in code face?
+    code: bool
+
+    def __new__(cls, value, bold: bool = False, italic: bool = False,
+                code: bool = False):
+        """
+        Construct the object.
+
+        :param value: the string value
+        """
+        if not isinstance(bold, bool):
+            raise type_error(bold, "bold", bool)
+        if not isinstance(italic, bool):
+            raise type_error(italic, "italic", bool)
+        if not isinstance(code, bool):
+            raise type_error(code, "code", bool)
+        if bold or italic or code:
+            ret = super(FormattedStr, cls).__new__(cls, value)
+            ret.bold = bold
+            ret.italic = italic
+            ret.code = code
+            return ret
+        return value
 
 
 class TableDriver:
@@ -122,14 +162,12 @@ class TableDriver:
             header row
         """
 
-    def cell(self, stream: TextIOBase, text: str, cols: str,
-             section_index: int, row_index: int, col_index: int,
-             bold: bool, italic: bool, code: bool) -> None:
+    def begin_cell(self, stream: TextIOBase, cols: str, section_index: int,
+                   row_index: int, col_index: int) -> None:
         """
-        Write the text of a header cell, section header cell, or normal cell.
+        Begin a header cell, section header cell, or normal cell.
 
         :param stream: the stream to write to
-        :param text: the text to write
         :param cols: the column definitions
         :param section_index: the index of the current section, `-1` if this
             is a table header cell
@@ -137,9 +175,44 @@ class TableDriver:
             actual row, `-1` for a section header row, `-2` for a table
             header row
         :param col_index: the column index, `0` for the first column
-        :param bold: should the text be in bold face?
-        :param italic: should the text be in italic face?
-        :param code: should the text be in code face?
+        """
+
+    def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
+             code: bool) -> None:
+        """
+        Write the chunk of text of cell.
+
+        :param stream: the stream to write to
+        :param text: the text to write
+        :param bold: is the text in bold face?
+        :param italic: is the text in italic face?
+        :param code: is the text in code face?
+        """
+
+    def end_cell(self, stream: TextIOBase, cols: str, section_index: int,
+                 row_index: int, col_index: int) -> None:
+        """
+        End a header cell, section header cell, or normal cell.
+
+        :param stream: the stream to write to
+        :param cols: the column definitions
+        :param section_index: the index of the current section, `-1` if this
+            is a table header cell
+        :param row_index: the row index in the section: `0` for the first
+            actual row, `-1` for a section header row, `-2` for a table
+            header row
+        :param col_index: the column index, `0` for the first column
+        """
+
+    def exponent_renderer(self, e: str) -> str:
+        """
+        Render a numerical exponent.
+
+        This function is for use in conjunction with
+            :func:`moptipy.utils.strings.numbers_to_strings`.
+
+        :param e: the exponent
+        :returns: a rendered string
         """
 
     def filename(self,
@@ -182,9 +255,9 @@ class Markdown(TableDriver):
     md
     >>> with Table(s, "lrc", md) as t:
     ...     with t.header() as h:
-    ...         h.cell("1", bold=True)
-    ...         h.cell("2", code=True)
-    ...         h.cell("3", italic=True)
+    ...         h.cell(FormattedStr("1", bold=True))
+    ...         h.cell(FormattedStr("2", code=True))
+    ...         h.cell(FormattedStr("3", italic=True))
     ...     with t.section() as g:
     ...         with g.row() as r:
     ...             r.cell("a")
@@ -220,11 +293,14 @@ class Markdown(TableDriver):
         """End a row in a Markdown table."""
         stream.write("|\n")
 
-    def cell(self, stream: TextIOBase, text: str, cols: str,
-             section_index: int, row_index: int, col_index: int,
-             bold: bool, italic: bool, code: bool) -> None:
-        """Write a Markdown table cell."""
+    def begin_cell(self, stream: TextIOBase, cols: str, section_index: int,
+                   row_index: int, col_index: int) -> None:
+        """Begin a Markdown table cell."""
         stream.write("|")
+
+    def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
+             code: bool) -> None:
+        """Print a table cell text string."""
         if len(text) <= 0:
             return
         if bold:
@@ -249,6 +325,16 @@ class Markdown(TableDriver):
         :retval 'md': always
         """
         return "md"
+
+    def exponent_renderer(self, e: str) -> str:
+        """
+        Render the numerical exponent in markdown.
+
+        :param e: the exponent
+        :returns: the rendered exponent
+        :retval: `*10^{e}^`
+        """
+        return f"*10^{e}^"
 
 
 class Table(AbstractContextManager):
@@ -531,15 +617,11 @@ class Table(AbstractContextManager):
             self.__driver.end_section_header(self.__stream, self.__cols,
                                              sec_index)
 
-    def _cell(self, text: Optional[str] = None, bold: bool = False,
-              italic: bool = False, code: bool = False):
+    def _cell(self, text: Optional[Union[str, Iterable[str]]]):
         """
         Render a cell.
 
         :param text: the text to write
-        :param bold: should the text be in bold face?
-        :param italic: should the text be in italic face?
-        :param code: should the text be in code face?
         """
         if self.__stream is None:
             raise ValueError("table already closed, cannot start row.")
@@ -572,8 +654,27 @@ class Table(AbstractContextManager):
         else:
             row_index = self.__row_index
         self.__col_index = col_index + 1
-        self.__driver.cell(self.__stream, text, self.__cols, section_index,
-                           row_index, col_index, bold, italic, code)
+
+        self.__driver.begin_cell(self.__stream, self.__cols, section_index,
+                                 row_index, col_index)
+
+        def __printit(st, strm: TextIOBase = self.__stream,
+                      wrt: Callable[[TextIOBase, str, bool,
+                                     bool, bool], None] = self.__driver.text) \
+                -> None:
+            if isinstance(st, str):
+                if isinstance(st, FormattedStr):
+                    wrt(strm, st, st.bold, st.italic, st.code)
+                else:
+                    wrt(strm, st, False, False, False)
+            elif isinstance(st, Iterable):
+                for ss in st:
+                    __printit(ss)
+            else:
+                raise type_error(st, "text", (Iterable, str))
+        __printit(text)
+        self.__driver.end_cell(self.__stream, self.__cols, section_index,
+                               row_index, col_index)
 
     def header(self) -> 'Row':
         """
@@ -583,6 +684,14 @@ class Table(AbstractContextManager):
         """
         return Row(self, -2)
 
+    def header_row(self, cells: Iterable[str]) -> None:
+        """Print the header row with a single call."""
+        if not isinstance(cells, Iterable):
+            raise type_error(cells, "cells", Iterable)
+        with self.header() as row:
+            for cell in cells:
+                row.cell(cell)
+
     def section(self) -> 'Section':
         """
         Create a new section of rows.
@@ -590,6 +699,38 @@ class Table(AbstractContextManager):
         :returns: a new managed row section
         """
         return Section(self)
+
+    def section_cols(self, cols: List[List[Optional[str]]],
+                     header_row: Optional[Iterable[Optional[str]]] = None):
+        """
+        Print a section columns-by-column.
+
+        :param cols: an array which contains one list per column of the table.
+        :param header_row: an optional header row
+        """
+        if not isinstance(cols, list):
+            raise type_error(cols, "cols", list)
+        if len(cols) != len(self.__cols):
+            raise ValueError(
+                f"expected {len(self.__cols)} columns ({self.__cols}), "
+                f"but cols has length {len(cols)}.")
+        max_rows = max(len(col) for col in cols)
+        if max_rows <= 0:
+            raise ValueError("There are no rows in the cols array?")
+
+        with self.section() as sec:
+            if header_row is not None:
+                if not isinstance(header_row, Iterable):
+                    raise type_error(header_row, "section header_row",
+                                     Iterable)
+                with sec.header() as head:
+                    for cell in header_row:
+                        head.cell(cell)
+
+            for rowi in range(max_rows):
+                with sec.row() as row:
+                    for col in cols:
+                        row.cell(None if rowi >= len(col) else col[rowi])
 
     def __enter__(self):
         """
@@ -699,18 +840,19 @@ class Row(AbstractContextManager):
         #: the header mode
         self.__header_mode: Final[int] = header_mode
 
-    def cell(self, text: Optional[str] = None, bold: bool = False,
-             italic: bool = False, code: bool = False) -> None:
+    def cell(self, text: Optional[Union[str, Iterable[str]]] = None) -> None:
         """
-        Render a cell.
+        Render the text of a cell.
+
+        As parameter `text`, you can provide either a string or a sequence of
+        strings. You can also provide an instance of :class:`FormattedStr` or
+        a sequence thereof. This allows you to render formatted text in a
+        natural fashion.
 
         :param text: the text to write
-        :param bold: should the text be in bold face?
-        :param italic: should the text be in italic face?
-        :param code: should the text be in code face?
         """
         # noinspection PyProtectedMember
-        self.__owner._cell(text, bold, italic, code)
+        self.__owner._cell(text)
 
     def __enter__(self):
         """
