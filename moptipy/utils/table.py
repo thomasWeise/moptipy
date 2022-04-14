@@ -4,337 +4,8 @@ from contextlib import AbstractContextManager
 from io import TextIOBase
 from typing import Final, Optional, Iterable, Union, Callable, List
 
-from moptipy.utils.path import Path
+from moptipy.utils.text_format import TextFormatDriver, FormattedStr
 from moptipy.utils.types import type_error
-
-
-class FormattedStr(str):
-    """
-    A subclass of `str` capable of holding formatting information.
-
-    This is a very clunky method to pass either normal strings (instances
-    of `str`) or formatted strings (instances of :class:`FormattedStr`) to
-    the method :meth:`Row.cell` for rendering. The idea is that you can
-    construct a list of strings in memory and attach formatting to them
-    as needed and then render all of them via the same outlet.
-    """
-
-    #: should this string be formatted in bold face?
-    bold: bool
-    #: should this string be formatted in italic face?
-    italic: bool
-    #: should this string be formatted in code face?
-    code: bool
-
-    def __new__(cls, value, bold: bool = False, italic: bool = False,
-                code: bool = False):
-        """
-        Construct the object.
-
-        :param value: the string value
-        """
-        if not isinstance(bold, bool):
-            raise type_error(bold, "bold", bool)
-        if not isinstance(italic, bool):
-            raise type_error(italic, "italic", bool)
-        if not isinstance(code, bool):
-            raise type_error(code, "code", bool)
-        if bold or italic or code:
-            ret = super(FormattedStr, cls).__new__(cls, value)
-            ret.bold = bold
-            ret.italic = italic
-            ret.code = code
-            return ret
-        return value
-
-
-class TableDriver:
-    """
-    A base class for table drivers.
-
-    Table drivers allow us to render the structured text written to an
-    instance of :class:`~moptipy.utils.table.Table` to a stream in a
-    table format.
-    """
-
-    def begin_table(self, stream: TextIOBase, cols: str) -> None:
-        """
-        Write the beginning of the table.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        """
-
-    def end_table(self, stream: TextIOBase, cols: str) -> None:
-        """
-        Write the ending of the table.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        """
-
-    def begin_header(self, stream: TextIOBase, cols: str) -> None:
-        """
-        Begin the header row of the table.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        """
-
-    def end_header(self, stream: TextIOBase, cols: str) -> None:
-        """
-        End the header row of the table.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        """
-
-    def begin_section(self, stream: TextIOBase, cols: str,
-                      section_index: int) -> None:
-        """
-        Begin a new section of the table.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param section_index: the index of the section, `0` for the first
-            section
-        """
-
-    def end_section(self, stream: TextIOBase, cols: str,
-                    section_index: int, had_header: bool, n_rows: int) -> None:
-        """
-        End a section of the table.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param section_index: the index of the section, `0` for the first
-            section
-        :param had_header: did the section have a header?
-        :param n_rows: the number of rows that were written in the section
-        """
-
-    def begin_section_header(self, stream: TextIOBase, cols: str,
-                             section_index: int) -> None:
-        """
-        Begin the header row of a section.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param section_index: the index of the section, `0` for the first
-            section
-        """
-
-    def end_section_header(self, stream: TextIOBase, cols: str,
-                           section_index: int) -> None:
-        """
-        End the header row of a section.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param section_index: the index of the section, `0` for the first
-            section
-        """
-
-    def begin_row(self, stream: TextIOBase, cols: str,
-                  section_index: int, row_index: int) -> None:
-        """
-        Begin a table header row, section row, or normal row in a section.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param section_index: the index of the current section, `-1` if we
-            are in the table header
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
-        """
-
-    def end_row(self, stream: TextIOBase, cols: str,
-                section_index: int, row_index: int) -> None:
-        """
-        End a table header row, section row, or normal row in a section.
-
-        :param stream: the stream to write to
-        :param cols: the column definition
-        :param section_index: the index of the current section
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
-        """
-
-    def begin_cell(self, stream: TextIOBase, cols: str, section_index: int,
-                   row_index: int, col_index: int) -> None:
-        """
-        Begin a header cell, section header cell, or normal cell.
-
-        :param stream: the stream to write to
-        :param cols: the column definitions
-        :param section_index: the index of the current section, `-1` if this
-            is a table header cell
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
-        :param col_index: the column index, `0` for the first column
-        """
-
-    def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool) -> None:
-        """
-        Write the chunk of text of cell.
-
-        :param stream: the stream to write to
-        :param text: the text to write
-        :param bold: is the text in bold face?
-        :param italic: is the text in italic face?
-        :param code: is the text in code face?
-        """
-
-    def end_cell(self, stream: TextIOBase, cols: str, section_index: int,
-                 row_index: int, col_index: int) -> None:
-        """
-        End a header cell, section header cell, or normal cell.
-
-        :param stream: the stream to write to
-        :param cols: the column definitions
-        :param section_index: the index of the current section, `-1` if this
-            is a table header cell
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
-        :param col_index: the column index, `0` for the first column
-        """
-
-    def exponent_renderer(self, e: str) -> str:
-        """
-        Render a numerical exponent.
-
-        This function is for use in conjunction with
-            :func:`moptipy.utils.strings.numbers_to_strings`.
-
-        :param e: the exponent
-        :returns: a rendered string
-        """
-
-    def filename(self,
-                 file_name: str = "table",
-                 dir_name: str = ".") -> Path:
-        """
-        Get the right filename for this table driver.
-
-        :param file_name: the base file name
-        :param dir_name: the base directory
-        :returns: the path to the file to generate
-        """
-        if not isinstance(dir_name, str):
-            raise type_error(dir_name, "dir_name", str)
-        if len(dir_name) <= 0:
-            raise ValueError(f"invalid dir_name: '{dir_name}'.")
-        if not isinstance(file_name, str):
-            raise type_error(file_name, "file_name", str)
-        if len(file_name) <= 0:
-            raise ValueError(f"invalid file_name: '{file_name}'.")
-        out_dir = Path.directory(dir_name)
-        suffix = self.__str__()
-        if not isinstance(suffix, str):
-            raise type_error(suffix, "result of str(table driver)", str)
-        if len(suffix) <= 0:
-            raise ValueError(f"invalid driver suffix: '{suffix}'")
-        file: Final[Path] = out_dir.resolve_inside(f"{file_name}.{suffix}")
-        file.ensure_file_exists()
-        return file
-
-
-class Markdown(TableDriver):
-    r"""
-    The markdown table driver.
-
-    >>> from io import StringIO
-    >>> s = StringIO()
-    >>> md = Markdown()
-    >>> print(str(md))
-    md
-    >>> with Table(s, "lrc", md) as t:
-    ...     with t.header() as h:
-    ...         h.cell(FormattedStr("1", bold=True))
-    ...         h.cell(FormattedStr("2", code=True))
-    ...         h.cell(FormattedStr("3", italic=True))
-    ...     with t.section() as g:
-    ...         with g.row() as r:
-    ...             r.cell("a")
-    ...             r.cell("b")
-    ...             r.cell("c")
-    ...         with g.row() as r:
-    ...             r.cell("d")
-    ...             r.cell("e")
-    ...             r.cell("f")
-    ...     print(f"'{s.getvalue()}'")
-    '|**1**|`2`|*3*|
-    |:--|--:|:-:|
-    |a|b|c|
-    |d|e|f|
-    '
-    """
-
-    def end_header(self, stream: TextIOBase, cols: str) -> None:
-        """End the header of a markdown table."""
-        for c in cols:
-            if c == "l":
-                stream.write("|:--")
-            elif c == "c":
-                stream.write("|:-:")
-            elif c == "r":
-                stream.write("|--:")
-            else:
-                raise ValueError(f"Invalid col '{c}' in '{cols}'.")
-        stream.write("|\n")
-
-    def end_row(self, stream: TextIOBase, cols: str,
-                section_index: int, row_index: int) -> None:
-        """End a row in a Markdown table."""
-        stream.write("|\n")
-
-    def begin_cell(self, stream: TextIOBase, cols: str, section_index: int,
-                   row_index: int, col_index: int) -> None:
-        """Begin a Markdown table cell."""
-        stream.write("|")
-
-    def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool) -> None:
-        """Print a table cell text string."""
-        if len(text) <= 0:
-            return
-        if bold:
-            stream.write("**")
-        if italic:
-            stream.write("*")
-        if code:
-            stream.write("`")
-        stream.write(text)
-        if code:
-            stream.write("`")
-        if italic:
-            stream.write("*")
-        if bold:
-            stream.write("**")
-
-    def __str__(self):
-        """
-        Get the file suffix.
-
-        :returns: the file suffix
-        :retval 'md': always
-        """
-        return "md"
-
-    def exponent_renderer(self, e: str) -> str:
-        """
-        Render the numerical exponent in markdown.
-
-        :param e: the exponent
-        :returns: the rendered exponent
-        :retval: `*10^{e}^`
-        """
-        return f"*10^{e}^"
 
 
 class Table(AbstractContextManager):
@@ -356,7 +27,7 @@ class Table(AbstractContextManager):
     """
 
     def __init__(self, stream: TextIOBase, cols: str,
-                 driver: TableDriver):
+                 driver: TextFormatDriver):
         """
         Initialize the table context.
 
@@ -369,8 +40,8 @@ class Table(AbstractContextManager):
             raise type_error(stream, "stream", TextIOBase)
         if not isinstance(cols, str):
             raise type_error(cols, "cols", str)
-        if not isinstance(driver, TableDriver):
-            raise type_error(driver, "driver", TableDriver)
+        if not isinstance(driver, TextFormatDriver):
+            raise type_error(driver, "driver", TextFormatDriver)
 
         cols = cols.strip()
         if len(cols) <= 0:
@@ -386,7 +57,7 @@ class Table(AbstractContextManager):
         #: the internal column definition
         self.__cols: Final[str] = cols
         #: the internal table driver
-        self.__driver: Final[TableDriver] = driver
+        self.__driver: Final[TextFormatDriver] = driver
         #: the header state: 0=no header, 1=in header, 2=after header
         self.__header_state: int = 0
         #: the section index
@@ -420,8 +91,8 @@ class Table(AbstractContextManager):
                 "cannot start section inside section after header.")
         if self.__row_state == 1:
             raise ValueError("cannot start section inside row.")
-        self.__driver.begin_section(self.__stream, self.__cols,
-                                    self.__section_index)
+        self.__driver.begin_table_section(self.__stream, self.__cols,
+                                          self.__section_index)
         self.__row_index = 0
         self.__section_state = 1
         self.__row_state = 0
@@ -447,10 +118,10 @@ class Table(AbstractContextManager):
             raise ValueError("cannot end a section before a row.")
         if self.__row_state <= 1:
             raise ValueError("cannot end section inside of row.")
-        self.__driver.end_section(self.__stream, self.__cols,
-                                  self.__section_index,
-                                  self.__section_header_state == 2,
-                                  self.__row_index)
+        self.__driver.end_table_section(self.__stream, self.__cols,
+                                        self.__section_index,
+                                        self.__section_header_state == 2,
+                                        self.__row_index)
         self.__row_index = 0
         self.__section_state = 2
         self.__section_header_state = 0
@@ -493,7 +164,7 @@ class Table(AbstractContextManager):
             if self.__row_state >= 2:
                 raise ValueError("cannot start table header after row.")
             self.__header_state = 1
-            self.__driver.begin_header(self.__stream, self.__cols)
+            self.__driver.begin_table_header(self.__stream, self.__cols)
             row_index = -2
             sec_index = -1
 
@@ -514,8 +185,8 @@ class Table(AbstractContextManager):
                 raise ValueError("cannot start section header after row.")
             self.__section_header_state = 1
             sec_index = self.__section_index
-            self.__driver.begin_section_header(self.__stream, self.__cols,
-                                               sec_index)
+            self.__driver.begin_table_section_header(
+                self.__stream, self.__cols, sec_index)
             row_index = -1
 
         elif header_mode == 0:
@@ -530,8 +201,8 @@ class Table(AbstractContextManager):
 
         self.__col_index = 0
         self.__row_state = 1
-        self.__driver.begin_row(self.__stream, self.__cols,
-                                sec_index, row_index)
+        self.__driver.begin_table_row(
+            self.__stream, self.__cols, sec_index, row_index)
 
     def _end_row(self, header_mode: int):
         """
@@ -609,13 +280,13 @@ class Table(AbstractContextManager):
 
         self.__col_index = 0
         self.__row_state = 2
-        self.__driver.end_row(self.__stream, self.__cols,
-                              sec_index, row_index)
+        self.__driver.end_table_row(self.__stream, self.__cols,
+                                    sec_index, row_index)
         if header_mode == -2:
-            self.__driver.end_header(self.__stream, self.__cols)
+            self.__driver.end_table_header(self.__stream, self.__cols)
         elif header_mode == -1:
-            self.__driver.end_section_header(self.__stream, self.__cols,
-                                             sec_index)
+            self.__driver.end_table_section_header(
+                self.__stream, self.__cols, sec_index)
 
     def _cell(self, text: Optional[Union[str, Iterable[str]]]):
         """
@@ -655,8 +326,8 @@ class Table(AbstractContextManager):
             row_index = self.__row_index
         self.__col_index = col_index + 1
 
-        self.__driver.begin_cell(self.__stream, self.__cols, section_index,
-                                 row_index, col_index)
+        self.__driver.begin_table_cell(self.__stream, self.__cols,
+                                       section_index, row_index, col_index)
 
         def __printit(st, strm: TextIOBase = self.__stream,
                       wrt: Callable[[TextIOBase, str, bool,
@@ -673,8 +344,8 @@ class Table(AbstractContextManager):
             else:
                 raise type_error(st, "text", (Iterable, str))
         __printit(text)
-        self.__driver.end_cell(self.__stream, self.__cols, section_index,
-                               row_index, col_index)
+        self.__driver.end_table_cell(
+            self.__stream, self.__cols, section_index, row_index, col_index)
 
     def header(self) -> 'Row':
         """
@@ -740,7 +411,7 @@ class Table(AbstractContextManager):
         """
         if self.__stream is None:
             raise ValueError("Table writing already finished!")
-        self.__driver.begin_table(self.__stream, self.__cols)
+        self.__driver.begin_table_body(self.__stream, self.__cols)
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
@@ -752,7 +423,7 @@ class Table(AbstractContextManager):
         :param traceback: ignored
         """
         if not (self.__stream is None):
-            self.__driver.end_table(self.__stream, self.__cols)
+            self.__driver.end_table_body(self.__stream, self.__cols)
             self.__stream.close()
             self.__stream = None
         if self.__section_state <= 0:
@@ -845,9 +516,9 @@ class Row(AbstractContextManager):
         Render the text of a cell.
 
         As parameter `text`, you can provide either a string or a sequence of
-        strings. You can also provide an instance of :class:`FormattedStr` or
-        a sequence thereof. This allows you to render formatted text in a
-        natural fashion.
+        strings. You can also provide an instance of
+        :class:`moptipy.utils.text_format.FormattedStr` or a sequence thereof.
+        This allows you to render formatted text in a natural fashion.
 
         :param text: the text to write
         """
