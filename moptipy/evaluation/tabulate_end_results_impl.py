@@ -1,8 +1,9 @@
-"""A method to tabularize end results."""
+"""A method to tabulate end results."""
 
+from math import inf, isfinite, nan, isnan
 from typing import Callable, Final, Iterable, Optional, List, Union, cast, \
     Dict, Any
-from math import inf, isfinite, nan, isnan
+
 from moptipy.api.logging import KEY_ALGORITHM, KEY_INSTANCE, KEY_GOAL_F
 from moptipy.api.logging import KEY_BEST_F, KEY_TOTAL_FES, \
     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_TIME_MILLIS, \
@@ -14,15 +15,15 @@ from moptipy.evaluation.statistics import KEY_MINIMUM, KEY_MEAN_ARITH, \
     KEY_STDDEV, KEY_MEAN_GEOM, KEY_MEDIAN, KEY_MAXIMUM
 from moptipy.utils.lang import Lang
 from moptipy.utils.logger import SCOPE_SEPARATOR
-from moptipy.utils.path import Path
-from moptipy.utils.table import Table
 from moptipy.utils.markdown import Markdown
-from moptipy.utils.types import type_error
-from moptipy.utils.text_format import TextFormatDriver, FormattedStr
+from moptipy.utils.path import Path
 from moptipy.utils.strings import numbers_to_strings
+from moptipy.utils.table import Table
+from moptipy.utils.text_format import TextFormatDriver, FormattedStr
+from moptipy.utils.types import type_error
 
 
-def __column_namer(col: str) -> str:
+def default_column_namer(col: str) -> str:
     """
     Get the default name for columns.
 
@@ -143,8 +144,8 @@ def __nan(data: Iterable[Union[int, float, None]]) -> float:
     return nan
 
 
-def __column_best(col: str) -> Callable[[Iterable[Union[int, float, None]]],
-                                        Union[int, float]]:
+def default_column_best(col: str) ->\
+        Callable[[Iterable[Union[int, float, None]]], Union[int, float]]:
     """
     Get a function to compute the best value in a column.
 
@@ -216,8 +217,9 @@ def tabulate_end_results(
             f"{KEY_MEAN_ARITH}",),
         algorithm_summary_statistics: Optional[Iterable[Optional[str]]] = (
             f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
-            None, None,
             f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
+            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MAXIMUM}",
+            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_STDDEV}",
             f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
             f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
             f"{KEY_MEAN_GEOM}"
@@ -227,16 +229,57 @@ def tabulate_end_results(
         = Markdown.instance,
         algorithm_sorter: Callable[[str], Any] = lambda a: a,
         instance_sorter: Callable[[str], Any] = lambda i: i,
-        col_namer: Callable[[str], str] = __column_namer,
+        col_namer: Callable[[str], str] = default_column_namer,
         col_best: Callable[[str], Callable[[Iterable[Union[
-            int, float, None]]], Union[int, float]]] = __column_best,
+            int, float, None]]], Union[int, float]]] = default_column_best,
         put_lower_bound: bool = True,
         lower_bound_getter: Optional[Callable[[EndStatistics],
                                               Union[int, float, None]]] =
         __getter(KEY_GOAL_F),
         lower_bound_name: Optional[str] = "lower_bound") -> Path:
-    """
-    Tabulate the end results.
+    r"""
+    Tabulate the statistics about the end results of an experiment.
+
+    A two-part table is produced. In the first part, it presents summary
+    statistics about each instance-algorithm combination, sorted by instance.
+    In the second part, it presents summary statistics of the algorithms over
+    all instances. The following default columns are provided:
+
+    1. Part 1: Algorithm-Instance statistics
+        - `$\instance$`: the instance name
+        - `$\lowerBound{\objf}$`: the lower bound of the objective value of
+          the instance
+        - `setup`: the name of the algorithm or algorithm setup
+        - `best`: the best objective value reached by any run on that instance
+        - `mean`: the arithmetic mean of the best objective values reached
+          over all runs
+        - `sd`: the standard deviation of the best objective values reached
+          over all runs
+        - `mean1`: the arithmetic mean of the best objective values reached
+          over all runs, divided by the lower bound (or goal objective value)
+        - `mean(FE/ms)`: the arithmetic mean of objective function evaluations
+           performed per millisecond, over all runs
+        - `mean(t)`: the arithmetic mean of the time in milliseconds when the
+          last improving move of a run was applied, over all runs
+
+    2. Part 2: Algorithm Summary Statistics
+        - `setup`: the name of the algorithm or algorithm setup
+        - `best1`: the minimum of the best objective values reached divided by
+          the lower bound (or goal objective value) over all runs
+        - `gmean1`: the geometric mean of the best objective values reached
+           divided by the lower bound (or goal objective value) over all runs
+        - `worst1`: the maximum of the best objective values reached divided
+          by the lower bound (or goal objective value) over all runs
+        - `sd1`: the standard deviation of the best objective values reached
+           divided by the lower bound (or goal objective value) over all runs
+        - `gmean(FE/ms)`: the geometric mean of objective function evaluations
+          performed per millisecond, over all runs
+        - `gmean(t)`: the geometric mean of the time in milliseconds when the
+          last improving move of a run was applied, over all runs
+
+    You can freely configure which columns you want for each part and whether
+    you want to have the second part included. Also, for each group of values,
+    the best one is marked in bold face.
 
     :param end_results: the end results data
     :param file_name: the base file name
@@ -393,10 +436,12 @@ def tabulate_end_results(
         [__fix_name(s) for s in algorithm_instance_statistics]
     if len(algo_inst_cols) <= 0:
         raise ValueError("no algorithm_instance columns?")
-    algo_cols: Final[Optional[List[Optional[str]]]] = \
+    algo_cols: Optional[List[Optional[str]]] = \
         None if algo_dict is None else \
         [(None if s is None else __fix_name(s))
          for s in cast(Iterable, algorithm_summary_statistics)]
+    if algo_cols == algo_inst_cols:
+        algo_cols = None  # no need to repeat header if it is the same
 
     # set up the column definitions
     algo_inst_cols.insert(0, __fix_name(KEY_ALGORITHM))
@@ -408,7 +453,7 @@ def tabulate_end_results(
         algo_cols.insert(0, __fix_name(KEY_ALGORITHM))
         if put_lower_bound:
             algo_cols.insert(0, None)
-        algo_cols.insert(0, __fix_name("summary"))
+        algo_cols.insert(0, None)
 
     col_def: Final[str] = ("lrl" if put_lower_bound else "ll") \
         + ("r" * n_algo_inst_getters)
@@ -443,7 +488,10 @@ def tabulate_end_results(
     for col_idx, stat in enumerate(algorithm_instance_statistics):
         col_n = algo_inst_data[col_idx]
         col_s = algo_inst_strs[col_idx]
-        best_getter = __column_best(stat)
+        best_getter = col_best(stat)
+        if not callable(best_getter):
+            raise type_error(best_getter, f"result of col_best for {stat}",
+                             call=True)
         for chunk_idx, chunk_n in enumerate(col_n):
             chunk_s = col_s[chunk_idx]
             best = best_getter(chunk_n)
@@ -456,12 +504,48 @@ def tabulate_end_results(
     del algorithm_instance_statistics
 
     # now we pre-pend the instance and algorithm information
-    algo_inst_strs.insert(0, [algos] * n_insts)  # the algorithms
+    algo_inst_strs.insert(0, [[FormattedStr.add_format(algo, code=True)
+                               for algo in algos]] * n_insts)
     if put_lower_bound:
         algo_inst_strs.insert(0, [[b] for b in lower_bounds])
-    algo_inst_strs.insert(0, [[i] for i in insts])
+    algo_inst_strs.insert(0, [[
+        FormattedStr.add_format(inst, code=True)] for inst in insts])
     del lower_bounds
     del insts
+
+    algo_strs: Optional[List[List[Optional[str]]]] = None
+    if (algo_dict is not None) and (algorithm_summary_statistics is not None):
+        # get the data columns of the algorithm summaries
+        # format: column -> columns data
+        algo_data: Final[List[List[Union[int, float, None]]]] = \
+            [[None if getter is None else getter(algo_dict[algo])
+              for algo in algos]
+             for getter in algo_getters]
+        algo_strs = [numbers_to_strings(
+            col, exponent_renderer=exponent_renderer) for col in algo_data]
+
+        # now format the data, i.e., compute the per-section best value
+        # of each column and mark it with bold face
+        for col_idx, stat in enumerate(algorithm_summary_statistics):
+            if stat is None:
+                continue
+            acol_n = algo_data[col_idx]
+            acol_s = algo_strs[col_idx]
+            best_getter = col_best(stat)
+            if not callable(best_getter):
+                raise type_error(
+                    best_getter, f"result of col_best for {stat}", call=True)
+            best = best_getter(acol_n)
+            if (best is not None) and (not isnan(best)):
+                for idx, val in enumerate(acol_n):
+                    if val == best:
+                        acol_s[idx] = FormattedStr.add_format(
+                            acol_s[idx], bold=True)
+        del algo_data
+        algo_strs.insert(0, algos)
+        if put_lower_bound:
+            algo_strs.insert(0, [])
+        algo_strs.insert(0, [__fix_name("summary")] * n_algos)
 
     # write the table
     dest: Final[Path] = text_format_driver.filename(file_name, dir_name)
@@ -470,4 +554,7 @@ def tabulate_end_results(
             table.header_row(algo_inst_cols)
             for i in range(n_algos):
                 table.section_cols([col[i] for col in algo_inst_strs])
+            if algo_strs is not None:
+                table.section_cols(algo_strs, algo_cols)
+
     return dest

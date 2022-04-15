@@ -426,7 +426,6 @@ class Table(AbstractContextManager):
         """
         if not (self.__stream is None):
             self.__driver.end_table_body(self.__stream, self.__cols)
-            self.__stream.close()
             self.__stream = None
         if self.__section_state <= 0:
             raise ValueError("cannot end table before any section")

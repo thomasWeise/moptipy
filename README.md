@@ -22,7 +22,8 @@ Well, it will eventually be, because I first need to learn Python.
   - [Exporting Data](#51-exporting-data)
   - [Progress Plots](#52-progress-plots)
   - [ECDF Plots](#53-ecdf-plots)
-  - [End Result Plots](#54-end-results-plot)
+  - [End Results Plots](#54-end-results-plot)
+  - [End Results Tables](#55-end-results-table)
 - [License](#6-license)
 - [Contact](#7-contact)
 
@@ -1186,6 +1187,86 @@ Ofcourse you can also use it to plot raw objective values, or even runtimes if y
 </a>
 
 The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results_impl).
+
+
+### 5.5. End Results Table
+
+In the file [examples/end_results_table.py](./examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
+Such a table allows you to display statistics summarizing the performance of your algorithms over several problem instances.
+In their standard configuration, they two parts:
+
+1. Part 1 displays information about the algorithm-instance combinations.
+   For each instance, it has one row per algorithm.
+   This row displays, by default, the following information about the performance of the algorithm on the instance, aggregated over all runs:
+   - `$\instance$`: the instance name
+   - `$\lowerBound{\objf}$`: the lower bound of the objective value of the instance
+   - `setup`: the name of the algorithm or algorithm setup
+   - `best`: the best objective value reached by any run on that instance
+   - `mean`: the arithmetic mean of the best objective values reached over all runs
+   - `sd`: the standard deviation of the best objective values reached over all runs
+   - `mean1`: the arithmetic mean of the best objective values reached over all runs, divided by the lower bound (or goal objective value)
+   - `mean(FE/ms)`: the arithmetic mean of objective function evaluations performed per millisecond, over all runs
+   - `mean(t)`: the arithmetic mean of the time in milliseconds when the last improving move of a run was applied, over all runs
+2. The second part of the table presents one row for each algorithm with statistics aggregated over all runs on all instances.
+   By default, it holds the following information:
+   - `setup`: the name of the algorithm or algorithm setup
+   - `best1`: the minimum of the best objective values reached divided by the lower bound (or goal objective value) over all runs
+   - `gmean1`: the geometric mean of the best objective values reached divided by the lower bound (or goal objective value) over all runs
+   - `worst1`: the maximum of the best objective values reached divided by the lower bound (or goal objective value) over all runs
+   - `sd1`: the standard deviation of the best objective values reached divided by the lower bound (or goal objective value) over all runs
+   - `gmean(FE/ms)`: the geometric mean of objective function evaluations performed per millisecond, over all runs
+   - `gmean(t)`: the geometric mean of the time in milliseconds when the last improving move of a run was applied, over all runs
+
+For each column of each group (instances in part 1, the complete part 2), the best values are marked in **bold face**.
+
+Tables can be rendered to different formats.
+The example [examples/end_results_table.py](./examples/end_results_table.html), for instance, produces the following Markdown table:
+
+|$\instance$|$\lowerBound{\objf}$|setup|best|mean|sd|mean1|mean(FE/ms)|mean(t)|
+|:--|--:|:--|--:|--:|--:|--:|--:|--:|
+|`dmu23`|4'668|`ea1p1`|**5'875**|**6'166.9**|167.62|**1.321**|68.16|**10.286**|
+|||`hc`|6'204|6'326.6|**95.99**|1.355|**69.57**|**10.286**|
+|||`rs`|7'378|7'576.6|122.78|1.623|49.09|7.286|
+|`ft06`|55|`ea1p1`|**55**|**56.6**|1.99|**1.029**|87.46|4.714|
+|||`hc`|57|59.1|1.21|1.075|92.32|3.143|
+|||`rs`|60|60.4|**0.79**|1.099|**134.61**|**5.000**|
+|`la24`|935|`ea1p1`|**1'067**|**1'137.1**|48.06|**1.216**|85.40|8.571|
+|||`hc`|1'121|1'180.3|62.13|1.262|87.86|**9.429**|
+|||`rs`|1'375|1'404.3|**26.66**|1.502|**96.75**|3.000|
+|||setup|best1|gmean1|worst1|sd1|gmean(FE/ms)|gmean(t)|
+|summary||ea1p1|**1.000**|**1.182**|**1.377**|0.130|79.723|**6.564**|
+|summary||hc|1.036|1.225|1.385|**0.126**|82.627|6.008|
+|summary||rs|1.091|1.389|1.650|0.231|**86.146**|4.302|
+
+It also shows produces the same table in LaTeX:
+
+```latex
+\begin{tabular}{lrlrrrrrr}%
+\hrow%
+$\instance$&$\lowerBound{\objf}$&setup&best&mean&sd&mean1&mean(FE/ms)&mean(t)\\%
+\hrow%
+{\texttt{dmu23}}&4'668&{\texttt{ea1p1}}&{\textbf{5'875}}&{\textbf{6'166.9}}&167.62&{\textbf{1.321}}&68.16&{\textbf{10.286}}\\%
+&&{\texttt{hc}}&6'204&6'326.6&{\textbf{95.99}}&1.355&{\textbf{69.57}}&{\textbf{10.286}}\\%
+&&{\texttt{rs}}&7'378&7'576.6&122.78&1.623&49.09&7.286\\%
+\hrow%
+{\texttt{ft06}}&55&{\texttt{ea1p1}}&{\textbf{55}}&{\textbf{56.6}}&1.99&{\textbf{1.029}}&87.46&4.714\\%
+&&{\texttt{hc}}&57&59.1&1.21&1.075&92.32&3.143\\%
+&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{134.61}}&{\textbf{5.000}}\\%
+\hrow%
+{\texttt{la24}}&935&{\texttt{ea1p1}}&{\textbf{1'067}}&{\textbf{1'137.1}}&48.06&{\textbf{1.216}}&85.40&8.571\\%
+&&{\texttt{hc}}&1'121&1'180.3&62.13&1.262&87.86&{\textbf{9.429}}\\%
+&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&{\textbf{96.75}}&3.000\\%
+\hrow%
+&&setup&best1&gmean1&worst1&sd1&gmean(FE/ms)&gmean(t)\\%
+\hrow%
+summary&&ea1p1&{\textbf{1.000}}&{\textbf{1.182}}&{\textbf{1.377}}&0.130&79.723&{\textbf{6.564}}\\%
+summary&&hc&1.036&1.225&1.385&{\textbf{0.126}}&82.627&6.008\\%
+summary&&rs&1.091&1.389&1.650&0.231&{\textbf{86.146}}&4.302\\%
+\hrow%
+\end{tabular}%
+```
+
+The end result tables are implemented in the module [moptipy.evaluation.tabulate_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_end_results_impl).
 
 
 ## 6. License

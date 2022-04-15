@@ -2,13 +2,13 @@
 
 from io import TextIOBase
 
-from moptipy.utils.types import Final
 from moptipy.utils.text_format import TextFormatDriver
+from moptipy.utils.types import Final
 
 
 class Markdown(TextFormatDriver):
     r"""
-    The markdown table driver.
+    The markdown text driver.
 
     >>> from io import StringIO
     >>> from moptipy.utils.table import Table
@@ -31,7 +31,7 @@ class Markdown(TextFormatDriver):
     ...             r.cell("d")
     ...             r.cell("e")
     ...             r.cell("f")
-    ...     print(f"'{s.getvalue()}'")
+    >>> print(f"'{s.getvalue()}'")
     '|**1**|`2`|*3*|
     |:--|--:|:-:|
     |a|b|c|
