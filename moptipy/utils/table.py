@@ -333,6 +333,8 @@ class Table(AbstractContextManager):
                       wrt: Callable[[TextIOBase, str, bool,
                                      bool, bool], None] = self.__driver.text) \
                 -> None:
+            if st is None:
+                return
             if isinstance(st, str):
                 if isinstance(st, FormattedStr):
                     wrt(strm, st, st.bold, st.italic, st.code)

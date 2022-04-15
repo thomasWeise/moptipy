@@ -41,7 +41,8 @@ def __lang_setup():
         "ECDF": "ECDF",
         "setup": "setup",
         "best": "best",
-        "worst": "worst"
+        "worst": "worst",
+        "summary": "summary"
     })
 
     DE.extend({
@@ -67,7 +68,8 @@ def __lang_setup():
         "ECDF": "ECDF",
         "setup": "setup",
         "best": "beste",
-        "worst": "schlechteste"
+        "worst": "schlechteste",
+        "summary": "Übersicht"
     })
 
     ZH.extend({
@@ -93,7 +95,8 @@ def __lang_setup():
         "ECDF": "经验累积分布函数",
         "setup": "算法配置",
         "best": "最好的",
-        "worst": "最糟糕的"
+        "worst": "最糟糕的",
+        "summary": "总结"
     })
 
 

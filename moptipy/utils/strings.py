@@ -300,11 +300,11 @@ def default_float_format(min_finite: Union[int, float] = 0,
 
     if ((-__INT_TO_FLOAT_THRESHOLD) <= min_finite) \
             and (max_finite <= __INT_TO_FLOAT_THRESHOLD):
-        if frac_len <= 0:
+        if (frac_len <= 0) or (min_finite <= -1E4) or (max_finite >= 1E4):
             return "{:.0f}"
-        if frac_len <= 1:
+        if (frac_len <= 1) or (min_finite <= -1E3) or (max_finite >= 1E3):
             return "{:.1f}"
-        if frac_len <= 2:
+        if (frac_len <= 2) or (min_finite <= -1E2) or (max_finite >= 1E2):
             return "{:.2f}"
         return "{:.3f}"
     return "{:.2e}"
@@ -343,10 +343,16 @@ def numbers_to_strings(source: Union[int, float, None,
 
     >>> from moptipy.utils.lang import EN
     >>> EN.set_current()
-    >>> numbers_to_strings([1.7565, 212, 3234234])
-    ['1.756', '212.000', "3'234'234.000"]
+    >>> numbers_to_strings([1.75651, 212, 3234234])
+    ['2', '212', "3'234'234"]
+    >>> numbers_to_strings([1.75651, 22, 34])
+    ['1.757', '22.000', '34.000']
+    >>> numbers_to_strings([1.75651, 122, 34])
+    ['1.76', '122.00', '34.00']
+    >>> numbers_to_strings([1.75651, 122, 3334])
+    ['1.8', '122.0', "3'334.0"]
     >>> numbers_to_strings([1.5, 212, 3234234])
-    ['1.5', '212.0', "3'234'234.0"]
+    ['2', '212', "3'234'234"]
     >>> numbers_to_strings([1.5, 2e12, 3234234])
     ['1.50*10^0^', '2.00*10^12^', '3.23*10^6^']
     >>> numbers_to_strings([233, 22139283482834, 3234234])
