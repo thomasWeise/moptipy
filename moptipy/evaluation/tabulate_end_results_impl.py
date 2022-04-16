@@ -297,6 +297,7 @@ def tabulate_end_results(
     :param lower_bound_getter: the getter for the lower bound
     :param lower_bound_name: the name key for the lower bound to be passed
         to `col_namer`
+    :returns: the path to the file with the tabulated end results
     """
     # initial type checks
     if not isinstance(end_results, Iterable):

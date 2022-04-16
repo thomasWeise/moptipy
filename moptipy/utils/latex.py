@@ -1,9 +1,9 @@
 """The latex text format driver."""
 
 from io import TextIOBase
+from typing import Final
 
 from moptipy.utils.text_format import TextFormatDriver
-from moptipy.utils.types import Final
 
 
 class LaTeX(TextFormatDriver):
@@ -112,7 +112,7 @@ class LaTeX(TextFormatDriver):
 
     def render_numeric_exponent(self, e: str) -> str:
         r"""
-        Render the numerical exponent in markdown.
+        Render the numerical exponent in LaTeX.
 
         :param e: the exponent
         :returns: the rendered exponent
@@ -125,7 +125,7 @@ class LaTeX(TextFormatDriver):
         """
         Get the LaTeX format singleton instance.
 
-        :returns: the singleton instance of the Markdown format
+        :returns: the singleton instance of the LaTeX format
         """
         attr: Final[str] = "_instance"
         func: Final = LaTeX.instance

@@ -1,9 +1,9 @@
 """The markdown text format driver."""
 
 from io import TextIOBase
+from typing import Final
 
 from moptipy.utils.text_format import TextFormatDriver
-from moptipy.utils.types import Final
 
 
 class Markdown(TextFormatDriver):

@@ -61,8 +61,9 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir
+from moptipy.utils.html import HTML
 from moptipy.utils.latex import LaTeX
+from moptipy.utils.temp import TempDir
 
 # The three JSSP instances we want to try to solve:
 problems = [lambda: Instance.from_resource("ft06"),
@@ -161,6 +162,11 @@ with TempDir.create() as td:  # create temporary directory `td`
     file = tabulate_end_results(data, dir_name=td,
                                 text_format_driver=LaTeX.instance)
     print(f"\nnow presenting LaTeX data from file '{file}'.\n")
+    print(file.read_all_str())  # print the result
+
+    file = tabulate_end_results(data, dir_name=td,
+                                text_format_driver=HTML.instance)
+    print(f"\nnow presenting HTML data from file '{file}'.\n")
     print(file.read_all_str())  # print the result
 
 # The temp directory is deleted as soon as we leave the `with` block.

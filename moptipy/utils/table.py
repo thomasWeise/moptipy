@@ -314,16 +314,17 @@ class Table(AbstractContextManager):
 
         row_index: int
         section_index: int = self.__section_index
-        if self.__header_state >= 2:
+        if self.__header_state == 1:
+            row_index = -2
+            section_index = -1
+        else:
             if self.__section_state <= 0:
                 raise ValueError(
                     "cannot begin cell after header outside of section.")
-            row_index = -2
-            section_index = -1
-        elif self.__section_header_state == 1:
-            row_index = -1
-        else:
-            row_index = self.__row_index
+            if self.__section_header_state == 1:
+                row_index = -1
+            else:
+                row_index = self.__row_index
         self.__col_index = col_index + 1
 
         self.__driver.begin_table_cell(self.__stream, self.__cols,
