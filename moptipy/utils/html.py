@@ -49,7 +49,7 @@ class HTML(TextFormatDriver):
         style = f"padding:3pt;text-align:{style}"
         if col_index < (len(cols) - 1):
             style = f"{style};border-right:{_BORDER}"
-        if (row_index <= 0) and (section_index >= 0):
+        if row_index <= 0 <= section_index:
             style = f"{style};border-top:{_BORDER}"
         cell: str = "th" if (section_index < 0) else "td"
         stream.write(f'<{cell} style="{style}">')
