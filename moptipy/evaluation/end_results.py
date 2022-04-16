@@ -262,9 +262,26 @@ class EndResult(PerRunData):
         """
         Produce a function that obtains the given dimension from EndResults.
 
+        The following dimensions are supported:
+
+        1. `lastImprovementFE`: :attr:`~EndResult.last_improvement_fe`
+        2. `lastImprovementTimeMillis`:
+            :attr:`~EndResult.last_improvement_time_millis`
+        3. `totalFEs`: :attr:`~EndResult.total_fes`
+        4. `totalTimeMillis`: :attr:`~EndResult.total_time_millis`
+        5. `goalF`: :attr:`~EndResult.goal_f`
+        6.  `plainF`, `bestF`: :attr:`~EndResult.best_f`
+        7. `scaledF`: :attr:`~EndResult.best_f`/:attr:`~EndResult.goal_f`
+        8. `normalizedF`: (:attr:`~EndResult.best_f`-attr:`~EndResult.goal_f`)/
+            :attr:`~EndResult.goal_f`
+        9. `maxFEs`: :attr:`~EndResult.max_fes`
+        10. `maxTimeMillis`: :attr:`~EndResult.max_time_millis`
+        11. `fesPerTimeMilli`:  :attr:`~EndResult.total_fes`
+            /:attr:`~EndResult.total_time_millis`
+
         :param dimension: the dimension
         :returns: a callable that returns the value corresponding to the
-            dimension
+            dimension from its input value, which must be an :class:`EndResult`
         """
         if not isinstance(dimension, str):
             raise type_error(dimension, "dimension", str)

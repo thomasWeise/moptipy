@@ -328,6 +328,32 @@ def numbers_to_strings(source: Union[int, float, None,
     r"""
     Convert a numerical column to text with uniform shape.
 
+    Often, we need to convert a set of numbers to strings as output for a
+    table or another representative thext. In such a case, you want to present
+    all numbers in the set in the same format.
+    Imagine you have the number vector `[1E-4, 1/7, 123456789012345678]`. If
+    you simply convert this list to a string directly, what you get is
+    `[0.0001, 0.14285714285714285, 123456789012345678]`. Now this looks very
+    ugly. First, we have one very big number `123456789012345678`. If the
+    numbers stem from an experiment, then we hardly are able to obtain any
+    number at a very extreme precision. The 18 digits in `123456789012345678`
+    sort of suggest a precision to 18 decimals, since the number ends in
+    specific digits (as opposed to `123450000000000000` which a reader would
+    naturally preceive as a rounded quantity). Additionally, we the number
+    `0.14285714285714285`, which has a very long fractional part, which, too,
+    suggests a very high precision. Writing both mentioned numbers next to
+    each other, this suggests as if we could present a number as high as
+    10**18 at a precision of 10**-17. And it also looks ugly, because both
+    numbers are not uniformly formatted. Instead, our function here renders
+    the number list as `['1.00*10^-4^', '1.43*10^-1^', '1.23*10^17^']`. It
+    recognizes that we should present numbers as powers of ten and then limits
+    the precision to three digits.
+
+    This function is thus intended to produce some sort of uniform format with
+    reasonable precision uniformly for a numerical vector, under the
+    assumption that all numbers should be presented in the same numerical range
+    and quantity.
+
     :param source: the column data
     :param none_str: the string replacement for `None`
     :param nan_str: the string to be used for NaN
@@ -362,6 +388,8 @@ def numbers_to_strings(source: Union[int, float, None,
     >>> from math import nan, inf
     >>> numbers_to_strings([22139283, inf, -inf, nan, None])
     ["22'139'283", '$\\infty$', '$-\\infty$', '$\\emptyset$', None]
+    >>> numbers_to_strings([1E-4, 1/7, 123456789012345678])
+    ['1.00*10^-4^', '1.43*10^-1^', '1.23*10^17^']
     """
     # perform type checks
     if (source is None) or isinstance(source, (int, float)):

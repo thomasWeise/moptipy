@@ -1238,7 +1238,7 @@ The example [examples/end_results_table.py](./examples/end_results_table.html), 
 |summary||hc|1.036|1.225|1.385|**0.126**|82.627|6.008|
 |summary||rs|1.091|1.389|1.650|0.231|**86.146**|4.302|
 
-It also shows produces the same table in LaTeX:
+It also produces the same table in LaTeX:
 
 ```latex
 \begin{tabular}{lrlrrrrrr}%
