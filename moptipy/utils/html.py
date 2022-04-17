@@ -57,7 +57,7 @@ class HTML(TextFormatDriver):
     def end_table_cell(self, stream: TextIOBase, cols: str,
                        section_index: int, row_index: int,
                        col_index: int) -> None:
-        """Ending an HTML table cell."""
+        """End an HTML table cell."""
         stream.write("</th>" if (section_index < 0) else "</td>")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
