@@ -1219,8 +1219,8 @@ In their standard configuration, they two parts:
 
 For each column of each group (instances in part 1, the complete part 2), the best values are marked in **bold face**.
 
-Tables can be rendered to different formats.
-The example [examples/end_results_table.py](./examples/end_results_table.html), for instance, produces the following Markdown table:
+Tables can be rendered to different formats, such as [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown), [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX), and [HTML](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.html.HTML).
+The example [examples/end_results_table.py](./examples/end_results_table.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
 
 |$\instance$|$\lowerBound{\objf}$|setup|best|mean|sd|mean1|mean(FE/ms)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|
@@ -1238,7 +1238,7 @@ The example [examples/end_results_table.py](./examples/end_results_table.html), 
 |summary||hc|1.036|1.225|1.385|**0.126**|82.627|6.008|
 |summary||rs|1.091|1.389|1.650|0.231|**86.146**|4.302|
 
-It also produces the same table in LaTeX:
+It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX):
 
 ```latex
 \begin{tabular}{lrlrrrrrr}%

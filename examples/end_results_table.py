@@ -44,7 +44,10 @@ default data are equivalent to what we will use in our book:
       improving move of a run was applied, over all runs
 
 The best values of each category are always rendered in bold face.
-Tables can be rendered in different formats, such as Markdown or LaTeX.
+Tables can be rendered in different formats, such as
+:py:class:`~moptipy.utils.markdown.Markdown`,
+:py:class:`~moptipy.utils.latex.LaTeX`, and
+:py:class:`~moptipy.utils.html.HTML`.
 """
 
 from moptipy.algorithms.ea1plus1 import EA1plus1

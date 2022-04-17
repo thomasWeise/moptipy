@@ -1,4 +1,4 @@
-"""A method to tabulate end results."""
+"""Provides function :func:`tabulate_end_results` to tabulate end results."""
 
 from math import inf, isfinite, nan, isnan
 from typing import Callable, Final, Iterable, Optional, List, Union, cast, \
@@ -280,6 +280,12 @@ def tabulate_end_results(
     You can freely configure which columns you want for each part and whether
     you want to have the second part included. Also, for each group of values,
     the best one is marked in bold face.
+
+    Depending on the parameter `text_format_driver`, the tables can be
+    rendered in different formats, such as
+    :py:class:`~moptipy.utils.markdown.Markdown`,
+    :py:class:`~moptipy.utils.latex.LaTeX`, and
+    :py:class:`~moptipy.utils.html.HTML`.
 
     :param end_results: the end results data
     :param file_name: the base file name
