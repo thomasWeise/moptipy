@@ -3,10 +3,16 @@ import os.path as pp
 import sys
 from typing import Dict, Final, Optional, Any, List, Tuple, Set
 
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import EndResult, KEY_FES_PER_MS
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans
+from moptipy.evaluation.tabulate_end_results_impl import \
+    DEFAULT_ALGORITHM_INSTANCE_STATISTICS, \
+    DEFAULT_ALGORITHM_SUMMARY_STATISTICS, \
+    tabulate_end_results
+from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS,\
+    KEY_TOTAL_TIME_MILLIS
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
@@ -159,6 +165,21 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     end_stats: Final[Path] = compute_end_statistics(end_results, dest)
     if not end_stats:
         raise ValueError("End stats path is empty??")
+
+    tabulate_end_results(end_results=get_end_results(end_results,
+                                                     algos={"1rs"}),
+                         file_name="end_results_1rs",
+                         dir_name=dest,
+                         algorithm_instance_statistics=[
+                             c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                                       KEY_TOTAL_TIME_MILLIS)
+                             for c in DEFAULT_ALGORITHM_INSTANCE_STATISTICS
+                             if KEY_FES_PER_MS not in c],
+                         algorithm_summary_statistics=[
+                             c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                                       KEY_TOTAL_TIME_MILLIS)
+                             for c in DEFAULT_ALGORITHM_SUMMARY_STATISTICS
+                             if KEY_FES_PER_MS not in c])
 
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"1rs"}),

@@ -1,5 +1,5 @@
 """Here we provide a representation for JSSP instances."""
-from importlib import resources
+from importlib import resources  # nosem
 from typing import Final, List, Tuple, Optional
 
 import numpy as np

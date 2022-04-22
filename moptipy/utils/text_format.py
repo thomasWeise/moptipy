@@ -5,6 +5,7 @@ from typing import Final
 
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
+from moptipy.utils.lang import Lang
 
 
 class FormattedStr(str):
@@ -238,12 +239,14 @@ class TextFormatDriver:
 
     def filename(self,
                  file_name: str = "file",
-                 dir_name: str = ".") -> Path:
+                 dir_name: str = ".",
+                 use_lang: bool = True) -> Path:
         """
         Get the right filename for this text driver.
 
         :param file_name: the base file name
         :param dir_name: the base directory
+        :param use_lang: should we use the language to define the filename?
         :returns: the path to the file to generate
         """
         if not isinstance(dir_name, str):
@@ -254,12 +257,16 @@ class TextFormatDriver:
             raise type_error(file_name, "file_name", str)
         if len(file_name) <= 0:
             raise ValueError(f"invalid file_name: '{file_name}'.")
+        if not isinstance(use_lang, bool):
+            raise type_error(use_lang, "use_lang", bool)
         out_dir = Path.directory(dir_name)
         suffix = self.__str__()
         if not isinstance(suffix, str):
             raise type_error(suffix, "result of str(table driver)", str)
         if len(suffix) <= 0:
             raise ValueError(f"invalid driver suffix: '{suffix}'")
+        if use_lang:
+            file_name = Lang.current().filename(file_name)
         file: Final[Path] = out_dir.resolve_inside(f"{file_name}.{suffix}")
         file.ensure_file_exists()
         return file

@@ -45,11 +45,11 @@ def test_statistics():
     __test_statistics([1, 2, 3, 4])
     __test_statistics([4, 4, 4, 4, 4])
     __test_statistics([3.3, 4.5])
-    __test_statistics([100000, 200000, 300000])
+    __test_statistics([100000, 200000, 300000], 1e-10)
     __test_statistics([100000000, 200000000, 300000000,
                        4000000000], 1e-4)
     __test_statistics([100000000003, 200000000041, 300000000077,
-                       40000000000001])
+                       40000000000001], 2e-3)
     __test_statistics([-5, 4, 2])
     __test_statistics([0, 4, 2])
     __test_statistics([5, 4, 2])

@@ -6,7 +6,8 @@ from math import isfinite, sqrt, gcd, inf
 from typing import Union, Iterable, Final, cast, Dict, Callable
 
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
-from moptipy.utils.math import DBL_INT_LIMIT_P, try_int, try_int_div
+from moptipy.utils.math import DBL_INT_LIMIT_P, try_int, try_int_div, \
+    try_int_root
 from moptipy.utils.strings import num_to_str, str_to_intfloat, \
     str_to_intfloatnone
 from moptipy.utils.types import type_error
@@ -232,7 +233,7 @@ class Statistics:
         """
         Create a statistics object from an iterable.
 
-        :param Collection[Union[int,float]] source: the source
+        :param source: the source
         :return: a statistics representing the statistics over `source`
         :rtype: Statistics
 
@@ -272,9 +273,10 @@ class Statistics:
                 if not isinstance(e, int):
                     can_int = False
             if can_int:  # so far, we only encountered ints
-                int_sum += cast(int, e)  # so we can sum exactly
-                int_prod *= cast(int, e)  # and can compute exact products
-                int_sum_sqr += cast(int, e * e)
+                zz = cast(int, e)
+                int_sum += zz  # so we can sum exactly
+                int_prod *= zz  # and can compute exact products
+                int_sum_sqr += zz * zz
 
             if e < minimum:
                 minimum = e  # update minimum
@@ -318,37 +320,9 @@ class Statistics:
                 if int_prod == 0:
                     mean_geom = 0  # geometric mean is 0 if product is 0
                 else:  # if not, geom_mean = prod ** (1/n)
-                    # We try to remove factors of form (1/n) and store them in
-                    # base_mul. We need to prevent overflow when converting to
-                    # float. Right now, I only have the idea of brute force
-                    # removal of any factor j that is an integer i ** n.
-                    # Such a factor will be a power factor j in int_prod and
-                    # an integer factor i in base_mul.
-                    # After dividing int_prod by as many such factors as
-                    # possible, we can compute int_prod ** 1/n and multiply the
-                    # result with base_mul.
-                    frac = 1.0 / n
-                    i = max(1, min(100_000, int(int_prod ** frac)))
-                    base_mul = 1
-                    while (i > 1) and (int_prod > _INT_ROOT_LIMIT):
-                        j = i ** n
-                        got: bool = False
-                        while (j < int_prod) and ((int_prod % j) == 0):
-                            base_mul *= i
-                            int_prod //= j
-                            got = True
-                        if got:
-                            i = min(i - 1, int(int_prod ** frac))
-                        else:
-                            i = i - 1
-
-                    if int_prod == 1:  # if this holds, we do not need to
-                        mean_geom = base_mul  # compute the root
-                    else:  # otherwise, we may have prevented overflow(?)
-                        if int_prod <= DBL_INT_LIMIT_P:  # no overflow?
-                            mean_geom = base_mul * (int_prod ** frac)
-                        else:  # too dangerous, there may be overflow
-                            mean_geom = statistics.geometric_mean(source)
+                    mean_geom = try_int_root(int_prod, n, True)
+                    if mean_geom is None:
+                        mean_geom = statistics.geometric_mean(source)
         else:  # ok, we do not have only integer-like values
             mean_arith = try_int(statistics.mean(source))
             if minimum > 0:

@@ -24,9 +24,9 @@ clean:
 # Initialization: Install all requirements, both for executing the library and for the tests.
 init: clean
 	echo "Initialization: first install required packages from requirements.txt." && \
-	pip install -r requirements.txt && \
+	pip install -r requirements.txt && ## nosem \
 	echo "Finished installing required packages from requirements.txt, now installing packages required for development from requirements-dev.txt." && \
-	pip install -r requirements-dev.txt && \
+	pip install -r requirements-dev.txt && ## nosem \
 	echo "Finished installing requirements from requirements-dev.txt."
 
 # Run the unit tests.

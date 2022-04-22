@@ -2,7 +2,7 @@
 
 from math import inf, isfinite, nan, isnan
 from typing import Callable, Final, Iterable, Optional, List, Union, cast, \
-    Dict, Any
+    Dict, Any, Tuple
 
 from moptipy.api.logging import KEY_ALGORITHM, KEY_INSTANCE, KEY_GOAL_F
 from moptipy.api.logging import KEY_BEST_F, KEY_TOTAL_FES, \
@@ -203,27 +203,37 @@ def __getter(s: str) -> Callable[[EndStatistics], Union[int, float, None]]:
     return __fixed
 
 
+#: the default algorithm-instance statistics
+DEFAULT_ALGORITHM_INSTANCE_STATISTICS: Final[Tuple[
+    str, str, str, str, str, str]] = (
+    f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
+    f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
+    f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_STDDEV}",
+    f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
+    f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
+    f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
+    f"{KEY_MEAN_ARITH}")
+
+#: the default algorithm summary statistics
+DEFAULT_ALGORITHM_SUMMARY_STATISTICS: Final[Tuple[
+    str, str, str, str, str, str]] = (
+    f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
+    f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
+    f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MAXIMUM}",
+    f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_STDDEV}",
+    f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
+    f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
+    f"{KEY_MEAN_GEOM}")
+
+
 def tabulate_end_results(
         end_results: Iterable[EndResult],
         file_name: str = "table",
         dir_name: str = ".",
-        algorithm_instance_statistics: Iterable[str] = (
-            f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
-            f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
-            f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_STDDEV}",
-            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
-            f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
-            f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
-            f"{KEY_MEAN_ARITH}",),
-        algorithm_summary_statistics: Optional[Iterable[Optional[str]]] = (
-            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
-            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
-            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MAXIMUM}",
-            f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_STDDEV}",
-            f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
-            f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
-            f"{KEY_MEAN_GEOM}"
-        ),
+        algorithm_instance_statistics: Iterable[str] =
+        DEFAULT_ALGORITHM_INSTANCE_STATISTICS,
+        algorithm_summary_statistics: Optional[Iterable[Optional[str]]] =
+        DEFAULT_ALGORITHM_SUMMARY_STATISTICS,
         text_format_driver: Union[TextFormatDriver,
                                   Callable[[], TextFormatDriver]]
         = Markdown.instance,
@@ -236,7 +246,8 @@ def tabulate_end_results(
         lower_bound_getter: Optional[Callable[[EndStatistics],
                                               Union[int, float, None]]] =
         __getter(KEY_GOAL_F),
-        lower_bound_name: Optional[str] = "lower_bound") -> Path:
+        lower_bound_name: Optional[str] = "lower_bound",
+        use_lang: bool = True) -> Path:
     r"""
     Tabulate the statistics about the end results of an experiment.
 
@@ -303,6 +314,7 @@ def tabulate_end_results(
     :param lower_bound_getter: the getter for the lower bound
     :param lower_bound_name: the name key for the lower bound to be passed
         to `col_namer`
+    :param use_lang: should we use the language to define the filename?
     :returns: the path to the file with the tabulated end results
     """
     # initial type checks
@@ -338,6 +350,8 @@ def tabulate_end_results(
         raise type_error(col_namer, "col_namer", call=True)
     if not callable(col_best):
         raise type_error(col_best, "col_best", call=True)
+    if not isinstance(use_lang, bool):
+        raise type_error(use_lang, "use_lang", bool)
 
     # get the getters
     algo_inst_getters: Final[List[Callable[[EndStatistics],
@@ -555,7 +569,8 @@ def tabulate_end_results(
         algo_strs.insert(0, [__fix_name("summary")] * n_algos)
 
     # write the table
-    dest: Final[Path] = text_format_driver.filename(file_name, dir_name)
+    dest: Final[Path] = text_format_driver.filename(
+        file_name, dir_name, use_lang)
     with dest.open_for_write() as wd:
         with Table(wd, col_def, text_format_driver) as table:
             table.header_row(algo_inst_cols)
