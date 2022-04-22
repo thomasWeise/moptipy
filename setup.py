@@ -7,7 +7,7 @@ with open("moptipy/version.py") as fp:
 
 setup(
     name='moptipy',
-    python_requires='>=3.8',
+    python_requires='>=3.9',
     description='A package for metaheuristic optimization in python.',
     url='git@github.com/thomasWeise/moptipy.git',
     author='Thomas Weise',
@@ -23,18 +23,28 @@ setup(
                       open("requirements.txt", "rt").readlines()],
     include_package_data=True,
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
+        'Framework :: Matplotlib',
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
+        'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence'
+        'Natural Language :: English',
+        'Natural Language :: German',
+        'Natural Language :: Chinese (Simplified)',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python :: 3.9',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Scientific/Engineering :: Mathematics'
     ],
     keywords=[
         "metaheuristics",
         "optimization",
+        "operations research",
+        "evolutionary algorithm",
         "hill climber",
+        "experiments",
         "job shop scheduling"
     ]
 )
