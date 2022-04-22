@@ -237,8 +237,8 @@ def tabulate_end_results(
         text_format_driver: Union[TextFormatDriver,
                                   Callable[[], TextFormatDriver]]
         = Markdown.instance,
-        algorithm_sorter: Callable[[str], Any] = lambda a: a,
-        instance_sorter: Callable[[str], Any] = lambda i: i,
+        algorithm_sort_key: Callable[[str], Any] = lambda a: a,
+        instance_sort_key: Callable[[str], Any] = lambda i: i,
         col_namer: Callable[[str], str] = default_column_namer,
         col_best: Callable[[str], Callable[[Iterable[Union[
             int, float, None]]], Union[int, float]]] = default_column_best,
@@ -305,8 +305,8 @@ def tabulate_end_results(
     :param algorithm_summary_statistics: the summary statistics to print per
         algorithm
     :param text_format_driver: the text format driver
-    :param algorithm_sorter: a function returning sort keys for algorithms
-    :param instance_sorter: a function returning sort keys for instances
+    :param algorithm_sort_key: a function returning sort keys for algorithms
+    :param instance_sort_key: a function returning sort keys for instances
     :param col_namer: the column namer function
     :param col_best: the column-best getter function
     :param put_lower_bound: should we put the lower bound or goal objective
@@ -382,12 +382,12 @@ def tabulate_end_results(
         raise ValueError("no algorithm-instance combinations?")
     # get the sorted lists of algorithms and instances
     insts: Final[List[str]] = sorted({s.instance for s in algo_inst_list},
-                                     key=instance_sorter)
+                                     key=instance_sort_key)
     n_insts: Final[int] = len(insts)
     if n_insts <= 0:
         raise ValueError("no instance found?")
     algos: Final[List[str]] = sorted({s.algorithm for s in algo_inst_list},
-                                     key=algorithm_sorter)
+                                     key=algorithm_sort_key)
     n_algos: Final[int] = len(algos)
     if n_algos <= 0:
         raise ValueError("no algos found?")

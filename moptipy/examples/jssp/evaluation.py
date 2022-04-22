@@ -166,20 +166,22 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     if not end_stats:
         raise ValueError("End stats path is empty??")
 
-    tabulate_end_results(end_results=get_end_results(end_results,
-                                                     algos={"1rs"}),
-                         file_name="end_results_1rs",
-                         dir_name=dest,
-                         algorithm_instance_statistics=[
-                             c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                                       KEY_TOTAL_TIME_MILLIS)
-                             for c in DEFAULT_ALGORITHM_INSTANCE_STATISTICS
-                             if KEY_FES_PER_MS not in c],
-                         algorithm_summary_statistics=[
-                             c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                                       KEY_TOTAL_TIME_MILLIS)
-                             for c in DEFAULT_ALGORITHM_SUMMARY_STATISTICS
-                             if KEY_FES_PER_MS not in c])
+    tabulate_end_results(
+        end_results=get_end_results(end_results, algos={"1rs"}),
+        file_name="end_results_1rs",
+        dir_name=dest,
+        algorithm_instance_statistics=[
+            c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                      KEY_TOTAL_TIME_MILLIS)
+            for c in DEFAULT_ALGORITHM_INSTANCE_STATISTICS
+            if KEY_FES_PER_MS not in c],
+        algorithm_summary_statistics=[
+            c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                      KEY_TOTAL_TIME_MILLIS)
+            for c in DEFAULT_ALGORITHM_SUMMARY_STATISTICS
+            if KEY_FES_PER_MS not in c],
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key)
 
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"1rs"}),
