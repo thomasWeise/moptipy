@@ -8,6 +8,7 @@ from moptipy.api.algorithm import Algorithm1
 from moptipy.api.process import Process
 
 
+# start book
 class FEA1plus1(Algorithm1):
     """
     The FFA-based version of the (1+1)-EA: the (1+1)-FEA.
@@ -38,39 +39,36 @@ class FEA1plus1(Algorithm1):
 
         :param process: the process object
         """
-        # create records for old and new point in the search space
-        best_x = process.create()
-        new_x = process.create()
+        # Create records for old and new point in the search space.
+        best_x = process.create()  # record for best-so-far solution
+        new_x = process.create()  # record for new solution
         lb: Final[int] = cast(int, process.lower_bound())
 
         # h holds the encounter frequency of each objective value.
-        # By picking 32-bit integers as frequencies, we can do up to
-        # 4 billion FEs before the frequency fitness becomes unreliable.
         h: Final[np.ndarray] = np.zeros(
-            cast(int, process.upper_bound()) - lb + 1, np.uint32)
-        # obtain the random number generator
+            cast(int, process.upper_bound()) - lb + 1, np.uint64)
+        # Obtain the random number generator.
         random: Final[Generator] = process.get_random()
 
-        # Resolving things such as "process." or "self." costs time.
-        # We shovel a lot of function references into local variables
-        # to save time.
+        # Put function references in variables to save time.
         evaluate: Final[Callable] = process.evaluate
         op1: Final[Callable] = self.op1.op1
         should_terminate: Final[Callable] = process.should_terminate
 
         # Start at a random point in the search space and evaluate it.
-        self.op0.op0(random, best_x)  # create one solution randomly
-        best_f: int = cast(int, evaluate(best_x)) - lb  # and evaluate it
+        self.op0.op0(random, best_x)  # Create 1 solution randomly and
+        best_f: int = cast(int, evaluate(best_x)) - lb  # evaluate it.
 
-        while not should_terminate():  # until we need to quit...
+        while not should_terminate():  # Until we need to quit...
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
             new_f: int = cast(int, evaluate(new_x)) - lb
 
-            h[new_f] = h[new_f] + 1  # increase frequency of new_f
-            h[best_f] = best_h = h[best_f] + 1  # increase frequency of best_f
+            h[new_f] = h[new_f] + 1  # Increase frequency of new_f and
+            h[best_f] = best_h = h[best_f] + 1  # of best_f.
             if h[new_f] <= best_h:  # new_x is no worse than best_x?
-                best_f = new_f  # use its objective value
-                best_x, new_x = new_x, best_x  # swap best and new
+                best_f = new_f  # Store its objective value.
+                best_x, new_x = new_x, best_x  # Swap best and new.
+# end book
 
     def __str__(self) -> str:
         """

@@ -7,6 +7,7 @@ from moptipy.api.algorithm import Algorithm0
 from moptipy.api.process import Process
 
 
+# start book
 class RandomSampling(Algorithm0):
     """In each step, random sampling creates a new, random solution."""
 
@@ -20,16 +21,15 @@ class RandomSampling(Algorithm0):
         # obtain the random number generator
         random: Final[Generator] = process.get_random()
 
-        # Resolving things such as "process." or "self." costs time.
-        # We shovel a lot of function references into local variables
-        # to save time.
+        # Put function references in variables to save time.
         evaluate: Final[Callable] = process.evaluate
         op0: Final[Callable] = self.op0.op0
         should_terminate: Final[Callable] = process.should_terminate
 
-        while not should_terminate():  # until we need to quit...
-            op0(random, x)  # sample a random solution
-            evaluate(x)  # evaluate its quality... but ignore this info
+        while not should_terminate():  # Until we need to quit...
+            op0(random, x)  # Sample a completely random solution.
+            evaluate(x)  # Evaluate solution ... but ignore result.
+# end book
 
     def __str__(self) -> str:
         """

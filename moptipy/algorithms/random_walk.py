@@ -20,6 +20,7 @@ from moptipy.api.algorithm import Algorithm1
 from moptipy.api.process import Process
 
 
+# start book
 class RandomWalk(Algorithm1):
     """
     Perform a random walk through the search space.
@@ -35,26 +36,25 @@ class RandomWalk(Algorithm1):
         :param process: the process object
         """
         # create records for old and new point in the search space
-        old_x = process.create()
-        new_x = process.create()
-        # obtain the random number generator
+        old_x = process.create()  # record for best-so-far solution
+        new_x = process.create()  # record for new solution
+        # Obtain the random number generator.
         random: Final[Generator] = process.get_random()
 
-        # Resolving things such as "process." or "self." costs time.
-        # We shovel a lot of function references into local variables
-        # to save time.
+        # Put function references in variables to save time.
         evaluate: Final[Callable] = process.evaluate
         op1: Final[Callable] = self.op1.op1
         should_terminate: Final[Callable] = process.should_terminate
 
         # Start at a random point in the search space and evaluate it.
-        self.op0.op0(random, new_x)  # create one solution randomly
-        evaluate(new_x)  # and evaluate it
+        self.op0.op0(random, new_x)  # Create one solution randomly
+        evaluate(new_x)  # and evaluate it.
 
-        while not should_terminate():  # until we need to quit...
-            old_x, new_x = new_x, old_x  # swap old and new solution
+        while not should_terminate():  # Until we need to quit...
+            old_x, new_x = new_x, old_x  # Swap old and new solution.
             op1(random, new_x, old_x)  # new_x = neighbor of old_x
-            evaluate(new_x)  # evaluate the solution, ignore result
+            evaluate(new_x)  # Evaluate the solution and ignore result.
+# end book
 
     def __str__(self) -> str:
         """
