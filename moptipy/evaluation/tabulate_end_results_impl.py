@@ -574,7 +574,7 @@ def tabulate_end_results(
     with dest.open_for_write() as wd:
         with Table(wd, col_def, text_format_driver) as table:
             table.header_row(algo_inst_cols)
-            for i in range(n_algos):
+            for i in range(n_insts):
                 table.section_cols([col[i] for col in algo_inst_strs])
             if algo_strs is not None:
                 table.section_cols(algo_strs, algo_cols)

@@ -341,7 +341,8 @@ class EndResult(PerRunData):
 
     @staticmethod
     def from_csv(file: str, consumer: Callable[['EndResult'], Any],
-                 filterer: Callable = lambda x: True) -> None:
+                 filterer: Callable[['EndResult'], bool]
+                 = lambda x: True) -> None:
         """
         Parse a given CSV file to get :class:`EndResult` Records.
 

@@ -2,9 +2,6 @@
 
 # moptipy: Metaheuristic Optimization in Python
 
-This will be a library with implementations of metaheuristic optimization methods in Python.
-Well, it will eventually be, because I first need to learn Python.
-
 - [Introduction](#1-introduction)
 - [Installation](#2-installation)
 - [How-Tos](#3-how-tos)
@@ -30,6 +27,10 @@ Well, it will eventually be, because I first need to learn Python.
 
 ## 1. Introduction
 
+This will be a library with implementations of metaheuristic optimization methods in Python&nbsp;3.9.
+The framework, algorithm implementations, and the library design is intended to accompany the university course book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently working on.
+They are all structured from an educational and learning perspective, but still with performance, ease-of-use, and generality in mind.
+
 Metaheuristic optimization algorithms are methods for solving hard problems.
 Here we provide an API that can be used to implement them and to experiment with them.
 
@@ -43,9 +44,6 @@ They make use of the problem structure and can implement more efficient search o
 
 Within our `moptipy` framework, you can implement all of these algorithms under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 What `moptipy` also offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#4-data-formats) and [evaluate](#5-evaluating-experiments) the gathered results.
-
-The codes in this repository are used as examples in the book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently writing.
-Its full sources are available on GitHub at <https://github.com/thomasWeise/oa>.
 
 
 ## 2. Installation
