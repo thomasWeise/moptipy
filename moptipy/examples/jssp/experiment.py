@@ -25,14 +25,24 @@ from moptipy.utils.types import type_error
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
-#: The instances in this tuple are sorted by the scale, i.e., the number
-#: of possible (feasible or infeasible) Gantt charts than can be constructed
-#: for them. For the largest one (ta70), more than 10**1'289 are possible.
+#: The instances in this tuple are sorted by the scale of the search space,
+#: if that search space is the order-based encoding, i.e., permutations with
+#: repetitions. This is almost the same as an ordering by the number  of
+#: possible (feasible or infeasible) Gantt charts than can be constructed, with
+#: one exception: For `dmu67`, the search space size is `2.768*(10**1241)` and
+#: for `dmu72`, it is `3.862*(10**1226)`, i.e., `dmu67` has a larger search
+#: order-based encoding search space than `dmu72`. However, for `dmu72`, we can
+#: construct `1.762*(10**967)` different (feasible or infeasible) Gantt charts,
+#: whereas for `dmu67`, we can only construct `1.710*(10**958)`, i.e., fewer.
+#: Therefore, `dmu67` in this ordering here comes after `dmu72`, but it would
+#: come before if we were sorting instances by the solution space size.
 EXPERIMENT_INSTANCES: \
     Final[Tuple[str, str, str, str, str, str, str, str]] = \
-    ('orb06', 'la38', 'abz8', 'yn4', 'swv14', 'dmu67', 'dmu72', 'ta70')
+    ('orb06', 'la38', 'abz8', 'yn4', 'swv14', 'dmu72', 'dmu67', 'ta70')
 
-#: The number of runs per instance in our experiment.
+#: The number of runs per instance in our JSSP experiment.
+#: For each combination of algorithm setup and JSSP instance, we will
+#: perform exactly this many runs.
 EXPERIMENT_RUNS: Final[int] = 23
 
 #: We will perform two minutes per run.

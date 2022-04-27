@@ -8,6 +8,7 @@ texts, and number formats.
 from typing import Dict, Final, Optional, Iterable, List, Callable
 
 import matplotlib  # type: ignore
+import matplotlib.font_manager  # type: ignore
 
 from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
@@ -17,7 +18,8 @@ class Lang:
     """A language-based dictionary for locale-specific keywords."""
 
     def __init__(self, name: str, font: str, decimal_stepwidth: int = 3,
-                 data: Optional[Dict[str, str]] = None):
+                 data: Optional[Dict[str, str]] = None,
+                 is_default: bool = False):
         """
         Instantiate the language formatter.
 
@@ -25,20 +27,23 @@ class Lang:
         :param font: the font name
         :param decimal_stepwidth: the decimal step width
         :param data: the data
+        :param is_default: is this the default language?
         """
         #: the name of the locale
         self.__name: Final[str] = sanitize_name(name)
-
         if not isinstance(font, str):
             raise type_error(font, "font", str)
+        if not isinstance(decimal_stepwidth, int):
+            raise type_error(decimal_stepwidth, "decimal_stepwidth", int)
+        if not isinstance(is_default, bool):
+            raise type_error(is_default, "is_default", bool)
+
         font = font.strip()
         if not font:
             raise ValueError(f"The font cannot be '{font}'.")
         #: the font name
         self.__font: Final[str] = font
 
-        if not isinstance(decimal_stepwidth, int):
-            raise type_error(decimal_stepwidth, "decimal_stepwidth", int)
         if decimal_stepwidth <= 1:
             raise ValueError(f"The decimal stepwidth must be > 1, but "
                              f"is {decimal_stepwidth}.")
@@ -49,6 +54,24 @@ class Lang:
         self.__dict: Final[Dict[str, str]] = {}
         if data:
             self.extend(data)
+
+        #: is this the default language?
+        self.__is_default: Final[bool] = is_default
+
+        # register the language
+        dc: Final[Dict[str, Lang]] = Lang.__get_langs()
+        if self.__name in dc:
+            raise ValueError(f"Language '{self.__name}' already registered.")
+        if is_default:
+            for lang in dc.values():
+                if lang.__is_default:
+                    raise ValueError(
+                        f"Language '{self.__name}' cannot be default "
+                        f"language, '{lang.__name}' already is!")
+        dc[self.__name] = self
+
+        if is_default:
+            self.set_current()
 
     def extend(self, data: Dict[str, str]) -> None:
         """
@@ -79,11 +102,12 @@ class Lang:
         :rtype: str
 
         >>> print(Lang.get("en").filename("test"))
-        test_en
+        test
         >>> print(Lang.get("zh").filename("test"))
         test_zh
         """
-        return f"{sanitize_name(base)}_{self.__name}"
+        base = sanitize_name(base)
+        return base if self.__is_default else f"{base}_{self.__name}"
 
     def __repr__(self):
         """
@@ -186,13 +210,6 @@ class Lang:
             setattr(Lang.__get_langs, att, {})
         return getattr(Lang.__get_langs, att)
 
-    def register(self) -> None:
-        """Register this language setting."""
-        dc: Final[Dict[str, Lang]] = Lang.__get_langs()
-        if self.__name in dc:
-            raise ValueError(f"Language '{self.__name}' already registered.")
-        dc[self.__name] = self
-
     @staticmethod
     def get(name: str) -> 'Lang':
         """
@@ -216,7 +233,7 @@ class Lang:
 
         >>> Lang.get("en").set_current()
         >>> print(Lang.current().filename("b"))
-        b_en
+        b
         >>> Lang.get("zh").set_current()
         >>> print(Lang.current().filename("b"))
         b_zh
@@ -286,15 +303,68 @@ class Lang:
         return __tf
 
 
+# noinspection PyBroadException
+def __get_font(choices: List[str]) -> str:
+    """
+    Try to find an installed version of the specified font.
+
+    :param choices: the choices of the fonts
+    :returns: the installed name of the font, or the value of `choices[0]`
+        if no font was found
+    """
+    attr: Final[str] = "fonts_list"
+    func: Final = globals()["__get_font"]
+
+    # get the list of installed fonts
+    font_list: List[str]
+    if not hasattr(func, attr):
+        font_list = []
+        for fname in matplotlib.font_manager.findSystemFonts():
+            try:
+                font_name = matplotlib.font_manager.FontProperties(
+                    fname=fname).get_name().strip()
+                if font_name.encode("ascii", "ignore").decode() == font_name:
+                    font_list.append(font_name)
+            except BaseException:
+                continue
+        setattr(func, attr, font_list)
+    else:
+        font_list = getattr(func, attr)
+
+    # find the installed font
+    for choice in choices:
+        clc: str = choice.lower()
+        found_inside: Optional[str] = None
+        found_start: Optional[str] = None
+        for got in font_list:
+            gotlc = got.lower()
+            if clc == gotlc:
+                return got
+            if gotlc.startswith(clc):
+                found_start = got
+            if clc in gotlc:
+                found_inside = got
+        if found_start:
+            return found_start
+        if found_inside:
+            return found_inside
+
+    return choices[0]  # nothing found ... return default
+
+
 #: the English language
-EN: Final[Lang] = Lang("en", "DejaVu Sans", 3)
-EN.register()
-EN.set_current()
+EN: Final[Lang] = Lang("en",
+                       __get_font(["DejaVu Sans", "Calibri",
+                                   "Arial", "Helvetica"]),
+                       3, is_default=True)
 
 #: the German language
 DE: Final[Lang] = Lang("de", EN.font(), 3)
-DE.register()
 
 #: the Chinese language
-ZH: Final[Lang] = Lang("zh", "Noto Sans SC", 4)
-ZH.register()
+ZH: Final[Lang] = Lang("zh",
+                       __get_font(["Noto Sans SC", "FangSong", "SimSun",
+                                   "Arial Unicode", "SimHei"]),
+                       4)
+
+del __get_font  # get rid of no-longer needed data such as fonts list

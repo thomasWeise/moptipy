@@ -33,12 +33,12 @@ def default_column_namer(col: str) -> str:
     if not isinstance(col, str):
         raise type_error(col, "column name", str)
     if col == KEY_INSTANCE:
-        return "$\\instance$"
+        return "I"
     if col == KEY_ALGORITHM:
         return Lang.translate("setup")
     if col in ("lower_bound", "lower_bound_short", KEY_GOAL_F):
-        return "$\\lowerBound{\\objf}$"
-    if col == "summary":
+        return "lb(f)"
+    if col in "summary":
         return Lang.translate(col)
 
     if SCOPE_SEPARATOR not in col:
@@ -87,7 +87,90 @@ def default_column_namer(col: str) -> str:
         key = "T"
     elif key == KEY_FES_PER_MS:
         key = "FE/ms"
+    else:
+        raise ValueError(f"unknown key '{key}'.")
     return f"{stat}({key})"
+
+
+def command_column_namer(
+        col: str, put_dollars: bool = True,
+        summary_name: Callable[[bool], str]
+        = lambda put_dollars: Lang.translate("summary"),
+        setup_name: Callable[[bool], str]
+        = lambda put_dollars: r"$\setup$" if put_dollars else r"\setup") \
+        -> str:
+    """
+    Get the command-based names for columns, but in command format.
+
+    This function returns LaTeX-style commands for the column headers.
+
+    :param col: the column identifier
+    :param put_dollars: surround the command with `$`
+    :param summary_name: the name function for the key "summary"
+    :param setup_name: the name function for the key `KEY_ALGORITHM`
+    :returns: the column name
+    """
+    if not isinstance(col, str):
+        raise type_error(col, "column name", str)
+    if not isinstance(put_dollars, bool):
+        raise type_error(put_dollars, "put_dollars", bool)
+    if not callable(summary_name):
+        raise type_error(summary_name, "summary_name", call=True)
+    if not callable(setup_name):
+        raise type_error(setup_name, "setup_name", call=True)
+    if col == KEY_INSTANCE:
+        return r"$\instance$"
+    if col == KEY_ALGORITHM:
+        return setup_name(put_dollars)
+    if col in ("lower_bound", "lower_bound_short", KEY_GOAL_F):
+        return r"$\lowerBound(\objf)$" if \
+            put_dollars else r"\lowerBound(\objf)"
+    if col == "summary":
+        return summary_name(put_dollars)
+
+    if SCOPE_SEPARATOR not in col:
+        raise ValueError(
+            f"statistic '{col}' should contain '{SCOPE_SEPARATOR}'.")
+    key, stat = col.split(SCOPE_SEPARATOR)
+    if (len(key) <= 0) or (len(stat) <= 0):
+        raise ValueError(f"invalid statistic '{col}'.")
+
+    if key == KEY_BEST_F_SCALED:
+        key = F_NAME_SCALED
+    elif key == KEY_BEST_F:
+        key = F_NAME_RAW
+
+    # now fix statistics part
+    if stat == KEY_MEAN_ARITH:
+        stat = "mean"
+    elif stat == KEY_STDDEV:
+        stat = "stddev"
+    elif stat == KEY_MEAN_GEOM:
+        stat = "geomean"
+    elif stat == KEY_MEDIAN:
+        stat = "median"
+    elif stat == KEY_MINIMUM:
+        stat = "min"
+    elif stat == KEY_MAXIMUM:
+        stat = "max"
+    else:
+        raise ValueError(f"unknown statistic '{stat}' for '{col}'.")
+
+    if key == F_NAME_RAW:
+        key = "BestF"
+    elif key == F_NAME_SCALED:
+        key = "BestFscaled"
+    elif key == KEY_TOTAL_FES:
+        key = "TotalFEs"
+    elif key == KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+        key = "LIMS"
+    elif key == KEY_TOTAL_TIME_MILLIS:
+        key = "TotalMS"
+    elif key == KEY_FES_PER_MS:
+        key = "FEsMS"
+    else:
+        raise ValueError(f"unknown key '{key}'.")
+    return f"$\\{stat}{key}$" if put_dollars else f"\\{stat}{key}"
 
 
 def __finite_max(data: Iterable[Union[int, float, None]]) \
@@ -223,7 +306,7 @@ DEFAULT_ALGORITHM_SUMMARY_STATISTICS: Final[Tuple[
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_STDDEV}",
     f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
     f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
-    f"{KEY_MEAN_GEOM}")
+    f"{KEY_MEAN_ARITH}")
 
 
 def tabulate_end_results(
@@ -257,8 +340,8 @@ def tabulate_end_results(
     all instances. The following default columns are provided:
 
     1. Part 1: Algorithm-Instance statistics
-        - `$\instance$`: the instance name
-        - `$\lowerBound{\objf}$`: the lower bound of the objective value of
+        - `I`: the instance name
+        - `lb(f)`: the lower bound of the objective value of
           the instance
         - `setup`: the name of the algorithm or algorithm setup
         - `best`: the best objective value reached by any run on that instance

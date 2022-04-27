@@ -1196,8 +1196,8 @@ In their standard configuration, they two parts:
 1. Part 1 displays information about the algorithm-instance combinations.
    For each instance, it has one row per algorithm.
    This row displays, by default, the following information about the performance of the algorithm on the instance, aggregated over all runs:
-   - `$\instance$`: the instance name
-   - `$\lowerBound{\objf}$`: the lower bound of the objective value of the instance
+   - `I`: the instance name
+   - `lb(f)`: the lower bound of the objective value of the instance
    - `setup`: the name of the algorithm or algorithm setup
    - `best`: the best objective value reached by any run on that instance
    - `mean`: the arithmetic mean of the best objective values reached over all runs
@@ -1213,53 +1213,53 @@ In their standard configuration, they two parts:
    - `worst1`: the maximum of the best objective values reached divided by the lower bound (or goal objective value) over all runs
    - `sd1`: the standard deviation of the best objective values reached divided by the lower bound (or goal objective value) over all runs
    - `gmean(FE/ms)`: the geometric mean of objective function evaluations performed per millisecond, over all runs
-   - `gmean(t)`: the geometric mean of the time in milliseconds when the last improving move of a run was applied, over all runs
+   - `mean(t)`: the arithmetic mean of the time in milliseconds when the last improving move of a run was applied, over all runs
 
 For each column of each group (instances in part 1, the complete part 2), the best values are marked in **bold face**.
 
 Tables can be rendered to different formats, such as [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown), [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX), and [HTML](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.html.HTML).
 The example [examples/end_results_table.py](./examples/end_results_table.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
 
-|$\instance$|$\lowerBound{\objf}$|setup|best|mean|sd|mean1|mean(FE/ms)|mean(t)|
+|I|lb(f)|setup|best|mean|sd|mean1|mean(FE/ms)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|
-|`dmu23`|4'668|`ea1p1`|**5'875**|**6'166.9**|167.62|**1.321**|68.16|**10.286**|
-|||`hc`|6'204|6'326.6|**95.99**|1.355|**69.57**|**10.286**|
-|||`rs`|7'378|7'576.6|122.78|1.623|49.09|7.286|
-|`ft06`|55|`ea1p1`|**55**|**56.6**|1.99|**1.029**|87.46|4.714|
-|||`hc`|57|59.1|1.21|1.075|92.32|3.143|
-|||`rs`|60|60.4|**0.79**|1.099|**134.61**|**5.000**|
-|`la24`|935|`ea1p1`|**1'067**|**1'137.1**|48.06|**1.216**|85.40|8.571|
-|||`hc`|1'121|1'180.3|62.13|1.262|87.86|**9.429**|
-|||`rs`|1'375|1'404.3|**26.66**|1.502|**96.75**|3.000|
-|||setup|best1|gmean1|worst1|sd1|gmean(FE/ms)|gmean(t)|
-|summary||ea1p1|**1.000**|**1.182**|**1.377**|0.130|79.723|**6.564**|
-|summary||hc|1.036|1.225|1.385|**0.126**|82.627|6.008|
-|summary||rs|1.091|1.389|1.650|0.231|**86.146**|4.302|
+|`dmu23`|4'668|`ea1p1`|**5'875**|**6'164.9**|167.44|**1.321**|68.30|**10.429**|
+|||`hc`|6'216|6'330.1|**93.87**|1.356|**68.56**|10.143|
+|||`rs`|7'378|7'576.6|122.78|1.623|49.29|7.429|
+|`ft06`|55|`ea1p1`|**55**|**56.6**|1.99|**1.029**|82.56|5.000|
+|||`hc`|57|59.1|1.21|1.075|91.36|3.286|
+|||`rs`|60|60.4|**0.79**|1.099|**118.96**|**5.714**|
+|`la24`|935|`ea1p1`|**1'067**|**1'136.9**|48.46|**1.216**|85.62|9.286|
+|||`hc`|1'121|1'180.3|62.13|1.262|86.91|**9.429**|
+|||`rs`|1'375|1'404.3|**26.66**|1.502|**98.90**|3.000|
+|||setup|best1|gmean1|worst1|sd1|gmean(FE/ms)|mean(t)|
+|summary||ea1p1|**1.000**|**1.181**|**1.377**|0.130|78.287|**8.238**|
+|summary||hc|1.036|1.225|1.385|**0.126**|81.649|7.619|
+|summary||rs|1.091|1.389|1.650|0.231|**82.801**|5.381|
 
 It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX):
 
 ```latex
 \begin{tabular}{lrlrrrrrr}%
 \hrow%
-$\instance$&$\lowerBound{\objf}$&setup&best&mean&sd&mean1&mean(FE/ms)&mean(t)\\%
+I&lb(f)&setup&best&mean&sd&mean1&mean(FE/ms)&mean(t)\\%
 \hrow%
-{\texttt{dmu23}}&4'668&{\texttt{ea1p1}}&{\textbf{5'875}}&{\textbf{6'166.9}}&167.62&{\textbf{1.321}}&68.16&{\textbf{10.286}}\\%
-&&{\texttt{hc}}&6'204&6'326.6&{\textbf{95.99}}&1.355&{\textbf{69.57}}&{\textbf{10.286}}\\%
-&&{\texttt{rs}}&7'378&7'576.6&122.78&1.623&49.09&7.286\\%
+{\texttt{dmu23}}&4'668&{\texttt{ea1p1}}&{\textbf{5'875}}&{\textbf{6'164.9}}&167.44&{\textbf{1.321}}&68.30&{\textbf{10.429}}\\%
+&&{\texttt{hc}}&6'216&6'330.1&{\textbf{93.87}}&1.356&{\textbf{68.56}}&10.143\\%
+&&{\texttt{rs}}&7'378&7'576.6&122.78&1.623&49.29&7.429\\%
 \hrow%
-{\texttt{ft06}}&55&{\texttt{ea1p1}}&{\textbf{55}}&{\textbf{56.6}}&1.99&{\textbf{1.029}}&87.46&4.714\\%
-&&{\texttt{hc}}&57&59.1&1.21&1.075&92.32&3.143\\%
-&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{134.61}}&{\textbf{5.000}}\\%
+{\texttt{ft06}}&55&{\texttt{ea1p1}}&{\textbf{55}}&{\textbf{56.6}}&1.99&{\textbf{1.029}}&82.56&5.000\\%
+&&{\texttt{hc}}&57&59.1&1.21&1.075&91.36&3.286\\%
+&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{118.96}}&{\textbf{5.714}}\\%
 \hrow%
-{\texttt{la24}}&935&{\texttt{ea1p1}}&{\textbf{1'067}}&{\textbf{1'137.1}}&48.06&{\textbf{1.216}}&85.40&8.571\\%
-&&{\texttt{hc}}&1'121&1'180.3&62.13&1.262&87.86&{\textbf{9.429}}\\%
-&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&{\textbf{96.75}}&3.000\\%
+{\texttt{la24}}&935&{\texttt{ea1p1}}&{\textbf{1'067}}&{\textbf{1'136.9}}&48.46&{\textbf{1.216}}&85.62&9.286\\%
+&&{\texttt{hc}}&1'121&1'180.3&62.13&1.262&86.91&{\textbf{9.429}}\\%
+&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&{\textbf{98.90}}&3.000\\%
 \hrow%
-&&setup&best1&gmean1&worst1&sd1&gmean(FE/ms)&gmean(t)\\%
+&&setup&best1&gmean1&worst1&sd1&gmean(FE/ms)&mean(t)\\%
 \hrow%
-summary&&ea1p1&{\textbf{1.000}}&{\textbf{1.182}}&{\textbf{1.377}}&0.130&79.723&{\textbf{6.564}}\\%
-summary&&hc&1.036&1.225&1.385&{\textbf{0.126}}&82.627&6.008\\%
-summary&&rs&1.091&1.389&1.650&0.231&{\textbf{86.146}}&4.302\\%
+summary&&ea1p1&{\textbf{1.000}}&{\textbf{1.181}}&{\textbf{1.377}}&0.130&78.287&{\textbf{8.238}}\\%
+summary&&hc&1.036&1.225&1.385&{\textbf{0.126}}&81.649&7.619\\%
+summary&&rs&1.091&1.389&1.650&0.231&{\textbf{82.801}}&5.381\\%
 \hrow%
 \end{tabular}%
 ```
