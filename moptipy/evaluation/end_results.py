@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from math import inf, isfinite
 from typing import Union, List, Final, Optional, Iterable, Callable, Any, Dict
 
-from moptipy.api import logging
 from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
     KEY_TOTAL_TIME_MILLIS, KEY_GOAL_F, KEY_BEST_F, KEY_MAX_TIME_MILLIS, \
-    KEY_MAX_FES
+    KEY_MAX_FES, FILE_SUFFIX, SECTION_FINAL_STATE, SECTION_SETUP, \
+    KEY_INSTANCE, KEY_ALGORITHM, KEY_RAND_SEED
 from moptipy.evaluation._utils import _FULL_KEY_RAND_SEED, _FULL_KEY_MAX_FES, \
     _FULL_KEY_GOAL_F, _FULL_KEY_MAX_TIME_MILLIS, _check_max_time_millis
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
@@ -20,13 +20,14 @@ from moptipy.utils.logger import parse_key_values
 from moptipy.utils.math import try_int, try_float_div, try_int_div
 from moptipy.utils.path import Path
 from moptipy.utils.strings import intfloatnone_to_str, intnone_to_str, \
-    str_to_intfloat, str_to_intfloatnone, str_to_intnone, num_to_str
+    str_to_intfloat, str_to_intfloatnone, str_to_intnone, num_to_str, \
+    sanitize_names
 from moptipy.utils.types import type_error
 
 #: The internal CSV header
-_HEADER = f"{logging.KEY_ALGORITHM}{CSV_SEPARATOR}" \
-          f"{logging.KEY_INSTANCE}{CSV_SEPARATOR}" \
-          f"{logging.KEY_RAND_SEED}{CSV_SEPARATOR}" \
+_HEADER = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
+          f"{KEY_INSTANCE}{CSV_SEPARATOR}" \
+          f"{KEY_RAND_SEED}{CSV_SEPARATOR}" \
           f"{KEY_BEST_F}{CSV_SEPARATOR}" \
           f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}" \
           f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
@@ -257,6 +258,21 @@ class EndResult(PerRunData):
         """
         return False if self.goal_f is None else self.best_f <= self.goal_f
 
+    def path_to_file(self, base_dir: str) -> Path:
+        """
+        Get the path that would correspond to the log file of this end result.
+
+        Obtain a path that would correspond to the log file of this end
+        result, resolved from a base directory `base_dir`.
+
+        :param base_dir: the base directory
+        :returns: the path to a file corresponding to the end result record
+        """
+        return Path.path(base_dir).resolve_inside(
+            self.algorithm).resolve_inside(self.instance).resolve_inside(
+            sanitize_names([self.algorithm, self.instance,
+                            hex(self.rand_seed)]) + FILE_SUFFIX)
+
     @staticmethod
     def getter(dimension: str) -> Callable[['EndResult'], Union[int, float]]:
         """
@@ -423,8 +439,8 @@ class _InnerLogParser(ExperimentParser):
         if self.__state != 3:
             raise ValueError(
                 "Illegal state, log file must have both a "
-                f"{logging.SECTION_FINAL_STATE} and a "
-                f"{logging.SECTION_SETUP} section.")
+                f"{SECTION_FINAL_STATE} and a "
+                f"{SECTION_SETUP} section.")
 
         if self.rand_seed is None:
             raise ValueError("rand_seed is missing.")
@@ -468,12 +484,12 @@ class _InnerLogParser(ExperimentParser):
 
     def start_section(self, title: str) -> bool:
         super().start_section(title)
-        if title == logging.SECTION_SETUP:
+        if title == SECTION_SETUP:
             if (self.__state & 1) != 0:
                 raise ValueError(f"Already did section {title}.")
             self.__state |= 4
             return True
-        if title == logging.SECTION_FINAL_STATE:
+        if title == SECTION_FINAL_STATE:
             if (self.__state & 2) != 0:
                 raise ValueError(f"Already did section {title}.")
             self.__state |= 8

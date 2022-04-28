@@ -8,13 +8,15 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.plot_end_results_impl import plot_end_results
 from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
+from moptipy.utils.path import Path
 
 
 def plot_end_makespans(end_results: Iterable[EndResult],
                        name_base: str,
                        dest_dir: str,
                        instance_sort_key: Callable = lambda x: x,
-                       algorithm_sort_key: Callable = lambda x: x) -> None:
+                       algorithm_sort_key: Callable = lambda x: x) \
+        -> List[Path]:
     """
     Plot a set of end result boxes/violins functions into one chart.
 
@@ -23,6 +25,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     :param dest_dir: the destination directory
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
+    :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
     algorithms: Set[str] = set()
@@ -45,6 +48,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
         raise ValueError(f"{n_algos} are just too many algorithms...")
     max_insts: Final[int] = 16 // n_algos
     insts: Final[List[str]] = sorted(instances, key=instance_sort_key)
+    result: Final[List[Path]] = []
 
     for lang in Lang.all():
         lang.set_current()
@@ -62,9 +66,11 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                              instance_sort_key=instance_sort_key,
                              algorithm_sort_key=algorithm_sort_key)
 
-        pu.save_figure(fig=figure,
-                       file_name=lang.filename(name_base),
-                       dir_name=dest_dir)
+        result.extend(pu.save_figure(fig=figure,
+                                     file_name=lang.filename(name_base),
+                                     dir_name=dest_dir))
         del figure
 
     logger(f"finished plotting chart {name_base}.")
+    result.sort()
+    return result

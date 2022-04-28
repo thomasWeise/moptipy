@@ -77,6 +77,9 @@ def test_experiment_jssp():
         assert len(results) == (4 * 2 * 3)
         results.sort()
 
+        for err in results:
+            assert err.path_to_file(base_dir).is_file()
+
         for i in range(0, 12):
             assert results[i].algorithm == "1rs"
         for i in range(12, 24):
