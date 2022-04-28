@@ -279,7 +279,35 @@ class Lang:
         return Lang.current()[key]
 
     @staticmethod
-    def translate_func(func: str) -> Callable:
+    def translate_call(key: str) -> Callable:
+        """
+        Get a callable that always returns the current translation of a key.
+
+        The callable will ignore all of its parameters and just return the
+        translation. This means that you can pass parameters to it and they
+        will be ignored.
+
+        :param key: the key to translate
+        :returns: the callable doing the translation
+
+        >>> cal = Lang.translate_call("a")
+        >>> EN.extend({'a': 'b'})
+        >>> EN.set_current()
+        >>> print(cal())
+        b
+        >>> print(cal(1, 2, 3))
+        b
+        >>> DE.extend({'a': 'c'})
+        >>> Lang.get("de").set_current()
+        >>> print(cal("x"))
+        c
+        """
+        def __trc(*_, ___key=key) -> str:
+            return Lang.current()[___key]
+        return __trc
+
+    @staticmethod
+    def translate_func(func: str) -> Callable[[str], str]:
         """
         Create a lambda taking a dimensions and presenting a function thereof.
 

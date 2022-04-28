@@ -47,27 +47,60 @@ __RIGHT_END_MARK: Final[Tuple[float, float, float]] = (0.02, 0.02, 0.95)
 __MIDDLE_MARK: Final[Tuple[float, float, float]] = pd.COLOR_BLACK
 
 
-def plot_gantt_chart(gantt: Gantt,
-                     figure: Union[SubplotBase, Figure],
-                     markers: Optional[Iterable[Union[
-                         Tuple[str, Union[int, float]], Callable]]] =
-                     (marker_lb,),
-                     x_axis: Union[AxisRanger, Callable] =
-                     lambda gantt: AxisRanger(chosen_min=0),
-                     importance_to_line_width_func: Callable =
-                     pd.importance_to_line_width,
-                     importance_to_font_size_func: Callable =
-                     pd.importance_to_font_size,
-                     info: Union[None, str, Callable] = lambda g:
-                     Lang.current().format("gantt_info", gantt=g),
-                     xgrid: bool = False,
-                     ygrid: bool = False,
-                     xlabel: Union[None, str, Callable] = lambda g:
-                     Lang.current()["time"],
-                     xlabel_inside: bool = True,
-                     ylabel: Union[None, str, Callable] = lambda g:
-                     Lang.current()["machine"],
-                     ylabel_inside: bool = True) -> None:
+#: the default markers
+__DEFAULT_MARKERS: Final[Tuple[Callable[
+    [Gantt], Tuple[str, Union[int, float]]]]] = (marker_lb,)
+
+
+def __default_gantt_x_range(_: Gantt) -> AxisRanger:
+    """
+    Get the default gantt axis ranger for the horizontal axes.
+
+    :param _: the Gantt chart; ignored
+    :returns: the axis ranger
+    """
+    return AxisRanger(chosen_min=0)
+
+
+def __default_gantt_info(gantt: Gantt) -> str:
+    """
+    Get the information string for a Gantt chart.
+
+    :param gantt: the Gantt chart.
+    :returns: the information string
+    """
+    return Lang.current().format("gantt_info", gantt=gantt)
+
+
+#: the default name for the horizontal axes
+__DEFAULT_GANTT_X_NAME: Callable[[Gantt], str] = \
+    Lang.translate_call("time")
+#: the default name for the vertical axes
+__DEFAULT_GANTT_Y_NAME: Callable[[Gantt], str] = \
+    Lang.translate_call("machine")
+
+
+def plot_gantt_chart(
+        gantt: Gantt,
+        figure: Union[SubplotBase, Figure],
+        markers: Optional[Iterable[Union[
+            Tuple[str, Union[int, float]], Callable[[Gantt], Tuple[
+                str, Union[int, float]]]]]] = __DEFAULT_MARKERS,
+        x_axis: Union[AxisRanger, Callable[[Gantt], AxisRanger]] =
+        __default_gantt_x_range,
+        importance_to_line_width_func: Callable[[int], float] =
+        pd.importance_to_line_width,
+        importance_to_font_size_func: Callable[[int], float] =
+        pd.importance_to_font_size,
+        info: Union[None, str, Callable[[Gantt], str]] = __default_gantt_info,
+        xgrid: bool = False,
+        ygrid: bool = False,
+        xlabel: Union[None, str, Callable[[Gantt], str]] =
+        __DEFAULT_GANTT_X_NAME,
+        xlabel_inside: bool = True,
+        ylabel: Union[None, str, Callable[[Gantt], str]] =
+        __DEFAULT_GANTT_Y_NAME,
+        ylabel_inside: bool = True) -> None:
     """
     Plot a Gantt chart.
 
