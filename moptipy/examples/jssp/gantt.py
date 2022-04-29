@@ -55,7 +55,10 @@ class Gantt(np.ndarray):
         parser: Final[_GanttParser] = _GanttParser(instance)
         parser.parse_file(file)
         # noinspection PyProtectedMember
-        return parser._result
+        res = parser._result
+        if res is None:
+            raise ValueError("Failed to load Gantt chart.")
+        return res
 
 
 class _GanttParser(LogParser):

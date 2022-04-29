@@ -1,6 +1,6 @@
 """The JSSP-example specific plots."""
 
-from typing import Final, Callable, Iterable, Set, List
+from typing import Final, Callable, Iterable, Set, List, Dict
 
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.base import F_NAME_SCALED
@@ -59,12 +59,18 @@ def plot_end_makespans(end_results: Iterable[EndResult],
         for plot, start_inst, end_inst, _, _, _ in plots:
             instances.clear()
             instances.update(insts[start_inst:end_inst])
-            plot_end_results(end_results=[er for er in end_results
-                                          if er.instance in instances],
-                             figure=plot,
-                             dimension=F_NAME_SCALED,
-                             instance_sort_key=instance_sort_key,
-                             algorithm_sort_key=algorithm_sort_key)
+            kwargs: Dict[str, any] = {
+                "end_results": [er for er in end_results
+                                if er.instance in instances],
+                "figure": plot,
+                "dimension": F_NAME_SCALED,
+                "instance_sort_key": instance_sort_key,
+                "algorithm_sort_key": algorithm_sort_key,
+                "ylabel_location": 1
+            }
+            if n_algos <= 1:
+                kwargs["xlabel"] = list(algorithms)[0]
+            plot_end_results(**kwargs)
 
         result.extend(pu.save_figure(fig=figure,
                                      file_name=lang.filename(name_base),

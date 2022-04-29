@@ -31,8 +31,10 @@ def plot_end_results(
         xgrid: bool = True,
         xlabel: Union[None, str, Callable] = Lang.translate,
         xlabel_inside: bool = True,
+        xlabel_location: float = 1,
         ylabel: Union[None, str, Callable] = Lang.translate,
         ylabel_inside: bool = True,
+        ylabel_location: float = 0.5,
         legend_pos: str = "best",
         instance_sort_key: Callable = lambda x: x,
         algorithm_sort_key: Callable = lambda x: x) -> None:
@@ -68,10 +70,12 @@ def plot_end_results(
         string, or `None` if no label should be put
     :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
+    :param xlabel_location: the location of the x-label
     :param ylabel: a callable returning the label for the y-axis, a label
         string, or `None` if no label should be put
     :param ylabel_inside: put the y-axis label inside the plot (so that it
         does not consume additional horizontal space)
+    :param ylabel_location: the location of the y-label
     :param legend_pos: the legend position
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
@@ -289,10 +293,10 @@ def plot_end_results(
                   xlabel=xlabel("algorithm_on_instance")
                   if callable(xlabel) else xlabel,
                   xlabel_inside=xlabel_inside,
-                  xlabel_location=1,
+                  xlabel_location=xlabel_location,
                   ylabel=ylabel(dimension) if callable(ylabel) else ylabel,
                   ylabel_inside=ylabel_inside,
-                  ylabel_location=0.5,
+                  ylabel_location=ylabel_location,
                   font_size=font_size_0,
                   zorder=zorder)
 

@@ -81,7 +81,7 @@ __DEFAULT_GANTT_Y_NAME: Callable[[Gantt], str] = \
 
 
 def plot_gantt_chart(
-        gantt: Gantt,
+        gantt: Union[Gantt, str],
         figure: Union[SubplotBase, Figure],
         markers: Optional[Iterable[Union[
             Tuple[str, Union[int, float]], Callable[[Gantt], Tuple[
@@ -104,7 +104,7 @@ def plot_gantt_chart(
     """
     Plot a Gantt chart.
 
-    :param gantt: the gantt chart
+    :param gantt: the gantt chart or a path to a file to load it from
     :param figure: the figure
     :param markers: a set of markers
     :param x_axis: the ranger for the x-axis
@@ -124,8 +124,10 @@ def plot_gantt_chart(
     :param ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     """
+    if isinstance(gantt, str):
+        gantt = Gantt.from_log(gantt)
     if not isinstance(gantt, Gantt):
-        raise type_error(gantt, "gantt", Gantt)
+        raise type_error(gantt, "gantt", (Gantt, str))
     axes: Final[Axes] = pu.get_axes(figure)
 
     # grab the data
