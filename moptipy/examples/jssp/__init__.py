@@ -18,6 +18,7 @@ def __lang_setup():
                       "makespan {gantt[:,:,2].max()}",
         "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
                             "jobs \u00D7 {gantt.instance.machines} machines)",
+        "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "machine",
         "makespan": "makespan"
     })
@@ -28,6 +29,7 @@ def __lang_setup():
                       "Makespan {gantt[:,:,2].max()}",
         "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs} "
                             "Jobs \u00D7 {gantt.instance.machines} Maschinen)",
+        "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "Maschine",
         "makespan": "Makespan"
     })
@@ -38,6 +40,7 @@ def __lang_setup():
                       "最大完工时间{gantt[:,:,2].max()}",
         "gantt_info_no_ms": "{gantt.instance.name}（{gantt.instance.jobs}份作业"
                             "\u00D7{gantt.instance.machines}台机器）",
+        "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "机器",
         "makespan": "最大完工时间"
     })

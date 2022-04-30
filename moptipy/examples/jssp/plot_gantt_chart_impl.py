@@ -47,60 +47,30 @@ __RIGHT_END_MARK: Final[Tuple[float, float, float]] = (0.02, 0.02, 0.95)
 __MIDDLE_MARK: Final[Tuple[float, float, float]] = pd.COLOR_BLACK
 
 
-#: the default markers
-__DEFAULT_MARKERS: Final[Tuple[Callable[
-    [Gantt], Tuple[str, Union[int, float]]]]] = (marker_lb,)
-
-
-def __default_gantt_x_range(_: Gantt) -> AxisRanger:
-    """
-    Get the default gantt axis ranger for the horizontal axes.
-
-    :param _: the Gantt chart; ignored
-    :returns: the axis ranger
-    """
-    return AxisRanger(chosen_min=0)
-
-
-def __default_gantt_info(gantt: Gantt) -> str:
-    """
-    Get the information string for a Gantt chart.
-
-    :param gantt: the Gantt chart.
-    :returns: the information string
-    """
-    return Lang.current().format("gantt_info", gantt=gantt)
-
-
-#: the default name for the horizontal axes
-__DEFAULT_GANTT_X_NAME: Callable[[Gantt], str] = \
-    Lang.translate_call("time")
-#: the default name for the vertical axes
-__DEFAULT_GANTT_Y_NAME: Callable[[Gantt], str] = \
-    Lang.translate_call("machine")
-
-
 def plot_gantt_chart(
         gantt: Union[Gantt, str],
         figure: Union[SubplotBase, Figure],
         markers: Optional[Iterable[Union[
             Tuple[str, Union[int, float]], Callable[[Gantt], Tuple[
-                str, Union[int, float]]]]]] = __DEFAULT_MARKERS,
+                str, Union[int, float]]]]]] = (marker_lb,),
         x_axis: Union[AxisRanger, Callable[[Gantt], AxisRanger]] =
-        __default_gantt_x_range,
+        lambda gantt: AxisRanger(chosen_min=0),
         importance_to_line_width_func: Callable[[int], float] =
         pd.importance_to_line_width,
         importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
-        info: Union[None, str, Callable[[Gantt], str]] = __default_gantt_info,
+        info: Union[None, str, Callable[[Gantt], str]] =
+        lambda gantt: Lang.current().format("gantt_info", gantt=gantt),
         xgrid: bool = False,
         ygrid: bool = False,
         xlabel: Union[None, str, Callable[[Gantt], str]] =
-        __DEFAULT_GANTT_X_NAME,
+        Lang.translate_call("time"),
         xlabel_inside: bool = True,
+        xlabel_location: float = 1.0,
         ylabel: Union[None, str, Callable[[Gantt], str]] =
-        __DEFAULT_GANTT_Y_NAME,
-        ylabel_inside: bool = True) -> None:
+        Lang.translate_call("machine"),
+        ylabel_inside: bool = True,
+        ylabel_location: float = 0.5) -> None:
     """
     Plot a Gantt chart.
 
@@ -119,10 +89,12 @@ def plot_gantt_chart(
         the x-axis, a label string, or `None` if no label should be put
     :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
+    :param xlabel_location: the location of the x-label
     :param ylabel: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
     :param ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
+    :param ylabel_location: the location of the y-label
     """
     if isinstance(gantt, str):
         gantt = Gantt.from_log(gantt)
@@ -321,10 +293,10 @@ def plot_gantt_chart(
     pu.label_axes(axes=axes,
                   xlabel=xlabel(gantt) if callable(xlabel) else xlabel,
                   xlabel_inside=xlabel_inside,
-                  xlabel_location=0.5,
+                  xlabel_location=xlabel_location,
                   ylabel=ylabel(gantt) if callable(ylabel) else ylabel,
                   ylabel_inside=ylabel_inside,
-                  ylabel_location=0.5,
+                  ylabel_location=ylabel_location,
                   font_size=info_font_size,
                   zorder=zorder)
     zorder = zorder + 1

@@ -1,6 +1,6 @@
 """Violin plots for end results."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Tuple, Set, Optional, Any
+    Tuple, Set, Optional, Any, cast
 
 import matplotlib.collections as mc  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -134,7 +134,8 @@ def plot_end_results(
     inst_algos: List[Tuple[str, List[str]]] = []
     plot_data: List[List[Union[int, float]]] = []
     plot_algos: List[str] = []
-    for inst in sorted(data.keys(), key=instance_sort_key):
+    instances: Final[List[str]] = sorted(data.keys(), key=instance_sort_key)
+    for inst in instances:
         per_inst_data = data[inst]
         algo_names: List[str] = sorted(per_inst_data.keys())
         plot_algos.extend(algo_names)
@@ -288,10 +289,21 @@ def plot_end_results(
     else:
         axes.set_xticks([])
 
+    # compute the x-label
+    if xlabel is not None:
+        if not isinstance(xlabel, str):
+            if not callable(xlabel):
+                raise type_error(xlabel, "xlabel", str, True)
+            if (n_algorithms == 1) and (n_instances > 1):
+                xlabel = algorithms[0]
+            elif (n_algorithms > 1) and (n_instances == 1):
+                xlabel = instances[0]
+            else:
+                xlabel = xlabel("algorithm_on_instance")
+
     zorder += 1
     pu.label_axes(axes=axes,
-                  xlabel=xlabel("algorithm_on_instance")
-                  if callable(xlabel) else xlabel,
+                  xlabel=cast(Optional[str], xlabel),
                   xlabel_inside=xlabel_inside,
                   xlabel_location=xlabel_location,
                   ylabel=ylabel(dimension) if callable(ylabel) else ylabel,

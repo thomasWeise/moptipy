@@ -12,7 +12,8 @@ from moptipy.evaluation.tabulate_end_results_impl import \
     DEFAULT_ALGORITHM_SUMMARY_STATISTICS, \
     tabulate_end_results, command_column_namer
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
-from moptipy.examples.jssp.plots import plot_end_makespans
+from moptipy.examples.jssp.plots import plot_end_makespans, \
+    plot_median_gantt_charts
 from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
@@ -193,6 +194,11 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         dest_dir=dest,
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key)
+    plot_median_gantt_charts(get_end_results(end_results, algos={"1rs"}),
+                             name_base="gantt_1rs",
+                             dest_dir=dest,
+                             results_dir=source,
+                             instance_sort_key=instance_sort_key)
 
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"1rs", "rs"}),
