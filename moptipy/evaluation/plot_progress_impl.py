@@ -1,6 +1,6 @@
 """Plot a set of `Progress` or `StatRun` objects into one figure."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional
+    Optional, Any
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -35,11 +35,17 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                   ygrid: bool = True,
                   xlabel: Union[None, str, Callable] = Lang.translate,
                   xlabel_inside: bool = True,
+                  xlabel_location: float = 0.5,
                   ylabel: Union[None, str, Callable] = Lang.translate,
                   ylabel_inside: bool = True,
+                  ylabel_location: float = 1.0,
                   inst_priority: float = 0.666,
                   algo_priority: float = 0.333,
-                  stat_priority: float = 0.0) -> None:
+                  stat_priority: float = 0.0,
+                  instance_sort_key: Callable[[str], str] = lambda x: x,
+                  algorithm_sort_key: Callable[[str], str] = lambda x: x,
+                  stat_sort_key: Callable[[str], str] = lambda x: x,
+                  color_algorithms_as_fallback_group: bool = True) -> None:
     """
     Plot a set of progress or statistical run lines into one chart.
 
@@ -62,22 +68,32 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         string, or `None` if no label should be put
     :param xlabel_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
+    :param xlabel_location: the location of the x-axis label
     :param ylabel: a callable returning the label for the y-axis, a label
         string, or `None` if no label should be put
     :param ylabel_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
+    :param ylabel_location: the location of the y-axis label
     :param inst_priority: the style priority for instances
     :param algo_priority: the style priority for algorithms
     :param stat_priority: the style priority for statistics
+    :param instance_sort_key: the sort key function for instances
+    :param algorithm_sort_key: the sort key function for algorithms
+    :param stat_sort_key: the sort key function for statistics
+    :param color_algorithms_as_fallback_group: if only a single group of data
+        was found, use algorithms as group and put them in the legend
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
     instances: Final[Styler] = Styler(get_instance, "all insts",
-                                      inst_priority)
+                                      inst_priority,
+                                      name_sort_function=instance_sort_key)
     algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
-                                       algo_priority)
+                                       algo_priority,
+                                       name_sort_function=algorithm_sort_key)
     statistics: Final[Styler] = Styler(get_statistic, "single run",
-                                       stat_priority)
+                                       stat_priority,
+                                       name_sort_function=stat_sort_key)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
     progress_list: List[Progress] = []
@@ -114,11 +130,30 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
             ((len(progress_list) + len(statrun_list)) <= 0):
         raise ValueError("Illegal state?")
 
-    statrun_list.sort(key=sort_key)
-    progress_list.sort()
     instances.compile()
     algorithms.compile()
     statistics.compile()
+
+    # pick the right sorting order
+    sf: Callable[[Union[StatRun, Progress]], Any] = sort_key
+    if (instances.count > 1) and (algorithms.count == 1) \
+            and (statistics.count == 1):
+        def __x(r: Union[StatRun, Progress], ssf=instance_sort_key) -> str:
+            return ssf(r.instance)
+        sf = __x
+    elif (instances.count == 1) and (algorithms.count > 1) \
+            and (statistics.count == 1):
+        def __x(r: Union[StatRun, Progress], ssf=algorithm_sort_key) -> str:
+            return ssf(r.instance)
+        sf = __x
+    elif (instances.count == 1) and (algorithms.count == 1) \
+            and (statistics.count > 1):
+        def __x(r: Union[StatRun, Progress], ssf=stat_sort_key) -> str:
+            return ssf(r.instance)
+        sf = __x
+
+    statrun_list.sort(key=sf)
+    progress_list.sort()
 
     def __set_importance(st: Styler):
         if st is statistics:
@@ -167,6 +202,9 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                         f"Cannot have {g.count} importance values.")
                 __set_importance(g)
                 no_importance = False
+    elif color_algorithms_as_fallback_group:
+        algorithms.set_line_color(distinct_colors_func)
+        groups.append(algorithms)
 
     if add_stat_to_groups:
         groups.append(statistics)
@@ -261,17 +299,18 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
         if statistics.has_style:
             statistics.add_to_legend(handles.append)
 
-        axes.legend(loc="upper right",
-                    handles=handles,
-                    labelcolor=[art.color if hasattr(art, "color")
-                                else pd.COLOR_BLACK for art in handles],
-                    fontsize=font_size_0)
+        if len(handles) > 0:
+            axes.legend(loc="upper right",
+                        handles=handles,
+                        labelcolor=[art.color if hasattr(art, "color")
+                                    else pd.COLOR_BLACK for art in handles],
+                        fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
                   xlabel=xlabel(x_dim) if callable(xlabel) else xlabel,
                   xlabel_inside=xlabel_inside,
-                  xlabel_location=0.5,
+                  xlabel_location=xlabel_location,
                   ylabel=ylabel(y_dim) if callable(ylabel) else ylabel,
                   ylabel_inside=ylabel_inside,
-                  ylabel_location=1,
+                  ylabel_location=ylabel_location,
                   font_size=font_size_0)

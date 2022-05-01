@@ -72,7 +72,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
     goals: Final[Styler] = Styler(get_goal, goal_to_str, goal_priority,
-                                  sort_by_name=False)
+                                  name_sort_function=None)
     algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
                                        algo_priority)
     f_dim: Optional[str] = None

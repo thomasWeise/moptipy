@@ -1,6 +1,6 @@
 """Styler allows to discover groups of data and associate styles with them."""
 from typing import Callable, Final, Union, Set, Tuple, Any, Dict, Optional, \
-    Iterable
+    Iterable, cast
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
@@ -29,7 +29,8 @@ class Styler:
                  key_func: Callable,
                  namer: Union[str, Callable] = str,
                  priority: Union[int, float] = 0,
-                 sort_by_name: bool = True):
+                 name_sort_function: Optional[Callable[[str], str]] =
+                 lambda s: s):
         """
         Initialize the style grouper.
 
@@ -38,7 +39,8 @@ class Styler:
             string to be used for replacing `None` keys as names (in which
             case all non-`None` keys are used as names as-is)
         :param priority: the base priority of this grouper
-        :param sort_by_name: Sort by name (`True`) or by key (`False`)
+        :param name_sort_function: the function for sorting names, or `None`
+            if no name-based sorting shall be performed
         """
         if not callable(key_func):
             raise type_error(key_func, "key function", call=True)
@@ -51,10 +53,14 @@ class Styler:
             name_f = namer
         if not isinstance(priority, (float, int)):
             raise type_error(priority, "priority", (int, float))
-        if not isinstance(sort_by_name, bool):
-            raise type_error(sort_by_name, "sort_by_name", bool)
+
+        if name_sort_function is not None:
+            if not callable(name_sort_function):
+                raise type_error(name_sort_function, "name_sort_function",
+                                 type(None), call=True)
         #: Sort by name (`True`) or by key (`False`)
-        self.__sort_by_name: Final[bool] = sort_by_name
+        self.__name_sort_function: Final[Optional[Callable[[str], str]]] = \
+            name_sort_function
 
         #: The key function of the grouper
         self.key_func: Final[Callable] = key_func
@@ -87,20 +93,21 @@ class Styler:
         if self.has_none:
             self.__collection.remove(None)
 
-        if self.__sort_by_name:
-            data = [(self.name_func(k), k) for k in self.__collection]
-            data.sort()
-            if self.has_none:
-                data.insert(0, (self.name_func(None), None))
-            self.names = tuple([x[0] for x in data])
-            self.keys = tuple([x[1] for x in data])
-        else:
+        nsf: Final[Optional[Callable[[str], str]]] = self.__name_sort_function
+        if nsf is None:
             data = [(k, self.name_func(k)) for k in self.__collection]
             data.sort()
             if self.has_none:
                 data.insert(0, (None, self.name_func(None)))
             self.keys = tuple([x[0] for x in data])
             self.names = tuple([x[1] for x in data])
+        else:
+            data = [(self.name_func(k), k) for k in self.__collection]
+            data.sort(key=cast(Callable, lambda x, nsf2=nsf: nsf2(x[0])))
+            if self.has_none:
+                data.insert(0, (self.name_func(None), None))
+            self.names = tuple([x[0] for x in data])
+            self.keys = tuple([x[1] for x in data])
 
         del self.__collection
         del data

@@ -13,7 +13,7 @@ from moptipy.evaluation.tabulate_end_results_impl import \
     tabulate_end_results, command_column_namer
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans, \
-    plot_median_gantt_charts
+    plot_median_gantt_charts, plot_progresses
 from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
@@ -168,6 +168,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     if not end_stats:
         raise ValueError("End stats path is empty??")
 
+    logger("Now evaluating the single random sampling algorithm `1rs`.")
     for lang in Lang.all():
         lang.set_current()
         tabulate_end_results(
@@ -187,7 +188,6 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
             instance_sort_key=instance_sort_key,
             algorithm_sort_key=algorithm_sort_key,
             col_namer=command_column_namer)
-
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"1rs"}),
         name_base="makespan_scaled_1rs",
@@ -200,27 +200,37 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                              results_dir=source,
                              instance_sort_key=instance_sort_key)
 
+    logger("Now evaluating the multi-random sampling algorithm `rs`.")
+    for lang in Lang.all():
+        lang.set_current()
+        tabulate_end_results(
+            end_results=get_end_results(end_results, algos={"1rs", "rs"}),
+            file_name="end_results_rs",
+            dir_name=dest,
+            instance_sort_key=instance_sort_key,
+            algorithm_sort_key=algorithm_sort_key,
+            col_namer=command_column_namer)
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"1rs", "rs"}),
         name_base="makespan_scaled_rs",
         dest_dir=dest,
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key)
-
-    plot_end_makespans(
-        end_results=get_end_results(end_results, algos={"rs", "hc_swap2"}),
-        name_base="makespan_scaled_hc_swap2",
-        dest_dir=dest,
-        instance_sort_key=instance_sort_key,
-        algorithm_sort_key=algorithm_sort_key)
-
-    plot_end_makespans(
-        end_results=get_end_results(end_results,
-                                    algos={"rs", "hc_swap2", "ea1p1_swap2"}),
-        name_base="makespan_scaled_ea1p1_swap2",
-        dest_dir=dest,
-        instance_sort_key=instance_sort_key,
-        algorithm_sort_key=algorithm_sort_key)
+    plot_median_gantt_charts(get_end_results(end_results, algos={"rs"}),
+                             name_base="gantt_rs",
+                             dest_dir=dest,
+                             results_dir=source,
+                             instance_sort_key=instance_sort_key)
+    plot_progresses(results_dir=source,
+                    algorithms=["rs"],
+                    name_base="progress_rs",
+                    dest_dir=dest,
+                    log_time=False)
+    plot_progresses(results_dir=source,
+                    algorithms=["rs"],
+                    name_base="progress_rs_log_T",
+                    dest_dir=dest,
+                    log_time=True)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

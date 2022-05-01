@@ -5,9 +5,13 @@ from statistics import median
 from typing import Final, Callable, Iterable, Set, List, Dict, Optional, Union
 
 import moptipy.utils.plot_utils as pu
-from moptipy.evaluation.base import F_NAME_SCALED
+from moptipy.evaluation.axis_ranger import AxisRanger
+from moptipy.evaluation.base import F_NAME_SCALED, TIME_UNIT_MILLIS, F_NAME_RAW
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.plot_end_results_impl import plot_end_results
+from moptipy.evaluation.plot_progress_impl import plot_progress
+from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.stat_run import StatRun, STAT_MEAN_ARITH
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart
 from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
@@ -122,7 +126,7 @@ def plot_median_gantt_charts(
     if not callable(instance_sort_key):
         raise type_error(instance_sort_key, "instance_sort_key", call=True)
 
-    results: Final[List[Path]] = []
+    results: Final[List[Path]] = []  # the list of generated files
 
     # gather all the data
     data: Final[Dict[str, List[EndResult]]] = {}
@@ -170,7 +174,7 @@ def plot_median_gantt_charts(
         lang.set_current()
         figure, plots = pu.create_figure_with_subplots(
             items=len(median_runs), max_items_per_plot=1, max_cols=2,
-            max_rows=4, max_width=8.6, max_height=11)
+            max_rows=4, max_width=8.6, max_height=11.5)
 
         for plot, start, end, _, _, _ in plots:
             if start != (end - 1):
@@ -187,4 +191,112 @@ def plot_median_gantt_charts(
                                       dir_name=dest_dir))
 
     logger("done plotting median gantt charts.")
+    return results
+
+
+def plot_progresses(results_dir: str,
+                    algorithms: Iterable[str],
+                    name_base: str,
+                    dest_dir: str,
+                    log_time: bool = True,
+                    instance_sort_key: Callable = lambda x: x,
+                    algorithm_sort_key: Callable = lambda x: x,
+                    xlabel_location: float = 0.0,
+                    include_runs: bool = False) \
+        -> List[Path]:
+    """
+    Plot a set of end result boxes/violins functions into one chart.
+
+    :param results_dir: the directory with the log files
+    :param algorithms: the set of algorithms to plot together
+    :param name_base: the basic name
+    :param dest_dir: the destination directory
+    :param log_time: should the time axis be scaled logarithmically?
+    :param instance_sort_key: the sort key function for instances
+    :param algorithm_sort_key: the sort key function for algorithms
+    :param xlabel_location: the location of the x-labels
+    :param include_runs: should we include the pure runs as well?
+    :returns: the list of generated files
+    """
+    logger(f"beginning to plot chart {name_base}.")
+    if not isinstance(results_dir, str):
+        raise type_error(results_dir, "results_dir", str)
+    if not isinstance(algorithms, Iterable):
+        raise type_error(algorithms, "algorithms", Iterable)
+    if not isinstance(name_base, str):
+        raise type_error(name_base, "name_base", str)
+    if not isinstance(dest_dir, str):
+        raise type_error(dest_dir, "dest_dir", str)
+    if not isinstance(log_time, bool):
+        raise type_error(log_time, "log_time", bool)
+    if not callable(instance_sort_key):
+        raise type_error(instance_sort_key, "instance_sort_key", call=True)
+    if not callable(algorithm_sort_key):
+        raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
+    if not isinstance(xlabel_location, float):
+        raise type_error(xlabel_location, "xlabel_location", float)
+    if not isinstance(include_runs, bool):
+        raise type_error(include_runs, "include_runs", bool)
+
+    # get the data
+    spath: Final[Path] = Path.directory(results_dir)
+    progresses: Final[List[Progress]] = []
+    for algorithm in sorted(algorithms, key=algorithm_sort_key):
+        Progress.from_logs(spath.resolve_inside(algorithm),
+                           progresses.append,
+                           time_unit=TIME_UNIT_MILLIS,
+                           f_name=F_NAME_RAW)
+    if len(progresses) <= 0:
+        raise ValueError(f"did not find log files in dir '{results_dir}'.")
+
+    stat_runs: Final[List[Union[Progress, StatRun]]] = []
+    StatRun.from_progress(progresses, STAT_MEAN_ARITH,
+                          stat_runs.append, False, False)
+    if len(stat_runs) <= 0:
+        raise ValueError(
+            f"failed to compile stat runs from dir '{results_dir}'.")
+    if include_runs:
+        stat_runs.extend(progresses)
+    del progresses
+    instances: Final[List[str]] = sorted({sr.instance for sr in stat_runs},
+                                         key=instance_sort_key)
+    if len(instances) <= 0:
+        raise ValueError(f"no instances in dir '{results_dir}'.")
+    algos: Final[List[str]] = sorted({sr.algorithm for sr in stat_runs},
+                                     key=algorithm_sort_key)
+    if len(set(algorithms).difference(algos)) > 0:
+        raise ValueError(
+            f"found the {len(algos)} algorithms {algos}, but expected "
+            f"algorithms {algorithms}.")
+
+    results: Final[List[Path]] = []  # the list of generated files
+
+    # plot the progress charts
+    for lang in Lang.all():
+        lang.set_current()
+        figure, plots = pu.create_figure_with_subplots(
+            items=len(instances), max_items_per_plot=1, max_cols=2,
+            max_rows=4, max_width=8.6, max_height=11.5)
+
+        for plot, start, end, _, _, _ in plots:
+            if start != (end - 1):
+                raise ValueError(f"{start} != {end} - 1")
+            inst = instances[start]
+            plot_progress(
+                progresses=[sr for sr in stat_runs if sr.instance == inst],
+                figure=plot,
+                x_axis=AxisRanger.for_axis_func(log_scale=log_time),
+                importance_to_font_size_func=lambda i:
+                0.9 * importance_to_font_size(i),
+                algorithm_sort_key=algorithm_sort_key,
+                instance_sort_key=instance_sort_key,
+                xlabel_location=xlabel_location)
+            axes = pu.get_axes(plot)
+            pu.label_box(axes, inst, x=0.5, y=1)
+
+        results.extend(pu.save_figure(fig=figure,
+                                      file_name=lang.filename(name_base),
+                                      dir_name=dest_dir))
+
+    logger(f"finished plotting chart '{name_base}'.")
     return results

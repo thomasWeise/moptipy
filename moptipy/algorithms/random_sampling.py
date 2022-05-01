@@ -17,8 +17,8 @@ class RandomSampling(Algorithm0):
 
         :param process: the process object
         """
-        x: Final = process.create()  # record for solution
-        # obtain the random number generator
+        x: Final = process.create()  # Create the solution record.
+        # Obtain the random number generator.
         random: Final[Generator] = process.get_random()
 
         # Put function references in variables to save time.
@@ -28,7 +28,7 @@ class RandomSampling(Algorithm0):
 
         while not should_terminate():  # Until we need to quit...
             op0(random, x)  # Sample a completely random solution.
-            evaluate(x)  # Evaluate solution ... but ignore result.
+            evaluate(x)  # Evaluate the solution ... but ignore result.
 # end book
 
     def __str__(self) -> str:

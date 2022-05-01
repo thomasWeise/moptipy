@@ -1,4 +1,4 @@
-"""Create one single random solution."""
+"""An "algorithm" that creates one single random solution."""
 from typing import Final
 
 from moptipy.api.algorithm import Algorithm0

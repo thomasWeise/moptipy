@@ -166,10 +166,7 @@ class Progress(PerRunData):
         :param only_improvements: enforce that f-values should be improving and
             time values increasing
         """
-        _InnerLogParser(time_unit,
-                        f_name,
-                        consumer,
-                        f_standard,
+        _InnerLogParser(time_unit, f_name, consumer, f_standard,
                         only_improvements).parse(path)
 
     def to_csv(self, file: str,
