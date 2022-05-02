@@ -417,13 +417,14 @@ class Table(AbstractContextManager):
         self.__driver.begin_table_body(self.__stream, self.__cols)
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
+    def __exit__(self, exception_type, exception_value, traceback) -> bool:
         """
         Close the table after leaving the `with` statement.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
+        :returns: `True` to suppress an exception, `False` to rethrow it
         """
         if not (self.__stream is None):
             self.__driver.end_table_body(self.__stream, self.__cols)
@@ -438,6 +439,7 @@ class Table(AbstractContextManager):
             raise ValueError("cannot end table inside table header")
         if self.__section_header_state == 1:
             raise ValueError("cannot end table inside section header")
+        return exception_type is None
 
 
 class Section(AbstractContextManager):
@@ -464,16 +466,18 @@ class Section(AbstractContextManager):
         self.__owner._begin_section()
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
+    def __exit__(self, exception_type, exception_value, traceback) -> bool:
         """
         Close the row section after leaving the `with` statement.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
+        :returns: `True` to suppress an exception, `False` to rethrow it
         """
         # noinspection PyProtectedMember
         self.__owner._end_section()
+        return exception_type is None
 
     def header(self) -> 'Row':
         """
@@ -537,13 +541,15 @@ class Row(AbstractContextManager):
         self.__owner._begin_row(self.__header_mode)
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
+    def __exit__(self, exception_type, exception_value, traceback) -> bool:
         """
         Close the row after leaving the `with` statement.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
+        :returns: `True` to suppress an exception, `False` to rethrow it
         """
         # noinspection PyProtectedMember
         self.__owner._end_row(self.__header_mode)
+        return exception_type is None

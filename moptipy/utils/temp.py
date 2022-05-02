@@ -51,17 +51,20 @@ class TempDir(Path, AbstractContextManager):
             raise ValueError(f"Temporary directory '{self}' already closed.")
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
-        """Delete the temporary directory and everything in it.
+    def __exit__(self, exception_type, exception_value, traceback) -> bool:
+        """
+        Delete the temporary directory and everything in it.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
+        :returns: `True` to suppress an exception, `False` to rethrow it
         """
         opn = self.__is_open
         self.__is_open = False
         if opn:
             rmtree(self, ignore_errors=True, onerror=None)
+        return exception_type is None
 
 
 class TempFile(Path, AbstractContextManager):
@@ -124,15 +127,17 @@ class TempFile(Path, AbstractContextManager):
             raise ValueError(f"Temporary file '{self}' already deleted.")
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
+    def __exit__(self, exception_type, exception_value, traceback) -> bool:
         """
         Delete the temporary file.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
+        :returns: `True` to suppress an exception, `False` to rethrow it
         """
         opn = self.__is_open
         self.__is_open = False
         if opn:
             os.remove(self)
+        return exception_type is None

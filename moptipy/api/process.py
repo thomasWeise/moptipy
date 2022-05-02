@@ -316,15 +316,17 @@ class Process(Space, Objective, AbstractContextManager):
         """
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback) -> None:
+    def __exit__(self, exception_type, exception_value, traceback) -> bool:
         """
         End a `with` statement.
 
         :param exception_type: ignored
         :param exception_value: ignored
         :param traceback: ignored
+        :returns: `True` to suppress an exception, `False` to rethrow it
         """
         self.terminate()
+        return exception_type is None
 
 
 def check_max_fes(max_fes: Optional[int],
