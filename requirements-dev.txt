@@ -17,7 +17,6 @@ myst-parser >= 0.17.0
 bandit >= 1.7.4
 flake8 >= 4.0.1
 mypy >= 0.940
-pep257 >= 0.7.0
 pydocstyle >= 6.1.1
 pyflakes >= 2.4.0
 pylint >= 2.12.2
