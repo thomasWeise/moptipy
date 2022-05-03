@@ -50,9 +50,9 @@ Tables can be rendered in different formats, such as
 :py:class:`~moptipy.utils.html.HTML`.
 """
 
-from moptipy.algorithms.ea1plus1 import EA1plus1
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.algorithms.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.end_results import EndResult
@@ -74,9 +74,9 @@ problems = [lambda: Instance.from_resource("ft06"),
             lambda: Instance.from_resource("dmu23")]
 
 
-def make_ea1plus1(problem: Instance) -> Execution:
+def make_rls(problem: Instance) -> Execution:
     """
-    Create a (1+1)-EA Execution.
+    Create an RLS Execution.
 
     :param problem: the JSSP instance
     :returns: the execution
@@ -88,11 +88,10 @@ def make_ea1plus1(problem: Instance) -> Execution:
     ex.set_encoding(OperationBasedEncoding(problem))  # set encoding
     ex.set_solution_space(GanttSpace(problem))  # solution space: Gantt charts
     ex.set_objective(Makespan(problem))  # objective function is makespan
-    ex.set_algorithm(  # now construct algorithm
-        EA1plus1(  # create (1+1)-EA that
-            Op0Shuffle(perms),  # create random permutation
-            Op1Swap2(),  # swap two jobs
-            op1_is_default=True))  # don't include op1 in algorithm name str
+    ex.set_algorithm(RLS(  # create RLS that
+        Op0Shuffle(perms),  # create random permutation
+        Op1Swap2(),  # swap two jobs
+        op1_is_default=True))  # don't include op1 in algorithm name str
     ex.set_max_time_millis(10)  # permit 10 ms of runtime
     return ex
 
@@ -148,7 +147,7 @@ def make_random_sampling(problem: Instance) -> Execution:
 with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
-                   setups=[make_ea1plus1,  # provide (1+1)-EA run creator
+                   setups=[make_rls,  # provide RLS run creator
                            make_hill_climber,  # provide hill climber
                            make_random_sampling],  # provide random sampling
                    n_runs=7,  # we will execute 31 runs per setup

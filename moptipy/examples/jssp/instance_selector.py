@@ -8,7 +8,7 @@ import numpy as np  # type: ignore
 from numpy.random import Generator, RandomState  # type: ignore
 from sklearn.cluster import SpectralClustering  # type: ignore
 
-from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
@@ -26,7 +26,7 @@ from moptipy.utils.types import type_error
 def __can_solve_instance(inst: Instance, seed: int,
                          queue: mp.Queue) -> None:
     """
-    Execute one run of a (1+1)-EA for 2.1min on the instance, return makespan.
+    Execute one run of a RLS for 2.1min on the instance, return makespan.
 
     :param inst: the jssp instance to check
     :param seed: the seed of this run
@@ -39,7 +39,7 @@ def __can_solve_instance(inst: Instance, seed: int,
     o0: Final[Op0Shuffle] = Op0Shuffle(x_space)
     o1: Final[Op1Swap2] = Op1Swap2()
     f: Final[Makespan] = Makespan(inst)
-    a: Final[EA1plus1] = EA1plus1(o0, o1)
+    a: Final[RLS] = RLS(o0, o1)
     goal: Final[int] = inst.makespan_lower_bound
 
     ex: Final[Execution] = Execution()

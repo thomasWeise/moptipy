@@ -4,7 +4,7 @@ Perform an experiment with 2 algorithms on 4 problems for 5 runs.
 We want to execute a complete experiment where we apply two algorithms to
 four problems and perform five runs per algorithm * problem combination.
 As problems, we pick OneMax at dimensions 10 and 32 as well as LeadingOnes at
-dimensions 10 and 32. As algorithms, we choose the (1+1)-EA and simple random
+dimensions 10 and 32. As algorithms, we choose the RLS and simple random
 sampling.
 
 We need to provide functions that instantiate the problems and the algorithms.
@@ -27,7 +27,7 @@ So with the code below, we can generate a structured experiment. We here
 set a temporary directory as root folder for everything and then load the
 end results from the log files and print them to standard out.
 """
-from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.rls import RLS
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -35,7 +35,7 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
-from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.temp import TempDir
 
@@ -46,9 +46,9 @@ problems = [lambda: OneMax(10),  # 10-dimensional OneMax
             lambda: LeadingOnes(32)]  # 32-dimensional LeadingOnes
 
 
-def make_ea1plus1(problem) -> Execution:
+def make_rls(problem) -> Execution:
     """
-    Create a (1+1)-EA Execution.
+    Create an RLS Execution.
 
     :param problem: the problem (OneMax or LeadingOnes)
     :returns: the execution
@@ -56,10 +56,9 @@ def make_ea1plus1(problem) -> Execution:
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
     ex.set_objective(problem)
-    ex.set_algorithm(
-        EA1plus1(  # create (1+1)-EA that
-            Op0Random(),  # starts with a random bit string and
-            Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
+    ex.set_algorithm(RLS(  # create RLS that
+        Op0Random(),  # starts with a random bit string and
+        Op1Flip1()))  # flips one bit in each step
     ex.set_max_fes(100)  # permit 100 FEs
     return ex
 
@@ -86,7 +85,7 @@ def make_random_sampling(problem) -> Execution:
 with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
-                   setups=[make_ea1plus1,  # provide (1+1)-EA run creator
+                   setups=[make_rls,  # provide RLS run creator
                            make_random_sampling],  # provide RS run creator
                    n_runs=5,  # we will execute 5 runs per setup
                    n_threads=1)  # we use only a single thread here

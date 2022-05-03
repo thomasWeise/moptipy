@@ -1,4 +1,4 @@
-"""The (1+1)-EA."""
+"""The Randomized Local Search Algorithm."""
 from typing import Final, Union, Callable
 
 from numpy.random import Generator
@@ -8,18 +8,18 @@ from moptipy.api.process import Process
 
 
 # start book
-class EA1plus1(Algorithm1):
+class RLS(Algorithm1):
     """
-    A (1+1)-EA is a simple local search accepting all non-worsening moves.
+    The RLS is a simple local search accepting all non-worsening moves.
 
-    In each step, a (1+1)-EA creates a modified copy `new_x` of the
+    In each step, an RLS creates a modified copy `new_x` of the
     current best solution `best_x`. If `new_x` is not worse than `best_x`,
     it becomes the new `best_x`. Otherwise, it is discarded.
     """
 
     def solve(self, process: Process) -> None:
         """
-        Apply the (1+1)-EA to the given black-box process.
+        Apply the RLS to the given black-box process.
 
         :param process: the process object
         """
@@ -48,8 +48,8 @@ class EA1plus1(Algorithm1):
 
     def __str__(self) -> str:
         """
-        Get the name of this (1+1)-EA.
+        Get the name of this RLS algorithm.
 
-        :return: "ea1p1" + any non-standard operator suffixes
+        :return: "rls" + any non-standard operator suffixes
         """
-        return f"ea1p1{super().__str__()}"
+        return f"rls{super().__str__()}"

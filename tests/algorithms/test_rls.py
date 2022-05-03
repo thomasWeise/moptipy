@@ -1,6 +1,6 @@
-"""Test the (1+1)-EA."""
+"""Test the RLS."""
 # noinspection PyPackageRequirements
-from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.rls import RLS
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
@@ -13,33 +13,33 @@ from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax, \
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_ea1plus1_on_jssp():
-    """Validate the (1+1)-EA on the JSSP."""
+def test_rls_on_jssp():
+    """Validate the RLS on the JSSP."""
 
     def create(instance: Instance,
                search_space: Permutations):
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
-        return EA1plus1(Op0Shuffle(search_space), Op1Swap2())
+        return RLS(Op0Shuffle(search_space), Op1Swap2())
 
     validate_algorithm_on_jssp(create)
 
 
-def test_ea1plus1_on_onemax():
-    """Validate the (1+1)-EA on the onemax problmem."""
+def test_rls_on_onemax():
+    """Validate the RLS on the onemax problmem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
-        return EA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+        return RLS(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
 
     validate_algorithm_on_onemax(create)
 
 
-def test_ea1plus1_on_leadingones():
-    """Validate the (1+1)-EA on the leadingones problmem."""
+def test_rls_on_leadingones():
+    """Validate the RLS on the leadingones problmem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
-        return EA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+        return RLS(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
 
     validate_algorithm_on_leadingones(create)

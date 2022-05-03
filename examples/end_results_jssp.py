@@ -1,6 +1,6 @@
 """Generate an end-results CSV file for an experiment with the JSSP."""
-from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
 from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
+from moptipy.algorithms.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
@@ -15,7 +15,7 @@ with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
         algorithms=[  # the set of algorithm generators
-            lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
+            lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run

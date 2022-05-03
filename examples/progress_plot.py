@@ -50,8 +50,8 @@ from webbrowser import open_new_tab
 
 import psutil
 
-from moptipy.algorithms.ea1plus1 import EA1plus1
 from moptipy.algorithms.random_walk import RandomWalk
+from moptipy.algorithms.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
@@ -81,9 +81,9 @@ problems = [lambda: OneMax(32),  # 32-dimensional OneMax
             lambda: Ising1d(32)]  # 32-dimensional one-dimensional Ising Model
 
 
-def make_ea1plus1(problem) -> Execution:
+def make_rls(problem) -> Execution:
     """
-    Create a (1+1)-EA Execution.
+    Create an RLS Execution.
 
     :param problem: the problem (OneMax or Ising1d)
     :returns: the execution
@@ -91,11 +91,10 @@ def make_ea1plus1(problem) -> Execution:
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
     ex.set_objective(problem)
-    ex.set_algorithm(
-        EA1plus1(  # create (1+1)-EA that
-            Op0Random(),  # starts with a random bit string and
-            Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
-            op1_is_default=True))  # don't include op1 in algorithm name str
+    ex.set_algorithm(RLS(  # create RLS that
+        Op0Random(),  # starts with a random bit string and
+        Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
+        op1_is_default=True))  # don't include op1 in algorithm name str
     ex.set_max_fes(200)  # permit 200 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
@@ -128,7 +127,7 @@ def make_random_walk(problem) -> Execution:
 with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
-                   setups=[make_ea1plus1,  # provide (1+1)-EA run creator
+                   setups=[make_rls,  # provide RLS run creator
                            make_random_walk],  # provide random walk creator
                    n_runs=5,  # we will execute 5 runs per setup
                    n_threads=1)  # we use only a single thread here
@@ -176,16 +175,16 @@ with TempDir.create() as td:  # create temporary directory `td`
                              formats="svg"))  # again as svg
     del fig  # dispose fig
 
-    # We now plot only the runs of the EA, but for both problems.
+    # We now plot only the runs of the RLS, but for both problems.
     # The system will again choose styles to make the curves distinguishable
     # and will log-scale the horizontal axes.
     fig = create_figure()  # create an empty figure
-    plot_progress(progresses=[r for r in data if ("ea" in r.algorithm)],
+    plot_progress(progresses=[r for r in data if ("rls" in r.algorithm)],
                   figure=fig)
     # This time, we save three files: a svg, a pdf, and a png. Later all
     # three will be opened in the web browser.
     files.extend(save_figure(fig=fig,
-                             file_name="single_runs_f_over_log_fes_ea",
+                             file_name="single_runs_f_over_log_fes_rls",
                              dir_name=td,
                              formats=("svg", "pdf", "png")))
     del fig

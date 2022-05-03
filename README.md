@@ -118,47 +118,47 @@ Notice that you *must* always use the instances of `Process` in a [`with` block]
 Once this block is left, the log file will be written.
 If you use it outside of a `with` block, no log file will be generated.
 
-Let us now look at a concrete example, which is also available as file [examples/single_run_ea1plus1_onemax](./examples/single_run_ea1plus1_onemax.html).
-As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`(1+1) EA`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.ea1plus1).
+Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](./examples/single_run_rls_onemax.html).
+As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls).
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
-from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.temp import TempFile
 
 n = 10  # we chose dimension 10
 space = BitStrings(n)  # search in bit strings of length 10
 problem = OneMax(n)  # we maximize the number of 1 bits
-algorithm = EA1plus1(  # create (1+1)-EA that
-  Op0Random(),  # starts with a random bit string and
-  Op1MoverNflip(n=n, m=1))  # flips each bit with probability=1/n
+algorithm = RLS(  # create RLS that
+    Op0Random(),  # starts with a random bit string and
+    Op1Flip1())  # flips exactly one bit in each step
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
 # by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempFile.create() as tf:  # create temporary file `tf`
-  ex = Execution()  # begin configuring execution
-  ex.set_solution_space(space)  # set solution space
-  ex.set_objective(problem)  # set objective function
-  ex.set_algorithm(algorithm)  # set algorithm
-  ex.set_rand_seed(199)  # set random seed to 199
-  ex.set_log_file(tf)  # set log file = temp file `tf`
-  ex.set_max_fes(100)  # allow at most 100 function evaluations
-  with ex.execute() as process:  # now run the algorithm*problem combination
-    end_result = process.create()  # create empty record to receive result
-    process.get_copy_of_best_y(end_result)  # obtain end result
-    print(f"Best solution found: {process.to_str(end_result)}")
-    print(f"Quality of best solution: {process.get_best_f()}")
-    print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
-    print(f"Total FEs: {process.get_consumed_fes()}")
+    ex = Execution()  # begin configuring execution
+    ex.set_solution_space(space)  # set solution space
+    ex.set_objective(problem)  # set objective function
+    ex.set_algorithm(algorithm)  # set algorithm
+    ex.set_rand_seed(199)  # set random seed to 199
+    ex.set_log_file(tf)  # set log file = temp file `tf`
+    ex.set_max_fes(100)  # allow at most 100 function evaluations
+    with ex.execute() as process:  # now run the algorithm*problem combination
+        end_result = process.create()  # create empty record to receive result
+        process.get_copy_of_best_y(end_result)  # obtain end result
+        print(f"Best solution found: {process.to_str(end_result)}")
+        print(f"Quality of best solution: {process.get_best_f()}")
+        print(f"Consumed Runtime: {process.get_consumed_time_millis()}ms")
+        print(f"Total FEs: {process.get_consumed_fes()}")
 
-  print("\nNow reading and printing all the logged data:")
-  print(tf.read_all_str())  # instead, we load and print the log file
+    print("\nNow reading and printing all the logged data:")
+    print(tf.read_all_str())  # instead, we load and print the log file
 # The temp file is deleted as soon as we leave the `with` block.
 ```
 
@@ -167,16 +167,16 @@ The output we would get from this program could look something like this:
 ```
 Best solution found: TTTTTTTTTT
 Quality of best solution: 0
-Consumed Runtime: 114ms
-Total FEs: 31
+Consumed Runtime: 129ms
+Total FEs: 17
 
 Now reading and printing all the logged data:
 BEGIN_STATE
-totalFEs: 31
-totalTimeMillis: 115
+totalFEs: 17
+totalTimeMillis: 129
 bestF: 0
-lastImprovementFE: 31
-lastImprovementTimeMillis: 114
+lastImprovementFE: 17
+lastImprovementTimeMillis: 129
 END_STATE
 BEGIN_SETUP
 p.name: ProcessWithoutSearchSpace
@@ -228,13 +228,13 @@ The system will even do "warmup" runs, i.e., very short dummy runs with the algo
 Below, we show one example for the automated experiment execution facility, which applies two algorithms to four problem instances with five runs per setup.
 We use again the  [bit strings domain](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings).
 We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones)) of two different sizes each, leading to four problem instances in total.
-We apply the well-known [`(1+1) EA`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.ea1plus1) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
+We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
 The code below is available as file [examples/experiment_2_algorithms_4_problems](./examples/experiment_2_algorithms_4_problems.html).
-Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#42-end-result-csv-files) for more information). 
+Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#42-end-result-csv-files) for more information).
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1
+from moptipy.algorithms.rls import RLS
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -242,7 +242,7 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
-from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.temp import TempDir
 
@@ -253,9 +253,9 @@ problems = [lambda: OneMax(10),  # 10-dimensional OneMax
             lambda: LeadingOnes(32)]  # 32-dimensional LeadingOnes
 
 
-def make_ea1plus1(problem) -> Execution:
+def make_rls(problem) -> Execution:
     """
-    Create a (1+1)-EA Execution.
+    Create an RLS Execution.
 
     :param problem: the problem (OneMax or LeadingOnes)
     :returns: the execution
@@ -263,10 +263,9 @@ def make_ea1plus1(problem) -> Execution:
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
     ex.set_objective(problem)
-    ex.set_algorithm(
-        EA1plus1(  # create (1+1)-EA that
-            Op0Random(),  # starts with a random bit string and
-            Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
+    ex.set_algorithm(RLS(  # create RLS that
+        Op0Random(),  # starts with a random bit string and
+        Op1Flip1()))  # flips one bit in each step
     ex.set_max_fes(100)  # permit 100 FEs
     return ex
 
@@ -293,7 +292,7 @@ def make_random_sampling(problem) -> Execution:
 with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
-                   setups=[make_ea1plus1,  # provide (1+1)-EA run creator
+                   setups=[make_rls,  # provide RLS run creator
                            make_random_sampling],  # provide RS run creator
                    n_runs=5,  # we will execute 5 runs per setup
                    n_threads=1)  # we use only a single thread here
@@ -306,26 +305,6 @@ with TempDir.create() as td:  # create temporary directory `td`
 The output of this program, minus the status information, could look roughly like this:
 
 ```
-ea1p1_1_over_n_flip_T on onemax_10: 0
-ea1p1_1_over_n_flip_T on onemax_10: 0
-ea1p1_1_over_n_flip_T on onemax_10: 0
-ea1p1_1_over_n_flip_T on onemax_10: 0
-ea1p1_1_over_n_flip_T on onemax_10: 0
-ea1p1_1_over_n_flip_T on onemax_32: 3
-ea1p1_1_over_n_flip_T on onemax_32: 2
-ea1p1_1_over_n_flip_T on onemax_32: 4
-ea1p1_1_over_n_flip_T on onemax_32: 1
-ea1p1_1_over_n_flip_T on onemax_32: 0
-ea1p1_1_over_n_flip_T on leadingones_32: 22
-ea1p1_1_over_n_flip_T on leadingones_32: 20
-ea1p1_1_over_n_flip_T on leadingones_32: 19
-ea1p1_1_over_n_flip_T on leadingones_32: 18
-ea1p1_1_over_n_flip_T on leadingones_32: 28
-ea1p1_1_over_n_flip_T on leadingones_10: 0
-ea1p1_1_over_n_flip_T on leadingones_10: 1
-ea1p1_1_over_n_flip_T on leadingones_10: 1
-ea1p1_1_over_n_flip_T on leadingones_10: 0
-ea1p1_1_over_n_flip_T on leadingones_10: 0
 rs on onemax_10: 0
 rs on onemax_10: 2
 rs on onemax_10: 1
@@ -346,6 +325,26 @@ rs on leadingones_10: 0
 rs on leadingones_10: 3
 rs on leadingones_10: 3
 rs on leadingones_10: 0
+rls_flip1 on onemax_10: 0
+rls_flip1 on onemax_10: 0
+rls_flip1 on onemax_10: 0
+rls_flip1 on onemax_10: 0
+rls_flip1 on onemax_10: 0
+rls_flip1 on onemax_32: 2
+rls_flip1 on onemax_32: 1
+rls_flip1 on onemax_32: 2
+rls_flip1 on onemax_32: 2
+rls_flip1 on onemax_32: 1
+rls_flip1 on leadingones_32: 18
+rls_flip1 on leadingones_32: 23
+rls_flip1 on leadingones_32: 28
+rls_flip1 on leadingones_32: 16
+rls_flip1 on leadingones_32: 29
+rls_flip1 on leadingones_10: 0
+rls_flip1 on leadingones_10: 0
+rls_flip1 on leadingones_10: 0
+rls_flip1 on leadingones_10: 0
+rls_flip1 on leadingones_10: 0
 ```
 
 
@@ -639,9 +638,9 @@ Here you can find their basic definitions.
 One independent run of an algorithm on one problem instance produces one log file.
 Each run is identified by the algorithm that is applied, the problem instance to which it is applied, and the random seed.
 This tuple is reflected in the file name.
-`ea1p1_swap2_demo_0x5a9363100a272f12.txt`, for example, represents the algorithm `ea1p1_swap2` applied to the problem instance `demo` and started with random seed `0x5a9363100a272f12` (where `0x` stands for hexademical notation).
+`rls_swap2_demo_0x5a9363100a272f12.txt`, for example, represents the algorithm `rls_swap2` applied to the problem instance `demo` and started with random seed `0x5a9363100a272f12` (where `0x` stands for hexademical notation).
 The log files are grouped in a `algorithm`-`instance` folder structure.
-In the above example, there would be a folder `ea1p1_swap2` containing a folder `demo`, which, in turn, contains all the log files from all runs of that algorithm on this instance.
+In the above example, there would be a folder `rls_swap2` containing a folder `demo`, which, in turn, contains all the log files from all runs of that algorithm on this instance.
 
 
 #### 4.1.2. Log File Sections
@@ -764,7 +763,7 @@ You can execute the following Python code to obtain an example log file.
 This code is also available in file [examples/log_file_jssp.py](./examples/log_file_jssp.html):
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1  # the algorithm we use
+from moptipy.algorithms.rls import RLS  # the algorithm we use
 from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
@@ -780,14 +779,14 @@ with TempDir.create() as td:  # create temp directory
     run_experiment(
         base_dir=td,  # working directory = temp dir
         algorithms=[  # the set of algorithms to use: we use only 1
-            lambda inst, pwr:  # an algorithm is created via a lambda
-            EA1plus1(Op0Shuffle(pwr), Op1Swap2())],  # we use (1+1)-EA
+            # an algorithm is created via a lambda
+            lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],
         instances=("demo",),  # use the demo JSSP instance
         n_runs=1,  # perform exactly one run
         n_threads=1)  # use exactly one thread
     # The random seed is automatically generated based on the instance name.
     print(td.resolve_inside(  # so we know algorithm, instance, and seed
-        "ea1p1_swap2/demo/ea1p1_swap2_demo_0x5a9363100a272f12.txt")
+        "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
         .read_all_str())  # read file into string (which then gets printed)
 # When leaving "while", the temp dir will be deleted
 ```
@@ -821,8 +820,8 @@ p.randSeed: 6526669205530947346
 p.randSeed(hex): 0x5a9363100a272f12
 p.randGenType: numpy.random._generator.Generator
 p.randBitGenType: numpy.random._pcg64.PCG64
-a.name: ea1p1_swap2
-a.class: moptipy.algorithms.ea1plus1.EA1plus1
+a.name: rls_swap2
+a.class: moptipy.algorithms.rls.RLS
 a.op0.name: shuffle
 a.op0.class: moptipy.operators.permutations.op0_shuffle.Op0Shuffle
 a.op1.name: swap2
@@ -854,12 +853,12 @@ g.dtypeJobIdx: b
 g.dtypeJobTime: h
 END_SETUP
 BEGIN_SYS_INFO
-session.start: 2022-03-18 14:43:51.707977
+session.start: 2022-05-03 08:49:14.883057
 session.node: home
-session.procesId: 0x82a68
+session.procesId: 0xc4b9
 session.cpuAffinity: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-session.ipAddress: 127.0.0.1
-version.moptipy: 0.8.1
+session.ipAddress: 192.168.1.105
+version.moptipy: 0.8.5
 version.numpy: 1.21.5
 version.numba: 0.55.1
 version.matplotlib: 3.5.1
@@ -871,12 +870,12 @@ hardware.nLogicalCpus: 16
 hardware.cpuMhz: (2200MHz..3700MHz)*16
 hardware.byteOrder: little
 hardware.cpu: AMD Ryzen 7 2700X Eight-Core Processor
-hardware.memSize: 33605500928
-python.version: 3.9.7 (default, Sep 10 2021, 14:59:43) [GCC 11.2.0]
+hardware.memSize: 16719478784
+python.version: 3.10.4 (main, Apr  2 2022, 09:04:19) [GCC 11.2.0]
 python.implementation: CPython
 os.name: Linux
-os.release: 5.13.0-35-generic
-os.version: 40-Ubuntu SMP Mon Mar 7 08:03:10 UTC 2022
+os.release: 5.15.0-27-generic
+os.version: 28-Ubuntu SMP Thu Apr 14 04:55:28 UTC 2022
 END_SYS_INFO
 BEGIN_RESULT_Y
 1,20,30,0,30,40,3,145,165,2,170,180,1,0,20,0,40,60,2,60,80,3,165,180,2,0,30,0,60,80,1,80,130,3,130,145,1,30,60,3,60,90,0,90,130,2,130,170,3,0,50,2,80,92,1,130,160,0,160,170
@@ -923,8 +922,8 @@ Let us execute an abridged example experiment, parse all log files, condense the
 We can do that with the code below, which is also available as file [examples/end_results_jssp.py](./examples/end_results_jssp.html).
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
 from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
+from moptipy.algorithms.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
@@ -939,7 +938,7 @@ with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
         algorithms=[  # the set of algorithm generators
-            lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
+            lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
@@ -960,30 +959,30 @@ This will yield something like the following output:
 
 ```
 algorithm;instance;randSeed;bestF;lastImprovementFE;lastImprovementTimeMillis;totalFEs;totalTimeMillis;goalF;maxFEs;maxTimeMillis
-hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;42;10000;187;935;10000;120000
-hc_swap2;la24;0x23098fe72e435030;1065;9868;167;10000;185;935;10000;120000
-hc_swap2;la24;0xb76a45e4f8b431ae;1118;2130;34;10000;138;935;10000;120000
-hc_swap2;la24;0xb4eab9a0c2193a9e;1111;2594;46;10000;148;935;10000;120000
-hc_swap2;abz7;0x3e96d853a69f369d;826;8335;111;10000;160;656;10000;120000
-hc_swap2;abz7;0x7e986b616543ff9b;850;6788;100;10000;189;656;10000;120000
-hc_swap2;abz7;0xeb6420da7243abbe;804;3798;67;10000;215;656;10000;120000
-hc_swap2;abz7;0xd3de359d5e3982fd;814;4437;60;10000;161;656;10000;120000
-hc_swap2;demo;0xdac201e7da6b455c;205;4;1;10000;132;180;10000;120000
-hc_swap2;demo;0x5a9363100a272f12;200;33;1;10000;127;180;10000;120000
-hc_swap2;demo;0x9ba8fd0486c59354;180;34;1;34;2;180;10000;120000
-hc_swap2;demo;0xd2866f0630434df;185;128;3;10000;139;180;10000;120000
-ea1p1_swap2;la24;0xb4eab9a0c2193a9e;1033;7503;127;10000;185;935;10000;120000
-ea1p1_swap2;la24;0x23098fe72e435030;1026;9114;157;10000;188;935;10000;120000
-ea1p1_swap2;la24;0xac5ca7763bbe7138;1015;9451;123;10000;140;935;10000;120000
-ea1p1_swap2;la24;0xb76a45e4f8b431ae;1031;5218;89;10000;185;935;10000;120000
-ea1p1_swap2;abz7;0x7e986b616543ff9b;767;9935;153;10000;183;656;10000;120000
-ea1p1_swap2;abz7;0xeb6420da7243abbe;756;8005;109;10000;164;656;10000;120000
-ea1p1_swap2;abz7;0xd3de359d5e3982fd;762;9128;129;10000;173;656;10000;120000
-ea1p1_swap2;abz7;0x3e96d853a69f369d;761;9663;134;10000;167;656;10000;120000
-ea1p1_swap2;demo;0xdac201e7da6b455c;180;83;2;83;3;180;10000;120000
-ea1p1_swap2;demo;0x5a9363100a272f12;180;84;2;84;3;180;10000;120000
-ea1p1_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;2;180;10000;120000
-ea1p1_swap2;demo;0xd2866f0630434df;180;63;2;63;3;180;10000;120000
+hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;27;10000;111;935;10000;120000
+hc_swap2;la24;0x23098fe72e435030;1065;9868;109;10000;111;935;10000;120000
+hc_swap2;la24;0xb76a45e4f8b431ae;1118;2130;24;10000;110;935;10000;120000
+hc_swap2;la24;0xb4eab9a0c2193a9e;1111;2594;29;10000;109;935;10000;120000
+hc_swap2;abz7;0x3e96d853a69f369d;826;8335;105;10000;125;656;10000;120000
+hc_swap2;abz7;0x7e986b616543ff9b;850;6788;87;10000;126;656;10000;120000
+hc_swap2;abz7;0xeb6420da7243abbe;804;3798;48;10000;124;656;10000;120000
+hc_swap2;abz7;0xd3de359d5e3982fd;814;4437;55;10000;123;656;10000;120000
+hc_swap2;demo;0xdac201e7da6b455c;205;4;1;10000;118;180;10000;120000
+hc_swap2;demo;0x5a9363100a272f12;200;33;1;10000;111;180;10000;120000
+hc_swap2;demo;0x9ba8fd0486c59354;180;34;1;34;1;180;10000;120000
+hc_swap2;demo;0xd2866f0630434df;185;128;2;10000;105;180;10000;120000
+rls_swap2;la24;0xb76a45e4f8b431ae;1031;5218;58;10000;110;935;10000;120000
+rls_swap2;la24;0xb4eab9a0c2193a9e;1033;7503;83;10000;111;935;10000;120000
+rls_swap2;la24;0xac5ca7763bbe7138;1015;9451;105;10000;112;935;10000;120000
+rls_swap2;la24;0x23098fe72e435030;1026;9114;102;10000;112;935;10000;120000
+rls_swap2;abz7;0x7e986b616543ff9b;767;9935;125;10000;125;656;10000;120000
+rls_swap2;abz7;0xeb6420da7243abbe;756;8005;99;10000;127;656;10000;120000
+rls_swap2;abz7;0xd3de359d5e3982fd;762;9128;112;10000;123;656;10000;120000
+rls_swap2;abz7;0x3e96d853a69f369d;761;9663;123;10000;127;656;10000;120000
+rls_swap2;demo;0xd2866f0630434df;180;63;1;63;1;180;10000;120000
+rls_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;1;180;10000;120000
+rls_swap2;demo;0xdac201e7da6b455c;180;83;2;83;2;180;10000;120000
+rls_swap2;demo;0x5a9363100a272f12;180;84;2;84;2;180;10000;120000
 ```
 
 ### 4.3. End Result Statistics CSV Files
@@ -1038,8 +1037,8 @@ We can basically execute the same abridged experiment as in the [previous sectio
 This code is also available as file [examples/end_statistics_jssp](./examples/end_statistics_jssp.html).
 
 ```python
-from moptipy.algorithms.ea1plus1 import EA1plus1  # first algo to test
 from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
+from moptipy.algorithms.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
@@ -1055,7 +1054,7 @@ with TempDir.create() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
         algorithms=[  # the set of algorithm generators
-            lambda inst, pwr: EA1plus1(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
+            lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
@@ -1079,12 +1078,12 @@ We will get something like the following output:
 
 ```
 algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;fesPerTimeMilli.min;fesPerTimeMilli.med;fesPerTimeMilli.mean;fesPerTimeMilli.geom;fesPerTimeMilli.max;fesPerTimeMilli.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
-ea1p1_swap2;abz7;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9395.5;9182.75;9151.751195919433;9935;853.7393727986702;106;123;121;120.5889794453166;132;11.343133018115703;10000;10000;10000;10000;10000;0;131;131.5;131.75;131.74739623481892;133;0.9574271077563381;75.18796992481202;76.04672681008559;75.90432535189466;75.90282833504035;76.33587786259542;0.5499017125292416;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;;;;;;inf;inf;10000;120000
-ea1p1_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;41.75;44.875;43.63027688597683;63;12.769592789122134;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;65.75;1.5;10000;120000
-ea1p1_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;63;97;92.5;90.17482328700281;113;22.89832599412746;10000;10000;10000;10000;10000;0;112;118.5;117.25;117.20794710574947;120;3.593976442141304;83.33333333333333;84.38968807862128;85.34960594407255;85.31844680273787;89.28571428571429;2.6866811635462295;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10000;120000
-hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;50;74.5;77;73.34537879369448;109;27.36177382164151;10000;10000;10000;10000;10000;0;130;131.5;131.25;131.24737545091853;132;0.9574271077563381;75.75757575757575;76.04672681008559;76.19352657520596;76.19199976870867;76.92307692307692;0.5575583167959421;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
-hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.25;1.189207115002721;2;0.5;34;10000;7508.5;2414.736402766418;10000;4983;1;113;85.25;34.73485054638264;114;56.16864487119719;34;88.10743673342648;74.67761217202298;69.5191245905013;88.49557522123894;27.120877034236965;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;341;10000;120000
-hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;2130;2471.5;4235.25;3364.07316907124;9868;3759.9463981108383;26;29.5;50.25;40.224232436632846;116;43.88146913371672;10000;10000;10000;10000;10000;0;116;117;116.75;116.74919469932635;117;0.5;85.47008547008546;85.47008547008546;85.65428824049513;85.65369573429443;86.20689655172414;0.36840554081933874;935;1.13903743315508;1.1919786096256684;1.210427807486631;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;;;;;;inf;inf;10000;120000
+hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;49;71;75;71.42207515724994;109;27.09243436828813;10000;10000;10000;10000;10000;0;124;129;128;127.97631178442582;130;2.8284271247461903;76.92307692307692;77.52403846153845;78.15407878411911;78.13946081556759;80.64516129032258;1.7547144869538807;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
+hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.25;1.189207115002721;2;0.5;34;10000;7508.5;2414.736402766418;10000;4983;1;112;84.5;34.50404141651177;113;55.67465012612712;34;88.49557522123894;75.27031013314199;69.9841613803204;90.09009009009009;27.523805755254575;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;338;10000;120000
+hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;2130;2471.5;4235.25;3364.07316907124;9868;3759.9463981108383;26;29.5;51.75;40.734578419012756;122;46.87838876639569;10000;10000;10000;10000;10000;0;115;118;118.75;118.70338048807858;124;3.8622100754188224;80.64516129032258;84.75184945773181;84.27634548622916;84.24359911977653;86.95652173913044;2.698936667401356;935;1.13903743315508;1.1919786096256684;1.210427807486631;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;;;;;;inf;inf;10000;120000
+rls_swap2;abz7;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9395.5;9182.75;9151.751195919433;9935;853.7393727986702;104;120.5;117.75;117.38647664619744;126;10.53169818531972;10000;10000;10000;10000;10000;0;126;128;128.25;128.23566196320664;131;2.217355782608345;76.33587786259542;78.1297686626381;77.99012363823775;77.9814276848292;79.36507936507937;1.343029265029186;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;;;;;;inf;inf;10000;120000
+rls_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;41.75;44.875;43.63027688597683;63;12.769592789122134;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;65.75;1.5;10000;120000
+rls_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;61;96;90;87.91387157137562;107;21.05548226313834;10000;10000;10000;10000;10000;0;113;116;115.75;115.72756820836753;118;2.6299556396765835;84.7457627118644;86.23253047873922;86.42659972264545;86.4098343619819;88.49557522123894;1.9665668222131083;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10000;120000
 ```
 
 
@@ -1222,19 +1221,19 @@ The example [examples/end_results_table.py](./examples/end_results_table.html), 
 
 |I|lb(f)|setup|best|mean|sd|mean1|mean(FE/ms)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|
-|`dmu23`|4'668|`ea1p1`|**5'875**|**6'164.9**|167.44|**1.321**|68.30|**10.429**|
-|||`hc`|6'216|6'330.1|**93.87**|1.356|**68.56**|10.143|
-|||`rs`|7'378|7'576.6|122.78|1.623|49.29|7.429|
-|`ft06`|55|`ea1p1`|**55**|**56.6**|1.99|**1.029**|82.56|5.000|
-|||`hc`|57|59.1|1.21|1.075|91.36|3.286|
-|||`rs`|60|60.4|**0.79**|1.099|**118.96**|**5.714**|
-|`la24`|935|`ea1p1`|**1'067**|**1'136.9**|48.46|**1.216**|85.62|9.286|
-|||`hc`|1'121|1'180.3|62.13|1.262|86.91|**9.429**|
-|||`rs`|1'375|1'404.3|**26.66**|1.502|**98.90**|3.000|
+|`dmu23`|4'668|`hc`|6'260|6'365.4|126.93|1.364|**64.92**|10.286|
+|||`rls`|**5'951**|**6'211.7**|151.54|**1.331**|62.83|**10.857**|
+|||`rs`|7'378|7'576.6|**122.78**|1.623|44.14|8.000|
+|`ft06`|55|`hc`|57|59.1|1.21|1.075|84.91|3.429|
+|||`rls`|**55**|**57.1**|2.04|**1.039**|80.38|3.000|
+|||`rs`|60|60.6|**1.13**|1.101|**123.26**|**4.286**|
+|`la24`|935|`hc`|1'122|1'181.9|63.41|1.264|81.75|8.429|
+|||`rls`|**1'080**|**1'141.1**|47.14|**1.220**|81.28|**9.143**|
+|||`rs`|1'375|1'404.3|**26.66**|1.502|**88.44**|3.143|
 |||setup|best1|gmean1|worst1|sd1|gmean(FE/ms)|mean(t)|
-|summary||ea1p1|**1.000**|**1.181**|**1.377**|0.130|78.287|**8.238**|
-|summary||hc|1.036|1.225|1.385|**0.126**|81.649|7.619|
-|summary||rs|1.091|1.389|1.650|0.231|**82.801**|5.381|
+|summary||hc|1.036|1.228|1.418|0.129|76.650|7.381|
+|summary||rls|**1.000**|**1.190**|**1.386**|**0.129**|74.192|**7.667**|
+|summary||rs|1.091|1.390|1.650|0.230|**78.360**|5.143|
 
 It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX):
 
@@ -1243,23 +1242,23 @@ It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy
 \hrow%
 I&lb(f)&setup&best&mean&sd&mean1&mean(FE/ms)&mean(t)\\%
 \hrow%
-{\texttt{dmu23}}&4'668&{\texttt{ea1p1}}&{\textbf{5'875}}&{\textbf{6'164.9}}&167.44&{\textbf{1.321}}&68.30&{\textbf{10.429}}\\%
-&&{\texttt{hc}}&6'216&6'330.1&{\textbf{93.87}}&1.356&{\textbf{68.56}}&10.143\\%
-&&{\texttt{rs}}&7'378&7'576.6&122.78&1.623&49.29&7.429\\%
+{\texttt{dmu23}}&4'668&{\texttt{hc}}&6'260&6'365.4&126.93&1.364&{\textbf{64.92}}&10.286\\%
+&&{\texttt{rls}}&{\textbf{5'951}}&{\textbf{6'211.7}}&151.54&{\textbf{1.331}}&62.83&{\textbf{10.857}}\\%
+&&{\texttt{rs}}&7'378&7'576.6&{\textbf{122.78}}&1.623&44.14&8.000\\%
 \hrow%
-{\texttt{ft06}}&55&{\texttt{ea1p1}}&{\textbf{55}}&{\textbf{56.6}}&1.99&{\textbf{1.029}}&82.56&5.000\\%
-&&{\texttt{hc}}&57&59.1&1.21&1.075&91.36&3.286\\%
-&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{118.96}}&{\textbf{5.714}}\\%
+{\texttt{ft06}}&55&{\texttt{hc}}&57&59.1&1.21&1.075&84.91&3.429\\%
+&&{\texttt{rls}}&{\textbf{55}}&{\textbf{57.1}}&2.04&{\textbf{1.039}}&80.38&3.000\\%
+&&{\texttt{rs}}&60&60.6&{\textbf{1.13}}&1.101&{\textbf{123.26}}&{\textbf{4.286}}\\%
 \hrow%
-{\texttt{la24}}&935&{\texttt{ea1p1}}&{\textbf{1'067}}&{\textbf{1'136.9}}&48.46&{\textbf{1.216}}&85.62&9.286\\%
-&&{\texttt{hc}}&1'121&1'180.3&62.13&1.262&86.91&{\textbf{9.429}}\\%
-&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&{\textbf{98.90}}&3.000\\%
+{\texttt{la24}}&935&{\texttt{hc}}&1'122&1'181.9&63.41&1.264&81.75&8.429\\%
+&&{\texttt{rls}}&{\textbf{1'080}}&{\textbf{1'141.1}}&47.14&{\textbf{1.220}}&81.28&{\textbf{9.143}}\\%
+&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&{\textbf{88.44}}&3.143\\%
 \hrow%
 &&setup&best1&gmean1&worst1&sd1&gmean(FE/ms)&mean(t)\\%
 \hrow%
-summary&&ea1p1&{\textbf{1.000}}&{\textbf{1.181}}&{\textbf{1.377}}&0.130&78.287&{\textbf{8.238}}\\%
-summary&&hc&1.036&1.225&1.385&{\textbf{0.126}}&81.649&7.619\\%
-summary&&rs&1.091&1.389&1.650&0.231&{\textbf{82.801}}&5.381\\%
+summary&&hc&1.036&1.228&1.418&0.129&76.650&7.381\\%
+summary&&rls&{\textbf{1.000}}&{\textbf{1.190}}&{\textbf{1.386}}&{\textbf{0.129}}&74.192&{\textbf{7.667}}\\%
+summary&&rs&1.091&1.390&1.650&0.230&{\textbf{78.360}}&5.143\\%
 \hrow%
 \end{tabular}%
 ```

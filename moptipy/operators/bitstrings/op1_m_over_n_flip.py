@@ -1,4 +1,4 @@
-"""An operator swapping two elements in a permutation with repetitions."""
+"""An operator flipping each bit with probability m/n."""
 from typing import Final, Callable
 
 import numpy as np

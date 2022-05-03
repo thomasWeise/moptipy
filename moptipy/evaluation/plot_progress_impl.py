@@ -126,8 +126,10 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
                 f"F-units {y_dim} and {prg.f_name} do not fit!")
     del progresses
 
-    if (x_dim is None) or (y_dim is None) or \
-            ((len(progress_list) + len(statrun_list)) <= 0):
+    if(len(progress_list) + len(statrun_list)) <= 0:
+        raise ValueError("Empty input data?")
+
+    if (x_dim is None) or (y_dim is None):
         raise ValueError("Illegal state?")
 
     instances.compile()
