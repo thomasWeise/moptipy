@@ -144,7 +144,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # and different problems.
     # It will also automatically pick the labels of the axes and choose
     # that the horizontal axis (FEs) be log-scaled.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_progress(progresses=data,  # plot all the data
                   figure=fig)  # into the figure
     # Notice that save_figure returns a list of files that has been generated.
@@ -164,7 +164,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # This will still use both algorithms.
     # The system will again choose styles to make the curves distinguishable
     # and will log-scale the horizontal axes.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_progress(progresses=[r for r in data  # plot selection of data
                               if ("onemax" in r.instance)],  # only OneMax
                   figure=fig)  # plot into figure fig
@@ -178,7 +178,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # We now plot only the runs of the RLS, but for both problems.
     # The system will again choose styles to make the curves distinguishable
     # and will log-scale the horizontal axes.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_progress(progresses=[r for r in data if ("rls" in r.algorithm)],
                   figure=fig)
     # This time, we save three files: a svg, a pdf, and a png. Later all
@@ -198,7 +198,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     StatRun.from_progress(source=list(data),  # iterate over _copy_ of data
                           statistics="mean",  # compute the mean f over FEs
                           consumer=data.append)  # and store to data list
-    fig = create_figure()  # create empty figure
+    fig = create_figure(width=4)  # create a 4"-wide, empty figure
     # We now plot the single runs AND the mean result quality over time into
     # the same diagram. Notice that the system will again automatically choose
     # an appropriate style.
@@ -209,7 +209,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                              formats="svg"))
     del fig  # dispose figure
 
-    fig = create_figure()  # create empty figure
+    fig = create_figure(width=4)  # create a 4"-wide, empty figure
     # We now create the same plot again, but this time we do not log-scale
     # the horizontal (FEs) axis.
     plot_progress(progresses=data, figure=fig,
@@ -219,7 +219,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                              dir_name=td, formats=("pdf", "svg")))
     del fig  # dispose figure
 
-    fig = create_figure()  # create empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     # This time we only plot the arithmetic mean runs.
     # We generate a pdf and a svg.
     plot_progress(progresses=[d for d in data if isinstance(d, StatRun)],

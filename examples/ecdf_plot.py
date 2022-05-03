@@ -84,8 +84,8 @@ ns = lambda prc: False if prc is None else (  # noqa: E731
 # should we show the plots?
 SHOW_PLOTS_IN_BROWSER = not ns(psutil.Process(os.getppid()))
 
-# We try to solve only the 12-bit OneMax problem
-problems = [lambda: OneMax(12)]
+# We try to solve only the 8-bit OneMax problem
+problems = [lambda: OneMax(8)]
 
 
 def make_rls(problem) -> Execution:
@@ -102,7 +102,7 @@ def make_rls(problem) -> Execution:
         Op0Random(),  # starts with a random bit string and
         Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
         op1_is_default=True))  # don't include op1 in algorithm name str
-    ex.set_max_fes(100)  # permit 100 FEs
+    ex.set_max_fes(256)  # permit 256 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
 
@@ -122,7 +122,7 @@ def make_random_walk(problem) -> Execution:
             Op0Random(),  # starts with a random bit string and
             Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
             op1_is_default=True))  # don't include op1 in algorithm name str
-    ex.set_max_fes(100)  # permit 100 FEs
+    ex.set_max_fes(256)  # permit 256 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
 
@@ -154,7 +154,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # Plot the ECDF functions.
     # This function will automatically pick the labels of the axes and choose
     # that the horizontal axis (FEs) be log-scaled.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_ecdf(ecdfs=ecdf,  # plot all the data
               figure=fig)  # into the figure
     # Notice that save_figure returns a list of files that has been generated.
@@ -171,7 +171,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     del fig  # dispose figure
 
     # Plot the ECDF functions, but this time do not log-scale the x-axis.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_ecdf(ecdfs=ecdf,  # plot all the data
               figure=fig,  # into the figure
               x_axis=AxisRanger.for_axis("FEs", log_scale=False))

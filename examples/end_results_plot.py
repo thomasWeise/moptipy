@@ -125,7 +125,7 @@ with TempDir.create() as td:  # create temporary directory `td`
 
     # Plot the end results in a scaled fashion: All objective values are
     # divided by the lower bound. Therefore, 1 is optimal.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_end_results(end_results=data,
                      figure=fig,
                      dimension="scaledF")
@@ -144,7 +144,7 @@ with TempDir.create() as td:  # create temporary directory `td`
 
     # Plot the end results in an un-scaled fashion: All objective values are
     # used as is. This makes the problems less comparable.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_end_results(end_results=data, figure=fig, dimension="plainF")
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="end_results",  # base name
@@ -153,7 +153,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     del fig  # dispose figure
 
     # Now we compare the FE when the last improvement happened.
-    fig = create_figure()  # create an empty figure
+    fig = create_figure(width=4)  # create an empty, 4"-wide figure
     plot_end_results(end_results=data, figure=fig,
                      dimension="lastImprovementFE")
     files.extend(save_figure(fig=fig,  # store fig to a file
