@@ -4,13 +4,13 @@ from typing import Final
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.api import operators
+from moptipy.api.operators import Op0
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.types import type_error
 
 
 # start book
-class Op0Shuffle(operators.Op0):
+class Op0Shuffle(Op0):
     """Shuffle permutations randomly."""
 
     def __init__(self, space: Permutations):
@@ -32,10 +32,10 @@ class Op0Shuffle(operators.Op0):
 
         :param random: the random number generator
         :param dest: the permutation that should be shuffled.
-            Afterwards, the order of its elements if random.
+            Afterwards, the order of its elements is random.
         """
-        np.copyto(dest, self.__blueprint)
-        random.shuffle(dest)
+        np.copyto(dest, self.__blueprint)  # Copy blueprint to dest.
+        random.shuffle(dest)  # Shuffle destination array randomly.
     # end book
 
     def __str__(self) -> str:

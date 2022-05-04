@@ -3,10 +3,10 @@
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.api import operators
+from moptipy.api.operators import Op0
 
 
-class Op0Random(operators.Op0):
+class Op0Random(Op0):
     """Fill a bit string with random values."""
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:

@@ -35,9 +35,9 @@ class FEA1plus1(Algorithm1):
 
     def solve(self, process: Process) -> None:
         """
-        Apply the (1+1)-FEA to the given black-box process.
+        Apply the (1+1)-FEA to an optimization problem.
 
-        :param process: the process object
+        :param process: the black-box process object
         """
         # Create records for old and new point in the search space.
         best_x = process.create()  # record for best-so-far solution
@@ -51,8 +51,8 @@ class FEA1plus1(Algorithm1):
         random: Final[Generator] = process.get_random()
 
         # Put function references in variables to save time.
-        evaluate: Final[Callable] = process.evaluate
-        op1: Final[Callable] = self.op1.op1
+        evaluate: Final[Callable] = process.evaluate  # the objective
+        op1: Final[Callable] = self.op1.op1  # the unary operator
         should_terminate: Final[Callable] = process.should_terminate
 
         # Start at a random point in the search space and evaluate it.

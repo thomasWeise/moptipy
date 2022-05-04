@@ -4,13 +4,13 @@ from typing import Final, Callable
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.api import operators
+from moptipy.api.operators import Op1
 from moptipy.utils.nputils import int_range_to_dtype
 from moptipy.utils.strings import bool_to_str
 from moptipy.utils.types import type_error
 
 
-class Op1MoverNflip(operators.Op1):
+class Op1MoverNflip(Op1):
     """
     This unary search operation flips each bit with probability of `m/n`.
 

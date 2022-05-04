@@ -31,9 +31,9 @@ class RandomWalk(Algorithm1):
 
     def solve(self, process: Process) -> None:
         """
-        Apply the random walk to the given black-box process.
+        Apply the random walk to an optimization problem.
 
-        :param process: the process object
+        :param process: the black-box process object
         """
         # create records for old and new point in the search space
         old_x = process.create()  # record for best-so-far solution
@@ -42,8 +42,8 @@ class RandomWalk(Algorithm1):
         random: Final[Generator] = process.get_random()
 
         # Put function references in variables to save time.
-        evaluate: Final[Callable] = process.evaluate
-        op1: Final[Callable] = self.op1.op1
+        evaluate: Final[Callable] = process.evaluate  # the objective
+        op1: Final[Callable] = self.op1.op1  # the unary operator
         should_terminate: Final[Callable] = process.should_terminate
 
         # Start at a random point in the search space and evaluate it.

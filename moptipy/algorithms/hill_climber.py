@@ -1,4 +1,20 @@
-"""The hill climbing algorithm implementation."""
+"""
+The implementation of the basic hill climbing algorithm `hc`.
+
+The algorithm starts by applying the nullary search operator, an
+implementation of :meth:`~moptipy.api.operators.Op0.op0`, to sample
+one fully random solution. This is the first best-so-far solution.
+In each step, it applies the unary operator, an implementation of
+:meth:`~moptipy.api.operators.Op1.op1`, to the best-so-far solution to
+obtain a new, similar solution. If this new solution is strictly better
+than the current best-so-far solution, it replaces this solution.
+Otherwise, it is discarded.
+
+The hill climbing algorithm is a simple local search that only accepts
+strictly improving moves. It is thus similar to the randomized local
+search (`rls`) implemented in :class:`moptipy.algorithms.rls.RLS`,
+which, however, accepts non-deteriorating moves.
+"""
 from typing import Final, Union, Callable
 
 from numpy.random import Generator
@@ -19,9 +35,9 @@ class HillClimber(Algorithm1):
 
     def solve(self, process: Process) -> None:
         """
-        Apply the hill climber to the given black-box process.
+        Apply the hill climber to an optimization problem.
 
-        :param process: the process object
+        :param process: the black-box process object
         """
         # Create records for old and new point in the search space.
         best_x = process.create()  # record for best-so-far solution
@@ -30,8 +46,8 @@ class HillClimber(Algorithm1):
         random: Final[Generator] = process.get_random()
 
         # Put function references in variables to save time.
-        evaluate: Final[Callable] = process.evaluate
-        op1: Final[Callable] = self.op1.op1
+        evaluate: Final[Callable] = process.evaluate  # the objective
+        op1: Final[Callable] = self.op1.op1  # the unary operator
         should_terminate: Final[Callable] = process.should_terminate
 
         # Start at a random point in the search space and evaluate it.
