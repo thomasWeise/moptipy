@@ -20,12 +20,9 @@ KEY_NUMPY_TYPE_JOB_TIME: Final[str] = f"{KEY_NUMPY_TYPE}JobTime"
 
 # start book
 @numba.njit(nogil=True, cache=True)
-def decode(x: np.ndarray,
-           machine_idx: np.ndarray,
-           job_time: np.ndarray,
-           job_idx: np.ndarray,
-           matrix: np.ndarray,
-           y: np.ndarray) -> None:
+def decode(x: np.ndarray, machine_idx: np.ndarray,
+           job_time: np.ndarray, job_idx: np.ndarray,
+           matrix: np.ndarray, y: np.ndarray) -> None:
     """
     Map an operation-based encoded array to a Gantt chart.
 

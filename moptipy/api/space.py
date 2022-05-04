@@ -23,10 +23,10 @@ class Space(Component):
     optimization as well as a black-box process needs to be able to
     create and copy such objects. In order to store the solutions we
     found in a text file, we must further be able to translate them to
-    strings and we should also be able to parse such strings. It is
-    also important to detect whether two objects are the same and
-    whether the contents of an object are valid. All of this
-    functionality is offered by the `Space` class.
+    strings. We should also be able to parse such strings. It is also
+    important to detect whether two objects are the same and whether
+    the contents of an object are valid. All of this functionality is
+    offered by the `Space` class.
     """
 
     def create(self):

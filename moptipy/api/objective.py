@@ -10,7 +10,14 @@ from moptipy.utils.types import type_error
 
 # start book
 class Objective(Component):
-    """An objective function: a criterion rating the solution quality."""
+    """
+    An objective function subject to minimization.
+
+    An objective function represents one optimization criterion that
+    is used for rating the solution quality. All objective functions in
+    our system are subject to minimization, meaning that smaller values
+    are better.
+    """
 
     def evaluate(self, x) -> Union[float, int]:
         """

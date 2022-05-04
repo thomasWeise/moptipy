@@ -16,10 +16,10 @@ def makespan(x: Gantt) -> int:
     Get the makespan corresponding to a given `Gantt` chart.
 
     The makespan corresponds to the maximum of the end times of the
-    last operation on each machine.
+    last operation on each machine. This is jitted for performance.
 
     :param x: the Gantt chart.
-    :return: the maximum of any time stored in the chart
+    :return: the maximum of any end time stored in the chart
     """
     return int(x[:, -1, 2].max())  # maximum of end time of last op
     # end book
@@ -27,7 +27,7 @@ def makespan(x: Gantt) -> int:
 
 # start book
 class Makespan(Objective):
-    """Compute the makespan of a `Gantt` chart."""
+    """Compute the makespan of a `Gantt` chart (for minimization)."""
 
 # end book
     def __init__(self, instance: Instance) -> None:  # +book
@@ -40,6 +40,7 @@ class Makespan(Objective):
         if not isinstance(instance, Instance):
             raise type_error(instance, "instance", Instance)
         self.__instance: Final[Instance] = instance
+        #: The fast call forwarding to the makespan function. # +book
         self.evaluate = makespan  # type: ignore # +book
 
     def lower_bound(self) -> int:
@@ -63,5 +64,6 @@ class Makespan(Objective):
         Get the name of the makespan objective function.
 
         :return: `makespan`
+        :retval "makespan": always
         """
         return "makespan"

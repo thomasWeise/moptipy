@@ -189,7 +189,7 @@ class Permutations(IntSpace):  # +book
         >>> print(perm.to_str(x))
         1,2,2,3,4,4,5
         """
-        return self.blueprint.copy()  # create copy of blueprint # +book
+        return self.blueprint.copy()  # Create copy of the blueprint. # +book
 
     def validate(self, x: numpy.ndarray) -> None:
         """

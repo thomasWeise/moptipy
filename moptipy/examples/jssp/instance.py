@@ -1,4 +1,18 @@
-"""Here we provide a representation for JSSP instances."""
+"""
+Here we provide a representation for JSSP instances.
+
+Our problem instances are actually extensions of
+:class:`~numpy.ndarray`. They present the basic instance data as a
+matrix, where each row corresponds to a job. Each row has twice the
+number of machines elements. In an alternating fashion, we store the
+machines that the job needs to go to as well as the time that it needs
+on the machines, one by one.
+Additionally, the instance name, the number of machines, and the number
+of jobs are provided as attributes (although the latter two can easily
+be inferred from the shape of the matrix).
+Nevertheless, this memory layout and encapsulation as numpy array are
+the most efficient way to store the data I could come up with.
+"""
 from importlib import resources  # nosem
 from typing import Final, List, Tuple, Optional
 
@@ -147,6 +161,7 @@ class Instance(Component, np.ndarray):
     jobs: int
     #: the number of machines == self.shape[1]
     machines: int
+    # ... some more properties and methods ...
     # end book
     #: the lower bound of the makespan of this JSSP instance
     makespan_lower_bound: int

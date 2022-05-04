@@ -40,7 +40,7 @@ def gantt_space_size(jobs: int, machines: int) -> int:
 
 # start book
 class GanttSpace(Space):
-    """A space implementation of for `Gantt` charts."""
+    """An implementation of the `Space` API of for `Gantt` charts."""
 
     def __init__(self, instance: Instance) -> None:
         # end book
@@ -60,7 +60,7 @@ class GanttSpace(Space):
         #: the data to be used for Gantt charts
         self.dtype: Final[np.dtype] = int_range_to_dtype(
             min_value=0, max_value=instance.makespan_upper_bound)
-        # function wrapper
+        #: fast call function forward
         self.copy = np.copyto  # type: ignore # +book
 
     def create(self) -> Gantt:  # +book
