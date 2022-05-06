@@ -1,6 +1,6 @@
 """Plot a set of ERT objects into one figure."""
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, cast
+    Optional, cast, Any
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
@@ -19,23 +19,27 @@ from moptipy.utils.types import type_error
 
 def plot_ert(erts: Iterable[Ert],
              figure: Union[SubplotBase, Figure],
-             x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-             y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+             x_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+             = AxisRanger.for_axis,
+             y_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+             = AxisRanger.for_axis,
              legend: bool = True,
-             distinct_colors_func: Callable = pd.distinct_colors,
-             distinct_line_dashes_func: Callable =
+             distinct_colors_func: Callable[[int], Any] =
+             pd.distinct_colors,
+             distinct_line_dashes_func: Callable[[int], Any] =
              pd.distinct_line_dashes,
-             importance_to_line_width_func: Callable =
+             importance_to_line_width_func: Callable[[int], float] =
              pd.importance_to_line_width,
-             importance_to_alpha_func: Callable =
+             importance_to_alpha_func: Callable[[int], float] =
              pd.importance_to_alpha,
-             importance_to_font_size_func: Callable =
+             importance_to_font_size_func: Callable[[int], float] =
              pd.importance_to_font_size,
              xgrid: bool = True,
              ygrid: bool = True,
-             xlabel: Union[None, str, Callable] = Lang.translate,
+             xlabel: Union[None, str, Callable[[str], str]] = lambda x: x[0],
              xlabel_inside: bool = True,
-             ylabel: Union[None, str, Callable] = Lang.translate_func("ert"),
+             ylabel: Union[None, str, Callable[[str], str]] =
+             Lang.translate_func("ECDF"),
              ylabel_inside: bool = True,
              inst_priority: float = 0.666,
              algo_priority: float = 0.333) -> None:
@@ -68,6 +72,48 @@ def plot_ert(erts: Iterable[Ert],
     :param inst_priority: the style priority for instances
     :param algo_priority: the style priority for algorithms
     """
+    # Before doing anything, let's do some type checking on the parameters.
+    # I want to ensure that this function is called correctly before we begin
+    # to actually process the data. It is better to fail early than to deliver
+    # some incorrect results.
+    if not isinstance(erts, Iterable):
+        raise type_error(erts, "erts", Iterable)
+    if not isinstance(figure, (SubplotBase, Figure)):
+        raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not isinstance(legend, bool):
+        raise type_error(legend, "legend", bool)
+    if not callable(distinct_colors_func):
+        raise type_error(
+            distinct_colors_func, "distinct_colors_func", call=True)
+    if not callable(distinct_line_dashes_func):
+        raise type_error(
+            distinct_line_dashes_func, "distinct_line_dashes_func", call=True)
+    if not callable(distinct_line_dashes_func):
+        raise type_error(importance_to_line_width_func,
+                         "importance_to_line_width_func", call=True)
+    if not callable(importance_to_alpha_func):
+        raise type_error(
+            importance_to_alpha_func, "importance_to_alpha_func", call=True)
+    if not callable(importance_to_font_size_func):
+        raise type_error(importance_to_font_size_func,
+                         "importance_to_font_size_func", call=True)
+    if not isinstance(xgrid, bool):
+        raise type_error(xgrid, "xgrid", bool)
+    if not isinstance(ygrid, bool):
+        raise type_error(ygrid, "ygrid", bool)
+    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
+        raise type_error(xlabel, "xlabel", (str, None), call=True)
+    if not isinstance(xlabel_inside, bool):
+        raise type_error(xlabel_inside, "xlabel_inside", bool)
+    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
+        raise type_error(ylabel, "ylabel", (str, None), call=True)
+    if not isinstance(ylabel_inside, bool):
+        raise type_error(ylabel_inside, "ylabel_inside", bool)
+    if not isinstance(inst_priority, float):
+        raise type_error(inst_priority, "inst_priority", float)
+    if not isinstance(algo_priority, float):
+        raise type_error(algo_priority, "algo_priority", float)
+
     # First, we try to find groups of data to plot together in the same
     # color/style.
     instances: Final[Styler] = Styler(get_instance, "all insts",

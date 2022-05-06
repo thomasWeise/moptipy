@@ -89,7 +89,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                 dimension=F_NAME_SCALED,
                 instance_sort_key=instance_sort_key,
                 algorithm_sort_key=algorithm_sort_key,
-                ylabel_location=1,
+                ylabel_location=1.0,
                 algorithm_namer=algorithm_namer)
 
         result.extend(pu.save_figure(fig=figure,

@@ -190,7 +190,8 @@ def plot_end_results(
     instances: Final[List[str]] = sorted(data.keys(), key=instance_sort_key)
     for inst in instances:
         per_inst_data = data[inst]
-        algo_names: List[str] = sorted(per_inst_data.keys())
+        algo_names: List[str] = sorted(per_inst_data.keys(),
+                                       key=algorithm_sort_key)
         plot_algos.extend(algo_names)
         inst_algos.append((inst, algo_names))
         for algo in algo_names:

@@ -44,7 +44,8 @@ def instance_sort_key(name: str) -> int:
 
 #: the pre-defined algorithm sort keys
 __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
-    n: i for i, n in enumerate(["1rs", "rs", "hc", "rls", "rw"])
+    n: i for i, n in enumerate(["1rs", "rs", "hc", "hc_swap2",
+                                "rls", "rls_swap2", "rw", "rw_swap2"])
 }
 
 
