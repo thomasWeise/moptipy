@@ -20,9 +20,11 @@
   - [Progress Plots](#52-progress-plots)
   - [ECDF Plots](#53-ecdf-plots)
   - [End Results Plots](#54-end-results-plot)
-  - [End Results Tables](#55-end-results-table)
-- [License](#6-license)
-- [Contact](#7-contact)
+  - [Expected Running Time Plots](#55-expected-running-time-ert-plots)
+  - [End Results Tables](#56-end-results-table)
+- [Uselful Links and References](#6-useful-links-and-references)
+- [License](#7-license)
+- [Contact](#8-contact)
 
 
 ## 1. Introduction
@@ -1180,13 +1182,44 @@ It will use the goal objective values `g` from the log files to scale all object
 Ofcourse you can also use it to plot raw objective values, or even runtimes if you wish.
 
 <a href="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png">
-<img alt="Example for an ECDF plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png" style="width:70%;max-width:70%;min-width:70%" />
+<img alt="Example for an end result plot" src="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
 The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results_impl).
 
 
-### 5.5. End Results Table
+### 5.5. Expected Running Time (ERT) Plots
+
+In the file [examples/ert_plot.py](./examples/ert_plot.html), you can find some code running a small experiment and creating ERT plots.
+Basically, it illustrates an estimation of the runtime that it would take in expectation to reach certain objective values.
+The objective values are therefore printed on the horizontal axis and the vertical axis associates an expected running time to them.
+This expectation is estimated based on the idea of iterated runs:
+Assume that you conduct an experiment with 100 runs.
+Now you want to know how long your algorithm needs in expectation to reach a certain goal quality `f`.
+However, you are unlucky:
+Only 30 of your runs actually reached `f`, the rest of them converged to a worse solution and stopped improving before being finally terminated.
+To compute the ERT, we simply assume that if a run did not succeed, we would have directly restarted our algorithm and performed a new, independent run right away.
+Each time we start a run, the chance to succeed is 30% as 30 of our 100 runs managed to find a solution with a quality no worse than `f`.
+We would do this until we finally succeed.
+This means that as long as at least one of our runs succeeded in the experiment, we can compute a finite ERT.
+
+For any goal `f`, the `ERT` is computed as
+
+  `ERT[f] = Time(fbest >= f) / s`
+
+where `s` is the number of successful runs, i.e., of runs that reached the  goal `f` and `Time(fbest >= f)` is the sum of the runtime of all runs that  was spent until the objective value reached `f` (or the run terminated).
+
+Equipped with this understanding, we can now compute the ERT for every single objective value that was reached by any of our runs.
+This way, we will get a diagram similar to the one below:
+
+<a href="https://thomasweise.github.io/moptipy/_static/log_ert_over_f.png">
+<img alt="Example for an ERT plot of RLS and Random Walk on OneMax with 12 bits." src="https://thomasweise.github.io/moptipy/_static/log_ert_over_f.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
+The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/).
+
+
+### 5.6. End Results Table
 
 In the file [examples/end_results_table.py](./examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
 Such a table allows you to display statistics summarizing the performance of your algorithms over several problem instances.
@@ -1266,13 +1299,23 @@ summary&&rs&1.091&1.391&1.680&0.232&65.477&5.762\\%
 The end result tables are implemented in the module [moptipy.evaluation.tabulate_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_end_results_impl).
 
 
-## 6. License
+## 6. Useful Links and References
+
+1. Our book on optimization algorithms:
+   Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
+2. Our old book optimization algorithms:
+   Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://www.it-weise.de/projects/book.pdf).
+3. A nice discussion of experimentation with (numerical) optimization methods is:
+   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). [Research Report] RR-7215, INRIA. 2010. inria-00462481
+
+
+## 7. License
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#7-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
 
-## 7. Contact
+## 8. Contact
 
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 

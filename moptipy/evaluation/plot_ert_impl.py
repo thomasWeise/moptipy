@@ -36,10 +36,10 @@ def plot_ert(erts: Iterable[Ert],
              pd.importance_to_font_size,
              xgrid: bool = True,
              ygrid: bool = True,
-             xlabel: Union[None, str, Callable[[str], str]] = lambda x: x[0],
+             xlabel: Union[None, str, Callable[[str], str]] = Lang.translate,
              xlabel_inside: bool = True,
              ylabel: Union[None, str, Callable[[str], str]] =
-             Lang.translate_func("ECDF"),
+             Lang.translate_func("ERT"),
              ylabel_inside: bool = True,
              inst_priority: float = 0.666,
              algo_priority: float = 0.333) -> None:
@@ -116,10 +116,10 @@ def plot_ert(erts: Iterable[Ert],
 
     # First, we try to find groups of data to plot together in the same
     # color/style.
-    instances: Final[Styler] = Styler(get_instance, "all insts",
-                                      inst_priority)
-    algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
-                                       algo_priority)
+    instances: Final[Styler] = Styler(
+        get_instance, Lang.translate("all_insts"), inst_priority)
+    algorithms: Final[Styler] = Styler(
+        get_algorithm, Lang.translate("all_algos"), algo_priority)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
     source: List[Ert] = cast(List[Ert], erts) if isinstance(erts, list) \

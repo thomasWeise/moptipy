@@ -61,7 +61,7 @@ from moptipy.evaluation.stat_run import StatRun
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
-from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.plot_utils import create_figure, save_figure
 from moptipy.utils.temp import TempDir
@@ -93,7 +93,7 @@ def make_rls(problem) -> Execution:
     ex.set_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
-        Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
+        Op1Flip1()))  # flip exactly one bit
     ex.set_max_fes(200)  # permit 200 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
@@ -112,7 +112,7 @@ def make_random_walk(problem) -> Execution:
     ex.set_algorithm(
         RandomWalk(  # create a random walk that
             Op0Random(),  # starts with a random bit string and
-            Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
+            Op1Flip1()))  # flip exactly one bit
     ex.set_max_fes(200)  # permit 200 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex

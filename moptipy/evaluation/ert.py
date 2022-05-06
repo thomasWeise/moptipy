@@ -1,4 +1,9 @@
-"""Approximate the expected running time to reach certain goals."""
+"""
+Approximate the expected running time to reach certain goals.
+
+The (empirically estimated) Expected Running Time (ERT) tries to give an
+impression of how long an algorithm needs to reach a certain solution quality.
+"""
 
 from dataclasses import dataclass
 from math import isfinite, inf
@@ -25,6 +30,13 @@ def compute_single_ert(source: Iterable[Progress],
                        goal_f: Union[int, float]) -> float:
     """
     Compute a single ERT.
+
+    The ERT is the sum of the time that the runs spend with a
+    best-so-far quality greater or equal than `goal_f` divided by the
+    number of runs that reached `goal_f`. The idea is that the
+    unsuccessful runs spent their complete computational budget and
+    once they have terminated, we would immediately start a new,
+    independent run.
 
     :param source: the source array
     :param goal_f: the goal objective value

@@ -1,57 +1,40 @@
 """
-We execute an experiment with 2 algorithms on 1 problem and plot the ECDFs.
+We execute an experiment with 2 algorithms on 1 problem and plot the ERTs.
 
-An ECDF plot illustrates the fraction of problem instances that an algorithm
-has solved over time.
-Its highest value is 1, its lowest value is 0.
-If you execute 10 runs of your algorithm on two problems each, the ECDF curves
-can take on (2*10 + 1) = 21 different values from [0, 1].
-If all of your runs succeed in reaching the goal objective value and the
-slowest run does so after T2 time units, then the ECDF becomes 1 for time=T2.
-The ECDF remains 0 until the time T1 when the fastest run has solved its
-corresponding problem instance.
-Between T1 and T2, the ECDF is monotonously rising.
+The (empiricially estimated) Expected Running Time - or ERT for short - gives
+us an impression how long an optimization algorithm will need to reach a
+certain goal quality for a given optimization problem instance.
 
-If can happen that an ECDF never reaches 1.
-For example, in our two-problem situation described above, it could be that
-our algorithm can only solve the first problem (all 10 runs succeed), but
-never the second problem (all 10 runs fail).
-Then, the ECDF will reach 0.5 but no higher value.
+If we apply an algorithm once to a problem instance, it will randomly start
+at a rather bad solution quality. It will then step by step improve. We can
+log each improvement in a log file. If we conduct multiple runs of the
+algorithm, we will collect multiple log files from them. For each objective
+value `f` that was reached by any of the runs, we can compute the arithmetic
+mean that it took them to do so. This works well as long as all runs can
+reach `f`. However, especially for better (i.e., small) values of `f`, some
+runs may fail to do so. These runs stop improving earlier. The arithmetic
+mean of the time to read these `f` would go to infinity.
 
-Of course, an algorithm is the better, the faster its ECDF rises and the
-higher it rises.
-In other words, the bigger the area under the ECDF curve, the better.
+Luckily, we can do better than that. We can simply assume that once an
+unsuccessful run terminates, we would directly start a new run afterwards.
+If at least one run in our experiment was successful, this means that the
+probability to reach `f` is larger than zero and if we imagine that we
+keep starting new runs again and again, we will eventually succeed. This is
+the idea behind the ERT. For any goal `f`, it is computed as
 
-There are four tools involved in creating such diagrams:
+  `ERT[f] = Time(fbest >= f) / s`
 
-The module `moptipy.utils.plot_utils` provides the functions for allocating
-and storing figures (named `create_figure` and `save_figure`).
+where `s` is the number of successful runs, i.e., of runs that reached the
+goal `f` and `Time(fbest >= f)` is the sum of the runtime of all runs that
+was spent until the objective value reached `f` (or the run terminated).
 
-The module `moptipy.evaluation.progress` includes the class `Progress`.
-An instance `Progress` represents a two-dimensional progress curve of a
-single run.
-Its time dimensions can either be `FEs` or `ms`. In the former case, it
-records the time in objective function evaluations (FEs) and in the latter
-case, it records them in milliseconds.
-Its objective dimension can either be `plainF`, `scaledF` or `normalizedF`,
-but for ECDFs, we would usually keep them `plainF`.
+An ERT plot plots the ERT for all objective values `f` encountered during
+a set of runs. It is therefore a curve that grows for shrinking `f`.
 
-The module `moptipy.evaluation.ecdf` includes the class `Ecdf`.
-An instance `Ecdf` represents a two-dimensional ECDF curve.
-It can be constructed from a selection of `Progress` objects.
-Matter of fact, a whole sequence of ECDF curves can automatically be
-generated from a sequence of `Progress` objects, which are automatically
-grouped by algorithm.
-
-Finally, the module `moptipy.evaluation.plot_ecdf_impl` provides the
-function `plot_ecdf`. This function accepts a sequence contain `Ecdf` objects
-and illustrates them automatically. It will automatically choose axis labels,
-colors, and group and order the data in a way that it deems reasonable.
-
-In this file, we will use all the above tools.
-We will run a small experiment, parse the resulting log files, and then
-illustrate different groupings and selections of the data.
-We will create svg figures and open them in the web browser for viewing.
+In this example, we apply both a randomized local search and a random walk
+to the 12-bit OneMax problem. We grant each of them 100 FEs and perform
+21 runs per setup. We then plot the ERT in terms of the expected number of
+objective function evaluations (FEs) over the objective values (`f`).
 """
 import os
 from time import sleep
@@ -64,8 +47,8 @@ from moptipy.algorithms.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.ecdf import Ecdf
-from moptipy.evaluation.plot_ecdf_impl import plot_ecdf
+from moptipy.evaluation.ert import Ert
+from moptipy.evaluation.plot_ert_impl import plot_ert
 from moptipy.evaluation.progress import Progress
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -84,8 +67,8 @@ ns = lambda prc: False if prc is None else (  # noqa: E731
 # should we show the plots?
 SHOW_PLOTS_IN_BROWSER = not ns(psutil.Process(os.getppid()))
 
-# We try to solve only the 8-bit OneMax problem
-problems = [lambda: OneMax(8)]
+# We try to solve only the 16-bit OneMax problem
+problems = [lambda: OneMax(16)]
 
 
 def make_rls(problem) -> Execution:
@@ -100,8 +83,8 @@ def make_rls(problem) -> Execution:
     ex.set_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
-        Op1Flip1()))  # flip exactly one bit
-    ex.set_max_fes(256)  # permit 256 FEs
+        Op1Flip1()))  # flips exactly one bit
+    ex.set_max_fes(100)  # the maximum FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
 
@@ -120,7 +103,7 @@ def make_random_walk(problem) -> Execution:
         RandomWalk(  # create a random walk that
             Op0Random(),  # starts with a random bit string and
             Op1Flip1()))  # flip exactly one bit
-    ex.set_max_fes(256)  # permit 256 FEs
+    ex.set_max_fes(100)  # the maximum FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
 
@@ -134,7 +117,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                    instances=problems,  # define the problem instances
                    setups=[make_rls,  # provide RLS run creator
                            make_random_walk],  # provide random walk creator
-                   n_runs=31,  # we will execute 31 runs per setup
+                   n_runs=21,  # we will execute 71 runs per setup
                    n_threads=1)  # we use only a single thread here
     # Once we arrived here, the experiment with 2*1*31 = 62 runs has completed.
 
@@ -143,18 +126,16 @@ with TempDir.create() as td:  # create temporary directory `td`
                        consumer=data.append,  # put the data into data
                        time_unit="FEs",  # time is in FEs (as opposed to "ms")
                        f_name="plainF")  # use raw, unscaled objective values
-    ecdf = []  # we will load the ECDFs into this list
-    # The below function uses the goal objective values from the log files to
-    # compute the ECDF functions. It groups all runs of one algorithm together
-    # and then computes the algorithm's overall ECDF.
-    Ecdf.from_progresses(data, ecdf.append)
+    ert = []  # we will load the ERT into this list
+    # The below function groups all runs of one algorithm and instance
+    # together and then computes the ERT.
+    Ert.from_progresses(data, ert.append)
 
-    # Plot the ECDF functions.
+    # Plot the ERT functions.
     # This function will automatically pick the labels of the axes and choose
     # that the horizontal axis (FEs) be log-scaled.
     fig = create_figure(width=4)  # create an empty, 4"-wide figure
-    plot_ecdf(ecdfs=ecdf,  # plot all the data
-              figure=fig)  # into the figure
+    plot_ert(erts=ert, figure=fig)  # plot all the data into the figure
     # Notice that save_figure returns a list of files that has been generated.
     # You can specify multiple formats, e.g., ("svg", "pdf", "png") and get
     # multiple files.
@@ -163,24 +144,23 @@ with TempDir.create() as td:  # create temporary directory `td`
     # other files we generate to this list and, in the end, display all of them
     # in the web browser.
     files = save_figure(fig=fig,  # store fig to a file
-                        file_name="ecdf_over_log_fes",  # base name
+                        file_name="log_ert_over_f",  # base name
                         dir_name=td,  # store graphic in temp dir
                         formats=("svg", "png", "pdf"))  # file types
     del fig  # dispose figure
 
     # Plot the ECDF functions, but this time do not log-scale the x-axis.
     fig = create_figure(width=4)  # create an empty, 4"-wide figure
-    plot_ecdf(ecdfs=ecdf,  # plot all the data
-              figure=fig,  # into the figure
-              x_axis=AxisRanger.for_axis("FEs", log_scale=False))
+    plot_ert(erts=ert, figure=fig,  # plot all the data into the figure
+             y_axis=AxisRanger.for_axis("FEs", log_scale=False))
     # This time, we save the image only as svg.
     files.extend(save_figure(fig=fig,  # store fig to a file
-                             file_name="ecdf_over_fes",  # base name
+                             file_name="ert_over_fes",  # base name
                              dir_name=td,  # store graphic in temp dir
                              formats="svg"))  # file type: this time only svg
     del fig  # dispose figure
 
-    # OK, we have now plotted a set of different ECDF plots.
+    # OK, we have now plotted a set of different ERT plots.
     # We will open them in the web browser if we are not in a make build.
     if SHOW_PLOTS_IN_BROWSER:
         for file in files:  # for each file we generated
