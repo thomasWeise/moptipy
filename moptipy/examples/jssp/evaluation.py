@@ -1,7 +1,7 @@
 """Evaluate the results of the example experiment."""
 import os.path as pp
 import sys
-from typing import Dict, Final, Optional, Any, List, Tuple, Set
+from typing import Dict, Final, Optional, Any, List, Set
 
 from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS, \
     KEY_TOTAL_TIME_MILLIS
@@ -19,13 +19,14 @@ from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
+
 #: the pre-defined instance sort keys
-__INST_SORT_KEYS: Final[Dict[str, Tuple[int, str]]] = {
-    n: (i, n) for i, n in enumerate(EXPERIMENT_INSTANCES)
+__INST_SORT_KEYS: Final[Dict[str, int]] = {
+    n: i for i, n in enumerate(EXPERIMENT_INSTANCES)
 }
 
 
-def instance_sort_key(name: str) -> Tuple[int, str]:
+def instance_sort_key(name: str) -> int:
     """
     Get the instance sort key for a given instance name.
 
@@ -36,12 +37,18 @@ def instance_sort_key(name: str) -> Tuple[int, str]:
         raise type_error(name, "name", str)
     if not name:
         raise ValueError("name must not be empty.")
-    if name not in __INST_SORT_KEYS:
-        __INST_SORT_KEYS[name] = (1000, name)
-    return __INST_SORT_KEYS[name]
+    if name in __INST_SORT_KEYS:
+        return __INST_SORT_KEYS[name]
+    return 1000
 
 
-def algorithm_sort_key(name: str) -> str:
+#: the pre-defined algorithm sort keys
+__ALGO_SORT_KEYS: Final[Dict[str, int]] = {
+    n: i for i, n in enumerate(["1rs", "rs", "hc", "rls", "rw"])
+}
+
+
+def algorithm_sort_key(name: str) -> int:
     """
     Get the algorithm sort key for a given algorithm name.
 
@@ -52,6 +59,30 @@ def algorithm_sort_key(name: str) -> str:
         raise type_error(name, "name", str)
     if not name:
         raise ValueError("name must not be empty.")
+    if name in __ALGO_SORT_KEYS:
+        return __ALGO_SORT_KEYS[name]
+    return 1000
+
+
+#: the algorithm name map
+__ALGO_NAME_MAP: Final[Dict[str, str]] = {
+    "hc_swap2": "hc", "rls_swap2": "rls", "rw_swap2": "rw"
+}
+
+
+def algorithm_namer(name: str) -> str:
+    """
+    Rename algorithm setups.
+
+    :param name: the algorithm's original name
+    :returns: the new name of the algorithm
+    """
+    if not isinstance(name, str):
+        raise type_error(name, "name", str)
+    if not name:
+        raise ValueError("name must not be empty.")
+    if name in __ALGO_NAME_MAP:
+        return __ALGO_NAME_MAP[name]
     return name
 
 
@@ -231,6 +262,35 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                     name_base="progress_rs_log_T",
                     dest_dir=dest,
                     log_time=True)
+
+    logger("Now evaluating the hill climbing algorithm `hc`.")
+    for lang in Lang.all():
+        lang.set_current()
+        tabulate_end_results(
+            end_results=get_end_results(end_results, algos={"rs", "hc_swap2"}),
+            file_name="end_results_hc",
+            dir_name=dest,
+            instance_sort_key=instance_sort_key,
+            algorithm_sort_key=algorithm_sort_key,
+            col_namer=command_column_namer)
+    plot_end_makespans(
+        end_results=get_end_results(end_results, algos={"rs", "hc_swap2"}),
+        name_base="makespan_scaled_hc",
+        dest_dir=dest,
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key,
+        algorithm_namer=algorithm_namer)
+    plot_median_gantt_charts(get_end_results(end_results, algos={"hc"}),
+                             name_base="gantt_hc",
+                             dest_dir=dest,
+                             results_dir=source,
+                             instance_sort_key=instance_sort_key)
+    plot_progresses(results_dir=source,
+                    algorithms=["rs", "hc"],
+                    name_base="progress_rs_log_T",
+                    dest_dir=dest,
+                    log_time=True,
+                    algorithm_namer=algorithm_namer)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

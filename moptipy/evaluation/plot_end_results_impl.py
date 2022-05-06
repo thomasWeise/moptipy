@@ -37,7 +37,9 @@ def plot_end_results(
         ylabel_location: float = 0.5,
         legend_pos: str = "best",
         instance_sort_key: Callable = lambda x: x,
-        algorithm_sort_key: Callable = lambda x: x) -> None:
+        algorithm_sort_key: Callable = lambda x: x,
+        instance_namer: Callable[[str], str] = lambda x: x,
+        algorithm_namer: Callable[[str], str] = lambda x: x) -> None:
     """
     Plot a set of end result boxes/violins functions into one chart.
 
@@ -79,6 +81,10 @@ def plot_end_results(
     :param legend_pos: the legend position
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
+    :param instance_namer: the name function for instances receives an
+        instance ID and returns an instance name; default=identity function
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     """
     getter: Final[Callable[[EndResult], Union[int, float]]] \
         = EndResult.getter(dimension)
@@ -272,7 +278,7 @@ def plot_end_results(
         for key in inst_algos:
             current = counter
             counter += len(key[1])
-            labels_str.append(key[0])
+            labels_str.append(instance_namer(key[0]))
             labels_x.append(0.5 * (bar_positions[current]
                                    + bar_positions[counter - 1]))
         needs_legend = (n_algorithms > 1)
@@ -280,7 +286,7 @@ def plot_end_results(
         # only use algorithms as key
         for key in inst_algos:
             for algo in key[1]:
-                labels_str.append(algo)
+                labels_str.append(algorithm_namer(algo))
                 labels_x.append(bar_positions[counter])
                 counter += 1
 
@@ -295,9 +301,9 @@ def plot_end_results(
             if not callable(xlabel):
                 raise type_error(xlabel, "xlabel", str, True)
             if (n_algorithms == 1) and (n_instances > 1):
-                xlabel = algorithms[0]
+                xlabel = algorithm_namer(algorithms[0])
             elif (n_algorithms > 1) and (n_instances == 1):
-                xlabel = instances[0]
+                xlabel = instance_namer(instances[0])
             else:
                 xlabel = xlabel("algorithm_on_instance")
 
@@ -317,7 +323,7 @@ def plot_end_results(
 
         for algo in algorithms:
             linestyle = pd.create_line_style()
-            linestyle["label"] = algo
+            linestyle["label"] = algorithm_namer(algo)
             legcol = algo_colors[algo]
             linestyle["color"] = legcol
             linestyle["markeredgecolor"] = legcol

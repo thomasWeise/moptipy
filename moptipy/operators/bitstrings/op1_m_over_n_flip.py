@@ -6,7 +6,6 @@ from numpy.random import Generator
 
 from moptipy.api.operators import Op1
 from moptipy.utils.nputils import int_range_to_dtype
-from moptipy.utils.strings import bool_to_str
 from moptipy.utils.types import type_error
 
 
@@ -90,4 +89,4 @@ class Op1MoverNflip(Op1):
 
         :return: "m_over_n_flip"
         """
-        return f"{self.__m}_over_n_flip_{bool_to_str(not self.__none_is_ok)}"
+        return f"flipB{self.__m}{'n' if self.__none_is_ok else ''}"

@@ -24,7 +24,8 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                        name_base: str,
                        dest_dir: str,
                        instance_sort_key: Callable = lambda x: x,
-                       algorithm_sort_key: Callable = lambda x: x) \
+                       algorithm_sort_key: Callable = lambda x: x,
+                       algorithm_namer: Callable[[str], str] = lambda x: x) \
         -> List[Path]:
     """
     Plot a set of end result boxes/violins functions into one chart.
@@ -34,6 +35,8 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     :param dest_dir: the destination directory
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -86,7 +89,8 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                 dimension=F_NAME_SCALED,
                 instance_sort_key=instance_sort_key,
                 algorithm_sort_key=algorithm_sort_key,
-                ylabel_location=1)
+                ylabel_location=1,
+                algorithm_namer=algorithm_namer)
 
         result.extend(pu.save_figure(fig=figure,
                                      file_name=lang.filename(name_base),
@@ -202,7 +206,8 @@ def plot_progresses(results_dir: str,
                     instance_sort_key: Callable = lambda x: x,
                     algorithm_sort_key: Callable = lambda x: x,
                     xlabel_location: float = 0.0,
-                    include_runs: bool = False) \
+                    include_runs: bool = False,
+                    algorithm_namer: Callable[[str], str] = lambda x: x) \
         -> List[Path]:
     """
     Plot a set of end result boxes/violins functions into one chart.
@@ -216,6 +221,8 @@ def plot_progresses(results_dir: str,
     :param algorithm_sort_key: the sort key function for algorithms
     :param xlabel_location: the location of the x-labels
     :param include_runs: should we include the pure runs as well?
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -237,15 +244,15 @@ def plot_progresses(results_dir: str,
         raise type_error(xlabel_location, "xlabel_location", float)
     if not isinstance(include_runs, bool):
         raise type_error(include_runs, "include_runs", bool)
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
 
     # get the data
     spath: Final[Path] = Path.directory(results_dir)
     progresses: Final[List[Progress]] = []
     for algorithm in sorted(algorithms, key=algorithm_sort_key):
-        Progress.from_logs(spath.resolve_inside(algorithm),
-                           progresses.append,
-                           time_unit=TIME_UNIT_MILLIS,
-                           f_name=F_NAME_RAW)
+        Progress.from_logs(spath.resolve_inside(algorithm), progresses.append,
+                           time_unit=TIME_UNIT_MILLIS, f_name=F_NAME_RAW)
     if len(progresses) <= 0:
         raise ValueError(f"did not find log files in dir '{results_dir}'.")
 
@@ -290,7 +297,8 @@ def plot_progresses(results_dir: str,
                 0.9 * importance_to_font_size(i),
                 algorithm_sort_key=algorithm_sort_key,
                 instance_sort_key=instance_sort_key,
-                xlabel_location=xlabel_location)
+                xlabel_location=xlabel_location,
+                algorithm_namer=algorithm_namer)
             axes = pu.get_axes(plot)
             pu.label_box(axes, inst, x=0.5, y=1)
 

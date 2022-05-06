@@ -5,10 +5,10 @@ import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.algorithm import Algorithm1
+from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 
 
-# start book
 class FEA1plus1(Algorithm1):
     """
     The FFA-based version of the (1+1)-EA: the (1+1)-FEA.
@@ -32,6 +32,15 @@ class FEA1plus1(Algorithm1):
     integers and have lower and upper bounds that are not too far
     away from each other.
     """
+
+    def __init__(self, op0: Op0, op1: Op1) -> None:
+        """
+        Create the (1+1)-FEA.
+
+        :param op0: the nullary search operator
+        :param op1: the unary search operator
+        """
+        super().__init__("fea1p1", op0, op1)
 
     def solve(self, process: Process) -> None:
         """
@@ -68,12 +77,3 @@ class FEA1plus1(Algorithm1):
             if h[new_f] <= best_h:  # new_x is no worse than best_x?
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
-# end book
-
-    def __str__(self) -> str:
-        """
-        Get the name of this (1+1)-FEA.
-
-        :return: "fea1p1" + any non-standard operator suffixes
-        """
-        return f"fea1p1{super().__str__()}"

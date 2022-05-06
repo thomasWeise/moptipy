@@ -20,6 +20,7 @@ from typing import Final, Union, Callable
 from numpy.random import Generator
 
 from moptipy.api.algorithm import Algorithm1
+from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 
 
@@ -62,10 +63,11 @@ class HillClimber(Algorithm1):
                 best_x, new_x = new_x, best_x  # Swap best and new.
 # end book
 
-    def __str__(self) -> str:
+    def __init__(self, op0: Op0, op1: Op1) -> None:
         """
-        Get the name of this hill climber.
+        Create the hill climber.
 
-        :return: "hc" + any non-standard operator suffixes
+        :param op0: the nullary search operator
+        :param op1: the unary search operator
         """
-        return f"hc{super().__str__()}"
+        super().__init__("hc", op0, op1)

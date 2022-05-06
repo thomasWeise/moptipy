@@ -27,6 +27,7 @@ runtime is exhausted.
 from typing import Final
 
 from moptipy.api.algorithm import Algorithm0
+from moptipy.api.operators import Op0
 from moptipy.api.process import Process
 
 
@@ -45,10 +46,10 @@ class SingleRandomSample(Algorithm0):
         process.evaluate(x)  # Evaluate that random solution.
 # end book
 
-    def __str__(self) -> str:
+    def __init__(self, op0: Op0) -> None:
         """
-        Get the name of this single random sampler.
+        Create the single random sample algorithm.
 
-        :return: "1rs" + any non-standard operator suffixes
+        :param op0: the nullary search operator
         """
-        return f"1rs{super().__str__()}"
+        super().__init__("1rs", op0)

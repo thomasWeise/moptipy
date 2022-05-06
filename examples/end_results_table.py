@@ -90,8 +90,7 @@ def make_rls(problem: Instance) -> Execution:
     ex.set_objective(Makespan(problem))  # objective function is makespan
     ex.set_algorithm(RLS(  # create RLS that
         Op0Shuffle(perms),  # create random permutation
-        Op1Swap2(),  # swap two jobs
-        op1_is_default=True))  # don't include op1 in algorithm name str
+        Op1Swap2()))  # swap two jobs
     ex.set_max_time_millis(10)  # permit 10 ms of runtime
     return ex
 
@@ -113,8 +112,7 @@ def make_hill_climber(problem: Instance) -> Execution:
     ex.set_algorithm(  # now construct algorithm
         HillClimber(  # create hill climber that
             Op0Shuffle(perms),  # create random permutation
-            Op1Swap2(),  # swap two jobs
-            op1_is_default=True))  # don't include op1 in algorithm name str
+            Op1Swap2()))  # swap two jobs
     ex.set_max_time_millis(10)  # permit 10 ms of runtime
     return ex
 

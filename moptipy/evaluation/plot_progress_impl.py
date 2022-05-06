@@ -17,35 +17,38 @@ from moptipy.utils.lang import Lang
 from moptipy.utils.types import type_error
 
 
-def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
-                  figure: Union[SubplotBase, Figure],
-                  x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-                  y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-                  legend: bool = True,
-                  distinct_colors_func: Callable = pd.distinct_colors,
-                  distinct_line_dashes_func: Callable =
-                  pd.distinct_line_dashes,
-                  importance_to_line_width_func: Callable =
-                  pd.importance_to_line_width,
-                  importance_to_alpha_func: Callable =
-                  pd.importance_to_alpha,
-                  importance_to_font_size_func: Callable =
-                  pd.importance_to_font_size,
-                  xgrid: bool = True,
-                  ygrid: bool = True,
-                  xlabel: Union[None, str, Callable] = Lang.translate,
-                  xlabel_inside: bool = True,
-                  xlabel_location: float = 0.5,
-                  ylabel: Union[None, str, Callable] = Lang.translate,
-                  ylabel_inside: bool = True,
-                  ylabel_location: float = 1.0,
-                  inst_priority: float = 0.666,
-                  algo_priority: float = 0.333,
-                  stat_priority: float = 0.0,
-                  instance_sort_key: Callable[[str], str] = lambda x: x,
-                  algorithm_sort_key: Callable[[str], str] = lambda x: x,
-                  stat_sort_key: Callable[[str], str] = lambda x: x,
-                  color_algorithms_as_fallback_group: bool = True) -> None:
+def plot_progress(
+        progresses: Iterable[Union[Progress, StatRun]],
+        figure: Union[SubplotBase, Figure],
+        x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+        y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+        legend: bool = True,
+        distinct_colors_func: Callable = pd.distinct_colors,
+        distinct_line_dashes_func: Callable =
+        pd.distinct_line_dashes,
+        importance_to_line_width_func: Callable =
+        pd.importance_to_line_width,
+        importance_to_alpha_func: Callable =
+        pd.importance_to_alpha,
+        importance_to_font_size_func: Callable =
+        pd.importance_to_font_size,
+        xgrid: bool = True,
+        ygrid: bool = True,
+        xlabel: Union[None, str, Callable] = Lang.translate,
+        xlabel_inside: bool = True,
+        xlabel_location: float = 0.5,
+        ylabel: Union[None, str, Callable] = Lang.translate,
+        ylabel_inside: bool = True,
+        ylabel_location: float = 1.0,
+        inst_priority: float = 0.666,
+        algo_priority: float = 0.333,
+        stat_priority: float = 0.0,
+        instance_sort_key: Callable[[str], str] = lambda x: x,
+        algorithm_sort_key: Callable[[str], str] = lambda x: x,
+        stat_sort_key: Callable[[str], str] = lambda x: x,
+        color_algorithms_as_fallback_group: bool = True,
+        instance_namer: Callable[[str], str] = lambda x: x,
+        algorithm_namer: Callable[[str], str] = lambda x: x) -> None:
     """
     Plot a set of progress or statistical run lines into one chart.
 
@@ -82,18 +85,27 @@ def plot_progress(progresses: Iterable[Union[Progress, StatRun]],
     :param stat_sort_key: the sort key function for statistics
     :param color_algorithms_as_fallback_group: if only a single group of data
         was found, use algorithms as group and put them in the legend
+    :param instance_namer: the name function for instances receives an
+        instance ID and returns an instance name; default=identity function
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     """
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
-    instances: Final[Styler] = Styler(get_instance, "all insts",
-                                      inst_priority,
-                                      name_sort_function=instance_sort_key)
-    algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
-                                       algo_priority,
-                                       name_sort_function=algorithm_sort_key)
-    statistics: Final[Styler] = Styler(get_statistic, "single run",
-                                       stat_priority,
-                                       name_sort_function=stat_sort_key)
+    instances: Final[Styler] = Styler(
+        key_func=get_instance,
+        namer=lambda s, inn=instance_namer: Lang.translate("all_insts")
+        if s is None else inn(s),
+        priority=inst_priority, name_sort_function=instance_sort_key)
+    algorithms: Final[Styler] = Styler(
+        key_func=get_algorithm,
+        namer=lambda s, an=algorithm_namer: Lang.translate("all_algos")
+        if s is None else an(s),
+        priority=algo_priority, name_sort_function=algorithm_sort_key)
+    statistics: Final[Styler] = Styler(
+        key_func=get_statistic,
+        namer=Lang.translate("single_run"),
+        priority=stat_priority, name_sort_function=stat_sort_key)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
     progress_list: List[Progress] = []

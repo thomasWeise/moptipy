@@ -42,7 +42,10 @@ def __lang_setup():
         "setup": "setup",
         "best": "best",
         "worst": "worst",
-        "summary": "summary"
+        "summary": "summary",
+        "all_insts": "all instances",
+        "all_algos": "all algorithms",
+        "single_run": "single run"
     })
 
     DE.extend({
@@ -69,7 +72,10 @@ def __lang_setup():
         "setup": "setup",
         "best": "beste",
         "worst": "schlechteste",
-        "summary": "Übersicht"
+        "summary": "Übersicht",
+        "all_insts": "all Instanzen",
+        "all_algos": "all Algorithmen",
+        "single_run": "einzelner Run"
     })
 
     ZH.extend({
@@ -96,7 +102,10 @@ def __lang_setup():
         "setup": "算法配置",
         "best": "最好的",
         "worst": "最糟糕的",
-        "summary": "总结"
+        "summary": "总结",
+        "all_insts": "所有优化问题实例",
+        "all_algos": "所有的算法",
+        "single_run": "一个算法执行"
     })
 
 

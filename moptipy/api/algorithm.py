@@ -31,32 +31,28 @@ class Algorithm(Component):
 class Algorithm0(Algorithm):
     """An algorithm with a nullary search operator."""
 
-    def __init__(self,
-                 op0: Op0,
-                 op0_is_default: bool = True) -> None:
+    def __init__(self, name: str, op0: Op0) -> None:
         """
         Create the algorithm with nullary search operator.
 
+        :param name: the name of the algorithm
         :param op0: the nullary search operator
-        :param op0_is_default: is this a default nullary operator?
-            if `True`, it will not be included in the name suffix
         """
         #: The nullary search operator.
         self.op0: Final[Op0] = check_op0(op0)
-
-        if not isinstance(op0_is_default, bool):
-            raise type_error(op0_is_default, "op0_is_default", bool)
-        #: The internal name suffix
-        self._name_suffix: str = "" if op0_is_default else \
-            f"{PART_SEPARATOR}{op0}"
+        if not isinstance(name, str):
+            raise type_error(name, "name", str)
+        if len(name) <= 0:
+            raise ValueError(f"Algorithm name cannot be '{name}'.")
+        self.name: Final[str] = name
 
     def __str__(self) -> str:
         """
-        Get the suffix for the name of the algorithm by subclasses.
+        Get the name of the algorithm.
 
         :return: the name of the algorithm
         """
-        return self._name_suffix
+        return self.name
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -72,30 +68,17 @@ class Algorithm0(Algorithm):
 class Algorithm1(Algorithm0):
     """An algorithm with a unary search operator."""
 
-    def __init__(self,
-                 op0: Op0,
-                 op1: Op1,
-                 op0_is_default: bool = True,
-                 op1_is_default: bool = False) -> None:
+    def __init__(self, name: str, op0: Op0, op1: Op1) -> None:
         """
         Create the algorithm with nullary and unary search operator.
 
+        :param name: the name of the algorithm
         :param op0: the nullary search operator
         :param op1: the unary search operator
-        :param op0_is_default: is this a default nullary operator?
-            If `True`, it will not be included in the name suffix.
-        :param op1_is_default: is this a default unary operator?
-            If `True`, it will not be included in the name suffix.
         """
-        super().__init__(op0=op0,
-                         op0_is_default=op0_is_default)
+        super().__init__(f"{name}{PART_SEPARATOR}{op1}", op0)
         #: The unary search operator.
         self.op1: Final[Op1] = check_op1(op1)
-        if not isinstance(op1_is_default, bool):
-            raise type_error(op1_is_default, "op1_is_default", bool)
-        #: the internal name suffix
-        if not op1_is_default:
-            self._name_suffix += f"{PART_SEPARATOR}{op1}"
 
     def log_parameters_to(self, logger: KeyValueLogSection):
         """
@@ -111,37 +94,18 @@ class Algorithm1(Algorithm0):
 class Algorithm2(Algorithm1):
     """An algorithm with a binary and unary operator."""
 
-    def __init__(self,
-                 op0: Op0,
-                 op1: Op1,
-                 op2: Op2,
-                 op0_is_default: bool = True,
-                 op1_is_default: bool = False,
-                 op2_is_default: bool = False) -> None:
+    def __init__(self, name: str, op0: Op0, op1: Op1, op2: Op2) -> None:
         """
-        Create the algorithm with nullary and unary search operator.
+        Create the algorithm with nullary, unary, and binary search operator.
 
+        :param name: the name of the algorithm
         :param op0: the nullary search operator
         :param op1: the unary search operator
         :param op2: the binary search operator
-        :param op0_is_default: is this a default nullary operator?
-            If `True`, it will not be included in the name suffix.
-        :param op1_is_default: is this a default unary operator?
-            If `True`, it will not be included in the name suffix.
-        :param op2_is_default: is this a default binary operator?
-            If `True`, it will not be included in the name suffix.
         """
-        super().__init__(op0=op0,
-                         op1=op1,
-                         op0_is_default=op0_is_default,
-                         op1_is_default=op1_is_default)
+        super().__init__(f"{name}{PART_SEPARATOR}{op2}", op0, op1)
         #: The binary search operator.
         self.op2: Final[Op2] = check_op2(op2)
-        if not isinstance(op2_is_default, bool):
-            raise type_error(op2_is_default, "op2_is_default", bool)
-        #: the internal name suffix
-        if not op2_is_default:
-            self._name_suffix += f"{PART_SEPARATOR}{op2}"
 
     def log_parameters_to(self, logger: KeyValueLogSection):
         """

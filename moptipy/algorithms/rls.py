@@ -43,6 +43,7 @@ from typing import Final, Union, Callable
 from numpy.random import Generator
 
 from moptipy.api.algorithm import Algorithm1
+from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 
 
@@ -85,10 +86,11 @@ class RLS(Algorithm1):
                 best_x, new_x = new_x, best_x  # Swap best and new.
 # end book
 
-    def __str__(self) -> str:
+    def __init__(self, op0: Op0, op1: Op1) -> None:
         """
-        Get the name of this RLS algorithm.
+        Create the randomized local search (rls).
 
-        :return: "rls" + any non-standard operator suffixes
+        :param op0: the nullary search operator
+        :param op1: the unary search operator
         """
-        return f"rls{super().__str__()}"
+        super().__init__("rls", op0, op1)

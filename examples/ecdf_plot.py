@@ -100,8 +100,7 @@ def make_rls(problem) -> Execution:
     ex.set_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
-        Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
-        op1_is_default=True))  # don't include op1 in algorithm name str
+        Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
     ex.set_max_fes(256)  # permit 256 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
@@ -120,8 +119,7 @@ def make_random_walk(problem) -> Execution:
     ex.set_algorithm(
         RandomWalk(  # create a random walk that
             Op0Random(),  # starts with a random bit string and
-            Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
-            op1_is_default=True))  # don't include op1 in algorithm name str
+            Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
     ex.set_max_fes(256)  # permit 256 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex

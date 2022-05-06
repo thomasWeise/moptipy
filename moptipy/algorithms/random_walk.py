@@ -17,6 +17,7 @@ from typing import Final, Callable
 from numpy.random import Generator
 
 from moptipy.api.algorithm import Algorithm1
+from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 
 
@@ -56,10 +57,11 @@ class RandomWalk(Algorithm1):
             evaluate(new_x)  # Evaluate the solution and ignore result.
 # end book
 
-    def __str__(self) -> str:
+    def __init__(self, op0: Op0, op1: Op1) -> None:
         """
-        Get the name of this random walk.
+        Create the random walk.
 
-        :return: "rw" + any non-standard operator suffixes
+        :param op0: the nullary search operator
+        :param op1: the unary search operator
         """
-        return f"rw{super().__str__()}"
+        super().__init__("rw", op0, op1)

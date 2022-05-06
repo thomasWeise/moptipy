@@ -93,8 +93,7 @@ def make_rls(problem) -> Execution:
     ex.set_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
-        Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
-        op1_is_default=True))  # don't include op1 in algorithm name str
+        Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
     ex.set_max_fes(200)  # permit 200 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
@@ -113,8 +112,7 @@ def make_random_walk(problem) -> Execution:
     ex.set_algorithm(
         RandomWalk(  # create a random walk that
             Op0Random(),  # starts with a random bit string and
-            Op1MoverNflip(n=problem.n, m=1),  # flips each bit with p=1/n
-            op1_is_default=True))  # don't include op1 in algorithm name str
+            Op1MoverNflip(n=problem.n, m=1)))  # flips each bit with p=1/n
     ex.set_max_fes(200)  # permit 200 FEs
     ex.set_log_improvements(True)  # log the progress!
     return ex
@@ -155,7 +153,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # generate to this list and, in the end, display all of them in the web
     # browser.
     files = save_figure(fig=fig,  # store fig to a file
-                        file_name="single_runs_f_over_log_fes",  # base name
+                        file_name="progress_single_runs_f_over_log_fes",
                         dir_name=td,  # store graphic in temp dir
                         formats="svg")  # file type = svg
     del fig  # dispose figure
@@ -169,10 +167,11 @@ with TempDir.create() as td:  # create temporary directory `td`
                               if ("onemax" in r.instance)],  # only OneMax
                   figure=fig)  # plot into figure fig
     # We save the figure as a file and add this file to the list `files`.
-    files.extend(save_figure(fig=fig,  # plot into figure fig
-                             file_name="single_runs_f_over_log_fes_onemax",
-                             dir_name=td,  # store file in temp dir
-                             formats="svg"))  # again as svg
+    files.extend(save_figure(
+        fig=fig,  # plot into figure fig
+        file_name="progress_single_runs_f_over_log_fes_onemax",
+        dir_name=td,  # store file in temp dir
+        formats="svg"))  # again as svg
     del fig  # dispose fig
 
     # We now plot only the runs of the RLS, but for both problems.
@@ -183,10 +182,10 @@ with TempDir.create() as td:  # create temporary directory `td`
                   figure=fig)
     # This time, we save three files: a svg, a pdf, and a png. Later all
     # three will be opened in the web browser.
-    files.extend(save_figure(fig=fig,
-                             file_name="single_runs_f_over_log_fes_rls",
-                             dir_name=td,
-                             formats=("svg", "pdf", "png")))
+    files.extend(save_figure(
+        fig=fig,
+        file_name="progress_single_runs_f_over_log_fes_rls",
+        dir_name=td, formats=("svg", "pdf", "png")))
     del fig
 
     # Let us now convert the progress data to statistics runs.
@@ -203,10 +202,10 @@ with TempDir.create() as td:  # create temporary directory `td`
     # the same diagram. Notice that the system will again automatically choose
     # an appropriate style.
     plot_progress(progresses=data, figure=fig)
-    files.extend(save_figure(fig=fig,  # save the figure
-                             file_name="single_runs_and_mean_f_over_log_fes",
-                             dir_name=td,
-                             formats="svg"))
+    files.extend(save_figure(
+        fig=fig,  # save the figure
+        file_name="progress_single_runs_and_mean_f_over_log_fes",
+        dir_name=td, formats="svg"))
     del fig  # dispose figure
 
     fig = create_figure(width=4)  # create a 4"-wide, empty figure
@@ -214,9 +213,9 @@ with TempDir.create() as td:  # create temporary directory `td`
     # the horizontal (FEs) axis.
     plot_progress(progresses=data, figure=fig,
                   x_axis=AxisRanger.for_axis("FEs", log_scale=False))
-    files.extend(save_figure(fig=fig,
-                             file_name="single_runs_and_mean_f_over_fes",
-                             dir_name=td, formats=("pdf", "svg")))
+    files.extend(save_figure(
+        fig=fig, file_name="progress_single_runs_and_mean_f_over_fes",
+        dir_name=td, formats=("pdf", "svg")))
     del fig  # dispose figure
 
     fig = create_figure(width=4)  # create an empty, 4"-wide figure
@@ -226,7 +225,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                   figure=fig,
                   x_axis=AxisRanger.for_axis("FEs", log_scale=False))
     files.extend(save_figure(fig=fig,
-                             file_name="mean_f_over_fes",
+                             file_name="progress_mean_f_over_fes",
                              dir_name=td, formats=("pdf", "svg")))
     del fig  # dispose figure
 

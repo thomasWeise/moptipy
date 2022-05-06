@@ -29,6 +29,7 @@ from typing import Final, Callable
 from numpy.random import Generator
 
 from moptipy.api.algorithm import Algorithm0
+from moptipy.api.operators import Op0
 from moptipy.api.process import Process
 
 
@@ -56,10 +57,10 @@ class RandomSampling(Algorithm0):
             evaluate(x)  # Evaluate the solution ... but ignore result.
 # end book
 
-    def __str__(self) -> str:
+    def __init__(self, op0: Op0) -> None:
         """
-        Get the name of this random sampler.
+        Create the random sampling algorithm.
 
-        :return: "rs" + any non-standard operator suffixes
+        :param op0: the nullary search operator
         """
-        return f"rs{super().__str__()}"
+        super().__init__("rs", op0)

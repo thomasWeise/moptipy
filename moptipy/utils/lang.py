@@ -81,8 +81,11 @@ class Lang:
         """
         if not isinstance(data, dict):
             raise type_error(data, "data", Dict)
-        for k, v in data.items():
-            k = sanitize_name(k)
+        for ko, v in data.items():
+            k = sanitize_name(ko)
+            if k != ko:
+                raise ValueError(f"key '{ko}' is different from "
+                                 f"its sanitized version '{k}'.")
             if (k in self.__dict) and (self.__dict[k] != v):
                 raise ValueError(
                     f"Key '{k}' appears twice, already assigned to "
