@@ -1,4 +1,5 @@
 """Plot a set of `Progress` or `StatRun` objects into one figure."""
+from math import isfinite
 from typing import List, Dict, Final, Callable, Iterable, Union, \
     Optional, Any
 
@@ -20,24 +21,26 @@ from moptipy.utils.types import type_error
 def plot_progress(
         progresses: Iterable[Union[Progress, StatRun]],
         figure: Union[SubplotBase, Figure],
-        x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-        y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+        x_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        AxisRanger.for_axis,
+        y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        AxisRanger.for_axis,
         legend: bool = True,
-        distinct_colors_func: Callable = pd.distinct_colors,
-        distinct_line_dashes_func: Callable =
+        distinct_colors_func: Callable[[int], Any] = pd.distinct_colors,
+        distinct_line_dashes_func: Callable[[int], Any] =
         pd.distinct_line_dashes,
-        importance_to_line_width_func: Callable =
+        importance_to_line_width_func: Callable[[int], float] =
         pd.importance_to_line_width,
-        importance_to_alpha_func: Callable =
+        importance_to_alpha_func: Callable[[int], float] =
         pd.importance_to_alpha,
-        importance_to_font_size_func: Callable =
+        importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
         xgrid: bool = True,
         ygrid: bool = True,
-        xlabel: Union[None, str, Callable] = Lang.translate,
+        xlabel: Union[None, str, Callable[[str], str]] = Lang.translate,
         xlabel_inside: bool = True,
         xlabel_location: float = 0.5,
-        ylabel: Union[None, str, Callable] = Lang.translate,
+        ylabel: Union[None, str, Callable[[str], str]] = Lang.translate,
         ylabel_inside: bool = True,
         ylabel_location: float = 1.0,
         inst_priority: float = 0.666,
@@ -90,6 +93,76 @@ def plot_progress(
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
     """
+    # Before doing anything, let's do some type checking on the parameters.
+    # I want to ensure that this function is called correctly before we begin
+    # to actually process the data. It is better to fail early than to deliver
+    # some incorrect results.
+    if not isinstance(progresses, Iterable):
+        raise type_error(progresses, "progresses", Iterable)
+    if not isinstance(figure, (SubplotBase, Figure)):
+        raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not isinstance(legend, bool):
+        raise type_error(legend, "legend", bool)
+    if not callable(distinct_colors_func):
+        raise type_error(
+            distinct_colors_func, "distinct_colors_func", call=True)
+    if not callable(distinct_colors_func):
+        raise type_error(
+            distinct_colors_func, "distinct_colors_func", call=True)
+    if not callable(distinct_line_dashes_func):
+        raise type_error(
+            distinct_line_dashes_func, "distinct_line_dashes_func", call=True)
+    if not callable(importance_to_line_width_func):
+        raise type_error(importance_to_line_width_func,
+                         "importance_to_line_width_func", call=True)
+    if not callable(importance_to_alpha_func):
+        raise type_error(
+            importance_to_alpha_func, "importance_to_alpha_func", call=True)
+    if not callable(importance_to_font_size_func):
+        raise type_error(importance_to_font_size_func,
+                         "importance_to_font_size_func", call=True)
+    if not isinstance(xgrid, bool):
+        raise type_error(xgrid, "xgrid", bool)
+    if not isinstance(xgrid, bool):
+        raise type_error(xgrid, "xgrid", bool)
+    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
+        raise type_error(xlabel, "xlabel", (str, None), call=True)
+    if not isinstance(xlabel_inside, bool):
+        raise type_error(xlabel_inside, "xlabel_inside", bool)
+    if not isinstance(xlabel_location, float):
+        raise type_error(xlabel_location, "xlabel_location", float)
+    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
+        raise type_error(ylabel, "ylabel", (str, None), call=True)
+    if not isinstance(ylabel_inside, bool):
+        raise type_error(ylabel_inside, "ylabel_inside", bool)
+    if not isinstance(ylabel_location, float):
+        raise type_error(ylabel_location, "ylabel_location", float)
+    if not isinstance(inst_priority, float):
+        raise type_error(inst_priority, "inst_priority", float)
+    if not isfinite(inst_priority):
+        raise ValueError(f"inst_priority cannot be {inst_priority}.")
+    if not isinstance(algo_priority, float):
+        raise type_error(algo_priority, "algo_priority", float)
+    if not isfinite(algo_priority):
+        raise ValueError(f"algo_priority cannot be {algo_priority}.")
+    if not isinstance(stat_priority, float):
+        raise type_error(stat_priority, "stat_priority", float)
+    if not isfinite(stat_priority):
+        raise ValueError(f"stat_priority cannot be {stat_priority}.")
+    if not callable(instance_sort_key):
+        raise type_error(instance_sort_key, "instance_sort_key", call=True)
+    if not callable(algorithm_sort_key):
+        raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
+    if not callable(stat_sort_key):
+        raise type_error(stat_sort_key, "stat_sort_key", call=True)
+    if not callable(instance_namer):
+        raise type_error(instance_namer, "instance_namer", call=True)
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
+    if not isinstance(color_algorithms_as_fallback_group, bool):
+        raise type_error(color_algorithms_as_fallback_group,
+                         "color_algorithms_as_fallback_group", bool)
+
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
     instances: Final[Styler] = Styler(

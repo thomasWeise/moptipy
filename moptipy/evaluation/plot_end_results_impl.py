@@ -21,23 +21,24 @@ def plot_end_results(
         end_results: Iterable[EndResult],
         figure: Union[SubplotBase, Figure],
         dimension: str = F_NAME_SCALED,
-        y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-        distinct_colors_func: Callable = pd.distinct_colors,
-        importance_to_line_width_func: Callable =
+        y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        AxisRanger.for_axis,
+        distinct_colors_func: Callable[[int], Any] = pd.distinct_colors,
+        importance_to_line_width_func: Callable[[int], float] =
         pd.importance_to_line_width,
-        importance_to_font_size_func: Callable =
+        importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
         ygrid: bool = True,
         xgrid: bool = True,
-        xlabel: Union[None, str, Callable] = Lang.translate,
+        xlabel: Union[None, str, Callable[[str], str]] = Lang.translate,
         xlabel_inside: bool = True,
-        xlabel_location: float = 1,
-        ylabel: Union[None, str, Callable] = Lang.translate,
+        xlabel_location: float = 1.0,
+        ylabel: Union[None, str, Callable[[str], str]] = Lang.translate,
         ylabel_inside: bool = True,
         ylabel_location: float = 0.5,
         legend_pos: str = "best",
-        instance_sort_key: Callable = lambda x: x,
-        algorithm_sort_key: Callable = lambda x: x,
+        instance_sort_key: Callable[[str], Any] = lambda x: x,
+        algorithm_sort_key: Callable[[str], Any] = lambda x: x,
         instance_namer: Callable[[str], str] = lambda x: x,
         algorithm_namer: Callable[[str], str] = lambda x: x) -> None:
     """
@@ -86,6 +87,52 @@ def plot_end_results(
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
     """
+    # Before doing anything, let's do some type checking on the parameters.
+    # I want to ensure that this function is called correctly before we begin
+    # to actually process the data. It is better to fail early than to deliver
+    # some incorrect results.
+    if not isinstance(end_results, Iterable):
+        raise type_error(end_results, "end_results", Iterable)
+    if not isinstance(figure, (SubplotBase, Figure)):
+        raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not isinstance(dimension, str):
+        raise type_error(dimension, "dimension", str)
+    if not callable(distinct_colors_func):
+        raise type_error(
+            distinct_colors_func, "distinct_colors_func", call=True)
+    if not callable(importance_to_line_width_func):
+        raise type_error(importance_to_line_width_func,
+                         "importance_to_line_width_func", call=True)
+    if not callable(importance_to_font_size_func):
+        raise type_error(importance_to_font_size_func,
+                         "importance_to_font_size_func", call=True)
+    if not isinstance(ygrid, bool):
+        raise type_error(ygrid, "ygrid", bool)
+    if not isinstance(xgrid, bool):
+        raise type_error(xgrid, "xgrid", bool)
+    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
+        raise type_error(xlabel, "xlabel", (str, None), call=True)
+    if not isinstance(xlabel_inside, bool):
+        raise type_error(xlabel_inside, "xlabel_inside", bool)
+    if not isinstance(xlabel_location, float):
+        raise type_error(xlabel_location, "xlabel_location", float)
+    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
+        raise type_error(ylabel, "ylabel", (str, None), call=True)
+    if not isinstance(ylabel_inside, bool):
+        raise type_error(ylabel_inside, "ylabel_inside", bool)
+    if not isinstance(ylabel_location, float):
+        raise type_error(ylabel_location, "ylabel_location", float)
+    if not isinstance(legend_pos, str):
+        raise type_error(legend_pos, "legend_pos", str)
+    if not callable(instance_sort_key):
+        raise type_error(instance_sort_key, "instance_sort_key", call=True)
+    if not callable(algorithm_sort_key):
+        raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
+    if not callable(instance_namer):
+        raise type_error(instance_namer, "instance_namer", call=True)
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
+
     getter: Final[Callable[[EndResult], Union[int, float]]] \
         = EndResult.getter(dimension)
     logger(f"now plotting end violins for dimension {dimension}.")

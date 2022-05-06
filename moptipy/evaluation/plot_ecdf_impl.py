@@ -1,6 +1,7 @@
 """Plot a set of ECDF or ERT-ECDF objects into one figure."""
+from math import isfinite
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, cast, Set
+    Optional, cast, Set, Any
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
@@ -19,27 +20,31 @@ from moptipy.utils.types import type_error
 
 def plot_ecdf(ecdfs: Iterable[Ecdf],
               figure: Union[SubplotBase, Figure],
-              x_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
-              y_axis: Union[AxisRanger, Callable] = AxisRanger.for_axis,
+              x_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+              = AxisRanger.for_axis,
+              y_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+              = AxisRanger.for_axis,
               legend: bool = True,
-              distinct_colors_func: Callable = pd.distinct_colors,
-              distinct_line_dashes_func: Callable =
+              distinct_colors_func: Callable[[int], Any] =
+              pd.distinct_colors,
+              distinct_line_dashes_func: Callable[[int], Any] =
               pd.distinct_line_dashes,
-              importance_to_line_width_func: Callable =
+              importance_to_line_width_func: Callable[[int], float] =
               pd.importance_to_line_width,
-              importance_to_alpha_func: Callable =
+              importance_to_alpha_func: Callable[[int], float] =
               pd.importance_to_alpha,
-              importance_to_font_size_func: Callable =
+              importance_to_font_size_func: Callable[[int], float] =
               pd.importance_to_font_size,
               xgrid: bool = True,
               ygrid: bool = True,
-              xlabel: Union[None, str, Callable] = lambda x: x[0],
+              xlabel: Union[None, str, Callable[[str], str]] = lambda x: x[0],
               xlabel_inside: bool = True,
-              ylabel: Union[None, str, Callable] =
+              ylabel: Union[None, str, Callable[[str], str]] =
               Lang.translate_func("ECDF"),
               ylabel_inside: bool = True,
               algo_priority: float = 5.0,
-              goal_priority: float = 0.333) -> None:
+              goal_priority: float = 0.333,
+              algorithm_namer: Callable[[str], str] = lambda x: x) -> None:
     """
     Plot a set of Ecdf functions into one chart.
 
@@ -68,13 +73,64 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         it does not consume additional horizontal space)
     :param algo_priority: the style priority for algorithms
     :param goal_priority: the style priority for goal values
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     """
+    # Before doing anything, let's do some type checking on the parameters.
+    # I want to ensure that this function is called correctly before we begin
+    # to actually process the data. It is better to fail early than to deliver
+    # some incorrect results.
+    if not isinstance(ecdfs, Iterable):
+        raise type_error(ecdfs, "ecdfs", Iterable)
+    if not isinstance(figure, (SubplotBase, Figure)):
+        raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not isinstance(legend, bool):
+        raise type_error(legend, "legend", bool)
+    if not callable(distinct_colors_func):
+        raise type_error(
+            distinct_colors_func, "distinct_colors_func", call=True)
+    if not callable(distinct_line_dashes_func):
+        raise type_error(
+            distinct_line_dashes_func, "distinct_line_dashes_func", call=True)
+    if not callable(distinct_line_dashes_func):
+        raise type_error(importance_to_line_width_func,
+                         "importance_to_line_width_func", call=True)
+    if not callable(importance_to_alpha_func):
+        raise type_error(
+            importance_to_alpha_func, "importance_to_alpha_func", call=True)
+    if not callable(importance_to_font_size_func):
+        raise type_error(importance_to_font_size_func,
+                         "importance_to_font_size_func", call=True)
+    if not isinstance(xgrid, bool):
+        raise type_error(xgrid, "xgrid", bool)
+    if not isinstance(ygrid, bool):
+        raise type_error(ygrid, "ygrid", bool)
+    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
+        raise type_error(xlabel, "xlabel", (str, None), call=True)
+    if not isinstance(xlabel_inside, bool):
+        raise type_error(xlabel_inside, "xlabel_inside", bool)
+    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
+        raise type_error(ylabel, "ylabel", (str, None), call=True)
+    if not isinstance(ylabel_inside, bool):
+        raise type_error(ylabel_inside, "ylabel_inside", bool)
+    if not isinstance(algo_priority, float):
+        raise type_error(algo_priority, "algo_priority", float)
+    if not isfinite(algo_priority):
+        raise ValueError(f"algo_priority cannot be {algo_priority}.")
+    if not isfinite(goal_priority):
+        raise ValueError(f"goal_priority cannot be {goal_priority}.")
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
+
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
     goals: Final[Styler] = Styler(get_goal, goal_to_str, goal_priority,
                                   name_sort_function=None)
-    algorithms: Final[Styler] = Styler(get_algorithm, "all algos",
-                                       algo_priority)
+    algorithms: Final[Styler] = Styler(
+        get_algorithm,
+        lambda n, an=algorithm_namer: Lang.translate("all_algos")
+        if n is None else an(n),
+        algo_priority)
     f_dim: Optional[str] = None
     t_dim: Optional[str] = None
     source: List[Ecdf] = cast(List[Ecdf], ecdfs) \
@@ -236,7 +292,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                     fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
-                  xlabel=xlabel(list(x_labels))
+                  xlabel=" ".join([xlabel(x) for x in sorted(x_labels)])
                   if callable(xlabel) else xlabel,
                   xlabel_inside=xlabel_inside,
                   xlabel_location=1,

@@ -330,7 +330,9 @@ def tabulate_end_results(
                                               Union[int, float, None]]] =
         __getter(KEY_GOAL_F),
         lower_bound_name: Optional[str] = "lower_bound",
-        use_lang: bool = True) -> Path:
+        use_lang: bool = True,
+        instance_namer: Callable[[str], str] = lambda x: x,
+        algorithm_namer: Callable[[str], str] = lambda x: x) -> Path:
     r"""
     Tabulate the statistics about the end results of an experiment.
 
@@ -398,9 +400,16 @@ def tabulate_end_results(
     :param lower_bound_name: the name key for the lower bound to be passed
         to `col_namer`
     :param use_lang: should we use the language to define the filename?
+    :param instance_namer: the name function for instances receives an
+        instance ID and returns an instance name; default=identity function
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     :returns: the path to the file with the tabulated end results
     """
-    # initial type checks
+    # Before doing anything, let's do some type checking on the parameters.
+    # I want to ensure that this function is called correctly before we begin
+    # to actually process the data. It is better to fail early than to deliver
+    # some incorrect results.
     if not isinstance(end_results, Iterable):
         raise type_error(end_results, "end_results", Iterable)
     if not isinstance(file_name, str):
@@ -435,6 +444,10 @@ def tabulate_end_results(
         raise type_error(col_best, "col_best", call=True)
     if not isinstance(use_lang, bool):
         raise type_error(use_lang, "use_lang", bool)
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
+    if not callable(instance_namer):
+        raise type_error(instance_namer, "instance_namer", call=True)
 
     # get the getters
     algo_inst_getters: Final[List[Callable[[EndStatistics],
@@ -469,11 +482,13 @@ def tabulate_end_results(
     n_insts: Final[int] = len(insts)
     if n_insts <= 0:
         raise ValueError("no instance found?")
+    inst_names: Final[List[str]] = [instance_namer(inst) for inst in insts]
     algos: Final[List[str]] = sorted({s.algorithm for s in algo_inst_list},
                                      key=algorithm_sort_key)
     n_algos: Final[int] = len(algos)
     if n_algos <= 0:
         raise ValueError("no algos found?")
+    algo_names: Final[List[str]] = [algorithm_namer(algo) for algo in algos]
 
     # finalize the data dictionaries: d[inst][algo] = stats
     algo_inst_dict: Final[Dict[str, Dict[str, EndStatistics]]] = {}
@@ -609,11 +624,11 @@ def tabulate_end_results(
 
     # now we pre-pend the instance and algorithm information
     algo_inst_strs.insert(0, [[FormattedStr.add_format(algo, code=True)
-                               for algo in algos]] * n_insts)
+                               for algo in algo_names]] * n_insts)
     if put_lower_bound:
         algo_inst_strs.insert(0, [[b] for b in lower_bounds])
     algo_inst_strs.insert(0, [[
-        FormattedStr.add_format(inst, code=True)] for inst in insts])
+        FormattedStr.add_format(inst, code=True)] for inst in inst_names])
     del lower_bounds
     del insts
 
@@ -646,7 +661,7 @@ def tabulate_end_results(
                         acol_s[idx] = FormattedStr.add_format(
                             acol_s[idx], bold=True)
         del algo_data
-        algo_strs.insert(0, algos)
+        algo_strs.insert(0, algo_names)
         if put_lower_bound:
             algo_strs.insert(0, [])
         algo_strs.insert(0, [__fix_name("summary")] * n_algos)

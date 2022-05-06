@@ -272,7 +272,8 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
             dir_name=dest,
             instance_sort_key=instance_sort_key,
             algorithm_sort_key=algorithm_sort_key,
-            col_namer=command_column_namer)
+            col_namer=command_column_namer,
+            algorithm_namer=algorithm_namer)
     plot_end_makespans(
         end_results=get_end_results(end_results, algos={"rs", "hc_swap2"}),
         name_base="makespan_scaled_hc",
@@ -280,13 +281,13 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
         algorithm_namer=algorithm_namer)
-    plot_median_gantt_charts(get_end_results(end_results, algos={"hc"}),
+    plot_median_gantt_charts(get_end_results(end_results, algos={"hc_swap2"}),
                              name_base="gantt_hc",
                              dest_dir=dest,
                              results_dir=source,
                              instance_sort_key=instance_sort_key)
     plot_progresses(results_dir=source,
-                    algorithms=["rs", "hc"],
+                    algorithms=["rs", "hc_swap2"],
                     name_base="progress_rs_log_T",
                     dest_dir=dest,
                     log_time=True,
