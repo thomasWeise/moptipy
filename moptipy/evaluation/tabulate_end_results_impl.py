@@ -9,7 +9,7 @@ from moptipy.api.logging import KEY_BEST_F, KEY_TOTAL_FES, \
     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_TIME_MILLIS, \
     KEY_LAST_IMPROVEMENT_FE
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
-from moptipy.evaluation.end_results import EndResult, KEY_FES_PER_MS
+from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics, KEY_BEST_F_SCALED
 from moptipy.evaluation.statistics import KEY_MINIMUM, KEY_MEAN_ARITH, \
     KEY_STDDEV, KEY_MEAN_GEOM, KEY_MEDIAN, KEY_MAXIMUM
@@ -79,14 +79,14 @@ def default_column_namer(col: str) -> str:
         return stat
     if key == F_NAME_SCALED:
         return f"{stat}1"
-    if key == KEY_TOTAL_FES:
+    if key == KEY_LAST_IMPROVEMENT_FE:
+        key = "fes"
+    elif key == KEY_TOTAL_FES:
         key = "FEs"
     elif key == KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         key = "t"
     elif key == KEY_TOTAL_TIME_MILLIS:
         key = "T"
-    elif key == KEY_FES_PER_MS:
-        key = "FE/ms"
     else:
         raise ValueError(f"unknown key '{key}'.")
     return f"{stat}({key})"
@@ -94,10 +94,8 @@ def default_column_namer(col: str) -> str:
 
 def command_column_namer(
         col: str, put_dollars: bool = True,
-        summary_name: Callable[[bool], str]
-        = lambda put_dollars: Lang.translate("summary"),
-        setup_name: Callable[[bool], str]
-        = lambda put_dollars: r"$\setup$" if put_dollars else r"\setup") \
+        summary_name: Callable[[bool], str] = lambda put_dollars: r"\summary",
+        setup_name: Callable[[bool], str] = lambda put_dollars: r"\setup") \
         -> str:
     """
     Get the command-based names for columns, but in command format.
@@ -160,14 +158,14 @@ def command_column_namer(
         key = "BestF"
     elif key == F_NAME_SCALED:
         key = "BestFscaled"
+    elif key == KEY_LAST_IMPROVEMENT_FE:
+        key = "LIFE"
     elif key == KEY_TOTAL_FES:
         key = "TotalFEs"
     elif key == KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         key = "LIMS"
     elif key == KEY_TOTAL_TIME_MILLIS:
         key = "TotalMS"
-    elif key == KEY_FES_PER_MS:
-        key = "FEsMS"
     else:
         raise ValueError(f"unknown key '{key}'.")
     return f"$\\{stat}{key}$" if put_dollars else f"\\{stat}{key}"
@@ -257,8 +255,8 @@ def default_column_best(col: str) ->\
 
     if key in (KEY_BEST_F_SCALED, F_NAME_SCALED, KEY_BEST_F, F_NAME_RAW):
         return __finite_min
-    if key in (KEY_FES_PER_MS, KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-               KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS):
+    if key in (KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
+               KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS):
         return __finite_max
 
     return __nan
@@ -293,7 +291,7 @@ DEFAULT_ALGORITHM_INSTANCE_STATISTICS: Final[Tuple[
     f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
     f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_STDDEV}",
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
-    f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
+    f"{KEY_LAST_IMPROVEMENT_FE}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
     f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
     f"{KEY_MEAN_ARITH}")
 
@@ -304,7 +302,7 @@ DEFAULT_ALGORITHM_SUMMARY_STATISTICS: Final[Tuple[
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MAXIMUM}",
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_STDDEV}",
-    f"{KEY_FES_PER_MS}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
+    f"{KEY_LAST_IMPROVEMENT_FE}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
     f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
     f"{KEY_MEAN_ARITH}")
 

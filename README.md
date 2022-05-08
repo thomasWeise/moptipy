@@ -993,6 +993,7 @@ We can also aggregate the end result data over either algorithm x instance combi
 The class [`moptipy.evaluation.end_statistics.EndStatistics`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_statistics.EndStatistics) provides the tools needed to aggregate statistics over sequences of [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) and to store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
+
 #### 4.3.1. The End Result Statistics File Format
 
 End result statistics files contain information in form of statistics aggregated over several runs.
@@ -1009,7 +1010,6 @@ We have then the following data columns:
 3. `lastImprovementTimeMillis.x`: statistics about the time in milliseconds from the start of the run when the last improvement was registered
 4. `totalFEs.x`: statistics about the total number of FEs performed by the runs
 5. `totalTimeMillis.x`: statistics about the total time in milliseconds consumed by the runs
-6. `fesPerTimeMilli.x`: statistics about the number of FEs that the algorithms performed per second in average per run
 
 Here, the `.x` can stand for the following statistics:
 
@@ -1079,13 +1079,13 @@ with TempDir.create() as td:
 We will get something like the following output:
 
 ```
-algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;fesPerTimeMilli.min;fesPerTimeMilli.med;fesPerTimeMilli.mean;fesPerTimeMilli.geom;fesPerTimeMilli.max;fesPerTimeMilli.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
-hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;49;71;75;71.42207515724994;109;27.09243436828813;10000;10000;10000;10000;10000;0;124;129;128;127.97631178442582;130;2.8284271247461903;76.92307692307692;77.52403846153845;78.15407878411911;78.13946081556759;80.64516129032258;1.7547144869538807;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
-hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.25;1.189207115002721;2;0.5;34;10000;7508.5;2414.736402766418;10000;4983;1;112;84.5;34.50404141651177;113;55.67465012612712;34;88.49557522123894;75.27031013314199;69.9841613803204;90.09009009009009;27.523805755254575;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;338;10000;120000
-hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;2130;2471.5;4235.25;3364.07316907124;9868;3759.9463981108383;26;29.5;51.75;40.734578419012756;122;46.87838876639569;10000;10000;10000;10000;10000;0;115;118;118.75;118.70338048807858;124;3.8622100754188224;80.64516129032258;84.75184945773181;84.27634548622916;84.24359911977653;86.95652173913044;2.698936667401356;935;1.13903743315508;1.1919786096256684;1.210427807486631;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;;;;;;inf;inf;10000;120000
-rls_swap2;abz7;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9395.5;9182.75;9151.751195919433;9935;853.7393727986702;104;120.5;117.75;117.38647664619744;126;10.53169818531972;10000;10000;10000;10000;10000;0;126;128;128.25;128.23566196320664;131;2.217355782608345;76.33587786259542;78.1297686626381;77.99012363823775;77.9814276848292;79.36507936507937;1.343029265029186;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;;;;;;inf;inf;10000;120000
-rls_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;41.75;44.875;43.63027688597683;63;12.769592789122134;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;65.75;1.5;10000;120000
-rls_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;61;96;90;87.91387157137562;107;21.05548226313834;10000;10000;10000;10000;10000;0;113;116;115.75;115.72756820836753;118;2.6299556396765835;84.7457627118644;86.23253047873922;86.42659972264545;86.4098343619819;88.49557522123894;1.9665668222131083;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10000;120000
+algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
+hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;66;98.5;101.75;97.01834939499804;144;35.79920855735966;10000;10000;10000;10000;10000;0;167;173.5;172.75;172.7115064384389;177;4.193248541803041;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
+hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.25;1.189207115002721;2;0.5;34;10000;7508.5;2414.736402766418;10000;4983;1;110.5;83.75;34.271312811950835;113;55.19284373902109;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;335;10000;120000
+hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;2130;2471.5;4235.25;3364.07316907124;9868;3759.9463981108383;25;29;48.75;39.12648845297478;112;42.24038352098617;10000;10000;10000;10000;10000;0;112;113;114.25;114.21692606375939;119;3.2015621187164243;935;1.13903743315508;1.1919786096256684;1.210427807486631;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;;;;;;inf;inf;10000;120000
+rls_swap2;abz7;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9395.5;9182.75;9151.751195919433;9935;853.7393727986702;142;158.5;159.75;158.9378939260136;180;18.625699092025155;10000;10000;10000;10000;10000;0;161;177;174;173.8252032648866;181;8.86942313043338;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;;;;;;inf;inf;10000;120000
+rls_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;65.75;1.5;10000;120000
+rls_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;63;102.5;95.75;93.20406203429836;115;23.90780904502404;10000;10000;10000;10000;10000;0;119;122;121.5;121.488631118727;123;1.9148542155126762;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10000;120000
 ```
 
 
@@ -1235,7 +1235,7 @@ In their standard configuration, they two parts:
    - `mean`: the arithmetic mean of the best objective values reached over all runs
    - `sd`: the standard deviation of the best objective values reached over all runs
    - `mean1`: the arithmetic mean of the best objective values reached over all runs, divided by the lower bound (or goal objective value)
-   - `mean(FE/ms)`: the arithmetic mean of objective function evaluations performed per millisecond, over all runs
+   - `mean(fes)`: the arithmetic mean of the index of the last objective function evaluation (FE) which resulted in an improvement, over all runs
    - `mean(t)`: the arithmetic mean of the time in milliseconds when the last improving move of a run was applied, over all runs
 2. The second part of the table presents one row for each algorithm with statistics aggregated over all runs on all instances.
    By default, it holds the following information:
@@ -1244,7 +1244,7 @@ In their standard configuration, they two parts:
    - `gmean1`: the geometric mean of the best objective values reached divided by the lower bound (or goal objective value) over all runs
    - `worst1`: the maximum of the best objective values reached divided by the lower bound (or goal objective value) over all runs
    - `sd1`: the standard deviation of the best objective values reached divided by the lower bound (or goal objective value) over all runs
-   - `gmean(FE/ms)`: the geometric mean of objective function evaluations performed per millisecond, over all runs
+   - `mean(fes)`: the arithmetic mean of the index of the last objective function evaluation (FE) which resulted in an improvement, over all runs
    - `mean(t)`: the arithmetic mean of the time in milliseconds when the last improving move of a run was applied, over all runs
 
 For each column of each group (instances in part 1, the complete part 2), the best values are marked in **bold face**.
@@ -1252,46 +1252,46 @@ For each column of each group (instances in part 1, the complete part 2), the be
 Tables can be rendered to different formats, such as [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown), [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX), and [HTML](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.html.HTML).
 The example [examples/end_results_table.py](./examples/end_results_table.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
 
-|I|lb(f)|setup|best|mean|sd|mean1|mean(FE/ms)|mean(t)|
+|I|lb(f)|setup|best|mean|sd|mean1|mean(fes)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|
-|`dmu23`|4'668|`hc_swap2`|6'336|6'466.9|**120.54**|1.385|54.442|10.429|
-|||`rls_swap2`|**6'006**|**6'259.9**|168.76|**1.341**|**57.675**|**10.571**|
-|||`rs`|7'378|7'598.4|155.57|1.628|38.727|8.714|
-|`ft06`|55|`hc_swap2`|57|59.3|1.25|1.078|69.429|2.714|
-|||`rls_swap2`|**55**|**57.1**|2.04|**1.039**|74.643|3.000|
-|||`rs`|60|60.6|**1.13**|1.101|**98.403**|**4.714**|
-|`la24`|935|`hc_swap2`|1'137|1'189.6|61.89|1.272|66.883|7.571|
-|||`rls_swap2`|**1'080**|**1'157.4**|49.55|**1.238**|71.390|**9.143**|
-|||`rs`|1'375|1'404.3|**26.66**|1.502|**73.974**|3.857|
-|||setup|best1|gmean1|worst1|sd1|gmean(FE/ms)|mean(t)|
-|summary||hc_swap2|1.036|1.238|1.430|0.136|63.114|6.905|
-|summary||rls_swap2|**1.000**|**1.199**|**1.409**|**0.135**|**67.444**|**7.571**|
-|summary||rs|1.091|1.391|1.680|0.232|65.477|5.762|
+|`dmu23`|4'668|`hc_swap2`|6'283|6'448.1|178.12|1.381|596.86|10.429|
+|||`rls_swap2`|**5'951**|**6'206.0**|**139.16**|**1.329**|**694.43**|**10.857**|
+|||`rs`|7'378|7'598.4|155.57|1.628|340.29|7.857|
+|`ft06`|55|`hc_swap2`|57|59.3|1.25|1.078|133.14|2.429|
+|||`rls_swap2`|**55**|**57.1**|2.04|**1.039**|208.29|3.000|
+|||`rs`|60|60.4|**0.79**|1.099|**651.14**|**5.714**|
+|`la24`|935|`hc_swap2`|1'122|1'182.9|65.26|1.265|619.57|8.000|
+|||`rls_swap2`|**1'080**|**1'143.6**|48.08|**1.223**|**717.14**|**9.143**|
+|||`rs`|1'375|1'404.3|**26.66**|1.502|248.43|3.143|
+|||setup|best1|gmean1|worst1|sd1|mean(fes)|mean(t)|
+|summary||hc_swap2|1.036|1.234|1.458|0.136|449.86|6.952|
+|summary||rls_swap2|**1.000**|**1.190**|**1.377**|**0.129**|**539.95**|**7.667**|
+|summary||rs|1.091|1.390|1.680|0.233|413.29|5.571|
 
 It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX):
 
 ```latex
 \begin{tabular}{lrlrrrrrr}%
 \hrow%
-I&lb(f)&setup&best&mean&sd&mean1&mean(FE/ms)&mean(t)\\%
+I&lb(f)&setup&best&mean&sd&mean1&mean(fes)&mean(t)\\%
 \hrow%
-{\texttt{dmu23}}&4'668&{\texttt{hc_swap2}}&6'336&6'466.9&{\textbf{120.54}}&1.385&54.442&10.429\\%
-&&{\texttt{rls_swap2}}&{\textbf{6'006}}&{\textbf{6'259.9}}&168.76&{\textbf{1.341}}&{\textbf{57.675}}&{\textbf{10.571}}\\%
-&&{\texttt{rs}}&7'378&7'598.4&155.57&1.628&38.727&8.714\\%
+{\texttt{dmu23}}&4'668&{\texttt{hc_swap2}}&6'283&6'448.1&178.12&1.381&596.86&10.429\\%
+&&{\texttt{rls_swap2}}&{\textbf{5'951}}&{\textbf{6'206.0}}&{\textbf{139.16}}&{\textbf{1.329}}&{\textbf{694.43}}&{\textbf{10.857}}\\%
+&&{\texttt{rs}}&7'378&7'598.4&155.57&1.628&340.29&7.857\\%
 \hrow%
-{\texttt{ft06}}&55&{\texttt{hc_swap2}}&57&59.3&1.25&1.078&69.429&2.714\\%
-&&{\texttt{rls_swap2}}&{\textbf{55}}&{\textbf{57.1}}&2.04&{\textbf{1.039}}&74.643&3.000\\%
-&&{\texttt{rs}}&60&60.6&{\textbf{1.13}}&1.101&{\textbf{98.403}}&{\textbf{4.714}}\\%
+{\texttt{ft06}}&55&{\texttt{hc_swap2}}&57&59.3&1.25&1.078&133.14&2.429\\%
+&&{\texttt{rls_swap2}}&{\textbf{55}}&{\textbf{57.1}}&2.04&{\textbf{1.039}}&208.29&3.000\\%
+&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{651.14}}&{\textbf{5.714}}\\%
 \hrow%
-{\texttt{la24}}&935&{\texttt{hc_swap2}}&1'137&1'189.6&61.89&1.272&66.883&7.571\\%
-&&{\texttt{rls_swap2}}&{\textbf{1'080}}&{\textbf{1'157.4}}&49.55&{\textbf{1.238}}&71.390&{\textbf{9.143}}\\%
-&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&{\textbf{73.974}}&3.857\\%
+{\texttt{la24}}&935&{\texttt{hc_swap2}}&1'122&1'182.9&65.26&1.265&619.57&8.000\\%
+&&{\texttt{rls_swap2}}&{\textbf{1'080}}&{\textbf{1'143.6}}&48.08&{\textbf{1.223}}&{\textbf{717.14}}&{\textbf{9.143}}\\%
+&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&248.43&3.143\\%
 \hrow%
-&&setup&best1&gmean1&worst1&sd1&gmean(FE/ms)&mean(t)\\%
+&&setup&best1&gmean1&worst1&sd1&mean(fes)&mean(t)\\%
 \hrow%
-summary&&hc_swap2&1.036&1.238&1.430&0.136&63.114&6.905\\%
-summary&&rls_swap2&{\textbf{1.000}}&{\textbf{1.199}}&{\textbf{1.409}}&{\textbf{0.135}}&{\textbf{67.444}}&{\textbf{7.571}}\\%
-summary&&rs&1.091&1.391&1.680&0.232&65.477&5.762\\%
+summary&&hc_swap2&1.036&1.234&1.458&0.136&449.86&6.952\\%
+summary&&rls_swap2&{\textbf{1.000}}&{\textbf{1.190}}&{\textbf{1.377}}&{\textbf{0.129}}&{\textbf{539.95}}&{\textbf{7.667}}\\%
+summary&&rs&1.091&1.390&1.680&0.233&413.29&5.571\\%
 \hrow%
 \end{tabular}%
 ```

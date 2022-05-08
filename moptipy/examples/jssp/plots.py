@@ -202,6 +202,7 @@ def plot_progresses(results_dir: str,
                     algorithms: Iterable[str],
                     name_base: str,
                     dest_dir: str,
+                    time_unit: str = TIME_UNIT_MILLIS,
                     log_time: bool = True,
                     instance_sort_key: Callable = lambda x: x,
                     algorithm_sort_key: Callable = lambda x: x,
@@ -216,6 +217,7 @@ def plot_progresses(results_dir: str,
     :param algorithms: the set of algorithms to plot together
     :param name_base: the basic name
     :param dest_dir: the destination directory
+    :param time_unit: the time unit to plot
     :param log_time: should the time axis be scaled logarithmically?
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
@@ -234,6 +236,8 @@ def plot_progresses(results_dir: str,
         raise type_error(name_base, "name_base", str)
     if not isinstance(dest_dir, str):
         raise type_error(dest_dir, "dest_dir", str)
+    if not isinstance(time_unit, str):
+        raise type_error(time_unit, "time_unit", str)
     if not isinstance(log_time, bool):
         raise type_error(log_time, "log_time", bool)
     if not callable(instance_sort_key):
@@ -252,7 +256,7 @@ def plot_progresses(results_dir: str,
     progresses: Final[List[Progress]] = []
     for algorithm in sorted(algorithms, key=algorithm_sort_key):
         Progress.from_logs(spath.resolve_inside(algorithm), progresses.append,
-                           time_unit=TIME_UNIT_MILLIS, f_name=F_NAME_RAW)
+                           time_unit=time_unit, f_name=F_NAME_RAW)
     if len(progresses) <= 0:
         raise ValueError(f"did not find log files in dir '{results_dir}'.")
 

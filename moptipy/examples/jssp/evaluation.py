@@ -3,22 +3,18 @@ import os.path as pp
 import sys
 from typing import Dict, Final, Optional, Any, List, Set
 
-from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS, \
-    KEY_TOTAL_TIME_MILLIS
-from moptipy.evaluation.end_results import EndResult, KEY_FES_PER_MS
+from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
+from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.tabulate_end_results_impl import \
-    DEFAULT_ALGORITHM_INSTANCE_STATISTICS, \
-    DEFAULT_ALGORITHM_SUMMARY_STATISTICS, \
     tabulate_end_results, command_column_namer
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans, \
     plot_median_gantt_charts, plot_progresses
 from moptipy.utils.console import logger
-from moptipy.utils.lang import Lang
+from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
-
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
@@ -179,6 +175,91 @@ def compute_end_statistics(end_results_file: str,
     return stats_file
 
 
+def table(end_results: Path, algos: List[str], dest: Path) -> None:
+    """
+    Tabulate the end results.
+
+    :param end_results: the path to the end results
+    :param algos: the algorithms
+    :param dest: the directory
+    """
+    EN.set_current()
+    n: Final[str] = algorithm_namer(algos[0])
+    tabulate_end_results(
+        end_results=get_end_results(end_results, algos=set(algos)),
+        file_name=f"end_results_{n}", dir_name=dest,
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key,
+        col_namer=command_column_namer,
+        algorithm_namer=algorithm_namer,
+        use_lang=False)
+
+
+def makespans(end_results: Path, algos: List[str], dest: Path) -> None:
+    """
+    Plot the end makespans.
+
+    :param end_results: the path to the end results
+    :param algos: the algorithms
+    :param dest: the directory
+    """
+    n: Final[str] = algorithm_namer(algos[0])
+    plot_end_makespans(
+        end_results=get_end_results(end_results, algos=set(algos)),
+        name_base=f"makespan_scaled_{n}", dest_dir=dest,
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key,
+        algorithm_namer=algorithm_namer)
+
+
+def gantt(end_results: Path, algo: str, dest: Path, source: Path) -> None:
+    """
+    Plot the median Gantt charts.
+
+    :param end_results: the path to the end results
+    :param algo: the algorithm
+    :param dest: the directory
+    :param source: the source directory
+    """
+    n: Final[str] = algorithm_namer(algo)
+    plot_median_gantt_charts(get_end_results(end_results, algos={algo}),
+                             name_base=f"gantt_{n}",
+                             dest_dir=dest,
+                             results_dir=source,
+                             instance_sort_key=instance_sort_key)
+
+
+def progress(algos: List[str], dest: Path, source: Path,
+             log: bool = True, millis: bool = True) -> None:
+    """
+    Plot the median Gantt charts.
+
+    :param algos: the algorithms
+    :param dest: the directory
+    :param source: the source directory
+    :param log: is the time logarithmically scaled?
+    :param millis: is the time measured in milliseconds?
+    """
+    n: str = f"progress_{algorithm_namer(algos[0])}_"
+    if log:
+        n = n + "log_"
+    if millis:
+        unit = TIME_UNIT_MILLIS
+        n = n + "T"
+    else:
+        unit = TIME_UNIT_FES
+        n = n + "FEs"
+    plot_progresses(results_dir=source,
+                    algorithms=algos,
+                    name_base=n,
+                    dest_dir=dest,
+                    log_time=log,
+                    time_unit=unit,
+                    algorithm_namer=algorithm_namer,
+                    instance_sort_key=instance_sort_key,
+                    algorithm_sort_key=algorithm_sort_key)
+
+
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                         dest_dir: Optional[str] = None) -> None:
     """
@@ -201,98 +282,23 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         raise ValueError("End stats path is empty??")
 
     logger("Now evaluating the single random sampling algorithm `1rs`.")
-    for lang in Lang.all():
-        lang.set_current()
-        tabulate_end_results(
-            end_results=get_end_results(end_results, algos={"1rs"}),
-            file_name="end_results_1rs",
-            dir_name=dest,
-            algorithm_instance_statistics=[
-                c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                          KEY_TOTAL_TIME_MILLIS)
-                for c in DEFAULT_ALGORITHM_INSTANCE_STATISTICS
-                if KEY_FES_PER_MS not in c],
-            algorithm_summary_statistics=[
-                c.replace(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                          KEY_TOTAL_TIME_MILLIS)
-                for c in DEFAULT_ALGORITHM_SUMMARY_STATISTICS
-                if KEY_FES_PER_MS not in c],
-            instance_sort_key=instance_sort_key,
-            algorithm_sort_key=algorithm_sort_key,
-            col_namer=command_column_namer)
-    plot_end_makespans(
-        end_results=get_end_results(end_results, algos={"1rs"}),
-        name_base="makespan_scaled_1rs",
-        dest_dir=dest,
-        instance_sort_key=instance_sort_key,
-        algorithm_sort_key=algorithm_sort_key)
-    plot_median_gantt_charts(get_end_results(end_results, algos={"1rs"}),
-                             name_base="gantt_1rs",
-                             dest_dir=dest,
-                             results_dir=source,
-                             instance_sort_key=instance_sort_key)
+    table(end_results, ["1rs"], dest)
+    makespans(end_results, ["1rs"], dest)
+    gantt(end_results, "1rs", dest, source)
 
     logger("Now evaluating the multi-random sampling algorithm `rs`.")
-    for lang in Lang.all():
-        lang.set_current()
-        tabulate_end_results(
-            end_results=get_end_results(end_results, algos={"1rs", "rs"}),
-            file_name="end_results_rs",
-            dir_name=dest,
-            instance_sort_key=instance_sort_key,
-            algorithm_sort_key=algorithm_sort_key,
-            col_namer=command_column_namer)
-    plot_end_makespans(
-        end_results=get_end_results(end_results, algos={"1rs", "rs"}),
-        name_base="makespan_scaled_rs",
-        dest_dir=dest,
-        instance_sort_key=instance_sort_key,
-        algorithm_sort_key=algorithm_sort_key)
-    plot_median_gantt_charts(get_end_results(end_results, algos={"rs"}),
-                             name_base="gantt_rs",
-                             dest_dir=dest,
-                             results_dir=source,
-                             instance_sort_key=instance_sort_key)
-    plot_progresses(results_dir=source,
-                    algorithms=["rs"],
-                    name_base="progress_rs",
-                    dest_dir=dest,
-                    log_time=False)
-    plot_progresses(results_dir=source,
-                    algorithms=["rs"],
-                    name_base="progress_rs_log_T",
-                    dest_dir=dest,
-                    log_time=True)
+    table(end_results, ["rs", "1rs"], dest)
+    makespans(end_results, ["rs", "1rs"], dest)
+    gantt(end_results, "rs", dest, source)
+    progress(["rs"], dest, source)
+    progress(["rs"], dest, source, log=False)
 
     logger("Now evaluating the hill climbing algorithm `hc`.")
-    for lang in Lang.all():
-        lang.set_current()
-        tabulate_end_results(
-            end_results=get_end_results(end_results, algos={"rs", "hc_swap2"}),
-            file_name="end_results_hc",
-            dir_name=dest,
-            instance_sort_key=instance_sort_key,
-            algorithm_sort_key=algorithm_sort_key,
-            col_namer=command_column_namer,
-            algorithm_namer=algorithm_namer)
-    plot_end_makespans(
-        end_results=get_end_results(end_results, algos={"rs", "hc_swap2"}),
-        name_base="makespan_scaled_hc",
-        dest_dir=dest,
-        instance_sort_key=instance_sort_key,
-        algorithm_sort_key=algorithm_sort_key,
-        algorithm_namer=algorithm_namer)
-    plot_median_gantt_charts(get_end_results(end_results, algos={"hc_swap2"}),
-                             name_base="gantt_hc",
-                             dest_dir=dest,
-                             results_dir=source,
-                             instance_sort_key=instance_sort_key)
-    plot_progresses(results_dir=source,
-                    algorithms=["rs", "hc_swap2"],
-                    name_base="progress_rs_log_T",
-                    dest_dir=dest,
-                    log_time=True,
-                    algorithm_namer=algorithm_namer)
+    table(end_results, ["hc_swap2", "rs"], dest)
+    makespans(end_results, ["hc_swap2", "rs"], dest)
+    gantt(end_results, "hc_swap2", dest, source)
+    progress(["hc_swap2", "rs"], dest, source)
+    progress(["hc_swap2", "rs"], dest, source, millis=False)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 
