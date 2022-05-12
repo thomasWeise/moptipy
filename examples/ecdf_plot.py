@@ -1,8 +1,10 @@
 """
 We execute an experiment with 2 algorithms on 1 problem and plot the ECDFs.
 
-An ECDF plot illustrates the fraction of problem instances that an algorithm
-has solved over time.
+An Empirical Cumulative Distribution Function (ECDF) plot illustrates the
+fraction of runs (executions of an algorithm) that have solved their
+corresponding problem instance on the vertical axis, over the runtime that has
+been consumed on the horizontal axis.
 Its highest value is 1, its lowest value is 0.
 If you execute 10 runs of your algorithm on two problems each, the ECDF curves
 can take on (2*10 + 1) = 21 different values from [0, 1].
@@ -90,7 +92,7 @@ problems = [lambda: OneMax(8)]
 
 def make_rls(problem) -> Execution:
     """
-    Create an RLS Execution with standard bit mutation.
+    Create an RLS Execution with single bit flip mutation.
 
     :param problem: the OneMax problem
     :returns: the execution
@@ -158,10 +160,10 @@ with TempDir.create() as td:  # create temporary directory `td`
     # Notice that save_figure returns a list of files that has been generated.
     # You can specify multiple formats, e.g., ("svg", "pdf", "png") and get
     # multiple files.
-    # Below, we generate a svg image, a pdf image, and a png image and remember
-    # the list (containing the generated files) as `files`. We will add all
-    # other files we generate to this list and, in the end, display all of them
-    # in the web browser.
+    # Below, we generate a svg image, a pdf image, and a png image and
+    # remember the list (containing the generated files) as `files`. We will
+    # add all other files we generate to this list and, in the end, display
+    # all of them in the web browser.
     files = save_figure(fig=fig,  # store fig to a file
                         file_name="ecdf_over_log_fes",  # base name
                         dir_name=td,  # store graphic in temp dir

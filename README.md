@@ -18,10 +18,11 @@
 - [Evaluating Experiments](#5-evaluating-experiments)
   - [Exporting Data](#51-exporting-data)
   - [Progress Plots](#52-progress-plots)
-  - [ECDF Plots](#53-ecdf-plots)
-  - [End Results Plots](#54-end-results-plot)
+  - [End Results Plots](#53-end-results-plot)
+  - [ECDF Plots](#54-ecdf-plots)
   - [Expected Running Time Plots](#55-expected-running-time-ert-plots)
-  - [End Results Tables](#56-end-results-table)
+  - [ERT-ECDF Plots](#56-ert-ecdf-plots)
+  - [End Results Tables](#57-end-results-table)
 - [Uselful Links and References](#6-useful-links-and-references)
 - [License](#7-license)
 - [Contact](#8-contact)
@@ -120,7 +121,7 @@ Notice that you *must* always use the instances of `Process` in a [`with` block]
 Once this block is left, the log file will be written.
 If you use it outside of a `with` block, no log file will be generated.
 
-Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](./examples/single_run_rls_onemax.html).
+Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html).
 As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls).
 
 ```python
@@ -232,7 +233,7 @@ We use again the  [bit strings domain](https://thomasweise.github.io/moptipy/mop
 We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones)) of two different sizes each, leading to four problem instances in total.
 We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
-The code below is available as file [examples/experiment_2_algorithms_4_problems](./examples/experiment_2_algorithms_4_problems.html).
+The code below is available as file [examples/experiment_2_algorithms_4_problems](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html).
 Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#42-end-result-csv-files) for more information).
 
 ```python
@@ -452,7 +453,7 @@ All of this is implemented in the source code example below in [Section 3.3.3](#
 #### 3.3.3. Applying an Own Algorithm to an Own Problem
 
 The following code combines our [own algorithm](#332-define-a-new-algorithm) and our [own problem type](#331-define-a-new-problem-type) that we discussed in the prior two sections and executes an experiment.
-It is available as file [examples/experiment_own_algorithm_and_problem](./examples/experiment_own_algorithm_and_problem.html).
+It is available as file [examples/experiment_own_algorithm_and_problem](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem.html).
 Notice how we provide functions for generating both the problem instances (here the objective functions) and the algorithm setups exactly as we described in [Section 3.2.](#32-how-to-run-a-series-of-experiments) above.
 
 ```python
@@ -762,7 +763,7 @@ The following exception sections are currently supported:
 #### 4.1.3. Example
 
 You can execute the following Python code to obtain an example log file.
-This code is also available in file [examples/log_file_jssp.py](./examples/log_file_jssp.html):
+This code is also available in file [examples/log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html):
 
 ```python
 from moptipy.algorithms.rls import RLS  # the algorithm we use
@@ -921,7 +922,7 @@ Notice that from the algorithm and instance name together with the random seed, 
 #### 4.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
-We can do that with the code below, which is also available as file [examples/end_results_jssp.py](./examples/end_results_jssp.html).
+We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html).
 
 ```python
 from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
@@ -1036,7 +1037,7 @@ Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the com
 #### 4.3.2. Example for End Result Statistics Files
 
 We can basically execute the same abridged experiment as in the [previous section](#422-an-example-for-end-results-files), but now take the aggregation of information one step further with the code below.
-This code is also available as file [examples/end_statistics_jssp](./examples/end_statistics_jssp.html).
+This code is also available as file [examples/end_statistics_jssp](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html).
 
 ```python
 from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
@@ -1109,7 +1110,7 @@ The format is otherwise similar to the End Results CSV format.
 
 ### 5.2. Progress Plots
 
-In the file [examples/progress_plot.py](./examples/progress_plot.html), you can find some code running a small experiment and creating "progress plots."
+In the file [examples/progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html), you can find some code running a small experiment and creating "progress plots."
 A progress plot is a diagram that shows how an algorithm improves the solution quality over time.
 The solution quality can be the raw objective value, the objective value scaled by the goal objective value, or the objective value normalized with the goal objective value.
 The time can be measured in objective function evaluations (FEs) or in milliseconds and may be log-scaled or unscaled.
@@ -1124,33 +1125,9 @@ Both types of data can also be combined in the same diagram.
 Progress plots are implemented in the module [moptipy.evaluation.plot_progress_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_progress_impl).
 
 
-### 5.3. ECDF Plots
+### 5.3. End Results Plot
 
-In the file [examples/ecdf_plot.py](./examples/ecdf_plot.html), you can find some code running a small experiment and creating "ECDF plots."
-The empirical cumulative distribution function (ECDF) is a plot that aggregates data over several runs of an optimization algorithm.
-It has the consumed runtime (in FEs or milliseconds) on its horizontal axis and the fraction of runs that succeeded in reaching a specified goal on its vertical axis.
-Therefore, an ECDF curve is a monotonously increasing curve:
-It remains 0 until the very first (fastest) run of the algorithm reaches the goal, say at time `T1`.
-Then, it will increase a bit every single time another run reaches the goal.
-At the point in time `T2` when the slowest, last run reaches the goal, it becomes `1`.
-Of course, if not all runs reach the goal, it can also remain at a some other level in `[0,1]`.
-
-Let's say we execute 10 runs of our algorithm on a problem instance.
-The ECDF remains 0 until the first run reaches the goal.
-At this time, it would rise to value `1/10=0.1`.
-Once the second run reaches the goal, it will climb to `2/10=0.2`.
-If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECDF would climb to `7/10=0.7` and then remain there.
-
-<a href="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png">
-<img alt="Example for an ECDF plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
-</a>
-
-ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
-
-
-### 5.4. End Results Plot
-
-In the file [examples/end_results_plot.py](./examples/end_results_plot.html), you can find some code running a small experiment and creating "end results plots."
+In the file [examples/end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html), you can find some code running a small experiment and creating "end results plots."
 An end results plot is basically a [box plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html) overlay on top of a [violin plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html).
 
 Imagine that you conduct multiple runs of one algorithm on one problem instance, let's say 50.
@@ -1188,9 +1165,33 @@ Ofcourse you can also use it to plot raw objective values, or even runtimes if y
 The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results_impl).
 
 
+### 5.4. ECDF Plots
+
+In the file [examples/ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html), you can find some code running a small experiment and creating "ECDF plots."
+The Empirical Cumulative Distribution Function (ECDF) is a plot that aggregates data over several runs of an optimization algorithm.
+It has the consumed runtime (in FEs or milliseconds) on its horizontal axis and the fraction of runs that succeeded in reaching a specified goal on its vertical axis.
+Therefore, an ECDF curve is a monotonously increasing curve:
+It remains 0 until the very first (fastest) run of the algorithm reaches the goal, say at time `T1`.
+Then, it will increase a bit every single time another run reaches the goal.
+At the point in time `T2` when the slowest, last run reaches the goal, it becomes `1`.
+Of course, if not all runs reach the goal, it can also remain at a some other level in `[0,1]`.
+
+Let's say we execute 10 runs of our algorithm on a problem instance.
+The ECDF remains 0 until the first run reaches the goal.
+At this time, it would rise to value `1/10=0.1`.
+Once the second run reaches the goal, it will climb to `2/10=0.2`.
+If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECDF would climb to `7/10=0.7` and then remain there.
+
+<a href="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png">
+<img alt="Example for an ECDF plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
+ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
+
+
 ### 5.5. Expected Running Time (ERT) Plots
 
-In the file [examples/ert_plot.py](./examples/ert_plot.html), you can find some code running a small experiment and creating ERT plots.
+In the file [examples/ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html), you can find some code running a small experiment and creating empirically estimated Expected Running Time (ERT) plots.
 Basically, it illustrates an estimation of the runtime that it would take in expectation to reach certain objective values.
 The objective values are therefore printed on the horizontal axis and the vertical axis associates an expected running time to them.
 This expectation is estimated based on the idea of iterated runs:
@@ -1219,9 +1220,23 @@ This way, we will get a diagram similar to the one below:
 The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/).
 
 
-### 5.6. End Results Table
+### 5.6. ERT-ECDF Plots
 
-In the file [examples/end_results_table.py](./examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
+In the file [examples/ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecd_plot.html), you can find some code running a small experiment and creating ERT-ECDF plots.
+These plots combine the concepts of [ERTs](#55-expected-running-time-ert-plots) with [ECDFs](#54-ecdf-plots):
+Their vertical axis shows the fraction of problem instances that can be expected to be solved by an algorithm.
+Their horizontal axis shows the runtime consumed to do so, which is equivalent to the ERT of the algorithm to reach the global optimum.
+While ECDFs themselves are based on single runs, ERT-ECDF plots are based on problem instances.
+They also make the same assumptions as ERTs, namely that we can simply restart an algorithm if it was not successful when it had consumed all of its computational budget.
+
+<a href="https://thomasweise.github.io/moptipy/_static/ertecdf_over_log_fes.png">
+<img alt="Example for an ERT-ECDF plot of a RLS on OneMax several OneMax instances." src="https://thomasweise.github.io/moptipy/_static/ertecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
+
+### 5.7. End Results Table
+
+In the file [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
 Such a table allows you to display statistics summarizing the performance of your algorithms over several problem instances.
 In their standard configuration, they two parts:
 
@@ -1250,7 +1265,7 @@ In their standard configuration, they two parts:
 For each column of each group (instances in part 1, the complete part 2), the best values are marked in **bold face**.
 
 Tables can be rendered to different formats, such as [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown), [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX), and [HTML](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.html.HTML).
-The example [examples/end_results_table.py](./examples/end_results_table.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
+The example [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
 
 |I|lb(f)|setup|best|mean|sd|mean1|mean(fes)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|

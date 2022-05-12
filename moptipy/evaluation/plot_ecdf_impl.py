@@ -1,5 +1,5 @@
 """Plot a set of ECDF or ERT-ECDF objects into one figure."""
-from math import isfinite
+from math import isfinite, inf
 from typing import List, Dict, Final, Callable, Iterable, Union, \
     Optional, cast, Set, Any
 
@@ -37,14 +37,16 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               pd.importance_to_font_size,
               xgrid: bool = True,
               ygrid: bool = True,
-              xlabel: Union[None, str, Callable[[str], str]] = lambda x: x[0],
+              xlabel: Union[None, str, Callable[[str], str]] =
+              lambda x: x if isinstance(x, str) else x[0],
               xlabel_inside: bool = True,
               ylabel: Union[None, str, Callable[[str], str]] =
               Lang.translate_func("ECDF"),
               ylabel_inside: bool = True,
               algo_priority: float = 5.0,
               goal_priority: float = 0.333,
-              algorithm_namer: Callable[[str], str] = lambda x: x) -> None:
+              algorithm_namer: Callable[[str], str] = lambda x: x,
+              color_algorithms_as_fallback_group: bool = True) -> None:
     """
     Plot a set of Ecdf functions into one chart.
 
@@ -75,6 +77,8 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     :param goal_priority: the style priority for goal values
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
+    :param color_algorithms_as_fallback_group: if only a single group of data
+        was found, use algorithms as group and put them in the legend
     """
     # Before doing anything, let's do some type checking on the parameters.
     # I want to ensure that this function is called correctly before we begin
@@ -197,6 +201,9 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
 
         if len(groups) > 1:
             groups[1].set_line_dash(distinct_line_dashes_func)
+    elif color_algorithms_as_fallback_group:
+        algorithms.set_line_color(distinct_colors_func)
+        groups.append(algorithms)
 
     # If we only have <= 2 groups, we can mark None and not-None values with
     # different importance.
@@ -220,6 +227,10 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         raise type_error(y_axis, "y_axis", AxisRanger)
 
     # first we collect all progress object
+    max_time: Union[int, float] = -inf
+    min_time: Union[int, float] = inf
+    max_ecdf: Union[int, float] = -inf
+    max_ecdf_is_at_max_time: bool = False
     for ee in source:
         style = pd.create_line_style()
         for g in groups:
@@ -231,9 +242,36 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         y_axis.register_array(y)
         style["y"] = y
         plot_list.append(style)
+
+        # We need to detect the special case that the maximum time is at
+        # the maximum ECDF value. In this case, we will later need to extend
+        # the visible area of the x-axis.
+        if len(x) < 2:
+            continue
+        fy = y[-2]
+        ft = x[-2]
+        if isfinite(ft):
+            if fy >= max_ecdf:
+                if fy > max_ecdf:
+                    max_ecdf_is_at_max_time = (ft >= max_time)
+                    max_ecdf = fy
+                else:
+                    max_ecdf_is_at_max_time = max_ecdf_is_at_max_time \
+                        or (ft >= max_time)
+            elif ft > max_time:
+                max_ecdf_is_at_max_time = False
+            if y[0] < min_time:
+                min_time = y[0]
+            if ft > max_time:
+                max_time = ft
     del source
 
     font_size_0: Final[float] = importance_to_font_size_func(0)
+
+    # If the maximum of any ECDF is located directly at the end of the
+    # x-axis, we need to slightly extend the axis to make it visible.
+    if max_ecdf_is_at_max_time:
+        x_axis.register_value(max_time + (3 * (max_time - min_time)) / 100)
 
     # set up the graphics area
     axes: Final[Axes] = pu.get_axes(figure)
