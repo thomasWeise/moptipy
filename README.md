@@ -636,13 +636,36 @@ Here you can find their basic definitions.
 
 ### 4.1. Log Files
 
+The philosophy of our log files are:
+
+1. One log file per algorithm run.
+2. Each log file contains all information needed to fully understand the algorithm run, such as
+   1. The results in numerical form, e.g., the best achieved objective value.
+   2. The result in textual form, e.g., the textual representation of the best solution discovered
+      This allows us to later load, use, or validate the result.
+   3. The random seed used.
+   4. The algorithm name and configuration.
+      This allows us to later understand what we did here and to reproduce the algorithm setup.
+   5. The problem instance name and parameters.
+      This makes sure that we know which problem instance did we solve.
+   6. The system configuration, such as the CPU nd operating system and Python version and library versions.
+      We need to this to understand and reproduce time-dependent measures or to understand situations where changes in the underlying system configuration may have led to different results.
+   7. Errors, if any occurred.
+      We can guard against errors using unit tests, but it may still happen that a run of the optimization algorithm crashed.
+      Our system tries to catch as detailed error information as possible and store it in the log files in order to allow us to figure out what went wrong.
+
+All of this information is stored (almost) automatically.
+Experiments with `moptipy` are intended to be self-documenting, such that you can still see what was going on if you open a log file of someone else or one of your log files five years after the experiment.
+Each log file contains all the information, so you will not end up with a situation where you have a "results file" but cannot find the matching setup information because it was stored elsewhere.
+
+
 #### 4.1.1. File Names and Folder Structure
 
 One independent run of an algorithm on one problem instance produces one log file.
 Each run is identified by the algorithm that is applied, the problem instance to which it is applied, and the random seed.
 This tuple is reflected in the file name.
 `rls_swap2_demo_0x5a9363100a272f12.txt`, for example, represents the algorithm `rls_swap2` applied to the problem instance `demo` and started with random seed `0x5a9363100a272f12` (where `0x` stands for hexademical notation).
-The log files are grouped in a `algorithm`-`instance` folder structure.
+The log files are grouped in a `algorithm`/`instance` folder structure.
 In the above example, there would be a folder `rls_swap2` containing a folder `demo`, which, in turn, contains all the log files from all runs of that algorithm on this instance.
 
 
@@ -666,8 +689,13 @@ The character `#` indicates a starting comment and can only be written by the ro
 
 When setting up an algorithm execution, you can specify whether you want to [log the progress](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements) of the algorithm (or not).
 If and only if you choose to log the progress, the `PROGRESS` section will be contained in the log file.
+Notice that this section can be long if the algorithm makes many improvements.
 You can also choose if you want to [log all algorithm steps](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes) or [only the improving moves](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), the latter being the default behavior.
-Notice that even if you do not choose to log the algorithm's progress, the section `STATE` with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the `RESULT_*` sections with the best encountered candidate solution and point in the search space will be included.
+If you really log all algorithm steps, then your log files will become quite large.
+In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa/) book, for example, we can do several million objective function evaluations (FEs) within the two minutes of runtime granted to each run.
+This then would equate to several millions of lines in the `PROGRESS` section of each log file.
+So normally you would rather only log the improving moves, which would normally be between a few ten to a few thousand of lines, which is usually acceptable.
+Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the [`RESULT_*` sections](#the-result_-sections) with the best encountered candidate solution and point in the search space as well as the [`SETUP`](#the-section-setup) and [`SYS_INFO`](#the-section-sys_info) still will be included in the log files.
 
 The `PROGRESS` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
 It has an internal header describing the data columns.
@@ -677,18 +705,23 @@ There will at least be the following columns:
 2. `timeMS` the clock time that has passed since the start of the run, measured in milliseconds and stored as integer value.
    Python actually provides the system clock time in terms of nanoseconds, however, we always round up to the next highest millisecond.
    We believe that milliseconds are a more reasonable time measure here and a higher resolution is probably not helpful anyway.
-3. `f` the best-so-far objective value
+   Due to the upwards-rounding, the lowest possible time at which a log point can occur is at `1` millisecond.
+3. `f` the best-so-far objective value, if only improving moves are logged, or the current objective value, if all moves are logged.
 
 This configuration is denoted by the header `fes;timeMS;f`.
 After this header and until `END_PROGRESS`, each line will contain one data point with values for the specified columns.
+
+You can copy the contents of this section together with the header into calculation software such as Microsoft Excel or LibreOffice Calc and choose `;` as separator when applying the text-to-column feature.
+This way, you can directly work on the raw data if you want.
+
 Notice that for each FE, there will be at most one data point but there might be multiple data points per millisecond.
 This is especially true if we log all FEs.
-Usually, we could log one data point for every improvement of the objective value, though.
+Usually, we would log one data point for every improvement of the objective value, though.
 
 
 ##### The Section `STATE`
 
-The end state when the run terminates is logged in the section `STATE` in key-value format.
+The end state when the run terminates is logged in the section `STATE` in a [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible key-value format.
 It holds at least the following keys:
 
 - `totalFEs` the total number of objective function evaluations performed, as integer
@@ -700,7 +733,7 @@ It holds at least the following keys:
 
 ##### The Section `SETUP`
 
-In this key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
+In this [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
 There are at least the following keys:
 
 - [process](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process) wrapper parameters (scope `p`):
@@ -709,7 +742,7 @@ There are at least the following keys:
   - `p.maxTimeMillis`: the maximum clock time in milliseconds, if specified
   - `p.maxFEs`: the maximum number of objective function evaluations (FEs), if specified
   - `p.goalF`: the goal objective value, if specified (or computed via the `lower_bound()` of the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective))
-  - `p.randSeed`: the random seed in decimal notation
+  - `p.randSeed`: the random seed (a 64bit unsigned integer) in decimal notation
   - `p.randSeed(hex)`: the random seed in hexadecimal notation
   - `p.randGenType`: the class of the random number generator
   - `p.randBitGenType`: the class of the bit generator used by the random number generator
@@ -724,6 +757,9 @@ This method will automatically be invoked when writing the log files of a run.
 It should *always* start with calling the super implementation (`super().log_parameters_to(logger)`).
 After that, you can store key-value pairs describing the parameterization of your component.
 This way, such information can be preserved in log files.
+
+We strongly suggest to always do that if you define your own components.
+It is a very easy way to make sure that your results are reproducible, easy-to-understand, and self-documenting.
 
 
 ##### The Section `SYS_INFO`
