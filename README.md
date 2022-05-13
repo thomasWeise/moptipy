@@ -1362,7 +1362,7 @@ The end result tables are implemented in the module [moptipy.evaluation.tabulate
 
 ## 7. License
 
-The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#7-contact)).
+The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#8-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
 
