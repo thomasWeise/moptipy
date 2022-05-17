@@ -26,7 +26,7 @@ def test_hill_climber_on_jssp():
 
 
 def test_hill_climber_on_onemax():
-    """Validate the hill climber on the onemax problmem."""
+    """Validate the hill climber on the OneMax problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
@@ -36,7 +36,7 @@ def test_hill_climber_on_onemax():
 
 
 def test_hill_climber_on_leadingones():
-    """Validate the hill climber on the leadingones problmem."""
+    """Validate the hill climber on the LeadingOnes problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)

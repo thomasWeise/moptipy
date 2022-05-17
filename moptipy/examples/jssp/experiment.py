@@ -2,10 +2,12 @@
 import os.path as pp
 import sys
 from typing import Tuple, Dict, Final, Iterable, Callable, \
-    Optional, Union, cast, Any
+    Optional, Union, cast, Any, List
 
 import moptipy.api.experiment as ex
 from moptipy.algorithms.hill_climber import HillClimber
+from moptipy.algorithms.hill_climber_with_restarts import \
+    HillClimberWithRestarts
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.rls import RLS
@@ -18,6 +20,7 @@ from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
@@ -52,20 +55,33 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 #: The default set of algorithms for our experiments.
 #: Each of them is a Callable that receives two parameters, the instance
 #: `inst` and the permutation with repetitions-space `pwr`.
-DEFAULT_ALGORITHMS: Final[Tuple[
-    Callable[[Instance, Permutations], Algorithm], ...]] = (
+DEFAULT_ALGORITHMS: Final[List[
+    Callable[[Instance, Permutations], Algorithm]]] = [
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
     lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
     lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # RLS
-    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2())  # random walk
-)
+    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2()),  # random walk
+    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1SwapN()),  # hill climb.
+    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1SwapN()),  # RLS
+]
+for scale in range(7, 21):  # add the hill climbers with restarts
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, i=scale: HillClimberWithRestarts(
+            Op0Shuffle(pwr), Op1Swap2(), 2 ** i))  # hill climb. with restarts
+    )
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, i=scale: HillClimberWithRestarts(
+            Op0Shuffle(pwr), Op1SwapN(), 2 ** i))  # hill climb. with restarts
+    )
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
                    algorithms: Iterable[
                        Callable[[Instance, Permutations],
-                                Algorithm]] = DEFAULT_ALGORITHMS,
+                                Algorithm]] = tuple(DEFAULT_ALGORITHMS),
                    instances: Iterable[str] = EXPERIMENT_INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
                    max_time: Optional[int] = EXPERIMENT_RUNTIME_MS,

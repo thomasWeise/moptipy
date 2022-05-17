@@ -1,6 +1,7 @@
-"""Test the (1+1)-FEA."""
+"""Test the hill climber with restarts."""
 # noinspection PyPackageRequirements
-from moptipy.algorithms.fea1plus1 import FEA1plus1
+from moptipy.algorithms.hill_climber_with_restarts import \
+    HillClimberWithRestarts
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
@@ -13,33 +14,36 @@ from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax, \
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_fea1plus1_on_jssp():
-    """Validate the (1+1)-FEA on the JSSP."""
+def test_hill_climber_with_restarts_on_jssp():
+    """Validate the hill climber with restarts on the JSSP."""
 
     def create(instance: Instance,
                search_space: Permutations):
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
-        return FEA1plus1(Op0Shuffle(search_space), Op1Swap2())
+        return HillClimberWithRestarts(Op0Shuffle(search_space), Op1Swap2(),
+                                       200)
 
     validate_algorithm_on_jssp(create)
 
 
-def test_fea1plus1_on_onemax():
-    """Validate the (1+1)-FEA on the OneMax problem."""
+def test_hill_climber_with_restarts_on_onemax():
+    """Validate the hill climber with restarts on the OneMax Problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
-        return FEA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+        return HillClimberWithRestarts(
+            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 500)
 
     validate_algorithm_on_onemax(create)
 
 
-def test_fea1plus1_on_leadingones():
-    """Validate the (1+1)-FEA on the LeadingOnes problem."""
+def test_hill_climber_with_restarts_on_leadingones():
+    """Validate the hill climber with restarts on the LeadingOnes problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
-        return FEA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+        return HillClimberWithRestarts(
+            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 33)
 
     validate_algorithm_on_leadingones(create)

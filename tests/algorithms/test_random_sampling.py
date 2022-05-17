@@ -24,7 +24,7 @@ def test_random_sampling_on_jssp():
 
 
 def test_random_sampling_on_onemax():
-    """Validate the random sampling on the onemax problmem."""
+    """Validate the random sampling on the OneMax Problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
@@ -34,7 +34,7 @@ def test_random_sampling_on_onemax():
 
 
 def test_random_sampling_on_leadingones():
-    """Validate the random sampling on the leadingones problmem."""
+    """Validate the random sampling on the LeadingOnes problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)

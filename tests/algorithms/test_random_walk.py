@@ -26,7 +26,7 @@ def test_random_walk_on_jssp():
 
 
 def test_random_walk_on_onemax():
-    """Validate the random walk on the onemax problmem."""
+    """Validate the random walk on the OneMax problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
@@ -36,7 +36,7 @@ def test_random_walk_on_onemax():
 
 
 def test_random_walk_on_leadingones():
-    """Validate the random walk on the leadingones problmem."""
+    """Validate the random walk on the LeadingOnes problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)

@@ -26,7 +26,7 @@ def test_rls_on_jssp():
 
 
 def test_rls_on_onemax():
-    """Validate the RLS on the onemax problmem."""
+    """Validate the RLS on the OneMax problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
@@ -36,7 +36,7 @@ def test_rls_on_onemax():
 
 
 def test_rls_on_leadingones():
-    """Validate the RLS on the leadingones problmem."""
+    """Validate the RLS on the LeadingOnes problem."""
 
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
