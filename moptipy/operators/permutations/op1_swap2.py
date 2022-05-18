@@ -1,4 +1,17 @@
-"""An operator swapping two elements in a permutation."""
+"""
+An operator swapping two elements in a permutation.
+
+This is a unary search operator which first copies the source string `x` to
+the destination string `dest`. Then it draws an index `i1` randomly.
+It keeps drawing a second random index `i2` until `dest[i1] != dest[i2]`,
+i.e., until the elements at the two indices are different. This will always
+be true for actual permutations if `i1 != i2`, but for permutations with
+repetitions, even if `i1 != i2`, sometimes `dest[i1] == dest[i2]`. Anyway,
+as soon as the elements at `i1` and `i2` are different, they will be swapped.
+
+This operator performs one swap. It is similar to :class:`~moptipy.operators.\
+permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
+"""
 from typing import Final, Callable
 
 import numpy as np

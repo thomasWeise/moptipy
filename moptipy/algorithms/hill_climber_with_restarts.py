@@ -2,9 +2,16 @@
 The implementation of the hill climbing algorithm with restarts `hcr`.
 
 This algorithm basically works like the normal hill climber `hc`
-(:class:`~moptipy.algorithms.hill_climber.HillClimber`), but it will
-restart automatically if no move was successful for
-`max_moves_without_improvement` steps.
+(:class:`~moptipy.algorithms.hill_climber.HillClimber`), but it will restart
+automatically if no move was successful for
+`max_moves_without_improvement` iterative steps. It therefore maintains an
+internal counter `count` which is set to zero at the beginning of each restart
+and which is also set to zero again any time a move successfully improved the
+best-so-far solution of the current restart. If a search move, i.e., an
+application of the unary operator, yielded a new solution which is not better
+than the best-so-far solution of the current restart, `count` is incremented.
+If `count >= max_moves_without_improvement`, the algorithm begins a new
+restart with a new random solution.
 """
 from typing import Final, Union, Callable
 

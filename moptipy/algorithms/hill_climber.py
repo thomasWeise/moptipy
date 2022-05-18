@@ -2,18 +2,21 @@
 The implementation of the basic hill climbing algorithm `hc`.
 
 The algorithm starts by applying the nullary search operator, an
-implementation of :meth:`~moptipy.api.operators.Op0.op0`, to sample
-one fully random solution. This is the first best-so-far solution.
-In each step, it applies the unary operator, an implementation of
-:meth:`~moptipy.api.operators.Op1.op1`, to the best-so-far solution to
-obtain a new, similar solution. If this new solution is strictly better
-than the current best-so-far solution, it replaces this solution.
-Otherwise, it is discarded.
+implementation of :meth:`~moptipy.api.operators.Op0.op0`, to sample one fully
+random solution. This is the first best-so-far solution. In each step, it
+applies the unary operator, an implementation of
+:meth:`~moptipy.api.operators.Op1.op1`, to the best-so-far solution to obtain
+a new, similar solution. If this new solution is strictly better than the
+current best-so-far solution, it replaces this solution. Otherwise, it is
+discarded.
 
 The hill climbing algorithm is a simple local search that only accepts
-strictly improving moves. It is thus similar to the randomized local
-search (`rls`) implemented in :class:`moptipy.algorithms.rls.RLS`,
-which, however, accepts non-deteriorating moves.
+strictly improving moves. It is thus similar to the randomized local search
+(`rls`) implemented in :class:`~moptipy.algorithms.rls.RLS`, which, however,
+accepts non-deteriorating moves. We also provide `hcr`, a variant of the hill
+climber that restarts automatically with a certain number of moves were not
+able to improve the current best-so-far solution in class :class:`~moptipy.\
+algorithms.hill_climber_with_restarts.HillClimberWithRestarts`.
 """
 from typing import Final, Union, Callable
 
