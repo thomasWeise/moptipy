@@ -450,6 +450,11 @@ We then evaluate `x_new` and if the resulting objective value `f_new` is better 
 We repeat this until [`process.should_terminate()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.should_terminate) becomes `True`.
 All of this is implemented in the source code example below in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem).
 
+Finally, as a side note: The `process` API also allows your algorithm to store additional information in the log file:
+You can create a section with a given `title` in the log file that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
+Make sure that all section `title`s are unique.
+All such sections will be appended at the end of the log files, wrapped in `BEGIN_title` and `END_title` markers, as prescribed by [our log file format](#412-log-file-sections).
+
 
 #### 3.3.3. Applying an Own Algorithm to an Own Problem
 

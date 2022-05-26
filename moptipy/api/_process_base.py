@@ -4,10 +4,13 @@ from threading import Lock, Timer
 from time import time_ns
 from typing import Optional, Final, Union, Callable
 
-from moptipy.api import logging
+from moptipy.api.logging import _ALL_SECTIONS, KEY_MAX_FES, \
+    KEY_MAX_TIME_MILLIS, SCOPE_PROCESS, KEY_GOAL_F
 from moptipy.api.process import Process, check_goal_f, check_max_fes, \
     check_max_time_millis
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.logger import SECTION_START, SECTION_END
+from moptipy.utils.types import type_error
 
 # the function used to get the time
 _TIME_IN_NS: Final[Callable[[], int]] = time_ns
@@ -179,12 +182,12 @@ class _ProcessBase(Process):
         """
         super().log_parameters_to(logger)
         if not (self._max_fes is None):
-            logger.key_value(logging.KEY_MAX_FES, self._max_fes)
+            logger.key_value(KEY_MAX_FES, self._max_fes)
         if not (self._max_time_millis is None):
-            logger.key_value(logging.KEY_MAX_TIME_MILLIS,
+            logger.key_value(KEY_MAX_TIME_MILLIS,
                              self._max_time_millis)
         if not (self._goal_f is None):
-            logger.key_value(logging.KEY_GOAL_F, self._goal_f)
+            logger.key_value(KEY_GOAL_F, self._goal_f)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -194,7 +197,7 @@ class _ProcessBase(Process):
 
         :param logger: the logger
         """
-        with logger.scope(logging.SCOPE_PROCESS) as sc:
+        with logger.scope(SCOPE_PROCESS) as sc:
             self._log_own_parameters(sc)
 
     def __str__(self) -> str:
@@ -204,3 +207,28 @@ class _ProcessBase(Process):
         :return: "baseProcess"
         """
         return "baseProcess"
+
+    def add_log_section(self, title: str, text: str) -> None:
+        """
+        Add a section to the log, if a log is written (otherwise ignore it).
+
+        :param title: the title of the log section
+        :param text: the text to log
+        """
+        if not isinstance(title, str):
+            raise type_error(title, "title", str)
+        t = title.strip()
+        if (len(t) != len(title)) or (len(t) <= 0) or (" " in t) \
+                or ("\n" in t) or ("\t" in t):
+            raise ValueError("Section title must not be empty or contain "
+                             f"white space, but '{title}' is/does.")
+        if (t in _ALL_SECTIONS) or (SECTION_START in t) or (SECTION_END in t):
+            raise ValueError(f"title '{t}' is a forbidden section title")
+        if not isinstance(text, str):
+            raise type_error(text, "text", str)
+        if (SECTION_START in t) or (SECTION_END in t):
+            raise ValueError(
+                f"text of section '{t}' must not contain '{SECTION_START}' or"
+                f" '{SECTION_END}' but is '{text}'")
+        if len(text) <= 0:
+            raise ValueError(f"text of section '{t}' must not be empty")

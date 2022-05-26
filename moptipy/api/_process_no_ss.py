@@ -3,7 +3,7 @@ import os
 from io import StringIO
 from math import inf, isfinite
 from traceback import print_tb
-from typing import Optional, Union, Final, Callable
+from typing import Optional, Union, Final, Callable, Dict
 
 from numpy.random import Generator
 
@@ -164,6 +164,8 @@ class _ProcessNoSS(_ProcessBase):
         self.from_str = self._solution_space.from_str  # type: ignore
         self.n_points = self._solution_space.n_points  # type: ignore
         self.validate = self._solution_space.validate  # type: ignore
+        #: the internal section logger
+        self.__sections: Dict[str, str] = {}
 
     def get_random(self) -> Generator:
         return self.__random
@@ -242,6 +244,12 @@ class _ProcessNoSS(_ProcessBase):
             self._solution_space.log_parameters_to(sc)
         with logger.scope(logging.SCOPE_OBJECTIVE_FUNCTION) as sc:
             self.__objective.log_parameters_to(sc)
+
+    def add_log_section(self, title: str, text: str) -> None:
+        super().add_log_section(title, text)
+        if title in self.__sections:
+            raise ValueError(f"section '{title}' already logged.")
+        self.__sections[title] = text
 
     def _write_log(self, logger: Logger) -> None:
         """Write the information gathered during optimization into the log."""
@@ -355,6 +363,11 @@ class _ProcessNoSS(_ProcessBase):
                     _error_2(logger, logging.SECTION_ERROR_TIMING, t_error)
                 if log_error:
                     _error_2(logger, logging.SECTION_ERROR_IN_LOG, log_error)
+
+                # flush all the additional log sections at the end
+                for t in sorted(self.__sections.keys()):
+                    with logger.text(t) as sec:
+                        sec.write(self.__sections[t].strip())
 
         if not exception_type:
             # if no error happened when closing the process, raise any error

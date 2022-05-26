@@ -1,6 +1,6 @@
 """Shared constants and functions for dealing with logs."""
 
-from typing import Final
+from typing import Final, Set
 
 
 #: the file suffix to be used for log files
@@ -156,3 +156,8 @@ KEY_PYTHON_IMPLEMENTATION: Final[str] = "implementation"
 SECTION_RESULT_Y: Final[str] = "RESULT_Y"
 #: the resulting point in the search space
 SECTION_RESULT_X: Final[str] = "RESULT_X"
+
+#: all the section titles combined in one set
+# noinspection PyDefaultArgument
+_ALL_SECTIONS: Final[Set[str]] = (lambda g=globals(): {  # type: ignore
+    g[k] for k in g.keys() if k.startswith("SECTION_")})()  # type: ignore

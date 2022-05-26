@@ -308,6 +308,14 @@ class Process(Space, Objective, AbstractContextManager):
         becomes `True`.
         """
 
+    def add_log_section(self, title: str, text: str) -> None:
+        """
+        Add a section to the log, if a log is written (otherwise ignore it).
+
+        :param title: the title of the log section
+        :param text: the text to log
+        """
+
     def __enter__(self) -> 'Process':
         """
         Begin a `with` statement.
