@@ -54,6 +54,13 @@ class Space(Component):
         """
         Obtain a textual representation of an instance of the data structure.
 
+        This method should convert an element of the space to a string
+        representation that is parseable by :meth:from_str: and should ideally
+        not be too verbose. For example, when converting a list or array `x`
+        of integers to a string, one could simply do
+        `",".join([str(xx) for xx in x])`, which would convert it to a
+        comma-separated list without any wasted space.
+
         :param x: the instance
         :return: the string representation of x
         """
@@ -71,9 +78,10 @@ class Space(Component):
         """
         Transform a string `text` to one element of the space.
 
-        This method should be implemented as inverse to :py:meth:x_to_str:.
+        This method should be implemented as inverse to :meth:to_str:.
         It should check the validity of the result before returning it.
-        It may not always be possible to implement this method.
+        It may not always be possible to implement this method, but you
+        should try.
 
         :param text: the input string
         :return: the element in the space corresponding to `text`
