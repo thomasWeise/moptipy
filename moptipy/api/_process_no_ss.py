@@ -19,7 +19,7 @@ from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
     rand_seed_check
 from moptipy.utils.path import Path
 from moptipy.utils.sys_info import log_sys_info
-from moptipy.utils.types import type_name_of
+from moptipy.utils.types import type_name_of, type_error
 
 
 def _error_1(logger: Logger, title: str, exception_type,
@@ -148,6 +148,9 @@ class _ProcessNoSS(_ProcessBase):
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
         #: The log file, or `None` is needed
+        if log_file is not None:
+            if not isinstance(log_file, Path):
+                raise type_error(log_file, "log_file", Path)
         self.__log_file: Final[Optional[Path]] = log_file
         #: the method for copying y
         self._copy_y: Final[Callable] = self._solution_space.copy
@@ -165,7 +168,8 @@ class _ProcessNoSS(_ProcessBase):
         self.n_points = self._solution_space.n_points  # type: ignore
         self.validate = self._solution_space.validate  # type: ignore
         #: the internal section logger
-        self.__sections: Dict[str, str] = {}
+        self.__sections: Optional[Dict[str, str]] = \
+            None if log_file is None else {}
 
     def get_random(self) -> Generator:
         return self.__random
@@ -247,9 +251,10 @@ class _ProcessNoSS(_ProcessBase):
 
     def add_log_section(self, title: str, text: str) -> None:
         super().add_log_section(title, text)
-        if title in self.__sections:
-            raise ValueError(f"section '{title}' already logged.")
-        self.__sections[title] = text
+        if self.__sections is not None:
+            if title in self.__sections:
+                raise ValueError(f"section '{title}' already logged.")
+            self.__sections[title] = text.strip()
 
     def _write_log(self, logger: Logger) -> None:
         """Write the information gathered during optimization into the log."""
@@ -367,7 +372,8 @@ class _ProcessNoSS(_ProcessBase):
                 # flush all the additional log sections at the end
                 for t in sorted(self.__sections.keys()):
                     with logger.text(t) as sec:
-                        sec.write(self.__sections[t].strip())
+                        sec.write(self.__sections[t])
+                del self.__sections
 
         if not exception_type:
             # if no error happened when closing the process, raise any error

@@ -312,6 +312,37 @@ class Process(Space, Objective, AbstractContextManager):
         """
         Add a section to the log, if a log is written (otherwise ignore it).
 
+        When creating the experiment
+        :class:`~moptipy.api.execution.Execution`, you can specify a log file
+        via method :meth:`~moptipy.api.execution.Execution.set_log_file`.
+        Then, the results of your algorithm and the system configuration will
+        be stored as text in this file. Each type of information will be
+        stored in a different section. The end state with the final solution
+        quality, for instance, will be stored in a section named `STATE`.
+        Each section begins with the line `BEGIN_XXX` and ends with the line
+        `END_XXX`, where `XXX` is the name of the section. Between these two
+        lines, all the contents of the section are stored.
+
+        This method here allows you to add a custom section to your log file.
+        This can happen in your the method :meth:`~moptipy.api.algorithm.solve`
+        of your algorithm. (Ideally at its end.)
+
+        You can specify a custom section name (which must be in upper case
+        characters) and a custom section body text.
+        Of course, the name of this section must not clash with any other
+        section name. Neither the section name nor section body should contain
+        strings like `BEGIN_` or `END_`, and such and such. You do not want to
+        mess up your log files. Of course you can add a section with a given
+        name at only once, because otherwise there would be a name clash.
+        Anyway, if you add sections like this, they will be appended at the
+        end of the log file. This way, you have all the standard log data and
+        your additional information in one consistent file.
+
+        Be advised: Adding sections costs time and memory. You do not want to
+        do such a thing in a loop. If your algorithm should store additional
+        data, it makes sense to gather this data in an efficient way during
+        the run and only flush it to a section at the end of the run.
+
         :param title: the title of the log section
         :param text: the text to log
         """

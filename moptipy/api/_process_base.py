@@ -224,11 +224,12 @@ class _ProcessBase(Process):
                              f"white space, but '{title}' is/does.")
         if (t in _ALL_SECTIONS) or (SECTION_START in t) or (SECTION_END in t):
             raise ValueError(f"title '{t}' is a forbidden section title")
+        if t.upper() != t:
+            raise ValueError("section titles must be in upper case,"
+                             f"but yours is '{t}' (vs. '{t.upper()}'.")
         if not isinstance(text, str):
             raise type_error(text, "text", str)
         if (SECTION_START in t) or (SECTION_END in t):
             raise ValueError(
                 f"text of section '{t}' must not contain '{SECTION_START}' or"
                 f" '{SECTION_END}' but is '{text}'")
-        if len(text) <= 0:
-            raise ValueError(f"text of section '{t}' must not be empty")
