@@ -324,8 +324,9 @@ class Process(Space, Objective, AbstractContextManager):
         lines, all the contents of the section are stored.
 
         This method here allows you to add a custom section to your log file.
-        This can happen in your the method :meth:`~moptipy.api.algorithm.solve`
-        of your algorithm. (Ideally at its end.)
+        This can happen in your the method
+        :meth:`~moptipy.api.algorithm.Algorithm.solve` of your algorithm.
+        (Ideally at its end.)
 
         You can specify a custom section name (which must be in upper case
         characters) and a custom section body text.
