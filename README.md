@@ -1149,6 +1149,11 @@ For every single run, there will be a row with the algorithm name, instance name
 The [End Results Statistics CSV format](#43-end-result-statistics-csv-files) allows you to export statistics aggregated, e.g., over the instance-algorithm combinations, for instance over all algorithms, or for one algorithm over all instances.
 The format is otherwise similar to the End Results CSV format. 
 
+We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data/).
+This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.ioh_analyzer.moptipy_to_ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#411-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
+You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/) that you can either install locally or use online at <https://iohanalyzer.liacs.nl/>.
+In the latter case, you first need to zip-compress your data before uploading it.
+
 
 ### 5.2. Progress Plots
 
