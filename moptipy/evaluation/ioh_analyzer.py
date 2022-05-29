@@ -51,54 +51,12 @@ def __int_suffix(s: str) -> int:
     return 1
 
 
-def __consume(
-        progress: Progress,
-        data: Dict[str, Dict[str, Dict[int, List[
-            Tuple[np.ndarray, np.ndarray]]]]],
-        inst_name_to_func_id: Callable[[str], str],
-        inst_name_to_dimension: Callable[[str], int]) -> None:
-    """
-    Consume a progress object and write the output.
-
-    :param progress: the progress object
-    :param data: the data destination
-    :param inst_name_to_func_id: convert the instance name to a function ID
-    :param inst_name_to_dimension: convert an instance name to a function
-        dimension
-    """
-    algo: Dict[str, Dict[int, List[Tuple[np.ndarray, np.ndarray]]]]
-    if progress.algorithm in data:
-        algo = data[progress.algorithm]
-    else:
-        data[progress.algorithm] = algo = {}
-    func_id: Final[str] = inst_name_to_func_id(progress.instance)
-    if not isinstance(func_id, str):
-        raise type_error(func_id, "func_id", str)
-    if (len(func_id) <= 0) or ("_" in func_id):
-        raise ValueError(f"invalid func id '{func_id}'.")
-    func: Dict[int, List[Tuple[np.ndarray, np.ndarray]]]
-    if func_id in algo:
-        func = algo[func_id]
-    else:
-        algo[func_id] = func = {}
-    dim: Final[int] = inst_name_to_dimension(progress.instance)
-    if not isinstance(dim, int):
-        raise type_error(dim, "dim", int)
-    if dim <= 0:
-        raise ValueError(f"invalid dimension: {dim}.")
-    res: Final[Tuple[np.ndarray, np.ndarray]] = (progress.time, progress.f)
-    if dim in func:
-        func[dim].append(res)
-    else:
-        func[dim] = [res]
-    del progress
-
-
 def moptipy_to_ioh_analyzer(
         results_dir: str,
         dest_dir: str,
         inst_name_to_func_id: Callable[[str], str] = __prefix,
         inst_name_to_dimension: Callable[[str], int] = __int_suffix,
+        inst_name_to_inst_id: Callable[[str], int] = lambda x: 1,
         suite: str = "moptipy",
         f_name: str = F_NAME_RAW,
         f_standard: Optional[Dict[str, Union[int, float]]] = None) -> None:
@@ -112,6 +70,8 @@ def moptipy_to_ioh_analyzer(
     :param inst_name_to_func_id: convert the instance name to a function ID
     :param inst_name_to_dimension: convert an instance name to a function
         dimension
+    :param inst_name_to_inst_id: convert the instance name an instance ID,
+        which must be a positive integer number
     :param suite: the suite name
     :param f_name: the objective name
     :param f_standard: a dictionary mapping instances to standard values
@@ -128,21 +88,61 @@ def moptipy_to_ioh_analyzer(
         raise type_error(suite, "suite", str)
     if (len(suite) <= 0) or (" " in suite):
         raise ValueError(f"invalid suite name '{suite}'")
+    if not callable(inst_name_to_func_id):
+        raise type_error(
+            inst_name_to_func_id, "inst_name_to_func_id", call=True)
+    if not callable(inst_name_to_dimension):
+        raise type_error(
+            inst_name_to_dimension, "inst_name_to_dimension", call=True)
+    if not callable(inst_name_to_inst_id):
+        raise type_error(
+            inst_name_to_inst_id, "inst_name_to_inst_id", call=True)
 
     # the data
     data: Final[Dict[str, Dict[str, Dict[int, List[
-        Tuple[np.ndarray, np.ndarray]]]]]] = {}
+        Tuple[int, np.ndarray, np.ndarray]]]]]] = {}
 
-    # this consumer collects all the data in a structured fashio
-    def __do_consume(progress: Progress) -> None:
+    # this consumer collects all the data in a structured fashion
+    def __consume(progress: Progress) -> None:
         nonlocal data
         nonlocal inst_name_to_func_id
         nonlocal inst_name_to_dimension
-        __consume(progress, data, inst_name_to_func_id,
-                  inst_name_to_dimension)
+        nonlocal inst_name_to_inst_id
+
+        _algo: Dict[str, Dict[int, List[Tuple[int, np.ndarray, np.ndarray]]]]
+        if progress.algorithm in data:
+            _algo = data[progress.algorithm]
+        else:
+            data[progress.algorithm] = _algo = {}
+        _func_id: Final[str] = inst_name_to_func_id(progress.instance)
+        if not isinstance(_func_id, str):
+            raise type_error(_func_id, "function id", str)
+        if (len(_func_id) <= 0) or ("_" in _func_id):
+            raise ValueError(f"invalid function id '{_func_id}'.")
+        _func: Dict[int, List[Tuple[int, np.ndarray, np.ndarray]]]
+        if _func_id in _algo:
+            _func = _algo[_func_id]
+        else:
+            _algo[_func_id] = _func = {}
+        _dim: Final[int] = inst_name_to_dimension(progress.instance)
+        if not isinstance(_dim, int):
+            raise type_error(_dim, "dim", int)
+        if _dim <= 0:
+            raise ValueError(f"invalid dimension: {_dim}.")
+        _iid: Final[int] = inst_name_to_inst_id(progress.instance)
+        if not isinstance(_iid, int):
+            raise type_error(_iid, "instance id", int)
+        if _iid <= 0:
+            raise ValueError(f"invalid instance id: {_iid}.")
+        _res: Final[Tuple[int, np.ndarray, np.ndarray]] = \
+            (_iid, progress.time, progress.f)
+        if _dim in _func:
+            _func[_dim].append(_res)
+        else:
+            _func[_dim] = [_res]
 
     Progress.from_logs(source,
-                       consumer=__do_consume,
+                       consumer=__consume,
                        time_unit=TIME_UNIT_FES,
                        f_name=check_f_name(f_name),
                        f_standard=f_standard,
@@ -179,10 +179,10 @@ def moptipy_to_ioh_analyzer(
                     with dim_path.open_for_write() as dat:
                         for per_dim in sorted(
                                 func[dimi], key=lambda x:
-                                (x[1][-1], x[0][-1])):
-                            info.write(", 1:")
-                            fes = per_dim[0]
-                            f = per_dim[1]
+                                (x[0], x[2][-1], x[1][-1])):
+                            info.write(f", {per_dim[0]}:")
+                            fes = per_dim[1]
+                            f = per_dim[2]
                             info.write(num_to_str(fes[-1]))
                             info.write("|")
                             info.write(num_to_str(f[-1]))
