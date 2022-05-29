@@ -1,4 +1,5 @@
 """Statistics aggregated over multiple instances of EndResult."""
+import sys
 from dataclasses import dataclass
 from math import inf
 from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
@@ -1189,3 +1190,23 @@ class EndStatistics(MultiRunData):
                 return 0  # sd of a single number = 0
             return a.stddev
         return __inner_sd
+
+
+# Run end-results to stat file if executed as script
+if __name__ == '__main__':
+    logger("end_statistics.py source_dir|source_path dest_file")
+    if len(sys.argv) != 3:
+        raise ValueError("two command line arguments expected")
+
+    src_path = Path.path(sys.argv[1])
+    end_results: Final[List[EndResult]] = []
+    if src_path.is_file():
+        logger(f"'{src_path}' identifies file, load as end-results csv")
+        EndResult.from_csv(src_path, end_results.append)
+    else:
+        logger(f"'{src_path}' identifies directory, load it as log files")
+        EndResult.from_logs(src_path, end_results.append)
+
+    end_stats: Final[List[EndStatistics]] = []
+    EndStatistics.from_end_results(end_results, end_stats.append)
+    EndStatistics.to_csv(end_stats, sys.argv[2])

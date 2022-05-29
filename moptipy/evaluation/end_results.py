@@ -1,4 +1,5 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
+import sys
 from dataclasses import dataclass
 from math import inf, isfinite
 from typing import Union, List, Final, Optional, Iterable, Callable, Any, Dict
@@ -540,3 +541,14 @@ class _InnerLogParser(ExperimentParser):
             return self.__state != 3
 
         raise ValueError("Illegal state.")
+
+
+# Run log files to end results if executed as script
+if __name__ == '__main__':
+    logger("end_results.py source_dir dest_file")
+    if len(sys.argv) != 3:
+        raise ValueError("two command line arguments expected")
+
+    end_results: Final[List[EndResult]] = []
+    EndResult.from_logs(sys.argv[1], end_results.append)
+    EndResult.to_csv(end_results, sys.argv[2])

@@ -1,5 +1,6 @@
 """Convert moptipy data to IOHanalyzer data."""
 
+import sys
 from typing import Final, Optional, Dict, Union, Callable, List, Tuple
 
 import numpy as np
@@ -159,19 +160,19 @@ def moptipy_to_ioh_analyzer(
         logger(f"writing output for {len(algo)} functions of "
                f"algorithm '{algo_name}'.")
         for func_id in sorted(algo.keys()):
-            func_dir: Path = algo_dir.resolve_inside(func_id)
+            func_dir: Path = algo_dir.resolve_inside(f"data_f{func_id}")
             func_dir.ensure_dir_exists()
             func = algo[func_id]
             logger(f"writing output for algorithm '{algo_name}' and "
                    f"function '{func_id}', got {len(func)} dimensions.")
 
-            func_name = f"IOHprofiler_{func_id}"
+            func_name = f"IOHprofiler_f{func_id}"
             with algo_dir.resolve_inside(
                     f"{func_name}.info").open_for_write() as info:
                 for dimi in sorted(func.keys()):
                     dim_path = func_dir.resolve_inside(
-                        f"{func_name}_DIM_{dimi}.dat")
-                    info.write(f"suite = '{suite}', funcId = {func_id}, "
+                        f"{func_name}_DIM{dimi}.dat")
+                    info.write(f"suite = '{suite}', funcId = '{func_id}', "
                                f"DIM = {dimi}, algId = '{algo_name}'\n")
                     info.write("%\n")
                     info.write(dim_path[len(algo_dir) + 1:])
@@ -186,11 +187,20 @@ def moptipy_to_ioh_analyzer(
                             info.write("|")
                             info.write(num_to_str(f[-1]))
                             dat.write(
-                                '"function evaluation"\t"best-so-far f(x)"\n')
+                                '"function evaluation" "best-so-far f(x)"\n')
                             for i, ff in enumerate(f):
-                                dat.write(f"{num_to_str(fes[i])}\t"
+                                dat.write(f"{num_to_str(fes[i])} "
                                           f"{num_to_str(ff)}\n")
                         dat.write("\n")
                 info.write("\n")
     del data
     logger("finished converting moptipy data to IOHprofiler data.")
+
+
+# Run conversion if executed as script
+if __name__ == '__main__':
+    logger("ioh_analyzer.py source_dir dest_dir")
+    if len(sys.argv) != 3:
+        raise ValueError("two command line arguments expected")
+
+    moptipy_to_ioh_analyzer(sys.argv[1], sys.argv[2])
