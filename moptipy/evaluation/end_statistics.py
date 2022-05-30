@@ -1,4 +1,5 @@
 """Statistics aggregated over multiple instances of EndResult."""
+import os.path
 import sys
 from dataclasses import dataclass
 from math import inf
@@ -13,6 +14,7 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, \
     CSV_COLS, KEY_STDDEV
 from moptipy.utils.console import logger
+from moptipy.utils.help import help_screen
 from moptipy.utils.logger import SCOPE_SEPARATOR, CSV_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
@@ -621,6 +623,7 @@ class EndStatistics(MultiRunData):
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing end result statistics to CSV file '{path}'.")
+        Path.path(os.path.dirname(path)).ensure_dir_exists()
 
         has_algorithm: bool = False  # 1
         has_instance: bool = False  # 2
@@ -1194,7 +1197,16 @@ class EndStatistics(MultiRunData):
 
 # Run end-results to stat file if executed as script
 if __name__ == '__main__':
-    logger("end_statistics.py source_dir|source_path dest_file")
+    help_screen(
+        "build end results statistics-CSV file", __file__,
+        "Convert log files or the end-results CSV obtained "  # nosem
+        "with moptipy to the end results statistics CSV format.",  # nosem
+        [("source",
+          "either the directory of either moptipy log files or "  # nosem
+          "the path to the end-results CSV file"),  # nosem
+         ("dest_file",
+          "the path to which we want to write the end "  # nosem
+          "statistics CSV file.")])  # nosem
     if len(sys.argv) != 3:
         raise ValueError("two command line arguments expected")
 

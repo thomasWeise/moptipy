@@ -4,6 +4,9 @@
 # Get the location of the Python package binaries.
 PYTHON_PACKAGE_BINARIES := $(shell python3 -m site --user-base)/bin
 
+# Get the current working directory
+CWD := $(shell pwd)
+
 # Cleaning means that the package is uninstalled if it is installed.
 # Also, all build artifacts are deleted (as they will be later re-created).
 clean:
@@ -119,10 +122,35 @@ run_examples: install
     done &&\
     echo "Finished executing all examples."
 
+# now test applying all the examples
+test_tools: install
+	echo "Testing all tools." &&\
+    export tempDir=`mktemp -d` &&\
+    echo "Using temp dir '$$tempDir'." &&\
+    cd "$$tempDir" &&\
+    echo "Downloading dataset from https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.zip." &&\
+    (curl -s -o "jssp_hc_swap2.zip" "https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.zip" || wget "https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.zip")&&\
+    echo "Successfully downloaded dataset, now unpacking." &&\
+    unzip jssp_hc_swap2.zip &&\
+    echo "Successfully unpacked, now CDing into directory and applying tools." &&\
+    cd "$$tempDir/jssp" &&\
+	python3 -m moptipy.evaluation.end_results "$$tempDir/jssp/results" "$$tempDir/jssp/evaluation/end_results.txt" &&\
+	ls "$$tempDir/jssp/evaluation/end_results.txt" &&\
+	python3 -m moptipy.evaluation.end_statistics "$$tempDir/jssp/evaluation/end_results.txt" "$$tempDir/jssp/evaluation/end_statistics_1.txt" &&\
+	ls "$$tempDir/jssp/evaluation/end_statistics_1.txt" &&\
+	python3 -m moptipy.evaluation.end_statistics "$$tempDir/jssp/results" "$$tempDir/jssp/evaluation/end_statistics_2.txt" &&\
+	ls "$$tempDir/jssp/evaluation/end_statistics_2.txt" &&\
+	python3 -m moptipy.evaluation.ioh_analyzer "$$tempDir/jssp/results" "$$tempDir/jssp/ioh" &&\
+	ls "$$tempDir/jssp/ioh" &&\
+	cd "$(CWD)" &&\
+	echo "Now deleting directory $$tempDir." &&\
+	rm -rf "$$tempDir" &&\
+	echo "Done checking all tools."
+
 # The meta-goal for a full build
-build: clean init test static_analysis create_documentation create_distribution install run_examples
+build: clean init test static_analysis create_documentation create_distribution install run_examples test_tools
 	echo "The build has completed."
 
 # .PHONY means that the targets init and test are not associated with files.
 # see https://stackoverflow.com/questions/2145590
-.PHONY: build clean create_distribution create_documentation init install run_examples static_analysis test
+.PHONY: build clean create_distribution create_documentation init install run_examples static_analysis test test_tools

@@ -1,4 +1,5 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
+import os.path
 import sys
 from dataclasses import dataclass
 from math import inf, isfinite
@@ -16,6 +17,7 @@ from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
 from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
+from moptipy.utils.help import help_screen
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.logger import parse_key_values
 from moptipy.utils.math import try_int, try_float_div
@@ -332,6 +334,7 @@ class EndResult(PerRunData):
         """
         path: Final[Path] = Path.path(file)
         logger(f"Writing end results to CSV file '{path}'.")
+        Path.path(os.path.dirname(path)).ensure_dir_exists()
 
         with path.open_for_write() as out:
             out.write(_HEADER)
@@ -545,7 +548,12 @@ class _InnerLogParser(ExperimentParser):
 
 # Run log files to end results if executed as script
 if __name__ == '__main__':
-    logger("end_results.py source_dir dest_file")
+    help_screen(
+        "build end results-CSV from log files", __file__,
+        "Convert log files obtained with moptipy to the end results "
+        "CSV format.",
+        [("source_dir", "the location of the moptipy data"),
+         ("dest_file", "the path to which we want to write the CSV file.")])
     if len(sys.argv) != 3:
         raise ValueError("two command line arguments expected")
 

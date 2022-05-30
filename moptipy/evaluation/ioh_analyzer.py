@@ -8,6 +8,7 @@ import numpy as np
 from moptipy.evaluation.base import check_f_name, TIME_UNIT_FES, F_NAME_RAW
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
+from moptipy.utils.help import help_screen
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error
@@ -199,8 +200,13 @@ def moptipy_to_ioh_analyzer(
 
 # Run conversion if executed as script
 if __name__ == '__main__':
-    logger("ioh_analyzer.py source_dir dest_dir")
+    help_screen(
+        "moptipy-to-IOHanalyzer data converter", __file__,
+        "Convert log files obtained with moptipy to the "  # nosem
+        "data format of the IOHprofiler (see "  # nosem
+        "https://iohprofiler.github.io/IOHanalyzer/data/).",  # nosem
+        [("source_dir", "the location of the moptipy data"),
+         ("dest_dir", "the place to write the IOHprofiler data")])
     if len(sys.argv) != 3:
         raise ValueError("two command line arguments expected")
-
     moptipy_to_ioh_analyzer(sys.argv[1], sys.argv[2])
