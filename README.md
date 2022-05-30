@@ -450,8 +450,10 @@ We then evaluate `x_new` and if the resulting objective value `f_new` is better 
 We repeat this until [`process.should_terminate()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.should_terminate) becomes `True`.
 All of this is implemented in the source code example below in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem).
 
-Finally, as a side note: The `process` API also allows your algorithm to store additional information in the log file:
-You can create a section with a given `title` in the log file that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
+Finally, as a side note:
+Our system can automatically store the results of optimization processes in [log file](#41-log-files).
+The `process` API also allows your algorithm to store additional information in these files:
+You can create a [section](#412-log-file-sections) with a given `title` in the log files that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
 Make sure that all section `title`s are unique.
 All such sections will be appended at the end of the log files, wrapped in `BEGIN_title` and `END_title` markers, as prescribed by [our log file format](#412-log-file-sections).
 
@@ -518,7 +520,7 @@ class MySortProblem(Objective):
         Implementing this function is optional, but it can help, e.g., when
         the results of the optimization process are automatically checked.
 
-        :returns: 0
+        :returns: n-1
         """
         return self.n - 1
 
@@ -1393,11 +1395,13 @@ The end result tables are implemented in the module [moptipy.evaluation.tabulate
 
 ## 6. Useful Links and References
 
-1. Our book on optimization algorithms:
+1. Our book on optimization algorithms, which is currently work in progress:
    Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
 2. Our old book optimization algorithms:
    Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://www.it-weise.de/projects/book.pdf).
-3. A nice discussion of experimentation with (numerical) optimization methods is:
+3. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
+   It is possible to [convert](#512-export-to-iohanalyzer) our `moptipy` [log data](#411-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
+4. A nice discussion of experimentation with (numerical) optimization methods is:
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). [Research Report] RR-7215, INRIA. 2010. inria-00462481
 
 

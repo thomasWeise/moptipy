@@ -103,7 +103,7 @@ class MySortProblem(Objective):
         Implementing this function is optional, but it can help, e.g., when
         the results of the optimization process are automatically checked.
 
-        :returns: 0
+        :returns: n-1
         """
         return self.n - 1
 
