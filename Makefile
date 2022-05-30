@@ -122,7 +122,7 @@ run_examples: install
     done &&\
     echo "Finished executing all examples."
 
-# now test applying all the examples
+# now test applying all the tools to an example dataset
 test_tools: install
 	echo "Testing all tools." &&\
     export tempDir=`mktemp -d` &&\

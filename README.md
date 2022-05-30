@@ -937,6 +937,15 @@ While a [log file](#41-log-files) contains all the data of a single run, you oft
 The class [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
+If you have the `moptipy` package installed, then you can call the module directly from the command line as:
+
+```shell
+python3 -m moptipy.evaluation.end_results source_dir dest_file
+```
+
+where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#411-file-names-and-folder-structure))) and `dest_file` is the path to the CSV file to write.
+
+
 #### 4.2.1. The End Results File Format
 
 An end results file contains a header line and then one line for each log file that was parsed.
@@ -1035,6 +1044,14 @@ rls_swap2;demo;0x5a9363100a272f12;180;84;2;84;2;180;10000;120000
 We can also aggregate the end result data over either algorithm x instance combinations, over whole algorithms, over whole instances, or just over everything.
 The class [`moptipy.evaluation.end_statistics.EndStatistics`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_statistics.EndStatistics) provides the tools needed to aggregate statistics over sequences of [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) and to store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
+
+If you have the `moptipy` package installed, then you can call the module directly from the command line as:
+
+```shell
+python3 -m moptipy.evaluation.end_statistics source dest_file
+```
+
+where `source` should either be the root directory with the experimental data (see [Section 4.1.1](#411-file-names-and-folder-structure))) or the path to a [end results CSV file](#42-end-result-csv-files) and `dest_file` is the path to the CSV file to write.
 
 
 #### 4.3.1. The End Result Statistics File Format
@@ -1141,6 +1158,8 @@ These diagrams can then be [stored](https://thomasweise.github.io/moptipy/moptip
 
 ### 5.1. Exporting Data
 
+#### 5.1.1. Export to CSV Formats for Excel et al.
+
 We already discussed two formats that can be used to export data to Excel or other software tools.
 
 The [End Results CSV format](#42-end-result-csv-files) produces semicolon-separated-values files that include the states of each run.
@@ -1149,10 +1168,21 @@ For every single run, there will be a row with the algorithm name, instance name
 The [End Results Statistics CSV format](#43-end-result-statistics-csv-files) allows you to export statistics aggregated, e.g., over the instance-algorithm combinations, for instance over all algorithms, or for one algorithm over all instances.
 The format is otherwise similar to the End Results CSV format. 
 
+
+#### 5.1.2 Export to IOHanalyzer
+
 We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data/).
 This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.ioh_analyzer.moptipy_to_ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#411-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
 You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/) that you can either install locally or use online at <https://iohanalyzer.liacs.nl/>.
 In the latter case, you first need to zip-compress your data before uploading it.
+
+If you have the `moptipy` package installed, then you can call the module directly from the command line as:
+
+```shell
+python3 -m moptipy.evaluation.ioh_analyzer source_dir dest_dir
+```
+
+where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#411-file-names-and-folder-structure))) and `dest_dir` is the directory where the IOHprofiler-formatted data should be written.
 
 
 ### 5.2. Progress Plots
