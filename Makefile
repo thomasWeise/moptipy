@@ -97,10 +97,13 @@ create_documentation: static_analysis test
 
 # Create different distribution formats, also to check if there is any error.
 create_distribution: static_analysis test create_documentation
-	echo "Now building distribution files and folders." && \
-	python3 setup.py check && \
-	python3 setup.py sdist && \
-	python3 setup.py bdist_wheel && \
+	echo "Now building distribution files and folders." &&\
+	python3 setup.py check &&\
+	python3 setup.py sdist &&\
+	python3 setup.py bdist_wheel &&\
+#	python3 -m build &&\
+    echo "Done with the build process, now checking result." &&\
+	python3 -m twine check dist/* &&\
 	echo "Successfully finished building distribution files and folders."
 
 # We install the package and see if that works out.

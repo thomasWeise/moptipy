@@ -1,10 +1,12 @@
 # We need pytest to run the tests.
 pytest >= 7.1.2
 
-# setuptools, testresources, and wheel are needed for generating the
-# installable pip package.
+# setuptools, testresources, twine and wheel are needed for generating
+# the # installable pip package.
 setuptools >= 62.3.1
 testresources >= 2.0.1
+twine >= 4.0.0
+virtualenv >= 20.14.1
 wheel >= 0.37.1
 
 # sphinx is needed for generating the documentation.

@@ -1,4 +1,5 @@
 """The setup and installation script."""
+
 from setuptools import find_packages, setup
 
 version = {}
@@ -9,19 +10,22 @@ setup(
     name='moptipy',
     python_requires='>=3.9',
     description='A package for metaheuristic optimization in python.',
-    url='git@github.com/thomasWeise/moptipy.git',
+    url='https://thomasweise.github.io/moptipy',
     author='Thomas Weise',
     author_email='tweise@ustc.edu.cn',
     version=version["__version__"],
     license='GPL 3.0',
     packages=find_packages(include=['moptipy', 'moptipy.*']),
     package_data={"moptipy.examples.jssp": ["*.txt"]},
+    include_package_data=True,
     long_description="\n".join([line.strip() for line in
                                 open("README.md", "rt").readlines()]),
     long_description_content_type="text/markdown",
     install_requires=[line.strip() for line in
                       open("requirements.txt", "rt").readlines()],
-    include_package_data=True,
+    project_urls={
+        "Bug Tracker": "https://github.com/thomasWeise/moptipy/issues",
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Framework :: Matplotlib',
