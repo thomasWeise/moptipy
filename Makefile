@@ -1,15 +1,28 @@
 # the default goal is build
 .DEFAULT_GOAL := build
 
+# Set the shell to bash
+SHELL := /bin/bash
+
 # Get the location of the Python package binaries.
 PYTHON_PACKAGE_BINARIES := $(shell python3 -m site --user-base)/bin
 
 # Get the current working directory
 CWD := $(shell pwd)
 
+# Get the moptipy version.
+VERSION:= $(shell (less '$(CWD)/moptipy/version.py' | sed -n 's/__version__.*=\s*"\(.*\)"/\1/p'))
+
+# Print the status information.
+status:
+	echo "working directory: '$(CWD)'." &&\
+	echo "moptipy version to build: '$(VERSION)'." &&\
+	echo "python package binaries: '$(PYTHON_PACKAGE_BINARIES)'." &&\
+	echo "shell: '$(SHELL)'"
+
 # Cleaning means that the package is uninstalled if it is installed.
 # Also, all build artifacts are deleted (as they will be later re-created).
-clean:
+clean: status
 	echo "Cleaning up by first uninstalling moptipy (if installed) and then deleting all auto-generated stuff." && \
 	pip uninstall -y moptipy || true && \
 	echo "Moptipy is no longer installed; now deleting auto-generated stuff." && \
@@ -100,10 +113,36 @@ create_distribution: static_analysis test create_documentation
 	echo "Now building distribution files and folders." &&\
 	python3 setup.py check &&\
 	python3 setup.py sdist &&\
+	export TAR_GZ="$(CWD)/dist/moptipy-$(VERSION).tar.gz"&&\
+	export WHEEL="$(CWD)/dist/moptipy-$(VERSION)-py3-none-any.whl" &&\
+	ls "$$TAR_GZ" &&\
 	python3 setup.py bdist_wheel &&\
+	ls "$$WHEEL" &&\
 #	python3 -m build &&\
     echo "Done with the build process, now checking result." &&\
 	python3 -m twine check dist/* &&\
+	echo "First testing the wheel." &&\
+    export tempDir=`mktemp -d` &&\
+	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
+	python3 -m venv "$$tempDir" &&\
+	echo "Created virtual environment, now activating it." &&\
+	source "$$tempDir/bin/activate" &&\
+	echo "Now installing wheel." &&\
+	python3 -m pip install "$$WHEEL" && ## nosem \
+	echo "Finished, cleaning up." &&\
+	deactivate &&\
+	rm -rf "$$tempDir" &&\
+	echo "Now testing the tar.gz." &&\
+    export tempDir=`mktemp -d` &&\
+	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
+	python3 -m venv "$$tempDir" &&\
+	echo "Created virtual environment, now activating it." &&\
+	source "$$tempDir/bin/activate" &&\
+	echo "Now installing tar.gz." &&\
+	python3 -m pip install "$$TAR_GZ" && ## nosem \
+	echo "Finished, cleaning up." &&\
+	deactivate &&\
+	rm -rf "$$tempDir" &&\
 	echo "Successfully finished building distribution files and folders."
 
 # We install the package and see if that works out.
@@ -151,9 +190,9 @@ test_tools: install
 	echo "Done checking all tools."
 
 # The meta-goal for a full build
-build: clean init test static_analysis create_documentation create_distribution install run_examples test_tools
+build: status clean init test static_analysis create_documentation create_distribution install run_examples test_tools
 	echo "The build has completed."
 
 # .PHONY means that the targets init and test are not associated with files.
 # see https://stackoverflow.com/questions/2145590
-.PHONY: build clean create_distribution create_documentation init install run_examples static_analysis test test_tools
+.PHONY: build clean create_distribution create_documentation init install run_examples static_analysis status test test_tools
