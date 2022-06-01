@@ -159,5 +159,6 @@ SECTION_RESULT_X: Final[str] = "RESULT_X"
 
 #: all the section titles combined in one set
 # noinspection PyDefaultArgument
+# pylint: disable=[C3002]
 _ALL_SECTIONS: Final[Set[str]] = (lambda g=globals(): {  # type: ignore
     g[k] for k in g.keys() if k.startswith("SECTION_")})()  # type: ignore

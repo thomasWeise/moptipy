@@ -260,7 +260,7 @@ class TextFormatDriver:
         if not isinstance(use_lang, bool):
             raise type_error(use_lang, "use_lang", bool)
         out_dir = Path.directory(dir_name)
-        suffix = self.__str__()
+        suffix = str(self)
         if not isinstance(suffix, str):
             raise type_error(suffix, "result of str(table driver)", str)
         if len(suffix) <= 0:

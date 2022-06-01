@@ -21,7 +21,7 @@ flake8 >= 4.0.1
 mypy >= 0.950
 pydocstyle >= 6.1.1
 pyflakes >= 2.4.0
-pylint >= 2.13.9
+pylint >= 2.14.0
 pyroma >= 4.0
 semgrep >= 0.93.0
 

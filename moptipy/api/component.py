@@ -16,7 +16,7 @@ class Component:
 
         :return: the value returned by :meth:`__str__`
         """
-        return self.__str__()
+        return str(self)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -24,7 +24,7 @@ class Component:
 
         :param logger: the logger for the parameters
         """
-        logger.key_value(logging.KEY_NAME, self.__str__())
+        logger.key_value(logging.KEY_NAME, str(self))
         logger.key_value(logging.KEY_CLASS, type_name_of(self))
 
 
