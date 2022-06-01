@@ -11,7 +11,7 @@ PYTHON_PACKAGE_BINARIES := $(shell python3 -m site --user-base)/bin
 CWD := $(shell pwd)
 
 # Get the moptipy version.
-VERSION:= $(shell (less '$(CWD)/moptipy/version.py' | sed -n 's/__version__.*=\s*"\(.*\)"/\1/p'))
+VERSION := $(shell (less '$(CWD)/moptipy/version.py' | sed -n 's/__version__.*=\s*"\(.*\)"/\1/p'))
 
 # Print the status information.
 status:
@@ -40,9 +40,9 @@ clean: status
 # Initialization: Install all requirements, both for executing the library and for the tests.
 init: clean
 	echo "Initialization: first install required packages from requirements.txt." && \
-	pip install -r requirements.txt && ## nosem \
+	pip install --no-input --timeout 360 --retries 100 -r requirements.txt && ## nosem \
 	echo "Finished installing required packages from requirements.txt, now installing packages required for development from requirements-dev.txt." && \
-	pip install -r requirements-dev.txt && ## nosem \
+	pip install --no-input --timeout 360 --retries 100 -r requirements-dev.txt && ## nosem \
 	echo "Finished installing requirements from requirements-dev.txt."
 
 # Run the unit tests.
@@ -110,28 +110,11 @@ create_documentation: static_analysis test
 
 # Create different distribution formats, also to check if there is any error.
 create_distribution: static_analysis test create_documentation
-	echo "Now building distribution files and folders." &&\
+	echo "Now building source distribution file." &&\
 	python3 setup.py check &&\
-	python3 setup.py sdist &&\
-	export TAR_GZ="$(CWD)/dist/moptipy-$(VERSION).tar.gz"&&\
-	export WHEEL="$(CWD)/dist/moptipy-$(VERSION)-py3-none-any.whl" &&\
-	ls "$$TAR_GZ" &&\
-	python3 setup.py bdist_wheel &&\
-	ls "$$WHEEL" &&\
-#	python3 -m build &&\
+ 	python3 -m build &&\
     echo "Done with the build process, now checking result." &&\
 	python3 -m twine check dist/* &&\
-	echo "First testing the wheel." &&\
-    export tempDir=`mktemp -d` &&\
-	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
-	python3 -m venv "$$tempDir" &&\
-	echo "Created virtual environment, now activating it." &&\
-	source "$$tempDir/bin/activate" &&\
-	echo "Now installing wheel." &&\
-	python3 -m pip install "$$WHEEL" && ## nosem \
-	echo "Finished, cleaning up." &&\
-	deactivate &&\
-	rm -rf "$$tempDir" &&\
 	echo "Now testing the tar.gz." &&\
     export tempDir=`mktemp -d` &&\
 	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
@@ -139,16 +122,27 @@ create_distribution: static_analysis test create_documentation
 	echo "Created virtual environment, now activating it." &&\
 	source "$$tempDir/bin/activate" &&\
 	echo "Now installing tar.gz." &&\
-	python3 -m pip install "$$TAR_GZ" && ## nosem \
+	python3 -m pip --no-input --timeout 360 --retries 100 --require-virtualenv install "$(CWD)/dist/moptipy-$(VERSION).tar.gz" && ## nosem \
 	echo "Finished, cleaning up." &&\
 	deactivate &&\
 	rm -rf "$$tempDir" &&\
-	echo "Successfully finished building distribution files and folders."
+	echo "Now testing the wheel." &&\
+    export tempDir=`mktemp -d` &&\
+	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
+	python3 -m venv "$$tempDir" &&\
+	echo "Created virtual environment, now activating it." &&\
+	source "$$tempDir/bin/activate" &&\
+	echo "Now installing wheel." &&\
+	python3 -m pip --no-input --timeout 360 --retries 100 --require-virtualenv install "$(CWD)/dist/moptipy-$(VERSION)-py3-none-any.whl" && ## nosem \
+	echo "Finished, cleaning up." &&\
+	deactivate &&\
+	rm -rf "$$tempDir" &&\
+	echo "Successfully finished building source distribution."
 
 # We install the package and see if that works out.
 install: create_distribution
 	echo "Now installing moptipy." && \
-	pip -v install . && \
+	pip --no-input --timeout 360 --retries 100 -v install . && \
 	echo "Successfully installed moptipy."
 
 # Now we run all examples
