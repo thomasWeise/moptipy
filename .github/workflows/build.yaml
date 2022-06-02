@@ -48,7 +48,7 @@ jobs:
         single-commit: true
 # publish to pypi _only_ on release:
     - name: publish to pypi
-      if: github.event_name == 'release' && github.event.action == 'created'
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
       run: |
         python3 -m twine upload dist/*
       env:
