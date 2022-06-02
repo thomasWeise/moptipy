@@ -55,10 +55,17 @@ In order to use this package and to, e.g., run the example codes, you need to fi
 You can install the newest version of this library using `pip` by doing
 
 ```shell
+pip install moptipy
+```
+
+This will install the latest official release of our package.
+If you want to install the latest source code version from GitHub (which may not yet be officially released), you can do
+
+```shell
 pip install git+https://github.com/thomasWeise/moptipy.git
 ```
 
-Alternatively, if you have set up a private/public key for GitHub, you can also do:
+If you want to install the latest source code version from GitHub (which may not yet be officially released) and you have set up a private/public key for GitHub, you can also do:
 
 ```shell
 git clone ssh://git@github.com/thomasWeise/moptipy

@@ -2,6 +2,7 @@
 import datetime
 import io
 import os
+import re
 import sys
 from typing import List
 
@@ -25,9 +26,19 @@ with io.open(os.path.join(root_path, "README.md"),
 # Now, we need to fix the file contents.
 # We discard the top-level heading as well as the badge for the build status.
 # We need to move all sub-headings one step up.
+# Furthermore, we can turn all absolute URLs starting with
+# http://thomasweise.github.io/moptipy/xxx to local references, i.e., ./xxx.
+# Finally, it seems that the myst parser now again drops the numerical
+# prefixes of links, i.e., it tags `## 1.2. Hello` with id `hello` instead of
+# `12-hello`. This means that we need to fix all references following the
+# pattern `[xxx](#12-hello)` to `[xxx](#hello)`. We do this with a regular
+# expression `regex_search`.
 new_lines = []
 in_code: bool = False  # we only process non-code lines
 skip: bool = True
+# detects strings of the form [xyz](#123-bla) and gives \1=xyz and \2=bla
+regex_search = re.compile("(\\[.+?])\\(#\\d+-(.+?)\\)")
+license_link: str = "https://github.com/thomasWeise/moptipy/blob/main/LICENSE"
 for line in old_lines:
     if skip:  # we skip everything until the introduction section
         if line.lstrip().startswith("## 1. Introduction"):
@@ -43,9 +54,10 @@ for line in old_lines:
         elif line.startswith("#"):
             line = line[1:]  # move all sub-headings one step up
         else:  # fix all internal urls
-            line = line.replace("https://github.com/thomasWeise/"
-                                "moptipy/blob/main/LICENSE",
-                                "./LICENSE.html")
+            # replace links of the form "#12-bla" to "#bla"
+            line = re.sub(regex_search, "\\1(#\\2)", line)
+
+            line = line.replace(license_link, "./LICENSE.html")
             for k in [html_baseurl, f"http{html_baseurl[5:]}"]:
                 line = line.replace(f"]({k}", "](./")\
                     .replace(f' src="{k}', ' src="./')\
@@ -53,6 +65,7 @@ for line in old_lines:
 
     new_lines.append(line)
 
+# write the post-processed README.md file
 with io.open(os.path.join(doc_path, "README.md"), "wt",
              encoding="utf-8") as outf:
     outf.writelines(new_lines)

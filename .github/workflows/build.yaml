@@ -41,3 +41,11 @@ jobs:
         branch: gh-pages
         folder: /home/runner/work/moptipy/moptipy/docs/build/
         single-commit: true
+# publish to pypi _only_ on release:
+    - name: publish to PyPi
+      if: ${{ github.event_name == 'release' }}
+      run: |
+        python3 -m twine upload dist/*
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TWINE_TOKEN }}
