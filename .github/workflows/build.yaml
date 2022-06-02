@@ -10,11 +10,6 @@ jobs:
         python-version: [3.9]
 
     steps:
-# print information
-    - name: print all information
-      run: |
-        echo "github.event_name: ${{ github.event_name }}"
-        echo "github.event.action: ${{ github.event.action }}"
     - uses: actions/checkout@v2
 # set up python
     - name: set up python ${{ matrix.python-version }}
