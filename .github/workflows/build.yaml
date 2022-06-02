@@ -10,21 +10,26 @@ jobs:
         python-version: [3.9]
 
     steps:
+# print information
+    - name: print all information
+      run: |
+        echo "github.event_name: ${{ github.event_name }}"
+        echo "github.event.action: ${{ github.event.action }}"
     - uses: actions/checkout@v2
-# first set up python
-    - name: Set up Python ${{ matrix.python-version }}
+# set up python
+    - name: set up python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-# then execute the actual build process
-    - name: Execute the make Build
+# execute the actual make build process
+    - name: execute the make build
       run: make
 # the remove mopitpy
-    - name: Purge local moptipy installation
+    - name: purge local moptipy installation
       run: |
         pip uninstall -y moptipy
 # and attempt to install it again from github
-    - name: Install moptipy from github
+    - name: install moptipy from github
       run: |
         pip install git+https://github.com/thomasWeise/moptipy.git
         python -c "import moptipy"
@@ -42,8 +47,8 @@ jobs:
         folder: /home/runner/work/moptipy/moptipy/docs/build/
         single-commit: true
 # publish to pypi _only_ on release:
-    - name: publish to PyPi
-      if: ${{ github.event_name == 'release' }}
+    - name: publish to pypi
+      if: github.event_name == 'release' && github.event.action == 'created'
       run: |
         python3 -m twine upload dist/*
       env:
