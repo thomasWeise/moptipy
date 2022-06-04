@@ -17,6 +17,7 @@ def __lang_setup():
     from moptipy.utils.lang import EN, DE, ZH  # pylint: disable=C0415
     import moptipy.api.logging as lg  # pylint: disable=C0415
     import moptipy.evaluation.base as bs  # pylint: disable=C0415
+    import moptipy.evaluation.statistics as ss  # pylint: disable=C0415
 
     EN.extend({
         "f": "f",
@@ -38,6 +39,8 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE",
         "algorithm_on_instance": "algorithm \u00d7 instance",
         "ERT": "ERT",
+        "ertFEs": "ERT[FEs]",
+        "ertTimeMillis": "ERT[ms]",
         "ECDF": "ECDF",
         "setup": "setup",
         "best": "best",
@@ -45,7 +48,13 @@ def __lang_setup():
         "summary": "summary",
         "all_insts": "all instances",
         "all_algos": "all algorithms",
-        "single_run": "single run"
+        "single_run": "single run",
+        ss.KEY_MEAN_GEOM: "gmean",
+        ss.KEY_STDDEV: "sd",
+        ss.KEY_MEDIAN: "median",
+        ss.KEY_MAXIMUM: "max",
+        ss.KEY_MINIMUM: "min",
+        ss.KEY_MEAN_ARITH: "mean"
     })
 
     DE.extend({
@@ -68,6 +77,8 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE",
         "algorithm_on_instance": "Algorithmus \u00d7 Instanz",
         "ERT": "ERT",
+        "ertFEs": "ERT[FEs]",
+        "ertTimeMillis": "ERT[ms]",
         "ECDF": "ECDF",
         "setup": "setup",
         "best": "beste",
@@ -75,7 +86,13 @@ def __lang_setup():
         "summary": "Übersicht",
         "all_insts": "all Instanzen",
         "all_algos": "all Algorithmen",
-        "single_run": "einzelner Run"
+        "single_run": "einzelner Run",
+        ss.KEY_MEAN_GEOM: "gmean",
+        ss.KEY_STDDEV: "sd",
+        ss.KEY_MEDIAN: "median",
+        ss.KEY_MAXIMUM: "max",
+        ss.KEY_MINIMUM: "min",
+        ss.KEY_MEAN_ARITH: "mean"
     })
 
     ZH.extend({
@@ -98,6 +115,8 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)",
         "algorithm_on_instance": "优化算法 \u00d7 优化问题实例",
         "ERT": "经验估计运行时间",
+        "ertFEs": "经验估计运行时间[目标函数的评价]",
+        "ertTimeMillis": "经验估计运行时间[毫秒]",
         "ECDF": "经验累积分布函数",
         "setup": "算法配置",
         "best": "最好的",
@@ -105,7 +124,13 @@ def __lang_setup():
         "summary": "总结",
         "all_insts": "所有优化问题实例",
         "all_algos": "所有的算法",
-        "single_run": "一个算法执行"
+        "single_run": "一个算法执行",
+        ss.KEY_MEAN_GEOM: "几何平均数",
+        ss.KEY_STDDEV: "标准偏差",
+        ss.KEY_MEDIAN: "中值的",
+        ss.KEY_MAXIMUM: "最大限度",
+        ss.KEY_MINIMUM: "最低限度",
+        ss.KEY_MEAN_ARITH: "算术平均值"
     })
 
 

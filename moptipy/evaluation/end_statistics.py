@@ -319,6 +319,12 @@ class EndStatistics(MultiRunData):
                     raise type_error(success_fes,
                                      "if n_success>0, then success_fes",
                                      Statistics)
+                if not isinstance(success_fes.minimum, int):
+                    raise type_error(success_fes.minimum,
+                                     "success_fes.minimum", int)
+                if not isinstance(success_fes.maximum, int):
+                    raise type_error(success_fes.maximum,
+                                     "success_fes.maximum", int)
                 if success_fes.minimum < last_improvement_fe.minimum:
                     raise ValueError(
                         "success_fes.minimum must be >= "
@@ -334,6 +340,12 @@ class EndStatistics(MultiRunData):
                         success_time_millis,
                         "if n_success>0, then success_time_millis",
                         Statistics)
+                if not isinstance(success_time_millis.minimum, int):
+                    raise type_error(success_time_millis.minimum,
+                                     "success_time_millis.minimum", int)
+                if not isinstance(success_time_millis.maximum, int):
+                    raise type_error(success_time_millis.maximum,
+                                     "success_time_millis.maximum", int)
                 if success_time_millis.minimum < \
                         last_improvement_time_millis.minimum:
                     raise ValueError(
@@ -961,7 +973,7 @@ class EndStatistics(MultiRunData):
                     break
 
                 if header[idx].startswith(KEY_SUCCESS_TIME_MILLIS):
-                    has_success_fes = True
+                    has_success_time = True
                     if csv(KEY_SUCCESS_TIME_MILLIS) != \
                             header[idx:(idx + CSV_COLS)]:
                         raise ValueError(
@@ -1092,21 +1104,33 @@ class EndStatistics(MultiRunData):
                             idx += 1
 
                         if has_success_fes:
-                            success_fes = Statistics.from_csv(
-                                n_success, row[idx:(idx + CSV_COLS)])
+                            if n_success > 0:
+                                success_fes = Statistics.from_csv(
+                                    n_success, row[idx:(idx + CSV_COLS)])
+                            else:
+                                success_fes = None
                             idx += CSV_COLS
 
                         if has_success_time:
-                            success_time = Statistics.from_csv(
-                                n_success, row[idx:(idx + CSV_COLS)])
+                            if n_success > 0:
+                                success_time = Statistics.from_csv(
+                                    n_success, row[idx:(idx + CSV_COLS)])
+                            else:
+                                success_time = None
                             idx += CSV_COLS
 
                         if has_ert_fes:
-                            ert_fes = str_to_intfloat(row[idx])
+                            if n_success > 0:
+                                ert_fes = str_to_intfloat(row[idx])
+                            else:
+                                ert_fes = inf
                             idx += 1
 
                         if has_ert_time:
-                            ert_time = str_to_intfloat(row[idx])
+                            if n_success > 0:
+                                ert_time = str_to_intfloat(row[idx])
+                            else:
+                                ert_time = inf
                             idx += 1
 
                         if has_max_fes == 1:

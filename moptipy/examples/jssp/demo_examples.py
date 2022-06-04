@@ -182,8 +182,8 @@ def demo_gantt_chart(dirname: str,
         gantt = demo_solution(optimum=optimum)
         plot_gantt_chart(gantt=gantt,
                          figure=figure,
-                         xlabel_inside=False,
-                         ylabel_inside=False,
+                         x_label_inside=False,
+                         y_label_inside=False,
                          markers=markers,
                          info=info)
 

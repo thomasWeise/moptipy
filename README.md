@@ -22,7 +22,8 @@
   - [ECDF Plots](#54-ecdf-plots)
   - [Expected Running Time Plots](#55-expected-running-time-ert-plots)
   - [ERT-ECDF Plots](#56-ert-ecdf-plots)
-  - [End Results Tables](#57-end-results-table)
+  - [Performance over Algorithm Parameter or Instance Feature](#57-performance-over-algorithm-parameter-or-instance-feature)
+  - [End Results Tables](#58-end-results-table)
 - [Uselful Links and References](#6-useful-links-and-references)
 - [License](#7-license)
 - [Contact](#8-contact)
@@ -51,8 +52,8 @@ What `moptipy` also offers is an [experiment execution facility](https://thomasw
 
 ## 2. Installation
 
-In order to use this package and to, e.g., run the example codes, you need to first install it using `pip`.
-You can install the newest version of this library using `pip` by doing
+In order to use this package and to, e.g., run the example codes, you need to first install it using [`pip`](https://pypi.org/project/pip/).
+You can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy/) using [`pip`](https://pypi.org/project/pip/) by doing
 
 ```shell
 pip install moptipy
@@ -1304,6 +1305,7 @@ This way, we will get a diagram similar to the one below:
 </a>
 
 The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/).
+The ERT plots are implemented in the module [moptipy.evaluation.plot_ert_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ert_impl).
 
 
 ### 5.6. ERT-ECDF Plots
@@ -1314,13 +1316,42 @@ Their vertical axis shows the fraction of problem instances that can be expected
 Their horizontal axis shows the runtime consumed to do so, which is equivalent to the ERT of the algorithm to reach the global optimum.
 While ECDFs themselves are based on single runs, ERT-ECDF plots are based on problem instances.
 They also make the same assumptions as ERTs, namely that we can simply restart an algorithm if it was not successful when it had consumed all of its computational budget.
+Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
 
 <a href="https://thomasweise.github.io/moptipy/_static/ertecdf_over_log_fes.png">
 <img alt="Example for an ERT-ECDF plot of a RLS on OneMax several OneMax instances." src="https://thomasweise.github.io/moptipy/_static/ertecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
 
-### 5.7. End Results Table
+### 5.7. Performance over Algorithm Parameter or Instance Feature
+
+Often we want to investigate how and algorithm parameter or an instance feature impacts the algorithm performance.
+The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter_impl) can do both:
+
+In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#55-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
+Basically, the minimization version of the OneMax problem tries to minimize the number of `0`s in a bit string of length `n`.
+Of course, the higher `n`, the longer it will take to solve the problem.
+We apply the RLS several times to the instances of sizes `n` in `1..20`.
+We then load the end results and convert them to [end result statistics](#431-the-end-result-statistics-file-format).
+All we need to tell our system how it can deduce the value of the feature from an [EndStatistics](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.end_statistics) and which statistic we want to plot (here: `ertFEs`) and we are good:
+
+<a href="https://thomasweise.github.io/moptipy/_static/ert_over_onemax_n.png">
+<img alt="Example for the ERT of a RLS on OneMax plotted over the instance size n over several OneMax instances." src="https://thomasweise.github.io/moptipy/_static/ert_over_onemax_n.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
+In [examples/end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html), on the other hand, we apply the same method to analyze the impact of an algorithm parameter on the performance.
+We again apply an [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) algorithm, but this time with a configurable operator, [Op1MoverNflip](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#module-moptipy.operators.bitstrings.op1_m_over_n_flip), which flips each bit in a string with a probability distributed according to `Bin(m/n)`, where `n` is the total number of bits and `m` is a parameter.
+We apply this algorithm for different values of `m` to two instances of the minimization version of the [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones) problem.
+We plot the mean end result after 128 FEs (on the vertical axis) over the values of `m` (horizontal axis). 
+
+<a href="https://thomasweise.github.io/moptipy/_static/mean_f_over_param.png">
+<img alt="Example for the mean end result quality over the algorithm parameter m of the Bin(m/n) operator plugged into the RLS algorithm on several LeadingOnes instances." src="https://thomasweise.github.io/moptipy/_static/mean_f_over_param.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
+These plots have been implemented in the module [moptipy.evaluation.plot_end_statistics_over_parameter_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter_impl).
+
+
+### 5.8. End Results Table
 
 In the file [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
 Such a table allows you to display statistics summarizing the performance of your algorithms over several problem instances.

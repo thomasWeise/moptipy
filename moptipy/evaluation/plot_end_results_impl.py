@@ -28,19 +28,19 @@ def plot_end_results(
         pd.importance_to_line_width,
         importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
-        ygrid: bool = True,
-        xgrid: bool = True,
-        xlabel: Union[None, str, Callable[[str], str]] = Lang.translate,
-        xlabel_inside: bool = True,
-        xlabel_location: float = 1.0,
-        ylabel: Union[None, str, Callable[[str], str]] = Lang.translate,
-        ylabel_inside: bool = True,
-        ylabel_location: float = 0.5,
+        y_grid: bool = True,
+        x_grid: bool = True,
+        x_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        x_label_inside: bool = True,
+        x_label_location: float = 1.0,
+        y_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        y_label_inside: bool = True,
+        y_label_location: float = 0.5,
         legend_pos: str = "best",
         instance_sort_key: Callable[[str], Any] = lambda x: x,
         algorithm_sort_key: Callable[[str], Any] = lambda x: x,
         instance_namer: Callable[[str], str] = lambda x: x,
-        algorithm_namer: Callable[[str], str] = lambda x: x) -> None:
+        algorithm_namer: Callable[[str], str] = lambda x: x) -> Axes:
     """
     Plot a set of end result boxes/violins functions into one chart.
 
@@ -67,18 +67,18 @@ def plot_end_results(
         values to line widths
     :param importance_to_font_size_func: the function converting importance
         values to font sizes
-    :param ygrid: should we have a grid along the y-axis?
-    :param xgrid: should we have a grid along the x-axis?
-    :param xlabel: a callable returning the label for the x-axis, a label
+    :param y_grid: should we have a grid along the y-axis?
+    :param x_grid: should we have a grid along the x-axis?
+    :param x_label: a callable returning the label for the x-axis, a label
         string, or `None` if no label should be put
-    :param xlabel_inside: put the x-axis label inside the plot (so that
+    :param x_label_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param xlabel_location: the location of the x-label
-    :param ylabel: a callable returning the label for the y-axis, a label
+    :param x_label_location: the location of the x-label
+    :param y_label: a callable returning the label for the y-axis, a label
         string, or `None` if no label should be put
-    :param ylabel_inside: put the y-axis label inside the plot (so that it
+    :param y_label_inside: put the y-axis label inside the plot (so that it
         does not consume additional horizontal space)
-    :param ylabel_location: the location of the y-label
+    :param y_label_location: the location of the y-label
     :param legend_pos: the legend position
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
@@ -86,6 +86,7 @@ def plot_end_results(
         instance ID and returns an instance name; default=identity function
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
+    :returns: the axes object to allow you to add further plot elements
     """
     # Before doing anything, let's do some type checking on the parameters.
     # I want to ensure that this function is called correctly before we begin
@@ -106,22 +107,24 @@ def plot_end_results(
     if not callable(importance_to_font_size_func):
         raise type_error(importance_to_font_size_func,
                          "importance_to_font_size_func", call=True)
-    if not isinstance(ygrid, bool):
-        raise type_error(ygrid, "ygrid", bool)
-    if not isinstance(xgrid, bool):
-        raise type_error(xgrid, "xgrid", bool)
-    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
-        raise type_error(xlabel, "xlabel", (str, None), call=True)
-    if not isinstance(xlabel_inside, bool):
-        raise type_error(xlabel_inside, "xlabel_inside", bool)
-    if not isinstance(xlabel_location, float):
-        raise type_error(xlabel_location, "xlabel_location", float)
-    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
-        raise type_error(ylabel, "ylabel", (str, None), call=True)
-    if not isinstance(ylabel_inside, bool):
-        raise type_error(ylabel_inside, "ylabel_inside", bool)
-    if not isinstance(ylabel_location, float):
-        raise type_error(ylabel_location, "ylabel_location", float)
+    if not isinstance(y_grid, bool):
+        raise type_error(y_grid, "y_grid", bool)
+    if not isinstance(x_grid, bool):
+        raise type_error(x_grid, "x_grid", bool)
+    if not ((x_label is None) or callable(x_label)
+            or isinstance(x_label, str)):
+        raise type_error(x_label, "x_label", (str, None), call=True)
+    if not isinstance(x_label_inside, bool):
+        raise type_error(x_label_inside, "x_label_inside", bool)
+    if not isinstance(x_label_location, float):
+        raise type_error(x_label_location, "x_label_location", float)
+    if not ((y_label is None) or callable(y_label)
+            or isinstance(y_label, str)):
+        raise type_error(y_label, "y_label", (str, None), call=True)
+    if not isinstance(y_label_inside, bool):
+        raise type_error(y_label_inside, "y_label_inside", bool)
+    if not isinstance(y_label_location, float):
+        raise type_error(y_label_location, "y_label_location", float)
     if not isinstance(legend_pos, str):
         raise type_error(legend_pos, "legend_pos", str)
     if not callable(instance_sort_key):
@@ -214,38 +217,38 @@ def plot_end_results(
     axes.tick_params(axis="y", labelsize=font_size_0)
     axes.tick_params(axis="x", labelsize=font_size_0)
 
-    zorder: int = 0
+    z_order: int = 0
 
     # draw the grid
     grid_lwd: Optional[Union[int, float]] = None
-    if ygrid:
+    if y_grid:
         grid_lwd = importance_to_line_width_func(-1)
-        zorder += 1
+        z_order += 1
         axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd,
-                  zorder=zorder)
+                  zorder=z_order)
 
     x_axis: Final[AxisRanger] = AxisRanger(
         chosen_min=0.5, chosen_max=bar_positions[-1] + 0.5)
 
     # manually add x grid lines between instances
-    if xgrid and (n_instances > 1) and (n_algorithms > 1):
+    if x_grid and (n_instances > 1) and (n_algorithms > 1):
         if not grid_lwd:
             grid_lwd = importance_to_line_width_func(-1)
         counter: int = 0
         for key in inst_algos:
             if counter > 0:
-                zorder += 1
+                z_order += 1
                 axes.axvline(x=counter + 0.5,
                              color=pd.GRID_COLOR,
                              linewidth=grid_lwd,
-                             zorder=zorder)
+                             zorder=z_order)
             counter += len(key[1])
 
     y_axis.apply(axes, "y")
     x_axis.apply(axes, "x")
 
     violin_width: Final[float] = 3 / 4
-    zorder += 1
+    z_order += 1
     violins: Final[Dict[str, Any]] = axes.violinplot(
         dataset=plot_data, positions=bar_positions, vert=True,
         widths=violin_width, showmeans=False, showextrema=False,
@@ -262,7 +265,7 @@ def plot_end_results(
     counter = 0
     for key in inst_algos:
         for algo in key[1]:
-            zorder += 1
+            z_order += 1
             bd = bodies[counter]
             color = algo_colors[algo]
             use_colors.append(color)
@@ -270,18 +273,18 @@ def plot_end_results(
             bd.set_facecolor(color)
             bd.set_alpha(0.6666666666)
             counter += 1
-            bd.set_zorder(zorder)
+            bd.set_zorder(z_order)
 
-    zorder += 1
+    z_order += 1
     boxes_bg: Final[Dict[str, Any]] = axes.boxplot(
         x=plot_data, positions=bar_positions, widths=violin_width,
         showmeans=True, patch_artist=False, notch=True, vert=True,
-        whis=(5.0, 95.0), manage_ticks=False, zorder=zorder)
-    zorder += 1
+        whis=(5.0, 95.0), manage_ticks=False, zorder=z_order)
+    z_order += 1
     boxes_fg: Final[Dict[str, Any]] = axes.boxplot(
         x=plot_data, positions=bar_positions, widths=violin_width,
         showmeans=True, patch_artist=False, notch=True, vert=True,
-        whis=(5.0, 95.0), manage_ticks=False, zorder=zorder)
+        whis=(5.0, 95.0), manage_ticks=False, zorder=z_order)
 
     for tkey in ("cmeans", "cmins", "cmaxes", "cbars", "cmedians",
                  "cquantiles"):
@@ -312,8 +315,8 @@ def plot_end_results(
                 line.set_markeredgecolor(thecolor)
                 line.set_markerfacecolor("none")
                 line.set_markeredgewidth(width)
-                zorder = zorder + 1
-                line.set_zorder(zorder)
+                z_order = z_order + 1
+                line.set_zorder(z_order)
 
     # compute the labels for the x-axis
     labels_str: List[str] = []
@@ -344,27 +347,27 @@ def plot_end_results(
         axes.set_xticks([])
 
     # compute the x-label
-    if xlabel is not None:
-        if not isinstance(xlabel, str):
-            if not callable(xlabel):
-                raise type_error(xlabel, "xlabel", str, True)
+    if x_label is not None:
+        if not isinstance(x_label, str):
+            if not callable(x_label):
+                raise type_error(x_label, "x_label", str, True)
             if (n_algorithms == 1) and (n_instances > 1):
-                xlabel = algorithm_namer(algorithms[0])
+                x_label = algorithm_namer(algorithms[0])
             elif (n_algorithms > 1) and (n_instances == 1):
-                xlabel = instance_namer(instances[0])
+                x_label = instance_namer(instances[0])
             else:
-                xlabel = xlabel("algorithm_on_instance")
+                x_label = x_label("algorithm_on_instance")
 
-    zorder += 1
+    z_order += 1
     pu.label_axes(axes=axes,
-                  xlabel=cast(Optional[str], xlabel),
-                  xlabel_inside=xlabel_inside,
-                  xlabel_location=xlabel_location,
-                  ylabel=ylabel(dimension) if callable(ylabel) else ylabel,
-                  ylabel_inside=ylabel_inside,
-                  ylabel_location=ylabel_location,
+                  x_label=cast(Optional[str], x_label),
+                  x_label_inside=x_label_inside,
+                  x_label_location=x_label_location,
+                  y_label=y_label(dimension) if callable(y_label) else y_label,
+                  y_label_inside=y_label_inside,
+                  y_label_location=y_label_location,
                   font_size=font_size_0,
-                  zorder=zorder)
+                  z_order=z_order)
 
     if needs_legend:
         handles: Final[List[Line2D]] = []
@@ -379,10 +382,11 @@ def plot_end_results(
             linestyle["ydata"] = []
             linestyle["linewidth"] = 6
             handles.append(Line2D(**linestyle))
-        zorder += 1
+        z_order += 1
 
         axes.legend(handles=handles, loc=legend_pos,
                     labelcolor=pu.get_label_colors(handles),
-                    fontsize=font_size_0).set_zorder(zorder)
+                    fontsize=font_size_0).set_zorder(z_order)
 
     logger(f"done plotting {n_bars} end result boxes.")
+    return axes

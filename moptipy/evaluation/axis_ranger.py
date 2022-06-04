@@ -11,6 +11,7 @@ from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
     KEY_TOTAL_TIME_MILLIS
 from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
     F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
+from moptipy.evaluation.end_statistics import KEY_ERT_FES, KEY_ERT_TIME_MILLIS
 from moptipy.utils.types import type_error
 
 #: The internal minimum float value for log-scaled axes.
@@ -209,12 +210,12 @@ class AxisRanger:
                     if self.__log_base is None:
                         axes.semilogx()
                     else:
-                        axes.semilogx(self.__log_base)
+                        axes.semilogx(base=self.__log_base)
                 else:
                     if self.__log_base is None:
                         axes.semilogy()
                     else:
-                        axes.semilogy(self.__log_base)
+                        axes.semilogy(base=self.__log_base)
 
     def get_pinf_replacement(self) -> float:
         """
@@ -279,7 +280,7 @@ class AxisRanger:
         __data_max: bool = chosen_max is None
 
         if name in (TIME_UNIT_MILLIS, KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                    KEY_TOTAL_TIME_MILLIS):
+                    KEY_TOTAL_TIME_MILLIS, KEY_ERT_TIME_MILLIS):
             if chosen_min is not None:
                 if (chosen_min < 0) or (not isfinite(chosen_min)):
                     raise ValueError("chosen_min must be >= 0 for axis "
@@ -314,7 +315,8 @@ class AxisRanger:
             return AxisRanger(__min, __max, __data_min, __data_max,
                               __log, log_base if __log else None)
 
-        if name in (TIME_UNIT_FES, KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES):
+        if name in (TIME_UNIT_FES, KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES,
+                    KEY_ERT_FES):
             if chosen_min is None:
                 __min = 1
             else:

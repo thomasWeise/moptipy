@@ -12,6 +12,7 @@ from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans, \
     plot_median_gantt_charts, plot_progresses
 from moptipy.utils.console import logger
+from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
@@ -127,6 +128,7 @@ def get_end_results(file: str,
     :param algos: only these algorithms will be included if this parameter is
         provided
     """
+
     def __filter(er: EndResult, ins=insts, alg=algos) -> bool:
         if ins is not None:
             if er.instance not in ins:
@@ -163,6 +165,39 @@ def compute_end_statistics(end_results_file: str,
         raise ValueError("end results cannot be empty")
     stats: Final[List[EndStatistics]] = []
     EndStatistics.from_end_results(results, stats.append)
+    if len(stats) <= 0:
+        raise ValueError("end result statistics cannot be empty")
+    stats.sort()
+
+    sf: Path = EndStatistics.to_csv(stats, stats_file)
+    if sf != stats_file:
+        raise ValueError(f"stats file should be {stats_file} but is {sf}")
+    stats_file.enforce_file()
+    logger(f"finished writing file '{stats_file}'.")
+    return stats_file
+
+
+def compute_end_statistics_all_insts(end_results_file: str,
+                                     dest_dir: str) -> Path:
+    """
+    Get the end result statistics over all instances.
+
+    :param end_results_file: the end results file
+    :param dest_dir: the destination directory
+    :returns: the path to the end result statistics file.
+    """
+    dest: Final[Path] = Path.directory(dest_dir)
+    stats_file: Final[Path] = dest.resolve_inside(
+        "end_statistics_all_insts.txt")
+    if stats_file.is_file():
+        return stats_file
+
+    results: Final[List[EndResult]] = get_end_results(end_results_file)
+    if len(results) <= 0:
+        raise ValueError("end results cannot be empty")
+    stats: Final[List[EndStatistics]] = []
+    EndStatistics.from_end_results(results, stats.append,
+                                   join_all_instances=True)
     if len(stats) <= 0:
         raise ValueError("end result statistics cannot be empty")
     stats.sort()
@@ -280,6 +315,10 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     end_stats: Final[Path] = compute_end_statistics(end_results, dest)
     if not end_stats:
         raise ValueError("End stats path is empty??")
+    end_stats_all_insts: Final[Path] = compute_end_statistics_all_insts(
+        end_results, dest)
+    if not end_stats_all_insts:
+        raise ValueError("End end_stats_all_insts path is empty??")
 
     logger("Now evaluating the single random sampling algorithm `1rs`.")
     table(end_results, ["1rs"], dest)
@@ -305,6 +344,15 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
 
 # Evaluate experiment if run as script
 if __name__ == '__main__':
+    help_screen(
+        "JSSP Experiment Evaluator", __file__,
+        "Evaluate the results of the JSSP experiment.",
+        [("results_dir",
+          "the directory with the results of the JSSP experiment",
+          True),
+         ("dest_dir",
+          "the directory where the evaluation results should be stored",
+          True)])
     mkwargs: Dict[str, Any] = {}
     if len(sys.argv) > 1:
         results_dir_str: Final[str] = sys.argv[1]

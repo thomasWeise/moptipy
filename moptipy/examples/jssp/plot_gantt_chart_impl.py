@@ -61,16 +61,16 @@ def plot_gantt_chart(
         pd.importance_to_font_size,
         info: Union[None, str, Callable[[Gantt], str]] =
         lambda gantt: Lang.current().format("gantt_info", gantt=gantt),
-        xgrid: bool = False,
-        ygrid: bool = False,
-        xlabel: Union[None, str, Callable[[Gantt], str]] =
+        x_grid: bool = False,
+        y_grid: bool = False,
+        x_label: Union[None, str, Callable[[Gantt], str]] =
         Lang.translate_call("time"),
-        xlabel_inside: bool = True,
-        xlabel_location: float = 1.0,
-        ylabel: Union[None, str, Callable[[Gantt], str]] =
+        x_label_inside: bool = True,
+        x_label_location: float = 1.0,
+        y_label: Union[None, str, Callable[[Gantt], str]] =
         Lang.translate_call("machine"),
-        ylabel_inside: bool = True,
-        ylabel_location: float = 0.5) -> None:
+        y_label_inside: bool = True,
+        y_label_location: float = 0.5) -> Axes:
     """
     Plot a Gantt chart.
 
@@ -83,18 +83,19 @@ def plot_gantt_chart(
         importance values to font sizes
     :param importance_to_line_width_func: the function converting
         importance values to line widths
-    :param xgrid: should we have a grid along the x-axis?
-    :param ygrid: should we have a grid along the y-axis?
-    :param xlabel: a callable returning the label for
+    :param x_grid: should we have a grid along the x-axis?
+    :param y_grid: should we have a grid along the y-axis?
+    :param x_label: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
-    :param xlabel_inside: put the x-axis label inside the plot (so that
+    :param x_label_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param xlabel_location: the location of the x-label
-    :param ylabel: a callable returning the label for
+    :param x_label_location: the location of the x-label
+    :param y_label: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
-    :param ylabel_inside: put the y-axis label inside the plot (so that
+    :param y_label_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
-    :param ylabel_location: the location of the y-label
+    :param y_label_location: the location of the y-label
+    :returns: the axes object to allow you to add further plot elements
     """
     if isinstance(gantt, str):
         gantt = Gantt.from_log(gantt)
@@ -164,14 +165,14 @@ def plot_gantt_chart(
     inv: Final = axes.transData.inverted()
 
     # draw the grid
-    if xgrid or ygrid:
+    if x_grid or y_grid:
         grid_lwd = importance_to_line_width_func(-1)
-        if xgrid:
+        if x_grid:
             axes.grid(axis="x", color=pd.GRID_COLOR, linewidth=grid_lwd)
-        if ygrid:
+        if y_grid:
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
-    zorder: int = 0
+    z_order: int = 0
 
     # print the marker lines
     for val, _ in marks.items():
@@ -181,8 +182,8 @@ def plot_gantt_chart(
                                else __RIGHT_END_MARK if val >= xmax
                                else __MIDDLE_MARK,
                                linewidth=2.0,
-                               zorder=zorder))
-        zorder += 1
+                               zorder=z_order))
+        z_order += 1
 
     # plot the jobs
     for machine in range(machines):
@@ -205,8 +206,8 @@ def plot_gantt_chart(
                 height=height,
                 color=background,
                 linewidth=0,
-                zorder=zorder))
-            zorder += 1
+                zorder=z_order))
+            z_order += 1
 
             # Now we insert the job IDs, which is a bit tricky:
             # First, the rectangle may be too small to hold the text.
@@ -262,8 +263,8 @@ def plot_gantt_chart(
                           color=foreground,
                           horizontalalignment="center",
                           verticalalignment="center",
-                          zorder=zorder)
-                zorder += 1
+                          zorder=z_order)
+                z_order += 1
 
     # print the marker labels
     bbox = {"boxstyle": 'round',
@@ -286,20 +287,20 @@ def plot_gantt_chart(
                       else __MIDDLE_MARK,
                       rotation=90,
                       bbox=bbox,
-                      zorder=zorder)
-        zorder += 1
+                      zorder=z_order)
+        z_order += 1
 
     info_font_size: Final[float] = importance_to_font_size_func(0)
     pu.label_axes(axes=axes,
-                  xlabel=xlabel(gantt) if callable(xlabel) else xlabel,
-                  xlabel_inside=xlabel_inside,
-                  xlabel_location=xlabel_location,
-                  ylabel=ylabel(gantt) if callable(ylabel) else ylabel,
-                  ylabel_inside=ylabel_inside,
-                  ylabel_location=ylabel_location,
+                  x_label=x_label(gantt) if callable(x_label) else x_label,
+                  x_label_inside=x_label_inside,
+                  x_label_location=x_label_location,
+                  y_label=y_label(gantt) if callable(y_label) else y_label,
+                  y_label_inside=y_label_inside,
+                  y_label_location=y_label_location,
                   font_size=info_font_size,
-                  zorder=zorder)
-    zorder = zorder + 1
+                  z_order=z_order)
+    z_order = z_order + 1
 
     if callable(info):
         info = info(gantt)
@@ -312,4 +313,5 @@ def plot_gantt_chart(
                      y=1,
                      font_size=importance_to_font_size_func(1),
                      may_rotate_text=False,
-                     zorder=zorder)
+                     z_order=z_order)
+    return axes

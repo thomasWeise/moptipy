@@ -23,6 +23,7 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
+from moptipy.utils.help import help_screen
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
@@ -191,6 +192,15 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
 
 # Execute experiment if run as script
 if __name__ == '__main__':
+    help_screen(
+        "JSSP Experiment Executor", __file__,
+        "Run the JSSP experiment.",
+        [("results_dir",
+          "the directory where the results should be stored",
+          True),
+         ("n_threads",
+          "the number of threads to use for the experiment",
+          True)])
     mkwargs: Dict[str, Any] = {}
     if len(sys.argv) > 1:
         dest_dir: Final[Path] = Path.path(sys.argv[1])

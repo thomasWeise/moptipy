@@ -89,7 +89,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                 dimension=F_NAME_SCALED,
                 instance_sort_key=instance_sort_key,
                 algorithm_sort_key=algorithm_sort_key,
-                ylabel_location=1.0,
+                y_label_location=1.0,
                 algorithm_namer=algorithm_namer)
 
         result.extend(pu.save_figure(fig=figure,
@@ -301,7 +301,7 @@ def plot_progresses(results_dir: str,
                 0.9 * importance_to_font_size(i),
                 algorithm_sort_key=algorithm_sort_key,
                 instance_sort_key=instance_sort_key,
-                xlabel_location=xlabel_location,
+                x_label_location=xlabel_location,
                 algorithm_namer=algorithm_namer)
             axes = pu.get_axes(plot)
             pu.label_box(axes, inst, x=0.5, y=1)

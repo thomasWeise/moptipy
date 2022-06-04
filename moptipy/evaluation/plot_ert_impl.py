@@ -34,15 +34,15 @@ def plot_ert(erts: Iterable[Ert],
              pd.importance_to_alpha,
              importance_to_font_size_func: Callable[[int], float] =
              pd.importance_to_font_size,
-             xgrid: bool = True,
-             ygrid: bool = True,
-             xlabel: Union[None, str, Callable[[str], str]] = Lang.translate,
-             xlabel_inside: bool = True,
-             ylabel: Union[None, str, Callable[[str], str]] =
+             x_grid: bool = True,
+             y_grid: bool = True,
+             x_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+             x_label_inside: bool = True,
+             y_label: Union[None, str, Callable[[str], str]] =
              Lang.translate_func("ERT"),
-             ylabel_inside: bool = True,
+             y_label_inside: bool = True,
              inst_priority: float = 0.666,
-             algo_priority: float = 0.333) -> None:
+             algo_priority: float = 0.333) -> Axes:
     """
     Plot a set of Ert functions into one chart.
 
@@ -59,18 +59,19 @@ def plot_ert(erts: Iterable[Ert],
         values to alphas
     :param importance_to_font_size_func: the function converting importance
         values to font sizes
-    :param xgrid: should we have a grid along the x-axis?
-    :param ygrid: should we have a grid along the y-axis?
-    :param xlabel: a callable returning the label for the x-axis, a label
+    :param x_grid: should we have a grid along the x-axis?
+    :param y_grid: should we have a grid along the y-axis?
+    :param x_label: a callable returning the label for the x-axis, a label
         string, or `None` if no label should be put
-    :param xlabel_inside: put the x-axis label inside the plot (so that
+    :param x_label_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param ylabel: a callable returning the label for the y-axis, a label
+    :param y_label: a callable returning the label for the y-axis, a label
         string, or `None` if no label should be put
-    :param ylabel_inside: put the y-axis label inside the plot (so that
+    :param y_label_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     :param inst_priority: the style priority for instances
     :param algo_priority: the style priority for algorithms
+    :returns: the axes object to allow you to add further plot elements
     """
     # Before doing anything, let's do some type checking on the parameters.
     # I want to ensure that this function is called correctly before we begin
@@ -97,18 +98,20 @@ def plot_ert(erts: Iterable[Ert],
     if not callable(importance_to_font_size_func):
         raise type_error(importance_to_font_size_func,
                          "importance_to_font_size_func", call=True)
-    if not isinstance(xgrid, bool):
-        raise type_error(xgrid, "xgrid", bool)
-    if not isinstance(ygrid, bool):
-        raise type_error(ygrid, "ygrid", bool)
-    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
-        raise type_error(xlabel, "xlabel", (str, None), call=True)
-    if not isinstance(xlabel_inside, bool):
-        raise type_error(xlabel_inside, "xlabel_inside", bool)
-    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
-        raise type_error(ylabel, "ylabel", (str, None), call=True)
-    if not isinstance(ylabel_inside, bool):
-        raise type_error(ylabel_inside, "ylabel_inside", bool)
+    if not isinstance(x_grid, bool):
+        raise type_error(x_grid, "x_grid", bool)
+    if not isinstance(y_grid, bool):
+        raise type_error(y_grid, "y_grid", bool)
+    if not ((x_label is None) or callable(x_label)
+            or isinstance(x_label, str)):
+        raise type_error(x_label, "x_label", (str, None), call=True)
+    if not isinstance(x_label_inside, bool):
+        raise type_error(x_label_inside, "x_label_inside", bool)
+    if not ((y_label is None) or callable(y_label)
+            or isinstance(y_label, str)):
+        raise type_error(y_label, "y_label", (str, None), call=True)
+    if not isinstance(y_label_inside, bool):
+        raise type_error(y_label_inside, "y_label_inside", bool)
     if not isinstance(inst_priority, float):
         raise type_error(inst_priority, "inst_priority", float)
     if not isinstance(algo_priority, float):
@@ -117,9 +120,13 @@ def plot_ert(erts: Iterable[Ert],
     # First, we try to find groups of data to plot together in the same
     # color/style.
     instances: Final[Styler] = Styler(
-        get_instance, Lang.translate("all_insts"), inst_priority)
+        key_func=get_instance,
+        none_name=Lang.translate("all_insts"),
+        priority=inst_priority)
     algorithms: Final[Styler] = Styler(
-        get_algorithm, Lang.translate("all_algos"), algo_priority)
+        key_func=get_algorithm,
+        none_name=Lang.translate("all_algos"),
+        priority=algo_priority)
     x_dim: Optional[str] = None
     y_dim: Optional[str] = None
     source: List[Ert] = cast(List[Ert], erts) if isinstance(erts, list) \
@@ -223,11 +230,11 @@ def plot_ert(erts: Iterable[Ert],
     axes.tick_params(axis="y", labelsize=font_size_0)
 
     # draw the grid
-    if xgrid or ygrid:
+    if x_grid or y_grid:
         grid_lwd = importance_to_line_width_func(-1)
-        if xgrid:
+        if x_grid:
             axes.grid(axis="x", color=pd.GRID_COLOR, linewidth=grid_lwd)
-        if ygrid:
+        if y_grid:
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
     max_y = y_axis.get_pinf_replacement()
@@ -264,10 +271,11 @@ def plot_ert(erts: Iterable[Ert],
                     fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
-                  xlabel=xlabel(x_dim) if callable(xlabel) else xlabel,
-                  xlabel_inside=xlabel_inside,
-                  xlabel_location=1,
-                  ylabel=ylabel(y_dim) if callable(ylabel) else ylabel,
-                  ylabel_inside=ylabel_inside,
-                  ylabel_location=0,
+                  x_label=x_label(x_dim) if callable(x_label) else x_label,
+                  x_label_inside=x_label_inside,
+                  x_label_location=1,
+                  y_label=y_label(y_dim) if callable(y_label) else y_label,
+                  y_label_inside=y_label_inside,
+                  y_label_location=0,
                   font_size=font_size_0)
+    return axes

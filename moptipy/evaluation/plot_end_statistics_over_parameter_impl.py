@@ -1,7 +1,7 @@
-"""Plot a set of `Progress` or `StatRun` objects into one figure."""
+"""Plot the end results over a parameter."""
 from math import isfinite
 from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, Any
+    Optional, cast, Any
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -10,37 +10,69 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
-from moptipy.evaluation.progress import Progress
-from moptipy.evaluation.stat_run import StatRun, get_statistic
+from moptipy.evaluation.base import F_NAME_SCALED
+from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.statistics import KEY_MEAN_GEOM
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang
+from moptipy.utils.logger import SCOPE_SEPARATOR
 from moptipy.utils.types import type_error
 
 
-def plot_progress(
-        progresses: Iterable[Union[Progress, StatRun]],
+def __make_y_label(y_dim: str) -> str:
+    """
+    Make the y label.
+
+    :param y_dim: the y dimension
+    :returns: the y label
+    """
+    dotidx: Final[int] = y_dim.find(SCOPE_SEPARATOR)
+    if dotidx > 0:
+        y_dimension: Final[str] = y_dim[:dotidx]
+        y_stat: Final[str] = y_dim[dotidx + 1:]
+        return Lang.translate_func(y_stat)(y_dimension)
+    return Lang.translate(y_dim)
+
+
+def __make_y_axis(y_dim: str) -> AxisRanger:
+    """
+    Make the y axis.
+
+    :param y_dim: the y dimension
+    :returns: the y axis
+    """
+    dotidx: Final[int] = y_dim.find(SCOPE_SEPARATOR)
+    if dotidx > 0:
+        y_dim = y_dim[:dotidx]
+    return AxisRanger.for_axis(y_dim)
+
+
+def plot_end_statistics_over_param(
+        data: Iterable[EndStatistics],
         figure: Union[SubplotBase, Figure],
-        x_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
-        AxisRanger.for_axis,
+        x_getter: Callable[[EndStatistics], Union[int, float]],
+        y_dim: str = f"{F_NAME_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
+        algorithm_getter: Callable[[EndStatistics], Optional[str]] =
+        lambda es: es.algorithm,
+        instance_getter: Callable[[EndStatistics], Optional[str]] =
+        lambda es: es.instance,
+        x_axis: Union[AxisRanger, Callable[[], AxisRanger]] = AxisRanger,
         y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
-        AxisRanger.for_axis,
+        __make_y_axis,
         legend: bool = True,
         distinct_colors_func: Callable[[int], Any] = pd.distinct_colors,
         distinct_line_dashes_func: Callable[[int], Any] =
         pd.distinct_line_dashes,
         importance_to_line_width_func: Callable[[int], float] =
         pd.importance_to_line_width,
-        importance_to_alpha_func: Callable[[int], float] =
-        pd.importance_to_alpha,
         importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
         x_grid: bool = True,
         y_grid: bool = True,
-        x_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        x_label: Optional[str] = None,
         x_label_inside: bool = True,
         x_label_location: float = 0.5,
-        y_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        y_label: Union[None, str, Callable[[str], str]] = __make_y_label,
         y_label_inside: bool = True,
         y_label_location: float = 1.0,
         inst_priority: float = 0.666,
@@ -48,15 +80,18 @@ def plot_progress(
         stat_priority: float = 0.0,
         instance_sort_key: Callable[[str], Any] = lambda x: x,
         algorithm_sort_key: Callable[[str], Any] = lambda x: x,
-        stat_sort_key: Callable[[str], Any] = lambda x: x,
-        color_algorithms_as_fallback_group: bool = True,
-        instance_namer: Callable[[str], str] = lambda x: x,
-        algorithm_namer: Callable[[str], str] = lambda x: x) -> Axes:
+        stat_sort_key: Callable[[str], str] = lambda x: x,
+        color_algorithms_as_fallback_group: bool = True) -> Axes:
     """
-    Plot a set of progress or statistical run lines into one chart.
+    Plot a series of end result statistics over a parameter.
 
-    :param progresses: the iterable of progresses and statistical runs
+    :param data: the iterable of EndStatistics
     :param figure: the figure to plot in
+    :param x_getter: the function computing the x-value for each statistics
+        object
+    :param y_dim: the dimension to be plotted along the y-axis
+    :param algorithm_getter: the algorithm getter
+    :param instance_getter: the instance getter
     :param x_axis: the x_axis ranger
     :param y_axis: the y_axis ranger
     :param legend: should we plot the legend?
@@ -64,14 +99,11 @@ def plot_progress(
     :param distinct_line_dashes_func: the function returning the line styles
     :param importance_to_line_width_func: the function converting importance
         values to line widths
-    :param importance_to_alpha_func: the function converting importance
-        values to alphas
     :param importance_to_font_size_func: the function converting importance
         values to font sizes
     :param x_grid: should we have a grid along the x-axis?
     :param y_grid: should we have a grid along the y-axis?
-    :param x_label: a callable returning the label for the x-axis, a label
-        string, or `None` if no label should be put
+    :param x_label: the label for the x-axi or `None` if no label should be put
     :param x_label_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
     :param x_label_location: the location of the x-axis label
@@ -88,20 +120,26 @@ def plot_progress(
     :param stat_sort_key: the sort key function for statistics
     :param color_algorithms_as_fallback_group: if only a single group of data
         was found, use algorithms as group and put them in the legend
-    :param instance_namer: the name function for instances receives an
-        instance ID and returns an instance name; default=identity function
-    :param algorithm_namer: the name function for algorithms receives an
-        algorithm ID and returns an algorithm name; default=identity function
     :returns: the axes object to allow you to add further plot elements
     """
     # Before doing anything, let's do some type checking on the parameters.
     # I want to ensure that this function is called correctly before we begin
     # to actually process the data. It is better to fail early than to deliver
     # some incorrect results.
-    if not isinstance(progresses, Iterable):
-        raise type_error(progresses, "progresses", Iterable)
+    if not isinstance(data, Iterable):
+        raise type_error(data, "data", Iterable)
     if not isinstance(figure, (SubplotBase, Figure)):
         raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not callable(x_getter):
+        raise type_error(x_getter, "x_getter", call=True)
+    if not isinstance(y_dim, str):
+        raise type_error(y_dim, "y_dim", str)
+    if len(y_dim) <= 0:
+        raise ValueError(f"invalid y-dimension '{y_dim}'")
+    if not callable(instance_getter):
+        raise type_error(instance_getter, "instance_getter", call=True)
+    if not callable(algorithm_getter):
+        raise type_error(algorithm_getter, "algorithm_getter", call=True)
     if not isinstance(legend, bool):
         raise type_error(legend, "legend", bool)
     if not callable(distinct_colors_func):
@@ -113,12 +151,6 @@ def plot_progress(
     if not callable(distinct_line_dashes_func):
         raise type_error(
             distinct_line_dashes_func, "distinct_line_dashes_func", call=True)
-    if not callable(importance_to_line_width_func):
-        raise type_error(importance_to_line_width_func,
-                         "importance_to_line_width_func", call=True)
-    if not callable(importance_to_alpha_func):
-        raise type_error(
-            importance_to_alpha_func, "importance_to_alpha_func", call=True)
     if not callable(importance_to_font_size_func):
         raise type_error(importance_to_font_size_func,
                          "importance_to_font_size_func", call=True)
@@ -126,9 +158,8 @@ def plot_progress(
         raise type_error(x_grid, "x_grid", bool)
     if not isinstance(y_grid, bool):
         raise type_error(y_grid, "y_grid", bool)
-    if not ((x_label is None) or callable(x_label)
-            or isinstance(x_label, str)):
-        raise type_error(x_label, "x_label", (str, None), call=True)
+    if not ((x_label is None) or isinstance(x_label, str)):
+        raise type_error(x_label, "x_label", (str, None))
     if not isinstance(x_label_inside, bool):
         raise type_error(x_label_inside, "x_label_inside", bool)
     if not isinstance(x_label_location, float):
@@ -158,125 +189,96 @@ def plot_progress(
         raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
     if not callable(stat_sort_key):
         raise type_error(stat_sort_key, "stat_sort_key", call=True)
-    if not callable(instance_namer):
-        raise type_error(instance_namer, "instance_namer", call=True)
-    if not callable(algorithm_namer):
-        raise type_error(algorithm_namer, "algorithm_namer", call=True)
     if not isinstance(color_algorithms_as_fallback_group, bool):
         raise type_error(color_algorithms_as_fallback_group,
                          "color_algorithms_as_fallback_group", bool)
 
+    # the getter for the dimension value
+    y_getter: Final[Callable[[EndStatistics], Union[int, float]]] \
+        = cast(Callable[[EndStatistics], Union[int, float]],
+               EndStatistics.getter(y_dim))
+    if not callable(y_getter):
+        raise type_error(y_getter, "y-getter", call=True)
+
+    # set up the axis rangers
+    if callable(x_axis):
+        x_axis = x_axis()
+    if not isinstance(x_axis, AxisRanger):
+        raise type_error(x_axis, "x_axis", AxisRanger)
+
+    if callable(y_axis):
+        y_axis = y_axis(y_dim)
+    if not isinstance(y_axis, AxisRanger):
+        raise type_error(y_axis, "y_axis", AxisRanger)
+
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
-    instances: Final[Styler] = Styler(key_func=get_instance,
-                                      namer=instance_namer,
-                                      none_name=Lang.translate("all_insts"),
-                                      priority=inst_priority,
-                                      name_sort_function=instance_sort_key)
-    algorithms: Final[Styler] = Styler(key_func=get_algorithm,
-                                       namer=algorithm_namer,
-                                       none_name=Lang.translate("all_algos"),
-                                       priority=algo_priority,
-                                       name_sort_function=algorithm_sort_key)
-    statistics: Final[Styler] = Styler(key_func=get_statistic,
-                                       none_name=Lang.translate("single_run"),
-                                       priority=stat_priority,
-                                       name_sort_function=stat_sort_key)
-    x_dim: Optional[str] = None
-    y_dim: Optional[str] = None
-    progress_list: List[Progress] = []
-    statrun_list: List[StatRun] = []
+    instances: Final[Styler] = Styler(
+        none_name=Lang.translate("all_insts"),
+        priority=inst_priority,
+        name_sort_function=instance_sort_key)
+    algorithms: Final[Styler] = Styler(
+        none_name=Lang.translate("all_algos"),
+        priority=algo_priority, name_sort_function=algorithm_sort_key)
 
-    # First pass: find out the statistics, instances, algorithms, and types
-    for prg in progresses:
-        instances.add(prg)
-        algorithms.add(prg)
-        statistics.add(prg)
-        if isinstance(prg, Progress):
-            progress_list.append(prg)
-        elif isinstance(prg, StatRun):
-            statrun_list.append(prg)
+    # we now extract the data: x -> algo -> inst -> y
+    dataset: Final[Dict[Optional[str], Dict[
+        Optional[str], Dict[Union[int, float], Union[int, float]]]]] = {}
+    for endstat in data:
+        if not isinstance(endstat, EndStatistics):
+            raise type_error(endstat, "element in data", EndStatistics)
+        x_value = x_getter(endstat)
+        if not isinstance(x_value, (int, float)):
+            raise type_error(x_value, "x-value", (int, float))
+        _algo = algorithm_getter(endstat)
+        if not ((_algo is None) or isinstance(_algo, str)):
+            raise type_error(_algo, "algorithm name", None, call=True)
+        _inst = instance_getter(endstat)
+        if not ((_inst is None) or isinstance(_inst, str)):
+            raise type_error(_algo, "instance name", None, call=True)
+        y_value = y_getter(endstat)
+        if not isinstance(y_value, (int, float)):
+            raise type_error(y_value, "y-value", (int, float))
+        if _algo in dataset:
+            _dataset = dataset[_algo]
         else:
-            raise type_error(prg, "progress plot element",
-                             (Progress, StatRun))
-
-        # Validate that we have consistent time and objective units.
-        if x_dim is None:
-            x_dim = prg.time_unit
-        elif x_dim != prg.time_unit:
+            dataset[_algo] = _dataset = {}
+        if _inst in _dataset:
+            __dataset = _dataset[_inst]
+        else:
+            _dataset[_inst] = __dataset = {}
+        if x_value in __dataset:
             raise ValueError(
-                f"Time units {x_dim} and {prg.time_unit} do not fit!")
+                f"combination x={x_value}, algo='{_algo}', inst='{_inst}' "
+                f"already known as value {__dataset[x_value]}, cannot assign "
+                f"value {y_value}.")
+        __dataset[x_value] = y_value
+        x_axis.register_value(x_value)
+        y_axis.register_value(y_value)
+        algorithms.add(_algo)
+        instances.add(_inst)
+    del data, y_getter, x_getter, x_value, y_value
 
-        if y_dim is None:
-            y_dim = prg.f_name
-        elif y_dim != prg.f_name:
-            raise ValueError(
-                f"F-units {y_dim} and {prg.f_name} do not fit!")
-    del progresses
-
-    if(len(progress_list) + len(statrun_list)) <= 0:
-        raise ValueError("Empty input data?")
-
-    if (x_dim is None) or (y_dim is None):
-        raise ValueError("Illegal state?")
-
-    instances.compile()
-    algorithms.compile()
-    statistics.compile()
-
-    # pick the right sorting order
-    sf: Callable[[Union[StatRun, Progress]], Any] = sort_key
-    if (instances.count > 1) and (algorithms.count == 1) \
-            and (statistics.count == 1):
-        def __x(r: Union[StatRun, Progress], ssf=instance_sort_key) -> str:
-            return ssf(r.instance)
-        sf = __x
-    elif (instances.count == 1) and (algorithms.count > 1) \
-            and (statistics.count == 1):
-        def __x(r: Union[StatRun, Progress], ssf=algorithm_sort_key) -> str:
-            return ssf(r.instance)
-        sf = __x
-    elif (instances.count == 1) and (algorithms.count == 1) \
-            and (statistics.count > 1):
-        def __x(r: Union[StatRun, Progress], ssf=stat_sort_key) -> str:
-            return ssf(r.instance)
-        sf = __x
-
-    statrun_list.sort(key=sf)
-    progress_list.sort()
+    if len(dataset) <= 0:
+        raise ValueError("no data found?")
 
     def __set_importance(st: Styler):
-        if st is statistics:
-            none = -1
-            not_none = 1
-        else:
-            none = 1
-            not_none = 0
+        none = 1
+        not_none = 0
         none_lw = importance_to_line_width_func(none)
         not_none_lw = importance_to_line_width_func(not_none)
-        st.set_line_width(lambda x: [none_lw if i <= 0 else not_none_lw
-                                     for i in range(x)])
-        none_a = importance_to_alpha_func(none)
-        not_none_a = importance_to_alpha_func(not_none)
-        st.set_line_alpha(lambda x: [none_a if i <= 0 else not_none_a
-                                     for i in range(x)])
+        st.set_line_width(lambda p: [none_lw if i <= 0 else not_none_lw
+                                     for i in range(p)])
 
     # determine the style groups
     groups: List[Styler] = []
+    instances.compile()
+    algorithms.compile()
 
-    no_importance = True
     if instances.count > 1:
         groups.append(instances)
     if algorithms.count > 1:
         groups.append(algorithms)
-    add_stat_to_groups = False
-    if statistics.count > 1:
-        if statistics.has_none and (statistics.count == 2):
-            __set_importance(statistics)
-            no_importance = False
-            add_stat_to_groups = True
-        else:
-            groups.append(statistics)
 
     if len(groups) > 0:
         groups.sort()
@@ -284,61 +286,35 @@ def plot_progress(
 
         if len(groups) > 1:
             groups[1].set_line_dash(distinct_line_dashes_func)
-
-            if (len(groups) > 2) and no_importance:
-                g = groups[2]
-                if g.count > 2:
-                    raise ValueError(
-                        f"Cannot have {g.count} importance values.")
-                __set_importance(g)
-                no_importance = False
     elif color_algorithms_as_fallback_group:
         algorithms.set_line_color(distinct_colors_func)
         groups.append(algorithms)
 
-    if add_stat_to_groups:
-        groups.append(statistics)
-
     # If we only have <= 2 groups, we can mark None and not-None values with
     # different importance.
-    if no_importance and statistics.has_none and (statistics.count > 1):
-        __set_importance(statistics)
-        no_importance = False
-    if no_importance and instances.has_none and (instances.count > 1):
+    if instances.has_none and (instances.count > 1):
         __set_importance(instances)
-        no_importance = False
-    if no_importance and algorithms.has_none and (algorithms.count > 1):
+    elif algorithms.has_none and (algorithms.count > 1):
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
     plot_list: List[Dict] = []
-
-    # first we collect all progress object
-    for prgs in progress_list:
-        style = pd.create_line_style()
-        for g in groups:
-            g.add_line_style(prgs, style)
-        style["x"] = prgs.time
-        style["y"] = prgs.f
-        plot_list.append(style)
-    del progress_list
-
-    # now collect the plot data for the statistics
-    for sn in statistics.keys:
-        if sn is None:
-            continue
-        for sr in statrun_list:
-            if statistics.key_func(sr) != sn:
-                continue
-
+    for algo in algorithms.keys:
+        _dataset = dataset[algo]
+        for inst in instances.keys:
+            if inst not in _dataset:
+                raise ValueError(f"instance '{inst}' not in dataset"
+                                 f" for algorithm '{algo}'.")
+            __dataset = _dataset[inst]
             style = pd.create_line_style()
+            style["x"] = x_vals = sorted(__dataset.keys())
+            style["y"] = [__dataset[x] for x in x_vals]
             for g in groups:
-                g.add_line_style(sr, style)
-            style["x"] = sr.stat[:, 0]
-            style["y"] = sr.stat[:, 1]
+                g.add_line_style(inst if g is instances else algo, style)
             plot_list.append(style)
-    del statrun_list
+    del dataset, _dataset, __dataset
 
+    # now we have all data, let's move to the actual plotting
     font_size_0: Final[float] = importance_to_font_size_func(0)
 
     # set up the graphics area
@@ -354,22 +330,9 @@ def plot_progress(
         if y_grid:
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
-    # set up the axis rangers
-    if callable(x_axis):
-        x_axis = x_axis(x_dim)
-    if not isinstance(x_axis, AxisRanger):
-        raise type_error(x_axis, "x_axis", AxisRanger)
-
-    if callable(y_axis):
-        y_axis = y_axis(y_dim)
-    if not isinstance(y_axis, AxisRanger):
-        raise type_error(y_axis, "y_axis", AxisRanger)
-
     # plot the lines
     for line in plot_list:
         axes.step(where="post", **line)
-        x_axis.register_array(line["x"])
-        y_axis.register_array(line["y"])
     del plot_list
 
     x_axis.apply(axes, "x")
@@ -386,8 +349,6 @@ def plot_progress(
             instances.add_to_legend(handles.append)
         if algorithms.has_style:
             algorithms.add_to_legend(handles.append)
-        if statistics.has_style:
-            statistics.add_to_legend(handles.append)
 
         if len(handles) > 0:
             axes.legend(loc="upper right",
@@ -397,7 +358,7 @@ def plot_progress(
                         fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
-                  x_label=x_label(x_dim) if callable(x_label) else x_label,
+                  x_label=x_label,
                   x_label_inside=x_label_inside,
                   x_label_location=x_label_location,
                   y_label=y_label(y_dim) if callable(y_label) else y_label,

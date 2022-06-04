@@ -35,18 +35,18 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               pd.importance_to_alpha,
               importance_to_font_size_func: Callable[[int], float] =
               pd.importance_to_font_size,
-              xgrid: bool = True,
-              ygrid: bool = True,
-              xlabel: Union[None, str, Callable[[str], str]] =
+              x_grid: bool = True,
+              y_grid: bool = True,
+              x_label: Union[None, str, Callable[[str], str]] =
               lambda x: x if isinstance(x, str) else x[0],
-              xlabel_inside: bool = True,
-              ylabel: Union[None, str, Callable[[str], str]] =
+              x_label_inside: bool = True,
+              y_label: Union[None, str, Callable[[str], str]] =
               Lang.translate_func("ECDF"),
-              ylabel_inside: bool = True,
+              y_label_inside: bool = True,
               algo_priority: float = 5.0,
               goal_priority: float = 0.333,
               algorithm_namer: Callable[[str], str] = lambda x: x,
-              color_algorithms_as_fallback_group: bool = True) -> None:
+              color_algorithms_as_fallback_group: bool = True) -> Axes:
     """
     Plot a set of Ecdf functions into one chart.
 
@@ -63,15 +63,15 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         values to alphas
     :param importance_to_font_size_func: the function converting importance
         values to font sizes
-    :param xgrid: should we have a grid along the x-axis?
-    :param ygrid: should we have a grid along the y-axis?
-    :param xlabel: a callable returning the label for the x-axis, a label
+    :param x_grid: should we have a grid along the x-axis?
+    :param y_grid: should we have a grid along the y-axis?
+    :param x_label: a callable returning the label for the x-axis, a label
         string, or `None` if no label should be put
-    :param xlabel_inside: put the x-axis label inside the plot (so that
+    :param x_label_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param ylabel: a callable returning the label for the y-axis, a label
+    :param y_label: a callable returning the label for the y-axis, a label
         string, or `None` if no label should be put
-    :param ylabel_inside: put the y-axis label inside the plot (so that
+    :param y_label_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     :param algo_priority: the style priority for algorithms
     :param goal_priority: the style priority for goal values
@@ -79,6 +79,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         algorithm ID and returns an instance name; default=identity function
     :param color_algorithms_as_fallback_group: if only a single group of data
         was found, use algorithms as group and put them in the legend
+    :returns: the axes object to allow you to add further plot elements
     """
     # Before doing anything, let's do some type checking on the parameters.
     # I want to ensure that this function is called correctly before we begin
@@ -105,18 +106,20 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     if not callable(importance_to_font_size_func):
         raise type_error(importance_to_font_size_func,
                          "importance_to_font_size_func", call=True)
-    if not isinstance(xgrid, bool):
-        raise type_error(xgrid, "xgrid", bool)
-    if not isinstance(ygrid, bool):
-        raise type_error(ygrid, "ygrid", bool)
-    if not ((xlabel is None) or callable(xlabel) or isinstance(xlabel, str)):
-        raise type_error(xlabel, "xlabel", (str, None), call=True)
-    if not isinstance(xlabel_inside, bool):
-        raise type_error(xlabel_inside, "xlabel_inside", bool)
-    if not ((ylabel is None) or callable(ylabel) or isinstance(ylabel, str)):
-        raise type_error(ylabel, "ylabel", (str, None), call=True)
-    if not isinstance(ylabel_inside, bool):
-        raise type_error(ylabel_inside, "ylabel_inside", bool)
+    if not isinstance(x_grid, bool):
+        raise type_error(x_grid, "x_grid", bool)
+    if not isinstance(y_grid, bool):
+        raise type_error(y_grid, "y_grid", bool)
+    if not ((x_label is None) or callable(x_label)
+            or isinstance(x_label, str)):
+        raise type_error(x_label, "x_label", (str, None), call=True)
+    if not isinstance(x_label_inside, bool):
+        raise type_error(x_label_inside, "x_label_inside", bool)
+    if not ((y_label is None) or callable(y_label)
+            or isinstance(y_label, str)):
+        raise type_error(y_label, "y_label", (str, None), call=True)
+    if not isinstance(y_label_inside, bool):
+        raise type_error(y_label_inside, "y_label_inside", bool)
     if not isinstance(algo_priority, float):
         raise type_error(algo_priority, "algo_priority", float)
     if not isfinite(algo_priority):
@@ -128,13 +131,14 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
 
     # First, we try to find groups of data to plot together in the same
     # color/style. We distinguish progress objects from statistical runs.
-    goals: Final[Styler] = Styler(get_goal, goal_to_str, goal_priority,
+    goals: Final[Styler] = Styler(key_func=get_goal,
+                                  namer=goal_to_str,
+                                  priority=goal_priority,
                                   name_sort_function=None)
-    algorithms: Final[Styler] = Styler(
-        get_algorithm,
-        lambda n, an=algorithm_namer: Lang.translate("all_algos")
-        if n is None else an(n),
-        algo_priority)
+    algorithms: Final[Styler] = Styler(key_func=get_algorithm,
+                                       namer=algorithm_namer,
+                                       none_name=Lang.translate("all_algos"),
+                                       priority=algo_priority)
     f_dim: Optional[str] = None
     t_dim: Optional[str] = None
     source: List[Ecdf] = cast(List[Ecdf], ecdfs) \
@@ -279,11 +283,11 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     axes.tick_params(axis="y", labelsize=font_size_0)
 
     # draw the grid
-    if xgrid or ygrid:
+    if x_grid or y_grid:
         grid_lwd = importance_to_line_width_func(-1)
-        if xgrid:
+        if x_grid:
             axes.grid(axis="x", color=pd.GRID_COLOR, linewidth=grid_lwd)
-        if ygrid:
+        if y_grid:
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
     max_x: float = x_axis.get_pinf_replacement()
@@ -330,11 +334,12 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                     fontsize=font_size_0)
 
     pu.label_axes(axes=axes,
-                  xlabel=" ".join([xlabel(x) for x in sorted(x_labels)])
-                  if callable(xlabel) else xlabel,
-                  xlabel_inside=xlabel_inside,
-                  xlabel_location=1,
-                  ylabel=ylabel(f_dim) if callable(ylabel) else ylabel,
-                  ylabel_inside=ylabel_inside,
-                  ylabel_location=0,
+                  x_label=" ".join([x_label(x) for x in sorted(x_labels)])
+                  if callable(x_label) else x_label,
+                  x_label_inside=x_label_inside,
+                  x_label_location=1,
+                  y_label=y_label(f_dim) if callable(y_label) else y_label,
+                  y_label_inside=y_label_inside,
+                  y_label_location=0,
                   font_size=font_size_0)
+    return axes

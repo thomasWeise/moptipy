@@ -456,7 +456,7 @@ def label_box(axes: Axes,
               y: Optional[float] = None,
               font_size: float = pd.importance_to_font_size(0),
               may_rotate_text: bool = False,
-              zorder: Optional[float] = None,
+              z_order: Optional[float] = None,
               font: Union[None, str, Callable] =
               lambda: Lang.current().font()) -> None:
     """
@@ -471,7 +471,7 @@ def label_box(axes: Axes,
     :param font_size: the font size
     :param may_rotate_text: should we rotate the text by 90° if that
         makes sense (`True`) or always keep it horizontally (`False`)
-    :param zorder: an optional z-order value
+    :param z_order: an optional z-order value
     :param font: the font to use
     """
     if x is None:
@@ -512,8 +512,8 @@ def label_box(axes: Axes,
                      "fill": True,
                      "linewidth": 0,
                      "alpha": 0.9}}
-    if zorder is not None:
-        args["zorder"] = zorder
+    if z_order is not None:
+        args["zorder"] = z_order
 
     if may_rotate_text and (len(text) > 2):
         args["rotation"] = 90
@@ -529,55 +529,55 @@ def label_box(axes: Axes,
 
 
 def label_axes(axes: Axes,
-               xlabel: Optional[str] = None,
-               xlabel_inside: bool = True,
-               xlabel_location: float = 0.5,
-               ylabel: Optional[str] = None,
-               ylabel_inside: bool = True,
-               ylabel_location: float = 1,
+               x_label: Optional[str] = None,
+               x_label_inside: bool = True,
+               x_label_location: float = 0.5,
+               y_label: Optional[str] = None,
+               y_label_inside: bool = True,
+               y_label_location: float = 1,
                font_size: float = pd.importance_to_font_size(0),
-               zorder: Optional[float] = None) -> None:
+               z_order: Optional[float] = None) -> None:
     """
     Put labels on a figure.
 
     :param axes: the axes to add the label to
-    :param xlabel: a callable returning the label for
+    :param x_label: a callable returning the label for
         the x-axis, a label string, or `None` if no label should be put
-    :param xlabel_inside: put the x-axis label inside the plot (so that
+    :param x_label_inside: put the x-axis label inside the plot (so that
         it does not consume additional vertical space)
-    :param xlabel_location: the location of the x-axis label if it is
+    :param x_label_location: the location of the x-axis label if it is
         placed inside the plot area
-    :param ylabel: a callable returning the label for
+    :param y_label: a callable returning the label for
         the y-axis, a label string, or `None` if no label should be put
-    :param ylabel_inside: put the xyaxis label inside the plot (so that
+    :param y_label_inside: put the xyaxis label inside the plot (so that
         it does not consume additional horizontal space)nal vertical space)
-    :param ylabel_location: the location of the y-axis label if it is
+    :param y_label_location: the location of the y-axis label if it is
         placed inside the plot area
     :param font_size: the font size to use
-    :param zorder: an optional z-order value
+    :param z_order: an optional z-order value
     """
     # put the label on the x-axis, if any
-    if xlabel is not None:
-        if not isinstance(xlabel, str):
-            raise type_error(xlabel, "xlabel", str)
-        if len(xlabel) > 0:
-            if xlabel_inside:
-                label_box(axes, text=xlabel, x=xlabel_location, y=0,
-                          font_size=font_size, zorder=zorder)
+    if x_label is not None:
+        if not isinstance(x_label, str):
+            raise type_error(x_label, "x_label", str)
+        if len(x_label) > 0:
+            if x_label_inside:
+                label_box(axes, text=x_label, x=x_label_location, y=0,
+                          font_size=font_size, z_order=z_order)
             else:
-                axes.set_xlabel(xlabel, fontsize=font_size)
+                axes.set_xlabel(x_label, fontsize=font_size)
 
     # put the label on the y-axis, if any
-    if ylabel is not None:
-        if not isinstance(ylabel, str):
-            raise type_error(ylabel, "ylabel", str)
-        if len(ylabel) > 0:
-            if ylabel_inside:
-                label_box(axes, text=ylabel, x=0, y=ylabel_location,
+    if y_label is not None:
+        if not isinstance(y_label, str):
+            raise type_error(y_label, "y_label", str)
+        if len(y_label) > 0:
+            if y_label_inside:
+                label_box(axes, text=y_label, x=0, y=y_label_location,
                           font_size=font_size, may_rotate_text=True,
-                          zorder=zorder)
+                          z_order=z_order)
             else:
-                axes.set_ylabel(ylabel, fontsize=font_size)
+                axes.set_ylabel(y_label, fontsize=font_size)
 
 
 def get_axes(figure: Union[Axes, SubplotBase, Figure]) -> Axes:

@@ -26,8 +26,9 @@ class Styler:
     has_style: bool
 
     def __init__(self,
-                 key_func: Callable,
-                 namer: Union[str, Callable] = str,
+                 key_func: Callable = lambda x: x,
+                 namer: Callable[[Any], str] = str,
+                 none_name: str = "None",
                  priority: Union[int, float] = 0,
                  name_sort_function: Optional[Callable[[str], str]] =
                  lambda s: s):
@@ -35,37 +36,46 @@ class Styler:
         Initialize the style grouper.
 
         :param key_func: the key function, obtaining keys from objects
-        :param namer: the name function, turning keys into names, or the
-            string to be used for replacing `None` keys as names (in which
-            case all non-`None` keys are used as names as-is)
+        :param namer: the name function, turning keys into names
+        :param none_name: the name for the none-key
         :param priority: the base priority of this grouper
         :param name_sort_function: the function for sorting names, or `None`
             if no name-based sorting shall be performed
         """
         if not callable(key_func):
             raise type_error(key_func, "key function", call=True)
-        if isinstance(namer, str):
-            def name_f(x, nn=namer):
-                return nn if x is None else str(x)
-        else:
-            if not callable(namer):
-                raise type_error(namer, "namer function", call=True)
-            name_f = namer
+
+        if not callable(namer):
+            raise type_error(namer, "namer function", call=True)
+        if not isinstance(none_name, str):
+            raise type_error(none_name, "none_name", str)
         if not isinstance(priority, (float, int)):
             raise type_error(priority, "priority", (int, float))
-
         if name_sort_function is not None:
             if not callable(name_sort_function):
                 raise type_error(name_sort_function, "name_sort_function",
                                  type(None), call=True)
-        #: Sort by name (`True`) or by key (`False`)
+
+        def __namer(key,
+                    __namer: Callable[[Any], str] = namer,
+                    __none_name: str = none_name) -> str:
+            rv = __none_name if key is None else __namer(key)
+            if not isinstance(rv, str):
+                raise type_error(rv, f"name for key '{key}'", str)
+            rv = rv.strip()
+            if len(rv) <= 0:
+                raise ValueError(
+                    "name cannot be empty or just consist of white space")
+            return rv
+
+        #: the name sort function
         self.__name_sort_function: Final[Optional[Callable[[str], str]]] = \
             name_sort_function
-
         #: The key function of the grouper
         self.key_func: Final[Callable] = key_func
         #: The name function of the grouper
-        self.name_func: Final[Callable] = name_f
+        self.name_func: Final[Callable[[Any], str]] = \
+            cast(Callable[[Any], str], __namer)
         #: The base priority of this grouper
         self.priority: float = float(priority)
         #: The internal collection.

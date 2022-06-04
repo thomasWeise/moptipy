@@ -19,11 +19,11 @@ jobs:
 # execute the actual make build process
     - name: execute the make build
       run: make
-# the remove mopitpy
+# remove mopitpy
     - name: purge local moptipy installation
       run: |
         pip uninstall -y moptipy
-# and attempt to install it again from github
+# attempt to install it again from github
     - name: install moptipy from github
       run: |
         pip install git+https://github.com/thomasWeise/moptipy.git

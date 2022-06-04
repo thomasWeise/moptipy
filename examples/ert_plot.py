@@ -32,9 +32,10 @@ An ERT plot shows the ERT for all objective values `f` encountered during
 a set of runs. It is therefore a curve that grows for shrinking `f`.
 
 In this example, we apply both a randomized local search and a random walk
-to the 12-bit OneMax problem. We grant each of them 100 FEs and perform
-21 runs per setup. We then plot the ERT in terms of the expected number of
-objective function evaluations (FEs) over the objective values (`f`).
+to the minimization version of the 12-bit OneMax problem. We grant each of
+them 100 FEs and perform 21 runs per setup. We then plot the ERT in terms
+of the expected number of objective function evaluations (FEs) over the
+objective values (`f`).
 """
 import os
 from time import sleep
