@@ -128,8 +128,8 @@ with TempDir.create() as td:  # create temporary directory `td`
                              formats="svg"))  # file types: only svg
     del fig  # dispose figure
 
-    # OK, we have now generated and save the plot in two files.
-    # We will open them in the web browser if we are not in a make build.
+    # OK, we have now generated and saved the plot in a file.
+    # We will open it in the web browser if we are not in a make build.
     if SHOW_PLOTS_IN_BROWSER:
         for file in files:  # for each file we generated
             open_new_tab(f"file://{file}")  # open a browser tab

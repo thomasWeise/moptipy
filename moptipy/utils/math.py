@@ -29,6 +29,12 @@ def try_int(val: Union[int, float]) -> Union[int, float]:
     """
     Attempt to convert a float to an integer.
 
+    This method will convert a floating point number to an integer if the
+    floating point number was representing an exact integer. This is the
+    case if it has a) no fractional part and b) is in the range
+    `-9007199254740992...9007199254740992`, i.e., the range where `+1` and
+    `-1` work without loss of precision.
+
     :param val: the input value
     :return: an `int` if `val` can be represented as `int` without loss of
         precision, `val` otherwise
@@ -55,6 +61,21 @@ def try_int_div(a: int, b: int) -> Union[int, float]:
     """
     Try to divide two integers at best precision.
 
+    Floating point divisions can incur some loss of precision. We try
+    to avoid this here as much as possible. First, we check if `a` is
+    divisible by `b` without any fractional part. If this is true, then
+    we can do a pure integer division without loss of any precision.
+    Otherwise, we would do a floating point division. This will lead
+    the values be converted to floating point numbers, which can incur
+    a loss of precision. We therefore first compute the gcd of `a` and `b`
+    and integer-divide both numbers by this value. If the gcd is greater than
+    one, then this will make the numbers a bit "smaller", which would reduce
+    the loss of precision during the conversion. We then do the final floating
+    point division. As a very last step, we check if that result could be
+    converted back to an integer, which is very unlikely. This could only
+    happen if the division itself incured a loss of precision ... but we give
+    it a try anyway.
+
     :param a: the first integer
     :param b: the second integer
     :return: a/b
@@ -66,14 +87,28 @@ def try_int_div(a: int, b: int) -> Union[int, float]:
     """
     if b == 0:
         return inf
+
+    # First try pure integer division, in case `a` is divisible by `b`.
+    int_div_test: Final[int] = a // b
+    if (int_div_test * b) == a:
+        return int_div_test
+
+    # No, pure division does not work.
+    # So let us next divide both `a` and `b` by their gcd.
     gc: Final[int] = gcd(a, b)
     a //= gc
     if b == gc:
         return a
     b //= gc
+
+    # Then we can convert them to floating point numbers with less loss
+    # of precision.
     val: Final[float] = a / b
     if not isfinite(val):
         raise ValueError(f"Value must be finite, but is {a}/{b}={val}.")
+    # Finally, we attempt to convert the result to an integer again.
+    # This can only work if there was some loss of precision during the
+    # division.
     return __try_int(val)
 
 
@@ -81,6 +116,12 @@ def try_float_div(a: Union[int, float], b: Union[int, float]) \
         -> Union[int, float]:
     """
     Try to divide two numbers at best precision.
+
+    First, we will check if we can convert the numbers to integers
+    without loss of precision via :func:`try_int`. If yes, then
+    we go for the maximum-precision integer division via :func:`try_int_div`.
+    If no, then we do the normal floating point division and try to convert
+    the result to an integer if that can be done without loss of precision.
 
     :param a: the first number
     :param b: the second number
