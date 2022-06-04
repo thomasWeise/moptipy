@@ -2,7 +2,7 @@
 import os.path
 import sys
 from dataclasses import dataclass
-from math import inf
+from math import inf, ceil
 from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 
 import moptipy.api.logging as log
@@ -364,7 +364,7 @@ class EndStatistics(MultiRunData):
                     raise ValueError(
                         "ert_fes must be >= "
                         f"{success_fes.minimum}, but is {ert_fes}.")
-                ert_fe_max = total_fes.mean_arith * n
+                ert_fe_max = ceil(total_fes.mean_arith * n)
                 if ert_fes > ert_fe_max:
                     raise ValueError(
                         "ert_fes must be <= "
@@ -376,10 +376,10 @@ class EndStatistics(MultiRunData):
                         "ert_time_millis must be >= "
                         f"{success_time_millis.minimum}, but "
                         f"is {ert_time_millis}.")
-                ert_time_max = total_time_millis.mean_arith * n
+                ert_time_max = ceil(total_time_millis.mean_arith * n)
                 if ert_time_millis > ert_time_max:
                     raise ValueError(
-                        "ert_fes must be <= "
+                        "ert_time_millis must be <= "
                         f"{ert_time_max}, but is {ert_time_millis}.")
             else:
                 if success_fes is not None:
