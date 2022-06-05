@@ -621,8 +621,9 @@ def tabulate_end_results(
     del algorithm_instance_statistics
 
     # now we pre-pend the instance and algorithm information
-    algo_inst_strs.insert(0, [[FormattedStr.add_format(algo, code=True)
-                               for algo in algo_names]] * n_insts)
+    algo_names_formatted: List[str] = [
+        FormattedStr.add_format(algo, code=True) for algo in algo_names]
+    algo_inst_strs.insert(0, [algo_names_formatted] * n_insts)
     if put_lower_bound:
         algo_inst_strs.insert(0, [[b] for b in lower_bounds])
     algo_inst_strs.insert(0, [[
@@ -659,7 +660,7 @@ def tabulate_end_results(
                         acol_s[idx] = FormattedStr.add_format(
                             acol_s[idx], bold=True)
         del algo_data
-        algo_strs.insert(0, algo_names)
+        algo_strs.insert(0, algo_names_formatted)
         if put_lower_bound:
             algo_strs.insert(0, [])
         algo_strs.insert(0, [__fix_name("summary")] * n_algos)

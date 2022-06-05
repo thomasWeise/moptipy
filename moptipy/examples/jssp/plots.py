@@ -8,7 +8,10 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED, TIME_UNIT_MILLIS, F_NAME_RAW
 from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.plot_end_results_impl import plot_end_results
+from moptipy.evaluation.plot_end_statistics_over_parameter_impl import \
+    plot_end_statistics_over_param
 from moptipy.evaluation.plot_progress_impl import plot_progress
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, STAT_MEAN_ARITH
@@ -206,7 +209,7 @@ def plot_progresses(results_dir: str,
                     log_time: bool = True,
                     instance_sort_key: Callable = lambda x: x,
                     algorithm_sort_key: Callable = lambda x: x,
-                    xlabel_location: float = 0.0,
+                    x_label_location: float = 0.0,
                     include_runs: bool = False,
                     algorithm_namer: Callable[[str], str] = lambda x: x) \
         -> List[Path]:
@@ -221,7 +224,7 @@ def plot_progresses(results_dir: str,
     :param log_time: should the time axis be scaled logarithmically?
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
-    :param xlabel_location: the location of the x-labels
+    :param x_label_location: the location of the x-labels
     :param include_runs: should we include the pure runs as well?
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
@@ -244,8 +247,8 @@ def plot_progresses(results_dir: str,
         raise type_error(instance_sort_key, "instance_sort_key", call=True)
     if not callable(algorithm_sort_key):
         raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
-    if not isinstance(xlabel_location, float):
-        raise type_error(xlabel_location, "xlabel_location", float)
+    if not isinstance(x_label_location, float):
+        raise type_error(x_label_location, "x_label_location", float)
     if not isinstance(include_runs, bool):
         raise type_error(include_runs, "include_runs", bool)
     if not callable(algorithm_namer):
@@ -301,7 +304,7 @@ def plot_progresses(results_dir: str,
                 0.9 * importance_to_font_size(i),
                 algorithm_sort_key=algorithm_sort_key,
                 instance_sort_key=instance_sort_key,
-                x_label_location=xlabel_location,
+                x_label_location=x_label_location,
                 algorithm_namer=algorithm_namer)
             axes = pu.get_axes(plot)
             pu.label_box(axes, inst, x=0.5, y=1)
@@ -312,3 +315,86 @@ def plot_progresses(results_dir: str,
 
     logger(f"finished plotting chart '{name_base}'.")
     return results
+
+
+def plot_end_makespans_over_param(
+    end_results: Iterable[EndResult],
+    name_base: str,
+    dest_dir: str,
+    x_getter: Callable[[EndStatistics], Union[int, float]],
+    algorithm_getter: Callable[[EndStatistics], Optional[str]] =
+    lambda es: es.algorithm,
+    instance_sort_key: Callable = lambda x: x,
+    algorithm_sort_key: Callable = lambda x: x,
+    title: Optional[str] = None,
+    x_axis: Union[AxisRanger, Callable[[], AxisRanger]] = AxisRanger,
+    x_label: Optional[str] = None,
+    x_label_location: float = 1.0) \
+        -> List[Path]:
+    """
+    Plot the performance over a parameter.
+
+    :param end_results: the iterable of end results
+    :param name_base: the basic name
+    :param dest_dir: the destination directory
+    :param title: the optional title
+    :param x_getter: the function computing the x-value for each statistics
+        object
+    :param algorithm_getter: the algorithm getter
+    :param instance_sort_key: the sort key function for instances
+    :param algorithm_sort_key: the sort key function for algorithms
+    :param x_axis: the x_axis ranger
+    :param x_label: the x-label
+    :param x_label_location: the location of the x-labels
+    :returns: the list of generated files
+    """
+    logger(f"beginning to plot chart {name_base}.")
+    if not isinstance(end_results, Iterable):
+        raise type_error(end_results, "end_results", Iterable)
+    if not isinstance(name_base, str):
+        raise type_error(name_base, "name_base", str)
+    if not isinstance(dest_dir, str):
+        raise type_error(dest_dir, "dest_dir", str)
+    if not callable(x_getter):
+        raise type_error(x_getter, "x_getter", call=True)
+    if not callable(algorithm_getter):
+        raise type_error(algorithm_getter, "algorithm_getter", call=True)
+    if not callable(instance_sort_key):
+        raise type_error(instance_sort_key, "instance_sort_key", call=True)
+    if not callable(algorithm_sort_key):
+        raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
+    if not isinstance(x_label_location, float):
+        raise type_error(x_label_location, "x_label_location", float)
+    if (title is not None) and (not isinstance(title, str)):
+        raise type_error(title, "title", (str, None))
+
+    logger(f"now plotting end statistics over parameter '{title}'.")
+
+    end_stats: Final[List[EndStatistics]] = []
+    EndStatistics.from_end_results(end_results, end_stats.append)
+    EndStatistics.from_end_results(end_results, end_stats.append,
+                                   join_all_instances=True)
+    result: List[Path] = []
+
+    for lang in Lang.all():
+        lang.set_current()
+        figure = pu.create_figure(width=5.5)
+
+        axes = plot_end_statistics_over_param(
+            data=end_stats, figure=figure,
+            algorithm_getter=algorithm_getter,
+            x_axis=x_axis,
+            x_getter=x_getter,
+            x_label=x_label,
+            x_label_location=x_label_location,
+            algorithm_sort_key=algorithm_sort_key,
+            instance_sort_key=instance_sort_key)
+        if title is not None:
+            pu.label_box(axes, title, x=0.5, y=1)
+
+        result.extend(pu.save_figure(fig=figure,
+                                     file_name=lang.filename(name_base),
+                                     dir_name=dest_dir))
+
+    logger(f"done plotting end statistics over parameter '{title}'.")
+    return result

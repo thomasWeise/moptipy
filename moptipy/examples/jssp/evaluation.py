@@ -1,7 +1,7 @@
 """Evaluate the results of the example experiment."""
 import os.path as pp
 import sys
-from typing import Dict, Final, Optional, Any, List, Set
+from typing import Dict, Final, Optional, Any, List, Set, Union, Callable
 
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
@@ -10,12 +10,13 @@ from moptipy.evaluation.tabulate_end_results_impl import \
     tabulate_end_results, command_column_namer
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans, \
-    plot_median_gantt_charts, plot_progresses
+    plot_median_gantt_charts, plot_progresses, plot_end_makespans_over_param
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
+from moptipy.evaluation.axis_ranger import AxisRanger
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
@@ -42,6 +43,7 @@ def instance_sort_key(name: str) -> int:
 #: the pre-defined algorithm sort keys
 __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
     n: i for i, n in enumerate(["1rs", "rs", "hc", "hc_swap2",
+                                "hcr_32768_swap2",
                                 "rls", "rls_swap2", "rw", "rw_swap2"])
 }
 
@@ -116,9 +118,11 @@ def compute_end_results(results_dir: str,
     return results_file
 
 
-def get_end_results(file: str,
-                    insts: Optional[Set[str]] = None,
-                    algos: Optional[Set[str]] = None) -> List[EndResult]:
+def get_end_results(
+        file: str,
+        insts: Union[None, Set[str], Callable[[str], bool]] = None,
+        algos: Union[None, Set[str], Callable[[str], bool]] = None) \
+        -> List[EndResult]:
     """
     Get a specific set of end results..
 
@@ -128,13 +132,18 @@ def get_end_results(file: str,
     :param algos: only these algorithms will be included if this parameter is
         provided
     """
-
-    def __filter(er: EndResult, ins=insts, alg=algos) -> bool:
+    def __filter(er: EndResult,
+                 ins=None if insts is None else
+                 insts.__contains__ if isinstance(insts, Set)
+                 else insts,
+                 alg=None if algos is None else
+                 algos.__contains__ if isinstance(algos, Set)
+                 else algos) -> bool:
         if ins is not None:
-            if er.instance not in ins:
+            if not ins(er.instance):
                 return False
         if alg is not None:
-            if er.algorithm not in alg:
+            if not alg(er.algorithm):
                 return False
         return True
 
@@ -165,39 +174,6 @@ def compute_end_statistics(end_results_file: str,
         raise ValueError("end results cannot be empty")
     stats: Final[List[EndStatistics]] = []
     EndStatistics.from_end_results(results, stats.append)
-    if len(stats) <= 0:
-        raise ValueError("end result statistics cannot be empty")
-    stats.sort()
-
-    sf: Path = EndStatistics.to_csv(stats, stats_file)
-    if sf != stats_file:
-        raise ValueError(f"stats file should be {stats_file} but is {sf}")
-    stats_file.enforce_file()
-    logger(f"finished writing file '{stats_file}'.")
-    return stats_file
-
-
-def compute_end_statistics_all_insts(end_results_file: str,
-                                     dest_dir: str) -> Path:
-    """
-    Get the end result statistics over all instances.
-
-    :param end_results_file: the end results file
-    :param dest_dir: the destination directory
-    :returns: the path to the end result statistics file.
-    """
-    dest: Final[Path] = Path.directory(dest_dir)
-    stats_file: Final[Path] = dest.resolve_inside(
-        "end_statistics_all_insts.txt")
-    if stats_file.is_file():
-        return stats_file
-
-    results: Final[List[EndResult]] = get_end_results(end_results_file)
-    if len(results) <= 0:
-        raise ValueError("end results cannot be empty")
-    stats: Final[List[EndStatistics]] = []
-    EndStatistics.from_end_results(results, stats.append,
-                                   join_all_instances=True)
     if len(stats) <= 0:
         raise ValueError("end result statistics cannot be empty")
     stats.sort()
@@ -295,6 +271,37 @@ def progress(algos: List[str], dest: Path, source: Path,
                     algorithm_sort_key=algorithm_sort_key)
 
 
+def makespans_over_param(
+        end_results: Path,
+        selector: Callable[[str], bool],
+        x_getter: Callable[[EndStatistics], Union[int, float]],
+        name_base: str, dest_dir: str,
+        x_axis: Union[AxisRanger, Callable[[], AxisRanger]]
+        = AxisRanger,
+        x_label: Optional[str] = None) -> List[Path]:
+    """
+    Plot the performance over a parameter.
+
+    :param end_results: the end results path
+    :param selector: the selector for algorithms
+    :param name_base: the basic name
+    :param dest_dir: the destination directory
+    :param x_getter: the function computing the x-value for each statistics
+        object
+    :param x_axis: the axis ranger
+    :param x_label: the x-axis label
+    :returns: the list of generated files
+    """
+    return plot_end_makespans_over_param(
+        end_results=get_end_results(end_results, algos=selector),
+        x_getter=x_getter, name_base=name_base, dest_dir=dest_dir,
+        title=name_base,
+        algorithm_getter=lambda _, ss=name_base: ss,  # type: ignore
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key,
+        x_axis=x_axis, x_label=x_label)
+
+
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                         dest_dir: Optional[str] = None) -> None:
     """
@@ -315,10 +322,6 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     end_stats: Final[Path] = compute_end_statistics(end_results, dest)
     if not end_stats:
         raise ValueError("End stats path is empty??")
-    end_stats_all_insts: Final[Path] = compute_end_statistics_all_insts(
-        end_results, dest)
-    if not end_stats_all_insts:
-        raise ValueError("End end_stats_all_insts path is empty??")
 
     logger("Now evaluating the single random sampling algorithm `1rs`.")
     table(end_results, ["1rs"], dest)
@@ -339,6 +342,18 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     progress(["hc_swap2", "rs"], dest, source)
     progress(["hc_swap2", "rs"], dest, source, millis=False)
 
+    logger("Now evaluating the hill climbing algorithm with "
+           "restarts 'hcr' on 'swap2'.")
+    makespans_over_param(
+        end_results,
+        lambda an: an.startswith("hcr_") and an.endswith("_swap2"),
+        lambda es: int(es.algorithm.split("_")[1]),
+        "hcr_L_swap2", dest,
+        lambda: AxisRanger(log_scale=True, log_base=2.0), "L")
+    table(end_results, ["hcr_32768_swap2", "hc_swap2", "rs"], dest)
+    makespans(end_results, ["hcr_32768_swap2", "hc_swap2", "rs"], dest)
+    gantt(end_results, "hcr_32768_swap2", dest, source)
+    progress(["hcr_32768_swap2", "hc_swap2", "rs"], dest, source)
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 
 

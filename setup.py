@@ -22,7 +22,9 @@ regex_search = re.compile("(\\[.+?])\\(#\\d+-(.+?)\\)")
 regex_repl: str = "\\1(https://thomasweise.github.io/moptipy/index.html#\\2)"
 license_old: str = "https://github.com/thomasWeise/moptipy/blob/main/LICENSE"
 license_new: str = "https://thomasweise.github.io/moptipy/LICENSE.html"
+
 for line in old_lines:
+    line = line.rstrip()
     if in_code:
         if line.startswith("```"):
             in_code = False  # toggle to non-code
@@ -33,7 +35,6 @@ for line in old_lines:
             # replace links of the form "#12-bla" to "#bla"
             line = re.sub(regex_search, regex_repl, line)
             line = line.replace(license_old, license_new)
-
     new_lines.append(line)
 
 # Now we can use the code in the setup.
