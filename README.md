@@ -1,5 +1,7 @@
 [![make build](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml/badge.svg)](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml)
 
+[![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)(https://pypistats.org/packages/moptipy)
+
 # moptipy: Metaheuristic Optimization in Python
 
 - [Introduction](#1-introduction)
@@ -1396,9 +1398,9 @@ The example [examples/end_results_table.py](https://thomasweise.github.io/moptip
 |||`rls_swap2`|**1'080**|**1'143.6**|48.08|**1.223**|**717.14**|**9.143**|
 |||`rs`|1'375|1'404.3|**26.66**|1.502|248.43|3.143|
 |||setup|best1|gmean1|worst1|sd1|mean(fes)|mean(t)|
-|summary||hc_swap2|1.036|1.234|1.458|0.136|449.86|6.952|
-|summary||rls_swap2|**1.000**|**1.190**|**1.377**|**0.129**|**539.95**|**7.667**|
-|summary||rs|1.091|1.390|1.680|0.233|413.29|5.571|
+|summary||`hc_swap2`|1.036|1.234|1.458|0.136|449.86|6.952|
+|summary||`rls_swap2`|**1.000**|**1.190**|**1.377**|**0.129**|**539.95**|**7.667**|
+|summary||`rs`|1.091|1.390|1.680|0.233|413.29|5.571|
 
 It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX):
 
@@ -1421,9 +1423,9 @@ I&lb(f)&setup&best&mean&sd&mean1&mean(fes)&mean(t)\\%
 \hrow%
 &&setup&best1&gmean1&worst1&sd1&mean(fes)&mean(t)\\%
 \hrow%
-summary&&hc_swap2&1.036&1.234&1.458&0.136&449.86&6.952\\%
-summary&&rls_swap2&{\textbf{1.000}}&{\textbf{1.190}}&{\textbf{1.377}}&{\textbf{0.129}}&{\textbf{539.95}}&{\textbf{7.667}}\\%
-summary&&rs&1.091&1.390&1.680&0.233&413.29&5.571\\%
+summary&&texttt{hc_swap2}&1.036&1.234&1.458&0.136&449.86&6.952\\%
+summary&&texttt{rls_swap2}&{\textbf{1.000}}&{\textbf{1.190}}&{\textbf{1.377}}&{\textbf{0.129}}&{\textbf{539.95}}&{\textbf{7.667}}\\%
+summary&&texttt{rs}&1.091&1.390&1.680&0.233&413.29&5.571\\%
 \hrow%
 \end{tabular}%
 ```
@@ -1447,6 +1449,15 @@ The end result tables are implemented in the module [moptipy.evaluation.tabulate
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#8-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
+
+`moptipy` is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
+
+Copyright (C) 2021  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program.
+If not, see <https://www.gnu.org/licenses/>.
 
 
 ## 8. Contact

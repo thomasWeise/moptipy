@@ -43,7 +43,7 @@ def instance_sort_key(name: str) -> int:
 #: the pre-defined algorithm sort keys
 __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
     n: i for i, n in enumerate(["1rs", "rs", "hc", "hc_swap2",
-                                "hcr_32768_swap2",
+                                "hcr_32768_swap2", "hcr",
                                 "rls", "rls_swap2", "rw", "rw_swap2"])
 }
 
@@ -66,7 +66,8 @@ def algorithm_sort_key(name: str) -> int:
 
 #: the algorithm name map
 __ALGO_NAME_MAP: Final[Dict[str, str]] = {
-    "hc_swap2": "hc", "rls_swap2": "rls", "rw_swap2": "rw"
+    "hc_swap2": "hc", "rls_swap2": "rls", "rw_swap2": "rw",
+    "hcr_32768_swap2": "hcr"
 }
 
 
@@ -294,8 +295,8 @@ def makespans_over_param(
     """
     return plot_end_makespans_over_param(
         end_results=get_end_results(end_results, algos=selector),
-        x_getter=x_getter, name_base=name_base, dest_dir=dest_dir,
-        title=name_base,
+        x_getter=x_getter, name_base=f"{name_base}_results",
+        dest_dir=dest_dir, title=name_base,
         algorithm_getter=lambda _, ss=name_base: ss,  # type: ignore
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
