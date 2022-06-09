@@ -112,7 +112,7 @@ class _ProcessBase(Process):
 
         Internal method that must be called after __init__ is completed.
         """
-        if not (self.__timer is None):
+        if self.__timer is not None:
             self.__timer.start()
 
     def should_terminate(self) -> bool:

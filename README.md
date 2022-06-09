@@ -1,6 +1,6 @@
 [![make build](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml/badge.svg)](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml)
 
-[![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)(https://pypistats.org/packages/moptipy)
+[![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)](https://pypistats.org/packages/moptipy)
 
 # moptipy: Metaheuristic Optimization in Python
 

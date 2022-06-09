@@ -2,7 +2,8 @@
 
 from math import inf
 from statistics import median
-from typing import Final, Callable, Iterable, Set, List, Dict, Optional, Union
+from typing import Final, Callable, Iterable, Set, List, Dict, Optional, Any, \
+    Union
 
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
@@ -105,23 +106,26 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     return result
 
 
-def plot_median_gantt_charts(
+def plot_stat_gantt_charts(
         end_results: Iterable[EndResult],
         results_dir: str,
         name_base: str,
         dest_dir: str,
-        instance_sort_key: Callable = lambda x: x) -> List[Path]:
+        instance_sort_key: Callable = lambda x: x,
+        statistic: Callable[[Iterable[Union[int, float]]],
+                            Union[int, float]] = median) -> List[Path]:
     """
-    Plot a set of end result boxes/violins functions into one chart.
+    Plot a set of Gantt charts following a specific statistics.
 
     :param end_results: the iterable of end results
     :param results_dir: the result directory
     :param name_base: the basic name
     :param dest_dir: the destination directory
     :param instance_sort_key: the sort key function for instances
+    :param statistic: the statistic to use
     :returns: the list of generated files
     """
-    logger(f"beginning to plot median chart {name_base}.")
+    logger(f"beginning to plot stat chart {name_base}.")
     if not isinstance(end_results, Iterable):
         raise type_error(end_results, "end_results", Iterable)
     if not isinstance(results_dir, str):
@@ -132,6 +136,8 @@ def plot_median_gantt_charts(
         raise type_error(dest_dir, "dest_dir", str)
     if not callable(instance_sort_key):
         raise type_error(instance_sort_key, "instance_sort_key", call=True)
+    if not callable(statistic):
+        raise type_error(statistic, "statistic", call=True)
 
     results: Final[List[Path]] = []  # the list of generated files
 
@@ -154,12 +160,12 @@ def plot_median_gantt_charts(
     del end_results
 
     # get the median runs
-    median_runs: List[Path] = []
+    stat_runs: List[Path] = []
     results_dir = Path.directory(results_dir)
     for instance in instances:
         runs: List[EndResult] = data[instance]
         runs.sort()
-        med = median([er.best_f for er in runs])
+        med = statistic([er.best_f for er in runs])
         best: Union[int, float] = inf
         solution: Optional[EndResult] = None
         for er in runs:
@@ -169,35 +175,47 @@ def plot_median_gantt_charts(
                 solution = er
         if solution is None:
             raise ValueError(
-                f"found no median end result for instance {instance}.")
+                f"found no {name_base} end result for instance {instance}.")
         path: Path = solution.path_to_file(results_dir)
         path.enforce_file()
-        median_runs.append(path)
+        stat_runs.append(path)
     del data
     del instances
+    if len(stat_runs) < 0:
+        raise ValueError("empty set of runs?")
 
     # plot the gantt charts
     for lang in Lang.all():
         lang.set_current()
+
         figure, plots = pu.create_figure_with_subplots(
-            items=len(median_runs), max_items_per_plot=1, max_cols=2,
+            items=len(stat_runs), max_items_per_plot=1, max_cols=2,
             max_rows=4, max_width=8.6, max_height=11.5)
 
         for plot, start, end, _, _, _ in plots:
             if start != (end - 1):
                 raise ValueError(f"{start} != {end} - 1")
-            plot_gantt_chart(
-                gantt=median_runs[start], figure=plot,
-                importance_to_font_size_func=lambda i:
-                0.9 * importance_to_font_size(i),
-                info=lambda gantt:
-                Lang.current().format("gantt_info_short", gantt=gantt))
+
+            args: Dict[str, Any] = {
+                "gantt": stat_runs[start],
+                "figure": plot
+            }
+            if statistic is min:
+                args["markers"] = None
+            else:
+                args["info"] = lambda gantt: \
+                    Lang.current().format("gantt_info_short", gantt=gantt)
+            if len(plots) > 2:
+                args["importance_to_font_size_func"] = lambda i: \
+                    0.9 * importance_to_font_size(i)
+
+            plot_gantt_chart(**args)
 
         results.extend(pu.save_figure(fig=figure,
                                       file_name=lang.filename(name_base),
                                       dir_name=dest_dir))
 
-    logger("done plotting median gantt charts.")
+    logger("done plotting stat gantt charts.")
     return results
 
 

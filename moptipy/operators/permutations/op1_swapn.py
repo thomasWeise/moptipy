@@ -1,7 +1,7 @@
 """
 An operator swapping several elements in a permutation.
 
-This operator works similar to
+This operator works similarly to
 :class:`~moptipy.operators.permutations.op1_swap2.Op1Swap2`, but instead of
 swapping two elements (i.e., performing 1 swap), it will perform a random
 number of swaps.
@@ -57,7 +57,7 @@ class Op1SwapN(Op1):
     This unary search operation swaps several (different) elements.
 
     It is similar to `swap2`, but instead may perform a random number
-    of swaps. After each swap, it decides with 0.5 probability whether
+    of swaps. After each swap, it decides with probability 0.5 whether
     or not to perform another swap.
     """
 
@@ -76,7 +76,7 @@ class Op1SwapN(Op1):
 
         i1: int = ri(length)  # Get the first random index.
         last = first = dest[i1]  # Get the value at the first index.
-        continue_after: bool = True
+        continue_after: bool = True  # True -> loop at least once.
         while continue_after:  # Repeat until we should stop
             continue_after = ri(2) <= 0  # Continue after iteration?
             while True:  # Loop forever until eligible element found.

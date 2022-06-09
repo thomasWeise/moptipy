@@ -1,8 +1,11 @@
 """Evaluate the results of the example experiment."""
 import os.path as pp
 import sys
-from typing import Dict, Final, Optional, Any, List, Set, Union, Callable
+from statistics import median
+from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
+    Iterable, cast
 
+from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
@@ -10,13 +13,12 @@ from moptipy.evaluation.tabulate_end_results_impl import \
     tabulate_end_results, command_column_namer
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.plots import plot_end_makespans, \
-    plot_median_gantt_charts, plot_progresses, plot_end_makespans_over_param
+    plot_stat_gantt_charts, plot_progresses, plot_end_makespans_over_param
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
-from moptipy.evaluation.axis_ranger import AxisRanger
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
@@ -42,9 +44,10 @@ def instance_sort_key(name: str) -> int:
 
 #: the pre-defined algorithm sort keys
 __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
-    n: i for i, n in enumerate(["1rs", "rs", "hc", "hc_swap2",
-                                "hcr_32768_swap2", "hcr",
-                                "rls", "rls_swap2", "rw", "rw_swap2"])
+    n: i for i, n in enumerate([
+        "1rs", "rs", "hc", "hc_swap2", "hcr_32768_swap2", "hcr", "hcn",
+        "hc_swapn", "hcr_65536_swapn", "hcrn", "rls", "rls_swap2",
+        "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn"])
 }
 
 
@@ -66,8 +69,8 @@ def algorithm_sort_key(name: str) -> int:
 
 #: the algorithm name map
 __ALGO_NAME_MAP: Final[Dict[str, str]] = {
-    "hc_swap2": "hc", "rls_swap2": "rls", "rw_swap2": "rw",
-    "hcr_32768_swap2": "hcr"
+    "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
+    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn"
 }
 
 
@@ -224,7 +227,9 @@ def makespans(end_results: Path, algos: List[str], dest: Path) -> None:
         algorithm_namer=algorithm_namer)
 
 
-def gantt(end_results: Path, algo: str, dest: Path, source: Path) -> None:
+def gantt(end_results: Path, algo: str, dest: Path, source: Path,
+          best: bool = False,
+          insts: Optional[Iterable[str]] = None) -> None:
     """
     Plot the median Gantt charts.
 
@@ -232,13 +237,21 @@ def gantt(end_results: Path, algo: str, dest: Path, source: Path) -> None:
     :param algo: the algorithm
     :param dest: the directory
     :param source: the source directory
+    :param best: should we plot the best instance only (or, otherwise, the
+        median)
+    :param insts: the instances to use
     """
     n: Final[str] = algorithm_namer(algo)
-    plot_median_gantt_charts(get_end_results(end_results, algos={algo}),
-                             name_base=f"gantt_{n}",
-                             dest_dir=dest,
-                             results_dir=source,
-                             instance_sort_key=instance_sort_key)
+    plot_stat_gantt_charts(
+        get_end_results(end_results, algos={algo},
+                        insts=None if insts is None else set(insts)),
+        name_base=f"best_gantt_{n}" if best else f"gantt_{n}",
+        dest_dir=dest,
+        results_dir=source,
+        instance_sort_key=instance_sort_key,
+        statistic=cast(
+            Callable[[Iterable[Union[int, float]]], Union[int, float]],
+            min if best else median))
 
 
 def progress(algos: List[str], dest: Path, source: Path,
@@ -355,6 +368,37 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     makespans(end_results, ["hcr_32768_swap2", "hc_swap2", "rs"], dest)
     gantt(end_results, "hcr_32768_swap2", dest, source)
     progress(["hcr_32768_swap2", "hc_swap2", "rs"], dest, source)
+
+    logger("Now evaluating the hill climbing algorithm with 'swapn'.")
+    table(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
+    makespans(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
+    progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source)
+
+    logger("Now evaluating the hill climbing algorithm with "
+           "restarts 'hcr' on 'swapn'.")
+    makespans_over_param(
+        end_results,
+        lambda an: an.startswith("hcr_") and an.endswith("_swapn"),
+        lambda es: int(es.algorithm.split("_")[1]),
+        "hcr_L_swapn", dest,
+        lambda: AxisRanger(log_scale=True, log_base=2.0), "L")
+    table(end_results, ["hcr_65536_swapn", "hc_swapn",
+                        "hcr_32768_swap2"], dest)
+    makespans(end_results, ["hcr_65536_swapn", "hc_swapn",
+                            "hcr_32768_swap2"], dest)
+    progress(["hcr_65536_swapn", "hc_swapn",
+              "hcr_32768_swap2"], dest, source)
+
+    logger("Now evaluating the RLS algorithm with 'swap2' and 'swapn'.")
+    table(end_results, ["rls_swapn", "rls_swap2",
+                        "hcr_32768_swap2", "hcr_65536_swapn"], dest)
+    makespans(end_results, ["rls_swapn", "rls_swap2", "hcr_32768_swap2",
+                            "hcr_65536_swapn"], dest)
+    gantt(end_results, "rls_swap2", dest, source)
+    progress(["rls_swapn", "rls_swap2", "hcr_32768_swap2",
+              "hcr_65536_swapn"], dest, source)
+    gantt(end_results, "rls_swap2", dest, source, True, ["ta70"])
+
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 
 
