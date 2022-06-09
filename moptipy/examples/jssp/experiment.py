@@ -80,7 +80,7 @@ for scale in range(7, 21):  # add the hill climbers with restarts
     )
 for muexp in range(0, 10):
     mu: int = 2 ** muexp
-    for lambda_ in sorted({1, 2, mu * 2, mu, mu // 2}):
+    for lambda_ in sorted({1, 2, mu * 2, mu, max(1, mu // 2)}):
         DEFAULT_ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EAnoCR(
