@@ -6,16 +6,16 @@ operator. It works as follows:
 
 1. Start with a population of `mu` random and `lambda` blank individuals.
 2. In each iteration:
-    2.1. Retain the first `mu` individuals (which will be the `mu` first
-         individuals in the list) and overwrite the `lambda` worse ones
-         (which will be at indices `mu...mu+lambda-1`). Each of these
-         individuals is overwritten with the results of the unary operator
-         applied to one of the `mu` "parents". Each of the `mu` parents has
-         the same chance to produce such a new "offspring", but no individual
-         can be used as a parent again until all other `mu-1` selected
-         individuals have produced at least one offspring. In other words, if
-         `lambda > mu`, then each of the `mu` selected individuals will
-         produce at least `lambda // mu` offspring and at most
+    2.1. Retain the best `mu` individuals (which will be the `mu` first
+         individuals in the sorted population) and overwrite the `lambda`
+         worse ones (which will be at indices `mu...mu+lambda-1`). Each of
+         these individuals is overwritten with the results of the unary
+         operator applied to one of the `mu` "parents". Each of the `mu`
+         parents has the same chance to produce such a new "offspring", but no
+         individual can be used as a parent again until all other `mu-1`
+         selected individuals have produced at least one offspring. In other
+         words, if `lambda > mu`, then each of the `mu` selected individuals
+         will produce at least `lambda // mu` offspring and at most
          `1 + lambda // mu`.
     2.2. Shuffle the population to introduce randomness and fairness in the
          case that sorting is stable.
@@ -25,7 +25,10 @@ operator. It works as follows:
 
 This EA only applies the unary search operator to sample new points in the
 search space. Therefore, its population mainly guards against premature
-convergence.
+convergence. If `mu=1` and `lambda=1`, then this algorithm is exactly
+equivalent to the :class:`~moptipy.algorithms.rls.RLS` if the same unary and
+nullary operator are used. It is only a bit slower due to the additional
+overhead of representing a population as list of individual records.
 """
 from typing import Final, Union, Callable, List, cast
 
@@ -36,31 +39,7 @@ from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
-
-
-class _Individual:
-    """The internal individual record."""
-
-    def __init__(self, x, f: Union[int, float]):
-        """Initialize by applying op0 and evaluating."""
-        self.x: Final = x  # store solution record
-        self.f: Union[int, float] = f  # evaluate result
-        self.gen: int = 0  # creation = always generation 0
-
-    def __lt__(self, other):
-        """Precedence if 1) better or b) equally good but younger."""
-        f1: Final[Union[int, float]] = self.f
-        f2: Final[Union[int, float]] = other.f
-        return (f1 < f2) or ((f1 == f2) and (self.gen > other.gen))
-
-
-def _dummy_ri(_: int) -> int:
-    """Do nothing."""
-    return 0
-
-
-def _dummy_shuffle(_: List) -> None:
-    """Do nothing."""
+from moptipy.algorithms.utils import Individual, _no_shuffle, _no_random_int
 
 
 # start book
@@ -81,65 +60,65 @@ class EAnoCR(Algorithm1):
 
         :param process: the black-box process object
         """
-        mu: Final[int] = self.__mu
-        pop_size: Final[int] = mu + self.__lambda
-        random: Final[Generator] = process.get_random()
-        # Put function references in variables to save time.
+        mu: Final[int] = self.__mu  # mu: number of best solutions kept
+        pop_size: Final[int] = mu + self.__lambda  # size = mu + lambda
+        random: Final[Generator] = process.get_random()  # random gen
+        # Omitted for brevity: store function references in variables
         # end book
         create: Final[Callable] = process.create  # create x container
         evaluate: Final[Callable] = process.evaluate  # the objective
         op0: Final[Callable] = self.op0.op0  # the nullary operator
         op1: Final[Callable] = self.op1.op1  # the unary operator
         should_terminate: Final[Callable] = process.should_terminate
-        ri: Final[Callable[[int], int]] = cast(
-            Callable[[int], int], random.integers
-            if mu > 1 else _dummy_ri)
+        ri: Final[Callable[[int], int]] = cast(    # only if m > 1, we
+            Callable[[int], int], random.integers  # need random
+            if mu > 1 else _no_random_int)         # indices
         shuffle: Final[Callable[[List], None]] = cast(
-            Callable[[List], None], random.shuffle if pop_size > 2
-            else _dummy_shuffle)
+            Callable[[List], None], random.shuffle if mu > 1
+            else _no_shuffle)  # shuffling only needed if mu > 1
         # start book
-
         # create population of mu random and lambda empty individuals
         pop: Final[List] = [None] * pop_size  # pre-allocate list
-        f: Union[int, float] = 0  # the objective value
-        for i in range(pop_size):  # fill population
+        f: Union[int, float] = 0  # variable to hold objective values
+        for i in range(pop_size):  # fill population of size mu+lambda
             x = create()  # by creating point in search space
-            if i < mu:  # only the first mu parents are initialized
-                op0(random, x)  # apply nullary operator = randomize
+            if i < mu:  # only the first mu parents are initialized by
+                op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?
-                    return
-                f = evaluate(x)  # evaluate
-            pop[i] = _Individual(x, f)  # create record
+                    return   # computational budget exhausted -> quit
+                f = evaluate(x)  # continue? ok, evaluate new solution
+            pop[i] = Individual(x, f)  # create and store record
 
-        gen: int = 1  # The first real generation has index 1
-        while True:
-            end: int = mu  # the start index for parents
-            for oi in range(mu, pop_size):  # for all lambda children
-                if should_terminate():  # only evaluate if we still
+        gen: int = 1  # The first "real" generation has index 1
+        while True:  # pop: keep 0..mu-1, overwrite mu..mu+lambda-1
+            end: int = mu  # the end index for parents
+            for oi in range(mu, pop_size):  # for all lambda offspring
+                if should_terminate():  # only continue if we still...
                     return  # have sufficient budget ... otherwise quit
-                offspring: _Individual = pop[oi]  # pick offspring
-                pi: int = ri(end)  # randomly select unused parent
-                parent: _Individual = pop[pi]  # pick parent
-                x = offspring.x  # the point we work on
-                op1(random, x, parent.x)  # apply unary op
-                offspring.f = evaluate(x)  # evaluate
+                offspring: Individual = pop[oi]  # pick offspring
+                pi: int = ri(end)  # random parent in 0..end-1 = unused
+                parent: Individual = pop[pi]  # pick parent record
+                x = offspring.x  # the point in search space we work on
+                op1(random, x, parent.x)  # apply unary operator to x
+                offspring.f = evaluate(x)  # evaluate new point
                 offspring.gen = gen  # mark as member of new generation
 
-                end = end - 1  # parent is not used again
-                if end == 0:  # oh: we have used all parents
+                end = end - 1  # decrease number of available parents
+                if end != 0:  # swap parent to the end to not use again
+                    pop[end], pop[pi] = parent, pop[end]  # parent->old
+                else:  # oh: we have used all parents
                     end = mu  # then lambda >= mu and we re-use parents
-                else:  # swap used parent to end, don't use again
-                    pop[end], pop[pi] = parent, pop[end]  # parent=old
+
             gen = gen + 1  # step generation counter
 
-            shuffle(pop)  # ensure total fairness
+            shuffle(pop)  # ensure total fairness under stable sorting
             pop.sort()  # sort population: best individuals come first
 # end book
 
     def __init__(self, op0: Op0, op1: Op1,
                  mu: int = 1, lambda_: int = 1) -> None:
         """
-        Create the Evolutionary Algorithm (EA).
+        Create the Evolutionary Algorithm (EA) without binary crossover.
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
@@ -149,12 +128,13 @@ class EAnoCR(Algorithm1):
         super().__init__(f"eanocr_{mu}_{lambda_}", op0, op1)
         if not isinstance(mu, int):
             raise type_error(mu, "mu", int)
-        if mu <= 0:
-            raise ValueError(f"mu must be positive but is {mu}.")
+        if not (0 < mu <= 1_000_000):
+            raise ValueError(f"invalid mu={mu}, must be in 1..1000000.")
         if not isinstance(lambda_, int):
             raise type_error(lambda_, "lambda", int)
-        if lambda_ <= 0:
-            raise ValueError(f"lambda must be positive but is {lambda_}.")
+        if not (0 < lambda_ <= 1_000_000):
+            raise ValueError(
+                f"invalid lambda={lambda_}, must be in 1..1000000.")
         #: the number of individuals to survive in each generation
         self.__mu: Final[int] = mu
         #: the number of offsprings per generation

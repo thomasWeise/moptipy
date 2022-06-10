@@ -13,22 +13,26 @@
     - [Defining a New Problem](#331-define-a-new-problem-type)
     - [Defining a New Algorithm](#332-define-a-new-algorithm)
     - [Applying an Own Algorithm to an Own Problem](#333-applying-an-own-algorithm-to-an-own-problem)
-- [Data Formats](#4-data-formats)
-  - [Log Files](#41-log-files)
-  - [End Results CSV Files](#42-end-result-csv-files)
-  - [End Result Statistics CSV Files](#43-end-result-statistics-csv-files)
-- [Evaluating Experiments](#5-evaluating-experiments)
-  - [Exporting Data](#51-exporting-data)
-  - [Progress Plots](#52-progress-plots)
-  - [End Results Plots](#53-end-results-plot)
-  - [ECDF Plots](#54-ecdf-plots)
-  - [Expected Running Time Plots](#55-expected-running-time-ert-plots)
-  - [ERT-ECDF Plots](#56-ert-ecdf-plots)
-  - [Performance over Algorithm Parameter or Instance Feature](#57-performance-over-algorithm-parameter-or-instance-feature)
-  - [End Results Tables](#58-end-results-table)
-- [Uselful Links and References](#6-useful-links-and-references)
-- [License](#7-license)
-- [Contact](#8-contact)
+- [Implemented Algorithms, Search Spaces, and Problems](#4-implemented-algorithms-search-spaces-and-problems)
+  - [Implemented Algorithms](#41-implemented-algorithms)
+  - [Implemented Search Spaces](#42-implemented-search-spaces-and-operators)
+  - [Implemented Problems](#43-implemented-problems)
+- [Data Formats](#5-data-formats)
+  - [Log Files](#51-log-files)
+  - [End Results CSV Files](#52-end-result-csv-files)
+  - [End Result Statistics CSV Files](#53-end-result-statistics-csv-files)
+- [Evaluating Experiments](#6-evaluating-experiments)
+  - [Exporting Data](#61-exporting-data)
+  - [Progress Plots](#62-progress-plots)
+  - [End Results Plots](#63-end-results-plot)
+  - [ECDF Plots](#64-ecdf-plots)
+  - [Expected Running Time Plots](#65-expected-running-time-ert-plots)
+  - [ERT-ECDF Plots](#66-ert-ecdf-plots)
+  - [Performance over Algorithm Parameter or Instance Feature](#67-performance-over-algorithm-parameter-or-instance-feature)
+  - [End Results Tables](#68-end-results-table)
+- [Uselful Links and References](#7-useful-links-and-references)
+- [License](#8-license)
+- [Contact](#9-contact)
 
 
 ## 1. Introduction
@@ -49,7 +53,7 @@ They have more knowledge about these problems.
 They make use of the problem structure and can implement more efficient search operations.
 
 Within our `moptipy` framework, you can implement all of these algorithms under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
-What `moptipy` also offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#4-data-formats) and [evaluate](#5-evaluating-experiments) the gathered results.
+What `moptipy` also offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results.
 
 
 ## 2. Installation
@@ -84,8 +88,8 @@ If this build completes successful, you can be sure that `moptipy` will work pro
 
 You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
 Here, we talk mainly about directly applying one or multiple optimization algorithm(s) to one or multiple optimization problem instance(s).
-In [Section 4 on Data Formats](#4-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
-Later, in [Section 5 on Evaluating Experiments](#5-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
+In [Section 4 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
+Later, in [Section 5 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
 
 
 ### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
@@ -106,7 +110,7 @@ Then, via [`ex.set_solution_space(...)`](https://thomasweise.github.io/moptipy/m
 The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
 It provides all methods necessary to create a solution data structure, to copy the contents of one solution data structure to another one, to convert solution data structures to and from strings, and to verify whether a solution data structure is valid.
 It is used by the optimization algorithm for instantiating the solution data structures and for copying them.
-It is used internally by the `moptipy` system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#41-log-files).
+It is used internally by the `moptipy` system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#51-log-files).
 
 If the search and solution spaces are different, then you can also set a search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) via [`ex.set_search_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_search_space) and an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) via [`ex.set_encoding(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_encoding).
 This is not necessary if the algorithm works directly on the solutions (as in our example below).
@@ -208,7 +212,7 @@ TTTTTTTTTT
 END_RESULT_Y
 ```
 
-You can also compare this output to the [example for log files](#413-example) further down this text.
+You can also compare this output to the [example for log files](#513-example) further down this text.
 
 
 ### 3.2. How to Run a Series of Experiments
@@ -221,7 +225,7 @@ The concept for this is rather simple.
 We distinguish "instances" and "setups."
 An "instance" can be anything that a represents one specific problem instance.
 It could be a string with its identifying name, it could be the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) itself, or a data structure with the instance data (as is the case for the Job Shop Scheduling Problem used in our book, where we use the class [Instance](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.instance)).
-The important thing is that the `__str__` method of the instance object will return a short string that can be used in file names of [log files](#41-log-files).
+The important thing is that the `__str__` method of the instance object will return a short string that can be used in file names of [log files](#51-log-files).
 
 The second concept to understand here are "setups."
 A "setup" is basically an almost fully configured [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution) (see the [previous section](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance) for a detailed discussion of Executions.)
@@ -233,7 +237,7 @@ You also provide the number of runs to be executed per "setup" * "instance" comb
 Additionally, you can specify the number of parallel processes to use, unless you want the system to automatically decide this.
 All of this is passed to the function `run_experiment` in module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment).
 
-This function will do all the work and generate a [folder structure](#411-file-names-and-folder-structure) of log files.
+This function will do all the work and generate a [folder structure](#511-file-names-and-folder-structure) of log files.
 It will spawn the right number of processes, use your functions to generate "instances" and "setups," execute and them.
 It will also automatically determine the random seed for each run.
 The random seed sequence per instance will be the same for algorithm setups, which means that different algorithms would still start with the same solutions if they sample the first solution in the same way.
@@ -245,7 +249,7 @@ We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptip
 We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
 The code below is available as file [examples/experiment_2_algorithms_4_problems](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html).
-Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#42-end-result-csv-files) for more information).
+Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#52-end-result-csv-files) for more information).
 
 ```python
 from moptipy.algorithms.rls import RLS
@@ -461,11 +465,11 @@ We repeat this until [`process.should_terminate()`](https://thomasweise.github.i
 All of this is implemented in the source code example below in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem).
 
 Finally, as a side note:
-Our system can automatically store the results of optimization processes in [log file](#41-log-files).
+Our system can automatically store the results of optimization processes in [log file](#51-log-files).
 The `process` API also allows your algorithm to store additional information in these files:
-You can create a [section](#412-log-file-sections) with a given `title` in the log files that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
+You can create a [section](#512-log-file-sections) with a given `title` in the log files that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
 Make sure that all section `title`s are unique.
-All such sections will be appended at the end of the log files, wrapped in `BEGIN_title` and `END_title` markers, as prescribed by [our log file format](#412-log-file-sections).
+All such sections will be appended at the end of the log files, wrapped in `BEGIN_title` and `END_title` markers, as prescribed by [our log file format](#512-log-file-sections).
 
 
 #### 3.3.3. Applying an Own Algorithm to an Own Problem
@@ -646,13 +650,55 @@ myAlgo on sort5: 1
 myAlgo on sort5: 1
 ```
 
-## 4. Data Formats
+## 4. Implemented Algorithms, Search Spaces, and Problems
+
+Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-implemented-search-spaces-and-operators), and [optimization problems](#43-implemented-problems) that we implement in our `moptipy` framework.
+
+
+### 4.1. Implemented Algorithms
+
+1. [Single Random Sample](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.single_random_sample.SingleRandomSample)
+2. [Random Sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling)
+3. [Random Walk](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_walk.RandomWalk)
+4. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber.HillClimber)
+5. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber_with_restarts.HillClimberWithRestarts)
+6. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS)
+7. [(mu+lambda) EA without Crossover](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.ea_without_crossover.EAnoCR)
+
+
+## 4.2. Implemented Search Spaces and Operators
+
+1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
+    - Nullary Operators:
+      - [random initialization](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op0_random.Op0Random) fills the string with random bits
+    - Unary Operators:
+      - [flip 1](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_flip1.Op1Flip1) flips one single bit
+      - [flip m/n](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1) flips each bit independently with probability `m/n`
+2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
+    - Nullary Operators:
+      - [Fisher-Yates Shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations
+    - Unary Operators:
+      - [swap 2](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2) swaps exactly two (different) values
+      - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps
+
+
+## 4.3. Implemented Problems
+
+1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
+    - The minimization version of the well-known [OneMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.OneMax) problem, where the goal is to maximize the number of `True` bits in a string.
+    - The minimization version of the well-known [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.leadingones.LeadingOnes) problem, where the goal is to maximize the length of the trailing substring of all `True` bits.
+    - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
+2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
+    - The NP-hard Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)), where the goal is to find an assignment of jobs to machines with the minimum makespan.
+
+
+## 5. Data Formats
 
 We develop several data formats to store and evaluate the results of computational experiments with our `moptipy` software.
 Here you can find their basic definitions.
 
 
-### 4.1. Log Files
+### 5.1. Log Files
 
 The philosophy of our log files are:
 
@@ -677,7 +723,7 @@ Experiments with `moptipy` are intended to be self-documenting, such that you ca
 Each log file contains all the information, so you will not end up with a situation where you have a "results file" but cannot find the matching setup information because it was stored elsewhere.
 
 
-#### 4.1.1. File Names and Folder Structure
+#### 5.1.1. File Names and Folder Structure
 
 One independent run of an algorithm on one problem instance produces one log file.
 Each run is identified by the algorithm that is applied, the problem instance to which it is applied, and the random seed.
@@ -687,7 +733,7 @@ The log files are grouped in a `algorithm`/`instance` folder structure.
 In the above example, there would be a folder `rls_swap2` containing a folder `demo`, which, in turn, contains all the log files from all runs of that algorithm on this instance.
 
 
-#### 4.1.2. Log File Sections
+#### 5.1.2. Log File Sections
 
 A log file is a simple text file divided into several sections.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
@@ -814,7 +860,7 @@ The following exception sections are currently supported:
 - In the unlikely case that an exception occurs during the writing of the log but writing can somehow continue, this exception will be stored in section `ERROR_IN_LOG`.
 
 
-#### 4.1.3. Example
+#### 5.1.3. Example
 
 You can execute the following Python code to obtain an example log file.
 This code is also available in file [examples/log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html):
@@ -943,9 +989,9 @@ END_RESULT_X
 ```
 
 
-### 4.2. End Result CSV Files
+### 5.2. End Result CSV Files
 
-While a [log file](#41-log-files) contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
+While a [log file](#51-log-files) contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
 The class [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
@@ -955,10 +1001,10 @@ If you have the `moptipy` package installed, then you can call the module direct
 python3 -m moptipy.evaluation.end_results source_dir dest_file
 ```
 
-where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#411-file-names-and-folder-structure))) and `dest_file` is the path to the CSV file to write.
+where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#511-file-names-and-folder-structure))) and `dest_file` is the path to the CSV file to write.
 
 
-#### 4.2.1. The End Results File Format
+#### 5.2.1. The End Results File Format
 
 An end results file contains a header line and then one line for each log file that was parsed.
 The eleven columns are separated by `;`.
@@ -982,7 +1028,7 @@ For each run, i.e., algorithm x instance x seed combination, one row with the ab
 Notice that from the algorithm and instance name together with the random seed, you can find the corresponding log file.
 
 
-#### 4.2.2. An Example for End Results Files
+#### 5.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
 We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html).
@@ -1051,7 +1097,7 @@ rls_swap2;demo;0xdac201e7da6b455c;180;83;2;83;2;180;10000;120000
 rls_swap2;demo;0x5a9363100a272f12;180;84;2;84;2;180;10000;120000
 ```
 
-### 4.3. End Result Statistics CSV Files
+### 5.3. End Result Statistics CSV Files
 
 We can also aggregate the end result data over either algorithm x instance combinations, over whole algorithms, over whole instances, or just over everything.
 The class [`moptipy.evaluation.end_statistics.EndStatistics`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_statistics.EndStatistics) provides the tools needed to aggregate statistics over sequences of [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) and to store them into a semicolon-separated-values formatted file.
@@ -1063,10 +1109,10 @@ If you have the `moptipy` package installed, then you can call the module direct
 python3 -m moptipy.evaluation.end_statistics source dest_file
 ```
 
-where `source` should either be the root directory with the experimental data (see [Section 4.1.1](#411-file-names-and-folder-structure))) or the path to a [end results CSV file](#42-end-result-csv-files) and `dest_file` is the path to the CSV file to write.
+where `source` should either be the root directory with the experimental data (see [Section 4.1.1](#511-file-names-and-folder-structure))) or the path to a [end results CSV file](#52-end-result-csv-files) and `dest_file` is the path to the CSV file to write.
 
 
-#### 4.3.1. The End Result Statistics File Format
+#### 5.3.1. The End Result Statistics File Format
 
 End result statistics files contain information in form of statistics aggregated over several runs.
 Therefore, they first contain columns identifying the data over which has been aggregated:
@@ -1105,9 +1151,9 @@ If `goalF` is defined for at least some settings, we also get the following colu
 Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the computational budget limits in terms of FEs or milliseconds.
 
 
-#### 4.3.2. Example for End Result Statistics Files
+#### 5.3.2. Example for End Result Statistics Files
 
-We can basically execute the same abridged experiment as in the [previous section](#422-an-example-for-end-results-files), but now take the aggregation of information one step further with the code below.
+We can basically execute the same abridged experiment as in the [previous section](#522-an-example-for-end-results-files), but now take the aggregation of information one step further with the code below.
 This code is also available as file [examples/end_statistics_jssp](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html).
 
 ```python
@@ -1161,30 +1207,30 @@ rls_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;52
 ```
 
 
-## 5. Evaluating Experiments
+## 6. Evaluating Experiments
 
 The [moptipy](https://thomasweise.github.io/moptipy) system offers a set of tools to evaluate the results collected from experiments.
-On one hand, you can [export](#51-exporting-data) the data to formats that can be processed by other tools.
+On one hand, you can [export](#61-exporting-data) the data to formats that can be processed by other tools.
 On the other hand, you can plot a variety of different diagrams.
 These diagrams can then be [stored](https://thomasweise.github.io/moptipy/moptipy.utils.html#module-moptipy.utils.plot_utils) in different formats, such as `svg` (for the web) or `pdf` (for scientific papers). 
 
-### 5.1. Exporting Data
+### 6.1. Exporting Data
 
-#### 5.1.1. Export to CSV Formats for Excel et al.
+#### 6.1.1. Export to CSV Formats for Excel et al.
 
 We already discussed two formats that can be used to export data to Excel or other software tools.
 
-The [End Results CSV format](#42-end-result-csv-files) produces semicolon-separated-values files that include the states of each run.
+The [End Results CSV format](#52-end-result-csv-files) produces semicolon-separated-values files that include the states of each run.
 For every single run, there will be a row with the algorithm name, instance name, and random seed, as well as the best objective value, the last improvement time and FE, and the total time and consumed FEs.
 
-The [End Results Statistics CSV format](#43-end-result-statistics-csv-files) allows you to export statistics aggregated, e.g., over the instance-algorithm combinations, for instance over all algorithms, or for one algorithm over all instances.
+The [End Results Statistics CSV format](#53-end-result-statistics-csv-files) allows you to export statistics aggregated, e.g., over the instance-algorithm combinations, for instance over all algorithms, or for one algorithm over all instances.
 The format is otherwise similar to the End Results CSV format. 
 
 
-#### 5.1.2 Export to IOHanalyzer
+#### 6.1.2 Export to IOHanalyzer
 
 We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data/).
-This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.ioh_analyzer.moptipy_to_ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#411-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
+This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.ioh_analyzer.moptipy_to_ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#511-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
 You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/) that you can either install locally or use online at <https://iohanalyzer.liacs.nl/>.
 In the latter case, you first need to zip-compress your data before uploading it.
 
@@ -1194,10 +1240,10 @@ If you have the `moptipy` package installed, then you can call the module direct
 python3 -m moptipy.evaluation.ioh_analyzer source_dir dest_dir
 ```
 
-where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#411-file-names-and-folder-structure))) and `dest_dir` is the directory where the IOHprofiler-formatted data should be written.
+where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#511-file-names-and-folder-structure))) and `dest_dir` is the directory where the IOHprofiler-formatted data should be written.
 
 
-### 5.2. Progress Plots
+### 6.2. Progress Plots
 
 In the file [examples/progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html), you can find some code running a small experiment and creating "progress plots."
 A progress plot is a diagram that shows how an algorithm improves the solution quality over time.
@@ -1214,13 +1260,13 @@ Both types of data can also be combined in the same diagram.
 Progress plots are implemented in the module [moptipy.evaluation.plot_progress_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_progress_impl).
 
 
-### 5.3. End Results Plot
+### 6.3. End Results Plot
 
 In the file [examples/end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html), you can find some code running a small experiment and creating "end results plots."
 An end results plot is basically a [box plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html) overlay on top of a [violin plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html).
 
 Imagine that you conduct multiple runs of one algorithm on one problem instance, let's say 50.
-Then you get 50 [log files](#41-log-files) and each of them contains the best solution discovered by the corresponding run.
+Then you get 50 [log files](#51-log-files) and each of them contains the best solution discovered by the corresponding run.
 Now you may want to know how the corresponding 50 objective values are distributed.
 You want to get a visual impression about this distribution.
 Our end results diagram provide this impression by combining two visualizations:
@@ -1254,7 +1300,7 @@ Ofcourse you can also use it to plot raw objective values, or even runtimes if y
 The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results_impl).
 
 
-### 5.4. ECDF Plots
+### 6.4. ECDF Plots
 
 In the file [examples/ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html), you can find some code running a small experiment and creating "ECDF plots."
 The Empirical Cumulative Distribution Function (ECDF) is a plot that aggregates data over several runs of an optimization algorithm.
@@ -1278,7 +1324,7 @@ If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECD
 ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
 
 
-### 5.5. Expected Running Time (ERT) Plots
+### 6.5. Expected Running Time (ERT) Plots
 
 In the file [examples/ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html), you can find some code running a small experiment and creating empirically estimated Expected Running Time (ERT) plots.
 Basically, it illustrates an estimation of the runtime that it would take in expectation to reach certain objective values.
@@ -1310,10 +1356,10 @@ The (empirically estimated) Expected Running Time (ERT) is nicely explained in t
 The ERT plots are implemented in the module [moptipy.evaluation.plot_ert_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ert_impl).
 
 
-### 5.6. ERT-ECDF Plots
+### 6.6. ERT-ECDF Plots
 
 In the file [examples/ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecd_plot.html), you can find some code running a small experiment and creating ERT-ECDF plots.
-These plots combine the concepts of [ERTs](#55-expected-running-time-ert-plots) with [ECDFs](#54-ecdf-plots):
+These plots combine the concepts of [ERTs](#65-expected-running-time-ert-plots) with [ECDFs](#64-ecdf-plots):
 Their vertical axis shows the fraction of problem instances that can be expected to be solved by an algorithm.
 Their horizontal axis shows the runtime consumed to do so, which is equivalent to the ERT of the algorithm to reach the global optimum.
 While ECDFs themselves are based on single runs, ERT-ECDF plots are based on problem instances.
@@ -1325,16 +1371,16 @@ Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evalu
 </a>
 
 
-### 5.7. Performance over Algorithm Parameter or Instance Feature
+### 6.7. Performance over Algorithm Parameter or Instance Feature
 
 Often we want to investigate how and algorithm parameter or an instance feature impacts the algorithm performance.
 The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter_impl) can do both:
 
-In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#55-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
+In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#65-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
 Basically, the minimization version of the OneMax problem tries to minimize the number of `0`s in a bit string of length `n`.
 Of course, the higher `n`, the longer it will take to solve the problem.
 We apply the RLS several times to the instances of sizes `n` in `1..20`.
-We then load the end results and convert them to [end result statistics](#431-the-end-result-statistics-file-format).
+We then load the end results and convert them to [end result statistics](#531-the-end-result-statistics-file-format).
 All we need to tell our system how it can deduce the value of the feature from an [EndStatistics](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.end_statistics) and which statistic we want to plot (here: `ertFEs`) and we are good:
 
 <a href="https://thomasweise.github.io/moptipy/_static/ert_over_onemax_n.png">
@@ -1353,7 +1399,7 @@ We plot the mean end result after 128 FEs (on the vertical axis) over the values
 These plots have been implemented in the module [moptipy.evaluation.plot_end_statistics_over_parameter_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter_impl).
 
 
-### 5.8. End Results Table
+### 6.8. End Results Table
 
 In the file [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
 Such a table allows you to display statistics summarizing the performance of your algorithms over several problem instances.
@@ -1433,21 +1479,21 @@ summary&&texttt{rs}&1.091&1.390&1.680&0.233&413.29&5.571\\%
 The end result tables are implemented in the module [moptipy.evaluation.tabulate_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_end_results_impl).
 
 
-## 6. Useful Links and References
+## 7. Useful Links and References
 
 1. Our book on optimization algorithms, which is currently work in progress:
    Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
 2. Our old book optimization algorithms:
    Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://www.it-weise.de/projects/book.pdf).
 3. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
-   It is possible to [convert](#512-export-to-iohanalyzer) our `moptipy` [log data](#411-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
+   It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
 4. A nice discussion of experimentation with (numerical) optimization methods is:
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). [Research Report] RR-7215, INRIA. 2010. inria-00462481
 
 
-## 7. License
+## 8. License
 
-The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#8-contact)).
+The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#9-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
 `moptipy` is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
@@ -1460,7 +1506,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 
 
-## 8. Contact
+## 9. Contact
 
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 

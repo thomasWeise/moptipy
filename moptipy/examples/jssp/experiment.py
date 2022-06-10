@@ -78,7 +78,7 @@ for scale in range(7, 21):  # add the hill climbers with restarts
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
             Op0Shuffle(pwr), Op1SwapN(), 2 ** i))  # hill climb. with restarts
     )
-for muexp in range(0, 10):
+for muexp in range(0, 8):
     mu: int = 2 ** muexp
     for lambda_ in sorted({1, 2, mu * 2, mu, max(1, mu // 2)}):
         DEFAULT_ALGORITHMS.append(cast(
