@@ -36,7 +36,7 @@
 ## 1. Introduction
 
 This will be a library with implementations of metaheuristic optimization methods in Python&nbsp;3.9.
-The framework, algorithm implementations, and the library design is intended to accompany the university course book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently working on.
+The framework, [algorithm implementations](#41-implemented-algorithms), and the library design is intended to accompany the university course book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently working on.
 They are all structured from an educational and learning perspective, but still with performance, ease-of-use, and generality in mind.
 
 Metaheuristic optimization algorithms are methods for solving hard problems.
@@ -50,8 +50,9 @@ White and gray-box algorithms, on the other hand, are tailored to specified prob
 They have more knowledge about these problems.
 They make use of the problem structure and can implement more efficient search operations.
 
-Within our `moptipy` framework, you can implement all of these algorithms under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
-What `moptipy` also offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results.
+Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
+Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
+What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results.
 
 
 ## 2. Installation
@@ -85,14 +86,14 @@ If this build completes successful, you can be sure that `moptipy` will work pro
 ## 3. How-Tos
 
 You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
-Here, we talk mainly about directly applying one or multiple optimization algorithm(s) to one or multiple optimization problem instance(s).
+Here, we talk mainly about directly applying one or multiple [optimization algorithm(s)](#41-implemented-algorithms) to one or multiple [optimization problem](#43-implemented-problems) instance(s).
 In [Section 4 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
 Later, in [Section 5 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
 
 
 ### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
 
-The most basic task that we can do in the domain of optimization is to apply one algorithm to one instance of an optimization problem.
+The most basic task that we can do in the domain of optimization is to apply one [algorithm](#41-implemented-algorithms) to one instance of an [optimization problem](#43-implemented-problems).
 In our framework, we refer to this as an "execution."
 You can prepare an execution using the class [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) in the module [moptipy.api.execution](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution).
 This class follows the [builder design pattern](https://python-patterns.guide/gang-of-four/builder/).
@@ -655,13 +656,13 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 
 ### 4.1. Implemented Algorithms
 
-1. [Single Random Sample](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.single_random_sample.SingleRandomSample)
-2. [Random Sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling)
-3. [Random Walk](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_walk.RandomWalk)
-4. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber.HillClimber)
-5. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber_with_restarts.HillClimberWithRestarts)
-6. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS)
-7. [(mu+lambda) EA without Crossover](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.ea_without_crossover.EAnoCR)
+1. [Single Random Sample](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.single_random_sample.SingleRandomSample) creates and evaluates exactly one single random solution.
+2. [Random Sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling) keeps creating random solutions until the computational budget is exhausted.
+3. [Random Walk](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_walk.RandomWalk) creates a random solution and then keeps applying the unary search operator and always accepts the result.
+4. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber.HillClimber) creates a random solution as initial best-so-far solution and then iteratively applies the unary search operator to the best-so-far solution. When the result of the unary operator is better, it becomes the new best-so-far solution, otherwise it is discarded.
+5. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber_with_restarts.HillClimberWithRestarts) works exactly like the hill climber, but restarts at a new random solution after a fixed number of unsuccessful moves.
+6. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS) (RLS) works like the hill climber as well, but accepts a new solution if it is *not worse* than the best-so-far solution (instead of requiring it to be strictly *better*, as the hill climber does).  
+7. [(mu+lambda)-EA without Crossover](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.ea_without_crossover.EAnoCR) is a simple population-based metaheuristic that starts with a population of `mu` random solutions. In each iteration, it retains only the `mu` best solutions from the population ("best" in terms of the objective value, ties are broken such that newer solutions are preferred). It then applies the unary operator to generate `lambda` new solutions and adds them to the population. The `(1+1)-EA` is equivalent to RLS. 
 
 
 ### 4.2. Implemented Search Spaces and Operators
@@ -674,7 +675,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
       - [flip m/n](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1) flips each bit independently with probability `m/n`
 2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
     - Nullary Operators:
-      - [Fisher-Yates Shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations
+      - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations
     - Unary Operators:
       - [swap 2](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2) swaps exactly two (different) values
       - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps
