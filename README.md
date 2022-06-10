@@ -666,7 +666,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 7. [(mu+lambda) EA without Crossover](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.ea_without_crossover.EAnoCR)
 
 
-## 4.2. Implemented Search Spaces and Operators
+### 4.2. Implemented Search Spaces and Operators
 
 1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
     - Nullary Operators:
@@ -682,7 +682,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
       - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps
 
 
-## 4.3. Implemented Problems
+### 4.3. Implemented Problems
 
 1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
     - The minimization version of the well-known [OneMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.OneMax) problem, where the goal is to maximize the number of `True` bits in a string.
