@@ -373,6 +373,8 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     table(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
     makespans(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
     progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source)
+    progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source,
+             millis=False)
 
     logger("Now evaluating the hill climbing algorithm with "
            "restarts 'hcr' on 'swapn'.")

@@ -1,11 +1,16 @@
 """An implementation of an unconstrained n-dimensional continuous space."""
 
+from typing import Final
+
 import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.nputils import is_np_float, is_all_finite
 from moptipy.utils.strings import float_to_str
 from moptipy.utils.types import type_error
+
+#: The default numerical datatype
+_DEFAULT_TYPE: Final[numpy.dtype] = numpy.dtype(numpy.float64)
 
 
 class VectorSpace(NPArraySpace):
@@ -16,7 +21,7 @@ class VectorSpace(NPArraySpace):
     """
 
     def __init__(self, dimension: int,
-                 dtype: numpy.dtype = numpy.dtype(numpy.float64)) -> None:
+                 dtype: numpy.dtype = _DEFAULT_TYPE) -> None:
         """
         Create the vector-based search space.
 
