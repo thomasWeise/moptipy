@@ -20,6 +20,11 @@ from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
+#: The letter mu
+LETTER_M: Final[str] = "\u03BC"
+#: The letter lambda
+LETTER_L: Final[str] = "\u03BB"
+
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
     n: i for i, n in enumerate(EXPERIMENT_INSTANCES)
@@ -47,7 +52,15 @@ __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
     n: i for i, n in enumerate([
         "1rs", "rs", "hc", "hc_swap2", "hcr_32768_swap2", "hcr", "hcn",
         "hc_swapn", "hcr_65536_swapn", "hcrn", "rls", "rls_swap2",
-        "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn"])
+        "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn",
+        f"eanocr_{LETTER_M}_{LETTER_L}",
+        f"eanocr_{LETTER_M}_1", f"eanocr_{LETTER_M}_2",
+        f"eanocr_{LETTER_M}_{LETTER_M}/2", f"eanocr_{LETTER_M}_{LETTER_M}",
+        f"eanocr_{LETTER_M}_2{LETTER_M}", "eanocr_1_1_swap2", "eanocr_1_1",
+        "eanocr_1_2_swap2", "eanocr_1_2", "eanocr_2_1_swap2", "eanocr_2_1",
+        "eanocr_8_16_swap2", "eanocr_8_16", "eanocr_32_32_swap2",
+        "eanocr_32_32", "eanocr_128_128_swap2", "eanocr_128_128",
+        "eanocr_128_256_swap2", "eanocr_128_256"])
 }
 
 
@@ -70,7 +83,12 @@ def algorithm_sort_key(name: str) -> int:
 #: the algorithm name map
 __ALGO_NAME_MAP: Final[Dict[str, str]] = {
     "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
-    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn"
+    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn",
+    "eanocr_1_1_swap2": "eanocr_1_1", "eanocr_1_2_swap2": "eanocr_1_2",
+    "eanocr_2_1_swap2": "eanocr_2_1", "eanocr_8_16_swap2": "eanocr_8_16",
+    "eanocr_32_32_swap2": "eanocr_32_32",
+    "eanocr_128_128_swap2": "eanocr_128_128",
+    "eanocr_128_256_swap2": "eanocr_128_256"
 }
 
 
@@ -289,10 +307,13 @@ def makespans_over_param(
         end_results: Path,
         selector: Callable[[str], bool],
         x_getter: Callable[[EndStatistics], Union[int, float]],
-        name_base: str, dest_dir: str,
+        name_base: str,
+        dest_dir: str,
         x_axis: Union[AxisRanger, Callable[[], AxisRanger]]
         = AxisRanger,
-        x_label: Optional[str] = None) -> List[Path]:
+        x_label: Optional[str] = None,
+        algo_getter: Optional[Callable[[str], str]] = None,
+        title: Optional[str] = None) -> List[Path]:
     """
     Plot the performance over a parameter.
 
@@ -304,16 +325,24 @@ def makespans_over_param(
         object
     :param x_axis: the axis ranger
     :param x_label: the x-axis label
+    :param algo_getter: the optional algorithm name getter (use `name_base` if
+        unspecified)
+    :param title: the optional title (use `name_base` if unspecified)
     :returns: the list of generated files
     """
+    def _algo_name_getter(es: EndStatistics,
+                          n=name_base, g=algo_getter) -> str:
+        return n if g is None else g(es.algorithm)
+
     return plot_end_makespans_over_param(
         end_results=get_end_results(end_results, algos=selector),
         x_getter=x_getter, name_base=f"{name_base}_results",
-        dest_dir=dest_dir, title=name_base,
-        algorithm_getter=lambda _, ss=name_base: ss,  # type: ignore
+        dest_dir=dest_dir, title=name_base if title is None else title,
+        algorithm_getter=_algo_name_getter,  # type: ignore
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
-        x_axis=x_axis, x_label=x_label)
+        x_axis=x_axis, x_label=x_label,
+        plot_single_instances=algo_getter is None)
 
 
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
@@ -400,6 +429,34 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     progress(["rls_swapn", "rls_swap2", "hcr_32768_swap2",
               "hcr_65536_swapn"], dest, source)
     gantt(end_results, "rls_swap2", dest, source, True, ["ta70"])
+
+    logger("Now evaluating the EA without crossover.")
+
+    def _eanocr_name(name: str) -> str:
+        ss = name.split("_")
+        mu = int(ss[1])
+        lambda_ = int(ss[2])
+        if lambda_ in (1, 2):
+            return f"eanocr_{LETTER_M}_{lambda_}"
+        if mu == lambda_:
+            return f"eanocr_{LETTER_M}_{LETTER_M}"
+        if mu < lambda_:
+            return f"eanocr_{LETTER_M}_{lambda_ // mu}{LETTER_M}"
+        return f"eanocr_{LETTER_M}_{LETTER_M}/{mu // lambda_}"
+
+    makespans_over_param(
+        end_results,
+        lambda an: an.startswith("eanocr_") and an.endswith("_swap2"),
+        lambda es: int(es.algorithm.split("_")[1]),
+        "eanocr_mu_lambda", dest,
+        lambda: AxisRanger(log_scale=True, log_base=2.0), LETTER_M,
+        _eanocr_name, f"eanocr_{LETTER_M}_{LETTER_L}")
+    progress(["eanocr_1_1_swap2", "eanocr_1_2_swap2", "eanocr_2_1_swap2",
+              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2"],
+             dest, source)
+    progress(["eanocr_1_1_swap2", "eanocr_1_2_swap2", "eanocr_2_1_swap2",
+              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2"],
+             dest, source, millis=False)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

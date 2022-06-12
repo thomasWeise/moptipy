@@ -347,7 +347,9 @@ def plot_end_makespans_over_param(
     title: Optional[str] = None,
     x_axis: Union[AxisRanger, Callable[[], AxisRanger]] = AxisRanger,
     x_label: Optional[str] = None,
-    x_label_location: float = 1.0) \
+    x_label_location: float = 1.0,
+    plot_single_instances: bool = True,
+    plot_instance_summary: bool = True) \
         -> List[Path]:
     """
     Plot the performance over a parameter.
@@ -364,6 +366,9 @@ def plot_end_makespans_over_param(
     :param x_axis: the x_axis ranger
     :param x_label: the x-label
     :param x_label_location: the location of the x-labels
+    :param plot_single_instances: shall we plot the values for each single
+        instance?
+    :param plot_instance_summary: shall we plot the value over all instances?
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -385,13 +390,24 @@ def plot_end_makespans_over_param(
         raise type_error(x_label_location, "x_label_location", float)
     if (title is not None) and (not isinstance(title, str)):
         raise type_error(title, "title", (str, None))
+    if not isinstance(plot_single_instances, bool):
+        raise type_error(plot_single_instances, "plot_single_instances", bool)
+    if not isinstance(plot_instance_summary, bool):
+        raise type_error(plot_instance_summary, "plot_instance_summary", bool)
+    if not (plot_single_instances or plot_instance_summary):
+        raise ValueError("plot_instance_summary and plot_single_instances "
+                         "cannot both be False")
 
     logger(f"now plotting end statistics over parameter '{title}'.")
 
     end_stats: Final[List[EndStatistics]] = []
-    EndStatistics.from_end_results(end_results, end_stats.append)
-    EndStatistics.from_end_results(end_results, end_stats.append,
-                                   join_all_instances=True)
+    if plot_single_instances:
+        EndStatistics.from_end_results(end_results, end_stats.append)
+    if plot_instance_summary:
+        EndStatistics.from_end_results(end_results, end_stats.append,
+                                       join_all_instances=True)
+    if len(end_stats) <= 0:
+        raise ValueError(f"no end statistics records to plot!")
     result: List[Path] = []
 
     for lang in Lang.all():
