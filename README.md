@@ -689,13 +689,16 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
     - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
 2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
     - The NP-hard Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)), where the goal is to find an assignment of jobs to machines with the minimum makespan.
+      On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with `moptipy` on the JSSP.
 
 
 ## 5. Data Formats
 
 We develop several data formats to store and evaluate the results of computational experiments with our `moptipy` software.
 Here you can find their basic definitions.
-
+On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with our software.
+For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.zip) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
+The files and folders in this archive will then exactly comply to the structure discussed here.
 
 ### 5.1. Log Files
 
