@@ -55,19 +55,19 @@ class _ProcessSS(_ProcessNoSS):
         #: The encoding.
         self._encoding: Final[Encoding] = check_encoding(encoding)
         #: the internal encoder
-        self._g: Final[Callable] = self._encoding.map
+        self._g: Final[Callable] = encoding.map
         #: The holder for the currently de-coded solution.
-        self._current_y = self._solution_space.create()
+        self._current_y = solution_space.create()
         #: The current best point in the search space.
-        self._current_best_x: Final = self._search_space.create()
+        self._current_best_x: Final = search_space.create()
         # wrappers
-        self.create = self._search_space.create  # type: ignore
-        self.copy = self._search_space.copy  # type: ignore
-        self.to_str = self._search_space.to_str  # type: ignore
-        self.is_equal = self._search_space.is_equal  # type: ignore
-        self.from_str = self._search_space.from_str  # type: ignore
-        self.n_points = self._search_space.n_points  # type: ignore
-        self.validate = self._search_space.validate  # type: ignore
+        self.create = search_space.create  # type: ignore
+        self.copy = search_space.copy  # type: ignore
+        self.to_str = search_space.to_str  # type: ignore
+        self.is_equal = search_space.is_equal  # type: ignore
+        self.from_str = search_space.from_str  # type: ignore
+        self.n_points = search_space.n_points  # type: ignore
+        self.validate = search_space.validate  # type: ignore
 
     def evaluate(self, x) -> Union[float, int]:
         if self._terminated:

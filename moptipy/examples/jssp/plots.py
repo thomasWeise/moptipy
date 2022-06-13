@@ -407,7 +407,7 @@ def plot_end_makespans_over_param(
         EndStatistics.from_end_results(end_results, end_stats.append,
                                        join_all_instances=True)
     if len(end_stats) <= 0:
-        raise ValueError(f"no end statistics records to plot!")
+        raise ValueError("no end statistics records to plot!")
     result: List[Path] = []
 
     for lang in Lang.all():

@@ -144,7 +144,7 @@ class _ProcessNoSS(_ProcessBase):
         #: The random number generator.
         self.__random: Final[Generator] = rand_generator(self.__rand_seed)
         #: The current best solution.
-        self._current_best_y = self._solution_space.create()
+        self._current_best_y = solution_space.create()
         #: The current best objective value
         self._current_best_f: Union[int, float] = inf
         #: The log file, or `None` is needed
@@ -153,20 +153,20 @@ class _ProcessNoSS(_ProcessBase):
                 raise type_error(log_file, "log_file", Path)
         self.__log_file: Final[Optional[Path]] = log_file
         #: the method for copying y
-        self._copy_y: Final[Callable] = self._solution_space.copy
+        self._copy_y: Final[Callable] = solution_space.copy
         #: set up the method forwards
         self.lower_bound = self.__objective.lower_bound  # type: ignore
         if self._end_f <= -inf:
             self._end_f = check_goal_f(self.lower_bound())
             self.lower_bound = lambda: self._end_f  # type: ignore
-        self.upper_bound = self.__objective.upper_bound  # type: ignore
-        self.create = self._solution_space.create  # type: ignore
-        self.copy = self._solution_space.copy  # type: ignore
-        self.to_str = self._solution_space.to_str  # type: ignore
-        self.is_equal = self._solution_space.is_equal  # type: ignore
-        self.from_str = self._solution_space.from_str  # type: ignore
-        self.n_points = self._solution_space.n_points  # type: ignore
-        self.validate = self._solution_space.validate  # type: ignore
+        self.upper_bound = objective.upper_bound  # type: ignore
+        self.create = solution_space.create  # type: ignore
+        self.copy = solution_space.copy  # type: ignore
+        self.to_str = solution_space.to_str  # type: ignore
+        self.is_equal = solution_space.is_equal  # type: ignore
+        self.from_str = solution_space.from_str  # type: ignore
+        self.n_points = solution_space.n_points  # type: ignore
+        self.validate = solution_space.validate  # type: ignore
         #: the internal section logger
         self.__sections: Optional[Dict[str, str]] = \
             None if log_file is None else {}
