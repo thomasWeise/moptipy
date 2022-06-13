@@ -452,10 +452,12 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         lambda: AxisRanger(log_scale=True, log_base=2.0), LETTER_M,
         _eanocr_name, f"eanocr_{LETTER_M}_{LETTER_L}")
     progress(["eanocr_1_1_swap2", "eanocr_1_2_swap2", "eanocr_2_1_swap2",
-              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2"],
+              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2",
+              "hcr_32768_swap2"],
              dest, source)
     progress(["eanocr_1_1_swap2", "eanocr_1_2_swap2", "eanocr_2_1_swap2",
-              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2"],
+              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2",
+              "hcr_32768_swap2"],
              dest, source, millis=False)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
