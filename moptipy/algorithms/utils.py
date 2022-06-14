@@ -2,15 +2,15 @@
 from typing import Final, Union, List
 
 
-# start individual
-class Individual:
+# start record
+class Record:
     """
     A point in the search space, its quality, and creation time.
 
-    An Individual record stores a point in the search space :attr:`x`
-    together with the corresponding objective value :attr:`f`. It also
-    stores a "generation index" :attr:`gen`, i.e., the time when the
-    point was created or modified.
+    A record stores a point in the search space :attr:`x` together with
+    the corresponding objective value :attr:`f`. It also stores a
+    "generation index" :attr:`gen`, i.e., the time when the point was
+    created or modified.
 
     This allows for representing and storing solutions in a population.
     If the population is sorted, then individual records with better
@@ -21,7 +21,7 @@ class Individual:
 
     def __init__(self, x, f: Union[int, float]):
         """
-        Create the individual record.
+        Create the record.
 
         :param x: the data structure for a point in the search space
         :param f: the corresponding objective value
@@ -38,7 +38,7 @@ class Individual:
         f1: Final[Union[int, float]] = self.f
         f2: Final[Union[int, float]] = other.f
         return (f1 < f2) or ((f1 == f2) and (self.gen > other.gen))
-# end individual
+# end record
 
     def __str__(self) -> str:
         """

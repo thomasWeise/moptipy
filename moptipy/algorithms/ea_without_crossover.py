@@ -4,31 +4,30 @@ The implementation of an Evolutionary Algorithm without crossover.
 This is the basic `mu+lambda`-EA, but without using the binary crossover
 operator. It works as follows:
 
-1. Start with a population of `mu` random and `lambda` blank individuals.
+1. Start with a population of `mu` random and `lambda` blank records.
 2. In each iteration:
-    2.1. Retain the best `mu` individuals (which will be the `mu` first
-         individuals in the sorted population) and overwrite the `lambda`
-         worse ones (which will be at indices `mu...mu+lambda-1`). Each of
-         these individuals is overwritten with the results of the unary
-         operator applied to one of the `mu` "parents". Each of the `mu`
-         parents has the same chance to produce such a new "offspring", but no
-         individual can be used as a parent again until all other `mu-1`
-         selected individuals have produced at least one offspring. In other
-         words, if `lambda > mu`, then each of the `mu` selected individuals
-         will produce at least `lambda // mu` offspring and at most
-         `1 + lambda // mu`.
+    2.1. Retain the best `mu` records (which will be the `mu` first records
+         in the sorted population) and overwrite the `lambda` worse ones
+         (which will be at indices `mu...mu+lambda-1`). Each of these records
+         is overwritten with the results of the unary operator applied to one
+         of the `mu` "parents". Each of the `mu` parents has the same chance
+         to produce such a new "offspring", but no record can be used as a
+         parent again until all other `mu-1` selected records have produced at
+         least one offspring. In other words, if `lambda > mu`, then each of
+         the `mu` selected record will produce at least `lambda // mu`
+         offspring and at most `1 + lambda // mu`.
     2.2. Shuffle the population to introduce randomness and fairness in the
          case that sorting is stable.
-    2.3. Sort the population according to the objective value of the
-         individuals. Ties are broken such that younger individuals are
-         preferred over older ones (if they have the same objective value).
+    2.3. Sort the population according to the objective value of the record.
+         Ties are broken such that younger record are preferred over older
+         ones (if they have the same objective value).
 
 This EA only applies the unary search operator to sample new points in the
 search space. Therefore, its population mainly guards against premature
 convergence. If `mu=1` and `lambda=1`, then this algorithm is exactly
 equivalent to the :class:`~moptipy.algorithms.rls.RLS` if the same unary and
 nullary operator are used. It is only a bit slower due to the additional
-overhead of representing a population as list of individual records.
+overhead of representing a population as list of records.
 """
 from typing import Final, Union, Callable, List, cast
 
@@ -39,19 +38,19 @@ from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
-from moptipy.algorithms.utils import Individual, _no_shuffle, _no_random_int
+from moptipy.algorithms.utils import Record, _no_shuffle, _no_random_int
 
 
 # start book
 class EAnoCR(Algorithm1):
     """
-    The EA without crossover is a population-based metaheuristic.
+    The EA without binary operator is a population-based metaheuristic.
 
-    It starts with a population of `mu` random individuals. In each
-    step, it retains the `mu` best solutions and generates `lambda`
-    new offspring solutions from them using the unary search operator.
-    From the joint set of `mu+lambda` solutions, it again selects the
-    best `mu` ones for the next iteration. And so on.
+    It starts with a list of `mu` randomly initialized solutions. In
+    each step, it retains the `mu` best solutions and generates
+    `lambda` new offspring solutions from them using the unary search
+    operator. From the joint set of `mu+lambda` solutions, it again
+    selects the best `mu` ones for the next iteration. And so on.
     """
 
     def solve(self, process: Process) -> None:
@@ -77,17 +76,17 @@ class EAnoCR(Algorithm1):
             Callable[[List], None], random.shuffle if mu > 1
             else _no_shuffle)  # shuffling only needed if mu > 1
         # start book
-        # create population of mu random and lambda empty individuals
+        # create list of mu random records and lambda empty records
         pop: Final[List] = [None] * pop_size  # pre-allocate list
         f: Union[int, float] = 0  # variable to hold objective values
-        for i in range(pop_size):  # fill population of size mu+lambda
+        for i in range(pop_size):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
             if i < mu:  # only the first mu parents are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?
                     return   # computational budget exhausted -> quit
                 f = evaluate(x)  # continue? ok, evaluate new solution
-            pop[i] = Individual(x, f)  # create and store record
+            pop[i] = Record(x, f)  # create and store record
 
         gen: int = 1  # The first "real" generation has index 1
         while True:  # pop: keep 0..mu-1, overwrite mu..mu+lambda-1
@@ -95,9 +94,9 @@ class EAnoCR(Algorithm1):
             for oi in range(mu, pop_size):  # for all lambda offspring
                 if should_terminate():  # only continue if we still...
                     return  # have sufficient budget ... otherwise quit
-                offspring: Individual = pop[oi]  # pick offspring
+                offspring: Record = pop[oi]  # pick offspring
                 pi: int = ri(end)  # random parent in 0..end-1 = unused
-                parent: Individual = pop[pi]  # pick parent record
+                parent: Record = pop[pi]  # pick parent record
                 x = offspring.x  # the point in search space we work on
                 op1(random, x, parent.x)  # apply unary operator to x
                 offspring.f = evaluate(x)  # evaluate new point
@@ -112,7 +111,7 @@ class EAnoCR(Algorithm1):
             gen = gen + 1  # step generation counter
 
             shuffle(pop)  # ensure total fairness under stable sorting
-            pop.sort()  # sort population: best individuals come first
+            pop.sort()  # sort list: best records come first
 # end book
 
     def __init__(self, op0: Op0, op1: Op1,
@@ -135,7 +134,7 @@ class EAnoCR(Algorithm1):
         if not (0 < lambda_ <= 1_000_000):
             raise ValueError(
                 f"invalid lambda={lambda_}, must be in 1..1000000.")
-        #: the number of individuals to survive in each generation
+        #: the number of records to survive in each generation
         self.__mu: Final[int] = mu
         #: the number of offsprings per generation
         self.__lambda: Final[int] = lambda_
