@@ -76,7 +76,8 @@ class Algorithm1(Algorithm0):
         :param op0: the nullary search operator
         :param op1: the unary search operator
         """
-        super().__init__(f"{name}{PART_SEPARATOR}{op1}", op0)
+        super().__init__(name if op1.__class__ == Op1 else
+                         f"{name}{PART_SEPARATOR}{op1}", op0)
         #: The unary search operator.
         self.op1: Final[Op1] = check_op1(op1)
 
@@ -103,7 +104,9 @@ class Algorithm2(Algorithm1):
         :param op1: the unary search operator
         :param op2: the binary search operator
         """
-        super().__init__(f"{name}{PART_SEPARATOR}{op2}", op0, op1)
+        super().__init__(
+            name if op2.__class__ is Op2 else
+            f"{name}{PART_SEPARATOR}{op2}", op0, op1)
         #: The binary search operator.
         self.op2: Final[Op2] = check_op2(op2)
 

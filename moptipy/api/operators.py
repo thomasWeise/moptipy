@@ -18,6 +18,7 @@ class Op0(Component):
         :param random: the random number generator
         :param dest: the destination data structure
         """
+        raise ValueError("Method not implemented!")
 # end op0
 
 
@@ -46,6 +47,7 @@ class Op1(Component):
         :param dest: the destination data structure
         :param x: the source point in the search space
         """
+        raise ValueError("Method not implemented!")
 # end op1
 
 
@@ -75,6 +77,7 @@ class Op2(Component):
         :param x0: the first source point in the search space
         :param x1: the second source point in the search space
         """
+        raise ValueError("Method not implemented!")
 # end op2
 
 

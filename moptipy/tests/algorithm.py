@@ -95,7 +95,12 @@ def validate_algorithm(algorithm: Algorithm,
     exp.set_goal_f(goal)
 
     with exp.execute() as process:
-
+        # re-raise any exception that was caught
+        if hasattr(process, "_caught"):
+            error = getattr(process, "_caught")
+            if error is not None:
+                raise error
+        # no exception? ok, let's check the data
         if not process.has_best():
             raise ValueError("The algorithm did not produce any solution.")
 

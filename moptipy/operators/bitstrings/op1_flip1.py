@@ -1,4 +1,4 @@
-"""An operator flipping exactly one bit."""
+"""A unary operator flipping exactly one bit."""
 from typing import Final
 
 import numpy as np

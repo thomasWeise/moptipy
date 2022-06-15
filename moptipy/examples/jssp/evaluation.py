@@ -52,15 +52,7 @@ __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
     n: i for i, n in enumerate([
         "1rs", "rs", "hc", "hc_swap2", "hcr_32768_swap2", "hcr", "hcn",
         "hc_swapn", "hcr_65536_swapn", "hcrn", "rls", "rls_swap2",
-        "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn",
-        f"eanocr_{LETTER_M}_{LETTER_L}",
-        f"eanocr_{LETTER_M}_1", f"eanocr_{LETTER_M}_2",
-        f"eanocr_{LETTER_M}_{LETTER_M}/2", f"eanocr_{LETTER_M}_{LETTER_M}",
-        f"eanocr_{LETTER_M}_2{LETTER_M}", "eanocr_1_1_swap2", "eanocr_1_1",
-        "eanocr_1_2_swap2", "eanocr_1_2", "eanocr_2_1_swap2", "eanocr_2_1",
-        "eanocr_8_16_swap2", "eanocr_8_16", "eanocr_32_32_swap2",
-        "eanocr_32_32", "eanocr_128_128_swap2", "eanocr_128_128",
-        "eanocr_128_256_swap2", "eanocr_128_256"])
+        "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn"])
 }
 
 
@@ -83,12 +75,7 @@ def algorithm_sort_key(name: str) -> int:
 #: the algorithm name map
 __ALGO_NAME_MAP: Final[Dict[str, str]] = {
     "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
-    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn",
-    "eanocr_1_1_swap2": "eanocr_1_1", "eanocr_1_2_swap2": "eanocr_1_2",
-    "eanocr_2_1_swap2": "eanocr_2_1", "eanocr_8_16_swap2": "eanocr_8_16",
-    "eanocr_32_32_swap2": "eanocr_32_32",
-    "eanocr_128_128_swap2": "eanocr_128_128",
-    "eanocr_128_256_swap2": "eanocr_128_256"
+    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn"
 }
 
 
@@ -429,36 +416,6 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     progress(["rls_swapn", "rls_swap2", "hcr_32768_swap2",
               "hcr_65536_swapn"], dest, source)
     gantt(end_results, "rls_swap2", dest, source, True, ["ta70"])
-
-    logger("Now evaluating the EA without crossover.")
-
-    def _eanocr_name(name: str) -> str:
-        ss = name.split("_")
-        mu = int(ss[1])
-        lambda_ = int(ss[2])
-        if lambda_ in (1, 2):
-            return f"eanocr_{LETTER_M}_{lambda_}"
-        if mu == lambda_:
-            return f"eanocr_{LETTER_M}_{LETTER_M}"
-        if mu < lambda_:
-            return f"eanocr_{LETTER_M}_{lambda_ // mu}{LETTER_M}"
-        return f"eanocr_{LETTER_M}_{LETTER_M}/{mu // lambda_}"
-
-    makespans_over_param(
-        end_results,
-        lambda an: an.startswith("eanocr_") and an.endswith("_swap2"),
-        lambda es: int(es.algorithm.split("_")[1]),
-        "eanocr_mu_lambda", dest,
-        lambda: AxisRanger(log_scale=True, log_base=2.0), LETTER_M,
-        _eanocr_name, f"eanocr_{LETTER_M}_{LETTER_L}")
-    progress(["eanocr_1_1_swap2", "eanocr_1_2_swap2", "eanocr_2_1_swap2",
-              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2",
-              "hcr_32768_swap2"],
-             dest, source)
-    progress(["eanocr_1_1_swap2", "eanocr_1_2_swap2", "eanocr_2_1_swap2",
-              "eanocr_32_32_swap2", "eanocr_128_256_swap2", "rls_swap2",
-              "hcr_32768_swap2"],
-             dest, source, millis=False)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

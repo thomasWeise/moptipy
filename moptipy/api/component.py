@@ -4,7 +4,8 @@ from typing import Callable, Final
 from moptipy.api import logging
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_name_of, type_error
+from moptipy.utils.types import type_error
+from moptipy.utils.types import type_name_of
 
 
 class Component:
@@ -17,6 +18,18 @@ class Component:
         :return: the value returned by :meth:`__str__`
         """
         return str(self)
+
+    def __str__(self):
+        """
+        Get the default to-string implementation returns the class name.
+
+        :returns: the class name of this component
+        """
+        s: Final[str] = type_name_of(self)
+        i: Final[int] = s.rfind(".")
+        if i > 0:
+            return s[i + 1:]
+        return s
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

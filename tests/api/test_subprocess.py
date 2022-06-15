@@ -4,24 +4,25 @@
 
 from typing import Union
 
-from moptipy.algorithms.ea_without_crossover import EAnoCR
+from moptipy.algorithms.ea import EA
 from moptipy.algorithms.rls import RLS
-from moptipy.api.algorithm import Algorithm1
+from moptipy.api.algorithm import Algorithm2
 from moptipy.api.execution import Execution
 from moptipy.api.process import Process
 from moptipy.api.subprocesses import FromStatingPointForFEs, ForFEs
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
+from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
 
 
-class MyAlgorithm(Algorithm1):
+class MyAlgorithm(Algorithm2):
     """The dummy algorithm"""
 
     def __init__(self) -> None:
-        super().__init__("dummy", Op0Random(), Op1Flip1())
-        self.ea = EAnoCR(self.op0, self.op1, 10, 10)
+        super().__init__("dummy", Op0Random(), Op1Flip1(), Op2Uniform())
+        self.ea = EA(self.op0, self.op1, self.op2, 10, 10, 0.3)
         self.rls = RLS(self.op0, self.op1, seeded=True)
 
     def solve(self, process: Process) -> None:

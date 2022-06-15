@@ -1,4 +1,4 @@
-"""An operator flipping each bit with probability m/n."""
+"""A unary operator flipping each bit with probability m/n."""
 from typing import Final, Callable
 
 import numpy as np

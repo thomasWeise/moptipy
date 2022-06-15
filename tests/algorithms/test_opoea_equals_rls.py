@@ -3,14 +3,14 @@ from typing import Callable, List, Final
 
 from numpy.random import default_rng
 
-from moptipy.algorithms.ea_without_crossover import EAnoCR
-# noinspection PyPackageRequirements
+from moptipy.algorithms.ea import EA
 from moptipy.algorithms.rls import RLS
 from moptipy.api.execution import Execution
-from moptipy.api.operators import Op0, Op1
+from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
+from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
 
 
@@ -21,9 +21,10 @@ def test_opoea_equals_rls():
     search_space: Final[BitStrings] = BitStrings(problem.n)
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()
+    op2: Final[Op2] = Op2Uniform()
     seed: Final[int] = int(default_rng().integers(1 << 62))
 
-    opoea: Final[EAnoCR] = EAnoCR(op0, op1, 1, 1)
+    opoea: Final[EA] = EA(op0, op1, op2, 1, 1, 0.0)
     rls: Final[RLS] = RLS(op0, op1)
 
     moves_opoea: Final[List[bool]] = []

@@ -1,5 +1,5 @@
 """Some internal utilities for optimization."""
-from typing import Final, Union, List
+from typing import Final, Union
 
 
 # start record
@@ -9,13 +9,13 @@ class Record:
 
     A record stores a point in the search space :attr:`x` together with
     the corresponding objective value :attr:`f`. It also stores a
-    "generation index" :attr:`gen`, i.e., the time when the point was
+    "iteration index" :attr:`it`, i.e., the time when the point was
     created or modified.
 
     This allows for representing and storing solutions in a population.
     If the population is sorted, then individual records with better
     objective value will be moved to the beginning of the list. Ties are
-    broken such that younger individuals (with higher :attr:`gen` value)
+    broken such that younger individuals (with higher :attr:`it` value)
     are preferred.
     """
 
@@ -30,14 +30,14 @@ class Record:
         self.x: Final = x
         #: the objective value corresponding to x
         self.f: Union[int, float] = f
-        #: the generation index when the record was created
-        self.gen: int = 0
+        #: the iteration index when the record was created
+        self.it: int = 0
 
     def __lt__(self, other):
         """Precedence if 1) better or b) equally good but younger."""
         f1: Final[Union[int, float]] = self.f
         f2: Final[Union[int, float]] = other.f
-        return (f1 < f2) or ((f1 == f2) and (self.gen > other.gen))
+        return (f1 < f2) or ((f1 == f2) and (self.it > other.it))
 # end record
 
     def __str__(self) -> str:
@@ -46,13 +46,31 @@ class Record:
 
         :returns: the string representation of this object.
         """
-        return f"({self.f}, {self.gen})"
+        return f"({self.f}, {self.it})"
 
 
-def _no_random_int(_: int) -> int:
-    """Do nothing."""
+def _int_0(_: int) -> int:
+    """
+    Do nothing.
+
+    :retval 0: always
+    """
     return 0
 
 
-def _no_shuffle(_: List) -> None:
-    """Do nothing."""
+def _float_0() -> float:
+    """
+    Do nothing.
+
+    :retval 0.0: always
+    """
+    return 0.0
+
+
+def _float_1() -> float:
+    """
+    Do nothing.
+
+    :retval 1.0: always
+    """
+    return 1.0

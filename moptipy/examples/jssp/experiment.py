@@ -5,7 +5,7 @@ from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any, List
 
 import moptipy.api.experiment as ex
-from moptipy.algorithms.ea_without_crossover import EAnoCR
+from moptipy.algorithms.ea import EA
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.algorithms.hill_climber_with_restarts import \
     HillClimberWithRestarts
@@ -15,6 +15,7 @@ from moptipy.algorithms.rls import RLS
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
+from moptipy.api.operators import Op2
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
@@ -22,6 +23,7 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
+from moptipy.operators.permutations.op2_sequence import Op2Sequence
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
@@ -80,12 +82,21 @@ for scale in range(7, 21):  # add the hill climbers with restarts
     )
 for muexp in range(0, 8):
     mu: int = 2 ** muexp
-    for lambda_ in sorted({1, 2, mu * 2, mu, max(1, mu // 2)}):
+    for lambda_ in sorted({1, mu}):
         DEFAULT_ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, mm=mu, ll=lambda_: EAnoCR(
-                Op0Shuffle(pwr), Op1Swap2(), mm, ll))  # EA without crossover
+            lambda inst, pwr, mm=mu, ll=lambda_: EA(
+                Op0Shuffle(pwr), Op1Swap2(), Op2(),
+                mm, ll, 0.0))  # EA without crossover
         )
+        if mu in {2, 8, 32}:
+            for br in [0.02, 0.05, 0.1, 0.5, 1]:
+                DEFAULT_ALGORITHMS.append(cast(
+                    Callable[[Instance, Permutations], Algorithm],
+                    lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
+                        Op0Shuffle(pwr), Op1Swap2(), Op2Sequence(pwr),
+                        mm, ll, bb))  # EA with crossover
+                )
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

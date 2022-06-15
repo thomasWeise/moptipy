@@ -15,11 +15,11 @@ non-deteriorating moves. It is thus similar to the simple hill climber
 `hc` implemented in
 :class:`~moptipy.algorithms.hill_climber.HillClimber`, which, however,
 accepts strictly improving moves. `rls` is also equivalent to a
-(mu+lambda)-EA without crossover as implemented in
-:class:`~moptipy.algorithms.ea_without_crossover.EAnoCR` if the same
-unary and nullary operator are used and `mu=1` and `lambda=1`. `rls`,
-however, will be faster as it does not represent a population of
-solutions as list of objects but can directly utilize local variables.
+`(mu+lambda)`-EA without crossover as implemented in
+:class:`~moptipy.algorithms.ea.EA` if the same unary and nullary operator
+are used and `mu=1`, `lambda=1`, and `br=0`. `rls`, however, will be
+faster as it does not represent a population of solutions as list of
+objects but can directly utilize local variables.
 
 Strictly speaking, the name "Randomized Local Search" only fits
 partially to the algorithm we implement here. Take the discrete search
