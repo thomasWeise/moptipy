@@ -90,7 +90,7 @@ for muexp in range(0, 8):
                 mm, ll, 0.0))  # EA without crossover
         )
         if mu in {2, 8, 32}:
-            for br in [0.02, 0.05, 0.1, 0.5, 1]:
+            for br in [0.02, 0.05, 0.1, 0.5, 1.0]:
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
