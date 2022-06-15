@@ -65,12 +65,3 @@ def _float_0() -> float:
     :retval 0.0: always
     """
     return 0.0
-
-
-def _float_1() -> float:
-    """
-    Do nothing.
-
-    :retval 1.0: always
-    """
-    return 1.0

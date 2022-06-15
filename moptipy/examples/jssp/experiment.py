@@ -15,7 +15,6 @@ from moptipy.algorithms.rls import RLS
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
-from moptipy.api.operators import Op2
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
@@ -86,7 +85,7 @@ for muexp in range(0, 8):
         DEFAULT_ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
-                Op0Shuffle(pwr), Op1Swap2(), Op2(),
+                Op0Shuffle(pwr), Op1Swap2(), None,
                 mm, ll, 0.0))  # EA without crossover
         )
         if mu in {2, 8, 32}:
@@ -94,8 +93,8 @@ for muexp in range(0, 8):
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2(), Op2Sequence(pwr),
-                        mm, ll, bb))  # EA with crossover
+                        Op0Shuffle(pwr), Op1Swap2() if bb < 1.0 else None,
+                        Op2Sequence(pwr), mm, ll, bb))  # EA with crossover
                 )
 
 

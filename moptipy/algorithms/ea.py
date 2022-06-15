@@ -30,7 +30,7 @@ from typing import Final, Union, Callable, List, cast, Optional
 
 from numpy.random import Generator
 
-from moptipy.algorithms.utils import Record, _int_0, _float_0, _float_1
+from moptipy.algorithms.utils import Record, _int_0, _float_0
 from moptipy.api.algorithm import Algorithm2
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
@@ -74,8 +74,7 @@ class EA(Algorithm2):
             if mu > 1 else _int_0)                 # indices
         r01: Final[Callable[[], float]] = cast(  # only if 0<br<1, we
             Callable[[], float],                 # need random floats
-            (_float_1 if br >= 1.0 else random.random)
-            if br > 0.0 else _float_0)
+            random.random if 0 < br < 1 else _float_0)
         # start nobinary
         # create list of mu random records and lambda empty records
         lst: Final[List] = [None] * lst_size  # pre-allocate list
@@ -198,7 +197,7 @@ class EA(Algorithm2):
                 f"invalid lambda={lambda_}, must be in 1..1_000_000.")
         if not isinstance(br, float):
             raise type_error(br, "br", float)
-        if not (isfinite(br) and (0 <= br <= 1)):
+        if not (isfinite(br) and (0.0 <= br <= 1.0)):
             raise ValueError(f"invalid br={br}, must be in [0, 1].")
         if (br > 0.0) and (mu <= 1):
             raise ValueError(
