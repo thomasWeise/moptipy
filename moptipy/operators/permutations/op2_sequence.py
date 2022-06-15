@@ -44,16 +44,16 @@ class Op2Sequence(Op2):
             if desti >= length:
                 return  # we are finished, so we return
 
-            for x0i in range(x0i, length):  # mark op as done in x0
-                if (x0[x0i] == op) and (not x0_done[x0i]):  # find op
-                    x0_done[x0i] = True  # op is found and not done
+            for x0j in range(x0i, length):  # mark op as done in x0
+                if (x0[x0j] == op) and (not x0_done[x0j]):  # find op
+                    x0_done[x0j] = True  # op is found and not done
                     break  # so we mark it as done and break the loop
             while x0_done[x0i]:  # now we find the next not-yet-done
                 x0i = x0i + 1    # operation in x0
 
-            for x1i in range(x1i, length):  # mark op as done in x1
-                if (x1[x1i] == op) and (not x1_done[x1i]):  # find op
-                    x1_done[x1i] = True  # op is found and not done
+            for x1j in range(x1i, length):  # mark op as done in x1
+                if (x1[x1j] == op) and (not x1_done[x1j]):  # find op
+                    x1_done[x1j] = True  # op is found and not done
                     break  # so we mark it as done and break the loop
             while x1_done[x1i]:  # now we find the next not-yet-done
                 x1i = x1i + 1    # operation in x1
