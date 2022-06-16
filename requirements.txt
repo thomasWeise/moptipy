@@ -1,16 +1,16 @@
 # We will need numpy for several reasons:
 #  - it provides the random number generators
 #  - it provides efficient arrays as backends of vector-based search spaces
-numpy >= 1.21.6
+numpy >= 1.22.4
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba >= 0.55.1
+numba >= 0.55.2
 
 # matplotlib is used to create plots in the evaluation procedures
 matplotlib >= 3.5.2
 
 # getting information about the system configuration to enrich the log files
-psutil >= 5.9.0
+psutil >= 5.9.1
 
 # we need this to obtain some clusters of JSSP instances for our experiments
-scikit-learn >= 1.1.0
+scikit-learn >= 1.1.1

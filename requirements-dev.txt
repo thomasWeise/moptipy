@@ -3,27 +3,27 @@ pytest >= 7.1.2
 
 # setuptools, testresources, twine and wheel are needed for generating
 # the installable pip package.
-setuptools >= 62.3.1
+setuptools >= 62.4.0
 testresources >= 2.0.1
 twine >= 4.0.1
 virtualenv >= 20.14.1
 wheel >= 0.37.1
 
 # sphinx is needed for generating the documentation.
-sphinx >= 4.5.0
-sphinx-autodoc-typehints >= 1.18.1
+sphinx >= 5.0.2
+sphinx-autodoc-typehints >= 1.18.3
 # myst-parser is needed for including README.md into the documentation
-myst-parser >= 0.17.2
+myst-parser >= 0.18.0
 
 # static code analysis tools
 bandit >= 1.7.4
 flake8 >= 4.0.1
-mypy >= 0.950
+mypy >= 0.961
 pydocstyle >= 6.1.1
 pyflakes >= 2.4.0
-pylint >= 2.14.0
+pylint >= 2.14.2
 pyroma >= 4.0
-semgrep >= 0.94.0
+semgrep >= 0.98.0
 
 # yaml is used only in tests and examples and therefore not strictly needed.
 pyyaml >= 6.0

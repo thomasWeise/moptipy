@@ -53,7 +53,7 @@ test: init
 	echo "Running py.test tests." && \
 	py.test --strict-config tests -o faulthandler_timeout=360 && \
 	echo "Running py.test with doctests." && \
-	py.test --strict-config --doctest-modules -o faulthandler_timeout=360 && \
+	py.test --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
     echo "Finished running py.test tests."
 
 # Perform static code analysis.
