@@ -25,15 +25,15 @@ __Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
 
 
 @numba.njit
-def _unique_floats_1d(data: Tuple[np.ndarray]) -> np.ndarray:
+def _unique_floats_1d(data: Tuple[np.ndarray, ...]) -> np.ndarray:
     """
     Get all unique values that are >= than the minimum of all arrays.
 
     :param data: the data
     :return: the `ndarray` with the sorted, unique values
     """
-    res = np.unique(np.concatenate(data).astype(DEFAULT_FLOAT))
-    mini = -9223372036854775808
+    res: np.ndarray = np.unique(np.concatenate(data).astype(DEFAULT_FLOAT))
+    mini = res[0]  # old version: int = -9223372036854775808
     for d in data:
         mini2 = d[0]
         if d[0] > mini:

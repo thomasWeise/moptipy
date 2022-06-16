@@ -5,7 +5,7 @@ from moptipy.tests.on_bitstrings import validate_op1_on_1_bitstrings, \
     bitstrings_for_tests
 
 
-def test_op1_m_over_n_flips():
+def test_op1_1flip():
     """Test the unary bit flip operation."""
 
     op: Op1Flip1 = Op1Flip1()

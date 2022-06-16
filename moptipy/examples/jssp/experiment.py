@@ -88,13 +88,13 @@ for muexp in range(0, 8):
                 Op0Shuffle(pwr), Op1Swap2(), None,
                 mm, ll, 0.0))  # EA without crossover
         )
-        if mu in {2, 8, 32}:
-            for br in [0.02, 0.05, 0.1, 0.5, 1.0]:
+        if (2 <= mu <= 32) and (lambda_ == 1):
+            for br in [0.01, 0.02, 0.05, 0.1, 0.2, 0.4]:
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2() if bb < 1.0 else None,
-                        Op2Sequence(pwr), mm, ll, bb))  # EA with crossover
+                        Op0Shuffle(pwr), Op1Swap2(), Op2Sequence(pwr),
+                        mm, ll, bb))  # EA with crossover
                 )
 
 

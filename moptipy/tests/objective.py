@@ -2,6 +2,8 @@
 from math import isfinite, inf
 from typing import Callable, Optional, Any, Union
 
+from numpy.random import default_rng, Generator
+
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
@@ -11,7 +13,7 @@ def validate_objective(
         objective: Objective,
         solution_space: Optional[Space] = None,
         make_solution_space_element_valid:
-        Optional[Callable[[Any], Any]] = lambda x: x,
+        Optional[Callable[[Generator, Any], Any]] = lambda _, x: x,
         is_deterministic: bool = True,
         lower_bound_threshold: Union[int, float] = -inf,
         upper_bound_threshold: Union[int, float] = inf,
@@ -84,7 +86,7 @@ def validate_objective(
     x = solution_space.create()
     if x is None:
         raise ValueError("solution_space.create() produced None.")
-    x = make_solution_space_element_valid(x)
+    x = make_solution_space_element_valid(default_rng(), x)
     if x is None:
         raise ValueError("make_solution_space_element_valid() produced None.")
     solution_space.validate(x)

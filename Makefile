@@ -51,9 +51,9 @@ test: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "PATH is now '${PATH}'." &&\
 	echo "Running py.test tests." && \
-	py.test --strict-config tests && \
+	py.test --strict-config tests -o faulthandler_timeout=360 && \
 	echo "Running py.test with doctests." && \
-	py.test --strict-config --doctest-modules && \
+	py.test --strict-config --doctest-modules -o faulthandler_timeout=360 && \
     echo "Finished running py.test tests."
 
 # Perform static code analysis.

@@ -1,15 +1,15 @@
-"""Functions that can be used to test unary search operators."""
+"""Functions that can be used to test binary search operators."""
 from math import isqrt
 from typing import Optional, Callable, Any, Union
 
 from numpy.random import default_rng, Generator
 
-from moptipy.api.operators import Op1, check_op1
+from moptipy.api.operators import Op2, check_op2
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
 
 
-def validate_op1(op1: Op1,
+def validate_op2(op2: Op2,
                  search_space: Space = None,
                  make_search_space_element_valid:
                  Optional[Callable[[Generator, Any], Any]] = lambda _, x: x,
@@ -18,23 +18,23 @@ def validate_op1(op1: Op1,
                  = lambda samples, space:
                  max(1, min(samples // 2, isqrt(space.n_points())))) -> None:
     """
-    Check whether an object is a valid moptipy unary operator.
+    Check whether an object is valid a moptipy binary operator.
 
-    :param op1: the operator
+    :param op2: the operator
     :param search_space: the search space
     :param make_search_space_element_valid: make a point in the search
         space valid
     :param number_of_samples: the number of times to invoke the operator
     :param min_unique_samples: a lambda for computing the number
-    :raises ValueError: if `op1` is not a valid `Op1`
+    :raises ValueError: if `op2` is not a valid `Op2`
     """
-    if not isinstance(op1, Op1):
-        raise ValueError("Expected to receive an instance of Op1, but "
-                         f"got a {type(op1)}.")
-    if op1.__class__ == Op1:
-        raise ValueError("Cannot use abstract base Op1 directly.")
-    check_op1(op1)
-    validate_component(op1)
+    if not isinstance(op2, Op2):
+        raise ValueError("Expected to receive an instance of Op2, but "
+                         f"got a {type(op2)}.")
+    if op2.__class__ == Op2:
+        raise ValueError("Cannot use abstract base Op2 directly.")
+    check_op2(op2)
+    validate_component(op2)
 
     count: int = 0
     if search_space is not None:
@@ -47,7 +47,6 @@ def validate_op1(op1: Op1,
         raise ValueError(
             "either provide both of search_space and "
             "make_search_space_element_valid or none.")
-
     if not isinstance(number_of_samples, int):
         raise ValueError(
             f"number_of_samples must be int, but is {number_of_samples}.")
@@ -56,6 +55,7 @@ def validate_op1(op1: Op1,
                          f"but is {number_of_samples}.")
 
     random = default_rng()
+
     x1 = search_space.create()
     if x1 is None:
         raise ValueError("Space must not return None.")
@@ -71,20 +71,41 @@ def validate_op1(op1: Op1,
         raise ValueError("to_str produces either no string or "
                          f"empty string, namely {strstr}.")
     seen.add(strstr)
+    x2: Any = None
+    for _ in range(1000):
+        x2 = search_space.create()
+        if x2 is None:
+            raise ValueError("Space must not return None.")
+        x2 = make_search_space_element_valid(random, x2)
+        if x2 is None:
+            raise ValueError("validator turned point to None?")
+        if x1 is x2:
+            raise ValueError(
+                "Search space.create must not return same object instance.")
+        search_space.validate(x2)
+        strstr = search_space.to_str(x2)
+        if (not isinstance(strstr, str)) or (len(strstr) <= 0):
+            raise ValueError("to_str produces either no string or "
+                             f"empty string, namely {strstr}.")
+        seen.add(strstr)
+        if len(seen) > 1:
+            break
+    if len(seen) <= 1:
+        raise ValueError("failed to create two different initial elements.")
 
-    x2 = search_space.create()
-    if x2 is None:
+    x3 = search_space.create()
+    if x3 is None:
         raise ValueError("Space must not return None.")
-    if x1 is x2:
+    if (x1 is x3) or (x2 is x3):
         raise ValueError(
             "Search space.create must not return same object instance.")
 
-    if not (hasattr(op1, 'op1') and callable(getattr(op1, 'op1'))):
-        raise ValueError("op1 must have method op1.")
+    if not (hasattr(op2, 'op2') and callable(getattr(op2, 'op2'))):
+        raise ValueError("op2 must have method op2.")
     for _ in range(number_of_samples):
-        op1.op1(random, x2, x1)
-        search_space.validate(x2)
-        strstr = search_space.to_str(x2)
+        op2.op2(random, x3, x2, x1)
+        search_space.validate(x3)
+        strstr = search_space.to_str(x3)
         if (not isinstance(strstr, str)) or (len(strstr) <= 0):
             raise ValueError("to_str produces either no string or "
                              f"empty string, namely '{strstr}'.")

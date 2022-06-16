@@ -2,7 +2,7 @@
 
 from typing import Callable, Optional, Union, Iterable, List, cast
 
-from numpy.random import default_rng
+from numpy.random import default_rng, Generator
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective
@@ -34,7 +34,7 @@ def jssp_instances_for_tests() -> Iterable[str]:
     return insts
 
 
-def make_gantt_valid(inst: Instance) -> Callable[[Gantt], Gantt]:
+def make_gantt_valid(inst: Instance) -> Callable[[Generator, Gantt], Gantt]:
     """
     Make a function that creates valid Gantt charts.
 
@@ -44,9 +44,9 @@ def make_gantt_valid(inst: Instance) -> Callable[[Gantt], Gantt]:
     pr = Permutations.with_repetitions(inst.jobs, inst.machines)
     op0 = Op0Shuffle(pr)
     oe = OperationBasedEncoding(inst)
-    zrnd = default_rng()
 
-    def __make_valid(x: Gantt, ppr=pr, pop0=op0, poe=oe, prnd=zrnd) -> Gantt:
+    def __make_valid(prnd: Generator, x: Gantt, ppr=pr,
+                     pop0=op0, poe=oe) -> Gantt:
         xx = ppr.create()
         pop0.op0(prnd, xx)
         poe.map(xx, x)

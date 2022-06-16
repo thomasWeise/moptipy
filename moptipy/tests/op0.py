@@ -1,10 +1,10 @@
-"""Functions that can be used to test search operators."""
+"""Functions that can be used to test nullary search operators."""
 from math import isqrt
 from typing import Optional, Callable, Any, Union
 
-from numpy.random import default_rng
+from numpy.random import default_rng, Generator
 
-from moptipy.api.operators import Op0
+from moptipy.api.operators import Op0, check_op0
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
 
@@ -12,13 +12,13 @@ from moptipy.tests.component import validate_component
 def validate_op0(op0: Op0,
                  search_space: Space = None,
                  make_search_space_element_valid:
-                 Optional[Callable[[Any], Any]] = lambda x: x,
+                 Optional[Callable[[Generator, Any], Any]] = lambda _, x: x,
                  number_of_samples: int = 100,
                  min_unique_samples: Union[int, Callable[[int, Space], int]]
                  = lambda samples, space:
                  max(1, min(samples // 2, isqrt(space.n_points())))) -> None:
     """
-    Check whether an object is a moptipy nullary operator.
+    Check whether an object is a valid moptipy nullary operator.
 
     :param op0: the operator
     :param search_space: the search space
@@ -31,6 +31,9 @@ def validate_op0(op0: Op0,
     if not isinstance(op0, Op0):
         raise ValueError("Expected to receive an instance of Op0Shuffle, but "
                          f"got a {type(op0)}.")
+    if op0.__class__ == Op0:
+        raise ValueError("Cannot use abstract base Op0 directly.")
+    check_op0(op0)
     validate_component(op0)
 
     count: int = 0
@@ -45,16 +48,22 @@ def validate_op0(op0: Op0,
             "either provide both of search_space and "
             "make_search_space_element_valid or none.")
 
+    if not isinstance(number_of_samples, int):
+        raise ValueError(
+            f"number_of_samples must be int, but is {number_of_samples}.")
+    if not (1 <= number_of_samples <= 1_000_000):
+        raise ValueError("number_of_samples must be in 1..1_000_000, "
+                         f"but is {number_of_samples}.")
+
+    random = default_rng()
     x = search_space.create()
     if x is None:
         raise ValueError("Space must not return None.")
-
-    x = make_search_space_element_valid(x)
+    x = make_search_space_element_valid(random, x)
     if x is None:
         raise ValueError("Make valid failed.")
     search_space.validate(x)
 
-    random = default_rng()
     seen = set()
 
     if not (hasattr(op0, 'op0') and callable(getattr(op0, 'op0'))):
@@ -76,6 +85,10 @@ def validate_op0(op0: Op0,
     if not isinstance(expected, int):
         raise ValueError(f"expected number of unique values must be int,"
                          f" but is {type(expected)}.")
+    if expected > number_of_samples:
+        raise ValueError(
+            f"number of expected unique samples {expected} cannot be larger "
+            f"than total number of samples {number_of_samples}.")
     if expected <= 0:
         raise ValueError(f"expected number of unique values must be positive,"
                          f" but is {expected}.")

@@ -673,12 +673,16 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
     - Unary Operators:
       - [flip 1](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_flip1.Op1Flip1) flips one single bit
       - [flip m/n](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1) flips each bit independently with probability `m/n`
+    - Binary Operators:
+      - [uniform crossover](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op2_uniform.Op2Uniform) randomly chooses, for each bit, from which of the two source strings it will be copied
 2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
     - Nullary Operators:
       - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations
     - Unary Operators:
       - [swap 2](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2) swaps exactly two (different) values
       - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps
+    - Binary Operators:
+      - [sequence crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_sequence.Op2Sequence) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
 
 
 ### 4.3. Implemented Problems

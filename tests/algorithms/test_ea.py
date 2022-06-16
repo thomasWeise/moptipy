@@ -37,7 +37,7 @@ def test_ea_on_jssp_random():
 
 
 def test_ea_on_jssp_1_1_0():
-    """Validate the ea on the JSSP."""
+    """Validate the ea using only mutation on the JSSP."""
 
     def create(instance: Instance,
                search_space: Permutations):
@@ -51,7 +51,7 @@ def test_ea_on_jssp_1_1_0():
 
 
 def test_ea_on_jssp_10_10_03():
-    """Validate the ea on the JSSP."""
+    """Validate the ea using crossover and mutation on the JSSP."""
 
     def create(instance: Instance,
                search_space: Permutations):
@@ -60,6 +60,20 @@ def test_ea_on_jssp_10_10_03():
         return EA(Op0Shuffle(search_space), Op1Swap2(),
                   Op2Sequence(search_space),
                   10, 10, 0.3)
+
+    validate_algorithm_on_jssp(create)
+
+
+def test_ea_on_jssp_10_10_1():
+    """Validate the ea using only crossover on the JSSP."""
+
+    def create(instance: Instance,
+               search_space: Permutations):
+        assert isinstance(instance, Instance)
+        assert isinstance(search_space, Permutations)
+        return EA(Op0Shuffle(search_space), Op1Swap2(),
+                  Op2Sequence(search_space),
+                  10, 10, 1.0)
 
     validate_algorithm_on_jssp(create)
 
