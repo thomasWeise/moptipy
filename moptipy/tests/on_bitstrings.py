@@ -253,9 +253,9 @@ def validate_algorithm_on_onemax(
     for i in dimensions_for_tests():
         rr: int
         if i < 3:
-            rr = 0
+            rr = 1
         else:
-            rr = max(i // 2, i - int(max_fes ** 0.5))
+            rr = max(1, i // 2, i - int(max_fes ** 0.5))
         validate_algorithm_on_bitstrings(
             objective=OneMax,
             algorithm=algorithm,

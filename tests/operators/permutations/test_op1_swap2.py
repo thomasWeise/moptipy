@@ -1,5 +1,4 @@
 """Test the unary swap-2 operation."""
-
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.tests.on_permutations import validate_op1_on_permutations
 

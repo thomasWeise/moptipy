@@ -22,6 +22,9 @@ def validate_component(component: Component) -> None:
     if not isinstance(component, Component):
         raise ValueError("Expected to receive an instance of Component, but "
                          f"got a '{type(component)}'.")
+    if component.__class__ == Component:
+        raise ValueError(
+            "component cannot be an instance of Component directly.")
 
     name = str(component)
     if not isinstance(name, str):

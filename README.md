@@ -87,8 +87,8 @@ If this build completes successful, you can be sure that `moptipy` will work pro
 
 You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
 Here, we talk mainly about directly applying one or multiple [optimization algorithm(s)](#41-implemented-algorithms) to one or multiple [optimization problem](#43-implemented-problems) instance(s).
-In [Section 4 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
-Later, in [Section 5 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
+In [Section 5 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
+Later, in [Section 6 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
 
 
 ### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
@@ -248,7 +248,7 @@ We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptip
 We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
 The code below is available as file [examples/experiment_2_algorithms_4_problems](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html).
-Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 4.2.](#52-end-result-csv-files) for more information).
+Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 5.2.](#52-end-result-csv-files) for more information).
 
 ```python
 from moptipy.algorithms.rls import RLS
@@ -839,7 +839,7 @@ It holds key-value pairs describing features of the machine on which the experim
 This includes information about the CPU, the operating system, the Python installation, as well as the version information of packages used by moptipy.
 
 
-##### The `RESULT_*` Sections
+##### The `RESULT_` Sections
 
 The textual representation of the best encountered solution (whose objective value is noted as `bestF` in section `STATE`) is stored in the section `RESULT_Y`.
 Since we can use many different solution spaces, this section just contains raw text.
@@ -1007,7 +1007,7 @@ If you have the `moptipy` package installed, then you can call the module direct
 python3 -m moptipy.evaluation.end_results source_dir dest_file
 ```
 
-where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#511-file-names-and-folder-structure))) and `dest_file` is the path to the CSV file to write.
+where `source_dir` should be the root directory with the experimental data (see [Section 5.1.1](#511-file-names-and-folder-structure))) and `dest_file` is the path to the CSV file to write.
 
 
 #### 5.2.1. The End Results File Format
@@ -1115,7 +1115,7 @@ If you have the `moptipy` package installed, then you can call the module direct
 python3 -m moptipy.evaluation.end_statistics source dest_file
 ```
 
-where `source` should either be the root directory with the experimental data (see [Section 4.1.1](#511-file-names-and-folder-structure))) or the path to a [end results CSV file](#52-end-result-csv-files) and `dest_file` is the path to the CSV file to write.
+where `source` should either be the root directory with the experimental data (see [Section 5.1.1](#511-file-names-and-folder-structure))) or the path to a [end results CSV file](#52-end-result-csv-files) and `dest_file` is the path to the CSV file to write.
 
 
 #### 5.3.1. The End Result Statistics File Format
@@ -1246,7 +1246,7 @@ If you have the `moptipy` package installed, then you can call the module direct
 python3 -m moptipy.evaluation.ioh_analyzer source_dir dest_dir
 ```
 
-where `source_dir` should be the root directory with the experimental data (see [Section 4.1.1](#511-file-names-and-folder-structure))) and `dest_dir` is the directory where the IOHprofiler-formatted data should be written.
+where `source_dir` should be the root directory with the experimental data (see [Section 5.1.1](#511-file-names-and-folder-structure))) and `dest_dir` is the directory where the IOHprofiler-formatted data should be written.
 
 
 ### 6.2. Progress Plots

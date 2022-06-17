@@ -1,5 +1,4 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
-
 from typing import List, Final
 
 import numpy as np

@@ -1,5 +1,4 @@
 """Test the RLS."""
-# noinspection PyPackageRequirements
 from moptipy.algorithms.rls import RLS
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random

@@ -1,5 +1,4 @@
 """Test the (1+1)-FEA."""
-# noinspection PyPackageRequirements
 from moptipy.algorithms.fea1plus1 import FEA1plus1
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random

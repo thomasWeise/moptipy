@@ -1,5 +1,4 @@
 """Test the end result violin plot."""
-
 from typing import Final
 
 from matplotlib.figure import Figure  # type: ignore

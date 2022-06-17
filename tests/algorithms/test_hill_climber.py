@@ -1,5 +1,4 @@
 """Test the hill climber."""
-# noinspection PyPackageRequirements
 from moptipy.algorithms.hill_climber import HillClimber
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random

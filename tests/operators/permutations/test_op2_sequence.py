@@ -1,5 +1,4 @@
 """Test the binary sequence crossover operation."""
-
 from math import isqrt
 
 from moptipy.operators.permutations.op2_sequence import Op2Sequence

@@ -1,5 +1,4 @@
 """Test the uniform crossover operation."""
-
 from math import isqrt
 
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform

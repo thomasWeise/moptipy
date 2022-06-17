@@ -3,7 +3,6 @@ from os.path import isfile, getsize
 from typing import Final
 
 import numpy as np
-# noinspection PyPackageRequirements
 from numpy.random import Generator
 
 from moptipy.api.algorithm import CallableAlgorithm

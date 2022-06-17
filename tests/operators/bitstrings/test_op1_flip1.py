@@ -1,5 +1,4 @@
 """Test the unary 1 flip operation."""
-
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.tests.on_bitstrings import validate_op1_on_1_bitstrings, \
     bitstrings_for_tests

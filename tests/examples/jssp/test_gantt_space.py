@@ -1,5 +1,4 @@
 """Test the Gantt space."""
-
 from numpy.random import default_rng
 
 from moptipy.examples.jssp.gantt import Gantt

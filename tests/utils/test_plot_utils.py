@@ -1,5 +1,4 @@
 """Test the plot utilities."""
-
 from typing import List, Tuple, Set
 
 from matplotlib.figure import Figure, SubplotBase  # type: ignore

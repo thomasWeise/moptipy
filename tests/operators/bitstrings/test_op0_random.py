@@ -1,5 +1,4 @@
 """Test the nullary random bitstrings creation operation."""
-
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.on_bitstrings import validate_op0_on_bitstrings

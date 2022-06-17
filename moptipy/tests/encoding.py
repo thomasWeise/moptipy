@@ -59,6 +59,11 @@ def validate_encoding(encoding: Encoding,
 
     encoding.map(x1, y1)
     solution_space.validate(y1)
+    s1: str = solution_space.to_str(y1)
+    if s1 is None:
+        raise ValueError("to_str() returned None!")
+    if len(s1) <= 0:
+        raise ValueError("to_str() return empty string")
 
     y2 = solution_space.create()
     if y2 is None:
@@ -68,10 +73,17 @@ def validate_encoding(encoding: Encoding,
                          "identical points?")
     encoding.map(x1, y2)
     solution_space.validate(y2)
-
-    if is_deterministic and (not solution_space.is_equal(y1, y2)):
-        raise ValueError("Encoding must be deterministic and map "
-                         "identical points to same result.")
+    s2: str = solution_space.to_str(y2)
+    if s2 is None:
+        raise ValueError("to_str() returned None!")
+    if len(s2) <= 0:
+        raise ValueError("to_str() return empty string")
+    if is_deterministic:
+        if not solution_space.is_equal(y1, y2):
+            raise ValueError("Encoding must be deterministic and map "
+                             "identical points to same result.")
+        if s1 != s2:
+            raise ValueError(f"to_str(y1)='{s1}' but to_str(y2)='{s2}'!")
 
     x2 = search_space.create()
     if x2 is None:
@@ -88,7 +100,15 @@ def validate_encoding(encoding: Encoding,
 
     encoding.map(x2, y2)
     solution_space.validate(y2)
+    s2 = solution_space.to_str(y2)
+    if s2 is None:
+        raise ValueError("to_str() returned None!")
+    if len(s2) <= 0:
+        raise ValueError("to_str() return empty string")
 
-    if is_deterministic and not solution_space.is_equal(y1, y2):
-        raise ValueError("Encoding must be deterministic and map "
-                         "equal points to same result.")
+    if is_deterministic:
+        if not solution_space.is_equal(y1, y2):
+            raise ValueError("Encoding must be deterministic and map "
+                             "equal points to same result.")
+        if s1 != s2:
+            raise ValueError(f"to_str(y1)='{s1}' but to_str(y2)='{s2}'!")

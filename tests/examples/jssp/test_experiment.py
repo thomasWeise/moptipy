@@ -1,5 +1,4 @@
 """Test the demo functions."""
-
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.experiment import DEFAULT_ALGORITHMS, \

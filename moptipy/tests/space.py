@@ -6,6 +6,7 @@ from pytest import raises
 
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
+from moptipy.utils.logger import SECTION_START, SECTION_END, COMMENT_CHAR
 
 
 def validate_space(
@@ -84,6 +85,15 @@ def validate_space(
         raise ValueError(
             "space.to_str(x) must not include leading or trailing spaces,"
             f" but we go '{strstr}'.")
+    if SECTION_START in strstr:
+        raise ValueError(f"space.to_str() must not include "
+                         f"'{SECTION_START}', but is '{strstr}'.")
+    if SECTION_END in strstr:
+        raise ValueError(f"space.to_str() must not include "
+                         f"'{SECTION_END}', but is '{strstr}'.")
+    if COMMENT_CHAR in strstr:
+        raise ValueError(f"space.to_str() must not include "
+                         f"'{COMMENT_CHAR}', but is '{strstr}'.")
 
     if not (hasattr(space, 'from_str')
             and callable(getattr(space, 'from_str'))):

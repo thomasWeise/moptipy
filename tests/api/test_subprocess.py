@@ -1,7 +1,4 @@
 """Test the Sub-Process API."""
-
-# noinspection PyPackageRequirements
-
 from typing import Union
 
 from moptipy.algorithms.ea import EA

@@ -1,5 +1,4 @@
 """Test random sampling."""
-# noinspection PyPackageRequirements
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random

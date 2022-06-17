@@ -1,5 +1,4 @@
 """Test the hill climber with restarts."""
-# noinspection PyPackageRequirements
 from moptipy.algorithms.hill_climber_with_restarts import \
     HillClimberWithRestarts
 from moptipy.examples.jssp.instance import Instance
