@@ -1,4 +1,37 @@
-"""A generalized version of the Order Crossover operator."""
+"""
+The Order-based Crossover operator.
+
+Larrañaga et al. describe this operator as follows:
+
+The order-based crossover operator by Syswerda (1991) selects at random
+several positions in a parent tour, and the order of the cities in the
+selected positions of this parent is imposed on the other parent. For
+example, consider the parents `12345678` and `24687531`. Suppose that in the
+second parent the second, third, and sixth positions are selected. The values
+in these positions are `4`, `6`, and `5` respectively. In the first parent
+these cities are present at the fourth, fifth and sixth positions.
+Now the offspring is equal to parent 1 except in the fourth, fifth and sixth
+positions: `123xxx78`. We add the missing cities to the offspring in the same
+order in which they appear in the second parent tour. This results in
+`12346578`. Exchanging the role of the first parent and the second parent
+gives, using the same selected positions, `24387561`.
+
+We implement it such that each position has the same chance to be chosen by
+either parents, i.e., the total number of positions copied from the parents
+is binomially distributed with `p=0.5`, but we ensure that at least two
+positions are copied from either parents (as the result would otherwise
+necessarily equal one of the parents). We also switch the role of the two
+parents in our implementation.
+
+1. G. Syswerda. Schedule Optimization Using Genetic Algorithms. In Lawrence
+   Davis, L. (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
+   New York: Van Nostrand Reinhold.
+2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and
+   S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
+   Review of Representations and Operators. *Artificial Intelligence Review,*
+   13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
+   https://doi.org/10.1023/A:1006529012972
+"""
 from typing import Final, Callable
 
 import numpy as np
@@ -11,13 +44,13 @@ from moptipy.utils.types import type_error
 
 
 # start book
-class Op2Order(Op2):
-    """A generalized version of the order crossover operator."""
+class Op2OrderBased(Op2):
+    """The order-based crossover operator."""
 
     def op2(self, random: Generator, dest: np.ndarray,
             x0: np.ndarray, x1: np.ndarray) -> None:
         """
-        Apply generalized order crossover from `x0` and `x1` to `dest`.
+        Apply the order-based crossover from `x0` and `x1` to `dest`.
 
         :param random: the random number generator
         :param dest: the array to receive the result
@@ -37,11 +70,11 @@ class Op2Order(Op2):
         # start book
         while True:  # sample the number of values to copy from x0
             copy_from_x0 = rbin(length, 0.5)  # p=0.5 for each value
-            if 1 < copy_from_x0 < (length - 1):  # ensure difference
-                break                      # from each parent
-        copy_from_x0 = length - copy_from_x0  # compute end index
+            if 1 < copy_from_x0 < (length - 1):  # ensure difference by
+                break  # copying at least two values from each parent
+        copy_from_x0 = length - copy_from_x0  # compute end index-index
 
-        i: int = length  # this is the index we iterate over
+        i: int = length  # the index into indices we iterate over
         mode: bool = True  # mode: True = copy from x0, False = from x1
         x1i: int = 0  # the index of the next unused value from x1
         while True:  # loop until we are finished
@@ -51,7 +84,7 @@ class Op2Order(Op2):
             indices[i], indices[index_i] = index, indices[i]  # swap
 
             if mode:  # copy from x0 to dest
-                dest[index] = value = x0[index]  # get value
+                dest[index] = value = x0[index]  # get and store value
                 for x1j in range(x1i, length):  # mark as used
                     if (x1[x1j] == value) and (not x1_done[x1j]):
                         x1_done[x1j] = True  # mark value as used
@@ -91,7 +124,8 @@ class Op2Order(Op2):
         """
         Get the name of this binary operator.
 
-        :returns: "order", the name of this operator
-        :retval "order": always
+        :returns: "ox2", for "order-based crossover", the name of this
+            operator
+        :retval "ox2": always
         """
-        return "order"
+        return "ox2"

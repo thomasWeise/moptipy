@@ -10,7 +10,8 @@ from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.operators.permutations.op2_sequence import Op2Sequence
+from moptipy.operators.permutations.op2_gap import \
+    Op2GeneralizedAlternatingPosition
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax, \
@@ -28,7 +29,7 @@ def test_ea_on_jssp_random():
         random: Generator = default_rng()
         mu: Final[int] = int(random.integers(1, 12))
         return EA(Op0Shuffle(search_space), Op1Swap2(),
-                  Op2Sequence(search_space),
+                  Op2GeneralizedAlternatingPosition(search_space),
                   mu, int(random.integers(1, 12)),
                   0.0 if mu <= 1 else float(random.random()))
 
@@ -43,7 +44,7 @@ def test_ea_on_jssp_1_1_0():
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         return EA(Op0Shuffle(search_space), Op1Swap2(),
-                  Op2Sequence(search_space),
+                  Op2GeneralizedAlternatingPosition(search_space),
                   1, 1, 0.0)
 
     validate_algorithm_on_jssp(create)
@@ -57,7 +58,7 @@ def test_ea_on_jssp_10_10_03():
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         return EA(Op0Shuffle(search_space), Op1Swap2(),
-                  Op2Sequence(search_space),
+                  Op2GeneralizedAlternatingPosition(search_space),
                   10, 10, 0.3)
 
     validate_algorithm_on_jssp(create)
@@ -71,7 +72,7 @@ def test_ea_on_jssp_10_10_1():
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         return EA(Op0Shuffle(search_space), Op1Swap2(),
-                  Op2Sequence(search_space),
+                  Op2GeneralizedAlternatingPosition(search_space),
                   10, 10, 1.0)
 
     validate_algorithm_on_jssp(create)

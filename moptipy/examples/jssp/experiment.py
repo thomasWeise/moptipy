@@ -22,8 +22,9 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
-from moptipy.operators.permutations.op2_order import Op2Order
-from moptipy.operators.permutations.op2_sequence import Op2Sequence
+from moptipy.operators.permutations.op2_gap import \
+    Op2GeneralizedAlternatingPosition
+from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
@@ -94,13 +95,15 @@ for muexp in range(0, 8):
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2(), Op2Sequence(pwr),
+                        Op0Shuffle(pwr), Op1Swap2(),
+                        Op2OrderBased(pwr),
                         mm, ll, bb))  # EA with crossover
                 )
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2(), Op2Order(pwr),
+                        Op0Shuffle(pwr), Op1Swap2(),
+                        Op2GeneralizedAlternatingPosition(pwr),
                         mm, ll, bb))  # EA with crossover
                 )
 
