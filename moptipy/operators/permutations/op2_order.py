@@ -6,7 +6,7 @@ from numpy.random import Generator
 
 from moptipy.api.operators import Op2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.nputils import DEFAULT_BOOL
+from moptipy.utils.nputils import DEFAULT_BOOL, DEFAULT_INT
 from moptipy.utils.types import type_error
 
 
@@ -25,40 +25,47 @@ class Op2Order(Op2):
         :param x1: the second existing point in the search space
         """
         # end book
-        done: Final[np.ndarray] = self.__done
-        done.fill(False)  # no value is stored in dest yet
+        indices: Final[np.ndarray] = self.__indices
         x1_done: Final[np.ndarray] = self.__x1_done
         x1_done.fill(False)  # all values in x1 are available
         ri: Final[Callable[[int], int]] = random.integers
-        length: Final[int] = len(done)  # get length of string
-        length_minus_1: Final[int] = length - 1
+        rbin: Final[Callable[[int, float], int]] = random.binomial
+        length: Final[int] = len(indices)  # get length of string
+        copy_from_x0: int  # the end index of copying from x0
+        value: int  # the current value to be written to dest
 
         # start book
-        x1i: int = 0  # first valid value in x1 is at index 0
-        for i in range(length):  # enumerate along x0 and dest
-            if ri(2) == 0:  # copy value from x0 with probability 0.5
-                continue  # skip value with probability 0.5
-            value: int = x0[i]  # get value from first permutation
-            dest[i] = value  # copy value to dest
-            done[i] = True  # mark element of dest as done
+        while True:  # sample the number of values to copy from x0
+            copy_from_x0 = rbin(length, 0.5)  # p=0.5 for each value
+            if 1 < copy_from_x0 < (length - 1):  # ensure difference
+                break                      # from each parent
+        copy_from_x0 = length - copy_from_x0  # compute end index
 
-            for x1j in range(x1i, length):  # mark value as done in x1
-                if (x1[x1j] == value) and (not x1_done[x1j]):  # find
-                    x1_done[x1j] = True  # value is found and not done
-                    break  # so we mark it as done and break the loop
-            if i >= length_minus_1:
-                break  # if we are finished, then quit
-            while x1_done[x1i]:  # now we find the next not-yet-done
-                x1i = x1i + 1    # value in x1
+        i: int = length  # this is the index we iterate over
+        mode: bool = True  # mode: True = copy from x0, False = from x1
+        x1i: int = 0  # the index of the next unused value from x1
+        while True:  # loop until we are finished
+            index_i: int = ri(i)  # pick a random index-index
+            index: int = indices[index_i]  # load the actual index
+            i = i - 1  # reduce the number of values
+            indices[i], indices[index_i] = index, indices[i]  # swap
 
-        x1i = 0  # ok, now let's fill the remaining positions in dest
-        for i, not_needed in enumerate(done):  # iterate over done
-            if not_needed:  # if a position in dest is already filled..
-                continue  # ...then skip over it
-            while x1_done[x1i]:  # ok, position is not filled, so find
-                x1i = x1i + 1  # the first value in x1i not yet used
-            dest[i] = x1[x1i]  # and store it in dest
-            x1i = x1i + 1   # and move on to the next value
+            if mode:  # copy from x0 to dest
+                dest[index] = value = x0[index]  # get value
+                for x1j in range(x1i, length):  # mark as used
+                    if (x1[x1j] == value) and (not x1_done[x1j]):
+                        x1_done[x1j] = True  # mark value as used
+                        break  # exit inner loop
+                if copy_from_x0 == i:  # are we done with copying?
+                    mode = False  # set mode to load from x1
+                    x1i = 0  # reset x1 index
+            else:  # go to next iteration
+                dest[index] = x1[x1i]  # and store it in dest
+                if i == 0:  # check if we are done
+                    return  # ok, we are finished
+                x1i = x1i + 1  # and move on to the next value
+            while x1_done[x1i]:  # step x1i to next unused value
+                x1i = x1i + 1  # increment
     # end book
 
     def __init__(self, space: Permutations) -> None:
@@ -70,9 +77,12 @@ class Op2Order(Op2):
         super().__init__()
         if not isinstance(space, Permutations):
             raise type_error(space, "space", Permutations)
-        #: the elements that are done in `x0` and `dest`
-        self.__done: Final[np.ndarray] = np.ndarray(
-            (space.dimension, ), DEFAULT_BOOL)
+        if space.dimension < 4:
+            raise ValueError(
+                f"dimension must be > 3, but got {space.dimension}.")
+        #: the valid indices
+        self.__indices: Final[np.ndarray] = np.array(
+            range(space.dimension), DEFAULT_INT)
         #: the elements that are done in `x1`
         self.__x1_done: Final[np.ndarray] = np.ndarray(
             (space.dimension, ), DEFAULT_BOOL)

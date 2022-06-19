@@ -10,6 +10,8 @@ def test_op2_order():
     """Test the binary order crossover operation."""
     cumm_size: int = 0
     for pwr in permutations_for_tests():
+        if pwr.dimension < 4:
+            continue  # too small, skip
         if pwr.dimension > 50:  # too big, takes too long
             if (pwr.dimension > 100) or (cumm_size > 200):
                 continue
