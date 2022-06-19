@@ -683,6 +683,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
       - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps
     - Binary Operators:
       - [sequence crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_sequence.Op2Sequence) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
+      - [order crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_order.Op2Order) randomly selects a set of indices and copies the elements from first source permutation to the same indices in the destination string. It then copies the remaining elements from the second source, maintaining the order in which they appear in the second source string.
 
 
 ### 4.3. Implemented Problems
