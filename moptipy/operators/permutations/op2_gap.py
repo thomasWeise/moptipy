@@ -8,22 +8,24 @@ value not yet marked as done from `x` in `dest[i]`, mark that value as
 done both in `x0` and `x1`.
 
 This operator is a generalized version of the Alternating Position Crossover
-operator (AP) of Larrañaga et al. (1997). The original AP operator, as
-described by Larrañaga et al., simply creates an offspring by selecting
-alternately the next element of the fist parent and the next element of the
-second parent, omitting the elements already present in the offspring. For
-example, if `x0` is `12345678` and `x1` is `37516824`, the AP operator gives
-the following offspring `13275468`. Exchanging the parents results in
-`31725468`.
+operator (AP) for the Traveling Salesperson Problem by Larrañaga et al.
+(1997). The original AP operator, as described by Larrañaga et al., simply
+creates an offspring by selecting alternately the next element of the fist
+parent and the next element of the second parent, omitting the elements
+already present in the offspring. For example, if `x0` is `12345678` and
+`x1` is `37516824`, the AP operator gives the following offspring `13275468`.
+Exchanging the parents results in `31725468`.
 
 Our generalized version randomly decides which of the two parent permutations
 to use each time, hopefully resulting in a greater variety of possible results.
+As mnemonic for the operator, we use `gap`. Larrañaga et al. used `AP` for the
+version of the operator that strictly alternates between parents.
 
 1. Pedro Larrañaga, Cindy M. H. Kuijpers, Mikel Poza, and Roberto H. Murga.
    Decomposing Bayesian Networks: Triangulation of the Moral Graph with Genetic
    Algorithms, *Statistics and Computing,* 7(1):19–34, March 1997,
    https://doi.org/10.1023/A:1018553211613
-2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and
+2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, Iñaki Inza, and
    S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
    Review of Representations and Operators. *Artificial Intelligence Review,*
    13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.

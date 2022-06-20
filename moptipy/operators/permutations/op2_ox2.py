@@ -16,17 +16,20 @@ order in which they appear in the second parent tour. This results in
 `12346578`. Exchanging the role of the first parent and the second parent
 gives, using the same selected positions, `24387561`.
 
-We implement it such that each position has the same chance to be chosen by
-either parents, i.e., the total number of positions copied from the parents
-is binomially distributed with `p=0.5`, but we ensure that at least two
-positions are copied from either parents (as the result would otherwise
-necessarily equal one of the parents). We also switch the role of the two
-parents in our implementation.
+We implement this operator such that each position has the same chance to be
+chosen by either parents, i.e., the total number of positions copied from
+the parents is binomially distributed with `p=0.5`, but we ensure that at
+least two positions are copied from either parents (as the result would
+otherwise necessarily equal one of the parents). We also switch the role of
+the two parents in our implementation.
+
+As mnemonic for the operator, we use `ox2`, similar to Larrañaga et al., who
+used `OX2`.
 
 1. G. Syswerda. Schedule Optimization Using Genetic Algorithms. In Lawrence
    Davis, L. (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
    New York: Van Nostrand Reinhold.
-2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and
+2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, Iñaki Inza, and
    S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
    Review of Representations and Operators. *Artificial Intelligence Review,*
    13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.

@@ -9,6 +9,36 @@ be true for actual permutations if `i1 != i2`, but for permutations with
 repetitions, even if `i1 != i2`, sometimes `dest[i1] == dest[i2]`. Anyway,
 as soon as the elements at `i1` and `i2` are different, they will be swapped.
 
+This operator is very well-known for permutations and has been used by many
+researchers, e.g., for the Traveling Salesperson Problem (TSP). In the papers
+by Larrañaga et al. (1999) and Banzhaf (1990), it is called "Exchange
+Mutation." It is also referred to as the "swap mutation" (Oliver et al. 1987),
+point mutation operator (Ambati et al. 1991), the reciprocal exchange mutation
+operator (Michalewicz 1992), or the order based mutation operator by Syswerda
+(1991).
+
+1. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and
+   S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
+   Review of Representations and Operators. *Artificial Intelligence Review,*
+   13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
+   https://doi.org/10.1023/A:1006529012972
+2. Wolfgang Banzhaf. The "Molecular" Traveling Salesman. *Biological
+   Cybernetics*, 64(1):7–14, November 1990, https://doi.org/10.1007/BF00203625
+3. I.M. Oliver, D.J. Smith, and J.R.C. Holland. A Study of Permutation
+   Crossover Operators on the Traveling Salesman Problem. In *Proceedings of
+   the Second International Conference on Algorithms and their Application*
+   (ICGA'87), October 1987, pages 224-230,
+   https://dl.acm.org/doi/10.5555/42512.42542
+4. Balamurali Krishna Ambati, Jayakrishna Ambati, and Mazen Moein Mokhtar.
+   Heuristic Combinatorial Optimization by Simulated Darwinian Evolution: A
+   Polynomial Time Algorithm for the Traveling Salesman Problem. *Biological
+   Cybernetics,* 65(1):31–35, May 1991, https://doi.org/10.1007/BF00197287
+5. Zbigniew Michalewicz. *Genetic Algorithms + Data Structures = Evolution
+   Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5
+6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
+   Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
+   New York: Van Nostrand Reinhold.
+
 This operator performs one swap. It is similar to :class:`~moptipy.operators.\
 permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
 """
