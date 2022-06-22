@@ -26,6 +26,7 @@ pyroma >= 4.0
 semgrep >= 0.98.0
 tryceratops >= 1.1.0
 unimport >= 0.9.6
+vulture >= 2.4
 
 # yaml is used only in tests and examples and therefore not strictly needed.
 pyyaml >= 6.0

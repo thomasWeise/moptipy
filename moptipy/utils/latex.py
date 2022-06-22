@@ -60,8 +60,7 @@ class LaTeX(TextFormatDriver):
         stream.write("\\hrow%\n")
 
     def end_table_section(self, stream: TextIOBase, cols: str,
-                          section_index: int, had_header: bool,
-                          n_rows: int) -> None:
+                          section_index: int, n_rows: int) -> None:
         """End a table section."""
         stream.write("\\hrow%\n")
 

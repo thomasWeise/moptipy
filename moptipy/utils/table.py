@@ -118,10 +118,10 @@ class Table(AbstractContextManager):
             raise ValueError("cannot end a section before a row.")
         if self.__row_state <= 1:
             raise ValueError("cannot end section inside of row.")
-        self.__driver.end_table_section(self.__stream, self.__cols,
-                                        self.__section_index,
-                                        self.__section_header_state == 2,
-                                        self.__row_index)
+        self.__driver.end_table_section(
+            self.__stream, self.__cols, self.__section_index,
+            #  had_header is not used: self.__section_header_state == 2,
+            self.__row_index)
         self.__row_index = 0
         self.__section_state = 2
         self.__section_header_state = 0

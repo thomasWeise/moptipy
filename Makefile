@@ -86,6 +86,8 @@ static_analysis: init
     unimport moptipy &&\
     unimport examples &&\
     unimport tests &&\
+    echo "Done with unimport, now applying vulture." &&\
+    vulture . --min-confidence 61 &&\
     echo "Done: All static checks passed."
 
 # We use sphinx to generate the documentation.

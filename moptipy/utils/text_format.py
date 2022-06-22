@@ -120,7 +120,7 @@ class TextFormatDriver:
         """
 
     def end_table_section(self, stream: TextIOBase, cols: str,
-                          section_index: int, had_header: bool,
+                          section_index: int,
                           n_rows: int) -> None:
         """
         End a section of the table.
@@ -129,7 +129,6 @@ class TextFormatDriver:
         :param cols: the column definition
         :param section_index: the index of the section, `0` for the first
             section
-        :param had_header: did the section have a header?
         :param n_rows: the number of rows that were written in the section
         """
 
