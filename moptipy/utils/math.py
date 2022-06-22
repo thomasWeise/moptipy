@@ -256,10 +256,10 @@ def try_int_root(value: int, power: int,
         rest: Union[int, float] = try_int_div(value, root_power)
         rest_root: Union[int, float] = __try_int(rest ** (1.0 / power))
         root = __try_int(root * rest_root)
-    except OverflowError as ofe:
+    except OverflowError:  # as ofe:
         if none_on_overflow:
             return None
-        raise ofe
+        raise  # raises ofe again
 
     # OK, we got an approximate root of what remains of value.
     # Let's see if we can refine it.

@@ -7,6 +7,7 @@ from pytest import raises
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
 from moptipy.utils.logger import SECTION_START, SECTION_END, COMMENT_CHAR
+from moptipy.utils.types import type_error
 
 
 def validate_space(
@@ -21,11 +22,12 @@ def validate_space(
         space into a valid point
     :param make_element_invalid: a method can a valid point from the
         space into an invalid one
-    :raises ValueError: if `space` is not a valid Space
+    :raises ValueError: if `space` is not a valid instance of
+        :class:`~moptipy.api.space.Space`
+    :raises TypeError: if incorrect types are encountered
     """
     if not isinstance(space, Space):
-        raise ValueError("Expected to receive an instance of Space, but "
-                         f"got a {type(space)}.")
+        raise type_error(space, "space", Space)
     check_space(space)
     validate_component(space)
 
@@ -74,9 +76,7 @@ def validate_space(
         raise ValueError("space must have method to_str.")
     strstr = space.to_str(x1)
     if not isinstance(strstr, str):
-        raise ValueError(
-            "space.to_str(x) must produce instances of str, but created "
-            f"an instance of {type(strstr)}.")
+        raise type_error(strstr, f"space.to_str(x) for {x1}", str)
     if len(strstr) <= 0:
         raise ValueError(
             "space.to_str(x) must not produce empty strings, "

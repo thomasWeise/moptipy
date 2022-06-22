@@ -499,7 +499,7 @@ class _InnerLogParser(ExperimentParser):
     def lines(self, lines: List[str]) -> bool:
         data = parse_key_values(lines)
         if not isinstance(data, dict):
-            raise ValueError("Error when parsing data.")
+            raise type_error(data, "data", dict)
 
         if (self.__state & 4) != 0:
             if _FULL_KEY_GOAL_F in data:

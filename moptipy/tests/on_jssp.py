@@ -75,23 +75,17 @@ def validate_algorithm_on_1_jssp(
     if instance is None:
         instance = str(default_rng().choice(Instance.list_resources()))
     if not isinstance(instance, str):
-        raise ValueError("JSSP instance must either be a string or none, "
-                         f"but is a {type(instance)}.")
+        raise type_error(instance, "JSSP instance name", (str, None))
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
-        raise ValueError(
-            f"Error when loading JSSP instance '{instance}', "
-            f"obtained {type(inst)} instead.")
+        raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
 
     search_space = Permutations.with_repetitions(inst.jobs,
                                                  inst.machines)
     if callable(algorithm):
         algorithm = algorithm(inst, search_space)
     if not isinstance(algorithm, Algorithm):
-        raise ValueError(
-            "'algorithm' parameter must be a callable that instantiates "
-            f"an algorithm for JSSP instance '{instance}', but it created a "
-            f"'{type(algorithm)}' instead.")
+        raise type_error(algorithm, "algorithm", Algorithm, call=True)
 
     solution_space = GanttSpace(inst)
     encoding = OperationBasedEncoding(inst)
@@ -139,13 +133,10 @@ def validate_objective_on_1_jssp(
     if instance is None:
         instance = str(default_rng().choice(Instance.list_resources()))
     if not isinstance(instance, str):
-        raise ValueError("JSSP instance must either be a string or none, "
-                         f"but is a {type(instance)}.")
+        raise type_error(instance, "JSSP instance name", (str, None))
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
-        raise ValueError(
-            f"Error when loading JSSP instance '{instance}', "
-            f"obtained {type(inst)} instead.")
+        raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
 
     if callable(objective):
         objective = objective(inst)

@@ -51,7 +51,7 @@ class Logger(AbstractContextManager):
         :param name: the name of the logger
         """
         if not isinstance(name, str):
-            raise ValueError(f"Name must be string but is {type(name)}.")
+            raise type_error(name, "name", str)
         if stream is None:
             raise ValueError("stream must be valid stream but is None.")
         if not isinstance(stream, TextIOBase):
@@ -274,7 +274,7 @@ class FileLogger(Logger):
         :param path: the path to the file to open
         """
         if not isinstance(path, str):
-            raise ValueError("Path must be string but is {type(path)}.")
+            raise type_error(path, "path", str)
         name = path
         path = realpath(path)
         super().__init__(stream=Path.path(path).open_for_write(),

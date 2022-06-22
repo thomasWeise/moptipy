@@ -62,7 +62,7 @@ static_analysis: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "PATH is now '${PATH}'." &&\
 	echo "Running static code analysis, starting with flake8." && \
-    flake8 . --ignore=W503 && \
+    flake8 . --ignore=W503,TC003,TC101 && \
     echo "Finished running flake8, now applying pylint to package." &&\
     pylint moptipy --disable=C0103,C0302,C0325,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
     echo "Done with pylint, now trying mypy." &&\
@@ -71,12 +71,21 @@ static_analysis: init
     python3 -m pyflakes . &&\
     echo "Done with pyflakes, now applying bandit to find security issues." &&\
     bandit -r moptipy -s B311 &&\
+    bandit -r examples -s B311 &&\
     echo "Done with bandit, now using pyroma to check setup.py." &&\
     pyroma . &&\
     echo "Done with pyroma, now applying semgrep." &&\
     (semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto || semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto --verbose) &&\
     echo "Done with semgrep, now applying pydocstyle." &&\
     pydocstyle --convention=pep257 &&\
+    echo "Done with pydocstype, now applying tryceratops." &&\
+    tryceratops -i TC003 -i TC101 moptipy &&\
+    tryceratops -i TC003 -i TC101 examples &&\
+    tryceratops -i TC003 -i TC101 tests &&\
+    echo "Done with tryceratops, now applying unimport." &&\
+    unimport moptipy &&\
+    unimport examples &&\
+    unimport tests &&\
     echo "Done: All static checks passed."
 
 # We use sphinx to generate the documentation.

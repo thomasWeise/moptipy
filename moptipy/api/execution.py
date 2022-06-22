@@ -17,6 +17,7 @@ from moptipy.api.process import check_max_fes, check_max_time_millis, \
 from moptipy.api.space import Space, check_space
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error
 
 
 def _check_log_file(log_file: Optional[str],
@@ -206,8 +207,7 @@ class Execution:
         :param log_improvements: if improvements should be logged?
         """
         if not isinstance(log_improvements, bool):
-            raise ValueError("log improvements must be bool, but is "
-                             f"{type(log_improvements)}.")
+            raise type_error(log_improvements, "log_improvements", bool)
         self.__log_improvements = log_improvements
 
     def set_log_all_fes(self, log_all_fes: bool = True) -> None:
@@ -217,8 +217,7 @@ class Execution:
         :param log_all_fes: if all FEs should be logged?
         """
         if not isinstance(log_all_fes, bool):
-            raise ValueError(
-                f"log_all_FEs must be bool, but is {type(log_all_fes)}.")
+            raise type_error(log_all_fes, "log_all_fes", bool)
         self.__log_all_fes = log_all_fes
 
     def execute(self) -> Process:

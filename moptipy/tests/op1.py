@@ -7,6 +7,7 @@ from numpy.random import default_rng, Generator
 from moptipy.api.operators import Op1, check_op1
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
+from moptipy.utils.types import type_error
 
 
 def validate_op1(op1: Op1,
@@ -26,11 +27,12 @@ def validate_op1(op1: Op1,
         space valid
     :param number_of_samples: the number of times to invoke the operator
     :param min_unique_samples: a lambda for computing the number
-    :raises ValueError: if `op1` is not a valid `Op1`
+    :raises ValueError: if `op1` is not a valid instance of
+        :class:`~moptipy.api.operators.Op1`
+    :raises TypeError: if incorrect types are encountered
     """
     if not isinstance(op1, Op1):
-        raise ValueError("Expected to receive an instance of Op1, but "
-                         f"got a {type(op1)}.")
+        raise type_error(op1, "op1", Op1)
     if op1.__class__ == Op1:
         raise ValueError("Cannot use abstract base Op1 directly.")
     check_op1(op1)
@@ -49,8 +51,7 @@ def validate_op1(op1: Op1,
             "make_search_space_element_valid or none.")
 
     if not isinstance(number_of_samples, int):
-        raise ValueError(
-            f"number_of_samples must be int, but is {number_of_samples}.")
+        raise type_error(number_of_samples, "number_of_samples", int)
     if not (1 <= number_of_samples <= 1_000_000):
         raise ValueError("number_of_samples must be in 1..1_000_000, "
                          f"but is {number_of_samples}.")
@@ -96,8 +97,7 @@ def validate_op1(op1: Op1,
     else:
         expected = min_unique_samples
     if not isinstance(expected, int):
-        raise ValueError(f"expected number of unique values must be int,"
-                         f" but is {type(expected)}.")
+        raise type_error(expected, "expected", int)
     if expected > number_of_samples:
         raise ValueError(
             f"number of expected unique samples {expected} cannot be larger "

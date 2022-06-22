@@ -326,14 +326,14 @@ class _ProcessNoSS(_ProcessBase):
         try:
             ff = self._f(self._current_best_y)
             if ff != self._current_best_f:
-                raise ValueError(
+                raise ValueError(  # noqa
                     "We re-computed the objective value of the best solution"
                     f"and got {ff}, but it has been registered as "
-                    f"{self._current_best_f}!")
+                    f"{self._current_best_f}!")  # noqa
             if not isfinite(ff):
-                raise ValueError(
+                raise ValueError(  # noqa
                     f"Reproduced the objective value {ff} of the best "
-                    "solution, but it is not finite?")
+                    "solution, but it is not finite?")  # noqa
         except BaseException as be:
             v_error = be
         try:

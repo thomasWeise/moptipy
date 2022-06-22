@@ -7,6 +7,7 @@ from numpy.random import default_rng, Generator
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
+from moptipy.utils.types import type_error
 
 
 def validate_objective(
@@ -31,11 +32,12 @@ def validate_objective(
     :param upper_bound_threshold: the threshold for the upper bound
     :param must_be_equal_to: an optional function that should return the
         exactly same values as the objective function
-    :raises ValueError: if `objective` is not a valid Objective
+    :raises ValueError: if `objective` is not a valid
+        :class:`~moptipy.api.objective.Objective`
+    :raises TypeError: if values of the wrong types are encountered
     """
     if not isinstance(objective, Objective):
-        raise ValueError("Expected to receive an instance of Objective, but "
-                         f"got a {type(objective)}.")
+        raise type_error(objective, "objective", Objective)
     check_objective(objective)
     validate_component(objective)
 
@@ -44,8 +46,7 @@ def validate_objective(
         raise ValueError("objective must have method lower_bound.")
     lower = objective.lower_bound()
     if not (isinstance(lower, (int, float))):
-        raise ValueError("lower_bound() must return an int or float, but "
-                         f"returned a {type(lower)}.")
+        raise type_error(lower, "lower_bound()", (int, float))
     if (not isfinite(lower)) and (not (lower <= (-inf))):
         raise ValueError(
             f"lower bound must be finite or -inf, but is {lower}.")
@@ -58,8 +59,7 @@ def validate_objective(
         raise ValueError("objective must have method upper_bound.")
     upper = objective.upper_bound()
     if not (isinstance(upper, (int, float))):
-        raise ValueError("upper_bound() must return an int or float, but "
-                         f"returned a {type(upper)}.")
+        raise type_error(upper, "upper_bound()", (int, float))
     if (not isfinite(upper)) and (not (upper >= inf)):
         raise ValueError(
             f"upper bound must be finite or +inf, but is {upper}.")
@@ -96,8 +96,7 @@ def validate_objective(
         raise ValueError("objective must have method evaluate.")
     res = objective.evaluate(x)
     if not (isinstance(res, (int, float))):
-        raise ValueError(f"evaluate(x) of {x} must return an int or float, "
-                         f"but returned a {type(res)}.")
+        raise type_error(res, f"evaluate(x) of {x}", (int, float))
 
     if (res < lower) or (res > upper):
         raise ValueError(f"evaluate(x) of {x} must return a value in"
@@ -110,8 +109,7 @@ def validate_objective(
 
     res2 = objective.evaluate(x)
     if not (isinstance(res2, (int, float))):
-        raise ValueError(f"evaluate(x) of {x} must return an int or float, "
-                         f"but returned a {type(res2)}.")
+        raise type_error(res2, f"evaluate(x) of {x}", (int, float))
 
     if (res2 < lower) or (res2 > upper):
         raise ValueError(f"evaluate(x) of {x} must return a value in"

@@ -4,6 +4,7 @@ from typing import Callable, Optional, Any
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
+from moptipy.utils.types import type_error
 
 
 def validate_encoding(encoding: Encoding,
@@ -23,10 +24,11 @@ def validate_encoding(encoding: Encoding,
     :param is_deterministic: is the mapping deterministic?
     :raises ValueError: if `encoding` is not a valid
         :class:`~moptipy.api.encoding.Encoding`
+    :raises TypeError: if `encoding` is of the wrong type or a wrong type is
+        encountered
     """
     if not isinstance(encoding, Encoding):
-        raise ValueError("Expected to receive an instance of Encoding, but "
-                         f"got a {type(encoding)}.")
+        raise type_error(encoding, "encoding", Encoding)
     check_encoding(encoding)
     validate_component(encoding)
 

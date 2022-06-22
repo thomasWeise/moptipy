@@ -169,8 +169,7 @@ def plot_end_results(
 
         value: Union[int, float] = getter(res)
         if not isinstance(value, (int, float)):
-            raise ValueError(
-                f"value must be int or float, but is {type(value)}.")
+            raise type_error(value, "value", (int, float))
         inst_algo_data.append(value)
         y_axis.register_value(value)
 

@@ -6,7 +6,6 @@ from math import inf, ceil
 from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
 
 import moptipy.api.logging as log
-import moptipy.utils.types
 from moptipy.evaluation._utils import _check_max_time_millis
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
     MultiRunData, KEY_N
@@ -18,7 +17,7 @@ from moptipy.utils.help import help_screen
 from moptipy.utils.logger import SCOPE_SEPARATOR, CSV_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
-from moptipy.utils.strings import str_to_intfloat, sanitize_name
+from moptipy.utils.strings import str_to_intfloat, sanitize_name, num_to_str
 from moptipy.utils.types import type_error, type_name_of
 
 #: The key for the best F.
@@ -762,7 +761,7 @@ class EndStatistics(MultiRunData):
             out.write("\n")
 
             csv: Final[Callable] = Statistics.value_to_csv
-            num: Final[Callable] = moptipy.utils.strings.num_to_str
+            num: Final[Callable] = num_to_str
 
             for er in data:
                 if has_algorithm:

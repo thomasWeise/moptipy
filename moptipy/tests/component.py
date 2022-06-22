@@ -7,7 +7,7 @@ from moptipy.utils.logger import InMemoryLogger
 from moptipy.utils.logger import SECTION_END, SECTION_START, \
     KEY_VALUE_SEPARATOR
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_name_of
+from moptipy.utils.types import type_name_of, type_error
 
 
 def validate_component(component: Component) -> None:
@@ -17,19 +17,20 @@ def validate_component(component: Component) -> None:
     This test checks the conversion to string and the logging of parameters.
 
     :param component: the component to test
-    :raises ValueError: if `component` is not a valid Component
+    :raises ValueError: if `component` is not a valid
+        :class:`~moptipy.api.component.Component` instance
+    :raises TypeError: if a type is wrong or `component` is not even an
+        instance of :class:`~moptipy.api.component.Component`
     """
     if not isinstance(component, Component):
-        raise ValueError("Expected to receive an instance of Component, but "
-                         f"got a '{type(component)}'.")
+        raise type_error(component, "component", Component)
     if component.__class__ == Component:
         raise ValueError(
             "component cannot be an instance of Component directly.")
 
     name = str(component)
     if not isinstance(name, str):
-        raise ValueError("str(component) must return a string, "
-                         f"but returns a '{type(name)}'.")
+        raise type_error(name, "str(component)", str)
     if len(name) <= 0:
         raise ValueError("str(component) must return a non-empty string, "
                          f"but returns a '{name}'.")

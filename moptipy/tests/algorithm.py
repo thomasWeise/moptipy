@@ -39,7 +39,8 @@ def validate_algorithm(algorithm: Algorithm,
     :param uses_all_fes_if_goal_not_reached: will the algorithm use all FEs
         unless it reaches the goal?
     :param is_encoding_deterministic: is the encoding deterministic?
-    :raises TypeError: if `algorithm` is not an Algorithm instance
+    :raises TypeError: if `algorithm` is not a
+        :class:`~moptipy.api.algorithm.Algorithm` instance
     :raises ValueError: if `algorithm` does not behave like it should
     """
     if not isinstance(algorithm, Algorithm):
@@ -62,8 +63,7 @@ def validate_algorithm(algorithm: Algorithm,
         validate_space(search_space, None)
 
     if not isinstance(max_fes, int):
-        raise ValueError(
-            f"max_fes must be int but is '{type(max_fes)}'.")
+        raise type_error(max_fes, "max_fes", int)
     if max_fes <= 0:
         raise ValueError(f"max_fes must be > 0, but is {max_fes}.")
 
@@ -110,8 +110,7 @@ def validate_algorithm(algorithm: Algorithm,
 
         consumed_fes: Final[int] = process.get_consumed_fes()
         if not isinstance(consumed_fes, int):
-            raise ValueError(
-                f"Consumed FEs must be int, but are {type(consumed_fes)}.")
+            raise type_error(consumed_fes, "consumed_fes", int)
         if (consumed_fes <= 0) or (consumed_fes > max_fes):
             raise ValueError(
                 f"Consumed FEs must be positive and <= {max_fes}, "
@@ -119,24 +118,21 @@ def validate_algorithm(algorithm: Algorithm,
 
         last_imp_fe: Final[int] = process.get_last_improvement_fe()
         if not isinstance(last_imp_fe, int):
-            raise ValueError("Last improvement FEs must be int, "
-                             f"but are {type(last_imp_fe)}'.")
+            raise type_error(last_imp_fe, "last improvement FE", int)
         if (last_imp_fe <= 0) or (last_imp_fe > consumed_fes):
             raise ValueError("Last improvement FEs must be positive and "
                              f"<= {consumed_fes}, but is {last_imp_fe}.")
 
         consumed_time: Final[int] = process.get_consumed_time_millis()
         if not isinstance(consumed_time, int):
-            raise ValueError(
-                f"Consumed time must be int, but is {type(consumed_time)}.")
+            raise type_error(consumed_time, "consumed time", int)
         if consumed_time < 0:
             raise ValueError(
                 f"Consumed time must be >= 0, but is {consumed_time}.")
 
         last_imp_time: Final[int] = process.get_last_improvement_time_millis()
         if not isinstance(last_imp_time, int):
-            raise ValueError("Last improvement time must be int, "
-                             f"but is {type(last_imp_time)}.")
+            raise type_error(last_imp_time, "last improvement time", int)
         if (last_imp_time < 0) or (last_imp_time > consumed_time):
             raise ValueError(
                 f"Consumed time must be >= 0 and <= {consumed_time}, but "
