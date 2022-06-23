@@ -33,12 +33,12 @@ class LaTeX(TextFormatDriver):
     ...             r.cell("f")
     >>> print(f"'{s.getvalue()}'")
     '\begin{tabular}{lrc}%
-    \hrow%
+    \hline%
     {\textbf{1}}&{\texttt{2}}&{\textit{3}}\\%
-    \hrow%
+    \hline%
     a&b&c\\%
     d&e&f\\%
-    \hrow%
+    \hline%
     \end{tabular}%
     '
     """
@@ -53,21 +53,21 @@ class LaTeX(TextFormatDriver):
 
     def begin_table_header(self, stream: TextIOBase, cols: str) -> None:
         """Begin the header of a LaTeX table."""
-        stream.write("\\hrow%\n")
+        stream.write("\\hline%\n")
 
     def end_table_header(self, stream: TextIOBase, cols: str) -> None:
         """End the header of a LaTeX table."""
-        stream.write("\\hrow%\n")
+        stream.write("\\hline%\n")
 
     def end_table_section(self, stream: TextIOBase, cols: str,
                           section_index: int, n_rows: int) -> None:
         """End a table section."""
-        stream.write("\\hrow%\n")
+        stream.write("\\hline%\n")
 
     def end_table_section_header(self, stream: TextIOBase, cols: str,
                                  section_index: int) -> None:
         """End a table section header."""
-        stream.write("\\hrow%\n")
+        stream.write("\\hline%\n")
 
     def end_table_row(self, stream: TextIOBase, cols: str,
                       section_index: int, row_index: int) -> None:
@@ -92,7 +92,7 @@ class LaTeX(TextFormatDriver):
             stream.write("{\\textit{")
         if code:
             stream.write("{\\texttt{")
-        stream.write(text)
+        stream.write(text.replace("_", "\\_"))
         if code:
             stream.write("}}")
         if italic:

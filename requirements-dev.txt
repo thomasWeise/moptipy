@@ -17,6 +17,7 @@ myst-parser >= 0.18.0
 
 # static code analysis tools
 bandit >= 1.7.4
+dodgy >= 0.2.1
 flake8 >= 4.0.1
 mypy >= 0.961
 pydocstyle >= 6.1.1

@@ -26,8 +26,8 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
    Cybernetics*, 64(1):7–14, November 1990, https://doi.org/10.1007/BF00203625
 3. I.M. Oliver, D.J. Smith, and J.R.C. Holland. A Study of Permutation
    Crossover Operators on the Traveling Salesman Problem. In *Proceedings of
-   the Second International Conference on Algorithms and their Application*
-   (ICGA'87), October 1987, pages 224-230,
+   the Second International Conference on Genetic Algorithms and their
+   Application* (ICGA'87), October 1987, pages 224-230,
    https://dl.acm.org/doi/10.5555/42512.42542
 4. Balamurali Krishna Ambati, Jayakrishna Ambati, and Mazen Moein Mokhtar.
    Heuristic Combinatorial Optimization by Simulated Darwinian Evolution: A
@@ -37,7 +37,7 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
    Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5
 6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
    Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
-   New York: Van Nostrand Reinhold.
+   1991. New York: Van Nostrand Reinhold.
 
 This operator performs one swap. It is similar to :class:`~moptipy.operators.\
 permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
