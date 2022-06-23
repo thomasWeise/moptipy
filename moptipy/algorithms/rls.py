@@ -42,6 +42,12 @@ nature of our basic framework. Regardless of what we do, we will have
 some form of name clash here. We advise the user of our algorithms to
 be careful with respect to literature and scientific conventions when
 using our framework.
+
+1. Frank Neumann and Ingo Wegener. Randomized Local Search, Evolutionary
+   Algorithms, and the Minimum Spanning Tree Problem. *Theoretical Computer
+   Science.* 378(1):32-40, June 2007.
+   https://doi.org/10.1016/j.tcs.2006.11.002,
+   https://eldorado.tu-dortmund.de/bitstream/2003/5454/1/165.pdf
 """
 from typing import Final, Union, Callable
 
