@@ -1459,27 +1459,27 @@ It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy
 
 ```latex
 \begin{tabular}{lrlrrrrrr}%
-\hrow%
+\hline%
 I&lb(f)&setup&best&mean&sd&mean1&mean(fes)&mean(t)\\%
-\hrow%
+\hline%
 {\texttt{dmu23}}&4'668&{\texttt{hc_swap2}}&6'283&6'448.1&178.12&1.381&596.86&10.429\\%
 &&{\texttt{rls_swap2}}&{\textbf{5'951}}&{\textbf{6'206.0}}&{\textbf{139.16}}&{\textbf{1.329}}&{\textbf{694.43}}&{\textbf{10.857}}\\%
 &&{\texttt{rs}}&7'378&7'598.4&155.57&1.628&340.29&7.857\\%
-\hrow%
+\hline%
 {\texttt{ft06}}&55&{\texttt{hc_swap2}}&57&59.3&1.25&1.078&133.14&2.429\\%
 &&{\texttt{rls_swap2}}&{\textbf{55}}&{\textbf{57.1}}&2.04&{\textbf{1.039}}&208.29&3.000\\%
 &&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{651.14}}&{\textbf{5.714}}\\%
-\hrow%
+\hline%
 {\texttt{la24}}&935&{\texttt{hc_swap2}}&1'122&1'182.9&65.26&1.265&619.57&8.000\\%
 &&{\texttt{rls_swap2}}&{\textbf{1'080}}&{\textbf{1'143.6}}&48.08&{\textbf{1.223}}&{\textbf{717.14}}&{\textbf{9.143}}\\%
 &&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&248.43&3.143\\%
-\hrow%
+\hline%
 &&setup&best1&gmean1&worst1&sd1&mean(fes)&mean(t)\\%
-\hrow%
+\hline%
 summary&&texttt{hc_swap2}&1.036&1.234&1.458&0.136&449.86&6.952\\%
 summary&&texttt{rls_swap2}&{\textbf{1.000}}&{\textbf{1.190}}&{\textbf{1.377}}&{\textbf{0.129}}&{\textbf{539.95}}&{\textbf{7.667}}\\%
 summary&&texttt{rs}&1.091&1.390&1.680&0.233&413.29&5.571\\%
-\hrow%
+\hline%
 \end{tabular}%
 ```
 
