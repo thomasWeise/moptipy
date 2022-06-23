@@ -48,6 +48,12 @@ using our framework.
    Science.* 378(1):32-40, June 2007.
    https://doi.org/10.1016/j.tcs.2006.11.002,
    https://eldorado.tu-dortmund.de/bitstream/2003/5454/1/165.pdf
+2. Holger H. Hoos and Thomas Stützle. *Stochastic Local Search: Foundations
+   and Applications.* 2005. ISBN: 1493303732. In The Morgan Kaufmann Series in
+   Artificial Intelligence. Amsterdam, The Netherlands: Elsevier.
+3. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
 from typing import Final, Union, Callable
 

@@ -17,6 +17,30 @@ accepts non-deteriorating moves. We also provide `hcr`, a variant of the hill
 climber that restarts automatically with a certain number of moves were not
 able to improve the current best-so-far solution in class :class:`~moptipy.\
 algorithms.hill_climber_with_restarts.HillClimberWithRestarts`.
+
+1. Stuart Jonathan Russell and Peter Norvig. *Artificial Intelligence: A
+   Modern Approach (AIMA)*. 2nd edition. 2002. Upper Saddle River, NJ, USA:
+   Prentice Hall International Inc. ISBN: 0-13-080302-2
+2. Steven S. Skiena. *The Algorithm Design Manual.* 2nd edition. 2008.
+   London, UK: Springer-Verlag. ISBN: 978-1-84800-069-8.
+   http://doi.org/10.1007/978-1-84800-070-4.
+3. David Stifler Johnson, Christos H. Papadimitriou, and Mihalis Yannakakis.
+   How Easy Is Local Search? Journal of Computer and System Sciences.
+   37(1):79-100. August 1988. http://doi.org/10.1016/0022-0000(88)90046-3
+   http://www2.karlin.mff.cuni.cz/~krajicek/jpy2.pdf
+4. James C. Spall. *Introduction to Stochastic Search and Optimization.*
+   April 2003. Estimation, Simulation, and Control -- Wiley-Interscience
+   Series in Discrete Mathematics and Optimization, volume 6. Chichester, West
+   Sussex, UK: Wiley Interscience. ISBN: 0-471-33052-3.
+   http://www.jhuapl.edu/ISSO/
+5. Holger H. Hoos and Thomas Stützle. *Stochastic Local Search: Foundations
+   and Applications.* 2005. ISBN: 1493303732. In The Morgan Kaufmann Series in
+   Artificial Intelligence. Amsterdam, The Netherlands: Elsevier.
+6. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
+7. Thomas Weise. *Global Optimization Algorithms - Theory and Application.*
+   2009. http://www.it-weise.de/projects/book.pdf
 """
 from typing import Final, Union, Callable
 

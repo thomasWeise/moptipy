@@ -23,6 +23,10 @@ This concept of random sampling is then refined in the
 :class:`~moptipy.algorithms.random_sampling.RandomSampling` as the `rs`
 algorithm, which repeats generating random solutions until its allotted
 runtime is exhausted.
+
+1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
 from typing import Final
 

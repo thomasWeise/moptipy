@@ -42,6 +42,10 @@ In the latter case, we store `first` back into the array at the last index
 As a result, the operator will swap exactly 2 elements with probability 0.5.
 With probability 0.25, it will swap three elements, with 0.125 probability, it
 will swap 4 elements, and so on.
+
+1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
 from typing import Final, Callable
 

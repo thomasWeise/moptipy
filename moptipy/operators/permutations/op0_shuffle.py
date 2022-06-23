@@ -1,4 +1,15 @@
-"""A nullary operator shuffling a permutation."""
+"""
+A nullary operator shuffling a permutation.
+
+This operator first copies the canonical permutation to the destination
+string. It then applies the shuffle procedure of the random number
+generator, which probably internally applies a Fisher-Yates Shuffle.
+The result is a random permutation.
+
+1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
+"""
 from typing import Final
 
 import numpy as np

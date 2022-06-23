@@ -38,6 +38,9 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
 6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
    Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
    1991. New York: Van Nostrand Reinhold.
+7. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
 
 This operator performs one swap. It is similar to :class:`~moptipy.operators.\
 permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.

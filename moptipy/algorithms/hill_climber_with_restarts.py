@@ -12,6 +12,10 @@ application of the unary operator, yielded a new solution which is not better
 than the best-so-far solution of the current restart, `count` is incremented.
 If `count >= max_moves_without_improvement`, the algorithm begins a new
 restart with a new random solution.
+
+1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
 from typing import Final, Union, Callable
 

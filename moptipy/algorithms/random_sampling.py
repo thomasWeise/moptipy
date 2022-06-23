@@ -23,6 +23,10 @@ structure, or is entirely deceptive, this algorithm can be of any use.
 Basically, this algorithm is an iterated version of the `1rs` algorithm
 implemented in
 :class:`~moptipy.algorithms.single_random_sample.SingleRandomSample`.
+
+1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
+   Institute of Applied Optimization (IAO), School of Artificial Intelligence
+   and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
 from typing import Final, Callable
 
