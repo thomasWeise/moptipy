@@ -80,6 +80,8 @@ def plot_end_statistics_over_param(
         stat_priority: float = 0.0,
         instance_sort_key: Callable[[str], Any] = lambda x: x,
         algorithm_sort_key: Callable[[str], Any] = lambda x: x,
+        instance_namer: Callable[[str], str] = lambda x: x,
+        algorithm_namer: Callable[[str], str] = lambda x: x,
         stat_sort_key: Callable[[str], str] = lambda x: x,
         color_algorithms_as_fallback_group: bool = True) -> Axes:
     """
@@ -117,6 +119,10 @@ def plot_end_statistics_over_param(
     :param stat_priority: the style priority for statistics
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
+    :param instance_namer: the name function for instances receives an
+        instance ID and returns an instance name; default=identity function
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     :param stat_sort_key: the sort key function for statistics
     :param color_algorithms_as_fallback_group: if only a single group of data
         was found, use algorithms as group and put them in the legend
@@ -189,6 +195,10 @@ def plot_end_statistics_over_param(
         raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
     if not callable(stat_sort_key):
         raise type_error(stat_sort_key, "stat_sort_key", call=True)
+    if not callable(instance_namer):
+        raise type_error(instance_namer, "instance_namer", call=True)
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
     if not isinstance(color_algorithms_as_fallback_group, bool):
         raise type_error(color_algorithms_as_fallback_group,
                          "color_algorithms_as_fallback_group", bool)
@@ -216,9 +226,11 @@ def plot_end_statistics_over_param(
     instances: Final[Styler] = Styler(
         none_name=Lang.translate("all_insts"),
         priority=inst_priority,
+        namer=instance_namer,
         name_sort_function=instance_sort_key)
     algorithms: Final[Styler] = Styler(
         none_name=Lang.translate("all_algos"),
+        namer=algorithm_namer,
         priority=algo_priority, name_sort_function=algorithm_sort_key)
 
     # we now extract the data: x -> algo -> inst -> y

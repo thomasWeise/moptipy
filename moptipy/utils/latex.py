@@ -115,9 +115,10 @@ class LaTeX(TextFormatDriver):
 
         :param e: the exponent
         :returns: the rendered exponent
-        :retval: `*10\textsuperscript{e}`
+        :retval: `\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript{e}`
         """
-        return f"*10\\textsuperscript{e}"
+        return f"\\hspace*{{0.15em}}*\\hspace*{{0.1em}}" \
+               f"10\\textsuperscript{{{e}}}"
 
     @staticmethod
     def instance() -> 'LaTeX':

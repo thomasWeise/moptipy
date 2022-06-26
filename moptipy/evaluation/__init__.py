@@ -18,6 +18,7 @@ def __lang_setup():
     import moptipy.api.logging as lg  # pylint: disable=C0415
     import moptipy.evaluation.base as bs  # pylint: disable=C0415
     import moptipy.evaluation.statistics as ss  # pylint: disable=C0415
+    import moptipy.evaluation.end_statistics as es  # pylint: disable=C0415
 
     EN.extend({
         "f": "f",
@@ -39,8 +40,8 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "last improvement at FE",
         "algorithm_on_instance": "algorithm \u00d7 instance",
         "ERT": "ERT",
-        "ertFEs": "ERT[FEs]",
-        "ertTimeMillis": "ERT[ms]",
+        es.KEY_ERT_FES: "ERT[FEs]",
+        es.KEY_ERT_TIME_MILLIS: "ERT[ms]",
         "ECDF": "ECDF",
         "setup": "setup",
         "best": "best",
@@ -54,7 +55,8 @@ def __lang_setup():
         ss.KEY_MEDIAN: "median",
         ss.KEY_MAXIMUM: "max",
         ss.KEY_MINIMUM: "min",
-        ss.KEY_MEAN_ARITH: "mean"
+        ss.KEY_MEAN_ARITH: "mean",
+        es.KEY_N_SUCCESS: "#successes"
     })
 
     DE.extend({
@@ -77,8 +79,8 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "letzte Verbesserung bei FE",
         "algorithm_on_instance": "Algorithmus \u00d7 Instanz",
         "ERT": "ERT",
-        "ertFEs": "ERT[FEs]",
-        "ertTimeMillis": "ERT[ms]",
+        es.KEY_ERT_FES: "ERT[FEs]",
+        es.KEY_ERT_TIME_MILLIS: "ERT[ms]",
         "ECDF": "ECDF",
         "setup": "setup",
         "best": "beste",
@@ -92,7 +94,8 @@ def __lang_setup():
         ss.KEY_MEDIAN: "median",
         ss.KEY_MAXIMUM: "max",
         ss.KEY_MINIMUM: "min",
-        ss.KEY_MEAN_ARITH: "mean"
+        ss.KEY_MEAN_ARITH: "mean",
+        es.KEY_N_SUCCESS: "#erfolgreich"
     })
 
     ZH.extend({
@@ -115,8 +118,8 @@ def __lang_setup():
         lg.KEY_LAST_IMPROVEMENT_FE: "最后一次改进是在(目标函数的评价)",
         "algorithm_on_instance": "优化算法 \u00d7 优化问题实例",
         "ERT": "经验估计运行时间",
-        "ertFEs": "经验估计运行时间[目标函数的评价]",
-        "ertTimeMillis": "经验估计运行时间[毫秒]",
+        es.KEY_ERT_FES: "经验估计运行时间[目标函数的评价]",
+        es.KEY_ERT_TIME_MILLIS: "经验估计运行时间[毫秒]",
         "ECDF": "经验累积分布函数",
         "setup": "算法配置",
         "best": "最好的",
@@ -130,7 +133,8 @@ def __lang_setup():
         ss.KEY_MEDIAN: "中值的",
         ss.KEY_MAXIMUM: "最大限度",
         ss.KEY_MINIMUM: "最低限度",
-        ss.KEY_MEAN_ARITH: "算术平均值"
+        ss.KEY_MEAN_ARITH: "算术平均值",
+        es.KEY_N_SUCCESS: "成功执行算法的次数"
     })
 
 
