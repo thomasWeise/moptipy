@@ -1,115 +1,46 @@
 """Test the callable objective function."""
-from math import inf
 
 # noinspection PyPackageRequirements
-from pytest import raises
 
 from moptipy.api.component import Component
-from moptipy.api.objective import CallableObjective, Objective
+from moptipy.api.objective import Objective
 from moptipy.tests.objective import validate_objective
 from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_pure_callable_objective_function():
-    """Test the pure callable objective function."""
-    f = CallableObjective(lambda x: 5)
-    assert isinstance(f, Objective)
-    assert isinstance(f, Component)
+class MyObjective(Objective):
+    """The internal test objective."""
+    def evaluate(self, x) -> int:
+        return 5
 
-    assert f.evaluate(7) == 5
-    assert str(f) == "unnamed_function"
-    assert f.upper_bound() == +inf
-    assert f.lower_bound() == -inf
+    def lower_bound(self) -> int:
+        return -5
 
-    with raises(TypeError):
-        # noinspection PyTypeChecker
-        CallableObjective(None)
+    def upper_bound(self) -> int:
+        return 11
 
-    with raises(TypeError):
-        # noinspection PyTypeChecker
-        CallableObjective("blabla")
-
-    validate_objective(f, None, None)
-
-
-def test_callable_objective_function_bounds():
-    """Test the callable objective function with lower bounds."""
-    f = CallableObjective(lambda x: 13, lower_bound=7)
-    assert isinstance(f, Objective)
-    assert isinstance(f, Component)
-    assert f.evaluate(7) == 13
-    assert str(f) == "unnamed_function"
-    assert f.upper_bound() == +inf
-    assert f.lower_bound() == 7
-    validate_objective(f, None, None)
-
-    f = CallableObjective(lambda x: 3, upper_bound=7)
-    assert isinstance(f, Objective)
-    assert isinstance(f, Component)
-    assert f.evaluate(7) == 3
-    assert str(f) == "unnamed_function"
-    assert f.upper_bound() == 7
-    assert f.lower_bound() == -inf
-    validate_objective(f, None, None)
-
-    f = CallableObjective(lambda x: -3, upper_bound=7, lower_bound=-4)
-    assert isinstance(f, Objective)
-    assert isinstance(f, Component)
-    assert f.evaluate(7) == -3
-    assert str(f) == "unnamed_function"
-    assert f.upper_bound() == 7
-    assert f.lower_bound() == -4
-    validate_objective(f, None, None)
-
-    with raises(ValueError):
-        CallableObjective(lambda x: -3, upper_bound=4, lower_bound=4)
-
-    with raises(ValueError):
-        CallableObjective(lambda x: -3, upper_bound=-3, lower_bound=4)
-
-    with raises(TypeError):
-        # noinspection PyTypeChecker
-        CallableObjective(lambda x: -3, lower_bound="x")
-
-    with raises(TypeError):
-        # noinspection PyTypeChecker
-        CallableObjective(lambda x: -3, upper_bound="x")
-
-
-def test_named_callable_objective_function():
-    """Test the named callable objective function."""
-    f = CallableObjective(lambda x: -3, name="hallo")
-    assert str(f) == "hallo"
-    f = CallableObjective(lambda x: -3, name=" hallo")
-    assert str(f) == "hallo"
-    f = CallableObjective(lambda x: -3, name="hallo ")
-    assert str(f) == "hallo"
-    validate_objective(f, None, None)
-
-    with raises(ValueError):
-        CallableObjective(lambda x: -3, name=" ")
+    def __str__(self):
+        return "hello"
 
 
 def test_logged_args():
     """Test the logged arguments of the callable objective function."""
-    f = CallableObjective(lambda x: 5,
-                          lower_bound=-5,
-                          upper_bound=11,
-                          name="hello")
+    f = MyObjective()
     assert isinstance(f, Objective)
     assert isinstance(f, Component)
+    validate_objective(f, None, None)
 
     with TempFile.create() as path:
         with FileLogger(path) as log:
             with log.key_values("F") as kv:
                 f.log_parameters_to(kv)
         result = path.read_all_list()
+
     assert result == [
         "BEGIN_F",
         "name: hello",
-        "class: moptipy.api.objective.CallableObjective",
-        "innerClass: test_objective.function",
+        "class: test_objective.MyObjective",
         "lowerBound: -5",
         "upperBound: 11",
         "END_F"]

@@ -1,13 +1,13 @@
 """Test the Logging Process API."""
 from os.path import isfile, getsize
-from typing import Final
+from typing import Final, Union
 
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.api.algorithm import CallableAlgorithm
+from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
-from moptipy.api.objective import CallableObjective
+from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.temp import TempFile
@@ -20,28 +20,32 @@ MAX_FES: Final[int] = 100
 BEST_F: Final[int] = WORST_F - MAX_FES + 1
 
 
-def myalgorithm_1(process: Process):
-    """Perform a simple algorithm."""
-    x = process.create()
-    assert isinstance(x, np.ndarray)
-    g = process.get_random()
-    assert isinstance(g, Generator)
-    assert not process.has_best()
+class MyAlgorithm(Algorithm):
 
-    process.add_log_section("B", "Y\nZ\n")
-    i = WORST_F
-    while not process.should_terminate():
-        x.fill(i)
-        process.evaluate(x)
-        assert process.has_best()
-        i -= 1
-    assert all(x < WORST_F)
-    process.add_log_section("A", "X")
+    def solve(self, process: Process) -> None:
+        """Perform a simple algorithm."""
+        x = process.create()
+        assert isinstance(x, np.ndarray)
+        g = process.get_random()
+        assert isinstance(g, Generator)
+        assert not process.has_best()
+
+        process.add_log_section("B", "Y\nZ\n")
+        i = WORST_F
+        while not process.should_terminate():
+            x.fill(i)
+            process.evaluate(x)
+            assert process.has_best()
+            i -= 1
+        assert all(x < WORST_F)
+        process.add_log_section("A", "X")
 
 
-def myobjective_1(x):
-    """Return x[0] as dummy objective value."""
-    return x[0]
+class MyObjective(Objective):
+    """The internal test objective."""
+    def evaluate(self, x) -> Union[float, int]:
+        """Return x[0] as dummy objective value."""
+        return x[0]
 
 
 def test_process_noss_log():
@@ -51,9 +55,9 @@ def test_process_noss_log():
 
     with TempFile.create() as path:
         exp = Execution()
-        exp.set_algorithm(CallableAlgorithm(myalgorithm_1))
+        exp.set_algorithm(MyAlgorithm())
         exp.set_solution_space(v)
-        exp.set_objective(CallableObjective(myobjective_1))
+        exp.set_objective(MyObjective())
         exp.set_log_file(path)
         exp.set_max_fes(MAX_FES)
         with exp.execute() as p:
