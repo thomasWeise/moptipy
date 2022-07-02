@@ -57,7 +57,7 @@ def test_process_noss_log():
         exp = Execution()
         exp.set_algorithm(MyAlgorithm())
         exp.set_solution_space(v)
-        exp.set_objective(MyObjective())
+        exp.add_objective(MyObjective())
         exp.set_log_file(path)
         exp.set_max_fes(MAX_FES)
         with exp.execute() as p:

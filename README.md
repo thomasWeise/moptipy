@@ -103,7 +103,7 @@ In our case, the class [`Execution`](https://thomasweise.github.io/moptipy/mopti
 
 So first, you create an instance `ex` of [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution).
 Then you set the [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm) that should be applied via the method [`ex.set_algorithm(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_algorithm).
-Then you set the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) via the method [`ex.set_objective(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_objective).
+Then you set the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) via the method [`ex.add_objective(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_objective).
 
 Then, via [`ex.set_solution_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_solution_space) you set the solution [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) that contains all possible solutions and is explored by the algorithm.
 The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
@@ -161,7 +161,7 @@ algorithm = RLS(  # create RLS that
 with TempFile.create() as tf:  # create temporary file `tf`
     ex = Execution()  # begin configuring execution
     ex.set_solution_space(space)  # set solution space
-    ex.set_objective(problem)  # set objective function
+    ex.add_objective(problem)  # set objective function
     ex.set_algorithm(algorithm)  # set algorithm
     ex.set_rand_seed(199)  # set random seed to 199
     ex.set_log_file(tf)  # set log file = temp file `tf`
@@ -279,7 +279,7 @@ def make_rls(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
         Op1Flip1()))  # flips one bit in each step
@@ -296,7 +296,7 @@ def make_random_sampling(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(RandomSampling(Op0Random()))
     ex.set_max_fes(100)
     return ex
@@ -607,7 +607,7 @@ def make_execution(problem) -> Execution:
     ex = Execution()
     ex.set_solution_space(
         Permutations.standard(problem.n))  # we use permutations of [0..n-1]
-    ex.set_objective(problem)  # set the objective function
+    ex.add_objective(problem)  # set the objective function
     ex.set_algorithm(MyAlgorithm())  # apply our algorithm
     ex.set_max_fes(100)  # permit 100 FEs
     return ex

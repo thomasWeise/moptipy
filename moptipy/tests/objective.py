@@ -1,6 +1,6 @@
 """Functions that can be used to test objective functions."""
 from math import isfinite, inf
-from typing import Callable, Optional, Any, Union
+from typing import Callable, Optional, Any, Union, Final
 
 from numpy.random import default_rng, Generator
 
@@ -44,7 +44,7 @@ def validate_objective(
     if not (hasattr(objective, 'lower_bound')
             and callable(getattr(objective, 'lower_bound'))):
         raise ValueError("objective must have method lower_bound.")
-    lower = objective.lower_bound()
+    lower: Final[Union[int, float]] = objective.lower_bound()
     if not (isinstance(lower, (int, float))):
         raise type_error(lower, "lower_bound()", (int, float))
     if (not isfinite(lower)) and (not (lower <= (-inf))):
@@ -57,7 +57,7 @@ def validate_objective(
     if not (hasattr(objective, 'upper_bound')
             and callable(getattr(objective, 'upper_bound'))):
         raise ValueError("objective must have method upper_bound.")
-    upper = objective.upper_bound()
+    upper: Final[Union[int, float]] = objective.upper_bound()
     if not (isinstance(upper, (int, float))):
         raise type_error(upper, "upper_bound()", (int, float))
     if (not isfinite(upper)) and (not (upper >= inf)):
@@ -71,6 +71,22 @@ def validate_objective(
     if lower >= upper:
         raise ValueError("Result of lower_bound() must be smaller than "
                          f"upper_bound(), but got {lower} vs. {upper}.")
+
+    if not (hasattr(objective, 'is_always_integer')
+            and callable(getattr(objective, 'is_always_integer'))):
+        raise ValueError("objective must have method is_always_integer.")
+    is_int: Final[bool] = objective.is_always_integer()
+    if not isinstance(is_int, bool):
+        raise type_error(is_int, "is_always_integer()", bool)
+    if is_int:
+        if isfinite(lower) and (not isinstance(lower, int)):
+            raise TypeError(
+                f"if is_always_integer()==True, then lower_bound() must "
+                f"return int, but it returned {lower}.")
+        if isfinite(upper) and (not isinstance(upper, int)):
+            raise TypeError(
+                f"if is_always_integer()==True, then upper_bound() must "
+                f"return int, but it returned {upper}.")
 
     count: int = 0
     if make_solution_space_element_valid is not None:
@@ -102,6 +118,11 @@ def validate_objective(
         raise ValueError(f"evaluate(x) of {x} must return a value in"
                          "[lower_bound(), upper_bound()], but returned "
                          f"{res} vs. [{lower},{upper}].")
+    if is_int and (not isinstance(res, int)):
+        raise TypeError(
+            f"if is_always_integer()==True, then evaluate(x) must "
+            f"return int, but it returned {res}.")
+
     if must_be_equal_to is not None:
         exp = must_be_equal_to(x)
         if exp != res:
@@ -115,6 +136,10 @@ def validate_objective(
         raise ValueError(f"evaluate(x) of {x} must return a value in"
                          "[lower_bound(), upper_bound()], but returned "
                          f"{res2} vs. [{lower},{upper}].")
+    if is_int and (not isinstance(res2, int)):
+        raise TypeError(
+            f"if is_always_integer()==True, then evaluate(x) must "
+            f"return int, but it returned {res2}.")
 
     if is_deterministic and (res != res2):
         raise ValueError(f"evaluating {x} twice yielded the two different "

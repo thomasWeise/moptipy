@@ -79,6 +79,14 @@ class LeadingOnes(Objective):
         """
         return self.n
 
+    def is_always_integer(self) -> bool:
+        """
+        Return `True` because :func:`leadingones` always returns `int` values.
+
+        :retval True: always
+        """
+        return True
+
     def __str__(self) -> str:
         """
         Get the name of the leadingones objective function.

@@ -55,7 +55,7 @@ def make_rls(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
         Op1Flip1()))  # flips one bit in each step
@@ -72,7 +72,7 @@ def make_random_sampling(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(RandomSampling(Op0Random()))
     ex.set_max_fes(100)
     return ex

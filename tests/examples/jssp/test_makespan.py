@@ -13,3 +13,4 @@ def test_makespan_objective() -> None:
     ms = Makespan(demo)
     assert ms.evaluate(sol) == 180
     assert ms.lower_bound() == 180
+    assert ms.is_always_integer()

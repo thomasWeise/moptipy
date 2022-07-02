@@ -160,6 +160,7 @@ class _ProcessNoSS(_ProcessBase):
             self._end_f = check_goal_f(self.lower_bound())
             self.lower_bound = lambda: self._end_f  # type: ignore
         self.upper_bound = objective.upper_bound  # type: ignore
+        self.is_always_integer = objective.is_always_integer  # type: ignore
         self.create = solution_space.create  # type: ignore
         self.copy = solution_space.copy  # type: ignore
         self.to_str = solution_space.to_str  # type: ignore

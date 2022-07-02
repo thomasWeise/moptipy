@@ -177,7 +177,7 @@ def make_execution(problem) -> Execution:
     ex = Execution()
     ex.set_solution_space(
         Permutations.standard(problem.n))  # we use permutations of [0..n-1]
-    ex.set_objective(problem)  # set the objective function
+    ex.add_objective(problem)  # set the objective function
     ex.set_algorithm(MyAlgorithm())  # apply our algorithm
     ex.set_max_fes(100)  # permit 100 FEs
     return ex

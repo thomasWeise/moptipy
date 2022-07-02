@@ -42,7 +42,7 @@ algorithm = RLS(  # create RLS that
 with TempFile.create() as tf:  # create temporary file `tf`
     ex = Execution()  # begin configuring execution
     ex.set_solution_space(space)  # set solution space
-    ex.set_objective(problem)  # set objective function
+    ex.add_objective(problem)  # set objective function
     ex.set_algorithm(algorithm)  # set algorithm
     ex.set_rand_seed(199)  # set random seed to 199
     ex.set_log_file(tf)  # set log file = temp file `tf`

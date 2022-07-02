@@ -56,6 +56,15 @@ class Objective(Component):
         """
         return inf
 
+    def is_always_integer(self) -> bool:
+        """
+        Return `True` if :meth:`~evaluate` will always return an `int` value.
+
+        :returns: `True` if :meth:`~evaluate` will always return an `int`
+          or `False` if also a `float` may be returned.
+        """
+        return False
+
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of this function to the provided destination.

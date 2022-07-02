@@ -51,6 +51,14 @@ class Makespan(Objective):
         """
         return self.__instance.makespan_lower_bound
 
+    def is_always_integer(self) -> bool:
+        """
+        Return `True` because :func:`makespan` always returns `int` values.
+
+        :retval True: always
+        """
+        return True
+
     def upper_bound(self) -> int:
         """
         Get the upper bound of the makespan.

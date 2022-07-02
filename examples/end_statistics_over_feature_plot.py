@@ -74,7 +74,7 @@ def make_rls(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(RLS(Op0Random(), Op1Flip1()))
     return ex
 

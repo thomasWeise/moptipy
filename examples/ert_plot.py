@@ -81,7 +81,7 @@ def make_rls(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(RLS(  # create RLS that
         Op0Random(),  # starts with a random bit string and
         Op1Flip1()))  # flips exactly one bit
@@ -99,7 +99,7 @@ def make_random_walk(problem) -> Execution:
     """
     ex = Execution()
     ex.set_solution_space(BitStrings(problem.n))
-    ex.set_objective(problem)
+    ex.add_objective(problem)
     ex.set_algorithm(
         RandomWalk(  # create a random walk that
             Op0Random(),  # starts with a random bit string and

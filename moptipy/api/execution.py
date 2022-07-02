@@ -93,7 +93,7 @@ class Execution:
         """
         self.__solution_space = check_space(solution_space)
 
-    def set_objective(self, objective: Objective) -> None:
+    def add_objective(self, objective: Objective) -> None:
         """
         Set the objective function to be used for this experiment.
 
@@ -101,6 +101,11 @@ class Execution:
 
         :param objective: the objective function
         """
+        if self.__objective is not None:
+            raise ValueError(
+                "Cannot add more than one objective function in single-"
+                f"objective optimization, attempted to add {objective} "
+                f"after {self.__objective}.")
         self.__objective = check_objective(objective)
 
     def set_search_space(self, search_space: Optional[Space]) -> None:

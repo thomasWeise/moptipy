@@ -191,7 +191,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                 experiment.set_max_time_millis(max_time)
             if max_fes is not None:
                 experiment.set_max_fes(max_fes)
-            experiment.set_objective(Makespan(inst))
+            experiment.add_objective(Makespan(inst))
             experiment.set_solution_space(GanttSpace(inst))
             experiment.set_search_space(pwr)
             experiment.set_encoding(OperationBasedEncoding(inst))

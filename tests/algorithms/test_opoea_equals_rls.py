@@ -50,7 +50,7 @@ def test_opoea_equals_rls():
     ex_opoea.set_algorithm(opoea)
     ex_opoea.set_solution_space(search_space)
     problem.evaluate = f_opoea
-    ex_opoea.set_objective(problem)
+    ex_opoea.add_objective(problem)
     ex_opoea.set_rand_seed(seed)
     with ex_opoea.execute() as _:
         pass
@@ -59,7 +59,7 @@ def test_opoea_equals_rls():
     ex_rls.set_algorithm(rls)
     ex_rls.set_solution_space(search_space)
     problem.evaluate = f_rls
-    ex_rls.set_objective(problem)
+    ex_rls.add_objective(problem)
     ex_rls.set_rand_seed(seed)
     with ex_rls.execute() as _:
         pass

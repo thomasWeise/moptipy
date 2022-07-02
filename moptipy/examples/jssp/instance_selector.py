@@ -47,7 +47,7 @@ def __can_solve_instance(inst: Instance, seed: int,
     ex.set_solution_space(y_space)
     ex.set_encoding(g)
     ex.set_algorithm(a)
-    ex.set_objective(f)
+    ex.add_objective(f)
     ex.set_max_time_millis(126_000)
     ex.set_goal_f(goal)
     ex.set_rand_seed(seed)
