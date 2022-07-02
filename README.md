@@ -103,7 +103,7 @@ In our case, the class [`Execution`](https://thomasweise.github.io/moptipy/mopti
 
 So first, you create an instance `ex` of [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution).
 Then you set the [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm) that should be applied via the method [`ex.set_algorithm(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_algorithm).
-Then you set the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) via the method [`ex.add_objective(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_objective).
+Then you set the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) via the method [`ex.add_objective(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.add_objective).
 
 Then, via [`ex.set_solution_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_solution_space) you set the solution [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) that contains all possible solutions and is explored by the algorithm.
 The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
