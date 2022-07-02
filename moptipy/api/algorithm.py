@@ -1,7 +1,7 @@
 """The base classes for implementing optimization algorithms."""
-from typing import Callable, Final
+from typing import Final
 
-from moptipy.api.component import Component, CallableComponent
+from moptipy.api.component import Component
 from moptipy.api.logging import SCOPE_OP0, SCOPE_OP1, SCOPE_OP2
 from moptipy.api.operators import Op0, check_op0, Op1, check_op1, \
     Op2, check_op2
@@ -119,24 +119,6 @@ class Algorithm2(Algorithm1):
         super().log_parameters_to(logger)
         with logger.scope(SCOPE_OP2) as sc:
             self.op2.log_parameters_to(sc)
-
-
-class CallableAlgorithm(CallableComponent, Algorithm):
-    """Wrapping a Callable such as a lambda into an algorithm."""
-
-    def __init__(self,
-                 algorithm: Callable[[Process], None],
-                 name: str = None) -> None:
-        """
-        Create a wrapper mapping a Callable to an optimization algorithm.
-
-        :param algorithm: the algorithm implementation to wrap, can be a
-            lambda expression.
-        :param name: the name of the algorithm
-        """
-        super().__init__(inner=algorithm,
-                         name="unnamed_algorithm" if (name is None) else name)
-        self.solve = algorithm  # type: ignore
 
 
 def check_algorithm(algorithm: Algorithm) -> Algorithm:
