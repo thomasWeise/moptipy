@@ -80,7 +80,7 @@ def test_from_start_for_fes():
     exp = Execution()
     exp.set_algorithm(MyAlgorithm())
     exp.set_solution_space(v)
-    exp.add_objective(f)
+    exp.set_objective(f)
     with exp.execute() as p:
         assert p.has_best()
         assert p.get_best_f() >= 0

@@ -31,7 +31,7 @@ def algo_1(inst: Instance) -> Execution:
     ex.set_search_space(ss)
     ex.set_solution_space(sos)
     ex.set_encoding(OperationBasedEncoding(inst))
-    ex.add_objective(Makespan(inst))
+    ex.set_objective(Makespan(inst))
     ex.set_max_fes(300)
     ex.set_log_improvements()
     return ex
@@ -47,7 +47,7 @@ def algo_2(inst: Instance) -> Execution:
     ex.set_search_space(ss)
     ex.set_solution_space(sos)
     ex.set_encoding(OperationBasedEncoding(inst))
-    ex.add_objective(Makespan(inst))
+    ex.set_objective(Makespan(inst))
     ex.set_max_fes(300)
     ex.set_log_improvements()
     return ex

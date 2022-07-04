@@ -87,7 +87,7 @@ def make_rls(problem: Instance) -> Execution:
     ex.set_search_space(perms)  # set search space
     ex.set_encoding(OperationBasedEncoding(problem))  # set encoding
     ex.set_solution_space(GanttSpace(problem))  # solution space: Gantt charts
-    ex.add_objective(Makespan(problem))  # objective function is makespan
+    ex.set_objective(Makespan(problem))  # objective function is makespan
     ex.set_algorithm(RLS(  # create RLS that
         Op0Shuffle(perms),  # create random permutation
         Op1Swap2()))  # swap two jobs
@@ -108,7 +108,7 @@ def make_hill_climber(problem: Instance) -> Execution:
     ex.set_search_space(perms)  # set search space
     ex.set_encoding(OperationBasedEncoding(problem))  # set encoding
     ex.set_solution_space(GanttSpace(problem))  # solution space: Gantt charts
-    ex.add_objective(Makespan(problem))  # objective function is makespan
+    ex.set_objective(Makespan(problem))  # objective function is makespan
     ex.set_algorithm(  # now construct algorithm
         HillClimber(  # create hill climber that
             Op0Shuffle(perms),  # create random permutation
@@ -130,7 +130,7 @@ def make_random_sampling(problem: Instance) -> Execution:
     ex.set_search_space(perms)  # set search space
     ex.set_encoding(OperationBasedEncoding(problem))  # set encoding
     ex.set_solution_space(GanttSpace(problem))  # solution space: Gantt charts
-    ex.add_objective(Makespan(problem))  # objective function is makespan
+    ex.set_objective(Makespan(problem))  # objective function is makespan
     ex.set_algorithm(  # now construct algorithm
         RandomSampling(  # create hill climber that
             Op0Shuffle(perms)))  # create random permutation

@@ -71,7 +71,7 @@ def validate_algorithm(algorithm: Algorithm,
     exp.set_algorithm(algorithm)
     exp.set_max_fes(max_fes)
     exp.set_solution_space(solution_space)
-    exp.add_objective(objective)
+    exp.set_objective(objective)
     if search_space is not None:
         exp.set_search_space(search_space)
         exp.set_encoding(encoding)

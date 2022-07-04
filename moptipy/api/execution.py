@@ -1,7 +1,6 @@
 """The algorithm execution API."""
 from math import isfinite
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
@@ -93,7 +92,7 @@ class Execution:
         """
         self.__solution_space = check_space(solution_space)
 
-    def add_objective(self, objective: Objective) -> None:
+    def set_objective(self, objective: Objective) -> None:
         """
         Set the objective function to be used for this experiment.
 

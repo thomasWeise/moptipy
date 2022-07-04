@@ -1,7 +1,7 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
-from typing import Final, List, Iterable, cast
-from typing import Set, Dict, Tuple
+from math import isfinite
+from typing import Final, List, Iterable, cast, Set, Dict, Tuple, Union
 
 import numba  # type: ignore
 import numpy
@@ -39,7 +39,7 @@ __NP_INTS_LIST: Final[Tuple[Tuple[numpy.dtype, int, int], ...]] = \
 DEFAULT_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-2])[0]
 
 #: The default unsigned integer type: an unsigned 64 bit integer.
-__DEFAULT_UNSIGNED_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-1])[0]
+DEFAULT_UNSIGNED_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-1])[0]
 
 #: The default boolean type.
 DEFAULT_BOOL: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
@@ -142,6 +142,40 @@ def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
         f"Signed integer range cannot exceed {__NP_INTS_LIST[-2][1]}.."
         f"{__NP_INTS_LIST[-2][2]}, but {min_value}..{max_value} "
         "was specified.")
+
+
+def dtype_for_data(always_int: bool,
+                   lower_bound: Union[int, float],
+                   upper_bound: Union[int, float]) -> numpy.dtype:
+    """
+    Obtain the most suitable numpy data type to represent the data.
+
+    :param always_int: is the data always integer?
+    :param lower_bound: the lower bound of the data, set to `-inf` if no lower
+        bound is known and we should assume the full integer range
+    :param upper_bound: the upper bound of the data, set to `-inf` if no upper
+        bound is known and we should assume the full integer range
+    """
+    if not isinstance(always_int, bool):
+        raise type_error(always_int, "always_int", bool)
+    if not isinstance(lower_bound, (int, float)):
+        raise type_error(lower_bound, "lower_bound", (int, float))
+    if not isinstance(upper_bound, (int, float)):
+        raise type_error(upper_bound, "upper_bound", (int, float))
+    if always_int:
+        if isfinite(lower_bound):
+            if not isinstance(lower_bound, int):
+                raise type_error(
+                    lower_bound, "finite lower_bound of always_int", int)
+            if isfinite(upper_bound):
+                if not isinstance(upper_bound, int):
+                    raise type_error(
+                        upper_bound, "finite upper_bound of always_int", int)
+                return int_range_to_dtype(int(lower_bound), int(upper_bound))
+            if lower_bound >= 0:
+                return DEFAULT_UNSIGNED_INT
+        return DEFAULT_INT
+    return DEFAULT_FLOAT
 
 
 @numba.jit(forceobj=True)
@@ -322,7 +356,7 @@ def strs_to_uints(lines: Iterable[str]) -> numpy.ndarray:
     >>> strs_to_uints(["1", "2", "3"])
     array([1, 2, 3], dtype=uint64)
     """
-    return numpy.array(lines, dtype=__DEFAULT_UNSIGNED_INT)
+    return numpy.array(lines, dtype=DEFAULT_UNSIGNED_INT)
 
 
 def strs_to_ints(lines: Iterable[str]) -> numpy.ndarray:
@@ -376,3 +410,21 @@ def is_all_finite(a: numpy.ndarray) -> bool:
 
 #: the character identifying the numpy data type backing the space
 KEY_NUMPY_TYPE: Final[str] = "dtype"
+
+
+def np_number_to_py_number(number) -> Union[int, float]:
+    """
+    Convert a scalar number from numpy to a corresponding Python type.
+
+    :param number: the numpy number
+    :returns: an integer or float representing the number
+    """
+    if isinstance(number, (int, float)):
+        return number
+    if isinstance(number, numpy.number):
+        if isinstance(number, numpy.integer):
+            return int(number)
+        if isinstance(number, numpy.floating):
+            return float(number)
+    raise type_error(number, "number",
+                     (int, float, numpy.integer, numpy.floating))

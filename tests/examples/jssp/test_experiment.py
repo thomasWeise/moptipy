@@ -31,7 +31,7 @@ def test_default_algorithms_on_default_instances() -> None:
             exe.set_search_space(perm)
             exe.set_solution_space(sol)
             exe.set_encoding(gpm)
-            exe.add_objective(makespan)
+            exe.set_objective(makespan)
             exe.set_max_fes(64)
             with exe.execute() as proc:
                 assert proc.has_best()
