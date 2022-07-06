@@ -30,9 +30,11 @@
   - [ERT-ECDF Plots](#66-ert-ecdf-plots)
   - [Performance over Algorithm Parameter or Instance Feature](#67-performance-over-algorithm-parameter-or-instance-feature)
   - [End Results Tables](#68-end-results-table)
-- [Uselful Links and References](#7-useful-links-and-references)
-- [License](#8-license)
-- [Contact](#9-contact)
+- [Other Tools](#7-other-tools)
+  - [Tests](#71-tests)
+- [Uselful Links and References](#8-useful-links-and-references)
+- [License](#9-license)
+- [Contact](#10-contact)
 
 
 ## 1. Introduction
@@ -1498,7 +1500,7 @@ Here, you can find functions where you pass in instances of your implemented com
 We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/coverage/index.html).
 
 
-## 7. Useful Links and References
+## 8. Useful Links and References
 
 1. Our book on optimization algorithms, which is currently work in progress:
    Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
@@ -1510,7 +1512,7 @@ We also try to extensively test our own code, see the [coverage report](https://
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). [Research Report] RR-7215, INRIA. 2010. inria-00462481
 
 
-## 8. License
+## 9. License
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#9-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
@@ -1525,7 +1527,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 
 
-## 9. Contact
+## 10. Contact
 
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
