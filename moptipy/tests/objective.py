@@ -66,7 +66,7 @@ def validate_objective(
     if upper > upper_bound_threshold:
         raise ValueError(
             f"upper bound must not be more than {upper_bound_threshold}, "
-            f"but is {lower}.")
+            f"but is {upper}.")
 
     if lower >= upper:
         raise ValueError("Result of lower_bound() must be smaller than "
