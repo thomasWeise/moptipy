@@ -206,3 +206,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /.github/
+
+# additional own files and folders
+
+*.coverage
+*.egg-info
+docs/build
+.pytest_cache
+.mypy_cache
+build
+dist
+.idea

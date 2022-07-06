@@ -47,13 +47,15 @@ init: clean
 
 # Run the unit tests.
 test: init
+	echo "Erasing old coverage data." &&\
+    coverage erase &&\
 	echo "The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "PATH is now '${PATH}'." &&\
 	echo "Running py.test tests." && \
-	py.test --strict-config tests -o faulthandler_timeout=360 && \
+	coverage run --include="moptipy*" -m py.test --strict-config tests -o faulthandler_timeout=360 && \
 	echo "Running py.test with doctests." && \
-	py.test --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
+	coverage run --include="moptipy*" -a -m py.test --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
     echo "Finished running py.test tests."
 
 # Perform static code analysis.
@@ -119,6 +121,11 @@ create_documentation: static_analysis test
     done &&\
     echo "Finished pygmentizing all examples, now copying LICENSE." &&\
     pygmentize -f html -l text -O full -O style=default -o docs/build/LICENSE.html LICENSE &&\
+    echo "Finished copying LICENSE, now creating coverage report." &&\
+    mkdir -p docs/build/coverage &&\
+    coverage html -d docs/build/coverage --include="moptipy*" &&\
+    echo "Now creating coverage badge." &&\
+    coverage-badge -o docs/build/coverage/badge.svg &&\
     echo "Done creating the documentation."
 
 # Create different distribution formats, also to check if there is any error.
@@ -158,19 +165,6 @@ install: create_distribution
 	pip --no-input --timeout 360 --retries 100 -v install . && \
 	echo "Successfully installed moptipy."
 
-# Now we run all examples
-run_examples: install
-	echo "Now we execute all the examples in 'examples'." &&\
-    for f in examples/*.py; do \
-    	if [ -z "$$f" ]; then \
-  			echo "Empty module '$$f'?"; \
-	  	else \
-			echo "Now running example '$$f'." &&\
-			{ python3 "$$f" || exit 1; };\
-		fi \
-    done &&\
-    echo "Finished executing all examples."
-
 # now test applying all the tools to an example dataset
 test_tools: install
 	echo "Testing all tools." &&\
@@ -197,9 +191,9 @@ test_tools: install
 	echo "Done checking all tools."
 
 # The meta-goal for a full build
-build: status clean init test static_analysis create_documentation create_distribution install run_examples test_tools
+build: status clean init test static_analysis create_documentation create_distribution install test_tools
 	echo "The build has completed."
 
 # .PHONY means that the targets init and test are not associated with files.
 # see https://stackoverflow.com/questions/2145590
-.PHONY: build clean create_distribution create_documentation init install run_examples static_analysis status test test_tools
+.PHONY: build clean create_distribution create_documentation init install static_analysis status test test_tools
