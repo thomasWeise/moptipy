@@ -41,7 +41,7 @@ def bitstrings_for_tests() -> Iterable[BitStrings]:
     return [BitStrings(i) for i in dimensions_for_tests()]
 
 
-def __random_bit_string(random: Generator, x: np.ndarray) -> np.ndarray:
+def random_bit_string(random: Generator, x: np.ndarray) -> np.ndarray:
     """
     Randomize a bit string.
 
@@ -73,7 +73,7 @@ def validate_op0_on_1_bitstrings(
     args: Dict[str, Any] = {
         "op0": op0(search_space) if callable(op0) else op0,
         "search_space": search_space,
-        "make_search_space_element_valid": __random_bit_string
+        "make_search_space_element_valid": random_bit_string
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -118,7 +118,7 @@ def validate_op1_on_1_bitstrings(
     args: Dict[str, Any] = {
         "op1": op1(search_space) if callable(op1) else op1,
         "search_space": search_space,
-        "make_search_space_element_valid": __random_bit_string
+        "make_search_space_element_valid": random_bit_string
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -163,7 +163,7 @@ def validate_op2_on_1_bitstrings(
     args: Dict[str, Any] = {
         "op2": op2(search_space) if callable(op2) else op2,
         "search_space": search_space,
-        "make_search_space_element_valid": __random_bit_string
+        "make_search_space_element_valid": random_bit_string
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -277,9 +277,7 @@ def validate_algorithm_on_leadingones(
         rr: int
         if i <= 3:
             rr = 0
-        elif max_fes > (10 * (i ** 1.1)):
-            rr = i - 2
-        elif max_fes > (4 * (i ** 1.15)):
+        elif (max_fes > (10 * (i ** 1.1))) or (max_fes > (4 * (i ** 1.15))):
             rr = i - 1
         else:
             rr = i

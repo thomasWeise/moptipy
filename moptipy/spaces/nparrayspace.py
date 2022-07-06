@@ -56,16 +56,16 @@ class NPArraySpace(Space):
 
     def to_str(self, x: numpy.ndarray) -> str:
         """
-        Convert an integer string to a string, using `,` as separator.
+        Convert a numpy array to a string, using `,` as separator.
 
-        :param x: the integer string
+        :param x: the numpy array
         :return: the string
         """
         return ",".join([str(xx) for xx in x])
 
     def from_str(self, text: str) -> numpy.ndarray:
         """
-        Convert a string to an integer string.
+        Convert a string to a numpy array.
 
         :param text: the text
         :return: the vector
@@ -80,9 +80,9 @@ class NPArraySpace(Space):
 
     def validate(self, x: numpy.ndarray) -> None:
         """
-        Validate a string.
+        Validate a numpy nd-array.
 
-        :param x: the integer string
+        :param x: the numpy vector
         :raises TypeError: if the string is not an element of this space.
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.

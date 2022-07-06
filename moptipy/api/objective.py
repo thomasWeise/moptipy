@@ -85,7 +85,7 @@ def check_objective(objective: Objective) -> Objective:
     Check whether an object is a valid instance of :class:`Objective`.
 
     :param objective: the objective
-    :return: the object
+    :return: the objective
     :raises TypeError: if `objective` is not an instance of
         :class:`Objective`
     """
