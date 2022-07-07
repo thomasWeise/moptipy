@@ -1,6 +1,6 @@
 [![make build](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml/badge.svg)](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml)
 [![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)](https://pypistats.org/packages/moptipy)
-[![coverage report](https://thomasweise.github.io/moptipy/cov/badge.svg)](https://thomasweise.github.io/moptipy/coverage/index.html)
+[![coverage report](https://thomasweise.github.io/moptipy/tc/badge.svg)](https://thomasweise.github.io/moptipy/tc/index.html)
 
 # moptipy: Metaheuristic Optimization in Python
 
@@ -1497,7 +1497,7 @@ The end result tables are implemented in the module [moptipy.evaluation.tabulate
 We provide a set of tools for testing implemented algorithms, spaces, and operators in the package [moptipy.tests](https://thomasweise.github.io/moptipy/moptipy.tests.html).
 Here, you can find functions where you pass in instances of your implemented components and they are checked for compliance with the [moptipy API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 
-We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/cov/index.html).
+We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/tc/index.html).
 
 
 ## 8. Useful Links and References
