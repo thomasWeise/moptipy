@@ -122,9 +122,8 @@ create_documentation: static_analysis test
     echo "Finished pygmentizing all examples, now copying LICENSE." &&\
     pygmentize -f html -l text -O full -O style=default -o docs/build/LICENSE.html LICENSE &&\
     echo "Finished copying LICENSE, now creating coverage report." &&\
-    mkdir -p /docs/build/tc &&\
+    mkdir -p docs/build/tc &&\
     coverage html -d docs/build/tc --include="moptipy*" &&\
-    rm -f docs/build/tc/.gitignore &&\
     echo "Now creating coverage badge." &&\
     coverage-badge -o docs/build/tc/badge.svg &&\
     if [[ -f docs/build/tc/badge.svg ]];then \
@@ -132,6 +131,8 @@ create_documentation: static_analysis test
 	else \
     	echo "docs/build/tc/badge.svg does not exist!"; exit 1; \
 	fi &&\
+	echo "Deleting .gitignore file." &&\
+    rm -f docs/build/tc/.gitignore &&\
 	echo "Done creating coverage data. Now creating .nojekyll files." &&\
 	touch "docs/build/.nojekyll" &&\
 	touch "docs/build/.doctrees/.nojekyll" &&\
