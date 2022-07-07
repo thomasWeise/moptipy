@@ -122,15 +122,23 @@ create_documentation: static_analysis test
     echo "Finished pygmentizing all examples, now copying LICENSE." &&\
     pygmentize -f html -l text -O full -O style=default -o docs/build/LICENSE.html LICENSE &&\
     echo "Finished copying LICENSE, now creating coverage report." &&\
-    mkdir -p "$(CWD)/docs/build/coverage" &&\
-    coverage html -d "$(CWD)/docs/build/coverage" --include="moptipy*" &&\
+    mkdir -p "$(CWD)/docs/build/cov" &&\
+    coverage html -d "$(CWD)/docs/build/cov" --include="moptipy*" &&\
     echo "Now creating coverage badge." &&\
-    coverage-badge -o "$(CWD)/docs/build/coverage/badge.svg" &&\
-    if [[ -f "$(CWD)/docs/build/coverage/badge.svg" ]];then \
-        echo "$(CWD)/docs/build/coverage/badge.svg exists."; \
+    coverage-badge -o "$(CWD)/docs/build/cov/badge.svg" &&\
+    if [[ -f "$(CWD)/docs/build/cov/badge.svg" ]];then \
+        echo "$(CWD)/docs/build/cov/badge.svg exists."; \
 	else \
-    	echo "$(CWD)/docs/build/coverage/badge.svg does not exist!"; exit 1; \
+    	echo "$(CWD)/docs/build/cov/badge.svg does not exist!"; exit 1; \
 	fi &&\
+	echo "Done creating coverage data. Now creating .nojekyll files." &&\
+	touch "$(CWD)/docs/build/.nojekyll" &&\
+	touch "$(CWD)/docs/build/.doctrees/.nojekyll" &&\
+	touch "$(CWD)/docs/build/_modules/.nojekyll" &&\
+	touch "$(CWD)/docs/build/_sources/.nojekyll" &&\
+	touch "$(CWD)/docs/build/_static/.nojekyll" &&\
+	touch "$(CWD)/docs/build/cov/.nojekyll" &&\
+	touch "$(CWD)/docs/build/examples/.nojekyll" &&\
     echo "Done creating the documentation."
 
 # Create different distribution formats, also to check if there is any error.
