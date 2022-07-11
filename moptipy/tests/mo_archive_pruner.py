@@ -1,11 +1,12 @@
 """Functions for testing multi-objective archive pruners."""
-from typing import Any, Final, Tuple, List, Iterable, Optional
+from typing import Final, Tuple, List, Iterable, Optional
 
 import numpy as np
 from numpy.random import Generator, default_rng
 
 from moptipy.api.mo_archive_pruner import MOArchivePruner, \
     check_mo_archive_pruner
+from moptipy.api.mo_utils import MOArchive
 from moptipy.tests.component import validate_component
 from moptipy.utils.types import type_error
 
@@ -56,12 +57,12 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                 raise type_error(amax, "amax", int)
             if not (0 < amax <= alen <= 10):
                 raise ValueError(f"invalid amax={amax} and alen={alen}.")
-            archive: List[Tuple[Any, np.ndarray]] = []
-            archivec: List[Tuple[Any, np.ndarray]] = []
+            archive: MOArchive = []
+            archivec: MOArchive = []
 
             for _ in range(alen):
                 needed: bool = True
-                rec: Optional[Tuple[str, np.ndarray]] = None
+                rec: Optional[Tuple[np.ndarray, str]] = None
                 fs: Optional[np.ndarray] = None
                 while needed:   # we make sure that all records are unique
                     fs = np.empty(dim, dt)
@@ -71,22 +72,23 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                         raise ValueError(f"len(fs)={len(fs)}!=dim={dim}")
                     for k in range(dim):
                         fs[k] = random.integers(mins[i], maxs[i])
-                    rec = (tag, fs)
+                    rec = (fs, tag)
                     if not isinstance(rec, tuple):
                         raise type_error(rec, "rec", tuple)
                     if len(rec) != 2:
                         raise ValueError(f"len(rec)={len(rec)}!=2")
                     needed = False
-                    for _, fs2 in archive:
+                    for z in archive:
+                        fs2 = z[0]
                         if np.array_equal(fs, fs2):
                             needed = True
                             break
                 if (rec is None) or (fs is None):
                     raise ValueError("huh?")
                 archive.append(rec)
-                rec2 = (tag, fs.copy())
-                if (rec2[0] != rec[0]) or \
-                        (not np.array_equal(rec2[1], rec[1])):
+                rec2 = (fs.copy(), tag)
+                if (rec2[1] != rec[1]) or \
+                        (not np.array_equal(rec2[0], rec[0])):
                     raise ValueError(f"{rec} != {rec2}")
                 archivec.append(rec2)
 
@@ -126,12 +128,12 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                     raise type_error(a, f"archive[{ii}]", tuple)
                 if len(a) != 2:
                     raise ValueError(f"len(a)={len(a)} != 2")
-                if a[0] != tag:
-                    raise ValueError(f"a[0]={a[0]}!='{tag}'")
-                if not isinstance(a[1], np.ndarray):
-                    raise type_error(a[1], "a[1]", np.ndarray)
+                if a[1] != tag:
+                    raise ValueError(f"a[1]={a[1]}!='{tag}'")
+                if not isinstance(a[0], np.ndarray):
+                    raise type_error(a[0], "a[0]", np.ndarray)
                 for idx, b in enumerate(archivec):
-                    if np.array_equal(a[1], b[1]):
+                    if np.array_equal(a[0], b[0]):
                         del archivec[idx]
                         break
 

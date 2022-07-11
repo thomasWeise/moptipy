@@ -2,11 +2,12 @@
 
 from collections import Counter
 from math import inf
-from typing import Any, List, Tuple, Final, Set, Iterable, Optional, Union
+from typing import List, Final, Set, Iterable, Optional, Union
 
 import numpy as np
 
 from moptipy.api.mo_archive_pruner import MOArchivePruner
+from moptipy.api.mo_utils import MOArchive
 from moptipy.utils.nputils import np_number_to_py_number
 from moptipy.utils.types import type_error
 
@@ -75,8 +76,7 @@ class KeepFarthest(MOArchivePruner):
         #: the minimal distances
         self.__min_dists: Final[List[float]] = []
 
-    def prune(self, archive: List[Tuple[Any, np.ndarray]],
-              n_keep: int) -> None:
+    def prune(self, archive: MOArchive, n_keep: int) -> None:
         """
         Preserve the best of certain dimensions and keep the rest diverse.
 
@@ -113,7 +113,7 @@ class KeepFarthest(MOArchivePruner):
         # get the ranges of the dimension and remember the record with
         # the minimal value per dimension
         for idx, ind in enumerate(archive):
-            fs = ind[1]
+            fs = ind[0]
             for i, f in enumerate(fs):
                 if f <= mi[i]:
                     q: Optional[Set[int]] = preserve[i]
@@ -166,7 +166,7 @@ class KeepFarthest(MOArchivePruner):
         for i in range(dim):
             mi[i] = mii = np_number_to_py_number(mi[i])
             maa = np_number_to_py_number(ma[i]) - mii
-            ma[i] = maa if maa > 0 else 1  # ensure finite on collapsed ranges
+            ma[i] = maa if maa > 0 else 1.0  # ensure finite even on 0 ranges
 
             # Now we fill up the archive with those records most different from
         # the already included ones based on the square distance in the
@@ -180,13 +180,13 @@ class KeepFarthest(MOArchivePruner):
             max_dist_idx: int = selected  # the index of that record
             for rec_idx in range(selected, count):  # iterate over unselected
                 min_dist_rec: float = min_dists[rec_idx]  # min dist so far
-                rec: np.ndarray = archive[rec_idx][1]  # objective vector
+                rec: np.ndarray = archive[rec_idx][0]  # objective vector
                 for cmp_idx in range(dist_update_start, selected):
-                    cmp: np.ndarray = archive[cmp_idx][1]  # objective vector
+                    cmp: np.ndarray = archive[cmp_idx][0]  # objective vector
                     ds: float = 0.0  # normalized square distance
                     for dd in range(dim):  # compute normalized distance
-                        ddd: float = (cmp[dd] - mi[dd]) / ma[dd] \
-                            - (rec[dd] - mi[dd]) / ma[dd]
+                        ddd: float = float(cmp[dd] - mi[dd]) / ma[dd] \
+                            - float(rec[dd] - mi[dd]) / ma[dd]
                         ds = ds + float(ddd * ddd)
                     if ds < min_dist_rec:  # is this one closer?
                         min_dist_rec = ds  # remember
