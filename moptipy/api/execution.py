@@ -50,38 +50,30 @@ class Execution:
     def __init__(self) -> None:
         """Initialize the execution builder."""
         super().__init__()
-        self.__algorithm: Optional[Algorithm] = None
-        self.__solution_space: Optional[Space] = None
-        self.__objective: Optional[Objective] = None
-        self.__search_space: Optional[Space] = None
-        self.__encoding: Optional[Encoding] = None
-        self.__rand_seed: Optional[int] = None
-        self.__max_fes: Optional[int] = None
-        self.__max_time_millis: Optional[int] = None
-        self.__goal_f: Union[None, int, float] = None
-        self.__log_file: Optional[Path] = None
-        self.__log_improvements: bool = False
-        self.__log_all_fes: bool = False
+        self._algorithm: Optional[Algorithm] = None
+        self._solution_space: Optional[Space] = None
+        self._objective: Optional[Objective] = None
+        self._search_space: Optional[Space] = None
+        self._encoding: Optional[Encoding] = None
+        self._rand_seed: Optional[int] = None
+        self._max_fes: Optional[int] = None
+        self._max_time_millis: Optional[int] = None
+        self._goal_f: Union[None, int, float] = None
+        self._log_file: Optional[Path] = None
+        self._log_improvements: bool = False
+        self._log_all_fes: bool = False
 
-    def set_algorithm(self, algorithm: Algorithm) -> None:
+    def set_algorithm(self, algorithm: Algorithm) -> 'Execution':
         """
         Set the algorithm to be used for this experiment.
 
         :param algorithm: the algorithm
+        :returns: this execution
         """
-        self.__algorithm = check_algorithm(algorithm)
+        self._algorithm = check_algorithm(algorithm)
+        return self
 
-    def get_algorithm(self) -> Algorithm:
-        """
-        Obtain the algorithm.
-
-        Requires that :meth:`set_algorithm` was called first.
-
-        :return: the algorithm
-        """
-        return check_algorithm(self.__algorithm)
-
-    def set_solution_space(self, solution_space: Space) -> None:
+    def set_solution_space(self, solution_space: Space) -> 'Execution':
         """
         Set the solution space to be used for this experiment.
 
@@ -89,25 +81,29 @@ class Execution:
         solutions.
 
         :param solution_space: the solution space
+        :returns: this execution
         """
-        self.__solution_space = check_space(solution_space)
+        self._solution_space = check_space(solution_space)
+        return self
 
-    def set_objective(self, objective: Objective) -> None:
+    def set_objective(self, objective: Objective) -> 'Execution':
         """
         Set the objective function to be used for this experiment.
 
         This is the function rating the quality of candidate solutions.
 
         :param objective: the objective function
+        :returns: this execution
         """
-        if self.__objective is not None:
+        if self._objective is not None:
             raise ValueError(
                 "Cannot add more than one objective function in single-"
                 f"objective optimization, attempted to add {objective} "
-                f"after {self.__objective}.")
-        self.__objective = check_objective(objective)
+                f"after {self._objective}.")
+        self._objective = check_objective(objective)
+        return self
 
-    def set_search_space(self, search_space: Optional[Space]) -> None:
+    def set_search_space(self, search_space: Optional[Space]) -> 'Execution':
         """
         Set the search space to be used for this experiment.
 
@@ -115,10 +111,12 @@ class Execution:
 
         :param search_space: the search space, or `None` of none shall be
             used, i.e., if search and solution space are the same
+        :returns: this execution
         """
-        self.__search_space = check_space(search_space, none_is_ok=True)
+        self._search_space = check_space(search_space, none_is_ok=True)
+        return self
 
-    def set_encoding(self, encoding: Optional[Encoding]) -> None:
+    def set_encoding(self, encoding: Optional[Encoding]) -> 'Execution':
         """
         Set the encoding to be used for this experiment.
 
@@ -126,21 +124,24 @@ class Execution:
         solution space.
 
         :param encoding: the encoding, or `None` of none shall be used
+        :returns: this execution
         """
-        self.__encoding = check_encoding(encoding, none_is_ok=True)
+        self._encoding = check_encoding(encoding, none_is_ok=True)
+        return self
 
-    def set_rand_seed(self, rand_seed: Optional[int]) -> None:
+    def set_rand_seed(self, rand_seed: Optional[int]) -> 'Execution':
         """
         Set the seed to be used for initializing the random number generator.
 
         :param rand_seed: the random seed, or `None` if a seed should
             automatically be chosen when the experiment is executed
         """
-        self.__rand_seed = None if rand_seed is None \
+        self._rand_seed = None if rand_seed is None \
             else rand_seed_check(rand_seed)
+        return self
 
     def set_max_fes(self, max_fes: int,  # +book
-                    force_override: bool = False) -> None:
+                    force_override: bool = False) -> 'Execution':
         """
         Set the maximum FEs.
 
@@ -151,16 +152,18 @@ class Execution:
         :param max_fes: the maximum FEs
         :param force_override: the use the value given in `max_time_millis`
             regardless of what was specified before
+        :returns: this execution
         """
         max_fes = check_max_fes(max_fes)
-        if not (self.__max_fes is None):
-            if max_fes >= self.__max_fes:
+        if not (self._max_fes is None):
+            if max_fes >= self._max_fes:
                 if not force_override:
-                    return
-        self.__max_fes = max_fes
+                    return self
+        self._max_fes = max_fes
+        return self
 
     def set_max_time_millis(self, max_time_millis: int,
-                            force_override: bool = False) -> None:
+                            force_override: bool = False) -> 'Execution':
         """
         Set the maximum time in milliseconds.
 
@@ -171,15 +174,17 @@ class Execution:
         :param max_time_millis: the maximum time in milliseconds
         :param force_override: the use the value given in `max_time_millis`
             regardless of what was specified before
+        :returns: this execution
         """
         max_time_millis = check_max_time_millis(max_time_millis)
-        if not (self.__max_time_millis is None):
-            if max_time_millis >= self.__max_time_millis:
+        if not (self._max_time_millis is None):
+            if max_time_millis >= self._max_time_millis:
                 if not force_override:
-                    return
-        self.__max_time_millis = max_time_millis
+                    return self
+        self._max_time_millis = max_time_millis
+        return self
 
-    def set_goal_f(self, goal_f: Union[int, float]) -> None:
+    def set_goal_f(self, goal_f: Union[int, float]) -> 'Execution':
         """
         Set the goal objective value after which the process can stop.
 
@@ -187,14 +192,16 @@ class Execution:
         retained.
 
         :param goal_f: the goal objective value.
+        :returns: this execution
         """
         goal_f = check_goal_f(goal_f)
-        if not (self.__goal_f is None):
-            if goal_f <= self.__goal_f:
-                return
-        self.__goal_f = goal_f
+        if not (self._goal_f is None):
+            if goal_f <= self._goal_f:
+                return self
+        self._goal_f = goal_f
+        return self
 
-    def set_log_file(self, log_file: Optional[str]) -> None:
+    def set_log_file(self, log_file: Optional[str]) -> 'Execution':
         """
         Set the log file to write to.
 
@@ -202,27 +209,33 @@ class Execution:
 
         :param log_file: the log file
         """
-        self.__log_file = _check_log_file(log_file, True)
+        self._log_file = _check_log_file(log_file, True)
+        return self
 
-    def set_log_improvements(self, log_improvements: bool = True) -> None:
+    def set_log_improvements(self, log_improvements: bool = True) \
+            -> 'Execution':
         """
         Set whether improvements should be logged.
 
         :param log_improvements: if improvements should be logged?
+        :returns: this execution
         """
         if not isinstance(log_improvements, bool):
             raise type_error(log_improvements, "log_improvements", bool)
-        self.__log_improvements = log_improvements
+        self._log_improvements = log_improvements
+        return self
 
-    def set_log_all_fes(self, log_all_fes: bool = True) -> None:
+    def set_log_all_fes(self, log_all_fes: bool = True) -> 'Execution':
         """
         Set whether all FEs should be logged.
 
         :param log_all_fes: if all FEs should be logged?
+        :returns: this execution
         """
         if not isinstance(log_all_fes, bool):
             raise type_error(log_all_fes, "log_all_fes", bool)
-        self.__log_all_fes = log_all_fes
+        self._log_all_fes = log_all_fes
+        return self
 
     def execute(self) -> Process:
         """
@@ -246,28 +259,28 @@ class Execution:
         :return: the process *after* the run, i.e., in the state where it can
             be queried for the result
         """
-        algorithm = check_algorithm(self.__algorithm)
-        solution_space = check_space(self.__solution_space)
-        objective = check_objective(self.__objective)
-        search_space = check_space(self.__search_space,
-                                   self.__encoding is None)
-        encoding = check_encoding(self.__encoding,
+        algorithm = check_algorithm(self._algorithm)
+        solution_space = check_space(self._solution_space)
+        objective = check_objective(self._objective)
+        search_space = check_space(self._search_space,
+                                   self._encoding is None)
+        encoding = check_encoding(self._encoding,
                                   search_space is None)
-        rand_seed = self.__rand_seed
+        rand_seed = self._rand_seed
         if not (rand_seed is None):
             rand_seed = rand_seed_check(rand_seed)
-        max_time_millis = check_max_time_millis(self.__max_time_millis, True)
-        max_fes = check_max_fes(self.__max_fes, True)
-        goal_f = check_goal_f(self.__goal_f, True)
+        max_time_millis = check_max_time_millis(self._max_time_millis, True)
+        max_fes = check_max_fes(self._max_fes, True)
+        goal_f = check_goal_f(self._goal_f, True)
         f_lb = objective.lower_bound()
         if (not (f_lb is None)) and isfinite(f_lb):
             if (goal_f is None) or (f_lb > goal_f):
                 goal_f = f_lb
 
-        log_all_fes = self.__log_all_fes
-        log_improvements = self.__log_improvements or self.__log_all_fes
+        log_all_fes = self._log_all_fes
+        log_improvements = self._log_improvements or self._log_all_fes
 
-        log_file = self.__log_file
+        log_file = self._log_file
         if log_file is None:
             if log_all_fes:
                 raise ValueError("Log file cannot be None "

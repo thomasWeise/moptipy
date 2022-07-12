@@ -90,7 +90,8 @@ def __run_experiment(base_dir: Path,
                 if not isinstance(exp, Execution):
                     raise type_error(exp, "result of setup callable",
                                      Execution)
-                algo_name = sanitize_name(str(exp.get_algorithm()))
+                # noinspection PyProtectedMember
+                algo_name = sanitize_name(str(exp._algorithm))
 
                 cd = Path.path(os.path.join(base_dir, algo_name, inst_name))
                 cd.ensure_dir_exists()
