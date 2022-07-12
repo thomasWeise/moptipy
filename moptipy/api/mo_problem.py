@@ -144,6 +144,16 @@ def check_mo_problem(mo_problem: MOProblem) -> MOProblem:
     return mo_problem
 
 
+def _cpy(dest: np.ndarray, src: np.ndarray) -> None:
+    """
+    Copy a numpy array of length 1.
+
+    :param dest: the destination
+    :param src: the source
+    """
+    dest[0] = src[0]
+
+
 class MOSOProblemBridge(MOProblem):
     """A bridge between multi-objective and single-objective optimization."""
 
@@ -179,6 +189,7 @@ class MOSOProblemBridge(MOProblem):
         self.__f: Final[Objective] = objective
         self.f_create = lambda dd=dt: np.empty(1, dd)  # type: ignore
         self.f_dimension = lambda: 1  # type: ignore
+        self.f_copy = _cpy  # type: ignore
 
     def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
         """
