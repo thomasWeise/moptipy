@@ -2,12 +2,11 @@
 
 from collections import Counter
 from math import inf
-from typing import List, Final, Set, Iterable, Optional, Union
+from typing import List, Final, Set, Iterable, Optional, Union, Any, Tuple
 
 import numpy as np
 
 from moptipy.api.mo_archive_pruner import MOArchivePruner
-from moptipy.api.mo_utils import MOArchive
 from moptipy.utils.nputils import np_number_to_py_number
 from moptipy.utils.types import type_error
 
@@ -76,7 +75,8 @@ class KeepFarthest(MOArchivePruner):
         #: the minimal distances
         self.__min_dists: Final[List[float]] = []
 
-    def prune(self, archive: MOArchive, n_keep: int) -> None:
+    def prune(self, archive: List[Tuple[np.ndarray, Any]],
+              n_keep: int) -> None:
         """
         Preserve the best of certain dimensions and keep the rest diverse.
 

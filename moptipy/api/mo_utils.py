@@ -1,18 +1,7 @@
 """Utilities for multi-objective optimization."""
 
-from typing import TypeAlias, Any, Tuple, List, Union
-
 import numba  # type: ignore
 import numpy as np
-
-#: the multi-objective record for problems with only solution space
-MORecordX: TypeAlias = Tuple[np.ndarray, Any]
-#: the multi-objective record for problems with search and solution space
-MORecordXY: TypeAlias = Tuple[np.ndarray, Any, Any]
-#: the union of both possible multi-objective archive records
-MORecord: TypeAlias = Union[MORecordX, MORecordXY]
-#: the type for multi-objective archives
-MOArchive: TypeAlias = List[MORecord]
 
 
 @numba.njit(nogil=True, cache=True)

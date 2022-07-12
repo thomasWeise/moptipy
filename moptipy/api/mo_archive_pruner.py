@@ -1,16 +1,18 @@
 """An archive of solutions to a multi-objective problems."""
 
-from typing import Final
+from typing import Final, List, Tuple, Any
+
+import numpy as np
 
 from moptipy.api.component import Component
-from moptipy.api.mo_utils import MOArchive
 from moptipy.utils.types import type_error
 
 
 class MOArchivePruner(Component):
     """A strategy for pruning an archive of solutions."""
 
-    def prune(self, archive: MOArchive, n_keep: int) -> None:
+    def prune(self, archive: List[Tuple[np.ndarray, Any]],
+              n_keep: int) -> None:
         """
         Prune an archive.
 
@@ -31,7 +33,8 @@ class MOArchivePruner(Component):
         end: Final[int] = len(archive)
         if end > n_keep:
             n_delete: Final[int] = end - n_keep
-            move_to_end: Final[MOArchive] = archive[:n_delete]
+            move_to_end: Final[List[Tuple[np.ndarray, Any]]] = \
+                archive[:n_delete]
             archive[0:n_keep] = archive[n_delete:end]
             archive[end - n_delete:end] = move_to_end
 

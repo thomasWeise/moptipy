@@ -1,12 +1,11 @@
 """Functions for testing multi-objective archive pruners."""
-from typing import Final, Tuple, List, Iterable, Optional
+from typing import Final, Tuple, List, Iterable, Optional, Any
 
 import numpy as np
 from numpy.random import Generator, default_rng
 
 from moptipy.api.mo_archive_pruner import MOArchivePruner, \
     check_mo_archive_pruner
-from moptipy.api.mo_utils import MOArchive
 from moptipy.tests.component import validate_component
 from moptipy.utils.types import type_error
 
@@ -57,8 +56,8 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                 raise type_error(amax, "amax", int)
             if not (0 < amax <= alen <= 10):
                 raise ValueError(f"invalid amax={amax} and alen={alen}.")
-            archive: MOArchive = []
-            archivec: MOArchive = []
+            archive: List[Tuple[np.ndarray, Any]] = []
+            archivec: List[Tuple[np.ndarray, Any]] = []
 
             for _ in range(alen):
                 needed: bool = True

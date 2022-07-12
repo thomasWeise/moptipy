@@ -1,9 +1,10 @@
 """Test the basic archive pruner."""
 
+from typing import List, Tuple, Any
+
 import numpy as np
 
 from moptipy.api.mo_archive_pruner import MOArchivePruner
-from moptipy.api.mo_utils import MOArchive
 from moptipy.tests.mo_archive_pruner import validate_mo_archive_pruner
 
 
@@ -13,7 +14,8 @@ def test_mo_archive_pruner() -> None:
     validate_mo_archive_pruner(pruner, range(1, 10))
 
     dt = np.dtype(int)
-    orig: MOArchive = [(np.empty(2, dt), str(i)) for i in range(10)]
+    orig: List[Tuple[np.ndarray, Any]] = [
+        (np.empty(2, dt), str(i)) for i in range(10)]
     cpy = orig.copy()
 
     pruner.prune(orig, 8)
