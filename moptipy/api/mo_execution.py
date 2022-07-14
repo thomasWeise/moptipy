@@ -1,7 +1,8 @@
 """The multi-objective algorithm execution API."""
 
-from typing import Optional, Union
+from typing import Optional, Union, Final, cast
 
+from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
@@ -257,4 +258,23 @@ class MOExecution(Execution):
         :returns: the instance of :class:`~moptipy.api.mo_process.MOProcess`
             after applying the algorithm.
         """
-        return MOProcess()
+        objective: Final[MOProblem] = cast(MOProblem, self._objective)
+        pruner: Final[MOArchivePruner] = \
+            self._archive_pruner if self._archive_pruner is not None \
+            else MOArchivePruner()
+        dim: Final[int] = objective.f_dimension()
+        size: Final[int] = self._archive_max_size if \
+            self._archive_max_size is not None else (
+            self._archive_prune_limit if
+            self._archive_prune_limit is not None
+            else (1 if dim == 1 else 32))
+        limit: Final[int] = self._archive_prune_limit if \
+            self._archive_prune_limit is not None \
+            else (1 if dim == 1 else (size * 4))
+
+        res: Final[_MOProcessNoSS] = _MOProcessNoSS(
+            self._solution_space, objective, self._algorithm, pruner, size,
+            limit, self._log_file, self._rand_seed, self._max_fes,
+            self._max_time_millis, self._goal_f)
+
+        return res

@@ -14,8 +14,9 @@ def domination(a: np.ndarray, b: np.ndarray) -> int:
     :returns: an integer value indicating the domination relationship
     :retval -1: if `a` dominates `b`
     :retval 1: if `b` dominates `a`
+    :retval 2: if `b` equals `a`
     :retval 0: if `a` and `b` are mutually non-dominated, i.e., if neither `a`
-        dominates `b` not `b` dominates `a`
+        dominates `b` not `b` dominates `a` and `b` is also different from `a`
 
     >>> from numpy import array
     >>> domination(array([1, 1, 1]), array([2, 2, 2]))
@@ -24,6 +25,8 @@ def domination(a: np.ndarray, b: np.ndarray) -> int:
     0
     >>> domination(array([2, 2, 2]), array([1, 1, 1]))
     1
+    >>> domination(array([2, 2, 2]), array([2, 2, 2]))
+    2
     """
     res: int = 0
     for i, av in enumerate(a):
@@ -38,4 +41,4 @@ def domination(a: np.ndarray, b: np.ndarray) -> int:
                 res = 1
             elif res == -1:
                 return 0
-    return res
+    return 2 if res == 0 else res

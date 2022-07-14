@@ -54,10 +54,25 @@ KEY_TOTAL_FES: Final[str] = "totalFEs"
 KEY_TOTAL_TIME_MILLIS: Final[str] = "totalTimeMillis"
 #: the best encountered objective value
 KEY_BEST_F: Final[str] = "bestF"
+#: the vector of objective values of the best solution
+KEY_BEST_FS: Final[str] = "bestFs"
 #: the FE when the best objective value was reached
 KEY_LAST_IMPROVEMENT_FE: Final[str] = "lastImprovementFE"
 #: the time in milliseconds when the best objective value was reached
 KEY_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
+
+#: the archive section prefix
+PREFIX_SECTION_ARCHIVE: Final[str] = "ARCHIVE_"
+#: the archive quality section suffix
+SECTION_ARCHIVE_QUALITY: Final[str] = f"{PREFIX_SECTION_ARCHIVE}QUALITY"
+#: the scalarized objective value column of the archive if without numeric
+#: suffix, the result of the ith objective function if with numeric suffix
+KEY_ARCHIVE_F: Final[str] = "f"
+
+#: the archive X section suffix
+SUFFIX_SECTION_ARCHIVE_X: Final[str] = "_X"
+#: the archive Y section suffix
+SUFFIX_SECTION_ARCHIVE_Y: Final[str] = "_Y"
 
 #: the setup section
 SECTION_SETUP: Final[str] = "SETUP"
@@ -85,6 +100,10 @@ KEY_RAND_GENERATOR_TYPE: Final[str] = "randGenType"
 KEY_RAND_BIT_GENERATOR_TYPE: Final[str] = "randBitGenType"
 #: the number of decision variables
 KEY_SPACE_NUM_VARS: Final[str] = "nvars"
+#: the maximum archive size (after pruning)
+KEY_ARCHIVE_MAX_SIZE: Final[str] = "archiveMaxSize"
+#: the pruning limit of the archive size
+KEY_ARCHIVE_PRUNE_LIMIT: Final[str] = "archivePruneLimit"
 
 #: the scope of the process parameters
 SCOPE_PROCESS: Final[str] = "p"
@@ -98,6 +117,8 @@ SCOPE_OBJECTIVE_FUNCTION: Final[str] = "f"
 SCOPE_ENCODING: Final[str] = "g"
 #: the scope of the optimization algorithm
 SCOPE_ALGORITHM: Final[str] = "a"
+#: the scope of the multi-objective archive pruner
+SCOPE_PRUNER: Final[str] = "ap"
 #: the scope of the nullary search operator
 SCOPE_OP0: Final[str] = "op0"
 #: the scope of the unary search operator

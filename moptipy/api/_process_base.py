@@ -5,7 +5,7 @@ from math import inf, isfinite
 from threading import Lock, Timer
 from time import time_ns
 from traceback import print_tb
-from typing import Optional, Union, Final, Callable, Dict
+from typing import Optional, Union, Final, Callable, Dict, Any
 
 from numpy.random import Generator
 
@@ -165,7 +165,7 @@ class _ProcessBase(Process):
         """
         super().__init__()
         #: This will be `True` after :meth:`terminate` has been called.
-        self._terminated: bool = False  # +book
+        self._terminated: bool = False
         #: This becomes `True` when :meth:`should_terminate` returned `True`.
         self._knows_that_terminated: bool = False
         #: The internal lock, needed to protect :meth:`terminate`.
@@ -195,7 +195,8 @@ class _ProcessBase(Process):
         #: The objective function rating candidate solutions.
         self.__objective: Final[Objective] = check_objective(objective)
         #: the internal invoker for the objective function
-        self._f: Final[Callable] = self.__objective.evaluate
+        self._f: Final[Callable[[Any], Union[int, float]]] = \
+            self.__objective.evaluate
         #: The algorithm to be applied.
         self.__algorithm: Final[Algorithm] = check_algorithm(algorithm)
         #: The random seed.
@@ -411,6 +412,19 @@ class _ProcessBase(Process):
                 raise ValueError(f"section '{title}' already logged.")
             self.__sections[title] = text.strip()
 
+    def _log_best(self, kv: KeyValueLogSection) -> None:
+        """
+        Log the best solution.
+
+        :param kv: the key values logger
+        """
+        kv.key_value(KEY_BEST_F, self._current_best_f)
+        kv.key_value(KEY_LAST_IMPROVEMENT_FE,
+                     self._last_improvement_fe)
+        kv.key_value(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                     _ns_to_ms(self._last_improvement_time_nanos
+                               - self._start_time_nanos))
+
     def _write_log(self, logger: Logger) -> None:
         """Write the information gathered during optimization into the log."""
         with logger.key_values(SECTION_FINAL_STATE) as kv:
@@ -419,12 +433,7 @@ class _ProcessBase(Process):
                          _ns_to_ms(self._current_time_nanos
                                    - self._start_time_nanos))
             if self._current_fes > 0:
-                kv.key_value(KEY_BEST_F, self._current_best_f)
-                kv.key_value(KEY_LAST_IMPROVEMENT_FE,
-                             self._last_improvement_fe)
-                kv.key_value(KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                             _ns_to_ms(self._last_improvement_time_nanos
-                                       - self._start_time_nanos))
+                self._log_best(kv)
 
         with logger.key_values(SECTION_SETUP) as kv:
             self.log_parameters_to(kv)

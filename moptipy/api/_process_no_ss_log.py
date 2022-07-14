@@ -1,10 +1,11 @@
 """A process with logging, where search and solution space are the same."""
 from typing import Optional, Union, List, Final, cast
 
-from moptipy.api import logging
 from moptipy.api._process_base import _ns_to_ms, _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
+from moptipy.api.logging import SECTION_PROGRESS, PROGRESS_FES, \
+    PROGRESS_TIME_MILLIS, PROGRESS_CURRENT_F
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils.logger import Logger
@@ -148,10 +149,10 @@ class _ProcessNoSSLog(_ProcessNoSS):
 
     def _write_log(self, logger: Logger) -> None:
         if len(self.__log) > 0:
-            with logger.csv(logging.SECTION_PROGRESS,
-                            [logging.PROGRESS_FES,
-                             logging.PROGRESS_TIME_MILLIS,
-                             logging.PROGRESS_CURRENT_F]) as csv:
+            with logger.csv(SECTION_PROGRESS,
+                            [PROGRESS_FES,
+                             PROGRESS_TIME_MILLIS,
+                             PROGRESS_CURRENT_F]) as csv:
                 for row in self.__log:
                     csv.row([row[0], _ns_to_ms(cast(int, row[1])
                                                - self._start_time_nanos),
