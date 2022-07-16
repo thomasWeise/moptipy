@@ -101,6 +101,60 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             for _ in range(self._archive_prune_limit)
         ]
 
+    def check_in(self, x: Any, fs: np.ndarray,
+                 f: Union[int, float, None] = None,
+                 prune_if_necessary: bool = False) -> bool:
+        """
+        Check a solution into the archive.
+
+        :param x: the point in the search space
+        :param fs: the vector of objective values
+        :param f: the optional scalarized fitness (if it was remembered), or
+            `None` if it is not known and/or should be re-computed if the
+            archive is written
+        :param prune_if_necessary: should we prune the archive if it becomes
+            too large? `False` means that the archive may grow unbounded
+        :returns: `True` if the solution was non-dominated, `False` if it was
+            dominated by at least one solution in the archive
+        """
+        archive: Final[List[MORecordY]] = self._archive
+        added_to_archive: bool = False
+        archive_size: int = self._archive_size
+        # we update the archive
+        for i in range(archive_size, -1, -1):
+            ae: MORecordY = archive[i]
+            d: int = domination(fs, ae.fs)
+            if d < 0:  # the new solution dominates an archived one
+                if added_to_archive:  # if already added, shrink archive
+                    archive_size = archive_size - 1
+                    archive[archive_size], archive[i] = \
+                        ae, archive[archive_size]
+                else:  # if not added, overwrite dominated solution
+                    self.f_copy(ae.fs, fs)
+                    self._copy_y(ae.x, x)
+                    ae.f = f
+                    added_to_archive = True
+            elif d > 0:
+                return False
+
+        if added_to_archive:  # already added, can quit
+            self._archive_size = archive_size
+        else:  # still need to add
+            if archive_size >= len(archive):
+                ae = MORecordY(self.create(), self.f_create(), f)
+                archive.append(ae)
+            else:
+                ae = archive[archive_size]
+                ae.f = f
+            self.f_copy(ae.fs, fs)
+            self._copy_y(ae.x, x)
+            archive_size += 1
+            if prune_if_necessary \
+                    and (archive_size > self._archive_prune_limit):
+                self._prune(archive, self._archive_max_size)
+            self._archive_size = self._archive_max_size
+        return True
+
     def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
         if self._terminated:
             if self._knows_that_terminated:
@@ -120,42 +174,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             self._last_improvement_fe = current_fes
             self._copy_y(self._current_best_y, x)
 
-        archive: Final[List[MORecordY]] = self._archive
-        dominated: bool = False
-        added_to_archive: bool = False
-        archive_size: int = self._archive_size
-        # we update the archive
-        for i in range(archive_size, -1, -1):
-            ae: MORecordY = archive[i]
-            d: int = domination(fs, ae.fs)
-            if d < 0:  # the new solution dominates an archived one
-                improved = True  # that's an improvement
-                if added_to_archive:  # if already added, shrink archive
-                    archive_size = archive_size - 1
-                    archive[archive_size], archive[i] = \
-                        ae, archive[archive_size]
-                else:  # if not added, overwrite dominated solution
-                    self.f_copy(ae.fs, fs)
-                    self._copy_y(ae.x, x)
-                    ae.f = result
-                    added_to_archive = True
-            elif d > 0:
-                dominated = True
-                break
-        if added_to_archive:
-            self._archive_size = archive_size
-        elif not dominated:
-            improved = True  # that is also an improvement
-            ae = archive[archive_size]
-            self.f_copy(ae.fs, fs)
-            self._copy_y(ae.x, x)
-            ae.f = result
-            archive_size += 1
-            if archive_size > self._archive_prune_limit:
-                self._prune(archive, self._archive_max_size)
-            self._archive_size = self._archive_max_size
-
-        if improved:
+        if self.check_in(x, fs, result) or improved:
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f)
@@ -171,6 +190,9 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
     def register(self, x, f: Union[int, float]) -> None:
         raise ValueError(
             "register is not supported in multi-objective optimization")
+
+    def get_archive(self) -> List[MORecordY]:
+        return self._archive[0:self._archive_size]
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         super(_ProcessBase, self).log_parameters_to(logger)
@@ -224,7 +246,6 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             # write and verify the archive
             archive: Final[List[MORecordY]] = \
                 self._archive[0:self._archive_size]
-            del self._archive
             archive.sort()
             qualities: Final[List[List[Union[int, float]]]] = []
             for i, rec in enumerate(archive):

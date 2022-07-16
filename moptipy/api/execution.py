@@ -1,6 +1,6 @@
 """The algorithm execution API."""
 from math import isfinite
-from typing import Optional, Union
+from typing import Optional, Union, Final
 
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
@@ -259,13 +259,13 @@ class Execution:
         :return: the process *after* the run, i.e., in the state where it can
             be queried for the result
         """
-        algorithm = check_algorithm(self._algorithm)
-        solution_space = check_space(self._solution_space)
-        objective = check_objective(self._objective)
-        search_space = check_space(self._search_space,
-                                   self._encoding is None)
-        encoding = check_encoding(self._encoding,
-                                  search_space is None)
+        algorithm: Final[Algorithm] = check_algorithm(self._algorithm)
+        solution_space: Final[Space] = check_space(self._solution_space)
+        objective: Final[Objective] = check_objective(self._objective)
+        search_space: Final[Optional[Space]] = check_space(
+            self._search_space, self._encoding is None)
+        encoding: Final[Optional[Encoding]] = check_encoding(
+            self._encoding, search_space is None)
         rand_seed = self._rand_seed
         if not (rand_seed is None):
             rand_seed = rand_seed_check(rand_seed)
@@ -288,7 +288,6 @@ class Execution:
             if log_improvements:
                 raise ValueError("Log file cannot be None "
                                  "if improvements should be logged.")
-
         else:
             log_file.create_file_or_truncate()
 

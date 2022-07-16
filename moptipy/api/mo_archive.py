@@ -25,7 +25,8 @@ class MORecordY:
 
         :param x: the point in the search space
         :param fs: the vector of objective values
-        :param f: the optional scalarized objective value
+        :param f: the optional scalarized objective value, where `inf` means
+            that the objective value has not been set
         """
         if x is None:
             raise TypeError("x must not be None")

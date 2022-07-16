@@ -1,9 +1,10 @@
 """The multi-objective algorithm execution API."""
 
+from math import isfinite
 from typing import Optional, Union, Final, cast
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
-from moptipy.api.algorithm import Algorithm
+from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
 from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner
@@ -11,7 +12,11 @@ from moptipy.api.mo_problem import MOProblem, check_mo_problem, \
     MOSOProblemBridge
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.objective import Objective, check_objective
+from moptipy.api.process import check_max_fes, check_max_time_millis, \
+    check_goal_f
 from moptipy.api.space import Space
+from moptipy.api.space import check_space
+from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.types import type_error
 
 
@@ -258,6 +263,36 @@ class MOExecution(Execution):
             after applying the algorithm.
         """
         objective: Final[MOProblem] = cast(MOProblem, self._objective)
+        solution_space: Final[Space] = check_space(self._solution_space)
+        # search_space: Final[Optional[Space]] = check_space(
+        #    self._search_space, self._encoding is None)
+        # encoding: Final[Optional[Encoding]] = check_encoding(
+        #    self._encoding, search_space is None)
+        rand_seed = self._rand_seed
+        if not (rand_seed is None):
+            rand_seed = rand_seed_check(rand_seed)
+        max_time_millis = check_max_time_millis(self._max_time_millis, True)
+        max_fes = check_max_fes(self._max_fes, True)
+        goal_f = check_goal_f(self._goal_f, True)
+        f_lb = objective.lower_bound()
+        if (not (f_lb is None)) and isfinite(f_lb):
+            if (goal_f is None) or (f_lb > goal_f):
+                goal_f = f_lb
+
+        log_all_fes = self._log_all_fes
+        log_improvements = self._log_improvements or self._log_all_fes
+
+        log_file = self._log_file
+        if log_file is None:
+            if log_all_fes:
+                raise ValueError("Log file cannot be None "
+                                 "if all FEs should be logged.")
+            if log_improvements:
+                raise ValueError("Log file cannot be None "
+                                 "if improvements should be logged.")
+        else:
+            log_file.create_file_or_truncate()
+
         pruner: Final[MOArchivePruner] = \
             self._archive_pruner if self._archive_pruner is not None \
             else MOArchivePruner()
@@ -270,10 +305,17 @@ class MOExecution(Execution):
         limit: Final[int] = self._archive_prune_limit if \
             self._archive_prune_limit is not None \
             else (1 if dim == 1 else (size * 4))
+        algorithm: Final[Algorithm] = check_algorithm(self._algorithm)
 
-        res: Final[_MOProcessNoSS] = _MOProcessNoSS(
-            self._solution_space, objective, self._algorithm, pruner, size,
-            limit, self._log_file, self._rand_seed, self._max_fes,
-            self._max_time_millis, self._goal_f)
+        process: Final[_MOProcessNoSS] = _MOProcessNoSS(
+            solution_space, objective, algorithm, pruner, size,
+            limit, log_file, rand_seed, max_fes, max_time_millis, goal_f)
 
-        return res
+        try:
+            # noinspection PyProtectedMember
+            process._after_init()
+            algorithm.solve(process)
+        except BaseException as be:
+            # noinspection PyProtectedMember
+            process._caught = be
+        return process
