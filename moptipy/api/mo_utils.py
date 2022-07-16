@@ -42,3 +42,37 @@ def domination(a: np.ndarray, b: np.ndarray) -> int:
             elif res == -1:
                 return 0
     return 2 if res == 0 else res
+
+
+@numba.njit(nogil=True, cache=True)
+def lexicographic(a: np.ndarray, b: np.ndarray) -> int:
+    """
+    Compare two arrays lexicographically.
+
+    :param a: the first objective vector
+    :param b: the second objective value
+    :returns: `-1` if `a` is lexicographically less than `b`, `1` if `b` is
+        less than `a`, `0` otherwise
+    :retval -1: if `a` is lexicographically less than `b`
+    :retval 1: if `b` is lexicographically less than `a`
+    :retval 2: if `b` equals `a`
+
+    >>> from numpy import array
+    >>> lexicographic(array([1, 1, 1]), array([2, 2, 2]))
+    -1
+    >>> lexicographic(array([1, 1, 1]), array([1, 1, 2]))
+    -1
+    >>> lexicographic(array([2, 2, 2]), array([1, 1, 1]))
+    1
+    >>> lexicographic(array([2, 2, 2]), array([2, 2, 1]))
+    1
+    >>> lexicographic(array([2, 2, 2]), array([2, 2, 2]))
+    0
+    """
+    for i, f in enumerate(a):
+        k = b[i]
+        if f < k:
+            return -1
+        if f > k:
+            return 1
+    return 0

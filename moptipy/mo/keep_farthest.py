@@ -2,13 +2,19 @@
 
 from collections import Counter
 from math import inf
-from typing import List, Final, Set, Iterable, Optional, Union, Any, Tuple
+from typing import List, Final, Set, Iterable, Optional, cast
 
 import numpy as np
 
-from moptipy.api.mo_archive_pruner import MOArchivePruner
-from moptipy.utils.nputils import np_number_to_py_number
+from moptipy.api.mo_archive import MOArchivePruner, MORecordY
+from moptipy.api.mo_problem import MOProblem, check_mo_problem
+from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
+    DEFAULT_UNSIGNED_INT, KEY_NUMPY_TYPE, val_numpy_type
 from moptipy.utils.types import type_error
+
+#: the numpy data type for min, max, and dist arrays
+KEY_NUMPY_TYPE_COMPUTE: Final[str] = f"{KEY_NUMPY_TYPE}Cmp"
 
 
 class KeepFarthest(MOArchivePruner):
@@ -28,19 +34,21 @@ class KeepFarthest(MOArchivePruner):
     the user to preserve optima in certain dimensions.
     """
 
-    def __init__(self, dimension: int,
+    def __init__(self, problem: MOProblem,
                  keep_best_of_dimension: Optional[Iterable[int]] = None):
         """
         Create the distance-based pruner.
 
-        :param dimension: the dimension of the problem
+        :param problem: the multi-objective optimization problem
         :param keep_best_of_dimension: the dimensions of which we will always
             keep the best record, `None` (=default) for all dimensions
         """
         super().__init__()
 
+        check_mo_problem(problem)
+        dimension: Final[int] = problem.f_dimension()
         if not isinstance(dimension, int):
-            raise type_error(dimension, "dimension", int)
+            raise type_error(dimension, "problem.f_dimension()", int)
         if dimension <= 0:
             raise ValueError(f"dimension={dimension} is not allowed")
         if keep_best_of_dimension is None:
@@ -49,12 +57,29 @@ class KeepFarthest(MOArchivePruner):
             raise type_error(keep_best_of_dimension,
                              "keep_best_of_dimension", Iterable)
 
+        tempdt: np.dtype = problem.f_create().dtype
+        minmax_dtype: np.dtype = DEFAULT_FLOAT
+        pinf: np.number = cast(np.number, np.inf)
+        ninf: np.number = cast(np.number, -np.inf)
+        if tempdt.kind in ('i', 'u'):
+            if tempdt.kind == 'u':
+                minmax_dtype = DEFAULT_UNSIGNED_INT
+            else:
+                minmax_dtype = DEFAULT_INT
+            ii = np.iinfo(minmax_dtype)
+            pinf = cast(np.number, ii.max)
+            ninf = cast(np.number, ii.min)
+
         #: the array for minima
-        self.__min: Final[List[Union[int, float, np.number]]] = \
-            [inf] * dimension
+        self.__min: Final[np.ndarray] = np.empty(dimension, minmax_dtype)
         #: the array for maxima
-        self.__max: Final[List[Union[int, float, np.number]]] = \
-            [-inf] * dimension
+        self.__max: Final[np.ndarray] = np.empty(dimension, minmax_dtype)
+        #: the initial number for minimum searching
+        self.__pinf: Final[np.number] = pinf
+        #: the initial number for maximum searching
+        self.__ninf: Final[np.number] = ninf
+        #: the default divisor
+        self.__div: Final[np.ndarray] = np.empty(dimension, minmax_dtype)
         #: the list of items to preserve per dimension
         self.__preserve: Final[List[Optional[Set]]] = [None] * dimension
         for d in keep_best_of_dimension:
@@ -73,10 +98,9 @@ class KeepFarthest(MOArchivePruner):
         #: the chosen elements to keep
         self.__chosen: Final[List[int]] = []
         #: the minimal distances
-        self.__min_dists: Final[List[float]] = []
+        self.__min_dists: np.ndarray = np.empty(8, DEFAULT_FLOAT)
 
-    def prune(self, archive: List[Tuple[np.ndarray, Any]],
-              n_keep: int) -> None:
+    def prune(self, archive: List[MORecordY], n_keep: int) -> None:
         """
         Preserve the best of certain dimensions and keep the rest diverse.
 
@@ -89,31 +113,31 @@ class KeepFarthest(MOArchivePruner):
             return
 
         # set up basic variables
-        mi: Final[List[Union[int, float, np.number]]] = self.__min
-        ma: Final[List[Union[int, float, np.number]]] = self.__max
+        mi: Final[np.ndarray] = self.__min
+        mi.fill(self.__pinf)
+        ma: Final[np.ndarray] = self.__max
+        ma.fill(self.__ninf)
+        div: Final[np.ndarray] = self.__div
         dim: Final[int] = len(mi)
         preserve: Final[List[Optional[Set]]] = self.__preserve
         all_preserve: Final[List[Set]] = self.__all_preserve
-        for i in range(dim):
-            mi[i] = -inf
-            ma[i] = inf
         for p in all_preserve:
             p.clear()
         counter: Final[Counter] = self.__counter
         counter.clear()
         chosen: Final[List[int]] = self.__chosen
         chosen.clear()
-        min_dists: Final[List[float]] = self.__min_dists
+        min_dists: np.ndarray = self.__min_dists
         mdl: int = len(min_dists)
-        for i in range(min(mdl, count)):
-            min_dists[i] = inf
         if mdl < count:
-            min_dists.extend([inf] * count)
+            self.__min_dists = min_dists = np.full(count, inf, DEFAULT_FLOAT)
+        else:
+            min_dists.fill(inf)
 
         # get the ranges of the dimension and remember the record with
         # the minimal value per dimension
         for idx, ind in enumerate(archive):
-            fs = ind[0]
+            fs: np.ndarray = ind.fs
             for i, f in enumerate(fs):
                 if f <= mi[i]:
                     q: Optional[Set[int]] = preserve[i]
@@ -164,11 +188,21 @@ class KeepFarthest(MOArchivePruner):
         # Now we prepare the distances to ensure that we do not get any
         # overflow when normalizing them.
         for i in range(dim):
-            mi[i] = mii = np_number_to_py_number(mi[i])
-            maa = np_number_to_py_number(ma[i]) - mii
-            ma[i] = maa if maa > 0 else 1.0  # ensure finite even on 0 ranges
+            maa = ma[i]
+            if maa >= self.__pinf:
+                raise ValueError(f"maximum of dimension {i} is {maa}")
+            mii = mi[i]
+            if mii <= self.__ninf:
+                raise ValueError(f"minimum of dimension {i} is {mii}")
+            if maa < mii:
+                raise ValueError(
+                    f"minimum of dimension {i} is {mii} and maximum is {maa}")
+            dv = 1 if maa <= mii else maa - mii  # ensure finite on div=0
+            if dv < 0:
+                raise ValueError(f"{maa} - {mii} = {dv}?")
+            div[i] = dv
 
-            # Now we fill up the archive with those records most different from
+        # Now we fill up the archive with those records most different from
         # the already included ones based on the square distance in the
         # normalized dimensions. In each iteration, we compute the minimal
         # normalized distance of each element to the already-selected ones.
@@ -176,28 +210,26 @@ class KeepFarthest(MOArchivePruner):
         # it to the selection.
         dist_update_start: int = 0
         while selected < n_keep:  # until we have selected sufficiently many
-            max_dist: float = -inf  # the maximum distance to the selected
+            max_dist: float = -inf  # the maximum distance to be selected
             max_dist_idx: int = selected  # the index of that record
             for rec_idx in range(selected, count):  # iterate over unselected
                 min_dist_rec: float = min_dists[rec_idx]  # min dist so far
-                rec: np.ndarray = archive[rec_idx][0]  # objective vector
+                rec: np.ndarray = archive[rec_idx].fs  # objective vector
                 for cmp_idx in range(dist_update_start, selected):
-                    cmp: np.ndarray = archive[cmp_idx][0]  # objective vector
-                    ds: float = 0.0  # normalized square distance
-                    for dd in range(dim):  # compute normalized distance
-                        ddd: float = float(cmp[dd] - mi[dd]) / ma[dd] \
-                            - float(rec[dd] - mi[dd]) / ma[dd]
-                        ds = ds + float(ddd * ddd)
-                    if ds < min_dist_rec:  # is this one closer?
-                        min_dist_rec = ds  # remember
+                    cmp: np.ndarray = archive[cmp_idx].fs  # objective vector
+                    dst: float = float(np.linalg.norm(
+                        ((cmp - mi) / div) - ((rec - mi) / div)))
+                    if dst < min_dist_rec:  # is this one closer?
+                        min_dist_rec = dst  # remember
                 min_dists[rec_idx] = min_dist_rec  # remember
                 if min_dist_rec > max_dist:  # keep record with largest
                     max_dist = min_dist_rec  # normalized distance
                     max_dist_idx = rec_idx   # remember its index
             # swap the record to the front of the archive
             archive.insert(selected, archive.pop(max_dist_idx))
-            del min_dists[max_dist_idx]
-            min_dists.insert(selected, inf)
+            min_dists[selected + 1:max_dist_idx + 1] \
+                = min_dists[selected:max_dist_idx]
+            min_dists[selected] = max_dist
             dist_update_start = selected
             selected = selected + 1
 
@@ -208,3 +240,9 @@ class KeepFarthest(MOArchivePruner):
         :returns: always `"keepFarthest"`
         """
         return "keepFarthest"
+
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
+        """Log the parameters."""
+        super().log_parameters_to(logger)
+        logger.key_value(KEY_NUMPY_TYPE_COMPUTE,
+                         val_numpy_type(self.__min.dtype))

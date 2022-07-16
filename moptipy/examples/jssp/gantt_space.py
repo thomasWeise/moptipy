@@ -8,7 +8,8 @@ from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
+from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE, \
+    val_numpy_type
 from moptipy.utils.types import type_error
 
 #: the array shape
@@ -324,6 +325,6 @@ class GanttSpace(Space):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SHAPE, repr(self.shape))
-        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.dtype))
         with logger.scope(SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

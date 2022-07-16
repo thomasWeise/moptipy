@@ -6,8 +6,7 @@ from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
-from moptipy.api.mo_archive_pruner import MOArchivePruner, \
-    check_mo_archive_pruner
+from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner
 from moptipy.api.mo_problem import MOProblem, check_mo_problem, \
     MOSOProblemBridge
 from moptipy.api.mo_process import MOProcess

@@ -1,7 +1,7 @@
 """Providing a multi-objective process without logging with a single space."""
 
-from math import isfinite
-from typing import Optional, Union, Final, Callable, Any, List, Tuple
+from math import isfinite, inf
+from typing import Optional, Union, Final, Callable, Any, List
 
 import numpy as np
 
@@ -10,8 +10,8 @@ from moptipy.api.algorithm import Algorithm
 from moptipy.api.logging import SCOPE_PRUNER, KEY_ARCHIVE_MAX_SIZE, \
     KEY_ARCHIVE_PRUNE_LIMIT, KEY_BEST_FS, SECTION_ARCHIVE_QUALITY, \
     KEY_ARCHIVE_F, PREFIX_SECTION_ARCHIVE, SUFFIX_SECTION_ARCHIVE_Y
-from moptipy.api.mo_archive_pruner import MOArchivePruner, \
-    check_mo_archive_pruner
+from moptipy.api.mo_archive import MOArchivePruner, \
+    check_mo_archive_pruner, MORecordY
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.mo_utils import domination
@@ -79,8 +79,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the internal archive pruner
         self._pruner: Final[MOArchivePruner] = check_mo_archive_pruner(pruner)
         #: the fast call to the pruning routine
-        self._prune: Final[Callable[[List[Tuple[np.ndarray, Any]], int],
-                                    None]] = pruner.prune
+        self._prune: Final[Callable[[List[MORecordY], int], None]] \
+            = pruner.prune
         if not isinstance(archive_max_size, int):
             raise TypeError(archive_max_size, "archive_max_size", int)
         if not isinstance(archive_prune_limit, int):
@@ -96,8 +96,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the current archive size
         self._archive_size: int = 0
         #: the internal archive (pre-allocated to the prune limit)
-        self._archive: Final[List[Tuple[np.ndarray, Any]]] = [
-            (self.f_create(), self.create())
+        self._archive: Final[List[MORecordY]] = [
+            MORecordY(self.f_create(), self.create())
             for _ in range(self._archive_prune_limit)
         ]
 
@@ -120,14 +120,14 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             self._last_improvement_fe = current_fes
             self._copy_y(self._current_best_y, x)
 
-        archive: Final[List[Tuple[np.ndarray, Any]]] = self._archive
+        archive: Final[List[MORecordY]] = self._archive
         dominated: bool = False
         added_to_archive: bool = False
         archive_size: int = self._archive_size
         # we update the archive
         for i in range(archive_size, -1, -1):
-            ae: Tuple[np.ndarray, Any] = archive[i]
-            d: int = domination(fs, ae[0])
+            ae: MORecordY = archive[i]
+            d: int = domination(fs, ae.fs)
             if d < 0:  # the new solution dominates an archived one
                 improved = True  # that's an improvement
                 if added_to_archive:  # if already added, shrink archive
@@ -135,8 +135,9 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                     archive[archive_size], archive[i] = \
                         ae, archive[archive_size]
                 else:  # if not added, overwrite dominated solution
-                    self.f_copy(ae[0], fs)
-                    self._copy_y(ae[1], x)
+                    self.f_copy(ae.fs, fs)
+                    self._copy_y(ae.x, x)
+                    ae.f = result
                     added_to_archive = True
             elif d > 0:
                 dominated = True
@@ -146,8 +147,9 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         elif not dominated:
             improved = True  # that is also an improvement
             ae = archive[archive_size]
-            self.f_copy(ae[0], fs)
-            self._copy_y(ae[1], x)
+            self.f_copy(ae.fs, fs)
+            self._copy_y(ae.x, x)
+            ae.f = result
             archive_size += 1
             if archive_size > self._archive_prune_limit:
                 self._prune(archive, self._archive_max_size)
@@ -181,53 +183,55 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         super()._log_best(kv)
         kv.key_value(KEY_BEST_FS, self.f_to_str(self._current_best_fs))
 
-    def _log_and_verify_archive_entry(self, index: int,
-                                      x: Any,
-                                      fs: np.ndarray,
-                                      logger: Logger) -> Union[int, float]:
+    def _log_and_verify_archive_entry(self, index: int, rec: MORecordY,
+                                      logger: Logger) -> None:
         """
         Write an archive entry.
 
         :param index: the index of the entry
-        :param x: the (encoded) solution
-        :param fs: its objective values
+        :param rec: the record to verify
         :param logger: the logger
-        :returns: the scalarized objective value
         """
         tfs: Final[np.ndarray] = self._fs_temp
-        f: Final[Union[int, float]] = self._f_evaluate(x, tfs)
-        if not np.array_equal(tfs, fs):
+        f: Final[Union[int, float]] = self._f_evaluate(rec.x, tfs)
+        if not np.array_equal(tfs, rec.fs):
             raise ValueError(
-                f"expected {fs} but got {tfs} when re-evaluating {x}")
+                f"expected {rec.fs} but got {tfs} when re-evaluating {rec}")
         if not isinstance(f, (int, float)):
             raise type_error(f, "scalarized objective value", (int, float))
         if not isfinite(f):
             raise ValueError(f"scalaized objective value {f} is not finite")
+        if not isinstance(rec.f, (int, float)):
+            raise type_error(rec.f, "rec.f", (int, float))
+        if isfinite(rec.f):
+            if rec.f != f:
+                raise ValueError(f"rec.f={rec.f}, but computed f={f}!")
+        elif rec.f >= inf:
+            rec.f = f
+        else:
+            raise ValueError(f"rec.f={rec.f} is invalid!")
+        self.f_validate(rec.fs)
+        self.validate(rec.x)
 
         with logger.text(f"{PREFIX_SECTION_ARCHIVE}{index}"
                          f"{SUFFIX_SECTION_ARCHIVE_Y}") as lg:
-            lg.write(self.to_str(x))
-
-        return f
+            lg.write(self.to_str(rec.x))
 
     def _write_log(self, logger: Logger) -> None:
         super()._write_log(logger)
 
         if self._archive_size > 0:
             # write and verify the archive
-            archive: List[Tuple[List[Union[int, float]], Any, np.ndarray]] = [
-                ([np_number_to_py_number(j)
-                  for j in self._archive[i][0]], self._archive[i][1],
-                 self._archive[i][0])
-                for i in range(self._archive_size)]
+            archive: Final[List[MORecordY]] = \
+                self._archive[0:self._archive_size]
             del self._archive
-
             archive.sort()
             qualities: Final[List[List[Union[int, float]]]] = []
             for i, rec in enumerate(archive):
-                q = rec[0]
-                q.insert(0, self._log_and_verify_archive_entry(
-                    i, rec[1], rec[2], logger))
+                self._log_and_verify_archive_entry(i, rec, logger)
+                q: List[Union[int, float]] = [
+                    np_number_to_py_number(n) for n in rec.fs]
+                q.insert(0, rec.f)
                 qualities.append(q)
 
             # now write the qualities

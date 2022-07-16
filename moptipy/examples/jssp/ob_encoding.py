@@ -7,7 +7,8 @@ import numpy as np
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE
+from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE, \
+    val_numpy_type
 from moptipy.utils.types import type_error
 
 #: the numpy data type for machine indices
@@ -124,6 +125,8 @@ class OperationBasedEncoding(Encoding):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_NUMPY_TYPE_MACHINE_IDX,
-                         self.__machine_idx.dtype.char)
-        logger.key_value(KEY_NUMPY_TYPE_JOB_IDX, self.__job_idx.dtype.char)
-        logger.key_value(KEY_NUMPY_TYPE_JOB_TIME, self.__job_time.dtype.char)
+                         val_numpy_type(self.__machine_idx.dtype))
+        logger.key_value(KEY_NUMPY_TYPE_JOB_IDX,
+                         val_numpy_type(self.__job_idx.dtype))
+        logger.key_value(KEY_NUMPY_TYPE_JOB_TIME,
+                         val_numpy_type(self.__job_time.dtype))

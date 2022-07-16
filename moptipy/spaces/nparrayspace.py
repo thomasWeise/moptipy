@@ -6,7 +6,7 @@ import numpy
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import KEY_NUMPY_TYPE
+from moptipy.utils.nputils import KEY_NUMPY_TYPE, val_numpy_type
 from moptipy.utils.types import type_error
 
 
@@ -104,4 +104,4 @@ class NPArraySpace(Space):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, self.dimension)
-        logger.key_value(KEY_NUMPY_TYPE, self.dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.dtype))

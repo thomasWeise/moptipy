@@ -191,8 +191,8 @@ def _make_sum_scalarizer(always_int: bool,
     everything_is_int: bool = always_int
 
     for i, weight in enumerate(weights):
-        if weight < 0:
-            raise ValueError("no weight can be <0, but encountered "
+        if weight <= 0:
+            raise ValueError("no weight can be <=0, but encountered "
                              f"{weight} in {weights}.")
 
         if not isinstance(weight, int):

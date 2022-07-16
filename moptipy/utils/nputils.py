@@ -412,6 +412,22 @@ def is_all_finite(a: numpy.ndarray) -> bool:
 KEY_NUMPY_TYPE: Final[str] = "dtype"
 
 
+def val_numpy_type(dtype: numpy.dtype) -> str:
+    """
+    Convert a numpy data type to a string.
+
+    :param dtype: the data type
+    :returns: a string representation
+
+    >>> import numpy as npx
+    >>> val_numpy_type(npx.dtype(int))
+    'l'
+    >>> val_numpy_type(npx.dtype(float))
+    'd'
+    """
+    return dtype.char
+
+
 def np_number_to_py_number(number) -> Union[int, float]:
     """
     Convert a scalar number from numpy to a corresponding Python type.

@@ -18,7 +18,7 @@ from moptipy.api.logging import SCOPE_OBJECTIVE_FUNCTION
 from moptipy.api.objective import Objective, check_objective
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, DEFAULT_UNSIGNED_INT, \
-    DEFAULT_FLOAT, int_range_to_dtype, KEY_NUMPY_TYPE
+    DEFAULT_FLOAT, int_range_to_dtype, KEY_NUMPY_TYPE, val_numpy_type
 from moptipy.utils.strings import float_to_str
 from moptipy.utils.types import type_error
 
@@ -226,6 +226,6 @@ class MOSOProblemBridge(MOProblem):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, "1")
-        logger.key_value(KEY_NUMPY_TYPE, self.__dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.__dtype))
         with logger.scope(f"{SCOPE_OBJECTIVE_FUNCTION}{0}") as scope:
             self.__f.log_parameters_to(scope)

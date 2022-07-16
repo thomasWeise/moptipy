@@ -12,7 +12,8 @@ from moptipy.api.mo_problem import MOProblem
 from moptipy.api.objective import Objective
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.math import try_int
-from moptipy.utils.nputils import KEY_NUMPY_TYPE, dtype_for_data
+from moptipy.utils.nputils import KEY_NUMPY_TYPE, dtype_for_data, \
+    val_numpy_type
 from moptipy.utils.strings import float_to_str
 from moptipy.utils.types import type_error
 
@@ -269,7 +270,7 @@ class BasicMOProblem(MOProblem):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, self.__dimension)
-        logger.key_value(KEY_NUMPY_TYPE, self.__dtype.char)
+        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.__dtype))
         for i, o in enumerate(self.__objectives):
             with logger.scope(f"{SCOPE_OBJECTIVE_FUNCTION}{i}") as scope:
                 o.log_parameters_to(scope)
