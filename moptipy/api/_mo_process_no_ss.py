@@ -11,8 +11,8 @@ from moptipy.api.algorithm import Algorithm
 from moptipy.api.logging import SCOPE_PRUNER, KEY_ARCHIVE_MAX_SIZE, \
     KEY_ARCHIVE_PRUNE_LIMIT, KEY_BEST_FS, SECTION_ARCHIVE_QUALITY, \
     KEY_ARCHIVE_F, PREFIX_SECTION_ARCHIVE, SUFFIX_SECTION_ARCHIVE_Y
-from moptipy.api.mo_archive import MOArchivePruner, \
-    check_mo_archive_pruner, MORecord
+from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner, \
+    MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.mo_utils import domination
@@ -167,13 +167,13 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             improved = True
             self._current_best_f = result
             copyto(self._current_best_fs, fs)
-            self._last_improvement_fe = current_fes
             self._copy_y(self._current_best_y, x)
+            do_term = do_term or (result <= self._end_f)
 
         if self.check_in(x, fs) or improved:
+            self._last_improvement_fe = current_fes
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
-            do_term = do_term or (result <= self._end_f)
 
         if do_term:
             self.terminate()

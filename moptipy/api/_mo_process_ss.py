@@ -1,25 +1,37 @@
 """An implementation of processes with different search and solution spaces."""
+
+from math import isfinite
 from typing import Optional, Union, Final, Callable
 
+import numpy as np
+
+from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._process_base import _TIME_IN_NS
-from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
-from moptipy.api.logging import SCOPE_ENCODING, SCOPE_SEARCH_SPACE, \
-    SECTION_RESULT_X
-from moptipy.api.objective import Objective
-from moptipy.api.space import Space, check_space
+from moptipy.api.logging import PREFIX_SECTION_ARCHIVE, \
+    SUFFIX_SECTION_ARCHIVE_Y
+from moptipy.api.logging import SUFFIX_SECTION_ARCHIVE_X, \
+    SCOPE_SEARCH_SPACE, SCOPE_ENCODING, SECTION_RESULT_X
+from moptipy.api.mo_archive import MOArchivePruner, MORecord
+from moptipy.api.mo_problem import MOProblem
+from moptipy.api.space import Space
+from moptipy.api.space import check_space
 from moptipy.utils.logger import KeyValueLogSection, Logger
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error
 
 
-class _ProcessSS(_ProcessNoSS):
+class _MOProcessSS(_MOProcessNoSS):
     """A class implementing a process with search and solution space."""
 
     def __init__(self,
                  solution_space: Space,
-                 objective: Objective,
+                 objective: MOProblem,
                  algorithm: Algorithm,
+                 pruner: MOArchivePruner,
+                 archive_max_size: int,
+                 archive_prune_limit: int,
                  log_file: Optional[Path] = None,
                  search_space: Space = None,
                  encoding: Encoding = None,
@@ -33,6 +45,10 @@ class _ProcessSS(_ProcessNoSS):
         :param solution_space: the solution space.
         :param objective: the objective function
         :param algorithm: the optimization algorithm
+        :param pruner: the archive pruner
+        :param archive_max_size: the maximum archive size after pruning
+        :param archive_prune_limit: the archive size above which pruning will
+            be performed
         :param search_space: the search space.
         :param encoding: the encoding
         :param log_file: the optional log file
@@ -45,6 +61,9 @@ class _ProcessSS(_ProcessNoSS):
         super().__init__(solution_space=solution_space,
                          objective=objective,
                          algorithm=algorithm,
+                         pruner=pruner,
+                         archive_max_size=archive_max_size,
+                         archive_prune_limit=archive_prune_limit,
                          log_file=log_file,
                          rand_seed=rand_seed,
                          max_fes=max_fes,
@@ -69,8 +88,9 @@ class _ProcessSS(_ProcessNoSS):
         self.from_str = search_space.from_str  # type: ignore
         self.n_points = search_space.n_points  # type: ignore
         self.validate = search_space.validate  # type: ignore
+        self._create_y = solution_space.create  # the y creator
 
-    def evaluate(self, x) -> Union[float, int]:
+    def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '
@@ -79,49 +99,27 @@ class _ProcessSS(_ProcessNoSS):
 
         current_y: Final = self._current_y
         self._g(x, current_y)
-        result: Final[Union[int, float]] = self._f(current_y)
+        result: Final[Union[int, float]] = self._f_evaluate(x, fs)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
+        improved: bool = False
         if result < self._current_best_f:
-            self._last_improvement_fe = current_fes
             self._current_best_f = result
             self.copy(self._current_best_x, x)
             self._current_y = self._current_best_y
             self._current_best_y = current_y
+            do_term = do_term or (result <= self._end_f)
+
+        if self.check_in(x, fs) or improved:
+            self._last_improvement_fe = current_fes
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
-            do_term = do_term or (result <= self._end_f)
 
         if do_term:
             self.terminate()
 
         return result
-
-    def register(self, x, f: Union[int, float]) -> None:
-        if self._terminated:
-            if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and the '
-                                 'algorithm knows it.')
-            return
-
-        self._current_fes = current_fes = self._current_fes + 1
-        do_term: bool = current_fes >= self._end_fes
-
-        if f < self._current_best_f:
-            self._last_improvement_fe = current_fes
-            self._current_best_f = f
-            self.copy(self._current_best_x, x)
-            current_y: Final = self._current_y
-            self._g(x, current_y)
-            self._current_y = self._current_best_y
-            self._current_best_y = current_y
-            self._current_time_nanos = ctn = _TIME_IN_NS()
-            self._last_improvement_time_nanos = ctn
-            do_term = do_term or (f <= self._end_f)
-
-        if do_term:
-            self.terminate()
 
     def get_copy_of_best_x(self, x) -> None:
         if self._current_fes > 0:
@@ -152,5 +150,41 @@ class _ProcessSS(_ProcessNoSS):
         """Validate x, if it exists."""
         self._search_space.validate(self._current_best_x)
 
+    def _log_and_check_archive_entry(self, index: int, rec: MORecord,
+                                     logger: Logger) -> Union[int, float]:
+        """
+        Write an archive entry.
+
+        :param index: the index of the entry
+        :param rec: the record to verify
+        :param logger: the logger
+        :returns: the objective value
+        """
+        tfs: Final[np.ndarray] = self._fs_temp
+
+        current_y: Final = self._current_y
+        self._g(rec.x, current_y)
+        f: Final[Union[int, float]] = self._f_evaluate(current_y, tfs)
+
+        if not np.array_equal(tfs, rec.fs):
+            raise ValueError(
+                f"expected {rec.fs} but got {tfs} when re-evaluating {rec}")
+        if not isinstance(f, (int, float)):
+            raise type_error(f, "scalarized objective value", (int, float))
+        if not isfinite(f):
+            raise ValueError(f"scalaized objective value {f} is not finite")
+        self.f_validate(rec.fs)
+        self.validate(rec.x)
+
+        with logger.text(f"{PREFIX_SECTION_ARCHIVE}{index}"
+                         f"{SUFFIX_SECTION_ARCHIVE_X}") as lg:
+            lg.write(self.to_str(rec.x))
+
+        with logger.text(f"{PREFIX_SECTION_ARCHIVE}{index}"
+                         f"{SUFFIX_SECTION_ARCHIVE_Y}") as lg:
+            lg.write(self._solution_space.to_str(current_y))
+
+        return f
+
     def __str__(self) -> str:
-        return "ProcessWithSearchSpace"
+        return "MOProcessWithSearchSpace"

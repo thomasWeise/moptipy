@@ -4,8 +4,9 @@ from math import isfinite
 from typing import Optional, Union, Final, cast
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
+from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api.algorithm import Algorithm, check_algorithm
-from moptipy.api.encoding import Encoding
+from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.execution import Execution
 from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner
 from moptipy.api.mo_problem import MOProblem, check_mo_problem, \
@@ -264,10 +265,10 @@ class MOExecution(Execution):
         """
         objective: Final[MOProblem] = cast(MOProblem, self._objective)
         solution_space: Final[Space] = check_space(self._solution_space)
-        # search_space: Final[Optional[Space]] = check_space(
-        #    self._search_space, self._encoding is None)
-        # encoding: Final[Optional[Encoding]] = check_encoding(
-        #    self._encoding, search_space is None)
+        search_space: Final[Optional[Space]] = check_space(
+            self._search_space, self._encoding is None)
+        encoding: Final[Optional[Encoding]] = check_encoding(
+            self._encoding, search_space is None)
         rand_seed = self._rand_seed
         if not (rand_seed is None):
             rand_seed = rand_seed_check(rand_seed)
@@ -307,9 +308,16 @@ class MOExecution(Execution):
             else (1 if dim == 1 else (size * 4))
         algorithm: Final[Algorithm] = check_algorithm(self._algorithm)
 
-        process: Final[_MOProcessNoSS] = _MOProcessNoSS(
-            solution_space, objective, algorithm, pruner, size,
-            limit, log_file, rand_seed, max_fes, max_time_millis, goal_f)
+        process: _MOProcessNoSS
+        if search_space is None:
+            process = _MOProcessNoSS(
+                solution_space, objective, algorithm, pruner, size, limit,
+                log_file, rand_seed, max_fes, max_time_millis, goal_f)
+        else:
+            process = _MOProcessSS(
+                solution_space, objective, algorithm, pruner, size, limit,
+                log_file, search_space, encoding, rand_seed, max_fes,
+                max_time_millis, goal_f)
 
         try:
             # noinspection PyProtectedMember
