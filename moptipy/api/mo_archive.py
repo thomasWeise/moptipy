@@ -53,7 +53,7 @@ class MORecord:
 class MOArchivePruner(Component):
     """A strategy for pruning an archive of solutions."""
 
-    def prune(self, archive: List[MORecord], n_keep: int) -> None:
+    def prune(self, archive: List[MORecord], n_keep: int, size: int) -> None:
         """
         Prune an archive.
 
@@ -70,13 +70,13 @@ class MOArchivePruner(Component):
         :param archive: the archive, i.e., a list of tuples of solutions and
             their objective vectors
         :param n_keep: the number of solutions to keep
+        :param size: the current size of the archive
         """
-        end: Final[int] = len(archive)
-        if end > n_keep:
-            n_delete: Final[int] = end - n_keep
+        if size > n_keep:
+            n_delete: Final[int] = size - n_keep
             move_to_end: Final[List[MORecord]] = archive[:n_delete]
-            archive[0:n_keep] = archive[n_delete:end]
-            archive[end - n_delete:end] = move_to_end
+            archive[0:n_keep] = archive[n_delete:size]
+            archive[size - n_delete:size] = move_to_end
 
     def __str__(self):
         """

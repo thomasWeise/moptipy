@@ -7,7 +7,7 @@ import numpy as np
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
-from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.logger import KeyValueLogSection, CSV_SEPARATOR
 from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE, \
     val_numpy_type
 from moptipy.utils.types import type_error
@@ -79,7 +79,7 @@ class GanttSpace(Space):
         :param x: the Gantt chart
         :return: a string corresponding to the flattened `Gantt` array
         """
-        return ",".join([str(xx) for xx in np.nditer(x)])  # +book
+        return CSV_SEPARATOR.join([str(xx) for xx in np.nditer(x)])  # +book
 
     def is_equal(self, x1: Gantt, x2: Gantt) -> bool:  # +book
         """
@@ -105,8 +105,9 @@ class GanttSpace(Space):
             raise type_error(text, "instance text", str)
         # start book
         x: Final[Gantt] = self.create()
-        np.copyto(x, np.fromstring(text, dtype=self.dtype, sep=",")
-                  .reshape(self.shape))
+        np.copyto(x, np.fromstring(
+            text, dtype=self.dtype, sep=CSV_SEPARATOR)
+            .reshape(self.shape))
         self.validate(x)  # -book
         return x
         # end book

@@ -99,7 +99,7 @@ class _MOProcessSS(_MOProcessNoSS):
 
         current_y: Final = self._current_y
         self._g(x, current_y)
-        result: Final[Union[int, float]] = self._f_evaluate(x, fs)
+        result: Final[Union[int, float]] = self._f_evaluate(current_y, fs)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 

@@ -78,7 +78,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the internal archive pruner
         self._pruner: Final[MOArchivePruner] = check_mo_archive_pruner(pruner)
         #: the fast call to the pruning routine
-        self._prune: Final[Callable[[List[MORecord], int], None]] \
+        self._prune: Final[Callable[[List[MORecord], int, int], None]] \
             = pruner.prune
         if not isinstance(archive_max_size, int):
             raise TypeError(archive_max_size, "archive_max_size", int)
@@ -119,7 +119,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         added_to_archive: bool = False
         archive_size: int = self._archive_size
         # we update the archive
-        for i in range(archive_size, -1, -1):
+        for i in range(archive_size - 1, -1, -1):
             ae: MORecord = archive[i]
             d: int = domination(fs, ae.fs)
             if d < 0:  # the new solution dominates an archived one
@@ -147,8 +147,10 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             archive_size += 1
             if prune_if_necessary \
                     and (archive_size > self._archive_prune_limit):
-                self._prune(archive, self._archive_max_size)
-            self._archive_size = self._archive_max_size
+                self._prune(archive, self._archive_max_size, archive_size)
+                self._archive_size = self._archive_max_size
+            else:
+                self._archive_size = archive_size
         return True
 
     def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:

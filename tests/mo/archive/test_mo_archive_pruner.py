@@ -18,7 +18,7 @@ def test_mo_archive_pruner() -> None:
         MORecord(str(i), np.empty(2, dt)) for i in range(10)]
     cpy = orig.copy()
 
-    pruner.prune(orig, 8)
+    pruner.prune(orig, 8, len(orig))
     assert orig[0].x == cpy[2].x
     assert orig[1].x == cpy[3].x
     assert orig[2].x == cpy[4].x

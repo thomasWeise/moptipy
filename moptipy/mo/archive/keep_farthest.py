@@ -100,7 +100,7 @@ class KeepFarthest(MOArchivePruner):
         #: the minimal distances
         self.__min_dists: np.ndarray = np.empty(8, DEFAULT_FLOAT)
 
-    def prune(self, archive: List[MORecord], n_keep: int) -> None:
+    def prune(self, archive: List[MORecord], n_keep: int, size: int) -> None:
         """
         Preserve the best of certain dimensions and keep the rest diverse.
 
@@ -108,8 +108,7 @@ class KeepFarthest(MOArchivePruner):
             their objective vectors
         :param n_keep: the number of solutions to keep
         """
-        count: Final[int] = len(archive)
-        if count <= n_keep:
+        if size <= n_keep:
             return
 
         # set up basic variables
@@ -129,8 +128,8 @@ class KeepFarthest(MOArchivePruner):
         chosen.clear()
         min_dists: np.ndarray = self.__min_dists
         mdl: int = len(min_dists)
-        if mdl < count:
-            self.__min_dists = min_dists = np.full(count, inf, DEFAULT_FLOAT)
+        if mdl < size:
+            self.__min_dists = min_dists = np.full(size, inf, DEFAULT_FLOAT)
         else:
             min_dists.fill(inf)
 
@@ -212,7 +211,7 @@ class KeepFarthest(MOArchivePruner):
         while selected < n_keep:  # until we have selected sufficiently many
             max_dist: float = -inf  # the maximum distance to be selected
             max_dist_idx: int = selected  # the index of that record
-            for rec_idx in range(selected, count):  # iterate over unselected
+            for rec_idx in range(selected, size):  # iterate over unselected
                 min_dist_rec: float = min_dists[rec_idx]  # min dist so far
                 rec: np.ndarray = archive[rec_idx].fs  # objective vector
                 for cmp_idx in range(dist_update_start, selected):

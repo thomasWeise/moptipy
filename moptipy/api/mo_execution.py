@@ -17,6 +17,7 @@ from moptipy.api.process import check_max_fes, check_max_time_millis, \
     check_goal_f
 from moptipy.api.space import Space
 from moptipy.api.space import check_space
+from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.types import type_error
 
@@ -296,7 +297,7 @@ class MOExecution(Execution):
 
         pruner: Final[MOArchivePruner] = \
             self._archive_pruner if self._archive_pruner is not None \
-            else MOArchivePruner()
+            else KeepFarthest(objective)
         dim: Final[int] = objective.f_dimension()
         size: Final[int] = self._archive_max_size if \
             self._archive_max_size is not None else (

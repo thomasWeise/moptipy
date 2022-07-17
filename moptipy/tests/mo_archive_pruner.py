@@ -109,7 +109,7 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                 raise ValueError(f"{alen} != len(archive)={len(archive)}?")
 
             # perform the pruning
-            pruner.prune(archive, amax)
+            pruner.prune(archive, amax, len(archive))
 
             thelen = len(archive)
             if not isinstance(thelen, int):
