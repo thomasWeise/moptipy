@@ -6,8 +6,6 @@ import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.nputils import is_np_float, is_all_finite
-from moptipy.utils.strings import float_to_str
-from moptipy.utils.types import type_error
 
 #: The default numerical datatype
 _DEFAULT_TYPE: Final[numpy.dtype] = numpy.dtype(numpy.float64)
@@ -33,30 +31,6 @@ class VectorSpace(NPArraySpace):
         super().__init__(dimension, dtype)
         if not is_np_float(self.dtype):
             raise TypeError(f"Invalid data type {dtype}.")
-
-    def to_str(self, x: numpy.ndarray) -> str:
-        """
-        Convert a vector to a string, using `,` as separator.
-
-        :param x: the vector
-        :return: the string
-        """
-        return ",".join([float_to_str(xx) for xx in x])
-
-    def from_str(self, text: str) -> numpy.ndarray:
-        """
-        Convert a string to a vector.
-
-        :param text: the text
-        :return: the vector
-        :raises TypeError: if `text` is not a `str`
-        :raises ValueError: if `text` cannot be converted to a valid vector
-        """
-        if not (isinstance(text, str)):
-            raise type_error(text, "text", str)
-        x = numpy.fromstring(text, dtype=self.dtype, sep=",")
-        self.validate(x)
-        return x
 
     def validate(self, x: numpy.ndarray) -> None:
         """

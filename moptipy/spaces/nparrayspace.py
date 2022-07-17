@@ -5,8 +5,9 @@ import numpy
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.space import Space
+from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import KEY_NUMPY_TYPE, val_numpy_type
+from moptipy.utils.nputils import KEY_NUMPY_TYPE, val_numpy_type, array_to_str
 from moptipy.utils.types import type_error
 
 
@@ -45,6 +46,7 @@ class NPArraySpace(Space):
         # the function forwards
         self.copy = numpy.copyto  # type: ignore
         self.is_equal = numpy.array_equal  # type: ignore
+        self.to_str = array_to_str  # type: ignore
 
     def create(self) -> numpy.ndarray:
         """
@@ -54,27 +56,18 @@ class NPArraySpace(Space):
         """
         return numpy.zeros(shape=self.dimension, dtype=self.dtype)
 
-    def to_str(self, x: numpy.ndarray) -> str:
-        """
-        Convert a numpy array to a string, using `,` as separator.
-
-        :param x: the numpy array
-        :return: the string
-        """
-        return ",".join([str(xx) for xx in x])
-
     def from_str(self, text: str) -> numpy.ndarray:
         """
-        Convert a string to a numpy array.
+        Convert a string to a vector.
 
         :param text: the text
         :return: the vector
         :raises TypeError: if `text` is not a `str`
         :raises ValueError: if `text` cannot be converted to a valid vector
         """
-        if not isinstance(text, str):
+        if not (isinstance(text, str)):
             raise type_error(text, "text", str)
-        x = numpy.fromstring(text, dtype=self.dtype, sep=",")
+        x = numpy.fromstring(text, dtype=self.dtype, sep=CSV_SEPARATOR)
         self.validate(x)
         return x
 

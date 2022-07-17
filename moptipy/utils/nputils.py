@@ -1,13 +1,14 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
 from math import isfinite
-from typing import Final, List, Iterable, cast, Set, Dict, Tuple, Union
+from typing import Final, List, cast, Set, Dict, Tuple, Union
 
 import numba  # type: ignore
 import numpy
 from numpy.random import default_rng, Generator, PCG64
 
-from moptipy.utils.strings import str_to_bool
+from moptipy.utils.logger import CSV_SEPARATOR
+from moptipy.utils.strings import num_to_str, bool_to_str
 from moptipy.utils.types import type_error
 
 #: A map associating all numpy integer types associated to tuples
@@ -197,25 +198,6 @@ def np_ints_max(shape, dtype: numpy.dtype = DEFAULT_INT) -> numpy.ndarray:
                       dtype=dtype)
 
 
-@numba.jit(forceobj=True)
-def np_ints_min(shape, dtype: numpy.dtype = DEFAULT_INT) -> numpy.ndarray:
-    """
-    Create an integer array of the given length filled with the minimum value.
-
-    :param shape: the requested shape
-    :param dtype: the data type (defaults to 64 bit integers)
-    :return: the new array
-
-    >>> import numpy as npx
-    >>> from moptipy.utils.nputils import np_ints_min
-    >>> print(np_ints_min(3, npx.dtype("int16")))
-    [-32768 -32768 -32768]
-    """
-    return numpy.full(shape=shape,
-                      fill_value=__NP_INTS_MAP[dtype][0],
-                      dtype=dtype)
-
-
 #: the default number of bytes for random seeds
 __SEED_BYTES: Final = 8
 #: the minimum acceptable random seed
@@ -332,59 +314,6 @@ def rand_seeds_from_str(string: str,
     return result
 
 
-def strs_to_bools(lines: Iterable[str]) -> numpy.ndarray:
-    """
-    Convert an array of strings to a boolean numpy array.
-
-    :param lines: the lines
-    :return: the array
-
-    >>> strs_to_bools(["T", "F", "T"])
-    array([ True, False,  True])
-    """
-    return numpy.array([str_to_bool(s) for s in lines],
-                       dtype=DEFAULT_BOOL)
-
-
-def strs_to_uints(lines: Iterable[str]) -> numpy.ndarray:
-    """
-    Convert an array of strings to a numpy array of unsigned ints.
-
-    :param lines: the lines
-    :return: the array
-
-    >>> strs_to_uints(["1", "2", "3"])
-    array([1, 2, 3], dtype=uint64)
-    """
-    return numpy.array(lines, dtype=DEFAULT_UNSIGNED_INT)
-
-
-def strs_to_ints(lines: Iterable[str]) -> numpy.ndarray:
-    """
-    Convert an array of strings to a numpy array of signed ints.
-
-    :param lines: the lines
-    :return: the array
-
-    >>> strs_to_ints(["-1", "2", "3"])
-    array([-1,  2,  3])
-    """
-    return numpy.array(lines, dtype=DEFAULT_INT)
-
-
-def strs_to_floats(lines: Iterable[str]) -> numpy.ndarray:
-    """
-    Convert an array of strings to a numpy array of floats.
-
-    :param lines: the lines
-    :return: the array
-
-    >>> strs_to_floats(["-1.6", "2", "3"])
-    array([-1.6,  2. ,  3. ])
-    """
-    return numpy.array(lines, dtype=DEFAULT_FLOAT)
-
-
 @numba.njit(nogil=True)
 def is_all_finite(a: numpy.ndarray) -> bool:
     """
@@ -428,7 +357,7 @@ def val_numpy_type(dtype: numpy.dtype) -> str:
     return dtype.char
 
 
-def np_number_to_py_number(number) -> Union[int, float]:
+def np_to_py_number(number) -> Union[int, float]:
     """
     Convert a scalar number from numpy to a corresponding Python type.
 
@@ -444,3 +373,38 @@ def np_number_to_py_number(number) -> Union[int, float]:
             return float(number)
     raise type_error(number, "number",
                      (int, float, numpy.integer, numpy.floating))
+
+
+def array_to_str(data: numpy.ndarray) -> str:
+    """
+    Convert a numpy array to a string.
+
+    This method represents a numpy array as a string.
+    It makes sure to include all the information stored in the array and to
+    represent it as compactly as possible.
+
+    If the array has numerical values, it will use the default CSV separator
+    (:const:`~moptipy.utils.logger.CSV_SEPARATOR`).
+    If the array contains Boolean values, it will use no separator at all.
+
+    :param data: the data
+    :returns: the string
+
+    >>> import numpy as npx
+    >>> array_to_str(npx.array([1, 2, 3]))
+    '1;2;3'
+    >>> array_to_str(npx.array([1, 2.2, 3]))
+    '1;2.2;3'
+    >>> array_to_str(npx.array([True, False, True]))
+    'TFT'
+    """
+    if not isinstance(data, numpy.ndarray):
+        raise type_error(data, "data", numpy.ndarray)
+    k: Final[str] = data.dtype.kind
+    if k in ('i', 'u'):
+        return CSV_SEPARATOR.join(str(d) for d in data)
+    if k == 'f':
+        return CSV_SEPARATOR.join(num_to_str(float(d)) for d in data)
+    if k == 'b':
+        return "".join(bool_to_str(bool(d)) for d in data)
+    raise ValueError(f"unsupported data kind '{k}' of type '{data.dtype}'.")

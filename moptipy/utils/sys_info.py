@@ -12,7 +12,8 @@ import psutil  # type: ignore
 
 import moptipy.version as ver
 from moptipy.api import logging
-from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueLogSection
+from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueLogSection, \
+    CSV_SEPARATOR
 from moptipy.utils.path import Path
 
 
@@ -132,7 +133,8 @@ def __make_sys_info() -> str:
                 __v(k, logging.KEY_PROCESS_ID, hex(proc.pid))
                 cpua = proc.cpu_affinity()
                 if cpua:
-                    __v(k, logging.KEY_CPU_AFFINITY, ",".join(map(str, cpua)))
+                    __v(k, logging.KEY_CPU_AFFINITY,
+                        CSV_SEPARATOR.join(map(str, cpua)))
                 del proc, cpua
 
                 # see https://stackoverflow.com/questions/166506/.

@@ -2,14 +2,14 @@
 from math import inf, isfinite
 from typing import Callable, Optional, Any, Union, Final, Tuple, List
 
-from numpy.random import Generator, default_rng
 import numpy as np
+from numpy.random import Generator, default_rng
 
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.api.space import Space
 from moptipy.tests.objective import validate_objective
-from moptipy.utils.types import type_error
 from moptipy.utils.nputils import is_np_int, is_np_float
+from moptipy.utils.types import type_error
 
 
 def validate_mo_problem(
@@ -133,12 +133,8 @@ def validate_mo_problem(
         raise ValueError("Result of lower_bound() must be smaller than "
                          f"upper_bound(), but got {lower} vs. {upper}.")
 
-    reses: Final[List[Union[int, float]]] = [mo_problem.f_evaluate(x, fs1)]
-    mo_problem.f_copy(fs2, fs1)
-    if not np.array_equal(fs1, fs2):
-        raise ValueError("error when applying f_copy(a,b), "
-                         f"b={fs2} but afterwards a={fs1}")
-    reses.append(mo_problem.f_evaluate(x, fs2))
+    reses: Final[List[Union[int, float]]] = [
+        mo_problem.f_evaluate(x, fs1), mo_problem.f_evaluate(x, fs2)]
     if len(reses) != 2:
         raise ValueError(f"Huh? {len(reses)} != 2 for {reses}??")
 
@@ -165,30 +161,3 @@ def validate_mo_problem(
         if reses[0] != reses[1]:
             raise ValueError("deterministic objective returns scalar "
                              f"{reses} when evaluating {x}.")
-
-    ses: Tuple[str, str] = (mo_problem.f_to_str(fses[0]),
-                            mo_problem.f_to_str(fses[1]))
-    for s in ses:
-        splt = s.split(",")
-        if len(splt) != dim:
-            raise ValueError(
-                f"there should be {dim} values in f_to_str()='{s}'")
-        for ss in splt:
-            flt = float(ss)
-            if not isfinite(flt):
-                raise ValueError(f"float('{ss}')={flt} with string taken "
-                                 f"from '{s}', which is not finite")
-
-    fs1[0] += 1
-    if fs1[0] == fs2[0]:
-        fs1[0] *= 2
-        if fs1[0] == fs2[0]:
-            fs1[0] = -fs1[0]
-            if fs1[0] == fs2[0]:
-                fs1[0] = fs1[0] - 100000
-                if fs1[0] == fs2[0]:
-                    return
-    sn = mo_problem.f_to_str(fs1)
-    if sn == ses[0]:
-        raise ValueError(f"{fs1} != {fs2}, but f_to_string() "
-                         f"gives '{sn}' and '{ses[0]}'.")

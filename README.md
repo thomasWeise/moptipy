@@ -409,9 +409,9 @@ Here, we define the task "sort n numbers" as optimization problem.
 Basically, we want that our optimization algorithm works on [permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.permutations) of `n` numbers and is searching for the sorted permutation.
 As objective value, we count the number of "sorting errors" in a permutation.
 If the number at index `i` is bigger than the number at index `i+1`, then this is a sorting error.
-If `n=5`, then the permutation `0,1,2,3,4` has no sorting error, i.e., the best possible objective value `0`.
-The permutation `4,3,2,1,0` has `n-1=4` sorting errors, i.e., is the worst possible solution.
-The permutation `3,4,2,0,1` as `2` sorting errors.
+If `n=5`, then the permutation `0;1;2;3;4` has no sorting error, i.e., the best possible objective value `0`.
+The permutation `4;3;2;1;0` has `n-1=4` sorting errors, i.e., is the worst possible solution.
+The permutation `3;4;2;0;1` as `2` sorting errors.
 
 From these thoughts, we also know that we can implement `lower_bound()` to return 0 and `upper_bound()` to return `n-1`.
 `__str__` could be `"sort" + n`, i.e., `sort5` in the above example where `n=5`.
@@ -970,7 +970,7 @@ BEGIN_SYS_INFO
 session.start: 2022-05-03 08:49:14.883057
 session.node: home
 session.procesId: 0xc4b9
-session.cpuAffinity: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+session.cpuAffinity: 0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15
 session.ipAddress: 192.168.1.105
 version.moptipy: 0.8.5
 version.numpy: 1.21.5
@@ -992,10 +992,10 @@ os.release: 5.15.0-27-generic
 os.version: 28-Ubuntu SMP Thu Apr 14 04:55:28 UTC 2022
 END_SYS_INFO
 BEGIN_RESULT_Y
-1,20,30,0,30,40,3,145,165,2,170,180,1,0,20,0,40,60,2,60,80,3,165,180,2,0,30,0,60,80,1,80,130,3,130,145,1,30,60,3,60,90,0,90,130,2,130,170,3,0,50,2,80,92,1,130,160,0,160,170
+1;20;30;0;30;40;3;145;165;2;170;180;1;0;20;0;40;60;2;60;80;3;165;180;2;0;30;0;60;80;1;80;130;3;130;145;1;30;60;3;60;90;0;90;130;2;130;170;3;0;50;2;80;92;1;130;160;0;160;170
 END_RESULT_Y
 BEGIN_RESULT_X
-2,1,3,1,0,0,2,0,1,2,3,1,0,2,1,3,0,3,2,3
+2;1;3;1;0;0;2;0;1;2;3;1;0;2;1;3;0;3;2;3
 END_RESULT_X
 ```
 

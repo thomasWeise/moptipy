@@ -14,7 +14,6 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.math import try_int
 from moptipy.utils.nputils import KEY_NUMPY_TYPE, dtype_for_data, \
     val_numpy_type
-from moptipy.utils.strings import float_to_str
 from moptipy.utils.types import type_error
 
 
@@ -41,8 +40,8 @@ class BasicMOProblem(MOProblem):
     scalarization result.
 
     Examples for implementing this class are
-    class:`~moptipy.mo.weighted_sum.WeightedSum` and
-    :class:`~moptipy.mo.weighted_sum.Prioritize`, which represent a
+    class:`~moptipy.mo.problem.weighted_sum.WeightedSum` and
+    :class:`~moptipy.mo.problem.weighted_sum.Prioritize`, which represent a
     multi-objective optimization problem either as weighted sum or by
     priorizing the objective value (via an internal weighted sum).
     """
@@ -194,14 +193,6 @@ class BasicMOProblem(MOProblem):
         #: the internal temporary array
         self._temp: Final[np.ndarray] = self.f_create() \
             if temp is None else temp
-
-        if always_int:
-            self.f_to_str = lambda x: ",".join([  # type: ignore
-                str(xx) for xx in x])  # type: ignore
-        else:
-            self.f_to_str = lambda x: ",".join([  # type: ignore
-                float_to_str(xx) for xx in x])  # type: ignore
-        self.f_copy = np.copyto  # type: ignore
 
     def f_dimension(self) -> int:
         """

@@ -35,7 +35,7 @@ class Permutations(IntSpace):  # +book
 
     >>> perm = Permutations([1, 3, 5, 5, 7])
     >>> print(perm.to_str(perm.blueprint))
-    1,3,5,5,7
+    1;3;5;5;7
     >>> print(perm)
     perm_of_string
     >>> print(perm.n_points())
@@ -45,7 +45,7 @@ class Permutations(IntSpace):  # +book
 
     >>> perm = Permutations((1, 2, 3, 3, 2))
     >>> print(perm.to_str(perm.blueprint))
-    1,2,2,3,3
+    1;2;2;3;3
     >>> print(perm)
     perm_of_string
     >>> print(perm.n_points())
@@ -57,7 +57,7 @@ class Permutations(IntSpace):  # +book
 
     >>> perm = Permutations.with_repetitions(4, 3)
     >>> print(perm.to_str(perm.blueprint))
-    0,0,0,1,1,1,2,2,2,3,3,3
+    0;0;0;1;1;1;2;2;2;3;3;3
     >>> print(perm)
     perm4w3r
     >>> print(perm.n_points())
@@ -68,7 +68,7 @@ class Permutations(IntSpace):  # +book
 
     >>> perm = Permutations.standard(5)
     >>> print(perm.to_str(perm.blueprint))
-    0,1,2,3,4
+    0;1;2;3;4
     >>> print(perm)
     perm5
     >>> print(perm.n_points())
@@ -187,7 +187,7 @@ class Permutations(IntSpace):  # +book
         >>> perm = Permutations([1, 5, 2, 2, 4, 3, 4])
         >>> x = perm.create()
         >>> print(perm.to_str(x))
-        1,2,2,3,4,4,5
+        1;2;2;3;4;4;5
         """
         return self.blueprint.copy()  # Create copy of the blueprint. # +book
 

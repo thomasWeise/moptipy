@@ -1,8 +1,8 @@
 """Test the keep-farthest archive pruner."""
 
 from moptipy.examples.bitstrings.onemax import OneMax
-from moptipy.mo.keep_farthest import KeepFarthest
-from moptipy.mo.weighted_sum import WeightedSum
+from moptipy.mo.archive.keep_farthest import KeepFarthest
+from moptipy.mo.problem.weighted_sum import WeightedSum
 from moptipy.tests.mo_archive_pruner import validate_mo_archive_pruner
 
 

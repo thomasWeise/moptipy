@@ -6,7 +6,7 @@ from numpy.random import Generator, default_rng
 
 from moptipy.examples.bitstrings.leadingones import LeadingOnes, leadingones
 from moptipy.examples.bitstrings.onemax import OneMax, onemax
-from moptipy.mo.weighted_sum import WeightedSum
+from moptipy.mo.problem.weighted_sum import WeightedSum
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.mo_problem import validate_mo_problem
 from moptipy.tests.on_bitstrings import random_bit_string

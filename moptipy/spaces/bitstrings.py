@@ -4,7 +4,7 @@ from typing import Final
 import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
-from moptipy.utils.strings import bool_to_str, str_to_bool
+from moptipy.utils.strings import str_to_bool
 from moptipy.utils.types import type_error
 
 #: the internal type for but strings
@@ -42,15 +42,6 @@ class BitStrings(NPArraySpace):
         bool
         """
         return numpy.zeros(shape=self.dimension, dtype=_DTYPE)
-
-    def to_str(self, x: numpy.ndarray) -> str:
-        """
-        Convert a bit string to a string, using `T` and `F` without separator.
-
-        :param x: the bit string
-        :return: the string
-        """
-        return "".join([bool_to_str(xx) for xx in x])
 
     def from_str(self, text: str) -> numpy.ndarray:
         """

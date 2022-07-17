@@ -19,7 +19,6 @@ from moptipy.api.objective import Objective, check_objective
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, DEFAULT_UNSIGNED_INT, \
     DEFAULT_FLOAT, int_range_to_dtype, KEY_NUMPY_TYPE, val_numpy_type
-from moptipy.utils.strings import float_to_str
 from moptipy.utils.types import type_error
 
 
@@ -67,14 +66,6 @@ class MOProblem(Objective):
         :returns: the number of objective functions
         """
 
-    def f_to_str(self, x: np.ndarray) -> str:
-        """
-        Convert an objective vector to a string, using `,` as separator.
-
-        :param x: the objective vector
-        :return: the string
-        """
-
     def f_validate(self, x: np.ndarray) -> None:
         """
         Validate the objective vector.
@@ -83,16 +74,6 @@ class MOProblem(Objective):
         :raises TypeError: if the string is not an element of this space.
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
-        """
-
-    def f_copy(self, dest, source) -> None:
-        """
-        Copy one objective vector to another one.
-
-        :param dest: the destination objective vector,
-            whose contents will be overwritten with those from `source`
-        :param source: the source objective vector, which remains
-            unchanged and whose contents will be copied to `dest`
         """
 
     def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
@@ -144,16 +125,6 @@ def check_mo_problem(mo_problem: MOProblem) -> MOProblem:
     return mo_problem
 
 
-def _cpy(dest: np.ndarray, src: np.ndarray) -> None:
-    """
-    Copy a numpy array of length 1.
-
-    :param dest: the destination
-    :param src: the source
-    """
-    dest[0] = src[0]
-
-
 class MOSOProblemBridge(MOProblem):
     """A bridge between multi-objective and single-objective optimization."""
 
@@ -177,11 +148,8 @@ class MOSOProblemBridge(MOProblem):
                     dt = int_range_to_dtype(lb, ub)
                 elif lb >= 0:
                     dt = DEFAULT_UNSIGNED_INT
-            self.f_to_str = lambda x: str(int(x[0]))  # type: ignore
         else:
             dt = DEFAULT_FLOAT
-            self.f_to_str = lambda x: float_to_str(  # type: ignore
-                float(x[0]))  # type: ignore
 
         #: the data type of the objective array
         self.__dtype: Final[np.dtype] = dt
@@ -189,7 +157,6 @@ class MOSOProblemBridge(MOProblem):
         self.__f: Final[Objective] = objective
         self.f_create = lambda dd=dt: np.empty(1, dd)  # type: ignore
         self.f_dimension = lambda: 1  # type: ignore
-        self.f_copy = _cpy  # type: ignore
 
     def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
         """

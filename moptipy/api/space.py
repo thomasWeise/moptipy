@@ -58,8 +58,8 @@ class Space(Component):
         representation that is parseable by :meth:from_str: and should ideally
         not be too verbose. For example, when converting a list or array `x`
         of integers to a string, one could simply do
-        `",".join([str(xx) for xx in x])`, which would convert it to a
-        comma-separated list without any wasted space.
+        `";".join([str(xx) for xx in x])`, which would convert it to a
+        semicolon-separated list without any wasted space.
 
         :param x: the instance
         :return: the string representation of x

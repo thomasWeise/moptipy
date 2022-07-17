@@ -4,9 +4,9 @@ The weighted sum scalarization of multi-objective problems.
 Here we provide two simple methods to scalarize multi-objective problems by
 using weights, namely
 
-- :class:`~moptipy.mo.weighted_sum.WeightedSum`, a sum with arbitrary,
+- :class:`~moptipy.mo.problem.weighted_sum.WeightedSum`, a sum with arbitrary,
   user-defined weights of the objective values
-- :class:`~moptipy.mo.weighted_sum.Prioritize`, a weighted sum of the
+- :class:`~moptipy.mo.problem.weighted_sum.Prioritize`, a weighted sum of the
   objective values where the weights are automatically determined such that
   the first objective function is prioritized over the second one, the second
   one over the third, and so on.
@@ -19,7 +19,7 @@ import numpy as np
 from numpy import sum as npsum
 
 from moptipy.api.objective import Objective
-from moptipy.mo.problem_base import BasicMOProblem
+from moptipy.mo.problem.problem_base import BasicMOProblem
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.math import try_int
 from moptipy.utils.nputils import dtype_for_data
@@ -54,8 +54,8 @@ class BasicWeightedSum(BasicMOProblem):
     This class brings the basic tools to scalarize vectors of objective
     values by computing weighted sums. This class should not be used
     directly. Instead, use its sub-classes
-    :class:`~moptipy.mo.weighted_sum.WeightedSum` and
-    :class:`~moptipy.mo.weighted_sum.Prioritize`.
+    :class:`~moptipy.mo.problem.weighted_sum.WeightedSum` and
+    :class:`~moptipy.mo.problem.weighted_sum.Prioritize`.
     """
 
     def __init__(self, objectives: Iterable[Objective],

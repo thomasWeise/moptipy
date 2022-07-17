@@ -4,6 +4,7 @@ from math import isfinite, inf
 from typing import Optional, Union, Final, Callable, Any, List
 
 import numpy as np
+from numpy import copyto
 
 from moptipy.api._process_base import _ProcessBase, _TIME_IN_NS
 from moptipy.api.algorithm import Algorithm
@@ -17,7 +18,7 @@ from moptipy.api.mo_process import MOProcess
 from moptipy.api.mo_utils import domination
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection, Logger
-from moptipy.utils.nputils import np_number_to_py_number
+from moptipy.utils.nputils import np_to_py_number, array_to_str
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
@@ -63,9 +64,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             self, solution_space, objective, algorithm, log_file, rand_seed,
             max_fes, max_time_millis, goal_f)
         self.f_dimension = objective.f_dimension  # type: ignore
-        self.f_copy = objective.f_copy  # type: ignore
         self.f_create = objective.f_create  # type: ignore
-        self.f_to_str = objective.f_to_str  # type: ignore
         self.f_validate = objective.f_validate  # type: ignore
 
         #: the internal evaluation function
@@ -130,7 +129,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                     archive[archive_size], archive[i] = \
                         ae, archive[archive_size]
                 else:  # if not added, overwrite dominated solution
-                    self.f_copy(ae.fs, fs)
+                    copyto(ae.fs, fs)
                     self._copy_y(ae.x, x)
                     ae.f = f
                     added_to_archive = True
@@ -146,7 +145,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             else:
                 ae = archive[archive_size]
                 ae.f = f
-            self.f_copy(ae.fs, fs)
+            copyto(ae.fs, fs)
             self._copy_y(ae.x, x)
             archive_size += 1
             if prune_if_necessary \
@@ -170,7 +169,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         if result < self._current_best_f:
             improved = True
             self._current_best_f = result
-            self.f_copy(self._current_best_fs, fs)
+            copyto(self._current_best_fs, fs)
             self._last_improvement_fe = current_fes
             self._copy_y(self._current_best_y, x)
 
@@ -203,7 +202,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
 
     def _log_best(self, kv: KeyValueLogSection) -> None:
         super()._log_best(kv)
-        kv.key_value(KEY_BEST_FS, self.f_to_str(self._current_best_fs))
+        kv.key_value(KEY_BEST_FS, array_to_str(self._current_best_fs))
 
     def _log_and_verify_archive_entry(self, index: int, rec: MORecordY,
                                       logger: Logger) -> None:
@@ -251,7 +250,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             for i, rec in enumerate(archive):
                 self._log_and_verify_archive_entry(i, rec, logger)
                 q: List[Union[int, float]] = [
-                    np_number_to_py_number(n) for n in rec.fs]
+                    np_to_py_number(n) for n in rec.fs]
                 q.insert(0, rec.f)
                 qualities.append(q)
 

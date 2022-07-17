@@ -6,7 +6,6 @@ import numpy
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
-from moptipy.utils.types import type_error
 
 #: the minimum value
 KEY_MIN: Final[str] = "min"
@@ -51,28 +50,13 @@ class IntSpace(NPArraySpace):
         >>> s = IntSpace(dimension=12, min_value=5, max_value=332)
         >>> v = s.create()
         >>> print(s.to_str(v))
-        5,5,5,5,5,5,5,5,5,5,5,5
+        5;5;5;5;5;5;5;5;5;5;5;5
         >>> print(v.dtype)
         int16
         """
         return numpy.full(shape=self.dimension,
                           fill_value=self.min_value,
                           dtype=self.dtype)
-
-    def from_str(self, text: str) -> numpy.ndarray:
-        """
-        Convert a string to an integer string.
-
-        :param text: the text
-        :return: the vector
-        :raises TypeError: if `text` is not a `str`
-        :raises ValueError: if `text` cannot be converted to a valid vector
-        """
-        if not (isinstance(text, str)):
-            raise type_error(text, "text", str)
-        x = numpy.fromstring(text, dtype=self.dtype, sep=",")
-        self.validate(x)
-        return x
 
     def validate(self, x: numpy.ndarray) -> None:
         """
