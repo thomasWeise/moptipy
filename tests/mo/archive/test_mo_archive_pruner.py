@@ -4,7 +4,7 @@ from typing import List
 
 import numpy as np
 
-from moptipy.api.mo_archive import MOArchivePruner, MORecordY
+from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.tests.mo_archive_pruner import validate_mo_archive_pruner
 
 
@@ -14,8 +14,8 @@ def test_mo_archive_pruner() -> None:
     validate_mo_archive_pruner(pruner, range(1, 10))
 
     dt = np.dtype(int)
-    orig: List[MORecordY] = [
-        MORecordY(str(i), np.empty(2, dt), i) for i in range(10)]
+    orig: List[MORecord] = [
+        MORecord(str(i), np.empty(2, dt)) for i in range(10)]
     cpy = orig.copy()
 
     pruner.prune(orig, 8)

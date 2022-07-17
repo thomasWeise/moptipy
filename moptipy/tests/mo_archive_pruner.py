@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import Generator, default_rng
 
 from moptipy.api.mo_archive import MOArchivePruner, \
-    check_mo_archive_pruner, MORecordY
+    check_mo_archive_pruner, MORecord
 from moptipy.tests.component import validate_component
 from moptipy.utils.types import type_error
 
@@ -56,12 +56,12 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                 raise type_error(amax, "amax", int)
             if not (0 < amax <= alen <= 10):
                 raise ValueError(f"invalid amax={amax} and alen={alen}.")
-            archive: List[MORecordY] = []
-            archivec: List[MORecordY] = []
+            archive: List[MORecord] = []
+            archivec: List[MORecord] = []
 
             for _ in range(alen):
                 needed: bool = True
-                rec: Optional[MORecordY] = None
+                rec: Optional[MORecord] = None
                 fs: Optional[np.ndarray] = None
                 while needed:   # we make sure that all records are unique
                     fs = np.empty(dim, dt)
@@ -71,9 +71,9 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                         raise ValueError(f"len(fs)={len(fs)}!=dim={dim}")
                     for k in range(dim):
                         fs[k] = random.integers(mins[i], maxs[i])
-                    rec = MORecordY(tag, fs, float(random.uniform(0, 1)))
-                    if not isinstance(rec, MORecordY):
-                        raise type_error(rec, "rec", MORecordY)
+                    rec = MORecord(tag, fs)
+                    if not isinstance(rec, MORecord):
+                        raise type_error(rec, "rec", MORecord)
                     needed = False
                     for z in archive:
                         fs2 = z.fs
@@ -83,10 +83,9 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                 if (rec is None) or (fs is None):
                     raise ValueError("huh?")
                 archive.append(rec)
-                rec2 = MORecordY(tag, fs.copy(), rec.f)
+                rec2 = MORecord(tag, fs.copy())
                 if (rec.x != rec2.x) \
-                        or (not np.array_equal(rec2.fs, rec.fs)) \
-                        or (rec2.f != rec.f):
+                        or (not np.array_equal(rec2.fs, rec.fs)):
                     raise ValueError(f"{rec} != {rec2}")
                 archivec.append(rec2)
 
@@ -122,8 +121,8 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
 
             # make sure that no element was deleted or added
             for ii, a in enumerate(archive):
-                if not isinstance(a, MORecordY):
-                    raise type_error(a, f"archive[{ii}]", MORecordY)
+                if not isinstance(a, MORecord):
+                    raise type_error(a, f"archive[{ii}]", MORecord)
                 if a.x != tag:
                     raise ValueError(f"a.x={a.x}!='{tag}'")
                 if not isinstance(a.fs, np.ndarray):
@@ -133,9 +132,6 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                         if a.x != b.x:
                             raise ValueError(f"a.fs={a.fs}==b.fs, "
                                              f"but a.x={a.x}!=b.x={b.x}")
-                        if a.f != b.f:
-                            raise ValueError(f"a.fs={a.fs}==b.fs, "
-                                             f"but a.f={a.f}!=b.f={b.f}")
                         del archivec[idx]
                         break
 

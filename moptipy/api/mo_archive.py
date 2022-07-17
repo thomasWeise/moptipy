@@ -1,7 +1,6 @@
 """An archive of solutions to a multi-objective problems."""
 
-from math import inf, isfinite
-from typing import Final, List, Any, Union
+from typing import Final, List, Any
 
 import numpy as np
 
@@ -10,7 +9,7 @@ from moptipy.api.mo_utils import lexicographic
 from moptipy.utils.types import type_error
 
 
-class MORecordY:
+class MORecord:
     """
     A record for the multi-objective archive.
 
@@ -18,15 +17,12 @@ class MORecordY:
     based on the objective value vector.
     """
 
-    def __init__(self, x: Any, fs: np.ndarray,
-                 f: Union[int, float] = inf) -> None:
+    def __init__(self, x: Any, fs: np.ndarray) -> None:
         """
         Create a multi-objective record.
 
         :param x: the point in the search space
         :param fs: the vector of objective values
-        :param f: the optional scalarized objective value, where `inf` means
-            that the objective value has not been set
         """
         if x is None:
             raise TypeError("x must not be None")
@@ -36,14 +32,8 @@ class MORecordY:
             raise type_error(fs, "fs", np.ndarray)
         #: the vector of objective values
         self.fs: Final[np.ndarray] = fs
-        if not isinstance(f, (int, float)):
-            raise type_error(f, "f", (int, float))
-        if not isfinite(f) and (f != inf):
-            raise ValueError(f"invalid f: {f}")
-        #: the scalarized objective value
-        self.f: Union[int, float] = f
 
-    def __lt__(self, other: 'MORecordY') -> bool:
+    def __lt__(self, other: 'MORecord') -> bool:
         """
         Compare for sorting.
 
@@ -57,13 +47,13 @@ class MORecordY:
 
         :returns: the string representation of this record
         """
-        return f"f={self.f}, fs={self.fs}, x={self.x}"
+        return f"s={self.fs}, x={self.x}"
 
 
 class MOArchivePruner(Component):
     """A strategy for pruning an archive of solutions."""
 
-    def prune(self, archive: List[MORecordY], n_keep: int) -> None:
+    def prune(self, archive: List[MORecord], n_keep: int) -> None:
         """
         Prune an archive.
 
@@ -84,7 +74,7 @@ class MOArchivePruner(Component):
         end: Final[int] = len(archive)
         if end > n_keep:
             n_delete: Final[int] = end - n_keep
-            move_to_end: Final[List[MORecordY]] = archive[:n_delete]
+            move_to_end: Final[List[MORecord]] = archive[:n_delete]
             archive[0:n_keep] = archive[n_delete:end]
             archive[end - n_delete:end] = move_to_end
 

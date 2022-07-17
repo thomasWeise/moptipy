@@ -14,7 +14,7 @@ from typing import Union, List, Any
 
 import numpy as np
 
-from moptipy.api.mo_archive import MORecordY
+from moptipy.api.mo_archive import MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.process import Process
 
@@ -35,7 +35,7 @@ class MOProcess(MOProblem, Process):
         raise ValueError(
             "register is not available during multi-objective optimization.")
 
-    def get_archive(self) -> List[MORecordY]:
+    def get_archive(self) -> List[MORecord]:
         """
         Get the archive of non-dominated solutions.
 
@@ -44,7 +44,6 @@ class MOProcess(MOProblem, Process):
         """
 
     def check_in(self, x: Any, fs: np.ndarray,
-                 f: Union[int, float, None] = None,
                  prune_if_necessary: bool = False) -> bool:
         """
         Check a solution into the archive.
@@ -59,9 +58,6 @@ class MOProcess(MOProblem, Process):
 
         :param x: the point in the search space
         :param fs: the vector of objective values
-        :param f: the optional scalarized fitness (if it was remembered), or
-            `None` if it is not known and/or should be re-computed if the
-            archive is written
         :param prune_if_necessary: should we prune the archive if it becomes
             too large? `False` means that the archive may grow unbounded
         :returns: `True` if the solution was non-dominated and has actually

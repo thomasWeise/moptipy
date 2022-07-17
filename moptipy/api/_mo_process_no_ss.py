@@ -1,6 +1,6 @@
 """Providing a multi-objective process without logging with a single space."""
 
-from math import isfinite, inf
+from math import isfinite
 from typing import Optional, Union, Final, Callable, Any, List
 
 import numpy as np
@@ -12,7 +12,7 @@ from moptipy.api.logging import SCOPE_PRUNER, KEY_ARCHIVE_MAX_SIZE, \
     KEY_ARCHIVE_PRUNE_LIMIT, KEY_BEST_FS, SECTION_ARCHIVE_QUALITY, \
     KEY_ARCHIVE_F, PREFIX_SECTION_ARCHIVE, SUFFIX_SECTION_ARCHIVE_Y
 from moptipy.api.mo_archive import MOArchivePruner, \
-    check_mo_archive_pruner, MORecordY
+    check_mo_archive_pruner, MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.mo_utils import domination
@@ -78,7 +78,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the internal archive pruner
         self._pruner: Final[MOArchivePruner] = check_mo_archive_pruner(pruner)
         #: the fast call to the pruning routine
-        self._prune: Final[Callable[[List[MORecordY], int], None]] \
+        self._prune: Final[Callable[[List[MORecord], int], None]] \
             = pruner.prune
         if not isinstance(archive_max_size, int):
             raise TypeError(archive_max_size, "archive_max_size", int)
@@ -95,33 +95,32 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the current archive size
         self._archive_size: int = 0
         #: the internal archive (pre-allocated to the prune limit)
-        self._archive: Final[List[MORecordY]] = [
-            MORecordY(self.f_create(), self.create())
-            for _ in range(self._archive_prune_limit)
-        ]
+        self._archive: Final[List[MORecord]] = []
+
+    def _after_init(self) -> None:
+        self._archive.extend(
+            MORecord(self.create(), self.f_create())
+            for _ in range(self._archive_prune_limit))
+        super()._after_init()
 
     def check_in(self, x: Any, fs: np.ndarray,
-                 f: Union[int, float, None] = None,
                  prune_if_necessary: bool = False) -> bool:
         """
         Check a solution into the archive.
 
         :param x: the point in the search space
         :param fs: the vector of objective values
-        :param f: the optional scalarized fitness (if it was remembered), or
-            `None` if it is not known and/or should be re-computed if the
-            archive is written
         :param prune_if_necessary: should we prune the archive if it becomes
             too large? `False` means that the archive may grow unbounded
         :returns: `True` if the solution was non-dominated, `False` if it was
             dominated by at least one solution in the archive
         """
-        archive: Final[List[MORecordY]] = self._archive
+        archive: Final[List[MORecord]] = self._archive
         added_to_archive: bool = False
         archive_size: int = self._archive_size
         # we update the archive
         for i in range(archive_size, -1, -1):
-            ae: MORecordY = archive[i]
+            ae: MORecord = archive[i]
             d: int = domination(fs, ae.fs)
             if d < 0:  # the new solution dominates an archived one
                 if added_to_archive:  # if already added, shrink archive
@@ -129,9 +128,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                     archive[archive_size], archive[i] = \
                         ae, archive[archive_size]
                 else:  # if not added, overwrite dominated solution
+                    self.copy(ae.x, x)
                     copyto(ae.fs, fs)
-                    self._copy_y(ae.x, x)
-                    ae.f = f
                     added_to_archive = True
             elif d > 0:
                 return False
@@ -140,13 +138,12 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             self._archive_size = archive_size
         else:  # still need to add
             if archive_size >= len(archive):
-                ae = MORecordY(self.create(), self.f_create(), f)
+                ae = MORecord(self.create(), self.f_create())
                 archive.append(ae)
             else:
                 ae = archive[archive_size]
-                ae.f = f
+            self.copy(ae.x, x)
             copyto(ae.fs, fs)
-            self._copy_y(ae.x, x)
             archive_size += 1
             if prune_if_necessary \
                     and (archive_size > self._archive_prune_limit):
@@ -173,7 +170,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             self._last_improvement_fe = current_fes
             self._copy_y(self._current_best_y, x)
 
-        if self.check_in(x, fs, result) or improved:
+        if self.check_in(x, fs) or improved:
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f)
@@ -190,7 +187,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         raise ValueError(
             "register is not supported in multi-objective optimization")
 
-    def get_archive(self) -> List[MORecordY]:
+    def get_archive(self) -> List[MORecord]:
         return self._archive[0:self._archive_size]
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
@@ -204,14 +201,15 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         super()._log_best(kv)
         kv.key_value(KEY_BEST_FS, array_to_str(self._current_best_fs))
 
-    def _log_and_verify_archive_entry(self, index: int, rec: MORecordY,
-                                      logger: Logger) -> None:
+    def _log_and_check_archive_entry(self, index: int, rec: MORecord,
+                                     logger: Logger) -> Union[int, float]:
         """
         Write an archive entry.
 
         :param index: the index of the entry
         :param rec: the record to verify
         :param logger: the logger
+        :returns: the objective value
         """
         tfs: Final[np.ndarray] = self._fs_temp
         f: Final[Union[int, float]] = self._f_evaluate(rec.x, tfs)
@@ -222,15 +220,6 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             raise type_error(f, "scalarized objective value", (int, float))
         if not isfinite(f):
             raise ValueError(f"scalaized objective value {f} is not finite")
-        if not isinstance(rec.f, (int, float)):
-            raise type_error(rec.f, "rec.f", (int, float))
-        if isfinite(rec.f):
-            if rec.f != f:
-                raise ValueError(f"rec.f={rec.f}, but computed f={f}!")
-        elif rec.f >= inf:
-            rec.f = f
-        else:
-            raise ValueError(f"rec.f={rec.f} is invalid!")
         self.f_validate(rec.fs)
         self.validate(rec.x)
 
@@ -238,20 +227,21 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                          f"{SUFFIX_SECTION_ARCHIVE_Y}") as lg:
             lg.write(self.to_str(rec.x))
 
+        return f
+
     def _write_log(self, logger: Logger) -> None:
         super()._write_log(logger)
 
         if self._archive_size > 0:
             # write and verify the archive
-            archive: Final[List[MORecordY]] = \
+            archive: Final[List[MORecord]] = \
                 self._archive[0:self._archive_size]
             archive.sort()
             qualities: Final[List[List[Union[int, float]]]] = []
             for i, rec in enumerate(archive):
-                self._log_and_verify_archive_entry(i, rec, logger)
                 q: List[Union[int, float]] = [
                     np_to_py_number(n) for n in rec.fs]
-                q.insert(0, rec.f)
+                q.insert(0, self._log_and_check_archive_entry(i, rec, logger))
                 qualities.append(q)
 
             # now write the qualities

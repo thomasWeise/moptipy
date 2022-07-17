@@ -6,7 +6,7 @@ from typing import List, Final, Set, Iterable, Optional, cast
 
 import numpy as np
 
-from moptipy.api.mo_archive import MOArchivePruner, MORecordY
+from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
@@ -100,7 +100,7 @@ class KeepFarthest(MOArchivePruner):
         #: the minimal distances
         self.__min_dists: np.ndarray = np.empty(8, DEFAULT_FLOAT)
 
-    def prune(self, archive: List[MORecordY], n_keep: int) -> None:
+    def prune(self, archive: List[MORecord], n_keep: int) -> None:
         """
         Preserve the best of certain dimensions and keep the rest diverse.
 
