@@ -1,4 +1,4 @@
-"""An implementation of processes with different search and solution spaces."""
+"""A multi-objective process with different search and solution spaces."""
 
 from math import isfinite
 from typing import Optional, Union, Final, Callable
@@ -16,8 +16,7 @@ from moptipy.api.logging import SUFFIX_SECTION_ARCHIVE_X, \
     SCOPE_SEARCH_SPACE, SCOPE_ENCODING, SECTION_RESULT_X
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem
-from moptipy.api.space import Space
-from moptipy.api.space import check_space
+from moptipy.api.space import Space, check_space
 from moptipy.utils.logger import KeyValueLogSection, Logger
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error

@@ -1,7 +1,10 @@
 """Providing a process without explicit logging with a single space."""
-from typing import Union, Final
+from typing import Union, Final, List, cast
 
-from moptipy.api._process_base import _ProcessBase, _TIME_IN_NS
+from moptipy.api._process_base import _ProcessBase, _TIME_IN_NS, _ns_to_ms
+from moptipy.api.logging import SECTION_PROGRESS, PROGRESS_FES, \
+    PROGRESS_TIME_MILLIS, PROGRESS_CURRENT_F
+from moptipy.utils.logger import Logger
 
 
 class _ProcessNoSS(_ProcessBase):
@@ -59,3 +62,23 @@ class _ProcessNoSS(_ProcessBase):
 
     def __str__(self) -> str:
         return "ProcessWithoutSearchSpace"
+
+
+def _write_log(log: List[List[Union[int, float]]],
+               start_time: int,
+               logger: Logger) -> None:
+    """
+    Write the log to a logger.
+
+    :param log: the log
+    :param start_time: the start time
+    :param logger: the logger
+    """
+    if len(log) > 0:
+        with logger.csv(SECTION_PROGRESS,
+                        [PROGRESS_FES,
+                         PROGRESS_TIME_MILLIS,
+                         PROGRESS_CURRENT_F]) as csv:
+            for row in log:
+                csv.row([row[0], _ns_to_ms(cast(int, row[1]) - start_time),
+                         row[2]])

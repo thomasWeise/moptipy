@@ -5,7 +5,7 @@ from math import inf, isfinite
 from threading import Lock, Timer
 from time import time_ns
 from traceback import print_tb
-from typing import Optional, Union, Final, Callable, Dict, Any
+from typing import Optional, Union, Final, Callable, Dict, Any, List, cast
 
 from numpy.random import Generator
 
@@ -578,3 +578,36 @@ class _ProcessBase(Process):
         :return: "baseProcess"
         """
         return "baseProcess"
+
+
+def _check_log_time(start_time: int, current_time: int,
+                    log: List[List]) -> None:
+    """
+    Check the time inside the log.
+
+    :param start_time: the start time
+    :param current_time: the current time
+    :param log: the log
+    :raises ValueError: if there is a timing error in the log
+    """
+    last_time: int = -1
+    last_fe: int = -1
+    for row in log:
+        fes: int = cast(int, row[0])
+        time: int = cast(int, row[1])
+        if fes < last_fe:
+            raise ValueError(f"fe={fes} after fe={last_fe}?")
+        if time < last_time:
+            raise ValueError(
+                f"time={time} of fe={fes} is less than "
+                f"last_time={last_time} of last_fe={last_fe}")
+        if time < start_time:
+            raise ValueError(
+                f"time={time} of fe={fes} is less than "
+                f"start_time_nanos={start_time}")
+        if time > current_time:
+            raise ValueError(
+                f"time={time} of fe={fes} is greater than "
+                f"current_time_nanos={current_time}")
+        last_time = time
+        last_fe = fes

@@ -69,7 +69,7 @@ PREFIX_SECTION_ARCHIVE: Final[str] = "ARCHIVE_"
 SECTION_ARCHIVE_QUALITY: Final[str] = f"{PREFIX_SECTION_ARCHIVE}QUALITIES"
 #: the scalarized objective value column of the archive if without numeric
 #: suffix, the result of the ith objective function if with numeric suffix
-KEY_ARCHIVE_F: Final[str] = "f"
+KEY_ARCHIVE_F: Final[str] = PROGRESS_CURRENT_F
 
 #: the archive X section suffix
 SUFFIX_SECTION_ARCHIVE_X: Final[str] = "_X"

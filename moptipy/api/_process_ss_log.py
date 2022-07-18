@@ -1,8 +1,8 @@
 """A process with logging and different search and solution space."""
-from typing import Optional, Union, List, Final, cast
+from typing import Optional, Union, List, Final
 
-from moptipy.api import logging
-from moptipy.api._process_base import _ns_to_ms, _TIME_IN_NS
+from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
+from moptipy.api._process_no_ss import _write_log
 from moptipy.api._process_ss import _ProcessSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
@@ -136,40 +136,11 @@ class _ProcessSSLog(_ProcessSS):
 
     def _check_timing(self) -> None:
         super()._check_timing()
-        last_time: int = -1
-        last_fe: int = -1
-        start_time: Final[int] = self._start_time_nanos
-        current_time: Final[int] = self._current_time_nanos
-        for row in self.__log:
-            fes: int = cast(int, row[0])
-            time: int = cast(int, row[1])
-            if fes < last_fe:
-                raise ValueError(f"fe={fes} after fe={last_fe}?")
-            if time < last_time:
-                raise ValueError(
-                    f"time={time} of fe={fes} is less than "
-                    f"last_time={last_time} of last_fe={last_fe}")
-            if time < start_time:
-                raise ValueError(
-                    f"time={time} of fe={fes} is less than "
-                    f"start_time_nanos={start_time}")
-            if time > current_time:
-                raise ValueError(
-                    f"time={time} of fe={fes} is greater than "
-                    f"current_time_nanos={current_time}")
-            last_time = time
-            last_fe = fes
+        _check_log_time(self._start_time_nanos, self._current_time_nanos,
+                        self.__log)
 
     def _write_log(self, logger: Logger) -> None:
-        if len(self.__log) > 0:
-            with logger.csv(logging.SECTION_PROGRESS,
-                            [logging.PROGRESS_FES,
-                             logging.PROGRESS_TIME_MILLIS,
-                             logging.PROGRESS_CURRENT_F]) as csv:
-                for row in self.__log:
-                    csv.row([row[0], _ns_to_ms(cast(int, row[1])
-                                               - self._start_time_nanos),
-                             row[2]])
+        _write_log(self.__log, self._start_time_nanos, logger)
         del self.__log
         super()._write_log(logger)
 

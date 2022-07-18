@@ -4,6 +4,7 @@ from math import isfinite
 from typing import Optional, Union, Final, cast
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
+from moptipy.api._mo_process_no_ss_log import _MOProcessNoSSLog
 from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
@@ -311,9 +312,15 @@ class MOExecution(Execution):
 
         process: _MOProcessNoSS
         if search_space is None:
-            process = _MOProcessNoSS(
-                solution_space, objective, algorithm, pruner, size, limit,
-                log_file, rand_seed, max_fes, max_time_millis, goal_f)
+            if log_improvements or log_all_fes:
+                process = _MOProcessNoSSLog(
+                    solution_space, objective, algorithm, pruner, size, limit,
+                    log_file, rand_seed, max_fes, max_time_millis, goal_f,
+                    log_all_fes)
+            else:
+                process = _MOProcessNoSS(
+                    solution_space, objective, algorithm, pruner, size, limit,
+                    log_file, rand_seed, max_fes, max_time_millis, goal_f)
         else:
             process = _MOProcessSS(
                 solution_space, objective, algorithm, pruner, size, limit,
