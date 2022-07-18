@@ -49,8 +49,6 @@ from numpy.random import Generator
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
-from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 
 # start book
@@ -92,59 +90,11 @@ class HillClimber(Algorithm1):
                 best_x, new_x = new_x, best_x  # Swap best and new.
 # end book
 
-    def __solve_seeded(self, process: Process) -> None:
-        """
-        Apply the hill climber with a seed to an optimization problem.
-
-        :param process: the black-box process object
-        """
-        # Create records for old and new point in the search space.
-        best_x = process.create()  # record for best-so-far solution
-        new_x = process.create()  # record for new solution
-        # Obtain the random number generator.
-        random: Final[Generator] = process.get_random()
-
-        # Put function references in variables to save time.
-        evaluate: Final[Callable] = process.evaluate  # the objective
-        op1: Final[Callable] = self.op1.op1  # the unary operator
-        should_terminate: Final[Callable] = process.should_terminate
-
-        # Start at an existing point in the search space and get its quality.
-        process.get_copy_of_best_x(best_x)  # get the best-so-far solution
-        best_f: Union[int, float] = process.get_best_f()  # get the quality.
-
-        while not should_terminate():  # Until we need to quit...
-            op1(random, new_x, best_x)  # new_x = neighbor of best_x
-            new_f: Union[int, float] = evaluate(new_x)
-            if new_f < best_f:  # new_x is _better_ than best_x?
-                best_f = new_f  # Store its objective value.
-                best_x, new_x = new_x, best_x  # Swap best and new.
-
-    def __init__(self, op0: Op0, op1: Op1,
-                 seeded: bool = False) -> None:
+    def __init__(self, op0: Op0, op1: Op1) -> None:
         """
         Create the hill climber.
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
-        :param seeded: `True` if the algorithm should be run in a seeded
-            fashion, i.e., expect an existing best solution. `False` if
-            it should run in the traditional way, starting at a random
-            solution
         """
         super().__init__("hc", op0, op1)
-        if not isinstance(seeded, bool):
-            raise type_error(seeded, "seeded", bool)
-        if seeded:
-            self.solve = self.__solve_seeded  # type: ignore
-        #: was this algorithm started in its seeded fashion?
-        self.__seeded: Final[bool] = seeded
-
-    def log_parameters_to(self, logger: KeyValueLogSection):
-        """
-        Log the parameters of the algorithm to a logger.
-
-        :param logger: the logger for the parameters
-        """
-        super().log_parameters_to(logger)
-        logger.key_value("seeded", self.__seeded)

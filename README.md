@@ -786,6 +786,10 @@ There will at least be the following columns:
 This configuration is denoted by the header `fes;timeMS;f`.
 After this header and until `END_PROGRESS`, each line will contain one data point with values for the specified columns.
 
+If you perform multi-objective optimization, then one additional column will be added for each objective function.
+The column header will be `fi` with `i` being the zero-based index of the function.
+`f` then stands for the scalarized version of the objective values.
+
 You can copy the contents of this section together with the header into calculation software such as Microsoft Excel or LibreOffice Calc and choose `;` as separator when applying the text-to-column feature.
 This way, you can directly work on the raw data if you want.
 
@@ -804,6 +808,16 @@ It holds at least the following keys:
 - `bestF` the best objective function value encountered during the run
 - `lastImprovementFE` the index of the last objective function evaluation where the objective value improved, as integer
 - `lastImprovementTimeMillis` the time in milliseconds at which the last objective function value improvement was registered, as integer
+
+In case that multi-objective optimization is performed, please note the following things:
+
+- `bestF` then corresponds to the best scalarization result, i.e., the best value achieved by the scalarization of the objective value vector during the search,
+- `bestFs`, the vector of objective values corresponding to the solution obtaining `bestF`, is also provided (values are semicolon-separated),
+- `archiveSize` is the number of non-dominated solutions collected in the archive, and
+- the values of `lastImprovementFE` and `lastImprovementTimeMillis` may not be reliable anymore:
+  Whenever a solution enters the archive or the best scalarization is improved, this is recorded as improvement.
+  However, since the archive size is always limited and the archive may be pruned due when it reaches its maximum size, it could be that a solution enters the archive which is actually not non-dominated with respect to the whole search but only with respect to the current archive.
+  In other words, `lastImprovementFE` and `lastImprovementTimeMillis` may represent a move that is actually not an absolute improvement. 
 
 
 ##### The Section `SETUP`
@@ -853,7 +867,7 @@ If the search and solution space are different, the section `RESULT_X` is includ
 It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
 
 
-##### The `ERROR_*` Sections
+##### The `ERROR_` Sections
 
 Our package has mechanisms to catch and store errors that occurred during the experiments.
 Each type of error will be stored in a separate log section and each such sections may store the class of the error in form `exceptionType: error-class`, the error message in the form `exceptionValue: error-message` and the stack trace line by line after a line header `exceptionStackTrace:`.
@@ -869,6 +883,20 @@ The following exception sections are currently supported:
   Such an error may be caused when the computer clock is adjusted during the run of an optimization algorithm.
   It will also occur if an algorithm terminates without performing even a single objective function evaluation.
 - In the unlikely case that an exception occurs during the writing of the log but writing can somehow continue, this exception will be stored in section `ERROR_IN_LOG`.
+
+
+##### The `ARCHIVE_QUALITIES` Section
+
+If multi-objective optimization is performed, the `process` object will automatically collect an archive of non-dominated solutions.
+In the CSV-formatted section `ARCHIVE_QUALITIES` of the log files, we will find one row per non-dominated solution in the archive.
+The first number in the row is the scalarized overall solution quality `f`, followed by the value `fi` of the `i`th objective function (`i` starts at `0`).
+The solutions fitting to row `j` of this section appear in the `ARCHIVE_j_X` and `ARCHIVE_j_Y` sections (`j` starts at `0`).
+
+
+##### The `ARCHIVE_j_X` and `ARCHIVE_j_Y` Sections
+
+In multi-objective optimization, the `process` object will automatically collect an archive of non-dominated solutions.
+The sections `ARCHIVE_j_X` and `ARCHIVE_j_Y` contain the point in the search space and the point in the solution space corresponding to the `j`th element of the archive.
 
 
 #### 5.1.3. Example
