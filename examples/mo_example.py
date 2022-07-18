@@ -73,15 +73,16 @@ with TempFile.create() as tf:  # create temporary file `tf`
     ex.set_solution_space(solution_space)
     ex.set_search_space(search_space)
     ex.set_encoding(encoding)
-    ex.set_objective(problem)  # set the multi-objective problem
+    ex.set_objective(problem)      # set the multi-objective problem
     ex.set_algorithm(algorithm)
-    ex.set_rand_seed(199)  # set random seed to 199
-    ex.set_log_file(tf)  # set log file = temp file `tf`
-    ex.set_max_fes(2800)  # allow at most 2800 function evaluations
+    ex.set_rand_seed(199)          # set random seed to 199
+    ex.set_log_improvements(True)  # log all improving moves
+    ex.set_log_file(tf)            # set log file = temp file `tf`
+    ex.set_max_fes(2800)           # allow at most 2800 function evaluations
     with ex.execute() as process:  # now run the algorithm*problem combination
-        print("We found the following non-dominated trade-off solutions:")
-        print("makespan;worktime")
         arch: List[MORecord] = process.get_archive()
+        print(f"We found the {len(arch)} non-dominated trade-off solutions:")
+        print("makespan;worktime")
         arch.sort()
         for ae in arch:
             print(array_to_str(ae.fs))
