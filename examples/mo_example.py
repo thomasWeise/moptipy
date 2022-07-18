@@ -1,7 +1,29 @@
 """
-Perform 1 Run of 1 Algorithm*Instance on a simple multi-objective problem.
+A simple example for multi-objective optimization.
 
-We implement a simple multi-objective version of the JSSP.
+We implement a simple multi-objective version of the Job Shop Scheduling
+Problem (JSSP). In a JSSP, we have `n` jobs and `m` machines. Each job
+needs to be processed by each of the machines in a specific order and needs
+a specific time on each of them. Solutions are schedules that assign these
+operations to the machines. The time that a schedule needs until all the
+operations are completed is called the "makespan." Usually, the goal is to
+find the schedule with the shortest possible makespan. However, here we also
+consider a second goal: the total "worktime." When a machine receives its
+first operation to process, it is turned on. It remains on until it finishes
+its last job, after which it is turned off. The time between switching it on
+and off be the worktime of the machine and the total "worktime" be the sum of
+all of these worktimes.
+
+In our multi-objective version of the JSSP, we want to find schedules that
+have both a short makespan and a short worktime. In this situation, there may
+be more than one solution: One schedule may have a shorter makespan but a
+longer worktime and another one may have a longer worktime and a shorter
+makespan. We call such solutions mutually non-dominated. (One solution
+dominates another one if it is better in at least one objective and not worse
+in all the others.)
+
+In this example, we apply a multi-objective version of the randomized local
+search algorithm, `morls`.
 """
 from typing import List
 
@@ -20,18 +42,27 @@ from moptipy.spaces.permutations import Permutations
 from moptipy.utils.nputils import array_to_str
 from moptipy.utils.temp import TempFile
 
-instance = Instance.from_resource("orb06")
-search_space = Permutations.with_repetitions(  # we will encode solutions as
-    instance.jobs, instance.machines)          # permutations with repetitions
-solution_space = GanttSpace(instance)  # the space of Gantt charts
-encoding = OperationBasedEncoding(instance)
-f1 = Makespan(instance)  # the first objective be OneMax
-f2 = Worktime(instance)  # the second objective be the exact opposite: ZeroMax
-problem = Prioritize(  # when deciding upon single best result, prioritize f1
-    [f1, f2])          # over f2
-algorithm = MORLS(  # create multi-objective RLS that
+instance = Instance.from_resource("swv02")     # We load the instance "swv02".
+solution_space = GanttSpace(instance)          # Solutions are Gantt charts.
+search_space = Permutations.with_repetitions(  # We will encode solutions as
+    instance.jobs, instance.machines)          # permutations w. repetitions.
+encoding = OperationBasedEncoding(instance)    # Decode permutations to Gantt.
+
+# Each multi-objective optimization problem is defined by several objective
+# functions *and* a way to scalarize the vector of objective values.
+# The scalarization is only used by the system to decide for one single best
+# solution in the end *and* if we actually apply a single-objective algorithm
+# to the problem instead of a multi-objective one. (Here we will apply a
+# multi-objective algorithm.)
+f1 = Makespan(instance)  # The first objective be the makespan.
+f2 = Worktime(instance)  # The second objective be the total work time.
+# Here, we decide for a priorization scalarization: The single best end result
+# will be the one with the shortest makespan.
+problem = Prioritize([f1, f2])
+
+algorithm = MORLS(              # Create multi-objective RLS that
     Op0Shuffle(search_space),   # starts with a random permutation and
-    Op1SwapN())                 # swaps a random number of elements per step
+    Op1SwapN())                 # swaps a random number of elements per step.
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
@@ -43,12 +74,12 @@ with TempFile.create() as tf:  # create temporary file `tf`
     ex.set_search_space(search_space)
     ex.set_encoding(encoding)
     ex.set_objective(problem)  # set the multi-objective problem
-    ex.set_algorithm(algorithm)  # set algorithm
+    ex.set_algorithm(algorithm)
     ex.set_rand_seed(199)  # set random seed to 199
     ex.set_log_file(tf)  # set log file = temp file `tf`
-    ex.set_max_fes(500)  # allow at most 500 function evaluations
+    ex.set_max_fes(2800)  # allow at most 2800 function evaluations
     with ex.execute() as process:  # now run the algorithm*problem combination
-        print("We found the following trade-off solutions:")
+        print("We found the following non-dominated trade-off solutions:")
         print("makespan;worktime")
         arch: List[MORecord] = process.get_archive()
         arch.sort()

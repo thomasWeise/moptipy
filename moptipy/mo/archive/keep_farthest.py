@@ -107,6 +107,7 @@ class KeepFarthest(MOArchivePruner):
         :param archive: the archive, i.e., a list of tuples of solutions and
             their objective vectors
         :param n_keep: the number of solutions to keep
+        :param size: the current size of the archive
         """
         if size <= n_keep:
             return
@@ -225,10 +226,10 @@ class KeepFarthest(MOArchivePruner):
                     max_dist = min_dist_rec  # normalized distance
                     max_dist_idx = rec_idx   # remember its index
             # swap the record to the front of the archive
-            archive.insert(selected, archive.pop(max_dist_idx))
-            min_dists[selected + 1:max_dist_idx + 1] \
-                = min_dists[selected:max_dist_idx]
-            min_dists[selected] = max_dist
+            archive[selected], archive[max_dist_idx] = \
+                archive[max_dist_idx], archive[selected]
+            # preserve the distance of the element swapped back
+            min_dists[max_dist_idx] = min_dists[selected]
             dist_update_start = selected
             selected = selected + 1
 

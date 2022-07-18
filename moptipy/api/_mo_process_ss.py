@@ -4,6 +4,7 @@ from math import isfinite
 from typing import Optional, Union, Final, Callable
 
 import numpy as np
+from numpy import copyto
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._process_base import _TIME_IN_NS
@@ -106,12 +107,13 @@ class _MOProcessSS(_MOProcessNoSS):
         improved: bool = False
         if result < self._current_best_f:
             self._current_best_f = result
+            copyto(self._current_best_fs, fs)
             self.copy(self._current_best_x, x)
             self._current_y = self._current_best_y
             self._current_best_y = current_y
             do_term = do_term or (result <= self._end_f)
 
-        if self.check_in(x, fs) or improved:
+        if self.check_in(x, fs, True) or improved:
             self._last_improvement_fe = current_fes
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
@@ -138,13 +140,10 @@ class _MOProcessSS(_MOProcessNoSS):
         with logger.scope(SCOPE_ENCODING) as sc:
             self._encoding.log_parameters_to(sc)
 
-    def _write_log(self, logger: Logger) -> None:
-        # noinspection PyProtectedMember
-        super()._write_log(logger)
-
-        if self._current_fes > 0:
-            with logger.text(SECTION_RESULT_X) as txt:
-                txt.write(self._search_space.to_str(self._current_best_x))
+    def _write_result(self, logger: Logger) -> None:
+        with logger.text(SECTION_RESULT_X) as txt:
+            txt.write(self._search_space.to_str(self._current_best_x))
+        super()._write_result(logger)
 
     def _validate_x(self) -> None:
         """Validate x, if it exists."""

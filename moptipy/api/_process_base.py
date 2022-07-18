@@ -425,6 +425,15 @@ class _ProcessBase(Process):
                      _ns_to_ms(self._last_improvement_time_nanos
                                - self._start_time_nanos))
 
+    def _write_result(self, logger: Logger) -> None:
+        """
+        Write the end result into the log.
+
+        :param logger: the logger
+        """
+        with logger.text(SECTION_RESULT_Y) as txt:
+            txt.write(self._solution_space.to_str(self._current_best_y))
+
     def _write_log(self, logger: Logger) -> None:
         """Write the information gathered during optimization into the log."""
         with logger.key_values(SECTION_FINAL_STATE) as kv:
@@ -441,8 +450,7 @@ class _ProcessBase(Process):
         log_sys_info(logger)
 
         if self._current_fes > 0:
-            with logger.text(SECTION_RESULT_Y) as txt:
-                txt.write(self._solution_space.to_str(self._current_best_y))
+            self._write_result(logger)
 
     def _validate_x(self) -> None:
         """Validate x, if it exists."""

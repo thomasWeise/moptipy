@@ -140,13 +140,10 @@ class _ProcessSS(_ProcessNoSS):
         with logger.scope(SCOPE_ENCODING) as sc:
             self._encoding.log_parameters_to(sc)
 
-    def _write_log(self, logger: Logger) -> None:
-        # noinspection PyProtectedMember
-        super()._write_log(logger)
-
-        if self._current_fes > 0:
-            with logger.text(SECTION_RESULT_X) as txt:
-                txt.write(self._search_space.to_str(self._current_best_x))
+    def _write_result(self, logger: Logger) -> None:
+        with logger.text(SECTION_RESULT_X) as txt:
+            txt.write(self._search_space.to_str(self._current_best_x))
+        super()._write_result(logger)
 
     def _validate_x(self) -> None:
         """Validate x, if it exists."""

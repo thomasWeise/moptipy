@@ -56,6 +56,8 @@ KEY_TOTAL_TIME_MILLIS: Final[str] = "totalTimeMillis"
 KEY_BEST_F: Final[str] = "bestF"
 #: the vector of objective values of the best solution
 KEY_BEST_FS: Final[str] = "bestFs"
+#: the number of archived non-dominated solutions
+KEY_ARCHIVE_SIZE: Final[str] = "archiveSize"
 #: the FE when the best objective value was reached
 KEY_LAST_IMPROVEMENT_FE: Final[str] = "lastImprovementFE"
 #: the time in milliseconds when the best objective value was reached
@@ -64,7 +66,7 @@ KEY_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
 #: the archive section prefix
 PREFIX_SECTION_ARCHIVE: Final[str] = "ARCHIVE_"
 #: the archive quality section suffix
-SECTION_ARCHIVE_QUALITY: Final[str] = f"{PREFIX_SECTION_ARCHIVE}QUALITY"
+SECTION_ARCHIVE_QUALITY: Final[str] = f"{PREFIX_SECTION_ARCHIVE}QUALITIES"
 #: the scalarized objective value column of the archive if without numeric
 #: suffix, the result of the ith objective function if with numeric suffix
 KEY_ARCHIVE_F: Final[str] = "f"

@@ -10,7 +10,8 @@ from moptipy.api._process_base import _ProcessBase, _TIME_IN_NS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.logging import SCOPE_PRUNER, KEY_ARCHIVE_MAX_SIZE, \
     KEY_ARCHIVE_PRUNE_LIMIT, KEY_BEST_FS, SECTION_ARCHIVE_QUALITY, \
-    KEY_ARCHIVE_F, PREFIX_SECTION_ARCHIVE, SUFFIX_SECTION_ARCHIVE_Y
+    KEY_ARCHIVE_F, PREFIX_SECTION_ARCHIVE, SUFFIX_SECTION_ARCHIVE_Y, \
+    KEY_ARCHIVE_SIZE
 from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner, \
     MORecord
 from moptipy.api.mo_problem import MOProblem
@@ -172,7 +173,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             self._copy_y(self._current_best_y, x)
             do_term = do_term or (result <= self._end_f)
 
-        if self.check_in(x, fs) or improved:
+        if self.check_in(x, fs, True) or improved:
             self._last_improvement_fe = current_fes
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
@@ -193,7 +194,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         return self._archive[0:self._archive_size]
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
-        super(_ProcessBase, self).log_parameters_to(logger)
+        _ProcessBase.log_parameters_to(self, logger)
         logger.key_value(KEY_ARCHIVE_MAX_SIZE, self._archive_max_size)
         logger.key_value(KEY_ARCHIVE_PRUNE_LIMIT, self._archive_prune_limit)
         with logger.scope(SCOPE_PRUNER) as sc:
@@ -202,6 +203,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
     def _log_best(self, kv: KeyValueLogSection) -> None:
         super()._log_best(kv)
         kv.key_value(KEY_BEST_FS, array_to_str(self._current_best_fs))
+        kv.key_value(KEY_ARCHIVE_SIZE, self._archive_size)
 
     def _log_and_check_archive_entry(self, index: int, rec: MORecord,
                                      logger: Logger) -> Union[int, float]:
