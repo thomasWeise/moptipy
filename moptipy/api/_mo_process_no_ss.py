@@ -194,10 +194,13 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
     def get_archive(self) -> List[MORecord]:
         return self._archive[0:self._archive_size]
 
-    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
-        _ProcessBase.log_parameters_to(self, logger)
+    def _log_own_parameters(self, logger: KeyValueLogSection) -> None:
+        super()._log_own_parameters(logger)
         logger.key_value(KEY_ARCHIVE_MAX_SIZE, self._archive_max_size)
         logger.key_value(KEY_ARCHIVE_PRUNE_LIMIT, self._archive_prune_limit)
+
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
+        _ProcessBase.log_parameters_to(self, logger)
         with logger.scope(SCOPE_PRUNER) as sc:
             self._pruner.log_parameters_to(sc)
 

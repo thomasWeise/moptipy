@@ -835,11 +835,19 @@ There are at least the following keys:
   - `p.randSeed(hex)`: the random seed in hexadecimal notation
   - `p.randGenType`: the class of the random number generator
   - `p.randBitGenType`: the class of the bit generator used by the random number generator
+  - `p.lowerBound` the lower bound of the (scalarized) objective values that this process can produce (if finite)
+  - `p.upperBound` the upper bound of the (scalarized) objective values that this process can produce (if finite)
+  If multi-objective optimization is performed, the following parameters are added:
+  - `p.archiveMaxSize`: the maximum size of the archive of non-dominated solutions after pruning
+  - `p.archivePruneLimit`: the archive size limit above which pruning will be triggered.
 - [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm) parameters: scope `a`, includes algorithm `name`, `class`, etc.
 - solution [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) scope `y`, includes `name` and `class` of solution space
-- [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) information: scope `f`
+- [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) information: scope `f`.
+  If multi-objective optimization is performed, this is the scope of the [multi-objective problem](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.mo_problem.MOProblem).
+  There will be a sub-scope `f.fi` for the `i`th objective function (`i` starts at `0`).
 - search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) information (if search space is different from solution space): scope `x`
 - [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.encoding.Encoding) information (if encoding is defined): scope `g` 
+- [archive pruner](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.mo_archive.MOArchivePruner) information (in case of multi-objective optimization): scope `ap`.
 
 If you implement an own [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm), [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective), [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space), or your own [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators), then you can overwrite the method [`log_parameters_to(logger)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.component.Component.log_parameters_to).
 This method will automatically be invoked when writing the log files of a run.
