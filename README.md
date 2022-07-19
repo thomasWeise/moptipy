@@ -30,11 +30,11 @@
   - [ERT-ECDF Plots](#66-ert-ecdf-plots)
   - [Performance over Algorithm Parameter or Instance Feature](#67-performance-over-algorithm-parameter-or-instance-feature)
   - [End Results Tables](#68-end-results-table)
-- [Other Tools](#7-other-tools)
-  - [Tests](#71-tests)
-- [Uselful Links and References](#8-useful-links-and-references)
-- [License](#9-license)
-- [Contact](#10-contact)
+- [Examples](#7-examples)
+- [Tests](#8-tests)
+- [Uselful Links and References](#9-useful-links-and-references)
+- [License](#10-license)
+- [Contact](#11-contact)
 
 
 ## 1. Introduction
@@ -89,10 +89,11 @@ If this build completes successful, you can be sure that `moptipy` will work pro
 
 ## 3. How-Tos
 
-You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder `examples`.
+You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder "[`examples`](https://github.com/thomasWeise/moptipy/tree/main/examples)".
 Here, we talk mainly about directly applying one or multiple [optimization algorithm(s)](#41-implemented-algorithms) to one or multiple [optimization problem](#43-implemented-problems) instance(s).
 In [Section 5 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
 Later, in [Section 6 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
+In [Section 8 on examples](#8-examples), we list all the examples that ship with moptipy.
 
 
 ### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
@@ -1526,9 +1527,28 @@ summary&&texttt{rs}&1.091&1.390&1.680&0.233&413.29&5.571\\%
 The end result tables are implemented in the module [moptipy.evaluation.tabulate_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_end_results_impl).
 
 
-## 7. Other Tools
+## 7. Examples
 
-### 7.1. Tests
+Here we list the set of examples that are provided in the [moptipy](https://github.com/thomasWeise/moptipy) repository in the folder "[examples](https://github.com/thomasWeise/moptipy/tree/main/examples)".
+
+- [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html) runs a small experiment on the OneMax problem and plots the [ECDF](#64-ecdf-plots).
+- [end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html) runs a small experiment with on the Job Shop Scheduling Problem (JSSP) and generates an [end results CSV file](#52-end-result-csv-files).
+- [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html) applies two algorithms to the JSSP and creates [end results plots](#63-end-results-plot). 
+- [end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html) runs another small experiment on the JSSP and generates an [end result table](#68-end-results-table).
+- [end_statistics_jssp.py](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html) runs a small experiment on the JSSP and generates an [end statistics CSV file](#53-end-result-statistics-csv-files).
+- [end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html) solves several OneMax instances and plots the ERT over the problem scale, i.e., generates a [performance-over-feature plot](#67-performance-over-algorithm-parameter-or-instance-feature).
+- [end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html) applies different settings of an algorithm to LeadingOnes instances and plots their [performance over their parameter setting](#67-performance-over-algorithm-parameter-or-instance-feature).
+- [ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html) applies an algorithm to the OneMax and plots the [ERT](#65-expected-running-time-ert-plots) over the solution qualities.
+- [ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot.html) applies one algorithm to several OneMax instances and creates an [ERT-ECDF plot](#66-ert-ecdf-plots).
+- [experiment_2_algorithms_4_problems.py](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html) shows how to use the [structured experiment API](#32-how-to-run-a-series-of-experiments) and applies two algorithms to four problem instances (OneMax and LeadingOnes).
+- [experiment_own_algorithm_and_problem.py](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem.html) shows how to [implement](#333-applying-an-own-algorithm-to-an-own-problem) some of the core components of our API, namely how a [self-implemented algorithm](#332-define-a-new-algorithm) can be applied to a [self-implemented problem](#331-define-a-new-problem-type).
+- [log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html) showcases the [log file structure](#51-log-files) for single-objective optimization.
+- [mo_example.py](https://thomasweise.github.io/moptipy/examples/mo_example.html) is a simple example for multi-objective optimization: we apply multi-objective RLS to a multi-objective version of the JSSP.
+- [progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html) shows how [progress plots](#62-progress-plots) can be generated from a small experiment with the OneMax problem and the 1-dimensional Ising model.
+- [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
+
+
+## 8. Tests
 
 We provide a set of tools for testing implemented algorithms, spaces, and operators in the package [moptipy.tests](https://thomasweise.github.io/moptipy/moptipy.tests.html).
 Here, you can find functions where you pass in instances of your implemented components and they are checked for compliance with the [moptipy API](https://thomasweise.github.io/moptipy/moptipy.api.html).
@@ -1536,7 +1556,7 @@ Here, you can find functions where you pass in instances of your implemented com
 We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/tc/index.html).
 
 
-## 8. Useful Links and References
+## 9. Useful Links and References
 
 1. Our book on optimization algorithms, which is currently work in progress:
    Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
@@ -1548,7 +1568,7 @@ We also try to extensively test our own code, see the [coverage report](https://
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). [Research Report] RR-7215, INRIA. 2010. inria-00462481
 
 
-## 9. License
+## 10. License
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#9-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
@@ -1563,7 +1583,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 
 
-## 10. Contact
+## 11. Contact
 
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
