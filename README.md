@@ -46,8 +46,8 @@ They are all structured from an educational and learning perspective, but still 
 Metaheuristic optimization algorithms are methods for solving hard problems.
 Here we provide an API that can be used to implement them and to experiment with them.
 
-A metaheuristic algorithm can be a black-box method, which can solve problems without any knowledge about their nature.
-Such a black-box algorithm only requires methods to create points in the search space and to evaluate their quality.
+A metaheuristic algorithm can be a black-box method, which can solve problems without deeper knowledge about their nature.
+Such a black-box algorithm only requires methods to create and modifiy points in the search space and to evaluate their quality.
 With these operations, it will try to step-by-step discover better points.
 Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
 White and gray-box algorithms, on the other hand, are tailored to specified problems.
@@ -56,7 +56,9 @@ They make use of the problem structure and can implement more efficient search o
 
 Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
-What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results.
+What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a *reproducable* fashion.
+The `moptipy` API now supports both single-objective and multi-objective optimization.
+A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 
 
 ## 2. Installation
