@@ -95,7 +95,7 @@ You can find many examples of how to use the [moptipy](https://thomasweise.githu
 Here, we talk mainly about directly applying one or multiple [optimization algorithm(s)](#41-implemented-algorithms) to one or multiple [optimization problem](#43-implemented-problems) instance(s).
 In [Section 5 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
 Later, in [Section 6 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
-In [Section 8 on examples](#8-examples), we list all the examples that ship with moptipy.
+In [Section 7 on examples](#7-examples), we list all the examples that ship with moptipy.
 
 
 ### 3.1. How to Apply 1 Optimization Algorithm Once to 1 Problem Instance
