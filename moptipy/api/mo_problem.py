@@ -55,14 +55,12 @@ class MOProblem(Objective):
     vector of objective values. This vector is the basis for deciding which
     candidate solutions to keep and which to discard.
 
-    Warning: We use instances of :class:`numpy.ndarray` to represent the
-    vectors of objective values. This necessitates that each objective
-    function has, if it is integer-valued
-    (:meth:`~moptipy.api.objective.Objective.is_always_integer` is `True`)
-    a range that fits well into at least a 64-bit integer. Specifically, it
-    must be possible to compute "a - b" without overflow or loss of sign for
-    any two objective values "a" and "b" within the confines of a numpy
-    signed 64-bit integer.
+    In multi-objective optimization, this decision is based on "domination."
+    A solution `a` dominates a solution `b` if it is not worse in any
+    objective and better in at least one. This comparison behavior is
+    implemented in method
+    :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates` and can be
+    overwritten if need be.
 
     In our implementation, we prescribe that each multi-objective optimization
     problem must also be accompanied by a scalarization function, i.e., a
@@ -82,6 +80,15 @@ class MOProblem(Objective):
     implemented for single-objective processes
     :class:`~moptipy.api.process.Process` will work out-of-the-box with the
     multi-objective version :class:`~moptipy.api.mo_process.MOProcess`.
+
+    Warning: We use instances of :class:`numpy.ndarray` to represent the
+    vectors of objective values. This necessitates that each objective
+    function has, if it is integer-valued
+    (:meth:`~moptipy.api.objective.Objective.is_always_integer` is `True`)
+    a range that fits well into at least a 64-bit integer. Specifically, it
+    must be possible to compute "a - b" without overflow or loss of sign for
+    any two objective values "a" and "b" within the confines of a numpy
+    signed 64-bit integer.
     """
 
     def f_create(self) -> np.ndarray:
@@ -155,6 +162,7 @@ class MOProblem(Objective):
         :returns: the scalarization result
         """
 
+    # noinspection PyMethodMayBeStatic
     def f_dominates(self, a: np.ndarray, b: np.ndarray) -> int:
         """
         Check if an objective vector dominates or is dominated by another one.
