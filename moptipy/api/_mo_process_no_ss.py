@@ -68,6 +68,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         self.f_dimension = objective.f_dimension  # type: ignore
         self.f_create = objective.f_create  # type: ignore
         self.f_validate = objective.f_validate  # type: ignore
+        self.f_dtype = objective.f_dtype  # type: ignore
 
         #: the internal evaluation function
         self._f_evaluate: Final[Callable[

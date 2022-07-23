@@ -47,7 +47,7 @@ class MORecord:
 
         :returns: the string representation of this record
         """
-        return f"s={self.fs}, x={self.x}"
+        return f"fs={self.fs}, x={self.x}"
 
 
 class MOArchivePruner(Component):

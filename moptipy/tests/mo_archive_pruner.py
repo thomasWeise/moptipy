@@ -1,17 +1,22 @@
 """Functions for testing multi-objective archive pruners."""
-from typing import Final, List, Iterable, Optional
+from typing import Final, List, Iterable, Optional, Callable
 
 import numpy as np
 from numpy.random import Generator, default_rng
 
 from moptipy.api.mo_archive import MOArchivePruner, \
     check_mo_archive_pruner, MORecord
+from moptipy.api.mo_problem import MOProblem
+from moptipy.mock.mo_problem import MockMOProblem
+from moptipy.mock.utils import DEFAULT_TEST_DTYPES
 from moptipy.tests.component import validate_component
 from moptipy.utils.types import type_error
 
 
-def validate_mo_archive_pruner(pruner: MOArchivePruner,
-                               dimensions: Iterable[int]) -> None:
+def validate_mo_archive_pruner(
+        pruner_factory: Callable[[MOProblem], MOArchivePruner],
+        dimensions: Iterable[int],
+        dtypes: Iterable[np.dtype] = DEFAULT_TEST_DTYPES) -> None:
     """
     Check whether an object is a moptipy multi-objective optimization pruner.
 
@@ -20,34 +25,41 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
     are moved to the front, the ones to discard are moved to the back. No
     record is lost and none is duplicated.
 
-    :param pruner: the multi-objective archive pruner to test
+    :param pruner_factory: the creator for the multi-objective archive pruner
+        to test
     :param dimensions: the dimensions to simulate
+    :param dtypes: the dtypes to test on
     :raises ValueError: if `mo_problem` is not a valid
         :class:`~moptipy.api.mo_problem.MOProblem`
     :raises TypeError: if values of the wrong types are encountered
     """
-    if not isinstance(pruner, MOArchivePruner):
-        raise type_error(pruner, "pruner", MOArchivePruner)
-    check_mo_archive_pruner(pruner)
-    validate_component(pruner)
-
+    if not callable(pruner_factory):
+        raise type_error(pruner_factory, "pruner_factory", call=True)
     if not isinstance(dimensions, Iterable):
         raise type_error(dimensions, "dimensions", Iterable)
+    if not isinstance(dtypes, Iterable):
+        raise type_error(dtypes, "dtypes", Iterable)
 
-    random: Final[Generator] = default_rng()
-    dtypes: Final[List[np.dtype]] = [np.dtype(x) for x in [
-        np.int8, int, float]]
-    mins: Final[List[int]] = [-128, -(1 << 61), -(1 << 51)]
-    maxs: Final[List[int]] = [127, (1 << 61) - 1, (1 << 51)]
     tag: Final[str] = "bla"
     nothing: bool = True
+    random: Final[Generator] = default_rng()
     for dim in dimensions:
         if not isinstance(dim, int):
             raise type_error(dim, "dimensions[i]", int)
         nothing = False
-        for i, dt in enumerate(dtypes):
+        for dt in dtypes:
             if not isinstance(dt, np.dtype):
                 raise type_error(dt, "dt", np.dtype)
+
+            mop: MockMOProblem = MockMOProblem.for_dtype(dim, dt)
+            if not isinstance(mop, MockMOProblem):
+                raise type_error(mop, "new mock problem", MockMOProblem)
+            pruner = pruner_factory(mop)
+            if not isinstance(pruner, MOArchivePruner):
+                raise type_error(pruner, "pruner", MOArchivePruner)
+            check_mo_archive_pruner(pruner)
+            validate_component(pruner)
+
             alen = int(random.integers(2, 10))
             if not isinstance(alen, int):
                 raise type_error(alen, "alen", int)
@@ -56,6 +68,7 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                 raise type_error(amax, "amax", int)
             if not (0 < amax <= alen <= 10):
                 raise ValueError(f"invalid amax={amax} and alen={alen}.")
+
             archive: List[MORecord] = []
             archivec: List[MORecord] = []
 
@@ -69,8 +82,7 @@ def validate_mo_archive_pruner(pruner: MOArchivePruner,
                         raise type_error(fs, "fs", np.ndarray)
                     if len(fs) != dim:
                         raise ValueError(f"len(fs)={len(fs)}!=dim={dim}")
-                    for k in range(dim):
-                        fs[k] = random.integers(mins[i], maxs[i])
+                    mop.sample(fs)
                     rec = MORecord(tag, fs)
                     if not isinstance(rec, MORecord):
                         raise type_error(rec, "rec", MORecord)

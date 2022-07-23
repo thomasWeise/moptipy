@@ -7,7 +7,7 @@ from typing import Final, Optional, Union, Tuple, List, Dict
 from numpy.random import Generator
 
 from moptipy.evaluation.end_results import EndResult
-from moptipy.examples.mock.components import Algorithm, Instance, \
+from moptipy.mock.components import Algorithm, Instance, \
     BasePerformance, Experiment
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator

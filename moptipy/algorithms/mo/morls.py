@@ -1,4 +1,4 @@
-"""A multi-objectiveversion of the Randomized Local Search algorithm `rls`."""
+"""A multi-objective version of the Randomized Local Search algorithm."""
 from typing import Final, Callable
 
 from numpy.random import Generator

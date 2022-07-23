@@ -32,6 +32,15 @@ class MOProblem(Objective):
     vector of objective values. This vector is the basis for deciding which
     candidate solutions to keep and which to discard.
 
+    Warning: We use instances of :class:`numpy.ndarray` to represent the
+    vectors of objective values. This necessitates that each objective
+    function has, if it is integer-valued
+    (:meth:`~moptipy.api.objective.Objective.is_always_integer` is `True`)
+    a range that fits well into at least a 64-bit integer. Specifically, it
+    must be possible to compute "a - b" without overflow or loss of sign for
+    any two objective values "a" and "b" within the confines of a numpy
+    signed 64-bit integer.
+
     In our implementation, we prescribe that each multi-objective optimization
     problem must also be accompanied by a scalarization function, i.e., a
     function that represents the vector of objective values as a single scalar
@@ -56,7 +65,27 @@ class MOProblem(Objective):
         """
         Create a vector to receive the objective values.
 
+        This array will be of the length returned by :meth:`f_dimension` and
+        of the `dtype` of :meth:`f_dtype`.
+
         :returns: a vector to receive the objective values
+        """
+        return np.empty(self.f_dimension(), self.f_dtype())
+
+    def f_dtype(self) -> np.dtype:
+        """
+        Get the data type used in :meth:`f_create`.
+
+        This data type will be an integer data type if all the objective
+        functions are integer-valued. If the bounds of the objective values
+        are known, then this type will be "big enough" to allow the
+        subtraction "a - b" of any two objective vectors "a" and "b" to be
+        computed without overflow or loss of sign. At most, however, this
+        data type will be a 64-bit integer.
+        If any one of the objective functions returns floating point data,
+        this data type will be a floating point type.
+
+        :returns: the data type used by :meth:`f_create`.
         """
 
     def f_dimension(self) -> int:
@@ -75,6 +104,19 @@ class MOProblem(Objective):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
+        if not isinstance(x, np.ndarray):
+            raise TypeError(x, "x", np.ndarray)
+        shape = x.shape
+        if len(shape) != 1:
+            raise ValueError(
+                f"{x} cannot have more than one dimension, but has {shape}!")
+        dim = self.f_dimension()  # pylint: disable=E1111
+        if shape[0] != dim:
+            raise ValueError(
+                f"{x} should have length {dim} but has {shape[0]}!")
+        dt = self.f_dtype()  # pylint: disable=E1111
+        if x.dtype != dt:
+            raise ValueError(f"{x} should have dtype {dt} but has {x.dtype}!")
 
     def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
         """

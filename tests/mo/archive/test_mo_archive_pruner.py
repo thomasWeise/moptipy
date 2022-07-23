@@ -11,7 +11,7 @@ from moptipy.tests.mo_archive_pruner import validate_mo_archive_pruner
 def test_mo_archive_pruner() -> None:
     """Test the basic archive pruner."""
     pruner = MOArchivePruner()
-    validate_mo_archive_pruner(pruner, range(1, 10))
+    validate_mo_archive_pruner(lambda _: pruner, range(1, 10))
 
     dt = np.dtype(int)
     orig: List[MORecord] = [

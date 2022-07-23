@@ -2,19 +2,15 @@
 
 from collections import Counter
 from math import inf
-from typing import List, Final, Set, Iterable, Optional, cast
+from typing import List, Final, Set, Iterable, Optional
 
 import numpy as np
+from numpy.linalg import norm
 
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
-from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
-    DEFAULT_UNSIGNED_INT, KEY_NUMPY_TYPE, val_numpy_type
+from moptipy.utils.nputils import DEFAULT_FLOAT, is_np_int
 from moptipy.utils.types import type_error
-
-#: the numpy data type for min, max, and dist arrays
-KEY_NUMPY_TYPE_COMPUTE: Final[str] = f"{KEY_NUMPY_TYPE}Cmp"
 
 
 class KeepFarthest(MOArchivePruner):
@@ -57,29 +53,25 @@ class KeepFarthest(MOArchivePruner):
             raise type_error(keep_best_of_dimension,
                              "keep_best_of_dimension", Iterable)
 
-        tempdt: np.dtype = problem.f_create().dtype
-        minmax_dtype: np.dtype = DEFAULT_FLOAT
-        pinf: np.number = cast(np.number, np.inf)
-        ninf: np.number = cast(np.number, -np.inf)
-        if tempdt.kind in ('i', 'u'):
-            if tempdt.kind == 'u':
-                minmax_dtype = DEFAULT_UNSIGNED_INT
-            else:
-                minmax_dtype = DEFAULT_INT
-            ii = np.iinfo(minmax_dtype)
-            pinf = cast(np.number, ii.max)
-            ninf = cast(np.number, ii.min)
+        dt: np.dtype = problem.f_dtype()
+        pinf: np.number
+        ninf: np.number
+        if is_np_int(dt):
+            ii = np.iinfo(dt)
+            pinf = dt.type(ii.max)
+            ninf = dt.type(ii.min)
+        else:
+            pinf = dt.type(inf)
+            ninf = dt.type(-inf)
 
         #: the array for minima
-        self.__min: Final[np.ndarray] = np.empty(dimension, minmax_dtype)
+        self.__min: Final[np.ndarray] = np.empty(dimension, dt)
         #: the array for maxima
-        self.__max: Final[np.ndarray] = np.empty(dimension, minmax_dtype)
+        self.__max: Final[np.ndarray] = np.empty(dimension, dt)
         #: the initial number for minimum searching
         self.__pinf: Final[np.number] = pinf
         #: the initial number for maximum searching
         self.__ninf: Final[np.number] = ninf
-        #: the default divisor
-        self.__div: Final[np.ndarray] = np.empty(dimension, minmax_dtype)
         #: the list of items to preserve per dimension
         self.__preserve: Final[List[Optional[Set]]] = [None] * dimension
         for d in keep_best_of_dimension:
@@ -117,7 +109,6 @@ class KeepFarthest(MOArchivePruner):
         mi.fill(self.__pinf)
         ma: Final[np.ndarray] = self.__max
         ma.fill(self.__ninf)
-        div: Final[np.ndarray] = self.__div
         dim: Final[int] = len(mi)
         preserve: Final[List[Optional[Set]]] = self.__preserve
         all_preserve: Final[List[Set]] = self.__all_preserve
@@ -197,10 +188,7 @@ class KeepFarthest(MOArchivePruner):
             if maa < mii:
                 raise ValueError(
                     f"minimum of dimension {i} is {mii} and maximum is {maa}")
-            dv = 1 if maa <= mii else maa - mii  # ensure finite on div=0
-            if dv < 0:
-                raise ValueError(f"{maa} - {mii} = {dv}?")
-            div[i] = dv
+            ma[i] = 1 if maa <= mii else maa - mii  # ensure finite on div=0
 
         # Now we fill up the archive with those records most different from
         # the already included ones based on the square distance in the
@@ -214,11 +202,11 @@ class KeepFarthest(MOArchivePruner):
             max_dist_idx: int = selected  # the index of that record
             for rec_idx in range(selected, size):  # iterate over unselected
                 min_dist_rec: float = min_dists[rec_idx]  # min dist so far
-                rec: np.ndarray = archive[rec_idx].fs  # objective vector
+                rec: np.ndarray = archive[rec_idx].fs  # objective vec
                 for cmp_idx in range(dist_update_start, selected):
                     cmp: np.ndarray = archive[cmp_idx].fs  # objective vector
-                    dst: float = float(np.linalg.norm(
-                        ((cmp - mi) / div) - ((rec - mi) / div)))
+                    dst: float = float(norm((cmp - rec) / ma))
+                    # float(sum(((cmp - rec) / ma) ** 2.0))
                     if dst < min_dist_rec:  # is this one closer?
                         min_dist_rec = dst  # remember
                 min_dists[rec_idx] = min_dist_rec  # remember
@@ -240,9 +228,3 @@ class KeepFarthest(MOArchivePruner):
         :returns: always `"keepFarthest"`
         """
         return "keepFarthest"
-
-    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
-        """Log the parameters."""
-        super().log_parameters_to(logger)
-        logger.key_value(KEY_NUMPY_TYPE_COMPUTE,
-                         val_numpy_type(self.__min.dtype))

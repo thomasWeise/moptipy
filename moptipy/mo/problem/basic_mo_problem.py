@@ -127,14 +127,29 @@ class BasicMOProblem(MOProblem):
         if n <= 0:
             raise ValueError("No objective function found!")
 
+        use_lb: Union[int, float] = min_lower_bound
+        use_ub: Union[int, float] = max_upper_bound
+        if always_int:
+            if isfinite(min_lower_bound) and isfinite(max_upper_bound):
+                use_lb = min(min_lower_bound,
+                             min_lower_bound - max_upper_bound)
+                use_ub = max(max_upper_bound,
+                             max_upper_bound - min_lower_bound)
+            else:
+                use_lb = -inf
+                use_ub = inf
+
         # Based on the above findings, determine the data type:
         #: The data type of the objective vectors.
         #: If the objectives all always are integers and have known and finite
-        #: bounds, then we can use the smallest possible integer type. If they
-        #: are at least integer-valued, we can use the largest integer type.
+        #: bounds, then we can use the smallest possible integer type.
+        #: This type will be large enough to allow computing "a - b" of any two
+        #: objective values "a" and "b" without overflow.
+        #: If they are at least integer-valued, we can use the largest integer
+        #: type.
         #: If also this is not True, then we just use floating points.
         self.__dtype: Final[np.dtype] = dtype_for_data(
-            always_int, min_lower_bound, max_upper_bound)
+            always_int, use_lb, use_ub)
         #: The dimension of the objective space.
         self.__dimension: Final[int] = n
 
@@ -150,10 +165,10 @@ class BasicMOProblem(MOProblem):
             tuple(upper_bounds)
 
         # set up the scalarizer
-        self.__scalarize: Final[Callable[[np.ndarray], Union[int, float]]] \
+        self._scalarize: Final[Callable[[np.ndarray], Union[int, float]]] \
             = get_scalarizer(always_int, n, lower_bounds, upper_bounds)
-        if not callable(self.__scalarize):
-            raise type_error(self.__scalarize, "result of get_scalarizer",
+        if not callable(self._scalarize):
+            raise type_error(self._scalarize, "result of get_scalarizer",
                              call=True)
 
         # compute the scalarized bounds
@@ -161,7 +176,7 @@ class BasicMOProblem(MOProblem):
         lb = -inf
         if isfinite(min_lower_bound):
             temp = np.array(lower_bounds, dtype=self.__dtype)
-            lb = self.__scalarize(temp)
+            lb = self._scalarize(temp)
             if not isinstance(lb, (int, float)):
                 raise type_error(lb, "computed lower bound", (int, float))
             if (not isfinite(lb)) and (lb > -inf):
@@ -174,7 +189,7 @@ class BasicMOProblem(MOProblem):
         ub = inf
         if isfinite(max_upper_bound):
             temp = np.array(upper_bounds, dtype=self.__dtype)
-            ub = self.__scalarize(temp)
+            ub = self._scalarize(temp)
             if not isinstance(ub, (int, float)):
                 raise type_error(ub, "computed upper bound", (int, float))
             if (not isfinite(ub)) and (ub < inf):
@@ -188,7 +203,7 @@ class BasicMOProblem(MOProblem):
         self.__calls: Final[Tuple[
             Callable[[Any], Union[int, float]], ...]] = tuple(calls)
         #: the objective functions
-        self.__objectives = tuple(objectives)
+        self._objectives = tuple(objectives)
 
         #: the internal temporary array
         self._temp: Final[np.ndarray] = self.f_create() \
@@ -202,6 +217,15 @@ class BasicMOProblem(MOProblem):
         """
         return self.__dimension
 
+    def f_dtype(self) -> np.dtype:
+        """
+        Get the data type used in `f_create`.
+
+        :returns: the data type used by
+            :meth:`moptipy.api.mo_problem.MOProblem.f_create`.
+        """
+        return self.__dtype
+
     def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
         """
         Perform the multi-objective evaluation of a solution.
@@ -212,7 +236,7 @@ class BasicMOProblem(MOProblem):
         """
         for i, o in enumerate(self.__calls):
             fs[i] = o(x)
-        return self.__scalarize(fs)
+        return self._scalarize(fs)
 
     def lower_bound(self) -> Union[float, int]:
         """
@@ -262,7 +286,7 @@ class BasicMOProblem(MOProblem):
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, self.__dimension)
         logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.__dtype))
-        for i, o in enumerate(self.__objectives):
+        for i, o in enumerate(self._objectives):
             with logger.scope(f"{SCOPE_OBJECTIVE_FUNCTION}{i}") as scope:
                 o.log_parameters_to(scope)
 
@@ -275,15 +299,7 @@ class BasicMOProblem(MOProblem):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
-        if not isinstance(x, np.ndarray):
-            raise type_error(x, "x", np.ndarray)
-        if x.dtype != self.__dtype:
-            raise ValueError(
-                f"x must be of type {self.__dtype} but is of type {x.dtype}.")
-        if (len(x.shape) != 1) or (x.shape[0] != self.__dimension):
-            raise ValueError(
-                f"x must be of shape ({self.__dimension}) but is "
-                f"of shape {x.shape}.")
+        super().f_validate(x)
 
         lb: Final[Tuple[Union[int, float], ...]] = self.__lower_bounds
         ub: Final[Tuple[Union[int, float], ...]] = self.__upper_bounds
