@@ -9,6 +9,7 @@ from numpy import empty
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.logging import SCOPE_OBJECTIVE_FUNCTION
 from moptipy.api.mo_problem import MOProblem
+from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.math import try_int
@@ -208,6 +209,7 @@ class BasicMOProblem(MOProblem):
         #: the internal temporary array
         self._temp: Final[np.ndarray] = self.f_create() \
             if temp is None else temp
+        self.f_dominates = dominates  # type: ignore
 
     def f_dimension(self) -> int:
         """

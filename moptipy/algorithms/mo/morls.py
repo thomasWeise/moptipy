@@ -6,7 +6,6 @@ from numpy.random import Generator
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_process import MOProcess
-from moptipy.api.mo_utils import domination
 from moptipy.api.operators import Op0, Op1
 
 
@@ -31,6 +30,7 @@ class MORLS(Algorithm1, MOAlgorithm):
         evaluate: Final[Callable] = process.f_evaluate  # the objective
         op1: Final[Callable] = self.op1.op1  # the unary operator
         should_terminate: Final[Callable] = process.should_terminate
+        domination: Final[Callable] = process.f_dominates
 
         # Start at a random point in the search space and evaluate it.
         self.op0.op0(random, best_x)  # Create 1 solution randomly and

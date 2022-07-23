@@ -5,9 +5,31 @@ This class provides the ability to evaluate solutions according to multiple
 criteria. The evaluation results are stored in a numpy array and also are
 scalarized to a single value.
 
-An :class:`~moptipy.api.mo_problem.MOProblem` furthermore also exhibits
-:class:`~moptipy.api.space.Space`-like behavior for instantiating and
-processing such objective vectors.
+Basically, a multi-objective problem provides three essential components:
+
+1. It can evaluate a candidate solution according to multiple optimization
+   objectives. Each objective returns one value, subject to minimization,
+   and all the values are stored in a single numpy array.
+   This is done by :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`
+2. It provides a criterion deciding whether one such objective vector
+   dominates (i.e., is strictly better than) another one. This is done by
+   :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`. The default
+   definition adheres to the standard "domination" definition in
+   multi-objective optimization: A vector `a` dominates a vector `b` if it
+   is not worse in any objective value and better in at least one. But if
+   need be, you can overwrite this behavior.
+3. A scalarization approach: When evaluating a solution, the result is not
+   just the objective vector itself, but also a single scalar value. This is
+   needed to create compatibility to single-objective optimization. Matter of
+   fact, a :class:`~moptipy.api.mo_problem.MOProblem` is actually a subclass
+   of :class:`~moptipy.api.objective.Objective`. This means that via this
+   scalarization, all multi-objective problems can also be considered as
+   single-objective problems. This means that single-objective algorithms can
+   be applied to them as-is. It also means that log files are compatible.
+   Multi-objective algorithms can just ignore the scalarization result and
+   focus on the domination relationship. Often, a weighted sum approach
+   (:class:`~moptipy.mo.problem.weighted_sum.WeightedSum`) may be the method
+   of choice for scalarization.
 """
 from typing import Union, Final
 
@@ -15,6 +37,7 @@ import numpy as np
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.logging import SCOPE_OBJECTIVE_FUNCTION
+from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective, check_objective
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, DEFAULT_UNSIGNED_INT, \
@@ -132,6 +155,28 @@ class MOProblem(Objective):
         :returns: the scalarization result
         """
 
+    def f_dominates(self, a: np.ndarray, b: np.ndarray) -> int:
+        """
+        Check if an objective vector dominates or is dominated by another one.
+
+        Usually, one vector is said to dominate another one if it is not worse
+        in any objective and better in at least one. This behavior is
+        implemented in :func:`moptipy.api.mo_utils.dominates` and this is also
+        the default behavior of this method. However, depending on your
+        concrete optimization task, you may overwrite this behavior.
+
+        :param a: the first objective vector
+        :param b: the second objective value
+        :returns: an integer value indicating the domination relationship
+        :retval -1: if `a` dominates `b`
+        :retval 1: if `b` dominates `a`
+        :retval 2: if `b` equals `a`
+        :retval 0: if `a` and `b` are mutually non-dominated, i.e., if neither
+            `a` dominates `b` not `b` dominates `a` and `b` is also different
+            from `a`
+        """
+        return dominates(a, b)
+
     def evaluate(self, x) -> Union[float, int]:
         """
         Evaluate a solution `x` and return its scalarized objective value.
@@ -211,6 +256,10 @@ class MOSOProblemBridge(MOProblem):
         res: Final[Union[int, float]] = self.evaluate(x)
         fs[0] = res
         return res
+
+    def f_dtype(self) -> np.dtype:
+        """Get the objective vector dtype."""
+        return self.__dtype
 
     def f_validate(self, x: np.ndarray) -> None:
         """

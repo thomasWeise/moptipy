@@ -4,7 +4,6 @@ from typing import Optional, Union, List, Final
 import numpy as np
 from numpy import copyto
 
-from moptipy.api._mo_process_no_ss import _write_mo_log
 from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api.algorithm import Algorithm
@@ -126,8 +125,8 @@ class _MOProcessSSLog(_MOProcessSS):
                         self.__log)
 
     def _write_log(self, logger: Logger) -> None:
-        _write_mo_log(self.__log, self._start_time_nanos,
-                      self.__log_all, logger)
+        self._write_mo_log(self.__log, self._start_time_nanos,
+                           self.__log_all, logger)
         del self.__log
         super()._write_log(logger)
 

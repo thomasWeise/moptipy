@@ -17,7 +17,6 @@ from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner, \
     MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_process import MOProcess
-from moptipy.api.mo_utils import domination
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection, Logger
 from moptipy.utils.nputils import np_to_py_number, array_to_str
@@ -69,6 +68,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         self.f_create = objective.f_create  # type: ignore
         self.f_validate = objective.f_validate  # type: ignore
         self.f_dtype = objective.f_dtype  # type: ignore
+        self.f_dominates = objective.f_dominates  # type: ignore
 
         #: the internal evaluation function
         self._f_evaluate: Final[Callable[
@@ -122,6 +122,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         added_to_archive: bool = False
         archive_size: int = self._archive_size
         # we update the archive
+        domination: Final[Callable[[np.ndarray, np.ndarray], int]] \
+            = self.f_dominates
         for i in range(archive_size - 1, -1, -1):
             ae: MORecord = archive[i]
             d: int = domination(fs, ae.fs)
@@ -261,48 +263,52 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                 for qq in qualities:
                     csv.row(qq)
 
+    def _write_mo_log(self,
+                      log: List[List[Union[int, float, np.ndarray]]],
+                      start_time: int,
+                      keep_all: bool,
+                      logger: Logger) -> None:
+        """
+        Write the multi-objective log to the logger.
+
+        :param log: the log
+        :param start_time: the start time
+        :param keep_all: do we need to keep all entries?
+        :param logger: the destination logger
+        """
+        loglen = len(log)
+        if loglen <= 0:
+            return
+
+        domination: Final[Callable[[np.ndarray, np.ndarray], int]] \
+            = self.f_dominates
+
+        if not keep_all:
+            # first we clean the log from potentially dominated entries
+            for i in range(loglen - 1, 0, -1):
+                reci = log[i]
+                fi = cast(Union[int, float], reci[2])
+                fsi = cast(np.ndarray, reci[3])
+                for j in range(i - 1, -1, -1):
+                    recj = log[j]
+                    fj = cast(Union[int, float], recj[2])
+                    fsj = cast(np.ndarray, recj[3])
+                    if (fj <= fi) and (domination(fsi, fsj) > 0):
+                        del log[i]
+                        break
+
+        header: List[str] = [PROGRESS_FES, PROGRESS_TIME_MILLIS,
+                             PROGRESS_CURRENT_F]
+        for i in range(len(cast(np.ndarray, log[0])[3])):
+            header.append(f"{PROGRESS_CURRENT_F}{i}")
+
+        with logger.csv(SECTION_PROGRESS, header) as csv:
+            for row in log:
+                srow = [row[0], _ns_to_ms(cast(int, row[1])
+                                          - start_time), row[2]]
+                srow.extend([np_to_py_number(n)
+                             for n in cast(np.ndarray, row[3])])
+                csv.row(srow)
+
     def __str__(self) -> str:
         return "MOProcessWithoutSearchSpace"
-
-
-def _write_mo_log(log: List[List[Union[int, float, np.ndarray]]],
-                  start_time: int,
-                  keep_all: bool,
-                  logger: Logger) -> None:
-    """
-    Write the multi-objective log to the logger.
-
-    :param log: the log
-    :param start_time: the start time
-    :param keep_all: do we need to keep all entries?
-    :param logger: the destination logger
-    """
-    loglen = len(log)
-    if loglen <= 0:
-        return
-
-    if not keep_all:
-        # first we clean the log from potentially dominated entries
-        for i in range(loglen - 1, 0, -1):
-            reci = log[i]
-            fi = cast(Union[int, float], reci[2])
-            fsi = cast(np.ndarray, reci[3])
-            for j in range(i - 1, -1, -1):
-                recj = log[j]
-                fj = cast(Union[int, float], recj[2])
-                fsj = cast(np.ndarray, recj[3])
-                if (fj <= fi) and (domination(fsi, fsj) > 0):
-                    del log[i]
-                    break
-
-    header: List[str] = [PROGRESS_FES, PROGRESS_TIME_MILLIS,
-                         PROGRESS_CURRENT_F]
-    for i in range(len(cast(np.ndarray, log[0])[3])):
-        header.append(f"{PROGRESS_CURRENT_F}{i}")
-
-    with logger.csv(SECTION_PROGRESS, header) as csv:
-        for row in log:
-            srow = [row[0], _ns_to_ms(cast(int, row[1]) - start_time), row[2]]
-            srow.extend([np_to_py_number(n)
-                         for n in cast(np.ndarray, row[3])])
-            csv.row(srow)

@@ -92,12 +92,12 @@ class BasicWeightedSum(BasicMOProblem):
                     f"length of weights {self.weights} is not "
                     f"f_dimension={self.f_dimension()}.")
         #: the internal weights dtype
-        self.weights_dtype: Final[Optional[np.dtype]] = \
+        self.__weights_dtype: Final[Optional[np.dtype]] = \
             cast(Optional[np.dtype], holder[1])
-        if self.weights_dtype is not None:
-            if not isinstance(self.weights_dtype, np.dtype):
+        if self.__weights_dtype is not None:
+            if not isinstance(self.__weights_dtype, np.dtype):
                 raise type_error(
-                    self.weights_dtype, "weights_dtype", np.dtype)
+                    self.__weights_dtype, "weights_dtype", np.dtype)
 
     def __str__(self):
         """
@@ -120,8 +120,8 @@ class BasicWeightedSum(BasicMOProblem):
             (['1'] * self.f_dimension()) if weights is None else
             [num_to_str(w) for w in weights]))
         logger.key_value("weightsDtype",
-                         "None" if self.weights_dtype is None
-                         else self.weights_dtype.char)
+                         "None" if self.__weights_dtype is None
+                         else self.__weights_dtype.char)
 
 
 def _make_sum_scalarizer(always_int: bool,

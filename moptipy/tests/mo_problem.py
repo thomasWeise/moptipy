@@ -52,10 +52,23 @@ def validate_mo_problem(
     if dim < 1:
         raise ValueError(f"f_dimension()=={dim} is wrong, must be >= 1")
 
+    all_int: Final[bool] = mo_problem.is_always_integer()
+
     fses: Final[Tuple[np.ndarray, np.ndarray]] = \
         mo_problem.f_create(), mo_problem.f_create()
+
+    exp_dtype: Final[np.dtype] = mo_problem.f_dtype()
+    if not isinstance(exp_dtype, np.dtype):
+        raise type_error(exp_dtype, "exp_dtype", np.dtype)
+
+    if is_np_float(exp_dtype):
+        if all_int:
+            raise ValueError(f"if f_dtype()=={exp_dtype}, "
+                             f"is_always_integer() must not be {all_int}")
+    elif not is_np_int(exp_dtype):
+        raise ValueError(f"f_dtype() cannot be {exp_dtype}")
+
     shape: Final[Tuple[int]] = (dim, )
-    all_int: Final[bool] = mo_problem.is_always_integer()
     for fs in fses:
         if not isinstance(fs, np.ndarray):
             raise type_error(fs, "f_create()", np.ndarray)
@@ -65,7 +78,9 @@ def validate_mo_problem(
         if fs.shape != shape:
             raise ValueError(
                 f"f_create().shape={fs.shape}, but must be {shape}.")
-
+        if fs.dtype != exp_dtype:
+            raise ValueError(
+                f"f_dtype()={exp_dtype} but f_create().dtype={fs.dtype}.")
         if not isinstance(all_int, bool):
             raise type_error(all_int, "is_always_integer()", bool)
         is_int: bool = is_np_int(fs.dtype)
@@ -87,26 +102,6 @@ def validate_mo_problem(
     if fs1.dtype is not fs2.dtype:
         raise ValueError("encountered two different dtypes when invoking "
                          f"f_create() twice: {fs1.dtype}, {fs2.dtype}")
-
-    count: int = 0
-    if make_solution_space_element_valid is not None:
-        count += 1
-    if solution_space is not None:
-        count += 1
-    if count <= 0:
-        return
-    if count < 2:
-        raise ValueError("either provide both of solution_space and "
-                         "make_solution_space_element_valid or none.")
-
-    x = solution_space.create()
-    if x is None:
-        raise ValueError("solution_space.create() produced None.")
-    random: Final[Generator] = default_rng()
-    x = make_solution_space_element_valid(random, x)
-    if x is None:
-        raise ValueError("make_solution_space_element_valid() produced None.")
-    solution_space.validate(x)
 
     lower: Final[Union[int, float]] = mo_problem.lower_bound()
     if not (isinstance(lower, (int, float))):
@@ -133,6 +128,26 @@ def validate_mo_problem(
         raise ValueError("Result of lower_bound() must be smaller than "
                          f"upper_bound(), but got {lower} vs. {upper}.")
 
+    count: int = 0
+    if make_solution_space_element_valid is not None:
+        count += 1
+    if solution_space is not None:
+        count += 1
+    if count <= 0:
+        return
+    if count < 2:
+        raise ValueError("either provide both of solution_space and "
+                         "make_solution_space_element_valid or none.")
+
+    x = solution_space.create()
+    if x is None:
+        raise ValueError("solution_space.create() produced None.")
+    random: Final[Generator] = default_rng()
+    x = make_solution_space_element_valid(random, x)
+    if x is None:
+        raise ValueError("make_solution_space_element_valid() produced None.")
+    solution_space.validate(x)
+
     reses: Final[List[Union[int, float]]] = [
         mo_problem.f_evaluate(x, fs1), mo_problem.f_evaluate(x, fs2)]
     if len(reses) != 2:
@@ -144,6 +159,11 @@ def validate_mo_problem(
                 raise ValueError(f"encountered non-finite value {v} in "
                                  f"objective vector {fs} of {x}.")
         mo_problem.f_validate(fs)
+
+    fdr = mo_problem.f_dominates(fses[0], fses[1])
+    if fdr != 2:
+        raise ValueError(f"f_dominates(x, x) must be 2, but is {fdr}")
+
     for res in reses:
         if not isinstance(res, (int, float)):
             raise type_error(res, "f_evaluate(x)", (int, float))

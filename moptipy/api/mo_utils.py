@@ -5,7 +5,7 @@ import numpy as np
 
 
 @numba.njit(nogil=True, cache=True)
-def domination(a: np.ndarray, b: np.ndarray) -> int:
+def dominates(a: np.ndarray, b: np.ndarray) -> int:
     """
     Check if one objective vector dominates or is dominated by another one.
 
@@ -19,13 +19,13 @@ def domination(a: np.ndarray, b: np.ndarray) -> int:
         dominates `b` not `b` dominates `a` and `b` is also different from `a`
 
     >>> from numpy import array
-    >>> domination(array([1, 1, 1]), array([2, 2, 2]))
+    >>> dominates(array([1, 1, 1]), array([2, 2, 2]))
     -1
-    >>> domination(array([1.0, 1.0, 2.0]), array([2.0, 2.0, 1.0]))
+    >>> dominates(array([1.0, 1.0, 2.0]), array([2.0, 2.0, 1.0]))
     0
-    >>> domination(array([2, 2, 2]), array([1, 1, 1]))
+    >>> dominates(array([2, 2, 2]), array([1, 1, 1]))
     1
-    >>> domination(array([2, 2, 2]), array([2, 2, 2]))
+    >>> dominates(array([2, 2, 2]), array([2, 2, 2]))
     2
     """
     res: int = 0
