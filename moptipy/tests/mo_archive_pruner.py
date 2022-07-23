@@ -8,15 +8,15 @@ from moptipy.api.mo_archive import MOArchivePruner, \
     check_mo_archive_pruner, MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.mock.mo_problem import MockMOProblem
-from moptipy.mock.utils import DEFAULT_TEST_DTYPES
 from moptipy.tests.component import validate_component
+from moptipy.utils.nputils import DEFAULT_NUMERICAL
 from moptipy.utils.types import type_error
 
 
 def validate_mo_archive_pruner(
         pruner_factory: Callable[[MOProblem], MOArchivePruner],
         dimensions: Iterable[int],
-        dtypes: Iterable[np.dtype] = DEFAULT_TEST_DTYPES) -> None:
+        dtypes: Iterable[np.dtype] = DEFAULT_NUMERICAL) -> None:
     """
     Check whether an object is a moptipy multi-objective optimization pruner.
 

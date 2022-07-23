@@ -4,10 +4,10 @@ from typing import Final
 from numpy.random import Generator, default_rng
 
 from moptipy.mock.objective import MockObjective
-from moptipy.mock.utils import DEFAULT_TEST_DTYPES
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.objective import validate_objective
 from moptipy.tests.on_bitstrings import random_bit_string
+from moptipy.utils.nputils import DEFAULT_NUMERICAL
 
 
 def test_mock_int_objective() -> None:
@@ -53,9 +53,9 @@ def test_mock_auto_objective() -> None:
     random: Final[Generator] = default_rng()
     space: BitStrings = BitStrings(int(random.integers(2, 32)))
 
-    for dt in DEFAULT_TEST_DTYPES:
+    for dtype in DEFAULT_NUMERICAL:
         validate_objective(
-            objective=MockObjective.for_type(dt),
+            objective=MockObjective.for_type(dtype),
             solution_space=space,
             make_solution_space_element_valid=random_bit_string,
             is_deterministic=True)

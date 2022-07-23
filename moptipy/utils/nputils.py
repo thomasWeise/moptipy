@@ -1,7 +1,7 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
 from math import isfinite
-from typing import Final, List, cast, Set, Dict, Tuple, Union
+from typing import Final, List, Set, Dict, Tuple, Union, cast
 
 import numba  # type: ignore
 import numpy
@@ -11,42 +11,44 @@ from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.strings import num_to_str, bool_to_str
 from moptipy.utils.types import type_error
 
+#: All the numpy integer types and their ranges in increasing order of size.
+#: The tuple contains alternating signed and unsigned types. It starts with
+#: the smallest signed type, `numpy.int8` and ends with the largest unsigned
+#: type `numpy.uint64`.
+#: If we have a range `[min..max]` of valid value, then we can look up this
+#: range and find the integer type with the smallest memory footprint to
+#: accommodate it. This is what :func:`int_range_to_dtype` does.
+__INTS_AND_RANGES: Final[Tuple[Tuple[numpy.dtype, int, int], ...]] = \
+    tuple(sorted([
+        (dtx, int(numpy.iinfo(dtx).min), int(numpy.iinfo(dtx).max))
+        for dtx in cast(Set[numpy.dtype], set(numpy.dtype(bdt) for bdt in [
+            int, numpy.int8, numpy.int16, numpy.uint8, numpy.uint16,
+            numpy.int32, numpy.uint32, numpy.int64, numpy.uint64]))],
+        key=lambda a: (a[2], a[1])))
+
+#: The numpy integer data types.
+INTS: Final[Tuple[numpy.dtype, ...]] = tuple(a[0] for a in __INTS_AND_RANGES)
+
 #: A map associating all numpy integer types associated to tuples
 #: of their respective minimum and maximum value.
 __NP_INTS_MAP: Final[Dict[numpy.dtype, Tuple[int, int]]] = \
-    {t: (int(ti.min), int(ti.max)) for t, ti in
-     cast(List[Tuple[numpy.dtype, numpy.iinfo]],
-          ((dtt, numpy.iinfo(dtt)) for dtt in
-           cast(List[numpy.dtype], [numpy.dtype(dt) for dt in
-                                    cast(List[type],
-                                         [numpy.int8, numpy.uint8,
-                                          numpy.int16, numpy.uint16,
-                                          numpy.int32, numpy.uint32,
-                                          numpy.int64, numpy.uint64])])))}
+    {a[0]: (a[1], a[2]) for a in __INTS_AND_RANGES}
 
-#: A tuple of integer types with their corresponding minimum and maximum
-#: values in increasing orders of size. The tuple contains alternating
-#: signed and unsigned types. It starts with the smallest signed type,
-#: `numpy.int8` and ends with the largest unsigned type `numpy.uint64`.
-#: If we have a range `[min..max]` of valids values, then we can look up this
-#: range and find the integer type with the smallest memory footprint to
-#: accommodate it. This is what :meth:`int_range_to_dtype` does.
-__NP_INTS_LIST: Final[Tuple[Tuple[numpy.dtype, int, int], ...]] = \
-    tuple([(a[3], a[1], a[2]) for a in
-           sorted([(t.itemsize, a[0], a[1], t)
-                   for t, a in __NP_INTS_MAP.items()])])
+#: The default integer type: the signed 64-bit integer.
+DEFAULT_INT: Final[numpy.dtype] = INTS[-2]
 
-#: The default integer type: the signed 64 bit integer.
-DEFAULT_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-2])[0]
-
-#: The default unsigned integer type: an unsigned 64 bit integer.
-DEFAULT_UNSIGNED_INT: Final[numpy.dtype] = (__NP_INTS_LIST[-1])[0]
+#: The default unsigned integer type: an unsigned 64-bit integer.
+DEFAULT_UNSIGNED_INT: Final[numpy.dtype] = INTS[-1]
 
 #: The default boolean type.
 DEFAULT_BOOL: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
 
 #: The default floating point type.
-DEFAULT_FLOAT: Final[numpy.dtype] = numpy.zeros(1).dtype
+DEFAULT_FLOAT: Final[numpy.dtype] = numpy.dtype(float)
+
+#: The default numerical types.
+DEFAULT_NUMERICAL: Final[Tuple[numpy.dtype, ...]] = tuple(
+    list(INTS) + [DEFAULT_FLOAT])
 
 
 def is_np_int(dtype: numpy.dtype) -> bool:
@@ -129,19 +131,19 @@ def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
             f"min_value must be <= max_value, but min_value={min_value} "
             f"and max_value={max_value} was provided.")
 
-    for t in __NP_INTS_LIST:
+    for t in __INTS_AND_RANGES:
         if (min_value >= t[1]) and (max_value <= t[2]):
             return t[0]
 
     if min_value >= 0:
         raise ValueError(
             "max_value for unsigned integers must be <="
-            f"{(__NP_INTS_LIST[-1])[2]}, but is {max_value} "
+            f"{(__INTS_AND_RANGES[-1])[2]}, but is {max_value} "
             f" for min_value={min_value}.")
 
     raise ValueError(
-        f"Signed integer range cannot exceed {__NP_INTS_LIST[-2][1]}.."
-        f"{__NP_INTS_LIST[-2][2]}, but {min_value}..{max_value} "
+        f"Signed integer range cannot exceed {__INTS_AND_RANGES[-2][1]}.."
+        f"{__INTS_AND_RANGES[-2][2]}, but {min_value}..{max_value} "
         "was specified.")
 
 
