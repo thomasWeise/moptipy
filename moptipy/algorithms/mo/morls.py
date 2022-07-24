@@ -1,4 +1,13 @@
-"""A multi-objective version of the Randomized Local Search algorithm."""
+"""
+A multi-objective version of the Randomized Local Search algorithm.
+
+The original randomized local search (RLS) always remembers the best-so-far
+solution and, in each step, generates a new one by applying the unary search
+operator. If the new solution is not worse than the best-so-far one (according
+to the single objective function), it becomes the new best-so-far solution.
+In this multi-objective version, we accept the new solution if it is not
+dominated by the best-so-far solution.
+"""
 from typing import Final, Callable
 
 from numpy.random import Generator
