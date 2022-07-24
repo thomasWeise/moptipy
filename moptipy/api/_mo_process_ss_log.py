@@ -86,6 +86,7 @@ class _MOProcessSSLog(_MOProcessSS):
                                  'the algorithm knows it.')
             return self._current_best_f
 
+        self._search_space.validate(x)
         current_y: Final = self._current_y
         self._g(x, current_y)
         result: Final[Union[int, float]] = self._f_evaluate(current_y, fs)
@@ -96,6 +97,7 @@ class _MOProcessSSLog(_MOProcessSS):
 
         improved: bool = False
         if result < self._current_best_f:
+            improved = True
             self._current_best_f = result
             copyto(self._current_best_fs, fs)
             self.copy(self._current_best_x, x)

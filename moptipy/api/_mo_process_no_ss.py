@@ -222,6 +222,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         :param logger: the logger
         :returns: the objective value
         """
+        self.f_validate(rec.fs)
+        self.validate(rec.x)
         tfs: Final[np.ndarray] = self._fs_temp
         f: Final[Union[int, float]] = self._f_evaluate(rec.x, tfs)
         if not np.array_equal(tfs, rec.fs):
@@ -231,13 +233,10 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             raise type_error(f, "scalarized objective value", (int, float))
         if not isfinite(f):
             raise ValueError(f"scalaized objective value {f} is not finite")
-        self.f_validate(rec.fs)
-        self.validate(rec.x)
 
         with logger.text(f"{PREFIX_SECTION_ARCHIVE}{index}"
                          f"{SUFFIX_SECTION_ARCHIVE_Y}") as lg:
             lg.write(self.to_str(rec.x))
-
         return f
 
     def _write_log(self, logger: Logger) -> None:

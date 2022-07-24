@@ -105,6 +105,7 @@ class _MOProcessSS(_MOProcessNoSS):
 
         improved: bool = False
         if result < self._current_best_f:
+            improved = True
             self._current_best_f = result
             copyto(self._current_best_fs, fs)
             self.copy(self._current_best_x, x)
@@ -158,10 +159,13 @@ class _MOProcessSS(_MOProcessNoSS):
         :param logger: the logger
         :returns: the objective value
         """
+        self.validate(rec.x)
+        self.f_validate(rec.fs)
         tfs: Final[np.ndarray] = self._fs_temp
 
         current_y: Final = self._current_y
         self._g(rec.x, current_y)
+        self._solution_space.validate(current_y)
         f: Final[Union[int, float]] = self._f_evaluate(current_y, tfs)
 
         if not np.array_equal(tfs, rec.fs):
@@ -171,8 +175,6 @@ class _MOProcessSS(_MOProcessNoSS):
             raise type_error(f, "scalarized objective value", (int, float))
         if not isfinite(f):
             raise ValueError(f"scalaized objective value {f} is not finite")
-        self.f_validate(rec.fs)
-        self.validate(rec.x)
 
         with logger.text(f"{PREFIX_SECTION_ARCHIVE}{index}"
                          f"{SUFFIX_SECTION_ARCHIVE_X}") as lg:
