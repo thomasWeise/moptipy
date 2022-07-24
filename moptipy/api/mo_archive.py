@@ -33,7 +33,7 @@ class MORecord:
         #: the vector of objective values
         self.fs: Final[np.ndarray] = fs
 
-    def __lt__(self, other: 'MORecord') -> bool:
+    def __lt__(self, other) -> bool:
         """
         Compare for sorting.
 

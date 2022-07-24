@@ -7,17 +7,19 @@ the value should come (so either `x=x0` or `x=x1`). We then store the first
 value not yet marked as done from `x` in `dest[i]`, mark that value as
 done both in `x0` and `x1`.
 
-This operator is a generalized version of the Alternating Position Crossover
-operator (AP) for the Traveling Salesperson Problem by Larrañaga et al.
-(1997). The original AP operator, as described by Larrañaga et al., simply
-creates an offspring by selecting alternately the next element of the fist
-parent and the next element of the second parent, omitting the elements
-already present in the offspring. For example, if `x0` is `12345678` and
-`x1` is `37516824`, the AP operator gives the following offspring `13275468`.
-Exchanging the parents results in `31725468`.
+This operator may be considered as a generalized version of the Alternating
+Position Crossover operator (AP) for the Traveling Salesperson Problem by
+Larrañaga et al. (1997). The original AP operator, as described by Larrañaga
+et al., simply creates an offspring by selecting alternately the next element
+of the fist parent and the next element of the second parent, omitting the
+elements already present in the offspring. For example, if `x0` is `12345678`
+and `x1` is `37516824`, the AP operator gives the following offspring
+`13275468`. Exchanging the parents results in `31725468`.
 
 Our generalized version randomly decides which of the two parent permutations
 to use each time, hopefully resulting in a greater variety of possible results.
+It also does not skip over a parent if its next element is already used, but
+instead picks the next not-yet-used element from that parent.
 As mnemonic for the operator, we use `gap`. Larrañaga et al. used `AP` for the
 version of the operator that strictly alternates between parents.
 

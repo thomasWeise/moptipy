@@ -1,6 +1,36 @@
-"""An implementation of NSGA-II."""
+"""
+An implementation of NSGA-II, a famous multi-objective optimization method.
+
+Here we implement the famous NSGA-II algorithm by Deb, Agrawal, Pratap, and
+Meyarivan.
+
+We apply the following modifications to the computation of the crowding
+distance:
+First, we normalize each dimension based on its range in the population. This
+may make sense because some objective functions may have huge ranges while
+others have very small ranges and would then basically be ignored in the
+crowding distance.
+Also, we do not assign infinite crowding distances to border elements of
+collapsed dimensions. In other words, if all elements have the same value of
+one objective function, none of them would receive infinite crowding distance
+for this objective. This also makes sense because in this case, sorting would
+be rather random.
+
+When selecting parents, we apply tournament selection with replacement.
+
+1. Kalyanmoy Deb, Samir Agrawal, Amrit Pratap, and T. Meyarivan. A Fast
+   Elitist Non-Dominated Sorting Genetic Algorithm for Multi-Objective
+   Optimization: NSGA-II. In Proceedings of the International Conference
+   on Parallel Problem Solving from Nature (PPSN VI), September 18-20, 2000,
+   Paris, France, pages 849-858. Lecture Notes in Computer Science,
+   volume 1917. ISBN 978-3-540-41056-0. Berlin, Heidelberg: Springer.
+   https://doi.org/10.1007/3-540-45356-3_83.
+   Also: KanGAL Report Number 200001.
+   http://repository.ias.ac.in/83498/1/2-a.pdf.
+
+"""
 from math import inf
-from typing import Final, Any, List, Callable, Tuple
+from typing import Final, Any, List, Callable, cast
 
 import numpy as np
 from numpy.random import Generator
@@ -35,7 +65,7 @@ class _NSGA2Record(MORecord):
         #: the crowding distance
         self.crowding_distance: float = 0.0
 
-    def __lt__(self, other: '_NSGA2Record'):
+    def __lt__(self, other):
         """
         Compare according to domination front and crowding distance.
 
@@ -47,22 +77,21 @@ class _NSGA2Record(MORecord):
         fs: Final[int] = self.front
         fo: Final[int] = other.front
         return (fs < fo) or ((fs == fo) and (
-                self.crowding_distance > other.crowding_distance))
+            self.crowding_distance > other.crowding_distance))
 
 
 def _non_dominated_sorting(
         pop: List[_NSGA2Record],
         needed_at_least: int,
-        domination: Callable[[np.ndarray, np.ndarray], int]) \
-        -> Tuple[int, int]:
+        domination: Callable[[np.ndarray, np.ndarray], int]) -> int:
     """
     Perform the fast non-dominated sorting.
 
     :param pop: the population
     :param needed_at_least: the number of elements we actually need
     :param domination: the domination relationship
-    :returns: the tuple with the start of the last front and the total
-        number of elements sorted, will be `t[0] < needed_at_least <= t[1]`
+    :returns: the end of the last relevant frontier, with
+        `needed_at_least <= end`
     """
     lp: Final[int] = len(pop)
 
@@ -109,8 +138,8 @@ def _non_dominated_sorting(
     for i in range(front_start, len(pop)):
         pop[i].dominates.clear()
 
-    # return the front start and number of elements sorted
-    return front_start, done
+    # return the number of elements sorted
+    return done
 
 
 def _crowding_distances(pop: List[_NSGA2Record]) -> None:
@@ -134,8 +163,10 @@ def _crowding_distances(pop: List[_NSGA2Record]) -> None:
     for rec in pop:  # set all crowding distances to 0
         rec.crowding_distance = 0.0
 
-    for dim in range(len(pop[0].fs)):
-        pop.sort(key=lambda r, d=dim: r.fs[d])  # sort by dimension
+    dimensions: Final[int] = len(pop[0].fs)
+    for dim in range(dimensions):
+        pop.sort(key=cast(Callable[[_NSGA2Record], Any],
+                          lambda r, d=dim: r.fs[d]))  # sort by dimension
         first = pop[0]  # get the record with the smallest value in the dim
         last = pop[-1]  # get the record with the largest value in the dim
         a = first.fs[dim]  # get smallest value of dimension
@@ -157,11 +188,12 @@ def _crowding_distances(pop: List[_NSGA2Record]) -> None:
 
 
 class NSGA2(Algorithm2, MOAlgorithm):
-    """The NSGA-II algorithm."""
+    """The NSGA-II algorithm by Deb, Agrawal, Pratap, and Meyarivan."""
 
-    def __init__(self, op0: Op0, op1: Op1, op2: Op2, pop_size: int, cr: float) -> None:
+    def __init__(self, op0: Op0, op1: Op1, op2: Op2,
+                 pop_size: int, cr: float) -> None:
         """
-        Create the NSGA-II algorithm
+        Create the NSGA-II algorithm.
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
@@ -219,6 +251,11 @@ class NSGA2(Algorithm2, MOAlgorithm):
             pop.append(rec)
         _non_dominated_sorting(pop, pop_size, domination)
 
+        for i, p in enumerate(pop):
+            for j in range(i + 1, len(pop)):
+                if p is pop[j]:
+                    raise ValueError("!")
+
         # create offspring records (initially empty)
         for _ in range(pop_size):
             pop.append(_NSGA2Record(create_x(), create_f()))
@@ -235,30 +272,22 @@ class NSGA2(Algorithm2, MOAlgorithm):
 
                 ofs: _NSGA2Record = pop[ofs_idx]  # offspring to overwrite
                 # binary tournament with replacement for first parent
-                p1i: int = ri(pop_size)
-                p1: _NSGA2Record = pop[p1i]
-                palti = ri(pop_size)
-                palt: _NSGA2Record = pop[palti]
+                p1: _NSGA2Record = pop[ri(pop_size)]
+                palt: _NSGA2Record = pop[ri(pop_size)]
                 if palt < p1:
                     p1 = palt
-                    p1i = palti
 
                 if rd() >= cr:  # mutation: only 1 parent needed
                     op1(random, ofs.x, p1.x)  # do mutation
                 else:  # crossover: need a second parent
                     # binary tournament with replacement for second paren
                     # (who must be different from first parent)
-                    p2i: int
-                    while True:
-                        p2i = ri(pop_size)
-                        if p2i != p1i:
-                            break
-                    p2: _NSGA2Record = pop[p2i]
-                    while True:
-                        palti = ri(pop_size)
-                        if palti != p1i:
-                            break
-                    palt = pop[palti]
+                    p2: _NSGA2Record = p1
+                    while p2 is p1:
+                        p2 = pop[ri(pop_size)]
+                    palt = p1
+                    while palt is p1:
+                        palt = pop[ri(pop_size)]
                     if palt < p2:
                         p2 = palt
                     # got two parents, now do crossover
@@ -273,34 +302,31 @@ class NSGA2(Algorithm2, MOAlgorithm):
             # "start" marks the begin of the last front that was created.
             # "end" marks the total number of elements sorted.
             # It holds that "start < pop_size <= end".
-            start, end = _non_dominated_sorting(pop, pop_size, domination)
+
+            for i, p in enumerate(pop):
+                for j in range(i + 1, len(pop)):
+                    if p is pop[j]:
+                        raise ValueError("!")
+
+            end = _non_dominated_sorting(pop, pop_size, domination)
             # We only perform the crowding distance computation on the first
             # "end" elements in the population.
             # We take this slice of the population (or the whole population if
             # all elements are non-domination) and compute the crowding
             # distance.
-            slice1 = pop[:end] if end < pop_size_2 else pop
-            _crowding_distances(slice1)
-            # If the last front started at index 0, we need to sort the whole
-            # slice1 (which could be the whole population,
-            # if end == pop_size_2).
-            # Otherwise, we only need to sort the slice starting at index
-            # start.
-            if start > 0:
-                slice2 = slice1[start:]
-            else:
-                slice2 = slice1
-            # Sort the slice based on non-domination and crowding distance.
-            slice2.sort()
-            # If slice2 does not represent the whole population, we need to
-            # copy it back.
-            if slice2 is not pop:
-                pop[start:end] = slice2
+            candidates = pop[:end] if end < pop_size_2 else pop
+            _crowding_distances(candidates)
+            # Careful: crowding distance computation will shuffle the list
+            # candidates, because it sorts based on dimensions. Therefore, we
+            # need to re-sort the whole slice.
+            candidates.sort()
+            if candidates is not pop:  # write back if need be
+                pop[:end] = candidates
 
         # At the end we flush population to the process archive.
-#       for rec in pop:
-#           if rec.front != -1:
-#               process.check_in(rec.x, rec.fs)
+        for rec in pop:
+            if rec.front != -1:
+                process.check_in(rec.x, rec.fs)
 
     def log_parameters_to(self, logger: KeyValueLogSection):
         """

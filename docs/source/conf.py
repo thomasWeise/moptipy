@@ -39,12 +39,23 @@ skip: bool = True
 # detects strings of the form [xyz](#123-bla) and gives \1=xyz and \2=bla
 regex_search = re.compile("(\\[.+?])\\(#\\d+-(.+?)\\)")
 license_link: str = "https://github.com/thomasWeise/moptipy/blob/main/LICENSE"
+needs_newline: bool = False
+can_add_anyway: bool = True
 for line in old_lines:
     if skip:  # we skip everything until the introduction section
         if line.lstrip().startswith("## 1. Introduction"):
             skip = False
-        else:
+        elif line.startswith("[![") and can_add_anyway:
+            needs_newline = True
+            new_lines.append(line)
             continue
+        else:
+            can_add_anyway = False
+            continue
+    if needs_newline:
+        new_lines.append("")
+        needs_newline = False
+        continue
     if in_code:
         if line.startswith("```"):
             in_code = False  # toggle to non-code

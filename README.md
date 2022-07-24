@@ -663,13 +663,21 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 
 ### 4.1. Implemented Algorithms
 
+#### 4.1.1. Single-Objective Optimization
+
 1. [Single Random Sample](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.single_random_sample.SingleRandomSample) creates and evaluates exactly one single random solution.
 2. [Random Sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling) keeps creating random solutions until the computational budget is exhausted.
 3. [Random Walk](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_walk.RandomWalk) creates a random solution and then keeps applying the unary search operator and always accepts the result.
 4. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber.HillClimber) creates a random solution as initial best-so-far solution and then iteratively applies the unary search operator to the best-so-far solution. When the result of the unary operator is better, it becomes the new best-so-far solution, otherwise it is discarded.
 5. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber_with_restarts.HillClimberWithRestarts) works exactly like the hill climber, but restarts at a new random solution after a fixed number of unsuccessful moves.
-6. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS) (RLS) works like the hill climber as well, but accepts a new solution if it is *not worse* than the best-so-far solution (instead of requiring it to be strictly *better*, as the hill climber does).  
+6. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS) (RLS) works like the hill climber as well, but accepts a new solution if it is *not worse* than the best-so-far solution (instead of requiring it to be strictly *better*, as the hill climber does).
 7. [(mu+lambda)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.ea.EA) is a simple population-based metaheuristic that starts with a population of `mu` random solutions. In each iteration, it retains only the `mu` best solutions from the population ("best" in terms of the objective value, ties are broken such that newer solutions are preferred). It then applies the unary operator and the binary operator to generate `lambda` new solutions and adds them to the population. The `(1+1)-EA` with `br=0` probability to use the binary operator is equivalent to RLS. 
+
+
+#### 4.1.2. Multi-Objective Optimization
+
+1. [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as RLS, but it accepts a solution if it is not dominated by the current solution.
+2. The [Fast Elitist Non-Dominated Sorting Genetic Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2) (NSGA-II) is maybe the most population multi-objective evolutionary algorithm.
 
 
 ### 4.2. Implemented Search Spaces and Operators
@@ -1546,6 +1554,7 @@ Here we list the set of examples that are provided in the [moptipy](https://gith
 - [experiment_own_algorithm_and_problem.py](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem.html) shows how to [implement](#333-applying-an-own-algorithm-to-an-own-problem) some of the core components of our API, namely how a [self-implemented algorithm](#332-define-a-new-algorithm) can be applied to a [self-implemented problem](#331-define-a-new-problem-type).
 - [log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html) showcases the [log file structure](#51-log-files) for single-objective optimization.
 - [mo_example.py](https://thomasweise.github.io/moptipy/examples/mo_example.html) is a simple example for multi-objective optimization: we apply multi-objective RLS to a multi-objective version of the JSSP.
+- [mo_example_nsga2.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2.html) the same simple example for multi-objective optimization, but this time using the popular NSGA-II algorithm, which works out better than our multi-objective RLS.
 - [progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html) shows how [progress plots](#62-progress-plots) can be generated from a small experiment with the OneMax problem and the 1-dimensional Ising model.
 - [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
 
