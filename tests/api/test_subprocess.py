@@ -6,7 +6,7 @@ from moptipy.algorithms.rls import RLS
 from moptipy.api.algorithm import Algorithm2
 from moptipy.api.execution import Execution
 from moptipy.api.process import Process
-from moptipy.api.subprocesses import FromStatingPointForFEs, ForFEs
+from moptipy.api.subprocesses import FromStatingPointForFEs, for_fs
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
@@ -30,7 +30,7 @@ class MyAlgorithm(Algorithm2):
         x2 = process.create()
 
         assert not process.has_best()
-        with ForFEs(process, 100) as z:
+        with for_fs(process, 100) as z:
             assert not z.has_best()
             assert z.get_consumed_fes() == 0
             self.ea.solve(z)

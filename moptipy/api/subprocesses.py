@@ -1,20 +1,20 @@
 """Different ways to transform and slice processes."""
-from typing import Final, Callable, Union, Any
+from typing import Final, Callable, Union, Any, TypeVar
 
+import numpy as np
+
+from moptipy.api.mo_process import MOProcess
 from moptipy.api.process import Process, check_max_fes
 from moptipy.utils.types import type_error
 
+#: the type variable for single- and multi-objective processes.
+T = TypeVar('T', Process, MOProcess)
 
-class ForFEs(Process):
+
+class __ForFEs(Process):
     """A process searching for a fixed amount of FEs."""
 
     def __init__(self, owner: Process, max_fes: int):
-        """
-        Create a sub-process searching for some FEs.
-
-        :param owner: the owning process`
-        :param max_fes: the maximum number of FEs granted to the sub-process
-        """
         super().__init__()
         if not isinstance(owner, Process):
             raise type_error(owner, "owner", Process)
@@ -59,24 +59,12 @@ class ForFEs(Process):
         self.__start_fe: Final[int] = owner.get_consumed_fes()
 
     def should_terminate(self) -> bool:
-        """
-        Check if this sub-process should terminate.
-
-        :returns: `True` if the allotted FEs have been consumed
-        """
         return self.__terminated or self.__should_terminate()
 
     def terminate(self) -> None:
-        """Terminate this sub-process."""
         self.__terminated = True
 
     def evaluate(self, x) -> Union[float, int]:
-        """
-        Evaluate a solution and return the objective value.
-
-        :param x: the solution
-        :returns: the corresponding objective value
-        """
         f: Final[Union[int, float]] = self.__evaluate(x)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
@@ -85,12 +73,6 @@ class ForFEs(Process):
         return f
 
     def register(self, x, f: Union[int, float]) -> None:
-        """
-        Register that an objective function evaluation has been performed.
-
-        :param x: the solution
-        :param f: the corresponding objective value
-        """
         self.__register(x, f)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
@@ -98,37 +80,130 @@ class ForFEs(Process):
             self.__terminated = True
 
     def get_consumed_fes(self) -> int:
-        """
-        Get the number of consumed FEs.
-
-        :returns: the number of consumed FEs
-        """
         return self.max_fes - self.__fes_left
 
     def get_last_improvement_fe(self) -> int:
-        """
-        Get the FE index when the last improvement happened.
-
-        :returns: the FE index when the last improvement happened
-        """
         return max(1 if self.__fes_left < self.max_fes else 0,
                    self._owner.get_last_improvement_fe() - self.__start_fe)
 
     def get_max_fes(self) -> int:
-        """
-        Get the maximum FEs.
-
-        :returns: the maximum FEs of this process slice.
-        """
         return self.max_fes
 
     def __str__(self) -> str:
-        """
-        Get the name of this subprocess implementation.
-
-        :return: "forFEs_{max_fes}_{owner}"
-        """
         return f"forFEs_{self.max_fes}_{self._owner}"
+
+
+class __ForFEsMO(MOProcess):
+    """A process searching for a fixed amount of FEs."""
+
+    def __init__(self, owner: MOProcess, max_fes: int):
+        super().__init__()
+        if not isinstance(owner, MOProcess):
+            raise type_error(owner, "owner", MOProcess)
+        #: the owning process
+        self._owner: Final[MOProcess] = owner
+        self.get_random = owner.get_random  # type: ignore
+        a = owner.get_consumed_time_millis  # type: ignore
+        self.get_consumed_time_millis = a  # type: ignore
+        a = owner.get_max_time_millis  # type: ignore
+        self.get_max_time_millis = a  # type: ignore
+        a = owner.get_last_improvement_time_millis  # type: ignore
+        self.get_last_improvement_time_millis = a  # type: ignore
+        self.add_log_section = owner.add_log_section  # type: ignore
+        self.lower_bound = owner.lower_bound  # type: ignore
+        self.upper_bound = owner.upper_bound  # type: ignore
+        self.create = owner.create  # type: ignore
+        self.copy = owner.copy  # type: ignore
+        self.to_str = owner.to_str  # type: ignore
+        self.is_equal = owner.is_equal  # type: ignore
+        self.from_str = owner.from_str  # type: ignore
+        self.validate = owner.validate  # type: ignore
+        self.n_points = owner.n_points  # type: ignore
+        self.has_best = owner.has_best  # type: ignore
+        self.get_copy_of_best_x = owner.get_copy_of_best_x  # type: ignore
+        self.get_best_f = owner.get_best_f  # type: ignore
+        self.get_archive = owner.get_archive  # type: ignore
+        self.check_in = owner.check_in  # type: ignore
+        self.f_create = owner.f_create  # type: ignore
+        self.f_validate = owner.f_validate  # type: ignore
+        self.f_dtype = owner.f_dtype  # type: ignore
+        self.f_dominates = owner.f_dominates  # type: ignore
+        self.f_dimension = owner.f_dimension  # type: ignore
+        #: the maximum FEs
+        self.max_fes: Final[int] = check_max_fes(max_fes)
+        #: the FEs that we still have left
+        self.__fes_left: int = max_fes
+        #: did we terminate?
+        self.__terminated: bool = False
+        #: the fast call to the owner's should_terminate method
+        self.__should_terminate: Final[Callable[[], bool]] \
+            = owner.should_terminate
+        #: the fast call to the owner's evaluate method
+        self.__evaluate: Final[Callable[[Any], Union[int, float]]] \
+            = owner.evaluate
+        #: the fast call to the owner's register method
+        self.__register: Final[Callable[[Any, Union[int, float]], None]] \
+            = owner.register
+        #: the evaluation wrapper
+        self.__f_evaluate: Final[Callable[
+            [Any, np.ndarray], Union[int, float]]] = owner.f_evaluate
+        #: the start fe
+        self.__start_fe: Final[int] = owner.get_consumed_fes()
+
+    def should_terminate(self) -> bool:
+        return self.__terminated or self.__should_terminate()
+
+    def terminate(self) -> None:
+        self.__terminated = True
+
+    def evaluate(self, x) -> Union[float, int]:
+        f: Final[Union[int, float]] = self.__evaluate(x)
+        fel: Final[int] = self.__fes_left - 1
+        self.__fes_left = fel
+        if fel <= 0:
+            self.__terminated = True
+        return f
+
+    def register(self, x, f: Union[int, float]) -> None:
+        self.__register(x, f)
+        fel: Final[int] = self.__fes_left - 1
+        self.__fes_left = fel
+        if fel <= 0:
+            self.__terminated = True
+
+    def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
+        f: Final[Union[int, float]] = self.__f_evaluate(x, fs)
+        fel: Final[int] = self.__fes_left - 1
+        self.__fes_left = fel
+        if fel <= 0:
+            self.__terminated = True
+        return f
+
+    def get_consumed_fes(self) -> int:
+        return self.max_fes - self.__fes_left
+
+    def get_last_improvement_fe(self) -> int:
+        return max(1 if self.__fes_left < self.max_fes else 0,
+                   self._owner.get_last_improvement_fe() - self.__start_fe)
+
+    def get_max_fes(self) -> int:
+        return self.max_fes
+
+    def __str__(self) -> str:
+        return f"forFEsMO_{self.max_fes}_{self._owner}"
+
+
+def for_fs(process: T, max_fes: int) -> T:
+    """
+    Create a sub-process that can run for the given number of FEs.
+
+    :param process: the original process
+    :param max_fes: the maximum number of objective function evaluations
+    :returns: the sub-process that will terminate after `max_fes` FEs and that
+        forwards all other calls the `process`.
+    """
+    return __ForFEsMO(process, max_fes) if isinstance(process, MOProcess) \
+        else __ForFEs(process, max_fes)
 
 
 class FromStatingPointForFEs(Process):
@@ -299,7 +374,7 @@ class _InternalTerminationError(Exception):
     """A protected internal termination error."""
 
 
-class Withoutshould_terminate(Process):
+class WithoutShouldTerminate(Process):
     """A process allowing algorithm execution ignoring `should_terminate`."""
 
     def __init__(self, owner: Process):
@@ -418,7 +493,7 @@ class Withoutshould_terminate(Process):
         :param process: the optimization process
         """
         try:
-            with Withoutshould_terminate(process) as proc:
+            with WithoutShouldTerminate(process) as proc:
                 algorithm(proc)
         except _InternalTerminationError:
             pass  # the internal error is ignored
