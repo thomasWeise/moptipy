@@ -21,7 +21,7 @@ def test_hill_climber_with_restarts_on_jssp():
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         return HillClimberWithRestarts(Op0Shuffle(search_space), Op1Swap2(),
-                                       200)
+                                       16)
 
     validate_algorithm_on_jssp(create)
 
@@ -32,7 +32,7 @@ def test_hill_climber_with_restarts_on_onemax():
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
         return HillClimberWithRestarts(
-            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 500)
+            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 8)
 
     validate_algorithm_on_onemax(create)
 
@@ -43,6 +43,6 @@ def test_hill_climber_with_restarts_on_leadingones():
     def create(bs: BitStrings):
         assert isinstance(bs, BitStrings)
         return HillClimberWithRestarts(
-            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 33)
+            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 6)
 
     validate_algorithm_on_leadingones(create)

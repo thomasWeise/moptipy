@@ -1,7 +1,7 @@
 """The base classes for multi-objective optimization algorithms."""
 from typing import cast
 
-from moptipy.api.algorithm import Algorithm, check_algorithm
+from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.process import Process
 from moptipy.utils.types import type_error
@@ -31,18 +31,3 @@ class MOAlgorithm(Algorithm):
             best-so-far solution, and takes care of creating log files (if
             this is wanted).
         """
-
-
-def check_mo_algorithm(algorithm: MOAlgorithm) -> MOAlgorithm:
-    """
-    Check whether an object is a valid instance of :class:`MOAlgorithm`.
-
-    :param algorithm: the algorithm object
-    :return: the object
-    :raises TypeError: if `algorithm` is not an instance of
-        :class:`MOAlgorithm`
-    """
-    check_algorithm(algorithm)
-    if not isinstance(algorithm, MOAlgorithm):
-        raise type_error(algorithm, "algorithm", MOAlgorithm)
-    return algorithm

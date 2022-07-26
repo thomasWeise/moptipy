@@ -102,13 +102,6 @@ class AxisRanger:
         #: Did we detect a maximum?
         self.__has_detected_max = False
 
-    def reset(self) -> None:
-        """Reset the detected data, making the object ready for reuse."""
-        self.__has_detected_min = False
-        self.__has_detected_max = False
-        self.__detected_min = inf
-        self.__detected_max = _MIN_LOG_FLOAT if self.log_scale else -inf
-
     def register_array(self, data: np.ndarray) -> None:
         """
         Register a data array.

@@ -1,6 +1,16 @@
-"""This file shows how a single log file is generated in an experiment."""
+"""
+This file shows how a single log file is generated in an experiment.
+
+As basis for the experiment, we use the Job Shop Scheduling Problem (JSSP)
+and apply a simple Randomized Local Search (RLS) to it. We only perform one
+single run on one single instance, the trivial `demo` instance. Afterwards,
+we print the contents of the log file to the console. We also load the Gantt
+chart that was the result of the experiment from the log file and print it,
+too - just for fun.
+"""
 from moptipy.algorithms.rls import RLS  # the algorithm we use
 from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
+from moptipy.examples.jssp.gantt import Gantt  # Gantt chart data structure
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # temp directory tool
@@ -21,7 +31,12 @@ with TempDir.create() as td:  # create temp directory
         n_runs=1,  # perform exactly one run
         n_threads=1)  # use exactly one thread
     # The random seed is automatically generated based on the instance name.
-    print(td.resolve_inside(  # so we know algorithm, instance, and seed
+    file = td.resolve_inside(  # so we know algorithm, instance, and seed
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
-        .read_all_str())  # read file into string (which then gets printed)
+    print(file.read_all_str())  # read file into string and print contents
+
+    # One more example: Load the resulting Gantt chart from the log file
+    gantt = Gantt.from_log(file)
+    print(gantt)
+
 # When leaving "while", the temp dir will be deleted

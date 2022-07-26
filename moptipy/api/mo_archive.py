@@ -38,6 +38,24 @@ class MORecord:
         Compare for sorting.
 
         :param other: the other record
+
+        >>> import numpy as np
+        >>> r1 = MORecord("a", np.array([1, 1, 1]))
+        >>> r2 = MORecord("b", np.array([1, 1, 1]))
+        >>> r1 < r2
+        False
+        >>> r2 < r1
+        False
+        >>> r2 = MORecord("b", np.array([1, 1, 2]))
+        >>> r1 < r2
+        True
+        >>> r2 < r1
+        False
+        >>> r1 = MORecord("a", np.array([2, 1, 1]))
+        >>> r1 < r2
+        False
+        >>> r2 < r1
+        True
         """
         return lexicographic(self.fs, other.fs) < 0
 
@@ -46,8 +64,13 @@ class MORecord:
         Get the string representation of this record.
 
         :returns: the string representation of this record
+
+        >>> import numpy as np
+        >>> r = MORecord(4, np.array([1, 2, 3]))
+        >>> print(r)
+        fs=1;2;3, x=4
         """
-        return f"fs={self.fs}, x={self.x}"
+        return f"fs={';'.join([str(a) for a in self.fs])}, x={self.x}"
 
 
 class MOArchivePruner(Component):

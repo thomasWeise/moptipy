@@ -22,6 +22,9 @@ class Component:
         Get the default to-string implementation returns the class name.
 
         :returns: the class name of this component
+
+        >>> print(Component())
+        Component
         """
         s: Final[str] = type_name_of(self)
         i: Final[int] = s.rfind(".")

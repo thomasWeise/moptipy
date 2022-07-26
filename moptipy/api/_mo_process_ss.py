@@ -174,7 +174,7 @@ class _MOProcessSS(_MOProcessNoSS):
         if not isinstance(f, (int, float)):
             raise type_error(f, "scalarized objective value", (int, float))
         if not isfinite(f):
-            raise ValueError(f"scalaized objective value {f} is not finite")
+            raise ValueError(f"scalarized objective value {f} is not finite")
 
         with logger.text(f"{PREFIX_SECTION_ARCHIVE}{index}"
                          f"{SUFFIX_SECTION_ARCHIVE_X}") as lg:

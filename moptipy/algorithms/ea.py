@@ -30,13 +30,95 @@ from typing import Final, Union, Callable, List, cast, Optional
 
 from numpy.random import Generator
 
-from moptipy.algorithms.utils import Record, _int_0, _float_0
 from moptipy.api.algorithm import Algorithm2
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import float_to_str
 from moptipy.utils.types import type_error
+
+
+# start record
+class _Record:
+    """
+    A point in the search space, its quality, and creation time.
+
+    A record stores a point in the search space :attr:`x` together with
+    the corresponding objective value :attr:`f`. It also stores a
+    "iteration index" :attr:`it`, i.e., the time when the point was
+    created or modified.
+
+    This allows for representing and storing solutions in a population.
+    If the population is sorted, then records with better objective
+    value will be moved to the beginning of the list. Ties are broken
+    such that younger individuals (with higher :attr:`it` value) are
+    preferred.
+    """
+
+    def __init__(self, x, f: Union[int, float]):
+        """
+        Create the record.
+
+        :param x: the data structure for a point in the search space
+        :param f: the corresponding objective value
+        """
+        #: the point in the search space
+        self.x: Final = x
+        #: the objective value corresponding to x
+        self.f: Union[int, float] = f
+        #: the iteration index when the record was created
+        self.it: int = 0
+
+    def __lt__(self, other) -> bool:
+        """
+        Precedence if 1) better or b) equally good but younger.
+
+        :param other: the other record
+        :returns: `True` if this record has a better objective value
+            (:attr:`f`) or if it has the same objective value but is newer,
+            i.e., has a larger :attr:`it` value
+
+        >>> r1 = _Record(None, 10)
+        >>> r2 = _Record(None, 9)
+        >>> r1 < r2
+        False
+        >>> r2 < r1
+        True
+        >>> r1.it = 22
+        >>> r2.f = r1.f
+        >>> r2.it = r1.it
+        >>> r1 < r2
+        False
+        >>> r2 < r1
+        False
+        >>> r2.it = r1.it + 1
+        >>> r1 < r2
+        False
+        >>> r2 < r1
+        True
+        """
+        f1: Final[Union[int, float]] = self.f
+        f2: Final[Union[int, float]] = other.f
+        return (f1 < f2) or ((f1 == f2) and (self.it > other.it))
+# end record
+
+
+def _int_0(_: int) -> int:
+    """
+    Return an integer with value `0`.
+
+    :retval 0: always
+    """
+    return 0
+
+
+def _float_0() -> float:
+    """
+    Return a float with value `0.0`.
+
+    :retval 0.0: always
+    """
+    return 0.0
 
 
 # start nobinary
@@ -67,7 +149,7 @@ class EA(Algorithm2):
         op0: Final[Callable] = self.op0.op0  # the nullary operator
         op1: Final[Callable] = self.op1.op1  # the unary operator
         op2: Final[Callable] = self.op2.op2  # the binary operator
-        br: Final[float] = self.__br  # the application are of binary op
+        br: Final[float] = self.__br  # the rate at which to use op2
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(   # only if m > 1, we
             Callable[[int], int], random.integers  # need random
@@ -86,7 +168,7 @@ class EA(Algorithm2):
                 if should_terminate():  # should we quit?
                     return   # computational budget exhausted -> quit
                 f = evaluate(x)  # continue? ok, evaluate new solution
-            lst[i] = Record(x, f)  # create and store record
+            lst[i] = _Record(x, f)  # create and store record
 
         iteration: int = 1  # The first "real" iteration has index 1
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
@@ -95,12 +177,12 @@ class EA(Algorithm2):
                 if should_terminate():  # only continue if we still...
                     return  # have sufficient budget ... otherwise quit
 
-                offspring: Record = lst[oi]  # pick offspring
+                offspring: _Record = lst[oi]  # pick offspring
                 x = offspring.x  # the point in search space we work on
                 offspring.it = iteration  # mark as member of new iter.
 
                 pi: int = r0i(end)  # random record in 0..end-1=unused
-                rec: Record = lst[pi]  # pick the unused record
+                rec: _Record = lst[pi]  # pick the unused record
                 if end > 1:  # swap rec to the end to not use again
                     end = end - 1  # reduce number of unused records
                     lst[end], lst[pi] = rec, lst[end]  # rec <-> end
@@ -110,7 +192,7 @@ class EA(Algorithm2):
                 # start binary
                 if r01() < br:  # apply binary operator at rate br
                     pi = r0i(end)  # random record in 0..end-1
-                    rec2: Record = lst[pi]  # pick second unused record
+                    rec2: _Record = lst[pi]  # get second unused record
                     if end > 1:  # swap rec2 to end to not use again
                         end = end - 1  # reduce num. of unused records
                         lst[end], lst[pi] = rec2, lst[end]

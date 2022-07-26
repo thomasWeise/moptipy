@@ -251,11 +251,6 @@ class NSGA2(Algorithm2, MOAlgorithm):
             pop.append(rec)
         _non_dominated_sorting(pop, pop_size, domination)
 
-        for i, p in enumerate(pop):
-            for j in range(i + 1, len(pop)):
-                if p is pop[j]:
-                    raise ValueError("!")
-
         # create offspring records (initially empty)
         for _ in range(pop_size):
             pop.append(_NSGA2Record(create_x(), create_f()))
@@ -302,12 +297,6 @@ class NSGA2(Algorithm2, MOAlgorithm):
             # "start" marks the begin of the last front that was created.
             # "end" marks the total number of elements sorted.
             # It holds that "start < pop_size <= end".
-
-            for i, p in enumerate(pop):
-                for j in range(i + 1, len(pop)):
-                    if p is pop[j]:
-                        raise ValueError("!")
-
             end = _non_dominated_sorting(pop, pop_size, domination)
             # We only perform the crowding distance computation on the first
             # "end" elements in the population.

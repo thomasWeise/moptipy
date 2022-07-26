@@ -52,6 +52,23 @@ class FormattedStr(str):
         :param bold: should the format be bold face?
         :param italic: should the format be italic face?
         :param code: should the format be code face?
+
+        >>> from typing import cast
+        >>> st = "abc"
+        >>> type(st)
+        <class 'str'>
+        >>> fs = cast(FormattedStr, FormattedStr.add_format(st, bold=True))
+        >>> type(fs)
+        <class 'moptipy.utils.text_format.FormattedStr'>
+        >>> fs.bold
+        True
+        >>> fs.italic
+        False
+        >>> fs = cast(FormattedStr, FormattedStr.add_format(fs, italic=True))
+        >>> fs.bold
+        True
+        >>> fs.italic
+        True
         """
         if isinstance(s, FormattedStr):
             bold = bold or s.bold
