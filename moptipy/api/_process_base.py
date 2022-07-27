@@ -61,7 +61,7 @@ def _error_1(logger: Logger, title: str, exception_type,
             if exception_value:
                 ts.write(KEY_EXCEPTION_VALUE)
                 ts.write(": ")
-                ts.write(exception_value.strip())
+                ts.write(str(exception_value).strip())
                 ts.write(os.linesep)
             if traceback:
                 ts.write(KEY_EXCEPTION_STACK_TRACE)
@@ -487,7 +487,7 @@ class _ProcessBase(Process):
         if ff != self._current_best_f:
             raise ValueError(  # noqa
                 "We re-computed the objective value of the best solution"
-                f"and got {ff}, but it has been registered as "
+                f" and got {ff}, but it has been registered as "
                 f"{self._current_best_f}!")  # noqa
         if not isfinite(ff):
             raise ValueError(  # noqa
@@ -512,14 +512,15 @@ class _ProcessBase(Process):
             self._solution_space.validate(self._current_best_y)
         except BaseException as be:
             y_error = be
-        try:
-            self._validate_best_f()
-        except BaseException as be:
-            v_error = be
-        try:
-            self._validate_x()
-        except BaseException as be:
-            x_error = be
+        if self._current_fes > 0:
+            try:
+                self._validate_best_f()
+            except BaseException as be:
+                v_error = be
+            try:
+                self._validate_x()
+            except BaseException as be:
+                x_error = be
         try:
             self._check_timing()
         except BaseException as be:
