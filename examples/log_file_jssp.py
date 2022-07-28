@@ -10,7 +10,6 @@ too - just for fun.
 """
 from moptipy.algorithms.rls import RLS  # the algorithm we use
 from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
-from moptipy.examples.jssp.gantt import Gantt  # Gantt chart data structure
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # temp directory tool
@@ -34,9 +33,5 @@ with TempDir.create() as td:  # create temp directory
     file = td.resolve_inside(  # so we know algorithm, instance, and seed
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
     print(file.read_all_str())  # read file into string and print contents
-
-    # One more example: Load the resulting Gantt chart from the log file
-    gantt = Gantt.from_log(file)
-    print(gantt)
 
 # When leaving "while", the temp dir will be deleted

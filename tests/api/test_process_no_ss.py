@@ -43,8 +43,15 @@ def test_process_no_ss_no_log():
                == "moptipy.api._process_no_ss._ProcessNoSS"
         assert str(process) == "ProcessWithoutSearchSpace"
         assert process.has_best()
+        assert process.get_max_fes() == 100
+        assert process.get_max_time_millis() is None
         assert 0 <= process.get_best_f() <= dim
         assert 0 < process.get_consumed_fes() <= 100
+        x = space.create()
+        process.get_copy_of_best_x(x)
+        space.validate(x)
+        process.get_copy_of_best_y(x)
+        space.validate(x)
 
 
 def test_process_no_ss_log():
@@ -72,8 +79,15 @@ def test_process_no_ss_log():
             assert str(process) == "ProcessWithoutSearchSpace"
             assert process.has_best()
             assert process.get_best_f() >= 0
+            assert process.get_max_time_millis() == 20
+            assert process.get_max_fes() is None
             assert 0 <= process.get_best_f() <= dim
             assert 0 < process.get_consumed_time_millis() <= 1000
+            x = space.create()
+            process.get_copy_of_best_x(x)
+            space.validate(x)
+            process.get_copy_of_best_y(x)
+            space.validate(x)
 
         assert exists(tf)
         assert isfile(tf)
@@ -131,6 +145,7 @@ def test_process_no_ss_log_with_immediate_error():
                        == "moptipy.api._process_no_ss._ProcessNoSS"
                 assert str(process) == "ProcessWithoutSearchSpace"
                 assert not process.has_best()
+                assert process.get_max_fes() == 12
                 assert process.get_consumed_fes() == 0
         except ValueError:
             got_error = True
@@ -202,6 +217,11 @@ def test_process_no_ss_log_with_error_after_evaluation():
                 assert process.get_best_f() >= 0
                 assert 0 <= process.get_best_f() <= dim
                 assert process.get_consumed_fes() == 1
+                x = space.create()
+                process.get_copy_of_best_x(x)
+                space.validate(x)
+                process.get_copy_of_best_y(x)
+                space.validate(x)
         except ValueError:
             got_error = True
 
@@ -230,3 +250,50 @@ def test_process_no_ss_log_with_error_after_evaluation():
         j = data.index("END_ERROR_IN_RUN")
         assert j > i + 1
         assert j == (len(data) - 1)
+
+
+class _OMA(Algorithm0):
+    """The one-max algorithm."""
+    def __init__(self, op0: Op0Random, f: OneMax):
+        """Initialize."""
+        super().__init__("om", op0)
+        self.f: OneMax = f
+
+    def solve(self, process: Process) -> None:
+        """Solve!"""
+        x = process.create()
+        r = process.get_random()
+        while not process.should_terminate():
+            self.op0.op0(r, x)
+            f = self.f.evaluate(x)
+            process.register(x, f)
+
+
+def test_process_no_ss_no_log_register():
+    """Test the `_process_no_ss` without logging."""
+
+    random: Generator = default_rng()
+    dim: int = int(random.integers(3, 12))
+    space: Space = BitStrings(dim)
+    objective: OneMax = OneMax(dim)
+    algorithm: _OMA = _OMA(Op0Random(), objective)
+
+    with Execution()\
+            .set_solution_space(space)\
+            .set_objective(objective)\
+            .set_algorithm(algorithm)\
+            .set_max_fes(100)\
+            .execute() as process:
+        assert type_name_of(process) \
+               == "moptipy.api._process_no_ss._ProcessNoSS"
+        assert str(process) == "ProcessWithoutSearchSpace"
+        assert process.has_best()
+        assert process.get_max_fes() == 100
+        assert process.get_max_time_millis() is None
+        assert 0 <= process.get_best_f() <= dim
+        assert 0 < process.get_consumed_fes() <= 100
+        x = space.create()
+        process.get_copy_of_best_x(x)
+        space.validate(x)
+        process.get_copy_of_best_y(x)
+        space.validate(x)
