@@ -1,20 +1,36 @@
 """Test the Sub-Process API."""
-from typing import Union, Final, Callable
+from typing import Final, List
+from typing import Union, Callable
 
-from numpy.random import Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.ea import EA
 from moptipy.algorithms.rls import RLS
+from moptipy.api.algorithm import Algorithm
+from moptipy.api.algorithm import Algorithm0
 from moptipy.api.algorithm import Algorithm2
 from moptipy.api.execution import Execution
+from moptipy.api.mo_algorithm import MOAlgorithm
+from moptipy.api.mo_archive import MOArchivePruner, MORecord
+from moptipy.api.mo_execution import MOExecution
+from moptipy.api.mo_problem import MOProblem
+from moptipy.api.mo_process import MOProcess
+from moptipy.api.objective import Objective
 from moptipy.api.process import Process
+from moptipy.api.space import Space
 from moptipy.api.subprocesses import from_starting_point, for_fes, \
     without_should_terminate
 from moptipy.examples.bitstrings.ising1d import Ising1d
+from moptipy.examples.bitstrings.onemax import OneMax
+from moptipy.examples.bitstrings.trap import Trap
+from moptipy.mo.archive.keep_farthest import KeepFarthest
+from moptipy.mo.problem.weighted_sum import Prioritize
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
+from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
+from moptipy.utils.types import type_name_of
 
 
 class MyAlgorithm(Algorithm2):
@@ -34,6 +50,7 @@ class MyAlgorithm(Algorithm2):
 
         assert not process.has_best()
         with for_fes(process, 100) as z:
+            assert str(z) == f"forFEs_100_{process}"
             assert not z.has_best()
             assert z.get_consumed_fes() == 0
             self.ea.solve(z)
@@ -57,6 +74,7 @@ class MyAlgorithm(Algorithm2):
         fnew2: Union[int, float]
         fes2: int
         with for_fes(from_starting_point(process, x1, fnew), 100) as z:
+            assert str(z) == f"forFEs_100_fromStart_{process}"
             assert z.has_best()
             assert z.get_best_f() == fnew
             assert z.get_consumed_fes() == 0
@@ -101,6 +119,7 @@ class MyAlgorithm2(Algorithm2):
         without_should_terminate(self._solve, process)
 
     def _solve(self, process: Process) -> None:
+        assert str(process).startswith("protect_")
         # Create records for old and new point in the search space.
         best_x = process.create()  # record for best-so-far solution
         new_x = process.create()  # record for new solution
@@ -138,3 +157,243 @@ def test_without_should_terminate():
         assert p.get_best_f() >= 0
         assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 100)
         assert (p.get_best_f() >= 0) and (p.get_consumed_fes() <= 100)
+
+
+class _OneMaxRegAlgo(Algorithm0):
+    """The one-max algorithm."""
+    def __init__(self, op0: Op0Random, f: OneMax):
+        """Initialize."""
+        super().__init__("om", op0)
+        self.f: OneMax = f
+
+    def solve(self, process: Process) -> None:
+        """Solve!"""
+        x = process.create()
+        r = process.get_random()
+        while not process.should_terminate():
+            self.op0.op0(r, x)
+            f = self.f.evaluate(x)
+            process.register(x, f)
+
+
+class __RegisterForFEs(Algorithm):
+    """The one-max algorithm."""
+
+    def __init__(self, a: Algorithm, b: Algorithm):
+        """Initialize."""
+        self.a = a
+        self.b = b
+        self.repeat = False
+
+    def solve(self, process: Process) -> None:
+        """Solve!"""
+        assert process.get_consumed_fes() == 0
+        mf = process.get_max_fes()
+        assert mf == 100
+        cf: int
+        with for_fes(process, 50) as sp1:
+            assert str(sp1) == f"forFEs_50_{process}"
+            assert process.get_consumed_fes() == 0
+            assert sp1.get_consumed_fes() == 0
+            assert sp1.get_max_fes() == 50
+            self.a.solve(sp1)
+            cf = process.get_consumed_fes()
+            assert 0 < cf <= 50
+            assert cf == sp1.get_consumed_fes()
+        self.repeat = process.should_terminate()
+        if self.repeat:
+            return
+        else:
+            assert cf >= 50
+        nf = mf - cf
+        with for_fes(process, nf) as sp2:
+            assert str(sp2) == f"forFEs_{nf}_{process}"
+            assert process.get_consumed_fes() == cf
+            assert sp2.get_consumed_fes() == 0
+            assert sp2.get_max_fes() == nf
+            self.b.solve(sp2)
+            assert 0 < sp2.get_consumed_fes() <= nf
+            assert cf < process.get_consumed_fes() <= mf
+
+
+def test_for_fes_process_no_ss_no_log_reg_norm():
+    """Test the `_process_no_ss` without logging."""
+
+    random: Generator = default_rng()
+    dim: int = int(random.integers(3, 12))
+    space: Space = BitStrings(dim)
+    objective: OneMax = OneMax(dim)
+    algorithm1: Algorithm = RLS(
+        Op0Random(),
+        Op1MoverNflip(dim, int(random.integers(1, dim - 1))))
+    algorithm2: Algorithm = _OneMaxRegAlgo(Op0Random(), objective)
+
+    while True:
+        algorithm: __RegisterForFEs = __RegisterForFEs(algorithm1, algorithm2)
+
+        with Execution()\
+                .set_solution_space(space)\
+                .set_objective(objective)\
+                .set_algorithm(algorithm)\
+                .set_max_fes(100)\
+                .execute() as process:
+            assert type_name_of(process) \
+                   == "moptipy.api._process_no_ss._ProcessNoSS"
+            assert str(process) == "ProcessWithoutSearchSpace"
+            assert process.has_best()
+            assert process.get_max_fes() == 100
+            assert process.get_max_time_millis() is None
+            assert 0 <= process.get_best_f() <= dim
+            assert 0 < process.get_consumed_fes() <= 100
+            x = space.create()
+            process.get_copy_of_best_x(x)
+            space.validate(x)
+            process.get_copy_of_best_y(x)
+            space.validate(x)
+        if not algorithm.repeat:
+            return
+
+
+class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
+    """The algorithm for multi-objective optimization."""
+    def __init__(self, op0: Op0Random):
+        """Initialize."""
+        Algorithm0.__init__(self, "om", op0)
+
+    def solve_mo(self, process: MOProcess) -> None:
+        """Solve!"""
+        me = process.get_max_fes()
+        with for_fes(process, me) as pp:
+            assert str(pp) == f"forFEsMO_{me}_{process}"
+            assert process.get_consumed_fes() == 0
+            assert pp.get_consumed_fes() == 0
+            assert pp.get_max_fes() == me
+            self.__solve_mo(pp)
+            assert 0 < pp.get_consumed_fes() <= me
+            assert pp.get_consumed_fes() == process.get_consumed_fes()
+
+    def __solve_mo(self, process: MOProcess):
+        """Solve!"""
+        x = process.create()
+        fs = process.f_create()
+        r = process.get_random()
+        while not process.should_terminate():
+            self.op0.op0(r, x)
+            process.evaluate(x)
+            if process.should_terminate():
+                return
+            process.f_evaluate(x, fs)
+
+
+def test_for_fes_mo_process_no_ss_no_log():
+    """Test the `_mo_process_no_ss` without logging."""
+
+    random: Generator = default_rng()
+    dim: int = int(random.integers(12, 40))
+
+    space: Space = BitStrings(dim)
+    f0: Objective = Trap(dim)
+    f1: Objective = OneMax(dim)
+    problem: MOProblem = Prioritize([f0, f1])
+    pruner: MOArchivePruner = KeepFarthest(problem, [1])
+    algorithm: Algorithm = _MOAlgoForFEs(Op0Random())
+    ams = int(random.integers(2, 5))
+
+    with MOExecution()\
+            .set_solution_space(space)\
+            .set_objective(problem)\
+            .set_archive_pruner(pruner)\
+            .set_archive_max_size(ams)\
+            .set_archive_pruning_limit(int(ams + random.integers(0, 3)))\
+            .set_algorithm(algorithm)\
+            .set_max_fes(100)\
+            .execute() as process:
+        assert isinstance(process, MOProcess)
+        assert type_name_of(process) \
+               == "moptipy.api._mo_process_no_ss._MOProcessNoSS"
+        assert str(process) == "MOProcessWithoutSearchSpace"
+        assert process.has_best()
+        assert process.get_max_fes() == 100
+        assert process.get_max_time_millis() is None
+        assert 0 <= process.get_best_f() <= dim * dim * dim
+        assert 0 < process.get_consumed_fes() <= 100
+        archive: List[MORecord] = process.get_archive()
+        for rec in archive:
+            assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
+            assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()
+        archive_len = len(archive)
+        assert 0 < archive_len <= process.get_consumed_fes()
+        x = space.create()
+        process.get_copy_of_best_x(x)
+        space.validate(x)
+        process.get_copy_of_best_y(x)
+        space.validate(x)
+
+
+class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
+    """The algorithm for multi-objective optimization."""
+    def __init__(self, op0: Op0Random):
+        """Initialize."""
+        Algorithm0.__init__(self, "om", op0)
+
+    def solve_mo(self, process: MOProcess) -> None:
+        """Solve!"""
+
+        assert process.get_consumed_fes() == 0
+        without_should_terminate(self.__solve_mo, process)
+        assert 0 < process.get_consumed_fes() <= 100
+
+    def __solve_mo(self, process: MOProcess):
+        """Solve!"""
+        assert str(process).startswith("protectMO_")
+        x = process.create()
+        fs = process.f_create()
+        r = process.get_random()
+        while True:
+            self.op0.op0(r, x)
+            process.evaluate(x)
+            if process.should_terminate():
+                return
+            process.f_evaluate(x, fs)
+
+
+def test_without_should_terminate_mo_process_no_ss_no_log():
+    """Test the `_mo_process_no_ss` without logging."""
+
+    random: Generator = default_rng()
+    dim: int = int(random.integers(12, 40))
+
+    space: Space = BitStrings(dim)
+    f0: Objective = Trap(dim)
+    f1: Objective = OneMax(dim)
+    problem: MOProblem = Prioritize([f0, f1])
+    algorithm: Algorithm = _MOWithoutShouldTerminate(Op0Random())
+    ams = int(random.integers(2, 5))
+
+    with MOExecution()\
+            .set_solution_space(space)\
+            .set_objective(problem)\
+            .set_archive_pruning_limit(int(ams + random.integers(0, 3)))\
+            .set_algorithm(algorithm)\
+            .set_max_fes(100)\
+            .execute() as process:
+        assert isinstance(process, MOProcess)
+        assert type_name_of(process) \
+               == "moptipy.api._mo_process_no_ss._MOProcessNoSS"
+        assert str(process) == "MOProcessWithoutSearchSpace"
+        assert process.has_best()
+        assert process.get_max_fes() == 100
+        assert process.get_max_time_millis() is None
+        assert 0 <= process.get_best_f() <= dim * dim * dim
+        assert 0 < process.get_consumed_fes() <= 100
+        archive: List[MORecord] = process.get_archive()
+        for rec in archive:
+            assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
+            assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()
+        archive_len = len(archive)
+        assert 0 < archive_len <= process.get_consumed_fes()
+        x = space.create()
+        process.get_copy_of_best_x(x)
+        space.validate(x)
+        process.get_copy_of_best_y(x)
+        space.validate(x)

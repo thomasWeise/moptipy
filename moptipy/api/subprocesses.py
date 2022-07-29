@@ -202,6 +202,10 @@ def for_fes(process: T, max_fes: int) -> T:
     :returns: the sub-process that will terminate after `max_fes` FEs and that
         forwards all other calls the `process`.
     """
+    if not isinstance(max_fes, int):
+        raise type_error(max_fes, "max_fes", int)
+    if max_fes <= 0:
+        raise ValueError(f"max_fes cannot be {max_fes}!")
     return __ForFEsMO(process, max_fes) if isinstance(process, MOProcess) \
         else __ForFEs(process, max_fes)
 

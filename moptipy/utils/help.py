@@ -48,7 +48,8 @@ def help_screen(title: str,
     :param title: the program title
     :param file: the calling python script
     :param text: the text explaining the program
-    :param args:
+    :param args: the command line arguments, as sequence of tuples
+        `(title, description)` or `(title, description, optional)`
     :return: nothing
     """
     if not isinstance(title, str):

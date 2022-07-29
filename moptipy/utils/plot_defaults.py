@@ -13,16 +13,6 @@ COLOR_BLACK: Final[Tuple[float, float, float]] = (0.0, 0.0, 0.0)
 COLOR_WHITE: Final[Tuple[float, float, float]] = (1.0, 1.0, 1.0)
 
 
-def default_name_func(key) -> str:
-    """
-    Compute the default name for a `key`: `str(key)`.
-
-    :param key: the key
-    :return: the key, too
-    """
-    return str(key)
-
-
 def str_to_palette(palette: str) \
         -> Tuple[Tuple[float, float, float], ...]:
     """
@@ -380,14 +370,14 @@ def importance_to_font_size(importance: float) -> float:
     if importance < 0:
         return 7.5
     if importance <= 0:
-        return 8
+        return 8.0
     if importance == 1:
         return 8.5
     if importance == 2:
-        return 9
+        return 9.0
     if importance == 3:
-        return 10
-    return 11
+        return 10.0
+    return 11.0
 
 
 #: The default grid color
