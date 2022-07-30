@@ -46,3 +46,14 @@ def test_hill_climber_with_restarts_on_leadingones():
             Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 6)
 
     validate_algorithm_on_leadingones(create)
+
+
+def test_hill_climber_with_restarts_on_leadingones_rs():
+    """Validate the hill climber with restarts on the LeadingOnes problem."""
+
+    def create(bs: BitStrings):
+        assert isinstance(bs, BitStrings)
+        return HillClimberWithRestarts(
+            Op0Random(), Op1MoverNflip(bs.dimension, 1, True), 1)
+
+    validate_algorithm_on_leadingones(create)

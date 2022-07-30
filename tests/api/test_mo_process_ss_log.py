@@ -45,8 +45,7 @@ def test_mo_process_ss_log():
     algorithm: Algorithm = EA(
         Op0Shuffle(search_space), Op1Swap2(),
         Op2GeneralizedAlternatingPosition(search_space),
-        int(random.integers(2, 10)), int(random.integers(2, 10)),
-        float(random.uniform(0.2, 0.8)))
+        int(random.integers(2, 10)), int(random.integers(2, 10)))
 
     with TempFile.create(suffix=FILE_SUFFIX) as tf:
         assert exists(tf)

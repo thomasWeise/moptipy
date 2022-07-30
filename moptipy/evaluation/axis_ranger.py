@@ -1,7 +1,7 @@
 """A utility to specify axis ranges."""
 import sys
 from math import isfinite, inf
-from typing import Optional, Final, Iterable, Callable
+from typing import Optional, Final, Callable
 
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
@@ -131,15 +131,6 @@ class AxisRanger:
                 if value > self.__detected_max:
                     self.__detected_max = value
                     self.__has_detected_max = True
-
-    def register_seq(self, seq: Iterable[float]) -> None:
-        """
-        Register a sequence of values.
-
-        :param seq: the data to register
-        """
-        for value in seq:
-            self.register_value(value)
 
     def apply(self, axes: Axes, which_axis: str) -> None:
         """

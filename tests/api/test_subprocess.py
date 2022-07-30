@@ -220,15 +220,15 @@ def test_for_fes_process_no_ss_no_log_reg_norm():
     """Test the `_process_no_ss` without logging."""
 
     random: Generator = default_rng()
-    dim: int = int(random.integers(3, 12))
-    space: Space = BitStrings(dim)
-    objective: OneMax = OneMax(dim)
-    algorithm1: Algorithm = RLS(
-        Op0Random(),
-        Op1MoverNflip(dim, int(random.integers(1, dim - 1))))
-    algorithm2: Algorithm = _OneMaxRegAlgo(Op0Random(), objective)
 
     while True:
+        dim: int = int(random.integers(6, 43))
+        space: Space = BitStrings(dim)
+        objective: OneMax = OneMax(dim)
+        algorithm1: Algorithm = RLS(
+            Op0Random(),
+            Op1MoverNflip(dim, int(random.integers(1, dim - 1))))
+        algorithm2: Algorithm = _OneMaxRegAlgo(Op0Random(), objective)
         algorithm: __RegisterForFEs = __RegisterForFEs(algorithm1, algorithm2)
 
         with Execution()\
