@@ -5,8 +5,8 @@ from typing import List
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.hill_climber import HillClimber
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.hill_climber import HillClimber
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_execution import MOExecution

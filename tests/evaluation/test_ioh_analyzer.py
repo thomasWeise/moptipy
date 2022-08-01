@@ -1,6 +1,6 @@
 """Test converting the results of an experiment to the IOHprofiler format."""
 
-from moptipy.algorithms.ea import EA
+from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment

@@ -27,8 +27,8 @@ So with the code below, we can generate a structured experiment. We here
 set a temporary directory as root folder for everything and then load the
 end results from the log files and print them to standard out.
 """
-from moptipy.algorithms.rls import RLS
 from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.end_results import EndResult

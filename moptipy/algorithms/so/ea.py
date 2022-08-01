@@ -21,7 +21,7 @@ This is the basic `mu+lambda`-EA works as follows:
          ones (if they have the same objective value).
 
 If `mu=1`, `lambda=1`, and `br=0`, then this algorithm is exactly equivalent
-to the :class:`~moptipy.algorithms.rls.RLS` if the same unary and nullary
+to the :class:`~moptipy.algorithms.so.rls.RLS` if the same unary and nullary
 operator are used. It is only a bit slower due to the additional overhead of
 maintaining a list of records.
 """

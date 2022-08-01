@@ -5,13 +5,13 @@ from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any, List
 
 import moptipy.api.experiment as ex
-from moptipy.algorithms.ea import EA
-from moptipy.algorithms.hill_climber import HillClimber
-from moptipy.algorithms.hill_climber_with_restarts import \
+from moptipy.algorithms.so.ea import EA
+from moptipy.algorithms.so.hill_climber import HillClimber
+from moptipy.algorithms.so.hill_climber_with_restarts import \
     HillClimberWithRestarts
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution

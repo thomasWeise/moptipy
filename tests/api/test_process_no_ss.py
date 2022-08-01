@@ -4,8 +4,8 @@ from os.path import exists, isfile
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.ea import EA
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.ea import EA
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective

@@ -5,8 +5,8 @@ from typing import List
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.ea import EA
 from moptipy.algorithms.mo.nsga2 import NSGA2
+from moptipy.algorithms.so.ea import EA
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
 from moptipy.api.logging import FILE_SUFFIX

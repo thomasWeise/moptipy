@@ -8,7 +8,7 @@ import numpy as np  # type: ignore
 from numpy.random import Generator, RandomState  # type: ignore
 from sklearn.cluster import SpectralClustering  # type: ignore
 
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance

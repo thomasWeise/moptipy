@@ -146,7 +146,7 @@ Let us now look at a concrete example, which is also available as file [examples
 As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls).
 
 ```python
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -258,7 +258,7 @@ The code below is available as file [examples/experiment_2_algorithms_4_problems
 Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 5.2.](#52-end-result-csv-files) for more information).
 
 ```python
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -663,21 +663,22 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 
 ### 4.1. Implemented Algorithms
 
-#### 4.1.1. Single-Objective Optimization
-
 1. [Single Random Sample](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.single_random_sample.SingleRandomSample) creates and evaluates exactly one single random solution.
 2. [Random Sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling) keeps creating random solutions until the computational budget is exhausted.
 3. [Random Walk](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_walk.RandomWalk) creates a random solution and then keeps applying the unary search operator and always accepts the result.
-4. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber.HillClimber) creates a random solution as initial best-so-far solution and then iteratively applies the unary search operator to the best-so-far solution. When the result of the unary operator is better, it becomes the new best-so-far solution, otherwise it is discarded.
-5. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber_with_restarts.HillClimberWithRestarts) works exactly like the hill climber, but restarts at a new random solution after a fixed number of unsuccessful moves.
-6. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS) (RLS) works like the [hill climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.hill_climber.HillClimber) as well, but accepts a new solution if it is *not worse* than the best-so-far solution (instead of requiring it to be strictly *better*, as the hill climber does).
-7. [(mu+lambda)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.ea.EA) is a simple population-based metaheuristic that starts with a population of `mu` random solutions. In each iteration, it retains only the `mu` best solutions from the population ("best" in terms of the objective value, ties are broken such that newer solutions are preferred). It then applies the unary operator and the binary operator to generate `lambda` new solutions and adds them to the population. The `(1+1)-EA` with `br=0` probability to use the binary operator is equivalent to [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS). 
+
+#### 4.1.1. Single-Objective Optimization
+
+1. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber.HillClimber) creates a random solution as initial best-so-far solution and then iteratively applies the unary search operator to the best-so-far solution. When the result of the unary operator is better, it becomes the new best-so-far solution, otherwise it is discarded.
+2. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts) works exactly like the hill climber, but restarts at a new random solution after a fixed number of unsuccessful moves.
+3. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS) (RLS) works like the [hill climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber.HillClimber) as well, but accepts a new solution if it is *not worse* than the best-so-far solution (instead of requiring it to be strictly *better*, as the hill climber does).
+4[(mu+lambda)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.ea.EA) is a simple population-based metaheuristic that starts with a population of `mu` random solutions. In each iteration, it retains only the `mu` best solutions from the population ("best" in terms of the objective value, ties are broken such that newer solutions are preferred). It then applies the unary operator and the binary operator to generate `lambda` new solutions and adds them to the population. The `(1+1)-EA` with `br=0` probability to use the binary operator is equivalent to [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS). 
 
 
 #### 4.1.2. Multi-Objective Optimization
 
 1. [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS), but it accepts a solution if it is not dominated by the current solution.
-2. The [Fast Elitist Non-Dominated Sorting Genetic Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2) (NSGA-II) is maybe the most population multi-objective evolutionary algorithm.
+2. The [Fast Elitist Non-Dominated Sorting Genetic Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2) (NSGA-II) is maybe the most popular multi-objective evolutionary algorithm.
 
 
 ### 4.2. Implemented Search Spaces and Operators
@@ -699,6 +700,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
     - Binary Operators:
       - [generalized alternating position crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_gap.Op2GeneralizedAlternatingPosition) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
       - [order-based crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased) randomly selects a set of indices and copies the elements from first source permutation to the same indices in the destination string. It then copies the remaining elements from the second source, maintaining the order in which they appear in the second source string.
+3. [unbounded](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace) and [bounded](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bounded_vectorspace.BoundedVectorSpace) n-dimensional spaces of real numbers.
 
 
 ### 4.3. Implemented Problems
@@ -924,7 +926,7 @@ You can execute the following Python code to obtain an example log file.
 This code is also available in file [examples/log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html):
 
 ```python
-from moptipy.algorithms.rls import RLS  # the algorithm we use
+from moptipy.algorithms.so.rls import RLS  # the algorithm we use
 from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
@@ -948,7 +950,7 @@ with TempDir.create() as td:  # create temp directory
     # The random seed is automatically generated based on the instance name.
     print(td.resolve_inside(  # so we know algorithm, instance, and seed
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
-        .read_all_str())  # read file into string (which then gets printed)
+          .read_all_str())  # read file into string (which then gets printed)
 # When leaving "while", the temp dir will be deleted
 ```
 
@@ -1092,8 +1094,8 @@ Let us execute an abridged example experiment, parse all log files, condense the
 We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html).
 
 ```python
-from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
-from moptipy.algorithms.rls import RLS  # first algo to test
+from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
+from moptipy.algorithms.so.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
@@ -1215,8 +1217,8 @@ We can basically execute the same abridged experiment as in the [previous sectio
 This code is also available as file [examples/end_statistics_jssp](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html).
 
 ```python
-from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
-from moptipy.algorithms.rls import RLS  # first algo to test
+from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
+from moptipy.algorithms.so.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
@@ -1581,12 +1583,12 @@ We also try to extensively test our own code, see the [coverage report](https://
 
 ## 10. License
 
-The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#9-contact)).
+The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#11-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
 `moptipy` is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
 
-Copyright (C) 2021  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
+Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.

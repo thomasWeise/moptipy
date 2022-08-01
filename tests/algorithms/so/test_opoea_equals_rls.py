@@ -3,8 +3,8 @@ from typing import Callable, List, Final
 
 from numpy.random import default_rng
 
-from moptipy.algorithms.ea import EA
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.ea import EA
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.examples.bitstrings.onemax import OneMax

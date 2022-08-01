@@ -3,7 +3,7 @@ from typing import Final
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.ea import EA
+from moptipy.algorithms.so.ea import EA
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip

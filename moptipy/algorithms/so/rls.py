@@ -13,10 +13,10 @@ it is discarded.
 The `rls` algorithm is a simple local search that accepts all
 non-deteriorating moves. It is thus similar to the simple hill climber
 `hc` implemented in
-:class:`~moptipy.algorithms.hill_climber.HillClimber`, which, however,
+:class:`~moptipy.algorithms.so.hill_climber.HillClimber`, which, however,
 accepts strictly improving moves. `rls` is also equivalent to a
 `(mu+lambda)`-EA without crossover as implemented in
-:class:`~moptipy.algorithms.ea.EA` if the same unary and nullary operator
+:class:`~moptipy.algorithms.so.ea.EA` if the same unary and nullary operator
 are used and `mu=1`, `lambda=1`, and `br=0`. `rls`, however, will be
 faster as it does not represent a population of solutions as list of
 objects but can directly utilize local variables.

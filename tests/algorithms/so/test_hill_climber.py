@@ -1,5 +1,5 @@
 """Test the hill climber."""
-from moptipy.algorithms.hill_climber import HillClimber
+from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip

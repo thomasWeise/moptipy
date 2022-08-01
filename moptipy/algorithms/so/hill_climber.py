@@ -12,11 +12,11 @@ discarded.
 
 The hill climbing algorithm is a simple local search that only accepts
 strictly improving moves. It is thus similar to the randomized local search
-(`rls`) implemented in :class:`~moptipy.algorithms.rls.RLS`, which, however,
+(`rls`) implemented in :class:`~moptipy.algorithms.so.rls.RLS`, which, however,
 accepts non-deteriorating moves. We also provide `hcr`, a variant of the hill
 climber that restarts automatically with a certain number of moves were not
 able to improve the current best-so-far solution in class :class:`~moptipy.\
-algorithms.hill_climber_with_restarts.HillClimberWithRestarts`.
+algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts`.
 
 1. Stuart Jonathan Russell and Peter Norvig. *Artificial Intelligence: A
    Modern Approach (AIMA)*. 2nd edition. 2002. Upper Saddle River, NJ, USA:

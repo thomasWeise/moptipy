@@ -2,8 +2,8 @@
 The implementation of the hill climbing algorithm with restarts `hcr`.
 
 This algorithm basically works like the normal hill climber `hc`
-(:class:`~moptipy.algorithms.hill_climber.HillClimber`), but it will restart
-automatically if no move was successful for
+(:class:`~moptipy.algorithms.so.hill_climber.HillClimber`), but it will
+restart automatically if no move was successful for
 `max_moves_without_improvement` iterative steps. It therefore maintains an
 internal counter `count` which is set to zero at the beginning of each restart
 and which is also set to zero again any time a move successfully improved the
@@ -24,8 +24,8 @@ from numpy.random import Generator
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
-from moptipy.utils.types import type_error
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.types import type_error
 
 
 # start book

@@ -1,6 +1,6 @@
 """Generate an end-results CSV file for an experiment with the JSSP."""
-from moptipy.algorithms.hill_climber import HillClimber  # second algo to test
-from moptipy.algorithms.rls import RLS  # first algo to test
+from moptipy.algorithms.so.hill_climber import HillClimber  # second algo
+from moptipy.algorithms.so.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op

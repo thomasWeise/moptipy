@@ -10,7 +10,7 @@ parameter). In this example, we do this for the number `n` of bits of the
 well-known OneMax problem.
 
 Let us say we apply the randomized local search
-(:class:`moptipy.algorithms.rls.RLS`) with single-bit flip operator to the
+(:class:`moptipy.algorithms.so.rls.RLS`) with single-bit flip operator to the
 well-known :class:`moptipy.examples.bitstrings.onemax.OneMax` problem. The
 OneMax is defined over the bit strings of the length `n`.
 
@@ -36,7 +36,7 @@ from webbrowser import open_new_tab
 
 import psutil
 
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger

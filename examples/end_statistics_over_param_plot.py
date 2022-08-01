@@ -9,7 +9,7 @@ a parameter (or even instance feature). In this example, we do this for an
 algorithm parameter.
 
 Let us say we apply the randomized local search
-(:class:`moptipy.algorithms.rls.RLS`) to the minimization version of the
+(:class:`moptipy.algorithms.so.rls.RLS`) to the minimization version of the
 well-known :class:`moptipy.examples.bitstrings.leadingones.LeadingOnes`
 problem. We need to plug in an unary operator for bit strings. We can choose
 the operator :class:`moptipy.operators.bitstrings.op1_m_over_n_flip.\
@@ -43,7 +43,7 @@ from webbrowser import open_new_tab
 
 import psutil
 
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.end_results import EndResult

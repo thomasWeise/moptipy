@@ -8,7 +8,7 @@ we print the contents of the log file to the console. We also load the Gantt
 chart that was the result of the experiment from the log file and print it,
 too - just for fun.
 """
-from moptipy.algorithms.rls import RLS  # the algorithm we use
+from moptipy.algorithms.so.rls import RLS  # the algorithm we use
 from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op

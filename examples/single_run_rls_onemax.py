@@ -20,7 +20,7 @@ operator that flips each bit in the bit string independently with probability
 We create a temporary file and execute a single run random seed `199` of the
 above algorithm on this problem at `n=10`.
 """
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random

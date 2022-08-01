@@ -1,5 +1,5 @@
 """Test the hill climber with restarts."""
-from moptipy.algorithms.hill_climber_with_restarts import \
+from moptipy.algorithms.so.hill_climber_with_restarts import \
     HillClimberWithRestarts
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random

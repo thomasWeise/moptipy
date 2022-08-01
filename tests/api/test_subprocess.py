@@ -4,8 +4,8 @@ from typing import Union, Callable
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.ea import EA
-from moptipy.algorithms.rls import RLS
+from moptipy.algorithms.so.ea import EA
+from moptipy.algorithms.so.rls import RLS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.algorithm import Algorithm0
 from moptipy.api.algorithm import Algorithm2
