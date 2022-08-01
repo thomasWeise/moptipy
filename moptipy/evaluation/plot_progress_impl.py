@@ -214,7 +214,7 @@ def plot_progress(
                 f"F-units {y_dim} and {prg.f_name} do not fit!")
     del progresses
 
-    if(len(progress_list) + len(statrun_list)) <= 0:
+    if (len(progress_list) + len(statrun_list)) <= 0:
         raise ValueError("Empty input data?")
 
     if (x_dim is None) or (y_dim is None):

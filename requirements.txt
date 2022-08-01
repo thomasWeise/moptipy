@@ -4,7 +4,7 @@
 numpy >= 1.22.4
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba >= 0.55.2
+numba >= 0.56.0
 
 # matplotlib is used to create plots in the evaluation procedures
 matplotlib >= 3.5.2
