@@ -64,6 +64,30 @@ class MOProcess(MOProblem, Process):
             entered the archive, `False` if it has not entered the archive
         """
 
+    def get_copy_of_best_fs(self, fs: np.ndarray) -> None:
+        """
+        Get a copy of the objective vector of the current best solution.
+
+        This always corresponds to the best-so-far solution based on the
+        scalarization of the objective vector. It is the best solution that
+        the process has seen *so far*, the current best solution.
+
+        You should only call this method if you are either sure that you
+        have invoked :meth:`~moptipy.api.process.Process.evaluate`, have
+        invoked :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`, or
+        have called :meth:`~moptipy.api.process.Process.has_best` before
+        and it returned `True`.
+
+        :param fs: the destination vector to be overwritten
+
+        See also:
+            - :meth:`~moptipy.api.process.Process.has_best`
+            - :meth:`~moptipy.api.process.Process.get_best_f`
+            - :meth:`~moptipy.api.process.Process.get_copy_of_best_x`
+            - :meth:`~moptipy.api.process.Process.get_copy_of_best_y`
+            - :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`
+        """
+
     def __str__(self) -> str:
         """
         Get the name of this process implementation.

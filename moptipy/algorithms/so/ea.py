@@ -34,7 +34,7 @@ from moptipy.api.algorithm import Algorithm2
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.strings import float_to_str
+from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
 
 
@@ -265,7 +265,7 @@ class EA(Algorithm2):
             br = 0.2
 
         super().__init__(
-            f"ea_{mu}_{lambda_}_{float_to_str(br).replace('.', 'd')}"
+            f"ea_{mu}_{lambda_}_{num_to_str_for_name(br)}"
             if 0 < br < 1 else f"ea_{mu}_{lambda_}", op0, op1, op2)
 
         if not isinstance(mu, int):

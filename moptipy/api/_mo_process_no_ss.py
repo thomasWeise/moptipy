@@ -197,6 +197,11 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
     def get_archive(self) -> List[MORecord]:
         return self._archive[0:self._archive_size]
 
+    def get_copy_of_best_fs(self, fs: np.ndarray) -> None:
+        if self._current_fes > 0:
+            return copyto(fs, self._current_best_fs)
+        raise ValueError('No current best available.')
+
     def _log_own_parameters(self, logger: KeyValueLogSection) -> None:
         super()._log_own_parameters(logger)
         logger.key_value(KEY_ARCHIVE_MAX_SIZE, self._archive_max_size)

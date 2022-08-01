@@ -41,7 +41,7 @@ from moptipy.api.mo_archive import MORecord
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.strings import num_to_str
+from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
 
 
@@ -201,7 +201,8 @@ class NSGA2(Algorithm2, MOAlgorithm):
         :param pop_size: the population size
         :param cr: the crossover rate
         """
-        super().__init__(f"nsga2_{pop_size}_{num_to_str(cr)}", op0, op1, op2)
+        super().__init__(
+            f"nsga2_{pop_size}_{num_to_str_for_name(cr)}", op0, op1, op2)
         if not isinstance(pop_size, int):
             raise type_error(pop_size, "pop_size", int)
         if pop_size < 3:

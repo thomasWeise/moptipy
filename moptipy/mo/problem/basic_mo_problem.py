@@ -51,8 +51,9 @@ class BasicMOProblem(MOProblem):
                  get_scalarizer: Callable[
                      [bool, int, List[Union[int, float]],
                       List[Union[int, float]]],
-                     Callable[[np.ndarray], Union[int, float]]] = None) \
-            -> None:
+                     Callable[[np.ndarray], Union[int, float]]] = None,
+                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                 = dominates) -> None:
         """
         Create the basic multi-objective optimization problem.
 
@@ -65,6 +66,11 @@ class BasicMOProblem(MOProblem):
             with the lower and upper bounds of the objective functions. It can
             use this information to dynamically create and return the most
             efficient scalarization function.
+        :param domination: a function reflecting the domination relationship
+            between two vectors of objective values. It must obey the contract
+            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is
+            the same as :func:`moptipy.api.mo_utils.dominates`, to which it
+            defaults. `None` overrides nothing.
         """
         if not isinstance(objectives, Iterable):
             raise type_error(objectives, "objectives", Iterable)
@@ -209,7 +215,11 @@ class BasicMOProblem(MOProblem):
         #: the internal temporary array
         self._temp: Final[np.ndarray] = self.f_create() \
             if temp is None else temp
-        self.f_dominates = dominates  # type: ignore
+
+        if domination is not None:
+            if not callable(domination):
+                raise type_error(domination, "domination", call=True)
+            self.f_dominates = domination  # type: ignore
 
     def f_dimension(self) -> int:
         """

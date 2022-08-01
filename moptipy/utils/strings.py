@@ -30,6 +30,25 @@ def float_to_str(x: float) -> str:
     return s
 
 
+def num_to_str_for_name(x: Union[int, float]) -> str:
+    """
+    Convert a float to a string for use in a component name.
+
+    :param x: the float
+    :returns: the string
+
+    >>> num_to_str_for_name(1.3)
+    '1d3'
+    >>> num_to_str_for_name(1.0)
+    '1'
+    >>> num_to_str_for_name(-7)
+    'm7'
+    >>> num_to_str_for_name(-6.32)
+    'm6d32'
+    """
+    return num_to_str(x).replace('.', 'd').replace('-', 'm')
+
+
 def bool_to_str(value: bool) -> str:
     """
     Convert a Boolean value to a string.

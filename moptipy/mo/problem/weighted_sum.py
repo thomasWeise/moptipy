@@ -17,6 +17,7 @@ from typing import Union, Final, Iterable, Tuple, List, Callable, \
 
 import numpy as np
 from numpy import sum as npsum
+from moptipy.api.mo_utils import dominates
 
 from moptipy.api.objective import Objective
 from moptipy.mo.problem.basic_mo_problem import BasicMOProblem
@@ -64,11 +65,18 @@ class BasicWeightedSum(BasicMOProblem):
                       List[Union[int, float]], Callable[
                           [Union[None, np.dtype, Tuple[
                               Union[int, float], ...]]], None]],
-                     Callable[[np.ndarray], Union[int, float]]]) -> None:
+                     Callable[[np.ndarray], Union[int, float]]],
+                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                 = dominates) -> None:
         """
         Create the sum-based scalarization.
 
         :param objectives: the objectives
+        :param domination: a function reflecting the domination relationship
+            between two vectors of objective values. It must obey the contract
+            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is
+            the same as :func:`moptipy.api.mo_utils.dominates`, to which it
+            defaults. `None` overrides nothing.
         """
         holder: List[Any] = []
         super().__init__(
@@ -77,7 +85,8 @@ class BasicWeightedSum(BasicMOProblem):
                            List[Union[int, float]]], Callable[
                 [np.ndarray], Union[int, float]]],
                 lambda ai, n, lb, ub, fwd=holder.append:
-                get_scalarizer(ai, n, lb, ub, fwd)))
+                get_scalarizer(ai, n, lb, ub, fwd)),
+            domination)
         if len(holder) != 2:
             raise ValueError(
                 f"need weights and weights dtype, but got {holder}.")
@@ -242,14 +251,20 @@ class WeightedSum(BasicWeightedSum):
     """Scalarize objective values by computing their weighted sum."""
 
     def __init__(self, objectives: Iterable[Objective],
-                 weights: Optional[Iterable[Union[int, float]]] = None) \
-            -> None:
+                 weights: Optional[Iterable[Union[int, float]]] = None,
+                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                 = dominates) -> None:
         """
         Create the sum-based scalarization.
 
         :param objectives: the objectives
         :param weights: the weights of the objective values, or `None` if all
             weights are `1`.
+        :param domination: a function reflecting the domination relationship
+            between two vectors of objective values. It must obey the contract
+            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is
+            the same as :func:`moptipy.api.mo_utils.dominates`, to which it
+            defaults. `None` overrides nothing.
         """
         use_weights: Optional[Tuple[Union[int, float], ...]] \
             = None if weights is None else tuple(try_int(w) for w in weights)
@@ -263,7 +278,8 @@ class WeightedSum(BasicWeightedSum):
                           Union[int, float], ...]]], None]],
                  Callable[[np.ndarray], Union[int, float]]],
                  lambda ai, n, lb, ub, cb, uw=use_weights:
-                 _make_sum_scalarizer(ai, n, lb, ub, uw, cb)))
+                 _make_sum_scalarizer(ai, n, lb, ub, uw, cb)),
+            domination)
 
     def __str__(self):
         """
@@ -271,7 +287,8 @@ class WeightedSum(BasicWeightedSum):
 
         :returns: `"weightedSum"`
         """
-        return "weightedSum"
+        return "weightedSum" if self.f_dominates is dominates \
+            else "weightedSumWithDominationFunc"
 
 
 def _prioritize(always_int: bool,
@@ -332,13 +349,20 @@ def _prioritize(always_int: bool,
 class Prioritize(BasicWeightedSum):
     """Prioritize the first objective over the second and so on."""
 
-    def __init__(self, objectives: Iterable[Objective]) -> None:
+    def __init__(self, objectives: Iterable[Objective],
+                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                 = dominates) -> None:
         """
         Create the sum-based prioritization.
 
         :param objectives: the objectives
+        :param domination: a function reflecting the domination relationship
+            between two vectors of objective values. It must obey the contract
+            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is
+            the same as :func:`moptipy.api.mo_utils.dominates`, to which it
+            defaults. `None` overrides nothing.
         """
-        super().__init__(objectives, _prioritize)
+        super().__init__(objectives, _prioritize, domination)
 
     def __str__(self):
         """
@@ -346,4 +370,5 @@ class Prioritize(BasicWeightedSum):
 
         :returns: `"weightBasedPrioritization"`
         """
-        return "weightBasedPrioritization"
+        return "weightBasedPrioritization" if self.f_dominates is dominates \
+            else "weightBasedPrioritizationWithDominationFunc"

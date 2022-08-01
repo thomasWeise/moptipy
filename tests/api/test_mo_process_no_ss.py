@@ -1,9 +1,8 @@
 """Test the `_mo_process_no_ss`."""
 
 from os.path import exists, isfile
-from typing import Final, List
+from typing import List
 
-import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator, default_rng
 
@@ -18,6 +17,7 @@ from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
+from moptipy.examples.bitstrings.zeromax import ZeroMax
 from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.mo.problem.weighted_sum import Prioritize, WeightedSum
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -25,43 +25,7 @@ from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_error
 from moptipy.utils.types import type_name_of
-
-
-@numba.njit(nogil=True, cache=True)
-def zeromax(x: np.ndarray) -> int:
-    """Get the length of a string minus the number of zeros in it."""
-    return int(x.sum())
-
-
-class ZeroMax(Objective):
-    """Maximize the number of zeros in a bit string."""
-
-    def __init__(self, n: int) -> None:  # +book
-        """Initialize the zeromax objective function."""
-        super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        #: the upper bound = the length of the bit strings
-        self.n: Final[int] = n
-        self.evaluate = zeromax  # type: ignore
-
-    def lower_bound(self) -> int:
-        """Get the lower bound of the zeromax objective function."""
-        return 0
-
-    def upper_bound(self) -> int:
-        """Get the upper bound of the zeromax objective function."""
-        return self.n
-
-    def is_always_integer(self) -> bool:
-        """Return `True`."""
-        return True
-
-    def __str__(self) -> str:
-        """Get the name of the zeromax objective function. """
-        return f"zeromax_{self.n}"
 
 
 def test_mo_process_no_ss_no_log():
@@ -109,6 +73,13 @@ def test_mo_process_no_ss_no_log():
         space.validate(x)
         process.get_copy_of_best_y(x)
         space.validate(x)
+        fs = process.f_create()
+        assert isinstance(fs, np.ndarray)
+        assert len(fs) == problem.f_dimension()
+        process.get_copy_of_best_fs(fs)
+        fs2 = fs.copy()
+        assert problem.f_evaluate(x, fs2) == process.get_best_f()
+        assert np.array_equal(fs2, fs)
 
 
 def test_mo_process_no_ss_log():
@@ -165,6 +136,13 @@ def test_mo_process_no_ss_log():
             space.validate(x)
             process.get_copy_of_best_y(x)
             space.validate(x)
+            fs = process.f_create()
+            assert isinstance(fs, np.ndarray)
+            assert len(fs) == problem.f_dimension()
+            process.get_copy_of_best_fs(fs)
+            fs2 = fs.copy()
+            assert problem.f_evaluate(x, fs2) == process.get_best_f()
+            assert np.array_equal(fs2, fs)
 
         assert exists(tf)
         assert isfile(tf)

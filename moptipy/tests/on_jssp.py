@@ -1,19 +1,23 @@
 """Perform tests on the Job Shop Scheduling Problem."""
 
-from typing import Callable, Optional, Union, Iterable, List, cast
+from typing import Callable, Optional, Union, Iterable, List, cast, Final
 
 from numpy.random import default_rng, Generator
 
 from moptipy.api.algorithm import Algorithm
+from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.examples.jssp.worktime import Worktime
+from moptipy.mo.problem.weighted_sum import WeightedSum
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.algorithm import validate_algorithm
+from moptipy.tests.mo_algorithm import validate_mo_algorithm
 from moptipy.tests.objective import validate_objective
 from moptipy.utils.types import type_error
 
@@ -159,3 +163,65 @@ def validate_objective_on_jssp(
     """
     for i in jssp_instances_for_tests():
         validate_objective_on_1_jssp(objective, i, is_deterministic)
+
+
+def validate_mo_algorithm_on_1_jssp(
+        algorithm: Union[MOAlgorithm,
+                         Callable[[Instance, Permutations], MOAlgorithm]],
+        instance: Optional[str] = None,
+        max_fes: int = 100) -> None:
+    """
+    Check the validity of a black-box multi-objective algorithm on the JSSP.
+
+    :param algorithm: the algorithm or algorithm factory
+    :param instance: the instance name, or `None` to randomly pick one
+    :param max_fes: the maximum number of FEs
+    """
+    if not (isinstance(algorithm, MOAlgorithm) or callable(algorithm)):
+        raise type_error(algorithm, "algorithm", MOAlgorithm, True)
+
+    random: Final[Generator] = default_rng()
+    if instance is None:
+        instance = str(random.choice(Instance.list_resources()))
+    if not isinstance(instance, str):
+        raise type_error(instance, "JSSP instance name", (str, None))
+    inst = Instance.from_resource(instance)
+    if not isinstance(inst, Instance):
+        raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
+
+    search_space = Permutations.with_repetitions(inst.jobs,
+                                                 inst.machines)
+    if callable(algorithm):
+        algorithm = algorithm(inst, search_space)
+    if not isinstance(algorithm, MOAlgorithm):
+        raise type_error(algorithm, "algorithm", MOAlgorithm, call=True)
+
+    solution_space = GanttSpace(inst)
+    encoding = OperationBasedEncoding(inst)
+
+    weights: List[Union[int, float]]
+    if random.integers(2) <= 0:
+        weights = [float(random.uniform(0.01, 10)),
+                   float(random.uniform(0.01, 10))]
+    else:
+        weights = [1 + int(random.integers(1 << random.integers(40))),
+                   1 + int(random.integers(1 << random.integers(40)))]
+
+    validate_mo_algorithm(algorithm=algorithm,
+                          solution_space=solution_space,
+                          problem=WeightedSum([Makespan(inst), Worktime(inst)],
+                                              weights),
+                          search_space=search_space,
+                          encoding=encoding,
+                          max_fes=max_fes)
+
+
+def validate_mo_algorithm_on_jssp(
+        algorithm: Callable[[Instance, Permutations], MOAlgorithm]) -> None:
+    """
+    Validate a multi-objective algorithm on a set of JSSP instances.
+
+    :param algorithm: the algorithm factory
+    """
+    for i in jssp_instances_for_tests():
+        validate_mo_algorithm_on_1_jssp(algorithm, i, 100)

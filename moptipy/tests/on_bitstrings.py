@@ -7,12 +7,18 @@ import numpy as np
 from numpy.random import default_rng, Generator
 
 from moptipy.api.algorithm import Algorithm
+from moptipy.api.mo_algorithm import MOAlgorithm
+from moptipy.api.mo_problem import MOProblem
 from moptipy.api.objective import Objective
 from moptipy.api.operators import Op0, Op1, Op2
+from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
+from moptipy.examples.bitstrings.zeromax import ZeroMax
+from moptipy.mo.problem.weighted_sum import WeightedSum
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.algorithm import validate_algorithm
+from moptipy.tests.mo_algorithm import validate_mo_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
 from moptipy.tests.op2 import validate_op2
@@ -202,7 +208,7 @@ def validate_algorithm_on_bitstrings(
     Check the validity of a black-box algorithm on a bit strings problem.
 
     :param algorithm: the algorithm or algorithm factory
-    :param objective: the instance or instance factory
+    :param objective: the objective function or function factory
     :param dimension: the dimension of the problem
     :param max_fes: the maximum number of FEs
     :param required_result: the optional required result quality
@@ -245,7 +251,7 @@ def validate_algorithm_on_onemax(
         algorithm: Union[Algorithm,
                          Callable[[BitStrings], Algorithm]]) -> None:
     """
-    Check the validity of a black-box algorithm on onemax.
+    Check the validity of a black-box algorithm on OneMax.
 
     :param algorithm: the algorithm or algorithm factory
     """
@@ -268,7 +274,7 @@ def validate_algorithm_on_leadingones(
         algorithm: Union[Algorithm,
                          Callable[[BitStrings], Algorithm]]) -> None:
     """
-    Check the validity of a black-box algorithm on leadingones.
+    Check the validity of a black-box algorithm on LeadingOnes.
 
     :param algorithm: the algorithm or algorithm factory
     """
@@ -287,3 +293,96 @@ def validate_algorithm_on_leadingones(
             dimension=i,
             max_fes=int(1.25 * max_fes),
             required_result=rr)
+
+
+def validate_mo_algorithm_on_bitstrings(
+        problem: Union[MOProblem, Callable[[int], MOProblem]],
+        algorithm: Union[MOAlgorithm, Callable[[BitStrings], MOAlgorithm]],
+        dimension: int = 5,
+        max_fes: int = 100) -> None:
+    """
+    Check a black-box multi-objective algorithm on a bit strings problem.
+
+    :param algorithm: the algorithm or algorithm factory
+    :param problem: the multi-objective optimization problem or factory
+    :param dimension: the dimension of the problem
+    :param max_fes: the maximum number of FEs
+    """
+    if not (isinstance(algorithm, MOAlgorithm) or callable(algorithm)):
+        raise type_error(algorithm, 'algorithm', MOAlgorithm, True)
+    if not (isinstance(problem, MOProblem) or callable(problem)):
+        raise type_error(problem, "problem", MOProblem, True)
+    if not isinstance(dimension, int):
+        raise type_error(dimension, 'dimension', int)
+    if dimension <= 0:
+        raise ValueError(f"dimension must be > 0, but got {dimension}.")
+
+    if callable(problem):
+        problem = problem(dimension)
+    if not isinstance(problem, MOProblem):
+        raise type_error(problem, "result of callable 'problem'",
+                         MOProblem)
+    bs: Final[BitStrings] = BitStrings(dimension)
+    if callable(algorithm):
+        algorithm = algorithm(bs)
+    if not isinstance(algorithm, MOAlgorithm):
+        raise type_error(algorithm, "result of callable 'algorithm'",
+                         MOAlgorithm)
+
+    validate_mo_algorithm(algorithm=algorithm,
+                          solution_space=bs,
+                          problem=problem,
+                          max_fes=max_fes)
+
+
+def validate_mo_algorithm_on_2_bitstring_problems(
+        algorithm: Union[MOAlgorithm,
+                         Callable[[BitStrings], MOAlgorithm]]) -> None:
+    """
+    Check the validity of a black-box algorithm on OneMax and ZeroMax.
+
+    :param algorithm: the algorithm or algorithm factory
+    """
+    max_fes: Final[int] = 100
+    random: Final[Generator] = default_rng()
+    for i in dimensions_for_tests():
+        weights: List[Union[int, float]]
+        if random.integers(2) <= 0:
+            weights = [float(random.uniform(0.01, 10)),
+                       float(random.uniform(0.01, 10))]
+        else:
+            weights = [1 + int(random.integers(1 << random.integers(40))),
+                       1 + int(random.integers(1 << random.integers(40)))]
+        validate_mo_algorithm_on_bitstrings(
+            problem=WeightedSum([OneMax(i), ZeroMax(i)], weights),
+            algorithm=algorithm,
+            dimension=i,
+            max_fes=max_fes)
+
+
+def validate_mo_algorithm_on_3_bitstring_problems(
+        algorithm: Union[MOAlgorithm,
+                         Callable[[BitStrings], MOAlgorithm]]) -> None:
+    """
+    Check the validity of an algorithm on OneMax, ZeroMax, and Ising1d.
+
+    :param algorithm: the algorithm or algorithm factory
+    """
+    max_fes: Final[int] = 100
+    random: Final[Generator] = default_rng()
+    for i in dimensions_for_tests():
+        weights: List[Union[int, float]]
+        if random.integers(2) <= 0:
+            weights = [float(random.uniform(0.01, 10)),
+                       float(random.uniform(0.01, 10)),
+                       float(random.uniform(0.01, 10))]
+        else:
+            weights = [1 + int(random.integers(1 << random.integers(40))),
+                       1 + int(random.integers(1 << random.integers(40))),
+                       1 + int(random.integers(1 << random.integers(40)))]
+        validate_mo_algorithm_on_bitstrings(
+            problem=WeightedSum([OneMax(i), ZeroMax(i), Ising1d(i)],
+                                weights),
+            algorithm=algorithm,
+            dimension=i,
+            max_fes=max_fes)

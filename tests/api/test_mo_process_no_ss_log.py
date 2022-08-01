@@ -3,6 +3,7 @@
 from os.path import exists, isfile
 from typing import List
 
+import numpy as np
 from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.so.hill_climber import HillClimber
@@ -80,6 +81,13 @@ def test_mo_process_no_ss_log():
             space.validate(x)
             process.get_copy_of_best_y(x)
             space.validate(x)
+            fs = process.f_create()
+            assert isinstance(fs, np.ndarray)
+            assert len(fs) == problem.f_dimension()
+            process.get_copy_of_best_fs(fs)
+            fs2 = fs.copy()
+            assert problem.f_evaluate(x, fs2) == process.get_best_f()
+            assert np.array_equal(fs2, fs)
 
         assert exists(tf)
         assert isfile(tf)
@@ -176,6 +184,13 @@ def test_mo_process_no_ss_log_all():
             space.validate(x)
             process.get_copy_of_best_y(x)
             space.validate(x)
+            fs = process.f_create()
+            assert isinstance(fs, np.ndarray)
+            assert len(fs) == problem.f_dimension()
+            process.get_copy_of_best_fs(fs)
+            fs2 = fs.copy()
+            assert problem.f_evaluate(x, fs2) == process.get_best_f()
+            assert np.array_equal(fs2, fs)
 
         assert exists(tf)
         assert isfile(tf)

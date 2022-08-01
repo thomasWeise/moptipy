@@ -14,7 +14,8 @@ def onemax(x: np.ndarray) -> int:
     Get the length of a string minus the number of ones in it.
 
     :param x: the np array
-    :return: the number of ones
+    :return: the length of the string minus the number of ones, i.e., the
+        number of zeros
 
     >>> print(onemax(np.array([True, True, False, False, False])))
     3

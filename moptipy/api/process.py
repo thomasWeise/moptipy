@@ -231,7 +231,7 @@ class Process(Space, Objective, AbstractContextManager):
         the process has seen *so far*, the current best solution.
 
         You should only call this method if you are either sure that you
-        have invoked meth:`evaluate` before :meth:`register` of if you called
+        have invoked :meth:`evaluate` before :meth:`register` of if you called
         :meth:`has_best` before and it returned `True`.
 
         :param x: the destination data structure to be overwritten

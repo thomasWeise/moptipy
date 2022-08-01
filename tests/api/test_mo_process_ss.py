@@ -3,6 +3,7 @@
 from os.path import exists, isfile
 from typing import List
 
+import numpy as np
 from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.mo.morls import MORLS
@@ -76,6 +77,13 @@ def test_mo_process_mo_ss_no_log():
         y = solution_space.create()
         process.get_copy_of_best_y(y)
         solution_space.validate(y)
+        fs = process.f_create()
+        assert isinstance(fs, np.ndarray)
+        assert len(fs) == problem.f_dimension()
+        process.get_copy_of_best_fs(fs)
+        fs2 = fs.copy()
+        assert problem.f_evaluate(y, fs2) == process.get_best_f()
+        assert np.array_equal(fs2, fs)
 
 
 def test_mo_process_ss_log():
@@ -124,6 +132,13 @@ def test_mo_process_ss_log():
             y = solution_space.create()
             process.get_copy_of_best_y(y)
             solution_space.validate(y)
+            fs = process.f_create()
+            assert isinstance(fs, np.ndarray)
+            assert len(fs) == problem.f_dimension()
+            process.get_copy_of_best_fs(fs)
+            fs2 = fs.copy()
+            assert problem.f_evaluate(y, fs2) == process.get_best_f()
+            assert np.array_equal(fs2, fs)
 
         assert exists(tf)
         assert isfile(tf)
