@@ -47,7 +47,6 @@ def test_write_all_read_all_and_enforce_exists():
 
         with pytest.raises(ValueError):
             tf.enforce_dir()
-
         with pytest.raises(ValueError):
             tf.ensure_dir_exists()
 
@@ -61,7 +60,6 @@ def test_enforce_exists():
 
         with pytest.raises(ValueError):
             tf.enforce_dir()
-
         with pytest.raises(ValueError):
             tf.ensure_dir_exists()
     del tf
@@ -72,12 +70,14 @@ def test_enforce_exists():
 
         with pytest.raises(ValueError):
             td.enforce_file()
-
         with pytest.raises(ValueError):
             td.ensure_file_exists()
-
         with pytest.raises(ValueError):
             td.write_all("test")
+        with pytest.raises(ValueError):
+            td.write_all(cast(str, 2))
+        with pytest.raises(ValueError):
+            td.write_all("")
 
 
 def test_enforce_contains_and_empty_readall():
@@ -95,6 +95,8 @@ def test_enforce_contains_and_empty_readall():
         td1.enforce_contains(s1)
         with pytest.raises(ValueError):
             td1.resolve_inside("../b" if td1.endswith("a") else "../a")
+        with pytest.raises(ValueError):
+            td1.resolve_inside("")
 
         with TempFile.create() as tf1:
             assert os.path.exists(tf1)
