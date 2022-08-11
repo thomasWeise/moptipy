@@ -112,9 +112,9 @@ extensions = ['myst_parser',  # for processing README.md
 
 # Location of dependency documentation for cross-referencing.
 intersphinx_mapping = {
-    'abc': ("https://docs.python.org/3/", None),
     'matplotlib': ('https://matplotlib.org/stable/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
+    'python': ("https://docs.python.org/3/", None),
     'sklearn': ('https://scikit-learn.org/stable/', None)
 }
 

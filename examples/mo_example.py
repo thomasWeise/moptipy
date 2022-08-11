@@ -60,6 +60,12 @@ f2 = Worktime(instance)  # The second objective be the total work time.
 # will be the one with the shortest makespan.
 problem = Prioritize([f1, f2])
 
+# MO-RLS is a fully-fledged multi-objective optimization method (though not a
+# very good one). It works directly on the multiple objectives. It does not
+# require the scalarization above at all. The scalarization is _only_ used
+# internally in the `Process` objects to ensure compatibility with single-
+# objective optimization and for being able to remember a single "best"
+# solution.
 algorithm = MORLS(              # Create multi-objective RLS that
     Op0Shuffle(search_space),   # starts with a random permutation and
     Op1SwapN())                 # swaps a random number of elements per step.

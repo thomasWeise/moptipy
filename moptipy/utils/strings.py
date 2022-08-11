@@ -1,8 +1,9 @@
 """Routines for handling strings."""
 
 from math import isnan, isfinite, inf
-from re import sub
-from typing import Union, Optional, Final, Iterable, List, cast, Callable
+from re import compile as _compile, sub, MULTILINE
+from typing import Union, Optional, Final, Iterable, List, cast, Callable, \
+    Pattern
 
 from moptipy.utils.math import __try_int, try_int
 from moptipy.utils.types import type_error
@@ -232,6 +233,11 @@ PART_SEPARATOR: Final[str] = "_"
 #: the replacement for "." in a file name
 DECIMAL_DOT_REPLACEMENT: Final[str] = "d"
 
+#: a pattern used during name sanitization
+__PATTERN_SPACE_BEFORE_MINUS: Final[Pattern] = _compile(r"[^\w\s-]")
+#: the multiple-whitespace pattern
+__PATTERN_MULTIPLE_WHITESPACE: Final[Pattern] = _compile(r"\s+")
+
 
 def sanitize_name(name: str) -> str:
     """
@@ -257,8 +263,8 @@ def sanitize_name(name: str) -> str:
     name = __replace_double("_", name)
     name = __replace_double(".", name).replace(".", DECIMAL_DOT_REPLACEMENT)
 
-    name = sub(r"[^\w\s-]", '', name)
-    name = sub(r"\s+", PART_SEPARATOR, name)
+    name = sub(__PATTERN_SPACE_BEFORE_MINUS, '', name)
+    name = sub(__PATTERN_MULTIPLE_WHITESPACE, PART_SEPARATOR, name)
     name = __replace_double("_", name)
 
     if name.startswith("_"):
@@ -303,6 +309,27 @@ def default_float_format(min_finite: Union[int, float] = 0,
     :param min_finite: the minimum finite value
     :param max_finite: the maximum finite value
     :param frac_len: the longest fraction
+
+    >>> default_float_format(0, 0, 0)
+    '{:.0f}'
+    >>> default_float_format(0, 1e5, 10)
+    '{:.0f}'
+    >>> default_float_format(-1e7, 1e2, 10)
+    '{:.0f}'
+    >>> default_float_format(0, 0, 1)
+    '{:.1f}'
+    >>> default_float_format(0, 1e3, 11)
+    '{:.1f}'
+    >>> default_float_format(-1e3, 1e2, 11)
+    '{:.1f}'
+    >>> default_float_format(0, 0, 2)
+    '{:.2f}'
+    >>> default_float_format(0, 0, 3)
+    '{:.3f}'
+    >>> default_float_format(0, 0, 4)
+    '{:.3f}'
+    >>> default_float_format(0, 1e11, 4)
+    '{:.2e}'
     """
     if not isinstance(min_finite, (int, float)):
         raise type_error(min_finite, "min_finite", (int, float))
@@ -576,3 +603,26 @@ def numbers_to_strings(source: Union[int, float, None,
             result[i] = f"{int_part}{frac_part}{exp_part}"
 
     return cast(List[str], result)
+
+
+def regex_sub(search: Union[str, Pattern],
+              replace: str,
+              inside: str) -> str:
+    r"""
+    Replace all occurrences of 'search' in 'inside' with 'replace'.
+
+    :param search: the regular expression to search
+    :param replace: the regular expression to replace it with
+    :param inside: the string in which to search/replace
+    :return: the new string after the recursive replacement
+
+    >>> regex_sub('[ \t]+\n', '\n', ' bla \nxyz\tabc\t\n')
+    ' bla\nxyz\tabc\n'
+    >>> regex_sub('[0-9]A', 'X', '23A7AA')
+    '2XXA'
+    """
+    while True:
+        text = sub(search, replace, inside, MULTILINE)
+        if text is inside:
+            return inside
+        inside = text

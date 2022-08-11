@@ -3,8 +3,10 @@
 import codecs
 import os.path
 from io import open, TextIOBase
-from typing import cast, List, Iterable, Final, Union, Tuple
+from re import compile as _compile, MULTILINE
+from typing import cast, List, Iterable, Final, Union, Tuple, Pattern
 
+from moptipy.utils.strings import regex_sub
 from moptipy.utils.types import type_error
 
 
@@ -63,6 +65,10 @@ def _get_text_encoding(filename: str) -> str:
     return UTF8
 
 
+#: a pattern used to clean up training white space
+_PATTERN_TRAILING_WHITESPACE: Final[Pattern] = _compile(r"[ \t]+\n", MULTILINE)
+
+
 class Path(str):
     """An immutable representation of a path."""
 
@@ -104,17 +110,18 @@ class Path(str):
 
     def contains(self, other: str) -> bool:
         """
-        Check whether another path is contained in this path.
+        Check whether this path is a directory and contains another path.
 
         :param other: the other path
         :return: `True` is this path contains the other path, `False` of not
         """
-        return os.path.commonpath([self]) == \
-            os.path.commonpath([self, Path.path(other)])
+        return os.path.isdir(self) and (
+            os.path.commonpath([self])
+            == os.path.commonpath([self, Path.path(other)]))
 
     def enforce_contains(self, other: str) -> None:
         """
-        Raise an exception if this path does not contain the other path.
+        Raise an exception if this is not a directory containing another path.
 
         :param other: the other path
         :raises ValueError: if `other` is not a sub-path of this path
@@ -153,6 +160,8 @@ class Path(str):
         except FileExistsError:
             existed = True
         except Exception as err:
+            if isinstance(err, ValueError):
+                raise
             raise ValueError(
                 f"Error when trying to create file '{self}'.") from err
         self.enforce_file()
@@ -160,7 +169,15 @@ class Path(str):
 
     def ensure_dir_exists(self) -> None:
         """Make sure that the directory exists, create it otherwise."""
-        os.makedirs(name=self, exist_ok=True)
+        try:
+            os.makedirs(name=self, exist_ok=True)
+        except FileExistsError:
+            pass
+        except Exception as err:
+            if isinstance(err, ValueError):
+                raise
+            raise ValueError(
+                f"Error when trying to create directory '{self}'.") from err
         self.enforce_dir()
 
     def open_for_read(self) -> TextIOBase:
@@ -221,11 +238,16 @@ class Path(str):
         self.ensure_file_exists()
         if not isinstance(contents, (str, Iterable)):
             raise type_error(contents, "contents", (str, Iterable))
+        all_text = contents if isinstance(contents, str) \
+            else "\n".join(contents)
+        if len(all_text) <= 0:
+            raise ValueError("Writing empty text is not permitted.")
+        all_text = regex_sub(_PATTERN_TRAILING_WHITESPACE,
+                             "\n", all_text.rstrip())
+        if len(all_text) <= 0:
+            raise ValueError(
+                "Text becomes empty after removing trailing whitespace?")
         with self.open_for_write() as writer:
-            all_text = contents if isinstance(contents, str) \
-                else "\n".join(contents)
-            if len(all_text) <= 0:
-                raise ValueError("Writing empty text is not permitted.")
             writer.write(all_text)
             if all_text[-1] != "\n":
                 writer.write("\n")

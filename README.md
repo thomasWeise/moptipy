@@ -188,7 +188,7 @@ with TempFile.create() as tf:  # create temporary file `tf`
 
 The output we would get from this program could look something like this:
 
-```
+```text
 Best solution found: TTTTTTTTTT
 Quality of best solution: 0
 Consumed Runtime: 129ms
@@ -328,7 +328,7 @@ with TempDir.create() as td:  # create temporary directory `td`
 
 The output of this program, minus the status information, could look roughly like this:
 
-```
+```text
 rs on onemax_10: 0
 rs on onemax_10: 2
 rs on onemax_10: 1
@@ -638,7 +638,7 @@ with TempDir.create() as td:  # create temporary directory `td`
 
 The output of this program, minus status output, could look like this:
 
-```
+```text
 myAlgo on sort10: 2
 myAlgo on sort10: 2
 myAlgo on sort10: 1
@@ -920,7 +920,7 @@ In multi-objective optimization, the `process` object will automatically collect
 The sections `ARCHIVE_j_X` and `ARCHIVE_j_Y` contain the point in the search space and the point in the solution space corresponding to the `j`th element of the archive.
 
 
-#### 5.1.3. Example
+#### 5.1.3. Example for Single-Objective Optimization
 
 You can execute the following Python code to obtain an example log file.
 This code is also available in file [examples/log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html):
@@ -954,9 +954,9 @@ with TempDir.create() as td:  # create temp directory
 # When leaving "while", the temp dir will be deleted
 ```
 
-The example log file printed by the above code will then look as follows:
+The example log file printed by the above code will then look something like this:
 
-```
+```text
 BEGIN_PROGRESS
 fes;timeMS;f
 1;1;267
@@ -1049,6 +1049,254 @@ END_RESULT_X
 ```
 
 
+#### 5.1.4. Example Log File for Multi-Objective Optimization
+
+You can execute the following Python code to obtain an example log file.
+This code is also available in file [examples/mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits.html):
+
+```python
+from moptipy.algorithms.mo.nsga2 import NSGA2
+from moptipy.api.mo_execution import MOExecution
+from moptipy.examples.bitstrings.leadingones import LeadingOnes
+from moptipy.examples.bitstrings.zeromax import ZeroMax
+from moptipy.mo.problem.weighted_sum import WeightedSum
+from moptipy.operators.bitstrings.op0_random import Op0Random
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
+from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
+from moptipy.spaces.bitstrings import BitStrings
+from moptipy.utils.temp import TempFile
+
+solution_space = BitStrings(16)  # We search a bit string of length 16,
+f1 = ZeroMax(16)                 # that has as many 0s in it as possible
+f2 = LeadingOnes(16)             # and the longest leading sequence of 1s.
+# These are, of course, two conflicting goals.
+# Each multi-objective optimization problem is defined by several objective
+# functions *and* a way to scalarize the vector of objective values.
+# The scalarization is only used by the system to decide for one single best
+# solution in the end *and* if we actually apply a single-objective algorithm
+# to the problem instead of a multi-objective one. (Here we will apply a
+# multi-objective algorithm, though.)
+# Here, we decide for a weighted sum scalarization, weighting the number of
+# zeros half as much as the number of leading ones.
+problem = WeightedSum([f1, f2], [1, 2])
+
+# NSGA-II is the most well-known multi-objective optimization algorithm.
+# It works directly on the multiple objectives. It does not require the
+# scalarization above at all. The scalarization is _only_ used internally in
+# the `Process` objects to ensure compatibility with single-objective
+# optimization and for being able to remember a single "best" solution.
+algorithm = NSGA2(  # Create the NSGA-II algorithm.
+    Op0Random(),    # start with a random bit string and
+    Op1Flip1(),     # flips single bits as mutation
+    Op2Uniform(),   # performs uniform crossover
+    10, 0.05)  # population size = 10, crossover rate = 0.05
+
+# We execute the whole experiment in a temp directory.
+# For a real experiment, you would put an existing directory path in `td`
+# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# and not use the `with` block.
+with TempFile.create() as tf:  # create temporary file `tf`
+    ex = MOExecution()  # begin configuring execution
+    ex.set_solution_space(solution_space)
+    ex.set_objective(problem)      # set the multi-objective problem
+    ex.set_algorithm(algorithm)
+    ex.set_rand_seed(200)          # set random seed to 200
+    ex.set_log_improvements(True)  # log all improving moves
+    ex.set_log_file(tf)            # set log file = temp file `tf`
+    ex.set_max_fes(300)            # allow at most 300 function evaluations
+    with ex.execute():             # now run the algorithm*problem combination
+        pass
+
+    print("\nNow reading and printing all the logged data:")
+    print(tf.read_all_str())  # instead, we load and print the log file
+# The temp file is deleted as soon as we leave the `with` block.
+```
+
+The example log file printed by the above code will then look something like this:
+
+```text
+BEGIN_PROGRESS
+fes;timeMS;f;f0;f1
+1;151;36;6;15
+6;153;37;9;14
+7;153;37;5;16
+8;153;36;10;13
+11;153;36;8;14
+17;153;34;6;14
+22;154;35;9;13
+23;154;32;10;11
+30;154;36;4;16
+33;154;33;5;14
+35;154;35;3;16
+37;154;34;8;13
+42;155;31;11;10
+45;155;32;4;14
+49;155;33;7;13
+62;156;32;6;13
+69;156;34;2;16
+74;157;30;10;10
+79;157;31;3;14
+88;158;29;9;10
+90;158;30;2;14
+93;158;26;10;8
+95;158;31;5;13
+101;158;28;8;10
+110;159;25;9;8
+120;159;28;6;11
+124;160;21;11;5
+131;160;33;1;16
+145;161;30;4;13
+147;161;32;0;16
+148;161;24;10;7
+153;161;27;5;11
+169;162;31;1;15
+179;163;28;4;12
+206;164;29;3;13
+210;164;22;10;6
+231;165;27;7;10
+251;167;26;6;10
+267;167;25;7;9
+270;167;24;8;8
+288;168;20;12;4
+END_PROGRESS
+BEGIN_STATE
+totalFEs: 300
+totalTimeMillis: 169
+bestF: 20
+lastImprovementFE: 288
+lastImprovementTimeMillis: 168
+bestFs: 12;4
+archiveSize: 12
+END_STATE
+BEGIN_SETUP
+p.name: MOLoggingProcessWithoutSearchSpace
+p.class: moptipy.api._mo_process_no_ss_log._MOProcessNoSSLog
+p.lowerBound: 0
+p.upperBound: 48
+p.maxFEs: 300
+p.goalF: 0
+p.randSeed: 200
+p.randSeed(hex): 0xc8
+p.randGenType: numpy.random._generator.Generator
+p.randBitGenType: numpy.random._pcg64.PCG64
+p.archiveMaxSize: 32
+p.archivePruneLimit: 128
+a.name: nsga2_10_0d05_uniform_flip1
+a.class: moptipy.algorithms.mo.nsga2.NSGA2
+a.op0.name: randomize
+a.op0.class: moptipy.operators.bitstrings.op0_random.Op0Random
+a.op1.name: flip1
+a.op1.class: moptipy.operators.bitstrings.op1_flip1.Op1Flip1
+a.op2.name: uniform
+a.op2.class: moptipy.operators.bitstrings.op2_uniform.Op2Uniform
+a.pop_size: 10
+a.cr: 0.05
+a.cr(hex): 0x1.999999999999ap-5
+y.name: bits16
+y.class: moptipy.spaces.bitstrings.BitStrings
+y.nvars: 16
+y.dtype: ?
+f.name: weightedSum
+f.class: moptipy.mo.problem.weighted_sum.WeightedSum
+f.lowerBound: 0
+f.upperBound: 48
+f.nvars: 2
+f.dtype: b
+f.f0.name: zeromax_16
+f.f0.class: moptipy.examples.bitstrings.zeromax.ZeroMax
+f.f0.lowerBound: 0
+f.f0.upperBound: 16
+f.f1.name: leadingones_16
+f.f1.class: moptipy.examples.bitstrings.leadingones.LeadingOnes
+f.f1.lowerBound: 0
+f.f1.upperBound: 16
+f.weights: 1;2
+f.weightsDtype: b
+ap.name: keepFarthest
+ap.class: moptipy.mo.archive.keep_farthest.KeepFarthest
+END_SETUP
+BEGIN_SYS_INFO
+session.start: 2022-08-11 05:27:04.202252
+session.node: home
+session.procesId: 0x90b8
+session.cpuAffinity: 0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15
+session.ipAddress: 192.168.1.107
+version.moptipy: 0.9.2
+version.numpy: 1.22.4
+version.numba: 0.56.0
+version.matplotlib: 3.5.2
+version.psutil: 5.9.1
+version.scikitlearn: 1.1.1
+hardware.machine: x86_64
+hardware.nPhysicalCpus: 8
+hardware.nLogicalCpus: 16
+hardware.cpuMhz: (2200MHz..3700MHz)*16
+hardware.byteOrder: little
+hardware.cpu: AMD Ryzen 7 2700X Eight-Core Processor
+hardware.memSize: 33606373376
+python.version: 3.10.4 (main, Jun 29 2022, 12:14:53) [GCC 11.2.0]
+python.implementation: CPython
+os.name: Linux
+os.release: 5.15.0-43-generic
+os.version: 46-Ubuntu SMP Tue Jul 12 10:30:17 UTC 2022
+END_SYS_INFO
+BEGIN_RESULT_Y
+TTTTTTTTTTTTFFFF
+END_RESULT_Y
+BEGIN_ARCHIVE_0_Y
+FFFFFFFFFFFFFFFF
+END_ARCHIVE_0_Y
+BEGIN_ARCHIVE_1_Y
+TFFFFFFFFFFFFFFF
+END_ARCHIVE_1_Y
+BEGIN_ARCHIVE_2_Y
+TTFFFFFFFFFFFFFF
+END_ARCHIVE_2_Y
+BEGIN_ARCHIVE_3_Y
+TTTFFFFFFFFFFFFF
+END_ARCHIVE_3_Y
+BEGIN_ARCHIVE_4_Y
+TTTTFFFFFFFFFFFF
+END_ARCHIVE_4_Y
+BEGIN_ARCHIVE_5_Y
+TTTTTFFFFFFFFFFF
+END_ARCHIVE_5_Y
+BEGIN_ARCHIVE_6_Y
+TTTTTTFFFFFFFFFF
+END_ARCHIVE_6_Y
+BEGIN_ARCHIVE_7_Y
+TTTTTTTFFFFFFFFF
+END_ARCHIVE_7_Y
+BEGIN_ARCHIVE_8_Y
+TTTTTTTTFFFFFFFF
+END_ARCHIVE_8_Y
+BEGIN_ARCHIVE_9_Y
+TTTTTTTTTTFFFFFF
+END_ARCHIVE_9_Y
+BEGIN_ARCHIVE_10_Y
+TTTTTTTTTTTFFFFF
+END_ARCHIVE_10_Y
+BEGIN_ARCHIVE_11_Y
+TTTTTTTTTTTTFFFF
+END_ARCHIVE_11_Y
+BEGIN_ARCHIVE_QUALITIES
+f;f0;f1
+32;0;16
+31;1;15
+30;2;14
+29;3;13
+28;4;12
+27;5;11
+26;6;10
+25;7;9
+24;8;8
+22;10;6
+21;11;5
+20;12;4
+END_ARCHIVE_QUALITIES
+```
+
+
 ### 5.2. End Result CSV Files
 
 While a [log file](#51-log-files) contains all the data of a single run, you often want to get just the basic measurements, such as the result objective values, from all runs of one experiment in a single file.
@@ -1129,7 +1377,7 @@ with TempDir.create() as td:
 
 This will yield something like the following output:
 
-```
+```text
 algorithm;instance;randSeed;bestF;lastImprovementFE;lastImprovementTimeMillis;totalFEs;totalTimeMillis;goalF;maxFEs;maxTimeMillis
 hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;27;10000;111;935;10000;120000
 hc_swap2;la24;0x23098fe72e435030;1065;9868;109;10000;111;935;10000;120000
@@ -1256,7 +1504,7 @@ with TempDir.create() as td:
 
 We will get something like the following output:
 
-```
+```text
 algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
 hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;66;98.5;101.75;97.01834939499804;144;35.79920855735966;10000;10000;10000;10000;10000;0;167;173.5;172.75;172.7115064384389;177;4.193248541803041;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
 hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.25;1.189207115002721;2;0.5;34;10000;7508.5;2414.736402766418;10000;4983;1;110.5;83.75;34.271312811950835;113;55.19284373902109;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;335;10000;120000

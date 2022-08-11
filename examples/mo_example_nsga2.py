@@ -44,6 +44,11 @@ f2 = Worktime(instance)  # The second objective be the total work time.
 # will be the one with the shortest makespan.
 problem = Prioritize([f1, f2])
 
+# NSGA-II is the most well-known multi-objective optimization algorithm.
+# It works directly on the multiple objectives. It does not require the
+# scalarization above at all. The scalarization is _only_ used internally in
+# the `Process` objects to ensure compatibility with single-objective
+# optimization and for being able to remember a single "best" solution.
 algorithm = NSGA2(              # Create the NSGA-II algorithm.
     Op0Shuffle(search_space),   # start with a random permutation and
     Op1SwapN(),                 # swap a random number of elements per step.
