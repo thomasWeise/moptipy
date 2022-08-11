@@ -1,16 +1,39 @@
 """Test the simple cache."""
 import os.path
+from typing import cast
 
 # noinspection PyPackageRequirements
 import pytest
 
 from moptipy.utils.temp import TempFile, TempDir
+from moptipy.utils.path import Path
+
+
+def test_path_creation():
+    """Test that path creation failes with wrong time."""
+    with pytest.raises(TypeError):
+        Path.path(cast(str, 1))
+    with pytest.raises(TypeError):
+        Path.directory(cast(str, 1))
+    with pytest.raises(TypeError):
+        Path.file(cast(str, 1))
+    with pytest.raises(ValueError):
+        Path.path("")
 
 
 def test_write_all_read_all_and_enforce_exists():
     """Test writing and reading text as well as enforcing existence."""
 
     with TempFile.create() as tf:
+        with pytest.raises(ValueError):
+            tf.write_all([])
+        with pytest.raises(ValueError):
+            tf.write_all("")
+        with pytest.raises(ValueError):
+            tf.write_all(" ")
+        with pytest.raises(TypeError):
+            tf.write_all(cast(str, 2))
+
         tf.write_all(" \nbla\n\n x \n99 x   y\n\n")
         assert tf.read_all_str() == "\nbla\n\n x\n99 x   y\n"
         assert tf.read_all_list() == ["", "bla", "", " x", "99 x   y"]
@@ -144,3 +167,7 @@ def test_create_file_or_truncate():
         assert os.path.isfile(f)
         with pytest.raises(ValueError):
             f.read_all_str()
+
+        with TempDir.create(directory=td) as td2:
+            with pytest.raises(ValueError):
+                td2.create_file_or_truncate()

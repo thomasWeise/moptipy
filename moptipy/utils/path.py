@@ -261,7 +261,8 @@ class Path(str):
         try:
             os.close(os.open(self, os.O_CREAT | os.O_TRUNC))
         except FileExistsError as err:
-            raise ValueError(f"File '{self}' already exists.") from err
+            raise ValueError(
+                f"File '{self}' could not be truncated.") from err
         except Exception as err:
             raise ValueError(
                 f"Error when trying to create  file '{self}'.") from err
