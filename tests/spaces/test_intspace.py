@@ -14,7 +14,7 @@ def test_int_space():
     """Test the integer space."""
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
-    assert str(f) == "ints12b3-32"
+    assert str(f) == "ints12b3to32"
 
     def _invalid(x):
         x[0] = 33
@@ -51,7 +51,7 @@ def test_int_space():
                 f.log_parameters_to(kv)
         result = path.read_all_list()
     assert result == ["BEGIN_F",
-                      "name: ints12b3-32",
+                      "name: ints12b3to32",
                       "class: moptipy.spaces.intspace.IntSpace",
                       "nvars: 12",
                       "dtype: b",

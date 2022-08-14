@@ -6,6 +6,7 @@ import numpy
 
 from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
 #: the base string to be permuted
@@ -248,19 +249,19 @@ class Permutations(IntSpace):  # +book
         if reps and (different != (self.dimension // reps)):
             raise ValueError(f"huh? {different} != {self.dimension} / {reps}")
         all_values: Final[bool] = self.is_dense()
-        min_is_0: Final[bool] = minimum <= 0
+        min_is_0: Final[bool] = minimum == 0
 
         if reps:
             if reps == 1:
                 if all_values:
                     if min_is_0:
                         return f"perm{different}"
-                    return f"perm{minimum}to{maximum}"
+                    return sanitize_name(f"perm{minimum}to{maximum}")
             else:  # repetitions != 1
                 if all_values:
                     if min_is_0:
                         return f"perm{different}w{reps}r"
-                    return f"perm{minimum}to{maximum}w{reps}r"
+                    return sanitize_name(f"perm{minimum}to{maximum}w{reps}r")
         return "perm_of_string"
 
     @staticmethod

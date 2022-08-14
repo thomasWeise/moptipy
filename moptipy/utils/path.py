@@ -66,7 +66,8 @@ def _get_text_encoding(filename: str) -> str:
 
 
 #: a pattern used to clean up training white space
-_PATTERN_TRAILING_WHITESPACE: Final[Pattern] = _compile(r"[ \t]+\n", MULTILINE)
+_PATTERN_TRAILING_WHITESPACE: Final[Pattern] = \
+    _compile(r"[ \t]+\n", MULTILINE)
 
 
 class Path(str):

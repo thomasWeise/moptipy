@@ -5,20 +5,13 @@ This is the basic `mu+lambda`-EA works as follows:
 
 1. Start with a list `lst` of `mu` random records and `lambda` blank records.
 2. In each iteration:
+
     2.1. Use the `mu` first records as input to the search operators to
          generate `lambda` new points in the search space:
          For each new point to be created, the binary operator is applied
          with probability `0<=br<=1` and the unary operator is used otherwise.
 
-         Each of the `mu` records has the same chance to produce such a new
-         point in the search space, but no record can be used again (in one
-         iteration) until all other `mu-1` selected records have produced at
-         least one point. In other words, if `lambda > mu`, then each of the
-         `mu` selected record will produce at least `lambda // mu` offspring
-         and at most `1 + lambda // mu`.
     2.1. Sort the list `lst` according to the objective value of the record.
-         Ties are broken such that younger record are preferred over older
-         ones (if they have the same objective value).
 
 If `mu=1`, `lambda=1`, and `br=0`, then this algorithm is exactly equivalent
 to the :class:`~moptipy.algorithms.so.rls.RLS` if the same unary and nullary
@@ -44,15 +37,11 @@ class _Record:
     A point in the search space, its quality, and creation time.
 
     A record stores a point in the search space :attr:`x` together with
-    the corresponding objective value :attr:`f`. It also stores a
-    "iteration index" :attr:`it`, i.e., the time when the point was
-    created or modified.
+    the corresponding objective value :attr:`f`.
 
     This allows for representing and storing solutions in a population.
     If the population is sorted, then records with better objective
-    value will be moved to the beginning of the list. Ties are broken
-    such that younger individuals (with higher :attr:`it` value) are
-    preferred.
+    value will be moved to the beginning of the list.
     """
 
     def __init__(self, x, f: Union[int, float]):
@@ -66,8 +55,6 @@ class _Record:
         self.x: Final = x
         #: the objective value corresponding to x
         self.f: Union[int, float] = f
-        #: the iteration index when the record was created
-        self.it: int = 0
 
     def __lt__(self, other) -> bool:
         """
@@ -75,8 +62,7 @@ class _Record:
 
         :param other: the other record
         :returns: `True` if this record has a better objective value
-            (:attr:`f`) or if it has the same objective value but is newer,
-            i.e., has a larger :attr:`it` value
+            (:attr:`f`), `False` otherwise
 
         >>> r1 = _Record(None, 10)
         >>> r2 = _Record(None, 9)
@@ -84,22 +70,11 @@ class _Record:
         False
         >>> r2 < r1
         True
-        >>> r1.it = 22
         >>> r2.f = r1.f
-        >>> r2.it = r1.it
-        >>> r1 < r2
-        False
         >>> r2 < r1
         False
-        >>> r2.it = r1.it + 1
-        >>> r1 < r2
-        False
-        >>> r2 < r1
-        True
         """
-        f1: Final[Union[int, float]] = self.f
-        f2: Final[Union[int, float]] = other.f
-        return (f1 < f2) or ((f1 == f2) and (self.it > other.it))
+        return self.f < other.f
 # end record
 
 
@@ -170,44 +145,32 @@ class EA(Algorithm2):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             lst[i] = _Record(x, f)  # create and store record
 
-        iteration: int = 1  # The first "real" iteration has index 1
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
-            end: int = mu  # the end index for available old records
             for oi in range(mu, lst_size):  # for all lambda offspring
                 if should_terminate():  # only continue if we still...
                     return  # have sufficient budget ... otherwise quit
+                dest: _Record = lst[oi]  # pick destination record
+                x = dest.x               # the destination "x" value
 
-                offspring: _Record = lst[oi]  # pick offspring
-                x = offspring.x  # the point in search space we work on
-                offspring.it = iteration  # mark as member of new iter.
-
-                pi: int = r0i(end)  # random record in 0..end-1=unused
-                rec: _Record = lst[pi]  # pick the unused record
-                if end > 1:  # swap rec to the end to not use again
-                    end = end - 1  # reduce number of unused records
-                    lst[end], lst[pi] = rec, lst[end]  # rec <-> end
-                else:  # oh: we have used all records
-                    end = mu  # then lambda >= mu and we re-use them
+                si: int = r0i(mu)  # pick random source record from
+                sx = lst[si].x     # index 0..mu-1 .. we only need x
                 # end nobinary
                 # start binary
                 if r01() < br:  # apply binary operator at rate br
-                    pi = r0i(end)  # random record in 0..end-1
-                    rec2: _Record = lst[pi]  # get second unused record
-                    if end > 1:  # swap rec2 to end to not use again
-                        end = end - 1  # reduce num. of unused records
-                        lst[end], lst[pi] = rec2, lst[end]
-                    else:  # oh: we have used all records?
-                        end = mu  # then lambda>=mu and we re-use them
-                    op2(random, x, rec.x, rec2.x)  # apply binary op
-                    offspring.f = evaluate(x)  # evaluate new point
+                    sx2 = sx    # second source "x"
+                    while sx2 is sx:     # must be different from sx
+                        si = r0i(mu)     # random record in 0..mu-1
+                        sx2 = lst[si].x  # get second record
+                    op2(random, x, sx, sx2)  # apply binary op
+                    dest.f = evaluate(x)  # evaluate new point
                     continue  # below is "else" part with unary operat.
                 # end binary
                 # start nobinary
-                op1(random, x, rec.x)  # apply unary operator to rec.x
-                offspring.f = evaluate(x)  # evaluate new point
+                op1(random, x, sx)    # apply unary operator
+                dest.f = evaluate(x)  # evaluate new point
 
-            iteration = iteration + 1  # step iteration counter
-            lst.sort()  # sort list: best records come first
+            lst.reverse()  # new solutions of same f precede old ones
+            lst.sort()     # sort list: best records come first
 # end nobinary
 
     def __init__(self, op0: Op0,

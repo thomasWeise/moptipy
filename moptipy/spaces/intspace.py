@@ -6,6 +6,7 @@ import numpy
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
+from moptipy.utils.strings import sanitize_name
 
 #: the minimum value
 KEY_MIN: Final[str] = "min"
@@ -95,10 +96,10 @@ class IntSpace(NPArraySpace):
         :return: "ints" + dimension + dtype.char + min_value + "-" + max_value
 
         >>> print(IntSpace(4, -1, 3))
-        ints4b-1-3
+        ints4bm1to3
         """
-        return f"ints{self.dimension}{self.dtype.char}" \
-               f"{self.min_value}-{self.max_value}"
+        return sanitize_name(f"ints{self.dimension}{self.dtype.char}"
+                             f"{self.min_value}to{self.max_value}")
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

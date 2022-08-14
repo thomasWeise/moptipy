@@ -27,7 +27,7 @@ LETTER_L: Final[str] = "\u03BB"
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
-    n: i for i, n in enumerate(EXPERIMENT_INSTANCES)
+    __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
 }
 
 
@@ -49,7 +49,7 @@ def instance_sort_key(name: str) -> int:
 
 #: the pre-defined algorithm sort keys
 __ALGO_SORT_KEYS: Final[Dict[str, int]] = {
-    n: i for i, n in enumerate([
+    __n: __i for __i, __n in enumerate([
         "1rs", "rs", "hc", "hc_swap2", "hcr_32768_swap2", "hcr", "hcn",
         "hc_swapn", "hcr_65536_swapn", "hcrn", "rls", "rls_swap2",
         "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn"])
@@ -75,8 +75,18 @@ def algorithm_sort_key(name: str) -> int:
 #: the algorithm name map
 __ALGO_NAME_MAP: Final[Dict[str, str]] = {
     "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
-    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn"
+    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn",
 }
+for __muexp in range(0, 8):
+    __mu: int = 2 ** __muexp
+    __n = f"ea_{__mu}_1_swap2"
+    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+1ea"
+    __ALGO_SORT_KEYS[__n] = len(__ALGO_SORT_KEYS)
+    __ALGO_SORT_KEYS[__s] = len(__ALGO_SORT_KEYS)
+    __n = f"ea_{__mu}_{__mu}_swap2"
+    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+{__mu}ea"
+    __ALGO_SORT_KEYS[__n] = len(__ALGO_SORT_KEYS)
+    __ALGO_SORT_KEYS[__s] = len(__ALGO_SORT_KEYS)
 
 
 def algorithm_namer(name: str) -> str:
@@ -416,6 +426,25 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     progress(["rls_swapn", "rls_swap2", "hcr_32768_swap2",
               "hcr_65536_swapn"], dest, source)
     gantt(end_results, "rls_swap2", dest, source, True, ["ta70"])
+
+    logger("Now evaluating EA without crossover.")
+    makespans_over_param(
+        end_results=end_results,
+        selector=lambda name: name.startswith("ea_")
+        and name.split("_")[3] == "swap2",
+        x_getter=lambda es: int(es.algorithm.split("_")[1]),
+        name_base="ea_no_cr",
+        algo_getter=lambda es: f"{LETTER_M}+1ea"
+        if int(es.split("_")[2]) == 1 else f"{LETTER_M}+{LETTER_M}ea",
+        title=f"{LETTER_M}+{LETTER_L}EA", x_label=LETTER_M,
+        x_axis=AxisRanger(log_scale=True, log_base=2.0),
+        dest_dir=dest)
+    table(end_results, ["ea_2_2_swap2", "ea_4_1_swap2", "ea_32_32_swap2",
+                        "rls_swap2"], dest)
+    makespans(end_results, ["ea_2_2_swap2", "ea_4_1_swap2", "ea_32_32_swap2",
+                            "rls_swap2"], dest)
+    progress(["ea_2_2_swap2", "ea_4_1_swap2", "ea_32_32_swap2",
+              "rls_swap2"], dest, source)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

@@ -47,7 +47,8 @@ def num_to_str_for_name(x: Union[int, float]) -> str:
     >>> num_to_str_for_name(-6.32)
     'm6d32'
     """
-    return num_to_str(x).replace('.', 'd').replace('-', 'm')
+    return num_to_str(x).replace('.', DECIMAL_DOT_REPLACEMENT)\
+        .replace('-', MINUS_REPLACEMENT)
 
 
 def bool_to_str(value: bool) -> str:
@@ -232,6 +233,10 @@ def __replace_double(replace: str, src: str) -> str:
 PART_SEPARATOR: Final[str] = "_"
 #: the replacement for "." in a file name
 DECIMAL_DOT_REPLACEMENT: Final[str] = "d"
+#: the replacement for "-" in a file name
+MINUS_REPLACEMENT: Final[str] = "m"
+#: the replacement for "+" in a file name
+PLUS_REPLACEMENT: Final[str] = "p"
 
 #: a pattern used during name sanitization
 __PATTERN_SPACE_BEFORE_MINUS: Final[Pattern] = _compile(r"[^\w\s-]")
@@ -246,9 +251,9 @@ def sanitize_name(name: str) -> str:
     >>> sanitize_name(" hello world ")
     'hello_world'
     >>> sanitize_name(" 56.6-455 ")
-    '56d6-455'
+    '56d6m455'
     >>> sanitize_name(" _ i _ am _ funny   --6 _ ")
-    'i_am_funny_-6'
+    'i_am_funny_m6'
 
     :param name: the name that should be sanitized
     :return: the sanitized name
@@ -259,7 +264,8 @@ def sanitize_name(name: str) -> str:
         raise type_error(name, "name", str)
     orig_name = name
     name = name.strip()
-    name = __replace_double("-", name)
+    name = __replace_double("-", name).replace("+", PLUS_REPLACEMENT)
+    name = __replace_double("+", name).replace("-", MINUS_REPLACEMENT)
     name = __replace_double("_", name)
     name = __replace_double(".", name).replace(".", DECIMAL_DOT_REPLACEMENT)
 
@@ -285,7 +291,7 @@ def sanitize_names(names: Iterable[str]) -> str:
     Sanitize a set of names.
 
     >>> sanitize_names(["", " sdf ", "", "5-3"])
-    'sdf_5-3'
+    'sdf_5m3'
     >>> sanitize_names([" a ", " b", " c", "", "6", ""])
     'a_b_c_6'
 
