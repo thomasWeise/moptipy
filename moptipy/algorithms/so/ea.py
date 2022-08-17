@@ -1,5 +1,5 @@
 """
-The implementation of a (mu+lambda) Evolutionary Algorithm.
+A simple implementation of a (mu+lambda) Evolutionary Algorithm.
 
 This is the basic `mu+lambda`-EA works as follows:
 
@@ -7,16 +7,28 @@ This is the basic `mu+lambda`-EA works as follows:
 2. In each iteration:
 
     2.1. Use the `mu` first records as input to the search operators to
-         generate `lambda` new points in the search space:
+         generate `lambda` new points in the search space.
          For each new point to be created, the binary operator is applied
          with probability `0<=br<=1` and the unary operator is used otherwise.
 
-    2.1. Sort the list `lst` according to the objective value of the record.
+    2.2. Sort the list `lst` according to the objective value of the record.
+         This moves the best solutions to the front of the list.
 
 If `mu=1`, `lambda=1`, and `br=0`, then this algorithm is exactly equivalent
 to the :class:`~moptipy.algorithms.so.rls.RLS` if the same unary and nullary
 operator are used. It is only a bit slower due to the additional overhead of
-maintaining a list of records.
+maintaining a list of records. To achieve this compatibility is achieved by
+a minor tweak of `step 2.2` above: RLS will prefer the newer solution over the
+current one if the new solution is either better or as same as good. Now the
+latter case cannot be achieved by just sorting the list, since sorting in
+Python is *stable* (equal elements remain in the order in which they are
+encountered in the original list) and because our new solutions would be in
+the `lambda` last entries of the list. This can easily be fixed by first
+reversing the list before sorting it. Now the `lambda` new solutions are at
+the front and the `mu` older solutions are at the back. If a new solution has
+the same objective value as an oder one, it will remain in front of the older
+one due to the stable sorting and, hence, be preferred if the cut-off point
+`mu` happens to be between them.
 """
 from math import isfinite
 from typing import Final, Union, Callable, List, cast, Optional
@@ -33,16 +45,7 @@ from moptipy.utils.types import type_error
 
 # start record
 class _Record:
-    """
-    A point in the search space, its quality, and creation time.
-
-    A record stores a point in the search space :attr:`x` together with
-    the corresponding objective value :attr:`f`.
-
-    This allows for representing and storing solutions in a population.
-    If the population is sorted, then records with better objective
-    value will be moved to the beginning of the list.
-    """
+    """A point :attr:`x` in the search space and quality :attr:`f`."""
 
     def __init__(self, x, f: Union[int, float]):
         """
@@ -58,7 +61,7 @@ class _Record:
 
     def __lt__(self, other) -> bool:
         """
-        Precedence if 1) better or b) equally good but younger.
+        Check if `self.f` is smaller than of `other.f`.
 
         :param other: the other record
         :returns: `True` if this record has a better objective value
@@ -101,11 +104,18 @@ class EA(Algorithm2):
     """
     The EA is a population-based algorithm using unary and binary operators.
 
-    It starts with a list of `mu` randomly initialized solutions. In each
-    step, it retains the `mu` best solutions and generates `lambda` new
-    solutions from them using the unary or binary search operator. From the
-    joint set of `mu+lambda` solutions, it again selects the best `mu` ones
-    for the next iteration. And so on.
+    It starts with a list of :attr:`mu` randomly initialized solutions. In
+    each step, it retains the `mu` best solutions and generates
+    :attr:`lambda_` new solutions from them using the unary operator
+    (:attr:`~moptipy.api.algorithm.Algorithm1.op1`) with probability
+    1-:attr:`br` and the binary search operator
+    ((:attr:`~moptipy.api.algorithm.Algorithm2.op2`) at rate :attr:`br`. From
+    the joint set of `mu+lambda_` solutions, it again selects the best `mu`
+    ones for the next iteration. And so on.
+
+    If `mu=1`, `lambda_=1`, and `br=0`, then this algorithm is exactly
+    equivalent to the :class:`~moptipy.algorithms.so.rls.RLS` if the same
+    unary and nullary operator are used.
     """
 
     def solve(self, process: Process) -> None:
@@ -114,8 +124,8 @@ class EA(Algorithm2):
 
         :param process: the black-box process object
         """
-        mu: Final[int] = self.__mu  # mu: number of best solutions kept
-        lst_size: Final[int] = mu + self.__lambda  # size = mu + lambda
+        mu: Final[int] = self.mu  # mu: number of best solutions kept
+        lst_size: Final[int] = mu + self.lambda_  # size = mu + lambda
         # Omitted for brevity: store function references in variables
         # end nobinary
         random: Final[Generator] = process.get_random()  # random gen
@@ -124,7 +134,7 @@ class EA(Algorithm2):
         op0: Final[Callable] = self.op0.op0  # the nullary operator
         op1: Final[Callable] = self.op1.op1  # the unary operator
         op2: Final[Callable] = self.op2.op2  # the binary operator
-        br: Final[float] = self.__br  # the rate at which to use op2
+        br: Final[float] = self.br  # the rate at which to use op2
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(   # only if m > 1, we
             Callable[[int], int], random.integers  # need random
@@ -248,11 +258,11 @@ class EA(Algorithm2):
             raise ValueError(
                 f"if br (={br}) > 0, then mu (={mu}) must be > 1.")
         #: the number of records to survive in each generation
-        self.__mu: Final[int] = mu
+        self.mu: Final[int] = mu
         #: the number of offsprings per generation
-        self.__lambda: Final[int] = lambda_
+        self.lambda_: Final[int] = lambda_
         #: the rate at which the binary operator is applied
-        self.__br: Final[float] = br
+        self.br: Final[float] = br
 
     def log_parameters_to(self, logger: KeyValueLogSection):
         """
@@ -261,6 +271,6 @@ class EA(Algorithm2):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        logger.key_value("mu", self.__mu)
-        logger.key_value("lambda", self.__lambda)
-        logger.key_value("br", self.__br)
+        logger.key_value("mu", self.mu)
+        logger.key_value("lambda", self.lambda_)
+        logger.key_value("br", self.br)

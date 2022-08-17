@@ -77,7 +77,7 @@ __ALGO_NAME_MAP: Final[Dict[str, str]] = {
     "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
     "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn",
 }
-for __muexp in range(0, 8):
+for __muexp in range(0, 5):
     __mu: int = 2 ** __muexp
     __n = f"ea_{__mu}_1_swap2"
     __ALGO_NAME_MAP[__n] = __s = f"{__mu}+1ea"
