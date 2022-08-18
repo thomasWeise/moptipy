@@ -13,8 +13,27 @@ import psutil  # type: ignore
 import moptipy.version as ver
 from moptipy.api import logging
 from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueLogSection, \
-    CSV_SEPARATOR
+    CSV_SEPARATOR, KEY_VALUE_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.path import Path
+
+
+def __cpu_affinity(proc: Optional[psutil.Process] = None) -> Optional[str]:
+    """
+    Get the CPU affinity.
+
+    :param proc: the process handle
+    :return: the CPU affinity string.
+    """
+    if proc is None:
+        proc = psutil.Process()
+    if proc is None:
+        return None
+    cpua = proc.cpu_affinity()
+    if cpua:
+        cpua = CSV_SEPARATOR.join(map(str, cpua))
+        if len(cpua) > 0:
+            return cpua
+    return None
 
 
 # noinspection PyBroadException
@@ -131,10 +150,9 @@ def __make_sys_info() -> str:
                 __v(k, logging.KEY_NODE_NAME, platform.node())
                 proc = psutil.Process()
                 __v(k, logging.KEY_PROCESS_ID, hex(proc.pid))
-                cpua = proc.cpu_affinity()
+                cpua = __cpu_affinity(proc)
                 if cpua:
-                    __v(k, logging.KEY_CPU_AFFINITY,
-                        CSV_SEPARATOR.join(map(str, cpua)))
+                    __v(k, logging.KEY_CPU_AFFINITY, cpua)
                 del proc, cpua
 
                 # see https://stackoverflow.com/questions/166506/.
@@ -151,8 +169,11 @@ def __make_sys_info() -> str:
 
             with kv.scope(logging.SCOPE_VERSIONS) as k:
                 __v(k, "moptipy", ver.__version__)
-                for package in ["numpy", "numba", "matplotlib",
-                                "psutil", "scikit-learn"]:
+                for package in ["cycler", "fonttools", "joblib", "kiwisolver",
+                                "llvmlite", "matplotlib", "numba", "numpy",
+                                "packaging", "Pillow", "psutil", "pyparsing",
+                                "python-dateutil", "scikit-learn", "scipy",
+                                "six", "threadpoolctl"]:
                     __v(k, package.replace("-", ""),
                         ilm.version(package).strip())
 
@@ -214,7 +235,23 @@ __SYS_INFO: Final[List[str]] = [__make_sys_info()]
 
 def refresh_sys_info():
     """Refresh the system information."""
-    __SYS_INFO[0] = __make_sys_info()
+    sys_info_str = __SYS_INFO[0]
+    start = f"\n{logging.SCOPE_SESSION}{SCOPE_SEPARATOR}" \
+            f"{logging.KEY_CPU_AFFINITY}{KEY_VALUE_SEPARATOR}"
+    start_i = sys_info_str.find(start)
+    if start_i < 0:
+        return   # no affinity, don't need to update
+    start_i += len(start)
+    end_i = sys_info_str.find("\n", start_i)
+    if end_i <= start_i:
+        raise ValueError(f"Empty {logging.KEY_CPU_AFFINITY}?")
+    affinity = __cpu_affinity()
+    if affinity is None:
+        raise ValueError(
+            f"first affinity query is {sys_info_str[start_i:end_i]},"
+            f" but second one is None?")
+    sys_info_str = f"{sys_info_str[:start_i]}{affinity}{sys_info_str[end_i:]}"
+    __SYS_INFO[0] = sys_info_str
 
 
 def log_sys_info(logger: Logger) -> None:

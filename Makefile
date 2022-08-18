@@ -158,7 +158,11 @@ create_distribution: static_analysis test create_documentation
 	source "$$tempDir/bin/activate" &&\
 	echo "Now installing tar.gz." &&\
 	python3 -m pip --no-input --timeout 360 --retries 100 --require-virtualenv install "$(CWD)/dist/moptipy-$(VERSION).tar.gz" && ## nosem \
-	echo "Finished, cleaning up." &&\
+	echo "Installing tar.gz has worked. We now create the list of packages in this environment via pip freeze." &&\
+	pip freeze > "$(CWD)/dist/moptipy-$(VERSION)-requirements_frozen.txt" &&\
+	echo "Now fixing moptipy line in requirements file." &&\
+	sed -i "s/^moptipy.*/moptipy==$(VERSION)/" "$(CWD)/dist/moptipy-$(VERSION)-requirements_frozen.txt" &&\
+	echo "Now we deactivate the environment." &&\
 	deactivate &&\
 	rm -rf "$$tempDir" &&\
 	echo "Now testing the wheel." &&\
@@ -169,9 +173,14 @@ create_distribution: static_analysis test create_documentation
 	source "$$tempDir/bin/activate" &&\
 	echo "Now installing wheel." &&\
 	python3 -m pip --no-input --timeout 360 --retries 100 --require-virtualenv install "$(CWD)/dist/moptipy-$(VERSION)-py3-none-any.whl" && ## nosem \
-	echo "Finished, cleaning up." &&\
+	echo "Now we deactivate the environment." &&\
 	deactivate &&\
+	echo "Finished, cleaning up." &&\
 	rm -rf "$$tempDir" &&\
+	echo "Now also packaging the documentation." &&\
+	cd docs/build &&\
+	tar --dereference --exclude=".nojekyll" -c * | xz -v -9e -c > "$(CWD)/dist/moptipy-$(VERSION)-documentation.tar.xz" &&\
+	cd $(CWD) &&\
 	echo "Successfully finished building source distribution."
 
 # We install the package and see if that works out.
