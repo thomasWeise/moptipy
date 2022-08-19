@@ -14,10 +14,10 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # temp directory tool
 
-# We work in a temporary directory, i.e., delete all generated files on exit.
-# For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
-# and not use the `with` block.
+# We work with a temporary log file which is automatically deleted after this
+# experiment. For a real experiment, you would not use the `with` block and
+# instead put the path to the file that you want to create into `tf` by doing
+# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
 with TempDir.create() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.
     # As example domain, we use the job shop scheduling problem (JSSP).

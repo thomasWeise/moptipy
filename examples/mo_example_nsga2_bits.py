@@ -45,10 +45,10 @@ algorithm = NSGA2(  # Create the NSGA-II algorithm.
     Op2Uniform(),   # performs uniform crossover
     10, 0.05)  # population size = 10, crossover rate = 0.05
 
-# We execute the whole experiment in a temp directory.
-# For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
-# and not use the `with` block.
+# We work with a temporary log file which is automatically deleted after this
+# experiment. For a real experiment, you would not use the `with` block and
+# instead put the path to the file that you want to create into `tf` by doing
+# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
 with TempFile.create() as tf:  # create temporary file `tf`
     ex = MOExecution()  # begin configuring execution
     ex.set_solution_space(solution_space)
