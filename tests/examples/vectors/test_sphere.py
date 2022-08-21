@@ -33,8 +33,7 @@ def random_vector(random: Generator, x: np.ndarray,
     :returns: the array `x`
     """
     for i in range(len(x)):
-        x[i] = min(x_max, max(
-            x_min, x_min + random.random() * (x_max - x_min)))
+        x[i] = random.uniform(x_min, x_max)
     return x
 
 
