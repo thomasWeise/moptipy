@@ -6,7 +6,7 @@ from typing import Callable, Union, Iterable, List, Optional, Dict, Any, \
 import numpy as np
 from numpy.random import default_rng, Generator
 
-from moptipy.api.algorithm import Algorithm
+from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.objective import Objective
@@ -23,6 +23,8 @@ from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
 from moptipy.tests.op2 import validate_op2
 from moptipy.utils.types import type_error
+from moptipy.api.execution import Execution
+from moptipy.utils.nputils import array_to_str
 
 
 def dimensions_for_tests() -> Iterable[int]:
@@ -386,3 +388,94 @@ def validate_mo_algorithm_on_3_bitstring_problems(
             algorithm=algorithm,
             dimension=i,
             max_fes=max_fes)
+
+
+def verify_algorithms_equivalent(
+        algorithms: Iterable[Callable[[BitStrings], Algorithm]]) -> None:
+    """
+    Verify that a set of algorithms performs identical steps.
+
+    :param algorithms: the sequence of algorithms
+    """
+    if not isinstance(algorithms, Iterable):
+        raise type_error(algorithms, "algorithms", Iterable)
+
+    random: Final[Generator] = default_rng()
+    dim: Final[int] = int(random.integers(4, 16))
+    space: Final[BitStrings] = BitStrings(dim)
+    steps: Final[int] = int(random.integers(100, 1000))
+    choice: Final[int] = int(random.integers(3))
+    f: Final[Objective] = \
+        LeadingOnes(dim) if choice <= 0 else \
+        OneMax(dim) if choice <= 1 else \
+        Ising1d(dim)
+    evaluate: Final[Callable] = f.evaluate
+    seed: Final[int] = int(random.integers(1 << 62))
+
+    result1: Final[List[bool]] = []
+    result2: Final[List[bool]] = []
+    first: bool = True
+    first_name: str = ""
+    do_fes: int = -1
+    do_res: Union[int, float] = -1
+    index: int = -1
+    for algo in algorithms:
+        index += 1
+        if not callable(algo):
+            raise type_error(algo, f"algorithms[{index}] for {f}", call=True)
+        algorithm: Algorithm = check_algorithm(algo(space))
+        current_name: str = str(algorithm)
+        if first:
+            first_name = current_name
+            result = result1
+        else:
+            result = result2
+            result.clear()
+
+        def ff(x) -> int:
+            nonlocal result
+            nonlocal evaluate
+            rres = evaluate(x)
+            result.extend(x)  # pylint: disable=W0640
+            return rres
+
+        ex = Execution()
+        ex.set_algorithm(algorithm)
+        ex.set_solution_space(space)
+        f.evaluate = ff  # type: ignore
+        ex.set_objective(f)
+        ex.set_rand_seed(seed)
+        ex.set_max_fes(steps)
+        with ex.execute() as p:
+            cf = p.get_consumed_fes()
+            if not (0 < cf <= steps):
+                raise ValueError(f"{current_name} consumed {cf} FS for "
+                                 f"{steps} max FEs on {f} for seed {seed}.")
+            if first:
+                do_fes = cf
+            elif do_fes != cf:
+                raise ValueError(f"{current_name} consumed {cf} FEs but "
+                                 f"{first_name} consumed {do_fes} FEs on "
+                                 f"{f} for seed {seed}.")
+            res = p.get_best_f()
+            if not (0 <= res <= dim):
+                raise ValueError(f"{current_name} got {res} as objective "
+                                 f"value on {f} for seed {seed}.")
+            if first:
+                do_res = res
+            elif do_res != res:
+                raise ValueError(
+                    f"{current_name} got {res} as objective value on {f} but "
+                    f"{first_name} got {do_res} for seed {seed}.")
+            if len(result) != (cf * dim):
+                raise ValueError(
+                    f"len(result) == {len(result)}, but should be {cf * dim} "
+                    f"for {current_name} for seed {seed} on {f}.")
+        if (not first) and (result1 != result2):
+            raise ValueError(
+                f"{current_name} produced different steps than {first_name} "
+                f"on {f} for seed {seed}: is "
+                f"{array_to_str(np.array(result2))}"
+                f" but should be {array_to_str(np.array(result1))}.")
+
+        first = False

@@ -12,23 +12,25 @@ This is the basic `mu+lambda`-EA works as follows:
          with probability `0<=br<=1` and the unary operator is used otherwise.
 
     2.2. Sort the list `lst` according to the objective value of the record.
-         This moves the best solutions to the front of the list.
+         Ties are broken by preferring younger solutions over old ones. Soring
+         uses the `__lt__` dunder method of class
+         :class:`~moptipy.algorithms.so.record.Record`. This moves the best
+         solutions to the front of the list. The tie breaking method both
+         encourages drift and ensures compatibility with `RLS`.
 
 If `mu=1`, `lambda=1`, and `br=0`, then this algorithm is exactly equivalent
 to the :class:`~moptipy.algorithms.so.rls.RLS` if the same unary and nullary
 operator are used. It is only a bit slower due to the additional overhead of
-maintaining a list of records. To achieve this compatibility is achieved by
-a minor tweak of `step 2.2` above: RLS will prefer the newer solution over the
-current one if the new solution is either better or as same as good. Now the
-latter case cannot be achieved by just sorting the list, since sorting in
+maintaining a list of records. This compatibility is achieved by the tie
+breaking strategy of `step 2.2` above: RLS will prefer the newer solution over
+the current one if the new solution is either better or as same as good. Now
+the latter case cannot be achieved by just sorting the list without
+considering the iteration at which a solution was created, since sorting in
 Python is *stable* (equal elements remain in the order in which they are
 encountered in the original list) and because our new solutions would be in
-the `lambda` last entries of the list. This can easily be fixed by first
-reversing the list before sorting it. Now the `lambda` new solutions are at
-the front and the `mu` older solutions are at the back. If a new solution has
-the same objective value as an oder one, it will remain in front of the older
-one due to the stable sorting and, hence, be preferred if the cut-off point
-`mu` happens to be between them.
+the `lambda` last entries of the list. This can easily be fixed by the tie
+breaking, which is implemented in the `__lt__` dunder method of class
+:class:`~moptipy.algorithms.so.record.Record`.
 """
 from math import isfinite
 from typing import Final, Union, Callable, List, cast, Optional
@@ -39,46 +41,10 @@ from moptipy.api.algorithm import Algorithm2
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.strings import PART_SEPARATOR
 from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
-
-
-# start record
-class _Record:
-    """A point :attr:`x` in the search space and quality :attr:`f`."""
-
-    def __init__(self, x, f: Union[int, float]):
-        """
-        Create the record.
-
-        :param x: the data structure for a point in the search space
-        :param f: the corresponding objective value
-        """
-        #: the point in the search space
-        self.x: Final = x
-        #: the objective value corresponding to x
-        self.f: Union[int, float] = f
-
-    def __lt__(self, other) -> bool:
-        """
-        Check if `self.f` is smaller than of `other.f`.
-
-        :param other: the other record
-        :returns: `True` if this record has a better objective value
-            (:attr:`f`), `False` otherwise
-
-        >>> r1 = _Record(None, 10)
-        >>> r2 = _Record(None, 9)
-        >>> r1 < r2
-        False
-        >>> r2 < r1
-        True
-        >>> r2.f = r1.f
-        >>> r2 < r1
-        False
-        """
-        return self.f < other.f
-# end record
+from moptipy.algorithms.so.record import Record
 
 
 def _int_0(_: int) -> int:
@@ -153,43 +119,44 @@ class EA(Algorithm2):
                 if should_terminate():  # should we quit?
                     return   # computational budget exhausted -> quit
                 f = evaluate(x)  # continue? ok, evaluate new solution
-            lst[i] = _Record(x, f)  # create and store record
+            lst[i] = Record(x, f)  # create and store record
 
+        it: int = 0
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
+            it += 1  # step iteration counter
             for oi in range(mu, lst_size):  # for all lambda offspring
                 if should_terminate():  # only continue if we still...
                     return  # have sufficient budget ... otherwise quit
-                dest: _Record = lst[oi]  # pick destination record
-                x = dest.x               # the destination "x" value
+                dest: Record = lst[oi]  # pick destination record
+                x = dest.x  # the destination "x" value
+                dest.it = it  # remember iteration of solution creation
 
-                si: int = r0i(mu)  # pick random source record from
-                sx = lst[si].x     # index 0..mu-1 .. we only need x
+                sx = lst[r0i(mu)].x  # pick a random source record
                 # end nobinary
                 # start binary
                 if r01() < br:  # apply binary operator at rate br
                     sx2 = sx    # second source "x"
                     while sx2 is sx:     # must be different from sx
-                        si = r0i(mu)     # random record in 0..mu-1
-                        sx2 = lst[si].x  # get second record
+                        sx2 = lst[r0i(mu)].x  # get second record
                     op2(random, x, sx, sx2)  # apply binary op
                     dest.f = evaluate(x)  # evaluate new point
                     continue  # below is "else" part with unary operat.
                 # end binary
                 # start nobinary
-                op1(random, x, sx)    # apply unary operator
+                op1(random, x, sx)  # apply unary operator
                 dest.f = evaluate(x)  # evaluate new point
 
-            lst.reverse()  # new solutions of same f precede old ones
-            lst.sort()     # sort list: best records come first
+            lst.sort()  # best records come first, ties broken by age
 # end nobinary
 
     def __init__(self, op0: Op0,
                  op1: Optional[Op1] = None,
                  op2: Optional[Op2] = None,
                  mu: int = 1, lambda_: int = 1,
-                 br: Optional[float] = None) -> None:
+                 br: Optional[float] = None,
+                 name: str = "ea") -> None:
         """
-        Create the Evolutionary Algorithm (EA) without binary crossover.
+        Create the Evolutionary Algorithm (EA).
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
@@ -197,6 +164,7 @@ class EA(Algorithm2):
         :param mu: the number of best solutions to survive in each generation
         :param lambda_: the number of offspring in each generation
         :param br: the rate at which the binary operator is applied
+        :param name: the base name of the algorithm
         """
         if op1 is None:
             op1 = Op1()
@@ -205,7 +173,7 @@ class EA(Algorithm2):
             elif br != 1.0:
                 raise ValueError(
                     f"if op1==None, br must be None or 1.0, but is {br}.")
-        elif op1.__class__ == Op1:
+        elif op1.__class__ is Op1:
             if br is None:
                 br = 1.0
             elif br != 1.0:
@@ -221,7 +189,7 @@ class EA(Algorithm2):
             elif br != 0.0:
                 raise ValueError(
                     f"if op2==None, br must be None or 0.0, but is {br}.")
-        elif op2.__class__ == Op2:
+        elif op2.__class__ is Op2:
             if br is None:
                 br = 0.0
             elif br != 0.0:
@@ -237,9 +205,10 @@ class EA(Algorithm2):
         if br is None:
             br = 0.2
 
-        super().__init__(
-            f"ea_{mu}_{lambda_}_{num_to_str_for_name(br)}"
-            if 0 < br < 1 else f"ea_{mu}_{lambda_}", op0, op1, op2)
+        name = f"{name}{PART_SEPARATOR}{mu}{PART_SEPARATOR}{lambda_}"
+        if 0 < br < 1:
+            name = f"{name}{PART_SEPARATOR}{num_to_str_for_name(br)}"
+        super().__init__(name, op0, op1, op2)
 
         if not isinstance(mu, int):
             raise type_error(mu, "mu", int)

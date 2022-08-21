@@ -83,7 +83,7 @@ for scale in range(7, 21):  # add the hill climbers with restarts
     )
 for muexp in range(0, 5):
     mu: int = 2 ** muexp
-    for lambda_ in sorted({1, mu, mu + mu}):
+    for lambda_ in sorted({1, mu, mu + mu, 4 * mu, 8 * mu}):
         DEFAULT_ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
@@ -97,14 +97,14 @@ for muexp in range(0, 5):
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
                         Op0Shuffle(pwr), Op1Swap2(),
                         Op2OrderBased(pwr),
-                        mm, ll, bb))  # EA with crossover
+                        mm, ll, bb))  # EA with crossover 1
                 )
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
                         Op0Shuffle(pwr), Op1Swap2(),
                         Op2GeneralizedAlternatingPosition(pwr),
-                        mm, ll, bb))  # EA with crossover
+                        mm, ll, bb))  # EA with crossover 2
                 )
 
 
