@@ -64,8 +64,9 @@ class FFA(Fitness):
         if f.is_always_integer():
             lb: Final[Union[int, float]] = f.lower_bound()
             ub: Final[Union[int, float]] = f.upper_bound()
-            if isinstance(ub, int) and (ub <= 100_000_000):
-                if isinstance(lb, int) and (0 <= lb <= 10_000_000):
+            if isinstance(ub, int) and isinstance(lb, int) \
+                    and ((ub - lb) <= 100_000_000):
+                if 0 <= lb <= 10_000_000:
                     return _IntFFA1.__new__(_IntFFA1, cast(int, ub))
                 return _IntFFA2.__new__(_IntFFA2, cast(int, lb),
                                         cast(int, ub))
@@ -106,7 +107,7 @@ class _IntFFA1(FFA):
         for r in p:
             h[cast(int, r.f)] += 1
         for r in p:
-            r.v = h[cast(int, r.f)]
+            r.v = int(h[cast(int, r.f)])
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -114,6 +115,7 @@ class _IntFFA1(FFA):
 
         :param logger: the logger for the parameters
         """
+        super().log_parameters_to(logger)
         logger.key_value("ub", len(self.__h) - 1)
 
 
@@ -146,7 +148,7 @@ class _IntFFA2(FFA):
         for r in p:
             h[cast(int, r.f) - lb] += 1
         for r in p:
-            r.v = h[cast(int, r.f) - lb]
+            r.v = int(h[cast(int, r.f) - lb])
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -154,6 +156,7 @@ class _IntFFA2(FFA):
 
         :param logger: the logger for the parameters
         """
+        super().log_parameters_to(logger)
         logger.key_value("lb", self.__lb)
         logger.key_value("ub", len(self.__h) + self.__lb - 1)
 

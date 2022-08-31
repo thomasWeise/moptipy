@@ -6,6 +6,7 @@ from numpy.random import default_rng, Generator
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_algorithm import MOAlgorithm
+from moptipy.api.mo_problem import MOProblem
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -60,8 +61,8 @@ def make_gantt_valid(inst: Instance) -> Callable[[Generator, Gantt], Gantt]:
 
 
 def validate_algorithm_on_1_jssp(
-        algorithm: Union[Algorithm,
-                         Callable[[Instance, Permutations], Algorithm]],
+        algorithm: Union[Algorithm, Callable[
+            [Instance, Permutations, Objective], Algorithm]],
         instance: Optional[str] = None,
         max_fes: int = 100,
         required_result: Optional[int] = None) -> None:
@@ -86,14 +87,13 @@ def validate_algorithm_on_1_jssp(
 
     search_space = Permutations.with_repetitions(inst.jobs,
                                                  inst.machines)
-    if callable(algorithm):
-        algorithm = algorithm(inst, search_space)
-    if not isinstance(algorithm, Algorithm):
-        raise type_error(algorithm, "algorithm", Algorithm, call=True)
-
     solution_space = GanttSpace(inst)
     encoding = OperationBasedEncoding(inst)
     objective = Makespan(inst)
+    if callable(algorithm):
+        algorithm = algorithm(inst, search_space, objective)
+    if not isinstance(algorithm, Algorithm):
+        raise type_error(algorithm, "algorithm", Algorithm, call=True)
 
     goal: int
     if required_result is None:
@@ -113,7 +113,8 @@ def validate_algorithm_on_1_jssp(
 
 
 def validate_algorithm_on_jssp(
-        algorithm: Callable[[Instance, Permutations], Algorithm]) -> None:
+        algorithm: Callable[[Instance, Permutations,
+                             Objective], Algorithm]) -> None:
     """
     Validate an algorithm on a set of JSSP instances.
 
@@ -166,8 +167,8 @@ def validate_objective_on_jssp(
 
 
 def validate_mo_algorithm_on_1_jssp(
-        algorithm: Union[MOAlgorithm,
-                         Callable[[Instance, Permutations], MOAlgorithm]],
+        algorithm: Union[MOAlgorithm, Callable[
+            [Instance, Permutations, MOProblem], MOAlgorithm]],
         instance: Optional[str] = None,
         max_fes: int = 100) -> None:
     """
@@ -191,11 +192,6 @@ def validate_mo_algorithm_on_1_jssp(
 
     search_space = Permutations.with_repetitions(inst.jobs,
                                                  inst.machines)
-    if callable(algorithm):
-        algorithm = algorithm(inst, search_space)
-    if not isinstance(algorithm, MOAlgorithm):
-        raise type_error(algorithm, "algorithm", MOAlgorithm, call=True)
-
     solution_space = GanttSpace(inst)
     encoding = OperationBasedEncoding(inst)
 
@@ -206,18 +202,25 @@ def validate_mo_algorithm_on_1_jssp(
     else:
         weights = [1 + int(random.integers(1 << random.integers(40))),
                    1 + int(random.integers(1 << random.integers(40)))]
+    problem: Final[MOProblem] = WeightedSum(
+        [Makespan(inst), Worktime(inst)], weights)
+
+    if callable(algorithm):
+        algorithm = algorithm(inst, search_space, problem)
+    if not isinstance(algorithm, MOAlgorithm):
+        raise type_error(algorithm, "algorithm", MOAlgorithm, call=True)
 
     validate_mo_algorithm(algorithm=algorithm,
                           solution_space=solution_space,
-                          problem=WeightedSum([Makespan(inst), Worktime(inst)],
-                                              weights),
+                          problem=problem,
                           search_space=search_space,
                           encoding=encoding,
                           max_fes=max_fes)
 
 
 def validate_mo_algorithm_on_jssp(
-        algorithm: Callable[[Instance, Permutations], MOAlgorithm]) -> None:
+        algorithm: Callable[
+            [Instance, Permutations, MOProblem], MOAlgorithm]) -> None:
     """
     Validate a multi-objective algorithm on a set of JSSP instances.
 

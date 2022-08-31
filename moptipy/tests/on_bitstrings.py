@@ -1,12 +1,14 @@
 """Test stuff on bit strings."""
 
 from typing import Callable, Union, Iterable, List, Optional, Dict, Any, \
-    cast, Final
+    cast, Final, Set
 
 import numpy as np
 from numpy.random import default_rng, Generator
 
+from moptipy.algorithms.so.fitness import Fitness
 from moptipy.api.algorithm import Algorithm, check_algorithm
+from moptipy.api.execution import Execution
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.objective import Objective
@@ -16,15 +18,16 @@ from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.examples.bitstrings.zeromax import ZeroMax
 from moptipy.mo.problem.weighted_sum import WeightedSum
+from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.algorithm import validate_algorithm
+from moptipy.tests.fitness import validate_fitness
 from moptipy.tests.mo_algorithm import validate_mo_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
 from moptipy.tests.op2 import validate_op2
-from moptipy.utils.types import type_error
-from moptipy.api.execution import Execution
 from moptipy.utils.nputils import array_to_str
+from moptipy.utils.types import type_error, type_name_of
 
 
 def dimensions_for_tests() -> Iterable[int]:
@@ -201,7 +204,7 @@ def validate_op2_on_bitstrings(
 def validate_algorithm_on_bitstrings(
         objective: Union[Objective, Callable[[int], Objective]],
         algorithm: Union[Algorithm,
-                         Callable[[BitStrings], Algorithm]],
+                         Callable[[BitStrings, Objective], Algorithm]],
         dimension: int = 5,
         max_fes: int = 100,
         required_result: Optional[Union[int, Callable[
@@ -231,7 +234,7 @@ def validate_algorithm_on_bitstrings(
                          Objective)
     bs: Final[BitStrings] = BitStrings(dimension)
     if callable(algorithm):
-        algorithm = algorithm(bs)
+        algorithm = algorithm(bs, objective)
     if not isinstance(algorithm, Algorithm):
         raise type_error(algorithm, "result of callable 'algorithm'",
                          Algorithm)
@@ -250,8 +253,8 @@ def validate_algorithm_on_bitstrings(
 
 
 def validate_algorithm_on_onemax(
-        algorithm: Union[Algorithm,
-                         Callable[[BitStrings], Algorithm]]) -> None:
+        algorithm: Union[Algorithm, Callable[
+            [BitStrings, Objective], Algorithm]]) -> None:
     """
     Check the validity of a black-box algorithm on OneMax.
 
@@ -273,8 +276,8 @@ def validate_algorithm_on_onemax(
 
 
 def validate_algorithm_on_leadingones(
-        algorithm: Union[Algorithm,
-                         Callable[[BitStrings], Algorithm]]) -> None:
+        algorithm: Union[
+            Algorithm, Callable[[BitStrings, Objective], Algorithm]]) -> None:
     """
     Check the validity of a black-box algorithm on LeadingOnes.
 
@@ -299,7 +302,8 @@ def validate_algorithm_on_leadingones(
 
 def validate_mo_algorithm_on_bitstrings(
         problem: Union[MOProblem, Callable[[int], MOProblem]],
-        algorithm: Union[MOAlgorithm, Callable[[BitStrings], MOAlgorithm]],
+        algorithm: Union[MOAlgorithm, Callable[
+            [BitStrings, MOProblem], MOAlgorithm]],
         dimension: int = 5,
         max_fes: int = 100) -> None:
     """
@@ -326,7 +330,7 @@ def validate_mo_algorithm_on_bitstrings(
                          MOProblem)
     bs: Final[BitStrings] = BitStrings(dimension)
     if callable(algorithm):
-        algorithm = algorithm(bs)
+        algorithm = algorithm(bs, problem)
     if not isinstance(algorithm, MOAlgorithm):
         raise type_error(algorithm, "result of callable 'algorithm'",
                          MOAlgorithm)
@@ -338,8 +342,8 @@ def validate_mo_algorithm_on_bitstrings(
 
 
 def validate_mo_algorithm_on_2_bitstring_problems(
-        algorithm: Union[MOAlgorithm,
-                         Callable[[BitStrings], MOAlgorithm]]) -> None:
+        algorithm: Union[MOAlgorithm, Callable[
+            [BitStrings, MOProblem], MOAlgorithm]]) -> None:
     """
     Check the validity of a black-box algorithm on OneMax and ZeroMax.
 
@@ -363,8 +367,8 @@ def validate_mo_algorithm_on_2_bitstring_problems(
 
 
 def validate_mo_algorithm_on_3_bitstring_problems(
-        algorithm: Union[MOAlgorithm,
-                         Callable[[BitStrings], MOAlgorithm]]) -> None:
+        algorithm: Union[MOAlgorithm, Callable[
+            [BitStrings, MOProblem], MOAlgorithm]]) -> None:
     """
     Check the validity of an algorithm on OneMax, ZeroMax, and Ising1d.
 
@@ -391,7 +395,8 @@ def validate_mo_algorithm_on_3_bitstring_problems(
 
 
 def verify_algorithms_equivalent(
-        algorithms: Iterable[Callable[[BitStrings], Algorithm]]) -> None:
+        algorithms: Iterable[Callable[[BitStrings, Objective], Algorithm]]) \
+        -> None:
     """
     Verify that a set of algorithms performs identical steps.
 
@@ -423,7 +428,7 @@ def verify_algorithms_equivalent(
         index += 1
         if not callable(algo):
             raise type_error(algo, f"algorithms[{index}] for {f}", call=True)
-        algorithm: Algorithm = check_algorithm(algo(space))
+        algorithm: Algorithm = check_algorithm(algo(space, f))
         current_name: str = str(algorithm)
         if first:
             first_name = current_name
@@ -479,3 +484,51 @@ def verify_algorithms_equivalent(
                 f" but should be {array_to_str(np.array(result1))}.")
 
         first = False
+
+
+def validate_fitness_on_bitstrings(
+        fitness: Union[Fitness, Callable[[Objective], Fitness]],
+        class_needed: Union[str, type] = Fitness,
+        prepare_objective: Callable[[Objective], Objective] = lambda x: x) \
+        -> None:
+    """
+    Validate a fitness assignment process on bit strings.
+
+    :param fitness: the fitness assignment process, or a callable creating it
+    :param class_needed: the required class
+    :param prepare_objective: prepare the objective function
+    """
+    if not isinstance(fitness, Fitness):
+        if not callable(fitness):
+            raise type_error(fitness, "fitness", Fitness, call=True)
+    if not isinstance(class_needed, (str, type)):
+        raise type_error(class_needed, "class_needed", (str, type))
+    if not callable(prepare_objective):
+        raise type_error(prepare_objective, "prepare_objective", call=True)
+
+    random: Final[Generator] = default_rng()
+    sizes: Set[int] = set()
+    while len(sizes) < 4:
+        sizes.add(int(random.integers(2, 10)))
+    op0: Op0Random = Op0Random()
+    for s in sizes:
+        space: BitStrings = BitStrings(s)
+        f: Objective = OneMax(s) if random.integers(2) <= 0 else LeadingOnes(s)
+        f2 = prepare_objective(f)
+        if not isinstance(f2, Objective):
+            raise type_error(f2, f"prepare_objective({f})", Objective)
+        del f
+        if callable(fitness):
+            ff = fitness(f2)
+            if not isinstance(ff, Fitness):
+                raise type_error(ff, f"fitness({f2})", Fitness)
+            if isinstance(class_needed, str):
+                name = type_name_of(ff)
+                if name != class_needed:
+                    raise TypeError(f"fitness assignment process should be "
+                                    f"'{class_needed}', but is '{name}'.")
+            elif not isinstance(ff, class_needed):
+                raise type_error(ff, f"fitness({f2})", class_needed)
+        else:
+            ff = fitness
+        validate_fitness(ff, f2, space, op0)

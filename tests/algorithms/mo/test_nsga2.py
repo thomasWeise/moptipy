@@ -2,6 +2,7 @@
 from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.mo.nsga2 import NSGA2
+from moptipy.api.mo_problem import MOProblem
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
@@ -20,8 +21,9 @@ from moptipy.tests.on_jssp import validate_mo_algorithm_on_jssp
 def test_nsga2_on_bitstrings():
     """Validate the MO-RLS on bit strings problem."""
 
-    def create(bs: BitStrings):
+    def create(bs: BitStrings, problem: MOProblem):
         assert isinstance(bs, BitStrings)
+        assert isinstance(problem, MOProblem)
         random: Generator = default_rng()
         return NSGA2(Op0Random(), Op1Flip1(),
                      Op2Uniform(), int(random.integers(3, 10)),
@@ -34,10 +36,11 @@ def test_nsga2_on_bitstrings():
 def test_nsga2_on_jssp():
     """Validate the NSGA-2 on the JSSP."""
 
-    def create(instance: Instance,
-               search_space: Permutations):
+    def create(instance: Instance, search_space: Permutations,
+               problem: MOProblem):
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
+        assert isinstance(problem, MOProblem)
         random: Generator = default_rng()
         return NSGA2(Op0Shuffle(search_space), Op1Swap2(),
                      Op2OrderBased(search_space), int(random.integers(3, 10)),

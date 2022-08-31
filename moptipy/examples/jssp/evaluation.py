@@ -31,6 +31,42 @@ __INST_SORT_KEYS: Final[Dict[str, int]] = {
 }
 
 
+def is_ea_no_cr_swap2(name: str) -> bool:
+    """
+    Check if an algorithm is an EA without crossover.
+
+    :param name: the algorithm name
+    :returns: `True` if the algorithm is an EA without crossover and
+        2-swap operator, `False` otherwise.
+    """
+    if name.startswith("ea_"):
+        ss = name.split("_")
+        return (len(ss) == 4) and (ss[3] == "swap2")
+    return False
+
+
+def ea_family(name: str) -> str:
+    """
+    Name the evolutionary algorithm setup.
+
+    :param name: the full name
+    :returns: the short name of the family
+    """
+    if name.startswith("ea_"):
+        ss = name.split("_")
+        if len(ss) == 4:
+            lambda_ = int(ss[2])
+            if lambda_ == 1:
+                return f"{LETTER_M}+1_ea"
+            mu = int(ss[1])
+            ratio = lambda_ // mu
+            if ratio * mu == lambda_:
+                if ratio == 1:
+                    return f"{LETTER_M}+{LETTER_M}_ea"
+                return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
+    raise ValueError(f"Invalid name '{name}'.")
+
+
 def instance_sort_key(name: str) -> int:
     """
     Get the instance sort key for a given instance name.
@@ -77,14 +113,14 @@ __ALGO_NAME_MAP: Final[Dict[str, str]] = {
     "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
     "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn",
 }
-for __muexp in range(0, 5):
+for __muexp in range(0, 4):
     __mu: int = 2 ** __muexp
     __n = f"ea_{__mu}_1_swap2"
-    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+1ea"
+    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+1_ea"
     __ALGO_SORT_KEYS[__n] = len(__ALGO_SORT_KEYS)
     __ALGO_SORT_KEYS[__s] = len(__ALGO_SORT_KEYS)
     __n = f"ea_{__mu}_{__mu}_swap2"
-    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+{__mu}ea"
+    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+{__mu}_ea"
     __ALGO_SORT_KEYS[__n] = len(__ALGO_SORT_KEYS)
     __ALGO_SORT_KEYS[__s] = len(__ALGO_SORT_KEYS)
 
@@ -428,14 +464,13 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     gantt(end_results, "rls_swap2", dest, source, True, ["ta70"])
 
     logger("Now evaluating EA without crossover.")
+
     makespans_over_param(
         end_results=end_results,
-        selector=lambda name: name.startswith("ea_")
-        and name.split("_")[3] == "swap2",
+        selector=is_ea_no_cr_swap2,
         x_getter=lambda es: int(es.algorithm.split("_")[1]),
         name_base="ea_no_cr",
-        algo_getter=lambda es: f"{LETTER_M}+1ea"
-        if int(es.split("_")[2]) == 1 else f"{LETTER_M}+{LETTER_M}ea",
+        algo_getter=ea_family,
         title=f"{LETTER_M}+{LETTER_L}EA", x_label=LETTER_M,
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
         dest_dir=dest)
