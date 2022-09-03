@@ -3,7 +3,9 @@ import os.path as pp
 import sys
 from statistics import median
 from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
-    Iterable, cast
+    Iterable, cast, Tuple
+
+from regex import compile as _compile, match, sub
 
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
@@ -11,9 +13,12 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.tabulate_end_results_impl import \
     tabulate_end_results, command_column_namer
+from moptipy.examples.jssp.experiment import DEFAULT_ALGORITHMS
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
+from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.plots import plot_end_makespans, \
     plot_stat_gantt_charts, plot_progresses, plot_end_makespans_over_param
+from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
@@ -29,6 +34,56 @@ LETTER_L: Final[str] = "\u03BB"
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
     __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
 }
+
+
+def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
+    """
+    Create the algorithm sort keys and name map.
+
+    :returns: the algorithm sort keys and name map
+    """
+    inst = Instance.from_resource("demo")
+    space = Permutations.with_repetitions(inst.jobs, inst.machines)
+    names: List[str] = [str(a(inst, space)) for a in DEFAULT_ALGORITHMS]
+    names_new = list(names)
+
+    namer: Dict[str, str] = {}
+    used_names: Set[str] = set(names)
+    for pattern, repl in [("hc_swap2", "hc"),
+                          ("hcr_32768_swap2", "hcr"),
+                          ("hc_swapn", "hcn"),
+                          ("hcr_65536_swapn", "hcrn"),
+                          ("rls_swap2", "rls"),
+                          ("rls_swapn", "rlsn"),
+                          ("ea_([0-9]+)_([0-9]+)_swap2", "\\1+\\2_ea")]:
+        re = _compile(pattern)
+        found = False
+        for s in names:
+            m = match(re, s)
+            if m is not None:
+                ns = sub(re, repl, s)
+                if (ns is None) or (len(ns) <= 0):
+                    raise ValueError(f"'{s}' -> '{ns}'?")
+                if ns == s:
+                    continue
+                found = True
+                os = namer.get(s, None)
+                if os is not None:
+                    if os == ns:
+                        continue
+                    raise ValueError(f"'{s}' -> '{ns}', '{os}'?")
+                if ns in used_names:
+                    raise ValueError(f"Already got '{ns}'.")
+                namer[s] = ns
+                names_new.insert(names_new.index(s), ns)
+        if not found:
+            raise ValueError(f"did not find '{pattern}'.")
+
+    return {__n: __i for __i, __n in enumerate(names_new)}, namer
+
+
+#: the pre-defined algorithm sort keys and name map
+__ALGO_SORT_KEYS, __ALGO_NAME_MAP = __make_algo_names()
 
 
 def is_ea_no_cr_swap2(name: str) -> bool:
@@ -83,15 +138,6 @@ def instance_sort_key(name: str) -> int:
     return 1000
 
 
-#: the pre-defined algorithm sort keys
-__ALGO_SORT_KEYS: Final[Dict[str, int]] = {
-    __n: __i for __i, __n in enumerate([
-        "1rs", "rs", "hc", "hc_swap2", "hcr_32768_swap2", "hcr", "hcn",
-        "hc_swapn", "hcr_65536_swapn", "hcrn", "rls", "rls_swap2",
-        "rlsn", "rls_swapn", "rw", "rw_swap2", "rw_swapn"])
-}
-
-
 def algorithm_sort_key(name: str) -> int:
     """
     Get the algorithm sort key for a given algorithm name.
@@ -106,23 +152,6 @@ def algorithm_sort_key(name: str) -> int:
     if name in __ALGO_SORT_KEYS:
         return __ALGO_SORT_KEYS[name]
     return 1000
-
-
-#: the algorithm name map
-__ALGO_NAME_MAP: Final[Dict[str, str]] = {
-    "hc_swap2": "hc", "hcr_32768_swap2": "hcr", "hc_swapn": "hcn",
-    "hcr_65536_swapn": "hcrn", "rls_swap2": "rls", "rls_swapn": "rlsn",
-}
-for __muexp in range(0, 4):
-    __mu: int = 2 ** __muexp
-    __n = f"ea_{__mu}_1_swap2"
-    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+1_ea"
-    __ALGO_SORT_KEYS[__n] = len(__ALGO_SORT_KEYS)
-    __ALGO_SORT_KEYS[__s] = len(__ALGO_SORT_KEYS)
-    __n = f"ea_{__mu}_{__mu}_swap2"
-    __ALGO_NAME_MAP[__n] = __s = f"{__mu}+{__mu}_ea"
-    __ALGO_SORT_KEYS[__n] = len(__ALGO_SORT_KEYS)
-    __ALGO_SORT_KEYS[__s] = len(__ALGO_SORT_KEYS)
 
 
 def algorithm_namer(name: str) -> str:
@@ -474,11 +503,11 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         title=f"{LETTER_M}+{LETTER_L}EA", x_label=LETTER_M,
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
         dest_dir=dest)
-    table(end_results, ["ea_2_2_swap2", "ea_4_1_swap2", "ea_32_32_swap2",
+    table(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
                         "rls_swap2"], dest)
-    makespans(end_results, ["ea_2_2_swap2", "ea_4_1_swap2", "ea_32_32_swap2",
+    makespans(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
                             "rls_swap2"], dest)
-    progress(["ea_2_2_swap2", "ea_4_1_swap2", "ea_32_32_swap2",
+    progress(["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
               "rls_swap2"], dest, source)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
