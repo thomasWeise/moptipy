@@ -60,6 +60,7 @@ def plot_end_statistics_over_param(
         y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
         __make_y_axis,
         legend: bool = True,
+        legend_pos: str = "upper right",
         distinct_colors_func: Callable[[int], Any] = pd.distinct_colors,
         distinct_line_dashes_func: Callable[[int], Any] =
         pd.distinct_line_dashes,
@@ -97,6 +98,7 @@ def plot_end_statistics_over_param(
     :param x_axis: the x_axis ranger
     :param y_axis: the y_axis ranger
     :param legend: should we plot the legend?
+    :param legend_pos: the legend position
     :param distinct_colors_func: the function returning the palette
     :param distinct_line_dashes_func: the function returning the line styles
     :param importance_to_line_width_func: the function converting importance
@@ -148,6 +150,8 @@ def plot_end_statistics_over_param(
         raise type_error(algorithm_getter, "algorithm_getter", call=True)
     if not isinstance(legend, bool):
         raise type_error(legend, "legend", bool)
+    if not isinstance(legend_pos, str):
+        raise type_error(legend_pos, "legend_pos", str)
     if not callable(distinct_colors_func):
         raise type_error(
             distinct_colors_func, "distinct_colors_func", call=True)
@@ -363,7 +367,7 @@ def plot_end_statistics_over_param(
             algorithms.add_to_legend(handles.append)
 
         if len(handles) > 0:
-            axes.legend(loc="upper right",
+            axes.legend(loc=legend_pos,
                         handles=handles,
                         labelcolor=[art.color if hasattr(art, "color")
                                     else pd.COLOR_BLACK for art in handles],

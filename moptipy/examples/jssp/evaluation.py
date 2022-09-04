@@ -1,11 +1,10 @@
 """Evaluate the results of the example experiment."""
 import os.path as pp
 import sys
+from re import compile as _compile, match, sub
 from statistics import median
 from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
     Iterable, cast, Tuple
-
-from regex import compile as _compile, match, sub
 
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
@@ -34,6 +33,28 @@ LETTER_L: Final[str] = "\u03BB"
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
     __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
 }
+
+
+def ea_family(name: str) -> str:
+    """
+    Name the evolutionary algorithm setup.
+
+    :param name: the full name
+    :returns: the short name of the family
+    """
+    if name.startswith("ea_"):
+        ss = name.split("_")
+        if len(ss) == 4:
+            lambda_ = int(ss[2])
+            if lambda_ == 1:
+                return f"{LETTER_M}+1_ea"
+            mu = int(ss[1])
+            ratio = lambda_ // mu
+            if ratio * mu == lambda_:
+                if ratio == 1:
+                    return f"{LETTER_M}+{LETTER_M}_ea"
+                return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
+    raise ValueError(f"Invalid name '{name}'.")
 
 
 def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
@@ -79,47 +100,32 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
         if not found:
             raise ValueError(f"did not find '{pattern}'.")
 
+    ea_families: Dict[str, int] = {}
+    for n in names:
+        if n.startswith("ea_"):
+            try:
+                fam = ea_family(n)
+            except ValueError:
+                continue
+            if fam not in ea_families:
+                if fam in used_names:
+                    raise ValueError(f"duplicated ea family '{fam}'.")
+                used_names.add(fam)
+                ea_families[fam] = names_new.index(n)
+            else:
+                ea_families[fam] = min(ea_families[fam], names_new.index(n))
+    ea_families[f"{LETTER_M}+{LETTER_M}_ea"] = min(
+        ea_families[f"{LETTER_M}+{LETTER_M}_ea"],
+        ea_families[f"{LETTER_M}+{1}_ea"] + 1)
+    for i, n in sorted([(n[1], n[0]) for n in ea_families.items()],
+                       reverse=True):
+        names_new.insert(i, n)
+
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
 
 
 #: the pre-defined algorithm sort keys and name map
 __ALGO_SORT_KEYS, __ALGO_NAME_MAP = __make_algo_names()
-
-
-def is_ea_no_cr_swap2(name: str) -> bool:
-    """
-    Check if an algorithm is an EA without crossover.
-
-    :param name: the algorithm name
-    :returns: `True` if the algorithm is an EA without crossover and
-        2-swap operator, `False` otherwise.
-    """
-    if name.startswith("ea_"):
-        ss = name.split("_")
-        return (len(ss) == 4) and (ss[3] == "swap2")
-    return False
-
-
-def ea_family(name: str) -> str:
-    """
-    Name the evolutionary algorithm setup.
-
-    :param name: the full name
-    :returns: the short name of the family
-    """
-    if name.startswith("ea_"):
-        ss = name.split("_")
-        if len(ss) == 4:
-            lambda_ = int(ss[2])
-            if lambda_ == 1:
-                return f"{LETTER_M}+1_ea"
-            mu = int(ss[1])
-            ratio = lambda_ // mu
-            if ratio * mu == lambda_:
-                if ratio == 1:
-                    return f"{LETTER_M}+{LETTER_M}_ea"
-                return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
-    raise ValueError(f"Invalid name '{name}'.")
 
 
 def instance_sort_key(name: str) -> int:
@@ -290,13 +296,15 @@ def table(end_results: Path, algos: List[str], dest: Path) -> None:
         use_lang=False)
 
 
-def makespans(end_results: Path, algos: List[str], dest: Path) -> None:
+def makespans(end_results: Path, algos: List[str], dest: Path,
+              x_label_location: float = 1.0) -> None:
     """
     Plot the end makespans.
 
     :param end_results: the path to the end results
     :param algos: the algorithms
     :param dest: the directory
+    :param x_label_location: the location of the label of the x-axis
     """
     n: Final[str] = algorithm_namer(algos[0])
     plot_end_makespans(
@@ -304,7 +312,8 @@ def makespans(end_results: Path, algos: List[str], dest: Path) -> None:
         name_base=f"makespan_scaled_{n}", dest_dir=dest,
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
-        algorithm_namer=algorithm_namer)
+        algorithm_namer=algorithm_namer,
+        x_label_location=x_label_location)
 
 
 def gantt(end_results: Path, algo: str, dest: Path, source: Path,
@@ -404,7 +413,8 @@ def makespans_over_param(
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
         x_axis=x_axis, x_label=x_label,
-        plot_single_instances=algo_getter is None)
+        plot_single_instances=algo_getter is None,
+        legend_pos="right")
 
 
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
@@ -496,19 +506,20 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
 
     makespans_over_param(
         end_results=end_results,
-        selector=is_ea_no_cr_swap2,
+        selector=lambda n: n.startswith("ea_") and n.split("_")[3] == "swap2",
         x_getter=lambda es: int(es.algorithm.split("_")[1]),
         name_base="ea_no_cr",
         algo_getter=ea_family,
-        title=f"{LETTER_M}+{LETTER_L}EA", x_label=LETTER_M,
+        title=f"{LETTER_M}+{LETTER_L}_ea", x_label=LETTER_M,
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
         dest_dir=dest)
     table(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
                         "rls_swap2"], dest)
     makespans(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-                            "rls_swap2"], dest)
+                            "rls_swap2"], dest, 0.6)
     progress(["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-              "rls_swap2"], dest, source)
+              "ea_16_1_swap2", "ea_16_128_swap2", "rls_swap2"],
+             dest, source)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

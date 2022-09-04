@@ -29,7 +29,8 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                        dest_dir: str,
                        instance_sort_key: Callable = lambda x: x,
                        algorithm_sort_key: Callable = lambda x: x,
-                       algorithm_namer: Callable[[str], str] = lambda x: x) \
+                       algorithm_namer: Callable[[str], str] = lambda x: x,
+                       x_label_location: float = 1.0) \
         -> List[Path]:
     """
     Plot a set of end result boxes/violins functions into one chart.
@@ -41,6 +42,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     :param algorithm_sort_key: the sort key function for algorithms
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
+    :param x_label_location: the location of the label of the x-axis
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -94,6 +96,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                 instance_sort_key=instance_sort_key,
                 algorithm_sort_key=algorithm_sort_key,
                 y_label_location=1.0,
+                x_label_location=x_label_location,
                 algorithm_namer=algorithm_namer)
 
         result.extend(pu.save_figure(fig=figure,
@@ -349,7 +352,8 @@ def plot_end_makespans_over_param(
     x_label: Optional[str] = None,
     x_label_location: float = 1.0,
     plot_single_instances: bool = True,
-    plot_instance_summary: bool = True) \
+    plot_instance_summary: bool = True,
+    legend_pos: str = "upper right") \
         -> List[Path]:
     """
     Plot the performance over a parameter.
@@ -369,6 +373,7 @@ def plot_end_makespans_over_param(
     :param plot_single_instances: shall we plot the values for each single
         instance?
     :param plot_instance_summary: shall we plot the value over all instances?
+    :param legend_pos: the legend position
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -397,6 +402,8 @@ def plot_end_makespans_over_param(
     if not (plot_single_instances or plot_instance_summary):
         raise ValueError("plot_instance_summary and plot_single_instances "
                          "cannot both be False")
+    if not isinstance(legend_pos, str):
+        raise type_error(legend_pos, "legend_pos", str)
 
     logger(f"now plotting end statistics over parameter '{title}'.")
 
@@ -422,7 +429,8 @@ def plot_end_makespans_over_param(
             x_label=x_label,
             x_label_location=x_label_location,
             algorithm_sort_key=algorithm_sort_key,
-            instance_sort_key=instance_sort_key)
+            instance_sort_key=instance_sort_key,
+            legend_pos=legend_pos)
         if title is not None:
             pu.label_box(axes, title, x=0.5, y=1)
 
