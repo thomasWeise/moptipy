@@ -23,6 +23,7 @@ from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
+from moptipy.utils.logger import sanitize_name
 
 #: The letter mu
 LETTER_M: Final[str] = "\u03BC"
@@ -288,7 +289,7 @@ def table(end_results: Path, algos: List[str], dest: Path) -> None:
     n: Final[str] = algorithm_namer(algos[0])
     tabulate_end_results(
         end_results=get_end_results(end_results, algos=set(algos)),
-        file_name=f"end_results_{n}", dir_name=dest,
+        file_name=sanitize_name(f"end_results_{n}"), dir_name=dest,
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
         col_namer=command_column_namer,
@@ -309,7 +310,7 @@ def makespans(end_results: Path, algos: List[str], dest: Path,
     n: Final[str] = algorithm_namer(algos[0])
     plot_end_makespans(
         end_results=get_end_results(end_results, algos=set(algos)),
-        name_base=f"makespan_scaled_{n}", dest_dir=dest,
+        name_base=sanitize_name(f"makespan_scaled_{n}"), dest_dir=dest,
         instance_sort_key=instance_sort_key,
         algorithm_sort_key=algorithm_sort_key,
         algorithm_namer=algorithm_namer,
@@ -334,7 +335,7 @@ def gantt(end_results: Path, algo: str, dest: Path, source: Path,
     plot_stat_gantt_charts(
         get_end_results(end_results, algos={algo},
                         insts=None if insts is None else set(insts)),
-        name_base=f"best_gantt_{n}" if best else f"gantt_{n}",
+        name_base=sanitize_name(f"best_gantt_{n}" if best else f"gantt_{n}"),
         dest_dir=dest,
         results_dir=source,
         instance_sort_key=instance_sort_key,
@@ -407,7 +408,7 @@ def makespans_over_param(
 
     return plot_end_makespans_over_param(
         end_results=get_end_results(end_results, algos=selector),
-        x_getter=x_getter, name_base=f"{name_base}_results",
+        x_getter=x_getter, name_base=sanitize_name(f"{name_base}_results"),
         dest_dir=dest_dir, title=name_base if title is None else title,
         algorithm_getter=_algo_name_getter,  # type: ignore
         instance_sort_key=instance_sort_key,
