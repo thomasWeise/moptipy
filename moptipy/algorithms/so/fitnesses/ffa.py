@@ -105,9 +105,9 @@ class _IntFFA1(FFA):
         """
         h: Final[np.ndarray] = self.__h
         for r in p:
-            h[cast(int, r.f)] += 1
+            h[r.f] += 1  # type: ignore
         for r in p:
-            r.v = int(h[cast(int, r.f)])
+            r.v = int(h[r.f])  # type: ignore
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -146,9 +146,9 @@ class _IntFFA2(FFA):
         h: Final[np.ndarray] = self.__h
         lb: Final[int] = self.__lb
         for r in p:
-            h[cast(int, r.f) - lb] += 1
+            h[r.f - lb] += 1  # type: ignore
         for r in p:
-            r.v = int(h[cast(int, r.f) - lb])
+            r.v = int(h[r.f - lb])  # type: ignore
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

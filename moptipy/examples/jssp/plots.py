@@ -353,7 +353,8 @@ def plot_end_makespans_over_param(
     x_label_location: float = 1.0,
     plot_single_instances: bool = True,
     plot_instance_summary: bool = True,
-    legend_pos: str = "upper right") \
+    legend_pos: str = "upper right",
+    title_x: float = 0.5) \
         -> List[Path]:
     """
     Plot the performance over a parameter.
@@ -374,6 +375,7 @@ def plot_end_makespans_over_param(
         instance?
     :param plot_instance_summary: shall we plot the value over all instances?
     :param legend_pos: the legend position
+    :param title_x: the title position
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -404,6 +406,8 @@ def plot_end_makespans_over_param(
                          "cannot both be False")
     if not isinstance(legend_pos, str):
         raise type_error(legend_pos, "legend_pos", str)
+    if not isinstance(title_x, float):
+        raise type_error(title_x, "title_x", float)
 
     logger(f"now plotting end statistics over parameter '{title}'.")
 
@@ -432,7 +436,7 @@ def plot_end_makespans_over_param(
             instance_sort_key=instance_sort_key,
             legend_pos=legend_pos)
         if title is not None:
-            pu.label_box(axes, title, x=0.5, y=1)
+            pu.label_box(axes, title, x=title_x, y=1)
 
         result.extend(pu.save_figure(fig=figure,
                                      file_name=lang.filename(name_base),

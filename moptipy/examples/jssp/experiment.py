@@ -31,6 +31,7 @@ from moptipy.utils.help import help_screen
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
+
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
 #: The instances in this tuple are sorted by the scale of the search space,
@@ -81,16 +82,19 @@ for scale in range(7, 21):  # add the hill climbers with restarts
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
             Op0Shuffle(pwr), Op1SwapN(), 2 ** i))  # hill climb. with restarts
     )
-for muexp in range(0, 5):
+for muexp in range(0, 14):
     mu: int = 2 ** muexp
-    for lambda_ in sorted({1, mu, mu + mu, 4 * mu, 8 * mu}):
+    for lambda_ in sorted({1, max(1, muexp), round(mu ** 0.5), mu, mu + mu,
+                           4 * mu, 8 * mu}):
+        if lambda_ > 65536:
+            continue
         DEFAULT_ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
                 Op0Shuffle(pwr), Op1Swap2(), None,
                 mm, ll, 0.0))  # EA without crossover
         )
-        if mu > 1:
+        if 1 < mu < 32:
             for br in [0.01, 0.05, 0.25]:
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],

@@ -6,12 +6,15 @@ from statistics import median
 from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
     Iterable, cast, Tuple
 
+from math import log2
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.tabulate_end_results_impl import \
-    tabulate_end_results, command_column_namer
+    tabulate_end_results, command_column_namer, \
+    DEFAULT_ALGORITHM_INSTANCE_STATISTICS, \
+    DEFAULT_ALGORITHM_SUMMARY_STATISTICS
 from moptipy.examples.jssp.experiment import DEFAULT_ALGORITHMS
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.instance import Instance
@@ -19,11 +22,14 @@ from moptipy.examples.jssp.plots import plot_end_makespans, \
     plot_stat_gantt_charts, plot_progresses, plot_end_makespans_over_param
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
+from moptipy.api.logging import KEY_TOTAL_FES,\
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS
+from moptipy.evaluation.statistics import KEY_MEAN_ARITH
 from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
-from moptipy.utils.logger import sanitize_name
+from moptipy.utils.logger import sanitize_name, SCOPE_SEPARATOR
 
 #: The letter mu
 LETTER_M: Final[str] = "\u03BC"
@@ -34,6 +40,16 @@ LETTER_L: Final[str] = "\u03BB"
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
     __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
 }
+
+
+#: the name of the mu+1 EA
+NAME_EA_MU_PLUS_1: Final[str] = f"{LETTER_M}+1_ea"
+#: the name of the mu+mu EA
+NAME_EA_MU_PLUS_MU: Final[str] = f"{LETTER_M}+{LETTER_M}_ea"
+#: the name of the mu+ld(mu) EA
+NAME_EA_MU_PLUS_LOG_MU: Final[str] = f"{LETTER_M}+log\u2082{LETTER_M}_ea"
+#: the name of the mu+sqrt(mu) EA
+NAME_EA_MU_PLUS_SQRT_MU: Final[str] = f"{LETTER_M}+\u221A{LETTER_M}_ea"
 
 
 def ea_family(name: str) -> str:
@@ -48,12 +64,16 @@ def ea_family(name: str) -> str:
         if len(ss) == 4:
             lambda_ = int(ss[2])
             if lambda_ == 1:
-                return f"{LETTER_M}+1_ea"
+                return NAME_EA_MU_PLUS_1
             mu = int(ss[1])
+            if lambda_ == int(log2(mu)):
+                return NAME_EA_MU_PLUS_LOG_MU
+            if lambda_ == round(mu ** 0.5):
+                return NAME_EA_MU_PLUS_SQRT_MU
             ratio = lambda_ // mu
             if ratio * mu == lambda_:
                 if ratio == 1:
-                    return f"{LETTER_M}+{LETTER_M}_ea"
+                    return NAME_EA_MU_PLUS_MU
                 return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
     raise ValueError(f"Invalid name '{name}'.")
 
@@ -101,7 +121,12 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
         if not found:
             raise ValueError(f"did not find '{pattern}'.")
 
-    ea_families: Dict[str, int] = {}
+    ea1p1: Final[int] = names_new.index("ea_1_1_swap2")
+    ea_families: Dict[str, int] = {
+        NAME_EA_MU_PLUS_MU: ea1p1,
+        NAME_EA_MU_PLUS_SQRT_MU: ea1p1,
+        NAME_EA_MU_PLUS_LOG_MU: ea1p1,
+        NAME_EA_MU_PLUS_1: ea1p1}
     for n in names:
         if n.startswith("ea_"):
             try:
@@ -115,12 +140,10 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
                 ea_families[fam] = names_new.index(n)
             else:
                 ea_families[fam] = min(ea_families[fam], names_new.index(n))
-    ea_families[f"{LETTER_M}+{LETTER_M}_ea"] = min(
-        ea_families[f"{LETTER_M}+{LETTER_M}_ea"],
-        ea_families[f"{LETTER_M}+{1}_ea"] + 1)
     for i, n in sorted([(n[1], n[0]) for n in ea_families.items()],
-                       reverse=True):
+                       reverse=True, key=lambda a: a[0]):
         names_new.insert(i, n)
+    print(names_new)
 
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
 
@@ -277,16 +300,34 @@ def compute_end_statistics(end_results_file: str,
     return stats_file
 
 
-def table(end_results: Path, algos: List[str], dest: Path) -> None:
+def table(end_results: Path, algos: List[str], dest: Path,
+          swap_stats: Optional[Iterable[Tuple[str, str]]] = None) -> None:
     """
     Tabulate the end results.
 
     :param end_results: the path to the end results
     :param algos: the algorithms
     :param dest: the directory
+    :param swap_stats: the statistics to swap out
     """
     EN.set_current()
     n: Final[str] = algorithm_namer(algos[0])
+    algo_inst_stat: Union[List, Tuple] = DEFAULT_ALGORITHM_INSTANCE_STATISTICS
+    algo_sum_stat: Union[List, Tuple] = DEFAULT_ALGORITHM_SUMMARY_STATISTICS
+    if swap_stats is not None:
+        algo_inst_stat = list(algo_inst_stat)
+        algo_sum_stat = list(algo_sum_stat)
+        for old, swap in swap_stats:
+            found: bool = False
+            for lst in [algo_inst_stat, algo_sum_stat]:
+                for idx, elem in enumerate(lst):
+                    if elem == old:
+                        found = True
+                        lst[idx] = swap
+                        break
+            if not found:
+                raise ValueError(f"did not find '{old}' in {lst}.")
+
     tabulate_end_results(
         end_results=get_end_results(end_results, algos=set(algos)),
         file_name=sanitize_name(f"end_results_{n}"), dir_name=dest,
@@ -294,6 +335,8 @@ def table(end_results: Path, algos: List[str], dest: Path) -> None:
         algorithm_sort_key=algorithm_sort_key,
         col_namer=command_column_namer,
         algorithm_namer=algorithm_namer,
+        algorithm_instance_statistics=algo_inst_stat,
+        algorithm_summary_statistics=algo_sum_stat,
         use_lang=False)
 
 
@@ -385,7 +428,9 @@ def makespans_over_param(
         = AxisRanger,
         x_label: Optional[str] = None,
         algo_getter: Optional[Callable[[str], str]] = None,
-        title: Optional[str] = None) -> List[Path]:
+        title: Optional[str] = None,
+        legend_pos: str = "right",
+        title_x: float = 0.5) -> List[Path]:
     """
     Plot the performance over a parameter.
 
@@ -400,6 +445,8 @@ def makespans_over_param(
     :param algo_getter: the optional algorithm name getter (use `name_base` if
         unspecified)
     :param title: the optional title (use `name_base` if unspecified)
+    :param legend_pos: the legend position, set to "right"
+    :param title_x: the title x
     :returns: the list of generated files
     """
     def _algo_name_getter(es: EndStatistics,
@@ -415,7 +462,7 @@ def makespans_over_param(
         algorithm_sort_key=algorithm_sort_key,
         x_axis=x_axis, x_label=x_label,
         plot_single_instances=algo_getter is None,
-        legend_pos="right")
+        legend_pos=legend_pos, title_x=title_x)
 
 
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
@@ -512,14 +559,21 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         name_base="ea_no_cr",
         algo_getter=ea_family,
         title=f"{LETTER_M}+{LETTER_L}_ea", x_label=LETTER_M,
+        title_x=0.8,
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
+        legend_pos="upper center",
         dest_dir=dest)
+    lims: Final[str] = f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}" \
+                       f"{KEY_MEAN_ARITH}"
+    totfes: Final[str] = f"{KEY_TOTAL_FES}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}"
     table(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-                        "rls_swap2"], dest)
-    makespans(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-                            "rls_swap2"], dest, 0.6)
+                        "ea_512_512_swap2", "rls_swap2"], dest,
+          swap_stats=[(lims, totfes)])
+    makespans(end_results, ["ea_1_2_swap2", "ea_2_2_swap2",
+                            "ea_512_512_swap2", "rls_swap2"], dest, 0.6)
     progress(["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-              "ea_16_1_swap2", "ea_16_128_swap2", "rls_swap2"],
+              "ea_64_1_swap2", "ea_1024_1024_swap2", "ea_8192_65536_swap2",
+              "rls_swap2"],
              dest, source)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
