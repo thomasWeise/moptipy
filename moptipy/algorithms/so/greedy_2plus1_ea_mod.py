@@ -1,4 +1,35 @@
-"""The modified Greedy(2+1)EAmod Evolutionary Algorithm."""
+"""
+The modified Greedy (2+1) EAmod Evolutionary Algorithm.
+
+The Greedy (2+1) EAmod maintains a population of two individuals. Both
+solutions, `x0` and `x1`, are intiially sampled independently and at random.
+Each iteration consists of two steps, a crossover step and a mutation step.
+The binary operator (crossover) is only applied if `x0` and `x1` have the
+same objective value to produce offspring `z1`. If `x0` and `x1` have
+different objective values, then `z1` is set to be the better of the two
+parents. Then, the final offspring `z2` is derived by applying the unary
+mutation operator. If `z2` is at least as good as the better one of `x0`
+and `x1`, then it will be accepted. If `x1` and `x0` are as same as
+good, one of them is randomly chosen to be replaced by `z2`. Otherwise,
+the worse one is replaced.
+
+This is the implementation of a general black-box version of the
+Greedy (2+1) GAmod by Carvalho Pinto and Doerr. The original algorithm is a
+genetic algorithm, i.e., an EA with a bit string-based search space and a
+mutation operator flipping a Binomially distributed number of bits and
+performing uniform crossover. Here we implement is a general EA where you can
+plug in any crossover or mutation operator. Furthermore, the algorithm by
+Carvalho Pinto and Doerr is, in turn, a modified version of Sudhold's
+Greedy (2+1) GA, with some improvements for efficiency.
+
+1. Eduardo Carvalho Pinto and Carola Doerr. Towards a More Practice-Aware
+   Runtime Analysis of Evolutionary Algorithms. 2017. arXiv:1812.00493v1
+   [cs.NE] 3 Dec 2018. [Online]. http://arxiv.org/pdf/1812.00493.pdf.
+2. Dirk Sudholt. Crossover Speeds up Building-Block Assembly. In Proceedings
+   of the 14th Annual Conference on Genetic and Evolutionary Computation
+   (GECCO'12), July 7-11, 2012, Philadelphia, Pennsylvania, USA,
+   pages 689-702. ACM, 2012. https://doi.org/10.1145/2330163.2330260.
+"""
 from typing import Final, Union, Callable
 
 from numpy.random import Generator
@@ -41,7 +72,7 @@ class GreedyTwoPlusOneEAmod(Algorithm2):
         z1 = create()  # create record for result of binary operation
         z2 = create()  # create record for result of unary operation
 
-        while not should_terminate():
+        while not should_terminate():  # loop until budget is used up
             if f0 == f1:  # only perform binary operation if f0 == f1
                 op2(random, z1, x0, x1)  # recombination
                 p = z1  # input of unary operation comes from binary op
@@ -53,7 +84,7 @@ class GreedyTwoPlusOneEAmod(Algorithm2):
             op1(random, z2, p)  # apply unary operation
             if not (equals(z2, x0) or equals(z2, x1)):  # is z2 new?
                 fnew = evaluate(z2)  # only then evaluate it
-                if fnew <= f1:  # is it better or equal than x1
+                if fnew <= f0:  # is it better or equal than x1
                     if (f1 > f0) or (ri(2) == 0):
                         z2, x1 = x1, z2  # swap z2 with x1 and
                         f1 = fnew  # and remember its quality

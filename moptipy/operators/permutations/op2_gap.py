@@ -33,8 +33,9 @@ version of the operator that strictly alternates between parents.
    13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
    https://doi.org/10.1023/A:1006529012972
 """
-from typing import Final, Callable
+from typing import Final
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
@@ -42,6 +43,57 @@ from moptipy.api.operators import Op2
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.nputils import DEFAULT_BOOL
 from moptipy.utils.types import type_error
+
+
+# start book
+@numba.njit(nogil=True, cache=True)
+def _op2_gap(r: np.ndarray, dest: np.ndarray,
+             x0: np.ndarray, x1: np.ndarray,
+             x0_done: np.ndarray, x1_done: np.ndarray) -> None:
+    """
+    Apply a sequence mix from `x0` and `x1` to `dest`.
+
+    :param r: the random numbers
+    :param dest: the array to receive the result
+    :param x0: the first existing point in the search space
+    :param x1: the second existing point in the search space
+    :param x0_done: a boolean array marking the elements in `x0` that have
+        been used
+    :param x1_done: a boolean array marking the elements in `x1` that have
+        been used
+    """
+    x0_done.fill(False)  # all values in x0 are available
+    x1_done.fill(False)  # all values in x1 are available
+    length: Final[int] = len(x0_done)
+    length_minus_1: Final[int] = length - 1
+
+    desti: int = 0  # writing to dest starts at index 0
+    x0i: int = 0  # first valid value in x0 is at index 0
+    x1i: int = 0  # first valid value in x1 is at index 0
+    for rr in r:  # repeat until dest is filled, i.e., desti=length
+        # randomly chose a source point and pick next operation
+        value: int = x0[x0i] if rr == 0 else x1[x1i]
+        dest[desti] = value  # store the value in the destination
+        desti = desti + 1  # step destination index
+
+        for x0j in range(x0i, length):  # mark value as done in x0
+            if (x0[x0j] == value) and (not x0_done[x0j]):  # find
+                x0_done[x0j] = True  # value is found and not done
+                break  # so we mark it as done and break the loop
+        while x0_done[x0i]:  # now we find the next not-yet-done
+            x0i = x0i + 1  # value in x0
+
+        if desti >= length_minus_1:
+            dest[desti] = x0[x0i]  # store the final missing value
+            return  # we are finished, so we return
+
+        for x1j in range(x1i, length):  # mark value as done in x1
+            if (x1[x1j] == value) and (not x1_done[x1j]):  # find
+                x1_done[x1j] = True  # value is found and not done
+                break  # so we mark it as done and break the loop
+        while x1_done[x1i]:  # now we find the next not-yet-done
+            x1i = x1i + 1  # value in x1
+# end book
 
 
 # start book
@@ -58,42 +110,8 @@ class Op2GeneralizedAlternatingPosition(Op2):
         :param x0: the first existing point in the search space
         :param x1: the second existing point in the search space
         """
-        # end book
-        x0_done: Final[np.ndarray] = self.__x0_done
-        x0_done.fill(False)  # all values in x0 are available
-        x1_done: Final[np.ndarray] = self.__x1_done
-        x1_done.fill(False)  # all values in x1 are available
-        ri: Final[Callable[[int], int]] = random.integers
-        length: Final[int] = len(x0_done)
-        length_minus_1: Final[int] = length - 1
-
-        # start book
-        desti: int = 0  # writing to dest starts at index 0
-        x0i: int = 0  # first valid value in x0 is at index 0
-        x1i: int = 0  # first valid value in x1 is at index 0
-        while True:  # repeat until dest is filled, i.e., desti=length
-            # randomly chose a source point and pick next operation
-            value: int = x0[x0i] if ri(2) == 0 else x1[x1i]
-            dest[desti] = value  # store the value in the destination
-            desti = desti + 1  # step destination index
-
-            for x0j in range(x0i, length):  # mark value as done in x0
-                if (x0[x0j] == value) and (not x0_done[x0j]):  # find
-                    x0_done[x0j] = True  # value is found and not done
-                    break  # so we mark it as done and break the loop
-            while x0_done[x0i]:  # now we find the next not-yet-done
-                x0i = x0i + 1    # value in x0
-
-            if desti >= length_minus_1:
-                dest[desti] = x0[x0i]  # store the final missing value
-                return  # we are finished, so we return
-
-            for x1j in range(x1i, length):  # mark value as done in x1
-                if (x1[x1j] == value) and (not x1_done[x1j]):  # find
-                    x1_done[x1j] = True  # value is found and not done
-                    break  # so we mark it as done and break the loop
-            while x1_done[x1i]:  # now we find the next not-yet-done
-                x1i = x1i + 1    # value in x1
+        _op2_gap(random.integers(low=2, high=None, size=len(dest)),
+                 dest, x0, x1, self.__x0_done, self.__x1_done)
     # end book
 
     def __init__(self, space: Permutations) -> None:
@@ -107,10 +125,10 @@ class Op2GeneralizedAlternatingPosition(Op2):
             raise type_error(space, "space", Permutations)
         #: the elements that are done in `x0`
         self.__x0_done: Final[np.ndarray] = np.ndarray(
-            (space.dimension, ), DEFAULT_BOOL)
+            (space.dimension,), DEFAULT_BOOL)
         #: the elements that are done in `x1`
         self.__x1_done: Final[np.ndarray] = np.ndarray(
-            (space.dimension, ), DEFAULT_BOOL)
+            (space.dimension,), DEFAULT_BOOL)
 
     def __str__(self) -> str:
         """
