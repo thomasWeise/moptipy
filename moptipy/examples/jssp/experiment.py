@@ -5,14 +5,14 @@ from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any, List
 
 import moptipy.api.experiment as ex
+from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.algorithms.random_walk import RandomWalk
+from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import \
     HillClimberWithRestarts
-from moptipy.algorithms.random_sampling import RandomSampling
-from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.so.rls import RLS
-from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -30,7 +30,6 @@ from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
-
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
@@ -56,7 +55,6 @@ EXPERIMENT_RUNS: Final[int] = 23
 
 #: We will perform two minutes per run.
 EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
-
 
 #: The default set of algorithms for our experiments.
 #: Each of them is a Callable that receives two parameters, the instance
@@ -95,7 +93,9 @@ for muexp in range(0, 14):
                 mm, ll, 0.0))  # EA without crossover
         )
         if 1 < mu < 32:
-            for br in [0.01, 0.05, 0.25]:
+            brr = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.05, 0.25] \
+                if (mu == 2) and (lambda_ <= 3) else [0.01, 0.05, 0.25]
+            for br in brr:
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
@@ -103,6 +103,14 @@ for muexp in range(0, 14):
                         Op2OrderBased(pwr),
                         mm, ll, bb))  # EA with crossover 1
                 )
+                DEFAULT_ALGORITHMS.append(cast(
+                    Callable[[Instance, Permutations], Algorithm],
+                    lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
+                        Op0Shuffle(pwr), Op1Swap2(),
+                        Op2GeneralizedAlternatingPosition(pwr),
+                        mm, ll, bb))  # EA with crossover 2
+                )
+
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(

@@ -1,35 +1,35 @@
 # We need pytest to run the tests.
-pytest >= 7.1.2
+pytest >= 7.1.3
 
 # setuptools, testresources, twine and wheel are needed for generating
 # the installable pip package.
-setuptools >= 63.2.0
+setuptools >= 59.8.0
 testresources >= 2.0.1
 twine >= 4.0.1
-virtualenv >= 20.16.2
+virtualenv >= 20.16.5
 wheel >= 0.37.1
 
 # sphinx is needed for generating the documentation.
-sphinx >= 5.1.1
+sphinx >= 5.2.3
 sphinx-autodoc-typehints >= 1.19.1
 # myst-parser is needed for including README.md into the documentation
-myst-parser >= 0.18.0
+myst-parser >= 0.18.1
 
 # static code analysis tools
 bandit >= 1.7.4
-coverage >= 6.4.2
+coverage >= 6.5.0
 coverage-badge >= 1.1.0
 dodgy >= 0.2.1
-flake8 >= 5.0.1
-mypy >= 0.971
+flake8 >= 5.0.4
+mypy >= 0.982
 pydocstyle >= 6.1.1
-pyflakes >= 2.4.0
-pylint >= 2.14.5
+pyflakes >= 2.5.0
+pylint >= 2.15.3
 pyroma >= 4.0
-semgrep >= 0.107.0
+semgrep >= 0.116.0
 tryceratops >= 1.1.0
-unimport >= 0.10.0
-vulture >= 2.5
+unimport >= 0.12.1
+vulture >= 2.6
 
 # yaml is used only in tests and examples and therefore not strictly needed.
 pyyaml >= 6.0
