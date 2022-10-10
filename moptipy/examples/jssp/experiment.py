@@ -25,6 +25,7 @@ from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.operators.permutations.op2_gap import \
     Op2GeneralizedAlternatingPosition
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
+from moptipy.algorithms.so.greedy_2plus1_ea_mod import GreedyTwoPlusOneEAmod
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
@@ -118,6 +119,15 @@ for muexp in range(0, 14):
                         Op2GeneralizedAlternatingPosition(pwr),
                         mm, ll, bb))  # EA with crossover 2
                 )
+
+DEFAULT_ALGORITHMS.append(
+    lambda inst, pwr: GreedyTwoPlusOneEAmod(
+        Op0Shuffle(pwr), Op1Swap2(),
+        Op2GeneralizedAlternatingPosition(pwr)))
+DEFAULT_ALGORITHMS.append(
+    lambda inst, pwr: GreedyTwoPlusOneEAmod(
+        Op0Shuffle(pwr), Op1SwapN(),
+        Op2GeneralizedAlternatingPosition(pwr)))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

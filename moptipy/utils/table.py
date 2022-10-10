@@ -4,7 +4,8 @@ from contextlib import AbstractContextManager
 from io import TextIOBase
 from typing import Final, Optional, Iterable, Union, Callable, List
 
-from moptipy.utils.text_format import TextFormatDriver, FormattedStr
+from moptipy.utils.formatted_string import FormattedStr
+from moptipy.utils.text_format import TextFormatDriver
 from moptipy.utils.types import type_error
 
 
@@ -523,8 +524,9 @@ class Row(AbstractContextManager):
 
         As parameter `text`, you can provide either a string or a sequence of
         strings. You can also provide an instance of
-        :class:`moptipy.utils.text_format.FormattedStr` or a sequence thereof.
-        This allows you to render formatted text in a natural fashion.
+        :class:`moptipy.utils.formatted_string.FormattedStr` or a sequence
+        thereof. This allows you to render formatted text in a natural
+        fashion.
 
         :param text: the text to write
         """

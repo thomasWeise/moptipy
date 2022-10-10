@@ -391,11 +391,11 @@ def numbers_to_strings(source: Union[int, float, None,
     number at a very extreme precision. The 18 digits in `123456789012345678`
     sort of suggest a precision to 18 decimals, since the number ends in
     specific digits (as opposed to `123450000000000000` which a reader would
-    naturally preceive as a rounded quantity). Additionally, we the number
-    `0.14285714285714285`, which has a very long fractional part, which, too,
-    suggests a very high precision. Writing both mentioned numbers next to
-    each other, this suggests as if we could present a number as high as
-    10**18 at a precision of 10**-17. And it also looks ugly, because both
+    naturally preceive as a rounded quantity). Additionally, we have the
+    number `0.14285714285714285`, which has a very long fractional part,
+    which, too, suggests a very high precision. Writing both mentioned numbers
+    next to each other, this suggests as if we could present a number as high
+    as 10**18 at a precision of 10**-17. And it also looks ugly, because both
     numbers are not uniformly formatted. Instead, our function here renders
     the number list as `['1.00*10^-4^', '1.43*10^-1^', '1.23*10^17^']`. It
     recognizes that we should present numbers as powers of ten and then limits

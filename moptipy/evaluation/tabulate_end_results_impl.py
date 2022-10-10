@@ -13,13 +13,14 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics, KEY_BEST_F_SCALED
 from moptipy.evaluation.statistics import KEY_MINIMUM, KEY_MEAN_ARITH, \
     KEY_STDDEV, KEY_MEAN_GEOM, KEY_MEDIAN, KEY_MAXIMUM
+from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang
 from moptipy.utils.logger import SCOPE_SEPARATOR
 from moptipy.utils.markdown import Markdown
 from moptipy.utils.path import Path
 from moptipy.utils.strings import numbers_to_strings
 from moptipy.utils.table import Table
-from moptipy.utils.text_format import TextFormatDriver, FormattedStr
+from moptipy.utils.text_format import TextFormatDriver
 from moptipy.utils.types import type_error
 
 

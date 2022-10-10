@@ -11,8 +11,8 @@ class LaTeX(TextFormatDriver):
     The LaTeX text driver.
 
     >>> from io import StringIO
+    >>> from moptipy.utils.formatted_string import FormattedStr
     >>> from moptipy.utils.table import Table
-    >>> from moptipy.utils.text_format import FormattedStr
     >>> s = StringIO()
     >>> latex = LaTeX.instance()
     >>> print(str(latex))

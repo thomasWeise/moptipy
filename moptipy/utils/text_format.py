@@ -3,85 +3,9 @@
 from io import TextIOBase
 from typing import Final
 
+from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
-from moptipy.utils.lang import Lang
-
-
-class FormattedStr(str):
-    """A subclass of `str` capable of holding formatting information."""
-
-    #: should this string be formatted in bold face?
-    bold: bool
-    #: should this string be formatted in italic face?
-    italic: bool
-    #: should this string be formatted in code face?
-    code: bool
-
-    def __new__(cls, value, bold: bool = False, italic: bool = False,
-                code: bool = False):
-        """
-        Construct the object.
-
-        :param value: the string value
-        :param bold: should the format be bold face?
-        :param italic: should the format be italic face?
-        :param code: should the format be code face?
-        """
-        if not isinstance(bold, bool):
-            raise type_error(bold, "bold", bool)
-        if not isinstance(italic, bool):
-            raise type_error(italic, "italic", bool)
-        if not isinstance(code, bool):
-            raise type_error(code, "code", bool)
-        if bold or italic or code:
-            ret = super(FormattedStr, cls).__new__(cls, value)
-            ret.bold = bold
-            ret.italic = italic
-            ret.code = code
-            return ret
-        return value
-
-    @staticmethod
-    def add_format(s: str, bold: bool = False, italic: bool = False,
-                   code: bool = False) -> str:
-        """
-        Add the given format to the specified string.
-
-        :param s: the string
-        :param bold: should the format be bold face?
-        :param italic: should the format be italic face?
-        :param code: should the format be code face?
-
-        >>> from typing import cast
-        >>> st = "abc"
-        >>> type(st)
-        <class 'str'>
-        >>> fs = cast(FormattedStr, FormattedStr.add_format(st, bold=True))
-        >>> type(fs)
-        <class 'moptipy.utils.text_format.FormattedStr'>
-        >>> fs.bold
-        True
-        >>> fs.italic
-        False
-        >>> fs = cast(FormattedStr, FormattedStr.add_format(fs, italic=True))
-        >>> fs.bold
-        True
-        >>> fs.italic
-        True
-        """
-        if isinstance(s, FormattedStr):
-            bold = bold or s.bold
-            italic = italic or s.italic
-            code = code or s.code
-            if (bold != s.bold) or (italic != s.italic) or (code != s.code):
-                return FormattedStr(s, bold, italic, code)
-            return s
-        if not isinstance(s, str):
-            raise type_error(s, "s", str)
-        if bold or italic or code:
-            return FormattedStr(s, bold, italic, code)
-        return s
 
 
 class TextFormatDriver:
