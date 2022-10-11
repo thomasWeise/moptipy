@@ -155,7 +155,7 @@ class TextFormatDriver:
         """
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool) -> None:
+             code: bool, number_mode: int) -> None:
         """
         Write a chunk of text.
 
@@ -164,17 +164,9 @@ class TextFormatDriver:
         :param bold: is the text in bold face?
         :param italic: is the text in italic face?
         :param code: is the text in code face?
-        """
-
-    def render_numeric_exponent(self, e: str) -> str:
-        """
-        Render the exponent of a number.
-
-        This function is for use in conjunction with
-            :func:`moptipy.utils.strings.numbers_to_strings`.
-
-        :param e: the exponent
-        :returns: a rendered string
+        :param number_mode: the number mode of a formatted text piece, see the
+            attribute `number_mode` of
+            :class:`~moptipy.utils.formatted_string.FormattedStr`
         """
 
     def filename(self,

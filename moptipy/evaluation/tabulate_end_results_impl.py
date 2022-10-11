@@ -18,7 +18,8 @@ from moptipy.utils.lang import Lang
 from moptipy.utils.logger import SCOPE_SEPARATOR
 from moptipy.utils.markdown import Markdown
 from moptipy.utils.path import Path
-from moptipy.utils.strings import numbers_to_strings
+from moptipy.utils.number_renderer import NumberRenderer,\
+    DEFAULT_NUMBER_RENDERER
 from moptipy.utils.table import Table
 from moptipy.utils.text_format import TextFormatDriver
 from moptipy.utils.types import type_error
@@ -331,7 +332,8 @@ def tabulate_end_results(
         lower_bound_name: Optional[str] = "lower_bound",
         use_lang: bool = True,
         instance_namer: Callable[[str], str] = lambda x: x,
-        algorithm_namer: Callable[[str], str] = lambda x: x) -> Path:
+        algorithm_namer: Callable[[str], str] = lambda x: x,
+        renderer: NumberRenderer = DEFAULT_NUMBER_RENDERER) -> Path:
     r"""
     Tabulate the statistics about the end results of an experiment.
 
@@ -403,6 +405,7 @@ def tabulate_end_results(
         instance ID and returns an instance name; default=identity function
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
+    :param renderer: the number renderer
     :returns: the path to the file with the tabulated end results
     """
     # Before doing anything, let's do some type checking on the parameters.
@@ -435,8 +438,6 @@ def tabulate_end_results(
     if not isinstance(text_format_driver, TextFormatDriver):
         raise type_error(text_format_driver, "text_format_driver",
                          TextFormatDriver, True)
-    exponent_renderer: Final[Callable[[str], str]] = \
-        text_format_driver.render_numeric_exponent
     if not callable(col_namer):
         raise type_error(col_namer, "col_namer", call=True)
     if not callable(col_best):
@@ -513,8 +514,7 @@ def tabulate_end_results(
                 raise ValueError(f"inconsistent lower bounds {bounds} for "
                                  f"instance '{inst}'.")
             lb.append(bounds[0])
-        lower_bounds = numbers_to_strings(lb,
-                                          exponent_renderer=exponent_renderer)
+        lower_bounds = renderer.render(lb)
         del lb
     else:
         lower_bounds = None
@@ -585,8 +585,7 @@ def tabulate_end_results(
           for inst in insts for algo in algos]
          for getter in algo_inst_getters]
     algo_inst_strs_raw: Final[List[List[Optional[str]]]] = [
-        numbers_to_strings(col, exponent_renderer=exponent_renderer)
-        for col in algo_inst_data_raw]
+        renderer.render(col) for col in algo_inst_data_raw]
 
     # now break the data into sections
     # format: column -> per-instance section -> section data
@@ -640,8 +639,7 @@ def tabulate_end_results(
             [[None if getter is None else getter(algo_dict[algo])
               for algo in algos]
              for getter in algo_getters]
-        algo_strs = [numbers_to_strings(
-            col, exponent_renderer=exponent_renderer) for col in algo_data]
+        algo_strs = [renderer.render(col) for col in algo_data]
 
         # now format the data, i.e., compute the per-section best value
         # of each column and mark it with bold face

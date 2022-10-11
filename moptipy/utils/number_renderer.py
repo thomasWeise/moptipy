@@ -4,7 +4,8 @@ from math import isfinite, inf
 from typing import Union, Final, Callable, cast, Optional, Iterable, List
 
 from moptipy.utils.formatted_string import FormattedStr
-from moptipy.utils.strings import try_int
+from moptipy.utils.lang import Lang
+from moptipy.utils.math import try_int
 from moptipy.utils.types import type_error
 
 
@@ -25,7 +26,6 @@ def default_get_int_renderer() -> Callable[[int], str]:
     >>> f(1_000_000)
     "100'0000"
     """
-    from moptipy.utils.lang import Lang  # pylint: disable=C0415,R0401
     return cast(Callable[[int], str], Lang.current().format_int)
 
 
@@ -98,7 +98,21 @@ def default_get_float_format(
 
 
 class NumberRenderer:
-    """A format description for a group of numbers."""
+    """
+    A format description for a group of numbers.
+
+    With instances of this class, you can convert a sequence of numbers
+    to a sequence of strings with uniform, pleasant formatting. The idea
+    is that such numbers can be written, e.g., into a column of a table
+    and that this column will then have a nice and uniform appearance.
+    In other words, we will avoid situations like the following:
+    "1234938845, 1e-20, 0.002, 34757773, 1e30, 0.9998837467"
+    which looks rather odd. While the numbers may be displayed correctly,
+    the formatting of all numbers is different. If we want to present
+    numbers that describe related quantities, we rather want them to all
+    have the same format. This class here can achieve this in a customizable
+    way.
+    """
 
     def __init__(self,
                  int_to_float_threshold: Union[int, float] = 10_000_000_000,

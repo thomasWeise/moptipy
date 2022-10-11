@@ -3,7 +3,12 @@
 from io import TextIOBase
 from typing import Final
 
+from moptipy.utils.formatted_string import NUMBER, NAN, \
+    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT
 from moptipy.utils.text_format import TextFormatDriver
+
+#: the exponent prefix
+_EPREFIX = r"\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript"
 
 
 class LaTeX(TextFormatDriver):
@@ -82,7 +87,7 @@ class LaTeX(TextFormatDriver):
             stream.write("&")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool) -> None:
+             code: bool, number_mode: int) -> None:
         """Print a text string."""
         if len(text) <= 0:
             return
@@ -92,7 +97,26 @@ class LaTeX(TextFormatDriver):
             stream.write("{\\textit{")
         if code:
             stream.write("{\\texttt{")
-        stream.write(text.replace("_", "\\_"))
+
+        if number_mode == TEXT:
+            stream.write(text.replace("_", "\\_"))
+        elif number_mode == NUMBER:
+            i: int = text.find('e')
+            if i < 0:
+                i = text.find('E')
+            if i > 0:
+                stream.write(f"{text[:i]}{_EPREFIX}{text[i + 1:]}")
+            else:
+                stream.write(text.replace("_", "\\_"))
+        elif number_mode == NAN:
+            stream.write(r"$\emptyset$")
+        elif number_mode == POSITIVE_INFINITY:
+            stream.write(r"$\infty$")
+        elif number_mode == NEGATIVE_INFINITY:
+            stream.write(r"$-\infty")
+        else:
+            raise ValueError(f"invalid number mode {number_mode}.")
+
         if code:
             stream.write("}}")
         if italic:
@@ -108,17 +132,6 @@ class LaTeX(TextFormatDriver):
         :retval 'tex': always
         """
         return "tex"
-
-    def render_numeric_exponent(self, e: str) -> str:
-        r"""
-        Render the numerical exponent in LaTeX.
-
-        :param e: the exponent
-        :returns: the rendered exponent
-        :retval: `\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript{e}`
-        """
-        return f"\\hspace*{{0.15em}}*\\hspace*{{0.1em}}" \
-               f"10\\textsuperscript{{{e}}}"
 
     @staticmethod
     def instance() -> 'LaTeX':

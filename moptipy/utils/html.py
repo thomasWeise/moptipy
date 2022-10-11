@@ -3,6 +3,8 @@
 from io import TextIOBase
 from typing import Final
 
+from moptipy.utils.formatted_string import NUMBER, NAN, \
+    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT
 from moptipy.utils.text_format import TextFormatDriver
 
 #: the default border style
@@ -61,7 +63,7 @@ class HTML(TextFormatDriver):
         stream.write("</th>" if (section_index < 0) else "</td>")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool) -> None:
+             code: bool, number_mode: int) -> None:
         """Print a text string."""
         if len(text) <= 0:
             return
@@ -74,7 +76,26 @@ class HTML(TextFormatDriver):
             styles += "font-family:monospace;"
         if len(styles) > 0:
             stream.write(f'<span style="{styles[0:-1]}">')
-        stream.write(text)
+
+        if number_mode == TEXT:
+            stream.write(text)
+        elif number_mode == NUMBER:
+            i: int = text.find('e')
+            if i < 0:
+                i = text.find('E')
+            if i > 0:
+                stream.write(f"{text[:i]}&#xD7;10<sup>{text[i + 1:]}</sup>")
+            else:
+                stream.write(text)
+        elif number_mode == NAN:
+            stream.write("&#x2205;")
+        elif number_mode == POSITIVE_INFINITY:
+            stream.write("&#x221E;")
+        elif number_mode == NEGATIVE_INFINITY:
+            stream.write("&#x221E;")
+        else:
+            raise ValueError(f"invalid number mode {number_mode}.")
+
         if len(styles) > 0:
             stream.write("</span>")
 
@@ -86,16 +107,6 @@ class HTML(TextFormatDriver):
         :retval 'html': always
         """
         return "html"
-
-    def render_numeric_exponent(self, e: str) -> str:
-        r"""
-        Render the numerical exponent in markdown.
-
-        :param e: the exponent
-        :returns: the rendered exponent
-        :retval: `*10\textsuperscript{e}`
-        """
-        return f"*10<sup>{e}</sup>"
 
     @staticmethod
     def instance() -> 'HTML':

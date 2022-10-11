@@ -4,7 +4,7 @@ from contextlib import AbstractContextManager
 from io import TextIOBase
 from typing import Final, Optional, Iterable, Union, Callable, List
 
-from moptipy.utils.formatted_string import FormattedStr
+from moptipy.utils.formatted_string import FormattedStr, TEXT
 from moptipy.utils.text_format import TextFormatDriver
 from moptipy.utils.types import type_error
 
@@ -332,16 +332,16 @@ class Table(AbstractContextManager):
                                        section_index, row_index, col_index)
 
         def __printit(st, strm: TextIOBase = self.__stream,
-                      wrt: Callable[[TextIOBase, str, bool,
-                                     bool, bool], None] = self.__driver.text) \
+                      wrt: Callable[[TextIOBase, str, bool, bool, bool, int],
+                                    None] = self.__driver.text) \
                 -> None:
             if st is None:
                 return
             if isinstance(st, str):
                 if isinstance(st, FormattedStr):
-                    wrt(strm, st, st.bold, st.italic, st.code)
+                    wrt(strm, st, st.bold, st.italic, st.code, st.number_mode)
                 else:
-                    wrt(strm, st, False, False, False)
+                    wrt(strm, st, False, False, False, TEXT)
             elif isinstance(st, Iterable):
                 for ss in st:
                     __printit(ss)
