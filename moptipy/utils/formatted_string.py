@@ -124,7 +124,6 @@ class FormattedStr(str):
             return FormattedStr(s, bold, italic, code, TEXT)
         return s
 
-    # noinspection PyProtectedMember
     @staticmethod
     def number(number: Optional[Union[int, float, str]]) -> 'FormattedStr':
         """
@@ -133,7 +132,6 @@ class FormattedStr(str):
         :param number: the original number or numeric string
         :return: the formatted string representing it
 
-        >>> from moptipy.utils.formatted_string import _NAN, _PINF, _NINF
         >>> FormattedStr.number(inf)
         'inf'
         >>> FormattedStr.number(inf) is _PINF
