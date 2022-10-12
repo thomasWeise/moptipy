@@ -143,7 +143,6 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
     for i, n in sorted([(n[1], n[0]) for n in ea_families.items()],
                        reverse=True, key=lambda a: a[0]):
         names_new.insert(i, n)
-    print(names_new)
 
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
 

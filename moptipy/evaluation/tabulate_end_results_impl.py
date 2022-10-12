@@ -24,6 +24,11 @@ from moptipy.utils.table import Table
 from moptipy.utils.text_format import TextFormatDriver
 from moptipy.utils.types import type_error
 
+#: the lower bound key
+__KEY_LOWER_BOUND: Final[str] = "lower_bound"
+#: the lower bound short key
+__KEY_LOWER_BOUND_SHORT: Final[str] = "lower_bound_short"
+
 
 def default_column_namer(col: str) -> str:
     """
@@ -38,7 +43,7 @@ def default_column_namer(col: str) -> str:
         return "I"
     if col == KEY_ALGORITHM:
         return Lang.translate("setup")
-    if col in ("lower_bound", "lower_bound_short", KEY_GOAL_F):
+    if col in (__KEY_LOWER_BOUND, __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
         return "lb(f)"
     if col in "summary":
         return Lang.translate(col)
@@ -122,7 +127,7 @@ def command_column_namer(
         return r"$\instance$"
     if col == KEY_ALGORITHM:
         return setup_name(put_dollars)
-    if col in ("lower_bound", "lower_bound_short", KEY_GOAL_F):
+    if col in (__KEY_LOWER_BOUND, __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
         return r"$\lowerBound(\objf)$" if \
             put_dollars else r"\lowerBound(\objf)"
     if col == "summary":
@@ -241,8 +246,8 @@ def default_column_best(col: str) ->\
     if not isinstance(col, str):
         raise type_error(col, "column name", str)
 
-    if col in (KEY_INSTANCE, KEY_ALGORITHM, "lower_bound",
-               "lower_bound_short", KEY_GOAL_F):
+    if col in (KEY_INSTANCE, KEY_ALGORITHM, __KEY_LOWER_BOUND,
+               __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
         return __nan
 
     if SCOPE_SEPARATOR not in col:
@@ -262,6 +267,39 @@ def default_column_best(col: str) ->\
         return __finite_max
 
     return __nan
+
+
+#: the number renderer for times
+__TIME_NUMBER_RENDERER: Final[NumberRenderer] = \
+    DEFAULT_NUMBER_RENDERER.derive(
+        int_to_float_threshold=999_999,
+        get_float_format=lambda _, ma, __, ___, itft:
+        "{:.0f}" if ma <= itft else "{:.1e}")
+
+
+def default_number_renderer(col: str) -> NumberRenderer:
+    """
+    Get the number renderer for the specified column.
+
+    Time columns are rendered with less precision.
+
+    :param col: the column name
+    :returns: the number renderer
+    """
+    if not isinstance(col, str):
+        raise type_error(col, "column name", str)
+    if col not in (KEY_INSTANCE, KEY_ALGORITHM, __KEY_LOWER_BOUND,
+                   __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
+        if SCOPE_SEPARATOR not in col:
+            raise ValueError(
+                f"statistic '{col}' should contain '{SCOPE_SEPARATOR}'.")
+        key, stat = col.split(SCOPE_SEPARATOR)
+        if (len(key) <= 0) or (len(stat) <= 0):
+            raise ValueError(f"invalid statistic '{col}'.")
+        if key in (KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
+                   KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS):
+            return __TIME_NUMBER_RENDERER
+    return DEFAULT_NUMBER_RENDERER
 
 
 def __getter(s: str) -> Callable[[EndStatistics], Union[int, float, None]]:
@@ -325,15 +363,16 @@ def tabulate_end_results(
         col_namer: Callable[[str], str] = default_column_namer,
         col_best: Callable[[str], Callable[[Iterable[Union[
             int, float, None]]], Union[int, float]]] = default_column_best,
+        col_renderer: Callable[[str], NumberRenderer] =
+        default_number_renderer,
         put_lower_bound: bool = True,
         lower_bound_getter: Optional[Callable[[EndStatistics],
                                               Union[int, float, None]]] =
         __getter(KEY_GOAL_F),
-        lower_bound_name: Optional[str] = "lower_bound",
+        lower_bound_name: Optional[str] = __KEY_LOWER_BOUND,
         use_lang: bool = True,
         instance_namer: Callable[[str], str] = lambda x: x,
-        algorithm_namer: Callable[[str], str] = lambda x: x,
-        renderer: NumberRenderer = DEFAULT_NUMBER_RENDERER) -> Path:
+        algorithm_namer: Callable[[str], str] = lambda x: x) -> Path:
     r"""
     Tabulate the statistics about the end results of an experiment.
 
@@ -395,6 +434,7 @@ def tabulate_end_results(
     :param instance_sort_key: a function returning sort keys for instances
     :param col_namer: the column namer function
     :param col_best: the column-best getter function
+    :param col_renderer: the number renderer for the column
     :param put_lower_bound: should we put the lower bound or goal objective
         value?
     :param lower_bound_getter: the getter for the lower bound
@@ -405,7 +445,6 @@ def tabulate_end_results(
         instance ID and returns an instance name; default=identity function
     :param algorithm_namer: the name function for algorithms receives an
         algorithm ID and returns an instance name; default=identity function
-    :param renderer: the number renderer
     :returns: the path to the file with the tabulated end results
     """
     # Before doing anything, let's do some type checking on the parameters.
@@ -442,12 +481,21 @@ def tabulate_end_results(
         raise type_error(col_namer, "col_namer", call=True)
     if not callable(col_best):
         raise type_error(col_best, "col_best", call=True)
+    if not callable(col_renderer):
+        raise type_error(col_renderer, "col_renderer", call=True)
     if not isinstance(use_lang, bool):
         raise type_error(use_lang, "use_lang", bool)
     if not callable(algorithm_namer):
         raise type_error(algorithm_namer, "algorithm_namer", call=True)
     if not callable(instance_namer):
         raise type_error(instance_namer, "instance_namer", call=True)
+
+    # quick protection of renderer
+    def __col_renderer(col: str, __fwd=col_renderer) -> NumberRenderer:
+        res = __fwd(col)
+        if not isinstance(res, NumberRenderer):
+            raise type_error(res, f"col_renderer('{col}')", NumberRenderer)
+        return res
 
     # get the getters
     algo_inst_getters: Final[List[Callable[[EndStatistics],
@@ -514,7 +562,7 @@ def tabulate_end_results(
                 raise ValueError(f"inconsistent lower bounds {bounds} for "
                                  f"instance '{inst}'.")
             lb.append(bounds[0])
-        lower_bounds = renderer.render(lb)
+        lower_bounds = __col_renderer(__KEY_LOWER_BOUND).render(lb)
         del lb
     else:
         lower_bounds = None
@@ -585,7 +633,8 @@ def tabulate_end_results(
           for inst in insts for algo in algos]
          for getter in algo_inst_getters]
     algo_inst_strs_raw: Final[List[List[Optional[str]]]] = [
-        renderer.render(col) for col in algo_inst_data_raw]
+        __col_renderer(ais).render(algo_inst_data_raw[i])
+        for i, ais in enumerate(algorithm_instance_statistics)]
 
     # now break the data into sections
     # format: column -> per-instance section -> section data
@@ -639,7 +688,8 @@ def tabulate_end_results(
             [[None if getter is None else getter(algo_dict[algo])
               for algo in algos]
              for getter in algo_getters]
-        algo_strs = [renderer.render(col) for col in algo_data]
+        algo_strs = [__col_renderer(ass).render(algo_data[i])
+                     for i, ass in enumerate(algorithm_summary_statistics)]
 
         # now format the data, i.e., compute the per-section best value
         # of each column and mark it with bold face

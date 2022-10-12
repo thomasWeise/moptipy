@@ -84,15 +84,15 @@ class Markdown(TextFormatDriver):
             if i < 0:
                 i = text.find('E')
             if i > 0:
-                stream.write(f"{text[:i]}\u00D710^{text[i + 1:]}^")
+                stream.write(f"{text[:i]}\\*10^{text[i + 1:]}^")  # \u00D7
             else:
                 stream.write(text)
         elif number_mode == NAN:
-            stream.write("\u2205")
+            stream.write(r"$\emptyset$")  # \u2205
         elif number_mode == POSITIVE_INFINITY:
-            stream.write("\u221E")
+            stream.write(r"$\infty$")  # \u221E
         elif number_mode == NEGATIVE_INFINITY:
-            stream.write("-\u221E")
+            stream.write(r"$-\infty$")  # -\u221E
         else:
             raise ValueError(f"invalid number mode {number_mode}.")
 

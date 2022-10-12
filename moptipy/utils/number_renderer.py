@@ -30,16 +30,21 @@ def default_get_int_renderer() -> Callable[[int], str]:
 
 
 def default_get_float_format(
-        min_finite: Union[int, float] = 0, max_finite: Union[int, float] = 0,
-        max_frac_len: int = 2, int_to_float_threshold: Union[int, float] =
-        10_000_000_000) -> str:
+        min_finite: Union[int, float] = 0,
+        max_finite: Union[int, float] = 0,
+        max_frac_len: int = 2,
+        min_non_zero_abs: Union[int, float] = inf,
+        int_to_float_threshold: Union[int, float] = 10_000_000_000) -> str:
     """
     Get the default float format for numbers in the given range.
 
     :param min_finite: the minimum finite value that may need to be formatted
     :param max_finite: the maximum finite value that may need to be formatted
     :param max_frac_len: the length of the longest fractional part of any
-        number encountered
+        number encountered that can be converted to a string *not* in the "E"
+        notation
+    :param min_non_zero_abs: the minimum non-zero absolute value; will be
+        `inf` if all absolute values are zero
     :param int_to_float_threshold: the threshold above which all integers are
         converted to floating point numbers with the 'E' notation
 
@@ -63,6 +68,8 @@ def default_get_float_format(
     '{:.3f}'
     >>> default_get_float_format(0, 1e11, 4)
     '{:.2e}'
+    >>> default_get_float_format(-1, 1, 4, 1e-3)
+    '{:.3f}'
     """
     if not isinstance(min_finite, (int, float)):
         raise type_error(min_finite, "min_finite", (int, float))
@@ -84,7 +91,24 @@ def default_get_float_format(
             or (int_to_float_threshold >= inf)):
         raise ValueError(
             f"invalid int_to_float_threshold={int_to_float_threshold}.")
+    if not isinstance(min_non_zero_abs, (int, float)):
+        raise type_error(min_non_zero_abs, "min_non_zero_abs", (int, float))
+    if min_non_zero_abs <= 0:
+        raise ValueError(f"invalid min_non_zero_abs={min_non_zero_abs}")
 
+    # are the values in the [-1, 1] range, i.e., possibly just small fractions?
+    if (min_finite >= -1) and (max_finite <= 1) and isfinite(min_non_zero_abs):
+        if min_non_zero_abs >= 1e-1:
+            return "{:.1f}"
+        if min_non_zero_abs >= 1e-2:
+            return "{:.2f}"
+        if min_non_zero_abs >= 1e-3:
+            return "{:.3f}"
+        if min_non_zero_abs >= 1e-4:
+            return "{:.4f}"
+        return "{:.3e}"
+
+    # handle numbers that are outside [-1, 1]
     if ((-int_to_float_threshold) <= min_finite) \
             and (max_finite <= int_to_float_threshold):
         if (max_frac_len <= 0) or (min_finite <= -1E4) or (max_finite >= 1E4):
@@ -120,7 +144,8 @@ class NumberRenderer:
                  = default_get_int_renderer,
                  get_float_format: Callable[
                      [Union[int, float], Union[int, float], int,
-                      Union[int, float]], str] = default_get_float_format):
+                      Union[int, float], Union[int, float]], str] =
+                 default_get_float_format):
         """
         Create the number group format.
 
@@ -164,7 +189,7 @@ class NumberRenderer:
         #: values
         self.get_float_format: Final[Callable[
             [Union[int, float], Union[int, float], int,
-             Union[int, float]], str]] = get_float_format
+             Union[int, float], Union[int, float]], str]] = get_float_format
 
     def derive(self,
                int_to_float_threshold: Optional[Union[int, float]] = None,
@@ -172,7 +197,8 @@ class NumberRenderer:
                    Callable[[], Callable[[int], str]]] = None,
                get_float_format: Optional[Callable[
                    [Union[int, float], Union[int, float], int,
-                    Union[int, float]], str]] = None) -> 'NumberRenderer':
+                    Union[int, float], Union[int, float]], str]] = None) \
+            -> 'NumberRenderer':
         """
         Derive a new number group format from this one.
 
@@ -281,6 +307,10 @@ class NumberRenderer:
         ["22'139'283", 'inf', '-inf', 'nan', None]
         >>> ff.render([1E-4, 1/7, 123456789012345678])
         ['1.00e-4', '1.43e-1', '1.23e17']
+        >>> ff.render([0, 0.02, 0.1, 1e-3])
+        ['0.000', '0.020', '0.100', '0.001']
+        >>> ff.render([-0.2, 1e-6, 0.9])
+        ['-2.000e-1', '1.000e-6', '9.000e-1']
         """
         if (source is None) or isinstance(source, (int, float)):
             source = [source]
@@ -310,7 +340,9 @@ class NumberRenderer:
         all_is_int: bool = True
         max_finite: Union[int, float] = -inf
         min_finite: Union[int, float] = inf
+        min_non_zero_abs: Union[int, float] = inf
         longest_fraction: int = -1
+        da: Union[int, float]
 
         for i, d in enumerate(data):
             if d is None:
@@ -322,6 +354,9 @@ class NumberRenderer:
                     min_finite = d2
                 if d2 > max_finite:
                     max_finite = d2
+                da = abs(d2)
+                if 0 < da < min_non_zero_abs:
+                    min_non_zero_abs = da
                 if not ((-int_to_float_threshold) <= d2
                         <= int_to_float_threshold):
                     d2 = float(d2)
@@ -342,6 +377,9 @@ class NumberRenderer:
                     min_finite = d2
                 if d2 > max_finite:
                     max_finite = d2
+                da = abs(d2)
+                if 0 < da < min_non_zero_abs:
+                    min_non_zero_abs = da
 
         # step three: if all data is None, we can return here
         if all_is_none:
@@ -369,7 +407,8 @@ class NumberRenderer:
         # integers. therefore, we need to convert them to strings based on a
         # floating point number format.
         float_format = self.get_float_format(
-            min_finite, max_finite, longest_fraction, int_to_float_threshold)
+            min_finite, max_finite, longest_fraction, min_non_zero_abs,
+            int_to_float_threshold)
         if not isinstance(float_format, str):
             raise type_error(float_format,
                              "float format from float_format_getter", str)
