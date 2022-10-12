@@ -1742,19 +1742,19 @@ The example [examples/end_results_table.py](https://thomasweise.github.io/moptip
 
 |I|lb(f)|setup|best|mean|sd|mean1|mean(fes)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|
-|`dmu23`|4'668|`hc_swap2`|6'283|6'448.1|178.12|1.381|596.86|10.429|
-|||`rls_swap2`|**5'951**|**6'206.0**|**139.16**|**1.329**|**694.43**|**10.857**|
-|||`rs`|7'378|7'598.4|155.57|1.628|340.29|7.857|
-|`ft06`|55|`hc_swap2`|57|59.3|1.25|1.078|133.14|2.429|
-|||`rls_swap2`|**55**|**57.1**|2.04|**1.039**|208.29|3.000|
-|||`rs`|60|60.4|**0.79**|1.099|**651.14**|**5.714**|
-|`la24`|935|`hc_swap2`|1'122|1'182.9|65.26|1.265|619.57|8.000|
-|||`rls_swap2`|**1'080**|**1'143.6**|48.08|**1.223**|**717.14**|**9.143**|
-|||`rs`|1'375|1'404.3|**26.66**|1.502|248.43|3.143|
+|`dmu23`|4'668|`hc_swap2`|6'260|6'413.6|191.78|1.374|626|10|
+|||`rls_swap2`|**5'886**|**6'177.7**|164.08|**1.323**|**704**|**11**|
+|||`rs`|7'378|7'576.6|**122.78**|1.623|357|8|
+|`ft06`|55|`hc_swap2`|57|59.3|1.25|1.078|133|2|
+|||`rls_swap2`|**55**|**57.0**|1.91|**1.036**|333|4|
+|||`rs`|60|60.4|**0.79**|1.099|**651**|**5**|
+|`la24`|935|`hc_swap2`|1'122|1'180.7|61.74|1.263|**752**|9|
+|||`rls_swap2`|**1'078**|**1'143.0**|48.23|**1.222**|752|**10**|
+|||`rs`|1'375|1'404.3|**26.66**|1.502|248|3|
 |||setup|best1|gmean1|worst1|sd1|mean(fes)|mean(t)|
-|summary||`hc_swap2`|1.036|1.234|1.458|0.136|449.86|6.952|
-|summary||`rls_swap2`|**1.000**|**1.190**|**1.377**|**0.129**|**539.95**|**7.667**|
-|summary||`rs`|1.091|1.390|1.680|0.233|413.29|5.571|
+|summary||`hc_swap2`|1.036|1.231|1.444|0.1|504|7|
+|summary||`rls_swap2`|**1.000**|**1.187**|**1.377**|**0.1**|**596**|**8**|
+|summary||`rs`|1.091|1.389|1.650|0.2|419|5|
 
 It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX):
 
@@ -1763,23 +1763,23 @@ It also produces the same table in [LaTeX](https://thomasweise.github.io/moptipy
 \hline%
 I&lb(f)&setup&best&mean&sd&mean1&mean(fes)&mean(t)\\%
 \hline%
-{\texttt{dmu23}}&4'668&{\texttt{hc_swap2}}&6'283&6'448.1&178.12&1.381&596.86&10.429\\%
-&&{\texttt{rls_swap2}}&{\textbf{5'951}}&{\textbf{6'206.0}}&{\textbf{139.16}}&{\textbf{1.329}}&{\textbf{694.43}}&{\textbf{10.857}}\\%
-&&{\texttt{rs}}&7'378&7'598.4&155.57&1.628&340.29&7.857\\%
+{\texttt{dmu23}}&4'668&{\texttt{hc\_swap2}}&6'260&6'413.6&191.78&1.374&626&10\\%
+&&{\texttt{rls\_swap2}}&{\textbf{5'886}}&{\textbf{6'177.7}}&164.08&{\textbf{1.323}}&{\textbf{704}}&{\textbf{11}}\\%
+&&{\texttt{rs}}&7'378&7'576.6&{\textbf{122.78}}&1.623&357&8\\%
 \hline%
-{\texttt{ft06}}&55&{\texttt{hc_swap2}}&57&59.3&1.25&1.078&133.14&2.429\\%
-&&{\texttt{rls_swap2}}&{\textbf{55}}&{\textbf{57.1}}&2.04&{\textbf{1.039}}&208.29&3.000\\%
-&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{651.14}}&{\textbf{5.714}}\\%
+{\texttt{ft06}}&55&{\texttt{hc\_swap2}}&57&59.3&1.25&1.078&133&2\\%
+&&{\texttt{rls\_swap2}}&{\textbf{55}}&{\textbf{57.0}}&1.91&{\textbf{1.036}}&333&4\\%
+&&{\texttt{rs}}&60&60.4&{\textbf{0.79}}&1.099&{\textbf{651}}&{\textbf{5}}\\%
 \hline%
-{\texttt{la24}}&935&{\texttt{hc_swap2}}&1'122&1'182.9&65.26&1.265&619.57&8.000\\%
-&&{\texttt{rls_swap2}}&{\textbf{1'080}}&{\textbf{1'143.6}}&48.08&{\textbf{1.223}}&{\textbf{717.14}}&{\textbf{9.143}}\\%
-&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&248.43&3.143\\%
+{\texttt{la24}}&935&{\texttt{hc\_swap2}}&1'122&1'180.7&61.74&1.263&{\textbf{752}}&9\\%
+&&{\texttt{rls\_swap2}}&{\textbf{1'078}}&{\textbf{1'143.0}}&48.23&{\textbf{1.222}}&752&{\textbf{10}}\\%
+&&{\texttt{rs}}&1'375&1'404.3&{\textbf{26.66}}&1.502&248&3\\%
 \hline%
 &&setup&best1&gmean1&worst1&sd1&mean(fes)&mean(t)\\%
 \hline%
-summary&&texttt{hc_swap2}&1.036&1.234&1.458&0.136&449.86&6.952\\%
-summary&&texttt{rls_swap2}&{\textbf{1.000}}&{\textbf{1.190}}&{\textbf{1.377}}&{\textbf{0.129}}&{\textbf{539.95}}&{\textbf{7.667}}\\%
-summary&&texttt{rs}&1.091&1.390&1.680&0.233&413.29&5.571\\%
+summary&&{\texttt{hc\_swap2}}&1.036&1.231&1.444&0.1&504&7\\%
+summary&&{\texttt{rls\_swap2}}&{\textbf{1.000}}&{\textbf{1.187}}&{\textbf{1.377}}&{\textbf{0.1}}&{\textbf{596}}&{\textbf{8}}\\%
+summary&&{\texttt{rs}}&1.091&1.389&1.650&0.2&419&5\\%
 \hline%
 \end{tabular}%
 ```
