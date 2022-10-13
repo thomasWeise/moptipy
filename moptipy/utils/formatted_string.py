@@ -16,6 +16,8 @@ NAN: Final[int] = 2
 POSITIVE_INFINITY: Final[int] = 3
 #: the formatted string represents negative infinity
 NEGATIVE_INFINITY: Final[int] = 4
+#: the formatted string represents a special character
+SPECIAL: Final[int] = 5
 
 
 class FormattedStr(str):
@@ -28,7 +30,7 @@ class FormattedStr(str):
     to the console without any issue. However, they also hold information
     about whether the text should be :attr:`bold`, :attr:`italic`, or rendered
     in a monospace :attr:`code` font. Furthermore, if a number or numerical
-    string is represented as a formatted string, the field :attr:`number_mode`
+    string is represented as a formatted string, the field :attr:`mode`
     will be non-zero. If it is `TEXT=1`, the string is a normal number, if it
     is `NAN=2`, the string is "nan", if it is `POSITIVE_INFINITY=3`, then the
     string is `inf`, and if it is `NEGATIVE_INFINITY=4`, the string is `-inf`.
@@ -36,7 +38,7 @@ class FormattedStr(str):
     numeric values with unicode constants or certain commands. It may also
     choose to replace floating point number of the form `1.5E23` with
     something like `1.5*10^23`. It can do so because a non-zero
-    :attr:`number_mode` indicates that the string is definitely representing a
+    :attr:`mode` indicates that the string is definitely representing a
     number and that numbers in the string did not just occur for whatever
     other reason.
     """
@@ -47,12 +49,12 @@ class FormattedStr(str):
     italic: bool
     #: should this string be formatted in code face?
     code: bool
-    #: the numeric mode: `TEXT`, `NUMBER`, `NAN`, `POSITIVE_INFINITY`,
+    #: the special mode: `TEXT`, `NUMBER`, `NAN`, `POSITIVE_INFINITY`,
     #: or `NEGATIVE_INFINITY`
-    number_mode: int
+    mode: int
 
     def __new__(cls, value, bold: bool = False, italic: bool = False,
-                code: bool = False, number_mode: int = TEXT):
+                code: bool = False, mode: int = TEXT):
         """
         Construct the object.
 
@@ -60,24 +62,26 @@ class FormattedStr(str):
         :param bold: should the format be bold face?
         :param italic: should the format be italic face?
         :param code: should the format be code face?
-        :param number_mode: the number mode
+        :param mode: the mode of the formatted string
         """
+        if not isinstance(value, str):
+            raise type_error(value, "value", str)
         if not isinstance(bold, bool):
             raise type_error(bold, "bold", bool)
         if not isinstance(italic, bool):
             raise type_error(italic, "italic", bool)
         if not isinstance(code, bool):
             raise type_error(code, "code", bool)
-        if not isinstance(number_mode, int):
-            raise type_error(number_mode, "number_mode", int)
-        if (number_mode < TEXT) or (number_mode > NEGATIVE_INFINITY):
-            raise ValueError(f"invalid number mode: {number_mode}")
-        if bold or italic or code or (number_mode != TEXT):
+        if not isinstance(mode, int):
+            raise type_error(mode, "mode", int)
+        if (mode < TEXT) or (mode > SPECIAL):
+            raise ValueError(f"invalid number mode: {mode}")
+        if bold or italic or code or (mode != TEXT):
             ret = super(FormattedStr, cls).__new__(cls, value)
             ret.bold = bold
             ret.italic = italic
             ret.code = code
-            ret.number_mode = number_mode
+            ret.mode = mode
             return ret
         return value
 
@@ -108,7 +112,7 @@ class FormattedStr(str):
         True
         >>> fs.italic
         True
-        >>> fs.number_mode
+        >>> fs.mode
         0
         """
         if isinstance(s, FormattedStr):
@@ -116,7 +120,7 @@ class FormattedStr(str):
             italic = italic or s.italic
             code = code or s.code
             if (bold != s.bold) or (italic != s.italic) or (code != s.code):
-                return FormattedStr(s, bold, italic, code, s.number_mode)
+                return FormattedStr(s, bold, italic, code, s.mode)
             return s
         if not isinstance(s, str):
             raise type_error(s, "s", str)
@@ -136,25 +140,25 @@ class FormattedStr(str):
         'inf'
         >>> FormattedStr.number(inf) is _PINF
         True
-        >>> FormattedStr.number(inf).number_mode
+        >>> FormattedStr.number(inf).mode
         3
         >>> FormattedStr.number(-inf)
         '-inf'
         >>> FormattedStr.number(-inf) is _NINF
         True
-        >>> FormattedStr.number(-inf).number_mode
+        >>> FormattedStr.number(-inf).mode
         4
         >>> FormattedStr.number(nan)
         'nan'
         >>> FormattedStr.number(nan) is _NAN
         True
-        >>> FormattedStr.number(nan).number_mode
+        >>> FormattedStr.number(nan).mode
         2
         >>> FormattedStr.number(123)
         '123'
         >>> FormattedStr.number(123e3)
         '123000.0'
-        >>> FormattedStr.number(123e3).number_mode
+        >>> FormattedStr.number(123e3).mode
         1
         """
         if not isinstance(number, (int, str)):
@@ -168,6 +172,24 @@ class FormattedStr(str):
             else:
                 raise type_error(number, "number", (float, int, str))
         return FormattedStr(str(number), False, False, False, NUMBER)
+
+    @staticmethod
+    def special(text: str) -> 'FormattedStr':
+        r"""
+        Create a special string.
+
+        A special string has mode `SPECIAL` set and notifies the text format
+        that special formatting conversion, e.g., a translation from the
+        character "alpha" (\u03b1) to `\alpha` is required.
+
+        :param text: the text
+
+        >>> FormattedStr.special("bla")
+        'bla'
+        >>> FormattedStr.special("bla").mode
+        5
+        """
+        return FormattedStr(text, False, False, False, SPECIAL)
 
 
 #: the constant for not-a-number

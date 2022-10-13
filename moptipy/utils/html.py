@@ -1,14 +1,25 @@
 """The HTML text format driver."""
 
 from io import TextIOBase
-from typing import Final
+from typing import Final, Dict
 
 from moptipy.utils.formatted_string import NUMBER, NAN, \
-    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT
+    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT, SPECIAL
 from moptipy.utils.text_format import TextFormatDriver, MODE_TABLE_HEADER
 
 #: the default border style
 _BORDER: Final[str] = "1pt solid black"
+
+#: special characters in HTML
+SPECIAL_CHARS: Final[Dict[str, str]] = {
+    "\u2205": "&#x2205;",
+    "\u221E": "&#x221e;",
+    "-\u221E": "-&#x221e;",
+    "inf": "&#x221E;",
+    "-inf": "-&#x221E;",
+    "nan": "&#x2205;",
+    "\u03b1": "&#x3b1;",
+}
 
 
 class HTML(TextFormatDriver):
@@ -63,7 +74,7 @@ class HTML(TextFormatDriver):
         stream.write("</th>" if (cell_mode == MODE_TABLE_HEADER) else "</td>")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool, number_mode: int) -> None:
+             code: bool, mode: int) -> None:
         """Print a text string."""
         if len(text) <= 0:
             return
@@ -77,9 +88,9 @@ class HTML(TextFormatDriver):
         if len(styles) > 0:
             stream.write(f'<span style="{styles[0:-1]}">')
 
-        if number_mode == TEXT:
+        if mode == TEXT:
             stream.write(text)
-        elif number_mode == NUMBER:
+        elif mode == NUMBER:
             i: int = text.find('e')
             if i < 0:
                 i = text.find('E')
@@ -87,14 +98,19 @@ class HTML(TextFormatDriver):
                 stream.write(f"{text[:i]}&#xD7;10<sup>{text[i + 1:]}</sup>")
             else:
                 stream.write(text)
-        elif number_mode == NAN:
+        elif mode == NAN:
             stream.write("&#x2205;")
-        elif number_mode == POSITIVE_INFINITY:
+        elif mode == POSITIVE_INFINITY:
             stream.write("&#x221E;")
-        elif number_mode == NEGATIVE_INFINITY:
-            stream.write("&#x221E;")
+        elif mode == NEGATIVE_INFINITY:
+            stream.write("-&#x221E;")
+        elif mode == SPECIAL:
+            s: Final[str] = str(text)
+            if s not in SPECIAL_CHARS:
+                raise ValueError(f"invalid special character: '{s}'")
+            stream.write(SPECIAL_CHARS[s])
         else:
-            raise ValueError(f"invalid number mode {number_mode}.")
+            raise ValueError(f"invalid mode {mode} for text '{text}'.")
 
         if len(styles) > 0:
             stream.write("</span>")

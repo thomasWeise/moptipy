@@ -1,14 +1,25 @@
 """The latex text format driver."""
 
 from io import TextIOBase
-from typing import Final
+from typing import Final, Dict
 
 from moptipy.utils.formatted_string import NUMBER, NAN, \
-    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT
+    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT, SPECIAL
 from moptipy.utils.text_format import TextFormatDriver
 
 #: the exponent prefix
 _EPREFIX = r"\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript"
+
+#: special characters in LaTeX
+SPECIAL_CHARS: Final[Dict[str, str]] = {
+    "\u2205": r"$\emptyset$",
+    "\u221E": r"$\infty$",
+    "-\u221E": r"$-\infty$",
+    "inf": r"$\infty$",
+    "-inf": r"$-\infty$",
+    "nan": r"$\emptyset$",
+    "\u03b1": r"$\alpha$",
+}
 
 
 class LaTeX(TextFormatDriver):
@@ -88,7 +99,7 @@ class LaTeX(TextFormatDriver):
             stream.write("&")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool, number_mode: int) -> None:
+             code: bool, mode: int) -> None:
         """Print a text string."""
         if len(text) <= 0:
             return
@@ -99,9 +110,9 @@ class LaTeX(TextFormatDriver):
         if code:
             stream.write("{\\texttt{")
 
-        if number_mode == TEXT:
+        if mode == TEXT:
             stream.write(text.replace("_", "\\_"))
-        elif number_mode == NUMBER:
+        elif mode == NUMBER:
             i: int = text.find('e')
             if i < 0:
                 i = text.find('E')
@@ -109,14 +120,19 @@ class LaTeX(TextFormatDriver):
                 stream.write(f"{text[:i]}{_EPREFIX}{text[i + 1:]}")
             else:
                 stream.write(text.replace("_", "\\_"))
-        elif number_mode == NAN:
+        elif mode == NAN:
             stream.write(r"$\emptyset$")
-        elif number_mode == POSITIVE_INFINITY:
+        elif mode == POSITIVE_INFINITY:
             stream.write(r"$\infty$")
-        elif number_mode == NEGATIVE_INFINITY:
+        elif mode == NEGATIVE_INFINITY:
             stream.write(r"$-\infty")
+        elif mode == SPECIAL:
+            s: Final[str] = str(text)
+            if s not in SPECIAL_CHARS:
+                raise ValueError(f"invalid special character: '{s}'")
+            stream.write(SPECIAL_CHARS[s])
         else:
-            raise ValueError(f"invalid number mode {number_mode}.")
+            raise ValueError(f"invalid mode {mode} for text '{text}'.")
 
         if code:
             stream.write("}}")

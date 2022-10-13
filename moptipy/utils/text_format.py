@@ -158,7 +158,7 @@ class TextFormatDriver:
         """
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool, number_mode: int) -> None:
+             code: bool, mode: int) -> None:
         """
         Write a chunk of text.
 
@@ -167,8 +167,8 @@ class TextFormatDriver:
         :param bold: is the text in bold face?
         :param italic: is the text in italic face?
         :param code: is the text in code face?
-        :param number_mode: the number mode of a formatted text piece, see the
-            attribute `number_mode` of
+        :param mode: the mode of a formatted text piece, see the attribute
+            :attr:`~moptipy.utils.formatted_string.FormattedStr.mode` of
             :class:`~moptipy.utils.formatted_string.FormattedStr`
         """
 

@@ -4,7 +4,8 @@ from io import TextIOBase
 from typing import Final
 
 from moptipy.utils.formatted_string import NUMBER, NAN, \
-    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT
+    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT, SPECIAL
+from moptipy.utils.latex import SPECIAL_CHARS
 from moptipy.utils.text_format import TextFormatDriver
 
 
@@ -67,7 +68,7 @@ class Markdown(TextFormatDriver):
         stream.write("|")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
-             code: bool, number_mode: int) -> None:
+             code: bool, mode: int) -> None:
         """Print a text string."""
         if len(text) <= 0:
             return
@@ -78,9 +79,9 @@ class Markdown(TextFormatDriver):
         if code:
             stream.write("`")
 
-        if number_mode == TEXT:
+        if mode == TEXT:
             stream.write(text)
-        elif number_mode == NUMBER:
+        elif mode == NUMBER:
             i: int = text.find('e')
             if i < 0:
                 i = text.find('E')
@@ -88,14 +89,19 @@ class Markdown(TextFormatDriver):
                 stream.write(f"{text[:i]}\\*10^{text[i + 1:]}^")  # \u00D7
             else:
                 stream.write(text)
-        elif number_mode == NAN:
+        elif mode == NAN:
             stream.write(r"$\emptyset$")  # \u2205
-        elif number_mode == POSITIVE_INFINITY:
+        elif mode == POSITIVE_INFINITY:
             stream.write(r"$\infty$")  # \u221E
-        elif number_mode == NEGATIVE_INFINITY:
+        elif mode == NEGATIVE_INFINITY:
             stream.write(r"$-\infty$")  # -\u221E
+        elif mode == SPECIAL:
+            s: Final[str] = str(text)
+            if s not in SPECIAL_CHARS:
+                raise ValueError(f"invalid special character: '{s}'")
+            stream.write(SPECIAL_CHARS[s])
         else:
-            raise ValueError(f"invalid number mode {number_mode}.")
+            raise ValueError(f"invalid mode {mode} for text '{text}'.")
 
         if code:
             stream.write("`")

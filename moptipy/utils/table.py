@@ -321,7 +321,7 @@ class Table(AbstractContextManager):
                 return
             if isinstance(st, str):
                 if isinstance(st, FormattedStr):
-                    wrt(strm, st, st.bold, st.italic, st.code, st.number_mode)
+                    wrt(strm, st, st.bold, st.italic, st.code, st.mode)
                 else:
                     wrt(strm, st, False, False, False, TEXT)
             elif isinstance(st, Iterable):
