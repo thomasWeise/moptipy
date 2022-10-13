@@ -727,24 +727,43 @@ The files and folders in this archive will then exactly comply to the structure 
 The philosophy of our log files are:
 
 1. One log file per algorithm run.
+   We always store each run of an algorithm into a single, separate file.
+   This has several advantages:
+   If you execute several runs in parallel, there cannot be any problems when writing the log files.
+   If, instead, we would store multiple runs in a single file, then some synchronization is needed if multiple processes work on the runs for the same setup.
+   Each log file and run is also self-contained.
+   If runs are executed in a distributed fashion, then we can store data about the node where the run is executed in the log file.
+   We can also store the results of the runs right in the log files without requiring any special treatment to identify to which run the results belong (because there only is one run they could belong to).
+   And so on.
 2. Each log file contains all information needed to fully understand the algorithm run, such as
-   1. The results in numerical form, e.g., the best achieved objective value.
-   2. The result in textual form, e.g., the textual representation of the best solution discovered
+   1. The results in numerical form, e.g., the [best achieved objective value](#5122-the-section-state).
+   2. The result in textual form, e.g., the textual representation of the [best solution discovered](#5125-the-result_-sections)
       This allows us to later load, use, or validate the result.
-   3. The random seed used.
-   4. The algorithm name and configuration.
+   3. The [random seed](#5123-the-section-setup) used.
+   4. The [termination criteria](#5123-the-section-setup) used, i.e., the maximum objective function evaluations or the maximum runtime or the goal objective value.
+   5. The algorithm name and [configuration](#5123-the-section-setup).
       This allows us to later understand what we did here and to reproduce the algorithm setup.
-   5. The problem instance name and parameters.
+   6. The problem instance name and [parameters](#5123-the-section-setup).
       This makes sure that we know which problem instance did we solve.
-   6. The system configuration, such as the CPU nd operating system and Python version and library versions.
+   7. The [system configuration](#5124-the-section-sys_info), such as the CPU nd operating system and Python version and [library versions](#5124-the-section-sys_info).
       We need to this to understand and reproduce time-dependent measures or to understand situations where changes in the underlying system configuration may have led to different results.
-   7. Errors, if any occurred.
+   8. [Errors](#5126-the-error_-sections), if any occurred.
       We can guard against errors using unit tests, but it may still happen that a run of the optimization algorithm crashed.
       Our system tries to catch as detailed error information as possible and store it in the log files in order to allow us to figure out what went wrong.
+   9. The [progress](#5121-the-section-progress) that the algorithm made over time, if capturing this information [was demanded](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements).
+   10. The [contents of the archive](#5128-the-archive_j_x-and-archive_j_y-sections) of non-dominated solutions, if we perform [multi-objective optimization](#514-example-log-file-for-multi-objective-optimization).
+   11. The [objective values](#5127-the-archive_qualities-section) of the solutions in the archive of non-dominated solutions, if we perform [multi-objective optimization](#514-example-log-file-for-multi-objective-optimization).
 
 All of this information is stored (almost) automatically.
 Experiments with `moptipy` are intended to be self-documenting, such that you can still see what was going on if you open a log file of someone else or one of your log files five years after the experiment.
 Each log file contains all the information, so you will not end up with a situation where you have a "results file" but cannot find the matching setup information because it was stored elsewhere.
+
+By capturing and storing as much information about the setup, configuration, and parameters of each run automatically, we also try to prevent situations where a vital piece of information turns out to be missing some time after the experiment.
+For example, the library author himself has encountered situations where he still, e.g., had the result of a run but did not store how long it took to get it.
+And did no longer remember when this information was needed.
+In such a case we have no choice but to repeat the experiment.
+Unless our system is clever enough to automatically store such data.
+`moptipy` is &#x1F601;.
 
 
 #### 5.1.1. File Names and Folder Structure
@@ -773,7 +792,7 @@ In all the above sections, all the character `#` is removed from output.
 The character `#` indicates a starting comment and can only be written by the routines dedicated to produce comments.
 
 
-##### The Section `PROGRESS`
+##### 5.1.2.1 The Section `PROGRESS`
 
 When setting up an algorithm execution, you can specify whether you want to [log the progress](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements) of the algorithm (or not).
 If and only if you choose to log the progress, the `PROGRESS` section will be contained in the log file.
@@ -811,7 +830,7 @@ This is especially true if we log all FEs.
 Usually, we would log one data point for every improvement of the objective value, though.
 
 
-##### The Section `STATE`
+##### 5.1.2.2 The Section `STATE`
 
 The end state when the run terminates is logged in the section `STATE` in a [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible key-value format.
 It holds at least the following keys:
@@ -833,7 +852,7 @@ In case that multi-objective optimization is performed, please note the followin
   In other words, `lastImprovementFE` and `lastImprovementTimeMillis` may represent a move that is actually not an absolute improvement. 
 
 
-##### The Section `SETUP`
+##### 5.1.2.3 The Section `SETUP`
 
 In this [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
 There are at least the following keys:
@@ -872,14 +891,14 @@ We strongly suggest to always do that if you define your own components.
 It is a very easy way to make sure that your results are reproducible, easy-to-understand, and self-documenting.
 
 
-##### The Section `SYS_INFO`
+##### 5.1.2.4 The Section `SYS_INFO`
 
 The system information section is again a key-value section.
 It holds key-value pairs describing features of the machine on which the experiment was executed.
 This includes information about the CPU, the operating system, the Python installation, as well as the version information of packages used by moptipy.
 
 
-##### The `RESULT_` Sections
+##### 5.1.2.5 The `RESULT_` Sections
 
 The textual representation of the best encountered solution (whose objective value is noted as `bestF` in section `STATE`) is stored in the section `RESULT_Y`.
 Since we can use many different solution spaces, this section just contains raw text.
@@ -888,7 +907,7 @@ If the search and solution space are different, the section `RESULT_X` is includ
 It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
 
 
-##### The `ERROR_` Sections
+##### 5.1.2.6 The `ERROR_` Sections
 
 Our package has mechanisms to catch and store errors that occurred during the experiments.
 Each type of error will be stored in a separate log section and each such sections may store the class of the error in form `exceptionType: error-class`, the error message in the form `exceptionValue: error-message` and the stack trace line by line after a line header `exceptionStackTrace:`.
@@ -906,7 +925,7 @@ The following exception sections are currently supported:
 - In the unlikely case that an exception occurs during the writing of the log but writing can somehow continue, this exception will be stored in section `ERROR_IN_LOG`.
 
 
-##### The `ARCHIVE_QUALITIES` Section
+##### 5.1.2.7 The `ARCHIVE_QUALITIES` Section
 
 If multi-objective optimization is performed, the `process` object will automatically collect an archive of non-dominated solutions.
 In the CSV-formatted section `ARCHIVE_QUALITIES` of the log files, we will find one row per non-dominated solution in the archive.
@@ -914,7 +933,7 @@ The first number in the row is the scalarized overall solution quality `f`, foll
 The solutions fitting to row `j` of this section appear in the `ARCHIVE_j_X` and `ARCHIVE_j_Y` sections (`j` starts at `0`).
 
 
-##### The `ARCHIVE_j_X` and `ARCHIVE_j_Y` Sections
+##### 5.1.2.8 The `ARCHIVE_j_X` and `ARCHIVE_j_Y` Sections
 
 In multi-objective optimization, the `process` object will automatically collect an archive of non-dominated solutions.
 The sections `ARCHIVE_j_X` and `ARCHIVE_j_Y` contain the point in the search space and the point in the solution space corresponding to the `j`th element of the archive.

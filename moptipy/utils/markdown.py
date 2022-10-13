@@ -20,7 +20,7 @@ class Markdown(TextFormatDriver):
     >>> print(str(md))
     md
     >>> with Table(s, "lrc", md) as t:
-    ...     with t.header() as h:
+    ...     with t.header_row() as h:
     ...         h.cell(FormattedStr("1", bold=True))
     ...         h.cell(FormattedStr("2", code=True))
     ...         h.cell(FormattedStr("3", italic=True))

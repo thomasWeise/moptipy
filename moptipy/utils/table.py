@@ -18,7 +18,7 @@ class Table(AbstractContextManager):
     formatting and nothing fancy (such as references, etc.). However, it may
     be totally enough to quickly produce tables with results of experiments.
 
-    Every table must have a table header (see :meth:`header`).
+    Every table must have a table header (see :meth:`header_row`).
     Every table then consists of a sequence of one or multiple sections
     (see :meth:`section` and :class:`Section`).
     Each table section itself may or may not have a header
@@ -351,7 +351,7 @@ class Table(AbstractContextManager):
         self.__driver.end_table_cell(
             self.__stream, self.__cols, section_index, row_index, col_index)
 
-    def header(self) -> 'Row':
+    def header_row(self) -> 'Row':
         """
         Construct the header of the table.
 
@@ -359,11 +359,11 @@ class Table(AbstractContextManager):
         """
         return Row(self, -2)
 
-    def header_row(self, cells: Iterable[str]) -> None:
+    def header_cells(self, cells: Iterable[str]) -> None:
         """Print the header row with a single call."""
         if not isinstance(cells, Iterable):
             raise type_error(cells, "cells", Iterable)
-        with self.header() as row:
+        with self.header_row() as row:
             for cell in cells:
                 row.cell(cell)
 

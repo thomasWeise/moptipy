@@ -23,7 +23,7 @@ class LaTeX(TextFormatDriver):
     >>> print(str(latex))
     tex
     >>> with Table(s, "lrc", latex) as t:
-    ...     with t.header() as h:
+    ...     with t.header_row() as h:
     ...         h.cell(FormattedStr("1", bold=True))
     ...         h.cell(FormattedStr("2", code=True))
     ...         h.cell(FormattedStr("3", italic=True))
