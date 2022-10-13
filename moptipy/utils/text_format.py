@@ -7,6 +7,13 @@ from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
+#: indicates a normal row or cell
+MODE_NORMAL: Final[int] = 0
+#: indicates a row or cell in the table header
+MODE_TABLE_HEADER: Final[int] = 1
+#: indicates a row or cell in the section header
+MODE_SECTION_HEADER: Final[int] = 2
+
 
 class TextFormatDriver:
     """
@@ -104,9 +111,7 @@ class TextFormatDriver:
         :param cols: the column definition
         :param section_index: the index of the current section, `-1` if we
             are in the table header
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
+        :param row_index: the row index in the section or header
         """
 
     def end_table_row(self, stream: TextIOBase, cols: str,
@@ -117,14 +122,12 @@ class TextFormatDriver:
         :param stream: the stream to write to
         :param cols: the column definition
         :param section_index: the index of the current section
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
+        :param row_index: the row index in the section or header
         """
 
     def begin_table_cell(self, stream: TextIOBase, cols: str,
                          section_index: int, row_index: int,
-                         col_index: int) -> None:
+                         col_index: int, cell_mode: int) -> None:
         """
         Begin a header cell, section header cell, or normal cell.
 
@@ -132,15 +135,15 @@ class TextFormatDriver:
         :param cols: the column definitions
         :param section_index: the index of the current section, `-1` if this
             is a table header cell
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
+        :param row_index: the row index in the section or header
         :param col_index: the column index, `0` for the first column
+        :param cell_mode: the mode of the cell, will be one of `MODE_NORMAL`,
+            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`
         """
 
     def end_table_cell(self, stream: TextIOBase, cols: str,
                        section_index: int, row_index: int,
-                       col_index: int) -> None:
+                       col_index: int, cell_mode: int) -> None:
         """
         End a header cell, section header cell, or normal cell.
 
@@ -148,10 +151,10 @@ class TextFormatDriver:
         :param cols: the column definitions
         :param section_index: the index of the current section, `-1` if this
             is a table header cell
-        :param row_index: the row index in the section: `0` for the first
-            actual row, `-1` for a section header row, `-2` for a table
-            header row
+        :param row_index: the row index in the section or header
         :param col_index: the column index, `0` for the first column
+        :param cell_mode: the mode of the cell, will be one of `MODE_NORMAL`,
+            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`
         """
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,

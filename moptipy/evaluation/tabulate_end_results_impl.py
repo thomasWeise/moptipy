@@ -719,10 +719,15 @@ def tabulate_end_results(
         file_name, dir_name, use_lang)
     with dest.open_for_write() as wd:
         with Table(wd, col_def, text_format_driver) as table:
-            table.header_cells(algo_inst_cols)
+            with table.header() as head:
+                head.full_row(algo_inst_cols)
             for i in range(n_insts):
-                table.section_cols([col[i] for col in algo_inst_strs])
+                with table.section() as sec:
+                    sec.cols([col[i] for col in algo_inst_strs])
             if algo_strs is not None:
-                table.section_cols(algo_strs, algo_cols)
+                with table.section() as sec:
+                    with sec.header() as head:
+                        head.full_row(algo_cols)
+                    sec.cols(algo_strs)
 
     return dest

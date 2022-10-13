@@ -20,10 +20,11 @@ class Markdown(TextFormatDriver):
     >>> print(str(md))
     md
     >>> with Table(s, "lrc", md) as t:
-    ...     with t.header_row() as h:
-    ...         h.cell(FormattedStr("1", bold=True))
-    ...         h.cell(FormattedStr("2", code=True))
-    ...         h.cell(FormattedStr("3", italic=True))
+    ...     with t.header() as header:
+    ...         with header.row() as h:
+    ...             h.cell(FormattedStr("1", bold=True))
+    ...             h.cell(FormattedStr("2", code=True))
+    ...             h.cell(FormattedStr("3", italic=True))
     ...     with t.section() as g:
     ...         with g.row() as r:
     ...             r.cell("a")
@@ -61,7 +62,7 @@ class Markdown(TextFormatDriver):
 
     def begin_table_cell(self, stream: TextIOBase, cols: str,
                          section_index: int, row_index: int,
-                         col_index: int) -> None:
+                         col_index: int, cell_mode: int) -> None:
         """Begin a Markdown table cell."""
         stream.write("|")
 

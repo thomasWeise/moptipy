@@ -5,7 +5,7 @@ from typing import Final
 
 from moptipy.utils.formatted_string import NUMBER, NAN, \
     POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT
-from moptipy.utils.text_format import TextFormatDriver
+from moptipy.utils.text_format import TextFormatDriver, MODE_TABLE_HEADER
 
 #: the default border style
 _BORDER: Final[str] = "1pt solid black"
@@ -43,7 +43,7 @@ class HTML(TextFormatDriver):
 
     def begin_table_cell(self, stream: TextIOBase, cols: str,
                          section_index: int, row_index: int,
-                         col_index: int) -> None:
+                         col_index: int, cell_mode: int) -> None:
         """Begin an HTML table cell."""
         style: str = cols[col_index]
         style = "center" if style == "c" \
@@ -53,14 +53,14 @@ class HTML(TextFormatDriver):
             style = f"{style};border-right:{_BORDER}"
         if row_index <= 0 <= section_index:
             style = f"{style};border-top:{_BORDER}"
-        cell: str = "th" if (section_index < 0) else "td"
+        cell: str = "th" if (cell_mode == MODE_TABLE_HEADER) else "td"
         stream.write(f'<{cell} style="{style}">')
 
     def end_table_cell(self, stream: TextIOBase, cols: str,
                        section_index: int, row_index: int,
-                       col_index: int) -> None:
+                       col_index: int, cell_mode: int) -> None:
         """End an HTML table cell."""
-        stream.write("</th>" if (section_index < 0) else "</td>")
+        stream.write("</th>" if (cell_mode == MODE_TABLE_HEADER) else "</td>")
 
     def text(self, stream: TextIOBase, text: str, bold: bool, italic: bool,
              code: bool, number_mode: int) -> None:
