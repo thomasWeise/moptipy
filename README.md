@@ -1824,7 +1824,7 @@ The output in markdown of the table generated in [examples/end_results_tests.py]
 |`trap_200`|2.627\*10^-3^ `?`|1.649\*10^-6^ `<`|2.453\*10^-3^ `?`|
 |`<` / `?` / `>`|3/3/0|4/1/1|1/5/0|
 
-As you can see, we compare three algorithms, `rls_flip1`, `rls_flipB1`, and `rls_flipB2`, on six problem instances, the 100 and 200 bit versions of the  [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones), [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax),, and [`Trap`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.trap), problems.
+As you can see, we compare three algorithms, `rls_flip1`, `rls_flipB1`, and `rls_flipB2`, on six problem instances, the 100 and 200 bit versions of the  [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones), [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax), and [`Trap`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.trap), problems.
 For each algorithm pair on each instance, a two-sided Mann-Whitey U test is applied.
 This test computes the probability `p` that the observed difference in performance (here: end result qualities) of the two compared algorithms would occur *if* the two algorithms would perform exactly the same.
 In other words, if `p` is high, the chance that any apparent difference in performance just stems from randomness is high.
