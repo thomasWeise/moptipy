@@ -178,7 +178,16 @@ def tabulate_result_tests(
         algorithm ID and returns an instance name; default=identity function
     :param use_lang: should we use the language to define the filename
     :param p_renderer: the renderer for all probabilities
-    :param value_getter: the getter for the values that should be compared
+    :param value_getter: the getter for the values that should be compared. By
+        default, the best obtained objective values are compared. However, if
+        you let the runs continue until they reach a certain goal quality,
+        then you may want to compare the runtimes consumed until that quality
+        is reached. Basically, you can use any of the getters provided by
+        :meth:`moptipy.evaluation.end_results.EndResult.getter`, but you must
+        take care that the comparison makes sense, i.e., compare qualities
+        under fixed-budget scenarios (the default behavior) or compare
+        runtimes under scenarios with goal qualities - but do not mix up the
+        scenarios.
     :returns: the path to the file with the tabulated test results
     """
     # Before doing anything, let's do some type checking on the parameters.
@@ -319,7 +328,7 @@ def tabulate_result_tests(
                            alpha_prime)
           for j in range(n_insts)]
          for i in range(n_cols)]
-    cols.insert(0, [FormattedStr(instance_namer(inst), code=True)
+    cols.insert(0, [FormattedStr.add_format(instance_namer(inst), code=True)
                     for inst in instances])
 
     # We now got the p_values, the comparison results, and the p_strs.
@@ -358,8 +367,10 @@ def tabulate_result_tests(
                              "'=", alpha_prime_str])
     for i in range(n_algos - 1):
         for j in range(i + 1, n_algos):
-            an1 = FormattedStr(algorithm_namer(algorithms[i]), code=True)
-            an2 = FormattedStr(algorithm_namer(algorithms[j]), code=True)
+            an1 = FormattedStr.add_format(algorithm_namer(algorithms[i]),
+                                          code=True)
+            an2 = FormattedStr.add_format(algorithm_namer(algorithms[j]),
+                                          code=True)
             if len(an1) >= len(an2):
                 __app(an1, ["vs. ", an2])
             else:
