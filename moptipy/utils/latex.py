@@ -8,7 +8,7 @@ from moptipy.utils.formatted_string import NUMBER, NAN, \
 from moptipy.utils.text_format import TextFormatDriver
 
 #: the exponent prefix
-_EPREFIX = r"\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript"
+_EPREFIX = r"\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript{"
 
 #: special characters in LaTeX
 SPECIAL_CHARS: Final[Dict[str, str]] = {
@@ -19,6 +19,7 @@ SPECIAL_CHARS: Final[Dict[str, str]] = {
     "-inf": r"$-\infty$",
     "nan": r"$\emptyset$",
     "\u03b1": r"$\alpha$",
+    "\u2014": "---"
 }
 
 
@@ -117,7 +118,7 @@ class LaTeX(TextFormatDriver):
             if i < 0:
                 i = text.find('E')
             if i > 0:
-                stream.write(f"{text[:i]}{_EPREFIX}{text[i + 1:]}")
+                stream.write(f"{text[:i]}{_EPREFIX}{text[i + 1:]}}}")
             else:
                 stream.write(text.replace("_", "\\_"))
         elif mode == NAN:

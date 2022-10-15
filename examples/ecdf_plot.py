@@ -67,7 +67,7 @@ from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.ecdf import Ecdf
-from moptipy.evaluation.plot_ecdf_impl import plot_ecdf
+from moptipy.evaluation.plot_ecdf import plot_ecdf
 from moptipy.evaluation.progress import Progress
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random

@@ -19,6 +19,7 @@ SPECIAL_CHARS: Final[Dict[str, str]] = {
     "-inf": "-&#x221E;",
     "nan": "&#x2205;",
     "\u03b1": "&#x3b1;",
+    "\u2014": "&mdash;",
 }
 
 
@@ -43,7 +44,8 @@ class HTML(TextFormatDriver):
         stream.write("</thead><tbody>")
 
     def begin_table_row(self, stream: TextIOBase, cols: str,
-                        section_index: int, row_index: int) -> None:
+                        section_index: int, row_index: int,
+                        row_mode: int) -> None:
         """Begin a row in an HTML table."""
         stream.write("<tr>")
 

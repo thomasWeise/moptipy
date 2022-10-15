@@ -247,7 +247,7 @@ class NumberRenderer:
     def render(self, source: Union[int, float, None,
                                    Iterable[Union[int, float, None]]],
                none_str: Optional[FormattedStr] = None) \
-            -> List[Optional[str]]:
+            -> List[Optional[FormattedStr]]:
         r"""
         Convert a sequence of numbers to text with uniform shape.
 

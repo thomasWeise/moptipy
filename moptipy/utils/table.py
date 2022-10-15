@@ -249,7 +249,7 @@ class Table(AbstractContextManager):
 
         self.__driver.begin_table_row(
             self.__stream, self.columns, self.__section_index,
-            self.__row_index)
+            self.__row_index, mode)
         self.__row_index += 1
         self.__row_state = 1
         self.__col_index = 0

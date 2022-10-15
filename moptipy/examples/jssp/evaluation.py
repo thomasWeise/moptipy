@@ -11,7 +11,7 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.evaluation.tabulate_end_results_impl import \
+from moptipy.evaluation.tabulate_end_results import \
     tabulate_end_results, command_column_namer, \
     DEFAULT_ALGORITHM_INSTANCE_STATISTICS, \
     DEFAULT_ALGORITHM_SUMMARY_STATISTICS

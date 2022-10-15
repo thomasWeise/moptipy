@@ -103,7 +103,8 @@ class TextFormatDriver:
         """
 
     def begin_table_row(self, stream: TextIOBase, cols: str,
-                        section_index: int, row_index: int) -> None:
+                        section_index: int, row_index: int,
+                        row_mode: int) -> None:
         """
         Begin a table header row, section row, or normal row in a section.
 
@@ -112,6 +113,8 @@ class TextFormatDriver:
         :param section_index: the index of the current section, `-1` if we
             are in the table header
         :param row_index: the row index in the section or header
+        :param row_mode: the mode of the row, will be one of `MODE_NORMAL`,
+            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`
         """
 
     def end_table_row(self, stream: TextIOBase, cols: str,

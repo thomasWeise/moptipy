@@ -14,3 +14,6 @@ psutil >= 5.9.2
 
 # we need this to obtain some clusters of JSSP instances for our experiments
 scikit-learn >= 1.1.2
+
+# we need scipy for statistical tests
+scipy >= 1.9.1

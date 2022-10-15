@@ -56,7 +56,7 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.tabulate_end_results_impl import tabulate_end_results
+from moptipy.evaluation.tabulate_end_results import tabulate_end_results
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan

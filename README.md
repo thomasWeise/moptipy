@@ -30,8 +30,9 @@
   - [ERT-ECDF Plots](#66-ert-ecdf-plots)
   - [Performance over Algorithm Parameter or Instance Feature](#67-performance-over-algorithm-parameter-or-instance-feature)
   - [End Results Tables](#68-end-results-table)
+  - [Tables of Tests Comparing End Results](#69-testing-end-results-for-statistically-significant-differences-table)
 - [Examples](#7-examples)
-- [Tests](#8-tests)
+- [Unit Tests](#8-unit-tests)
 - [Uselful Links and References](#9-useful-links-and-references)
 - [License](#10-license)
 - [Contact](#11-contact)
@@ -218,7 +219,7 @@ TTTTTTTTTT
 END_RESULT_Y
 ```
 
-You can also compare this output to the [example for log files](#513-example) further down this text.
+You can also compare this output to the [example for log files](#513-example-for-single-objective-optimization) further down this text.
 
 
 ### 3.2. How to Run a Series of Experiments
@@ -802,7 +803,7 @@ If you really log all algorithm steps, then your log files will become quite lar
 In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa/) book, for example, we can do several million objective function evaluations (FEs) within the two minutes of runtime granted to each run.
 This then would equate to several millions of lines in the `PROGRESS` section of each log file.
 So normally you would rather only log the improving moves, which would normally be between a few ten to a few thousand of lines, which is usually acceptable.
-Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the [`RESULT_*` sections](#the-result_-sections) with the best encountered candidate solution and point in the search space as well as the [`SETUP`](#the-section-setup) and [`SYS_INFO`](#the-section-sys_info) still will be included in the log files.
+Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#5122-the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the [`RESULT_*` sections](#5125-the-result_-sections) with the best encountered candidate solution and point in the search space as well as the [`SETUP`](#5123-the-section-setup) and [`SYS_INFO`](#5124-the-section-sys_info) still will be included in the log files.
 
 The `PROGRESS` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
 It has an internal header describing the data columns.
@@ -1584,7 +1585,7 @@ Both types of data can also be combined in the same diagram.
 <img alt="Example for a progress plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/progress_single_runs_and_mean_f_over_fes.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-Progress plots are implemented in the module [moptipy.evaluation.plot_progress_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_progress_impl).
+Progress plots are implemented in the module [moptipy.evaluation.plot_progress](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_progress).
 
 
 ### 6.3. End Results Plot
@@ -1624,7 +1625,7 @@ Ofcourse you can also use it to plot raw objective values, or even runtimes if y
 <img alt="Example for an end result plot" src="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-The end result plots are implemented in the module [moptipy.evaluation.plot_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results_impl).
+The end result plots are implemented in the module [moptipy.evaluation.plot_end_results](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results).
 
 
 ### 6.4. ECDF Plots
@@ -1648,7 +1649,7 @@ If `7` out of our `10` runs can solve the problem and `3` fail to do so, the ECD
 <img alt="Example for an ECDF plot combining statistics and single runs" src="https://thomasweise.github.io/moptipy/_static/ecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
+ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf).
 
 
 ### 6.5. Expected Running Time (ERT) Plots
@@ -1680,7 +1681,7 @@ This way, we will get a diagram similar to the one below:
 </a>
 
 The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/).
-The ERT plots are implemented in the module [moptipy.evaluation.plot_ert_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ert_impl).
+The ERT plots are implemented in the module [moptipy.evaluation.plot_ert](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ert).
 
 
 ### 6.6. ERT-ECDF Plots
@@ -1691,7 +1692,7 @@ Their vertical axis shows the fraction of problem instances that can be expected
 Their horizontal axis shows the runtime consumed to do so, which is equivalent to the ERT of the algorithm to reach the global optimum.
 While ECDFs themselves are based on single runs, ERT-ECDF plots are based on problem instances.
 They also make the same assumptions as ERTs, namely that we can simply restart an algorithm if it was not successful when it had consumed all of its computational budget.
-Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf_impl).
+Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ecdf).
 
 <a href="https://thomasweise.github.io/moptipy/_static/ertecdf_over_log_fes.png">
 <img alt="Example for an ERT-ECDF plot of a RLS on OneMax several OneMax instances." src="https://thomasweise.github.io/moptipy/_static/ertecdf_over_log_fes.png" style="width:70%;max-width:70%;min-width:70%" />
@@ -1701,7 +1702,7 @@ Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evalu
 ### 6.7. Performance over Algorithm Parameter or Instance Feature
 
 Often we want to investigate how and algorithm parameter or an instance feature impacts the algorithm performance.
-The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter_impl) can do both:
+The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter) can do both:
 
 In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#65-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
 Basically, the minimization version of the OneMax problem tries to minimize the number of `0`s in a bit string of length `n`.
@@ -1723,7 +1724,7 @@ We plot the mean end result after 128 FEs (on the vertical axis) over the values
 <img alt="Example for the mean end result quality over the algorithm parameter m of the Bin(m/n) operator plugged into the RLS algorithm on several LeadingOnes instances." src="https://thomasweise.github.io/moptipy/_static/mean_f_over_param.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-These plots have been implemented in the module [moptipy.evaluation.plot_end_statistics_over_parameter_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter_impl).
+These plots have been implemented in the module [moptipy.evaluation.plot_end_statistics_over_parameter](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter).
 
 
 ### 6.8. End Results Table
@@ -1803,8 +1804,48 @@ summary&&{\texttt{rs}}&1.091&1.389&1.650&0.2&419&5\\%
 \end{tabular}%
 ```
 
-The end result tables are implemented in the module [moptipy.evaluation.tabulate_end_results_impl](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_end_results_impl).
+The end result tables are implemented in the module [moptipy.evaluation.tabulate_end_results](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_end_results).
 
+
+### 6.9. Testing End Results for Statistically Significant Differences (Table)
+
+In the file [examples/end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html), you can find some code running a small experiment and creating a table of statistical end result tests.
+In such a table, a set of algorithms is compared pairwise on a set of problem instances using the two-tailed Mann-Whitney U test with the Bonferroni correction.
+
+The output in markdown of the table generated in [examples/end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html) looks as follows:
+
+|Mann-Whitney U $\alpha$=0.02, $\alpha$'=1.111\*10^-3^|`rls_flip1` vs. `rls_flipB1`|`rls_flip1` vs. `rls_flipB2`|`rls_flipB1` vs. `rls_flipB2`|
+|--:|:-:|:-:|:-:|
+|`leadingones_100`|9.286\*10^-2^ `?`|8.820\*10^-5^ `>`|3.746\*10^-3^ `?`|
+|`leadingones_200`|&mdash;|1.078\*10^-2^ `?`|2.713\*10^-2^ `?`|
+|`onemax_100`|4.343\*10^-4^ `<`|5.307\*10^-7^ `<`|8.539\*10^-3^ `?`|
+|`onemax_200`|2.096\*10^-5^ `<`|2.463\*10^-7^ `<`|1.783\*10^-3^ `?`|
+|`trap_100`|2.035\*10^-6^ `<`|2.813\*10^-8^ `<`|1.250\*10^-4^ `<`|
+|`trap_200`|2.627\*10^-3^ `?`|1.649\*10^-6^ `<`|2.453\*10^-3^ `?`|
+|`<` / `?` / `>`|3/3/0|4/1/1|1/5/0|
+
+As you can see, we compare three algorithms, `rls_flip1`, `rls_flipB1`, and `rls_flipB2`, on six problem instances, the 100 and 200 bit versions of the  [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones), [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax),, and [`Trap`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.trap), problems.
+For each algorithm pair on each instance, a two-sided Mann-Whitey U test is applied.
+This test computes the probability `p` that the observed difference in performance (here: end result qualities) of the two compared algorithms would occur *if* the two algorithms would perform exactly the same.
+In other words, if `p` is high, the chance that any apparent difference in performance just stems from randomness is high.
+If one algorithm was better than the other *and* `p` is sufficiently small, then be confident that it truly is better.
+We therefore define a significance threshold `alpha`, an upper limit for `p` that we deem acceptable.
+In other words, `alpha` is the limit for the probability to be wrong when claiming that one algorithm is better than the other that we are going to accept.
+Since we perform multiple test, `alpha'=alpha/n_tests` is computed, i.e., the Bonferroni correction is applied.
+We use `alpha'` as actual threshold to ensure that the probability that *any*  of our `n_tests` statements is wrong is `<=alpha`.
+
+The first column of the table contains the problem instances.
+Each other column holds the `p` value, together with the signs `<`, `?`, and `<`.
+
+-`<` means that the performance metric of the first algorithm had both *smaller* mean and median values compared to the second algorithm and `p<alpha'`.
+- `>` means that the performance metric of the first algorithm had both *larger* mean and median values compared to the second algorithm and `p<alpha'`.
+- `?` means that, while one of the two algorithms had a smaller mean and median value, `p>=alpha'`, i.e., the observed difference was not significant.
+- A cell with a dash (&mdash;) inside denotes that the two compared algorithms either had the same mean and median performance, or one was better in mean and the other was better in median.
+ Even if we would conduct a statistical test, it would be meaningless to claim that either of the two algorithms was better.
+
+The bottom row of the table sums up the numbers of `<`, `?`, and `>` outcomes for each algorithm pair.
+
+The end result comparison tables are implemented in the module [moptipy.evaluation.tabulate_result_tests](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_result_tests).
 
 ## 7. Examples
 
@@ -1812,8 +1853,9 @@ Here we list the set of examples that are provided in the [moptipy](https://gith
 
 - [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html) runs a small experiment on the OneMax problem and plots the [ECDF](#64-ecdf-plots).
 - [end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html) runs a small experiment with on the Job Shop Scheduling Problem (JSSP) and generates an [end results CSV file](#52-end-result-csv-files).
-- [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html) applies two algorithms to the JSSP and creates [end results plots](#63-end-results-plot). 
-- [end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html) runs another small experiment on the JSSP and generates an [end result table](#68-end-results-table).
+- [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html) applies two algorithms to the JSSP and creates [plots of end results](#63-end-results-plot). 
+- [end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html) runs another small experiment on the JSSP and generates a [table of end results](#68-end-results-table).
+- [end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html) runs a small experiment on bit string search spaces and generates a [table with statistical comprisons of end results](#69-testing-end-results-for-statistically-significant-differences-table).
 - [end_statistics_jssp.py](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html) runs a small experiment on the JSSP and generates an [end statistics CSV file](#53-end-result-statistics-csv-files).
 - [end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html) solves several OneMax instances and plots the ERT over the problem scale, i.e., generates a [performance-over-feature plot](#67-performance-over-algorithm-parameter-or-instance-feature).
 - [end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html) applies different settings of an algorithm to LeadingOnes instances and plots their [performance over their parameter setting](#67-performance-over-algorithm-parameter-or-instance-feature).
@@ -1829,7 +1871,7 @@ Here we list the set of examples that are provided in the [moptipy](https://gith
 - [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
 
 
-## 8. Tests
+## 8. Unit Tests
 
 We provide a set of tools for testing implemented algorithms, spaces, and operators in the package [moptipy.tests](https://thomasweise.github.io/moptipy/moptipy.tests.html).
 Here, you can find functions where you pass in instances of your implemented components and they are checked for compliance with the [moptipy API](https://thomasweise.github.io/moptipy/moptipy.api.html).

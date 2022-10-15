@@ -49,7 +49,7 @@ from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.ert import Ert
-from moptipy.evaluation.plot_ert_impl import plot_ert
+from moptipy.evaluation.plot_ert import plot_ert
 from moptipy.evaluation.progress import Progress
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random

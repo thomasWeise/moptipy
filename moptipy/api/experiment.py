@@ -204,7 +204,7 @@ def run_experiment(base_dir: str,
     `n_threads=N` if you set `n_threads=1` and simply start the program `N`
     times separately (in separate terminals and in parallel). Of course, all
     `N` processes must have the same `base_dir` parameter. They will then
-    automatically share the workload.hgv7
+    automatically share the workload.
 
     :param base_dir: the base directory where to store the results
     :param instances: an iterable of callables, each of which should return an

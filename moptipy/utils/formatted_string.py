@@ -29,18 +29,24 @@ class FormattedStr(str):
     Instances of this class can also be used as normal strings and be printed
     to the console without any issue. However, they also hold information
     about whether the text should be :attr:`bold`, :attr:`italic`, or rendered
-    in a monospace :attr:`code` font. Furthermore, if a number or numerical
-    string is represented as a formatted string, the field :attr:`mode`
-    will be non-zero. If it is `TEXT=1`, the string is a normal number, if it
-    is `NAN=2`, the string is "nan", if it is `POSITIVE_INFINITY=3`, then the
-    string is `inf`, and if it is `NEGATIVE_INFINITY=4`, the string is `-inf`.
-    These values permit a text driver, for example, to replace the special
-    numeric values with unicode constants or certain commands. It may also
-    choose to replace floating point number of the form `1.5E23` with
-    something like `1.5*10^23`. It can do so because a non-zero
-    :attr:`mode` indicates that the string is definitely representing a
-    number and that numbers in the string did not just occur for whatever
-    other reason.
+    in a monospace :attr:`code` font.
+
+    Furthermore, if a number or numerical string is represented as a formatted
+    string, the field :attr:`mode` will be non-zero. If it is `TEXT=1`, the
+    string is a normal number, if it is `NAN=2`, the string is "nan", if it is
+    `POSITIVE_INFINITY=3`, then the string is `inf`, and if it is
+    `NEGATIVE_INFINITY=4`, the string is `-inf`. These values permit a text
+    driver, for example, to replace the special numeric values with unicode
+    constants or certain commands. It may also choose to replace floating
+    point number of the form `1.5E23` with something like `1.5*10^23`. It can
+    do so because a non-zero :attr:`mode` indicates that the string is
+    definitely representing a number and that numbers in the string did not
+    just occur for whatever other reason.
+
+    If the field :attr:`mode` has value `SPECIAL=5`, then the text contains a
+    special sequence, e.g., a unicode character outside of the normal range.
+    Then, the text format driver can render this character as a special
+    entity.
     """
 
     #: should this string be formatted in bold face?
@@ -50,7 +56,7 @@ class FormattedStr(str):
     #: should this string be formatted in code face?
     code: bool
     #: the special mode: `TEXT`, `NUMBER`, `NAN`, `POSITIVE_INFINITY`,
-    #: or `NEGATIVE_INFINITY`
+    #: `NEGATIVE_INFINITY`, or `SPECIAL`
     mode: int
 
     def __new__(cls, value, bold: bool = False, italic: bool = False,

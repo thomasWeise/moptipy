@@ -10,10 +10,10 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED, TIME_UNIT_MILLIS, F_NAME_RAW
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.evaluation.plot_end_results_impl import plot_end_results
-from moptipy.evaluation.plot_end_statistics_over_parameter_impl import \
+from moptipy.evaluation.plot_end_results import plot_end_results
+from moptipy.evaluation.plot_end_statistics_over_parameter import \
     plot_end_statistics_over_param
-from moptipy.evaluation.plot_progress_impl import plot_progress
+from moptipy.evaluation.plot_progress import plot_progress
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, STAT_MEAN_ARITH
 from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart

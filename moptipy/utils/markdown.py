@@ -1,12 +1,16 @@
 """The markdown text format driver."""
 
 from io import TextIOBase
-from typing import Final
+from typing import Final, Dict
 
 from moptipy.utils.formatted_string import NUMBER, NAN, \
     POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT, SPECIAL
-from moptipy.utils.latex import SPECIAL_CHARS
-from moptipy.utils.text_format import TextFormatDriver
+from moptipy.utils.latex import SPECIAL_CHARS as __SC
+from moptipy.utils.text_format import TextFormatDriver, MODE_TABLE_HEADER
+
+#: the special chars
+SPECIAL_CHARS: Final[Dict[str, str]] = dict(__SC)
+SPECIAL_CHARS["\u2014"] = "&mdash;"
 
 
 class Markdown(TextFormatDriver):
@@ -55,6 +59,14 @@ class Markdown(TextFormatDriver):
             else:
                 raise ValueError(f"Invalid col '{c}' in '{cols}'.")
         stream.write("|\n")
+
+    def begin_table_row(self, stream: TextIOBase, cols: str,
+                        section_index: int, row_index: int,
+                        row_mode: int) -> None:
+        """Begin a row in a markdown table."""
+        if (row_mode == MODE_TABLE_HEADER) and (row_index != 0):
+            raise ValueError("pandoc markdown only supports one single header"
+                             f" row, but encountered row {row_mode + 1}.")
 
     def end_table_row(self, stream: TextIOBase, cols: str,
                       section_index: int, row_index: int) -> None:

@@ -55,7 +55,7 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.plot_progress_impl import plot_progress
+from moptipy.evaluation.plot_progress import plot_progress
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
 from moptipy.examples.bitstrings.ising1d import Ising1d

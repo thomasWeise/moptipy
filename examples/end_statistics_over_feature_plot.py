@@ -42,7 +42,7 @@ from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.evaluation.plot_end_statistics_over_parameter_impl import \
+from moptipy.evaluation.plot_end_statistics_over_parameter import \
     plot_end_statistics_over_param
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random

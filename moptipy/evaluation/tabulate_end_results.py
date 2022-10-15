@@ -562,7 +562,8 @@ def tabulate_end_results(
                 raise ValueError(f"inconsistent lower bounds {bounds} for "
                                  f"instance '{inst}'.")
             lb.append(bounds[0])
-        lower_bounds = __col_renderer(__KEY_LOWER_BOUND).render(lb)
+        lower_bounds = cast(List[str], __col_renderer(
+            __KEY_LOWER_BOUND).render(lb))
         del lb
     else:
         lower_bounds = None
@@ -633,7 +634,8 @@ def tabulate_end_results(
           for inst in insts for algo in algos]
          for getter in algo_inst_getters]
     algo_inst_strs_raw: Final[List[List[Optional[str]]]] = [
-        __col_renderer(ais).render(algo_inst_data_raw[i])
+        cast(List[Optional[str]],
+             __col_renderer(ais).render(algo_inst_data_raw[i]))
         for i, ais in enumerate(algorithm_instance_statistics)]
 
     # now break the data into sections
@@ -688,7 +690,7 @@ def tabulate_end_results(
             [[None if getter is None else getter(algo_dict[algo])
               for algo in algos]
              for getter in algo_getters]
-        algo_strs = [__col_renderer(ass).render(algo_data[i])
+        algo_strs = [cast(List[str], __col_renderer(ass).render(algo_data[i]))
                      for i, ass in enumerate(algorithm_summary_statistics)]
 
         # now format the data, i.e., compute the per-section best value
