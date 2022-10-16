@@ -102,7 +102,7 @@ def tabulate_result_tests(
         instance_sort_key: Callable[[str], Any] = lambda i: i,
         instance_namer: Callable[[str], str] = lambda x: x,
         algorithm_namer: Callable[[str], str] = lambda x: x,
-        use_lang: bool = True,
+        use_lang: bool = False,
         p_renderer: NumberRenderer = DEFAULT_NUMBER_RENDERER,
         value_getter: Callable[[EndResult], Union[int, float]]
         = EndResult.getter(KEY_BEST_F)) -> Path:

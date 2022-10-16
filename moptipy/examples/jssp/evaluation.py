@@ -30,6 +30,8 @@ from moptipy.utils.lang import EN
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 from moptipy.utils.logger import sanitize_name, SCOPE_SEPARATOR
+from moptipy.evaluation.tabulate_result_tests import tabulate_result_tests
+
 
 #: The letter mu
 LETTER_M: Final[str] = "\u03BC"
@@ -339,6 +341,25 @@ def table(end_results: Path, algos: List[str], dest: Path,
         use_lang=False)
 
 
+def tests(end_results: Path, algos: List[str], dest: Path) -> None:
+    """
+    Tabulate the end result tests.
+
+    :param end_results: the path to the end results
+    :param algos: the algorithms
+    :param dest: the directory
+    """
+    EN.set_current()
+    n: Final[str] = algorithm_namer(algos[0])
+    tabulate_result_tests(
+        end_results=get_end_results(end_results, algos=set(algos)),
+        file_name=sanitize_name(f"tests_{n}"), dir_name=dest,
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key,
+        algorithm_namer=algorithm_namer,
+        use_lang=False)
+
+
 def makespans(end_results: Path, algos: List[str], dest: Path,
               x_label_location: float = 1.0) -> None:
     """
@@ -523,6 +544,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source)
     progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source,
              millis=False)
+    tests(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
 
     logger("Now evaluating the hill climbing algorithm with "
            "restarts 'hcr' on 'swapn'.")

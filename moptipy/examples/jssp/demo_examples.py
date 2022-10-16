@@ -12,7 +12,7 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance, \
     compute_makespan_lower_bound
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart, \
+from moptipy.examples.jssp.plot_gantt_chart import plot_gantt_chart, \
     marker_lb, marker_makespan
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger

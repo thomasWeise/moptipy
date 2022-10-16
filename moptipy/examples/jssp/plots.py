@@ -16,7 +16,7 @@ from moptipy.evaluation.plot_end_statistics_over_parameter import \
 from moptipy.evaluation.plot_progress import plot_progress
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, STAT_MEAN_ARITH
-from moptipy.examples.jssp.plot_gantt_chart_impl import plot_gantt_chart
+from moptipy.examples.jssp.plot_gantt_chart import plot_gantt_chart
 from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
