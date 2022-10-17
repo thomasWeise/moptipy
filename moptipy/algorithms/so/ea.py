@@ -1,7 +1,7 @@
 """
 A simple implementation of a (mu+lambda) Evolutionary Algorithm.
 
-This is the basic `mu+lambda`-EA works as follows:
+This is the basic `mu+lambda`-EA, which works as follows:
 
 1. Start with a list `lst` of `mu` random records and `lambda` blank records.
 2. In each iteration:
@@ -31,6 +31,14 @@ encountered in the original list) and because our new solutions would be in
 the `lambda` last entries of the list. This can easily be fixed by the tie
 breaking, which is implemented in the `__lt__` dunder method of class
 :class:`~moptipy.algorithms.so.record.Record`.
+
+1. Thomas Bäck, David B. Fogel, and Zbigniew Michalewicz, eds., *Handbook of
+   Evolutionary Computation.* 1997. Computational Intelligence Library.
+   New York, NY, USA: Oxford University Press, Inc. ISBN: 0-7503-0392-1
+2. James C. Spall. *Introduction to Stochastic Search and Optimization.*
+   Estimation, Simulation, and Control - Wiley-Interscience Series in Discrete
+   Mathematics and Optimization, volume 6. 2003. Chichester, West Sussex, UK:
+   Wiley Interscience. ISBN: 0-471-33052-3. http://www.jhuapl.edu/ISSO/.
 """
 from math import isfinite
 from typing import Final, Union, Callable, List, cast, Optional

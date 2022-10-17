@@ -8,7 +8,7 @@ The *Metaheuristic Optimization in Python* Package.
 .. include:: README.md
    :parser: myst_parser.sphinx_
 
-10. Modules and Code
+12. Modules and Code
 --------------------
 
 .. toctree::

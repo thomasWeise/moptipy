@@ -4,6 +4,7 @@ from typing import Final
 from numpy.random import default_rng, Generator
 
 from moptipy.algorithms.so.ea import EA
+from moptipy.algorithms.so.ea_with_clearing import EAwithClearing
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
 from moptipy.algorithms.so.fitness_ea import FitnessEA
 from moptipy.algorithms.so.fitnesses.ffa import FFA
@@ -24,6 +25,7 @@ def test_opoea_equals_rls():
     verify_algorithms_equivalent([
         lambda bs, f: RLS(op0, op1),
         lambda bs, f: EA(op0, op1, op2, 1, 1, 0.0),
+        lambda bs, f: EAwithClearing(op0, op1, op2, 1, 1, 0.0),
         lambda bs, f: FitnessEA(op0, op1, op2, 1, 1, 0.0),
     ])
 

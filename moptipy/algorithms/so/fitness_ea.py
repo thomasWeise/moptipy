@@ -5,6 +5,14 @@ This algorithm is equivalent to :class:`~moptipy.algorithms.so.ea.EA`, but
 allows for using a fitness assignment step before selection. This way, we
 can implement different diversity enhancement methods such as sharing or
 Frequency Fitness Assignment (FFA).
+
+1. Thomas Bäck, David B. Fogel, and Zbigniew Michalewicz, eds., *Handbook of
+   Evolutionary Computation.* 1997. Computational Intelligence Library.
+   New York, NY, USA: Oxford University Press, Inc. ISBN: 0-7503-0392-1
+2. James C. Spall. *Introduction to Stochastic Search and Optimization.*
+   Estimation, Simulation, and Control - Wiley-Interscience Series in Discrete
+   Mathematics and Optimization, volume 6. 2003. Chichester, West Sussex, UK:
+   Wiley Interscience. ISBN: 0-471-33052-3. http://www.jhuapl.edu/ISSO/.
 """
 from typing import Final, Union, Callable, List, cast, Optional
 
