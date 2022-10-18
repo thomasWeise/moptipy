@@ -266,6 +266,8 @@ class __FromStatingPoint(Process):
         #: the fast call to the owner's register method
         self.__register: Final[Callable[[Any, Union[int, float]], None]] \
             = owner.register
+        #: True as long as only the seed has been used
+        self.__only_seed_used: bool = True
 
     def has_best(self) -> bool:
         return True
@@ -277,6 +279,10 @@ class __FromStatingPoint(Process):
         return self.__best_f
 
     def evaluate(self, x) -> Union[float, int]:
+        if self.__only_seed_used:
+            if self.is_equal(x, self.__best_x):
+                return self.__best_f
+            self.__only_seed_used = False
         self.__fes = fe = self.__fes + 1
         f: Final[Union[int, float]] = self.__evaluate(x)
         if f < self.__best_f:
@@ -286,8 +292,12 @@ class __FromStatingPoint(Process):
         return f
 
     def register(self, x, f: Union[int, float]) -> None:
-        self.__register(x, f)
+        if self.__only_seed_used:
+            if self.is_equal(x, self.__best_x):
+                return
+            self.__only_seed_used = False
         self.__fes = fe = self.__fes + 1
+        self.__register(x, f)
         if f < self.__best_f:
             self.__best_f = f
             self.copy(self.__best_x, x)
@@ -310,6 +320,18 @@ def from_starting_point(owner: Process, in_and_out_x: Any,
                         f: Union[int, float]) -> Process:
     """
     Create a sub-process searching from one starting point.
+
+    This process is especially useful in conjunction with class
+    :class:`~moptipy.operators.op0_forward.Op0Forward`. This class
+    allows forwarding the nullary search operator to the function
+    :meth:`~moptipy.api.process.Process.get_copy_of_best_x`. This way, the
+    first point that it sampled by a local search can be the point specified
+    as `in_and_out_x`, which effectively seeds the local search.
+
+    To dovetail with chance of seeding, no FEs are counted at the beginning of
+    the process as long as all points to be evaluated equal to the
+    `in_and_out_x`. As soon as the first point different from `in_and_out_x`
+    is evaluated, FE counting starts.
 
     :param owner: the owning process
     :param in_and_out_x: the input solution record, which will be

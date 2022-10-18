@@ -29,6 +29,7 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
+from moptipy.operators.op0_forward import Op0Forward
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.types import type_name_of
 
@@ -39,7 +40,8 @@ class MyAlgorithm(Algorithm2):
     def __init__(self) -> None:
         super().__init__("dummy", Op0Random(), Op1Flip1(), Op2Uniform())
         self.ea = EA(self.op0, self.op1, self.op2, 10, 10, 0.3)
-        self.rls = RLS(self.op0, self.op1, seeded=True)
+        self.fwd = Op0Forward()
+        self.rls = RLS(self.fwd, self.op1)
 
     def solve(self, process: Process) -> None:
         """Apply an EA for 100 FEs, followed by RLS."""
@@ -73,21 +75,25 @@ class MyAlgorithm(Algorithm2):
 
         fnew2: Union[int, float]
         fes2: int
-        with for_fes(from_starting_point(process, x1, fnew), 100) as z:
-            assert str(z) == f"forFEs_100_fromStart_{process}"
-            assert z.has_best()
-            assert z.get_best_f() == fnew
-            assert z.get_consumed_fes() == 0
-            self.rls.solve(z)
-            fnew2 = z.get_best_f()
-            fes2 = z.get_consumed_fes()
-            assert fes2 > 0
-            assert (fnew2 == 0) or (fes2 == 100)
-            assert (fnew2 >= 0) and (fes2 <= 100)
-            assert fnew2 <= fnew
+        with from_starting_point(process, x1, fnew) as z1:
+            assert str(z1) == f"fromStart_{process}"
+            with for_fes(z1, 100) as z:
+                self.fwd.forward_to(z.get_copy_of_best_x)
+                assert str(z) == f"forFEs_100_fromStart_{process}"
+                assert z.has_best()
+                assert z.get_best_f() == fnew
+                assert z.get_consumed_fes() == 0
+                self.rls.solve(z)
+                self.fwd.stop_forwarding()
+                fnew2 = z.get_best_f()
+                fes2 = z.get_consumed_fes()
+                assert fes2 > 0
+                assert (fnew2 == 0) or (fes2 == 100)
+                assert (fnew2 >= 0) and (fes2 <= 100)
+                assert fnew2 <= fnew
 
         allfes = process.get_consumed_fes()
-        assert allfes == 1 + fes + fes2
+        assert allfes == fes + fes2
         assert process.get_best_f() == fnew2
         if fnew2 > 0:
             assert process.evaluate(x1) == fnew2
@@ -105,8 +111,8 @@ def test_from_start_for_fes():
     with exp.execute() as p:
         assert p.has_best()
         assert p.get_best_f() >= 0
-        assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 202)
-        assert (p.get_best_f() >= 0) and (p.get_consumed_fes() <= 202)
+        assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 200)
+        assert (p.get_best_f() >= 0) and (p.get_consumed_fes() <= 200)
 
 
 class MyAlgorithm2(Algorithm2):
@@ -161,6 +167,7 @@ def test_without_should_terminate():
 
 class _OneMaxRegAlgo(Algorithm0):
     """The one-max algorithm."""
+
     def __init__(self, op0: Op0Random, f: OneMax):
         """Initialize."""
         super().__init__("om", op0)
@@ -231,11 +238,11 @@ def test_for_fes_process_no_ss_no_log_reg_norm():
         algorithm2: Algorithm = _OneMaxRegAlgo(Op0Random(), objective)
         algorithm: __RegisterForFEs = __RegisterForFEs(algorithm1, algorithm2)
 
-        with Execution()\
-                .set_solution_space(space)\
-                .set_objective(objective)\
-                .set_algorithm(algorithm)\
-                .set_max_fes(100)\
+        with Execution() \
+                .set_solution_space(space) \
+                .set_objective(objective) \
+                .set_algorithm(algorithm) \
+                .set_max_fes(100) \
                 .execute() as process:
             assert type_name_of(process) \
                    == "moptipy.api._process_no_ss._ProcessNoSS"
@@ -256,6 +263,7 @@ def test_for_fes_process_no_ss_no_log_reg_norm():
 
 class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
     """The algorithm for multi-objective optimization."""
+
     def __init__(self, op0: Op0Random):
         """Initialize."""
         Algorithm0.__init__(self, "om", op0)
@@ -299,14 +307,14 @@ def test_for_fes_mo_process_no_ss_no_log():
     algorithm: Algorithm = _MOAlgoForFEs(Op0Random())
     ams = int(random.integers(2, 5))
 
-    with MOExecution()\
-            .set_solution_space(space)\
-            .set_objective(problem)\
-            .set_archive_pruner(pruner)\
-            .set_archive_max_size(ams)\
-            .set_archive_pruning_limit(int(ams + random.integers(0, 3)))\
-            .set_algorithm(algorithm)\
-            .set_max_fes(100)\
+    with MOExecution() \
+            .set_solution_space(space) \
+            .set_objective(problem) \
+            .set_archive_pruner(pruner) \
+            .set_archive_max_size(ams) \
+            .set_archive_pruning_limit(int(ams + random.integers(0, 3))) \
+            .set_algorithm(algorithm) \
+            .set_max_fes(100) \
             .execute() as process:
         assert isinstance(process, MOProcess)
         assert type_name_of(process) \
@@ -332,6 +340,7 @@ def test_for_fes_mo_process_no_ss_no_log():
 
 class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
     """The algorithm for multi-objective optimization."""
+
     def __init__(self, op0: Op0Random):
         """Initialize."""
         Algorithm0.__init__(self, "om", op0)
@@ -370,12 +379,12 @@ def test_without_should_terminate_mo_process_no_ss_no_log():
     algorithm: Algorithm = _MOWithoutShouldTerminate(Op0Random())
     ams = int(random.integers(2, 5))
 
-    with MOExecution()\
-            .set_solution_space(space)\
-            .set_objective(problem)\
-            .set_archive_pruning_limit(int(ams + random.integers(0, 3)))\
-            .set_algorithm(algorithm)\
-            .set_max_fes(100)\
+    with MOExecution() \
+            .set_solution_space(space) \
+            .set_objective(problem) \
+            .set_archive_pruning_limit(int(ams + random.integers(0, 3))) \
+            .set_algorithm(algorithm) \
+            .set_max_fes(100) \
             .execute() as process:
         assert isinstance(process, MOProcess)
         assert type_name_of(process) \
