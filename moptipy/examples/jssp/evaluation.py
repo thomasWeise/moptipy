@@ -559,7 +559,8 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                             "hcr_32768_swap2"], dest)
     progress(["hcr_65536_swapn", "hc_swapn",
               "hcr_32768_swap2"], dest, source)
-    tests(end_results, ["hcr_65536_swapn", "hcr_32768_swap2", "hc_swapn"], dest)
+    tests(end_results, ["hcr_65536_swapn", "hcr_32768_swap2",
+                        "hc_swapn"], dest)
 
     logger("Now evaluating the RLS algorithm with 'swap2' and 'swapn'.")
     table(end_results, ["rls_swapn", "rls_swap2",
