@@ -65,7 +65,8 @@ def validate_algorithm(algorithm: Algorithm,
     if not isinstance(max_fes, int):
         raise type_error(max_fes, "max_fes", int)
     if max_fes <= 0:
-        raise ValueError(f"max_fes must be > 0, but is {max_fes}.")
+        raise ValueError(f"max_fes must be > 0, but is {max_fes} "
+                         f"for {algorithm} on {objective}")
 
     exp = Execution()
     exp.set_algorithm(algorithm)
@@ -78,19 +79,22 @@ def validate_algorithm(algorithm: Algorithm,
 
     lb: Final[Union[int, float]] = objective.lower_bound()
     if (not isfinite(lb)) and (lb != -inf):
-        raise ValueError(f"objective lower bound cannot be {lb}.")
+        raise ValueError(f"objective lower bound cannot be {lb}"
+                         f" for {algorithm} on objective {objective}.")
     ub = objective.upper_bound()
     if (not isfinite(ub)) and (ub != inf):
-        raise ValueError(f"objective upper bound cannot be {ub}.")
+        raise ValueError(f"objective upper bound cannot be {ub}"
+                         f" for {algorithm} on objective {objective}.")
 
     goal: Union[int, float] = lb
     if required_result is not None:
         if not (lb <= required_result <= ub):
             raise ValueError(f"required result must be in [{lb},{ub}], "
-                             f"but is {required_result}")
+                             f"for {algorithm} on {objective} but "
+                             f"is {required_result}")
         if (not isfinite(required_result)) and (required_result != -inf):
-            raise ValueError(
-                f"required_result must not be {required_result}.")
+            raise ValueError(f"required_result must not be {required_result} "
+                             f"for {algorithm} on {objective}.")
         goal = required_result
     exp.set_goal_f(goal)
 
@@ -102,11 +106,13 @@ def validate_algorithm(algorithm: Algorithm,
                 raise error
         # no exception? ok, let's check the data
         if not process.has_best():
-            raise ValueError("The algorithm did not produce any solution.")
+            raise ValueError(f"The algorithm {algorithm} did not produce "
+                             f"any solution on {objective}.")
 
         if not process.should_terminate():
-            raise ValueError("The algorithm stopped before hitting the "
-                             "termination criterion.")
+            raise ValueError(f"The algorithm {algorithm} stopped before "
+                             "hitting the termination criterion "
+                             f"on {objective}.")
 
         consumed_fes: Final[int] = process.get_consumed_fes()
         if not isinstance(consumed_fes, int):
@@ -114,21 +120,23 @@ def validate_algorithm(algorithm: Algorithm,
         if (consumed_fes <= 0) or (consumed_fes > max_fes):
             raise ValueError(
                 f"Consumed FEs must be positive and <= {max_fes}, "
-                f"but is {consumed_fes}.")
+                f"but is {consumed_fes} for {algorithm} on {objective}.")
 
         last_imp_fe: Final[int] = process.get_last_improvement_fe()
         if not isinstance(last_imp_fe, int):
             raise type_error(last_imp_fe, "last improvement FE", int)
         if (last_imp_fe <= 0) or (last_imp_fe > consumed_fes):
             raise ValueError("Last improvement FEs must be positive and "
-                             f"<= {consumed_fes}, but is {last_imp_fe}.")
+                             f"<= {consumed_fes}, but is {last_imp_fe} "
+                             f"for {algorithm} on {objective}.")
 
         consumed_time: Final[int] = process.get_consumed_time_millis()
         if not isinstance(consumed_time, int):
             raise type_error(consumed_time, "consumed time", int)
         if consumed_time < 0:
             raise ValueError(
-                f"Consumed time must be >= 0, but is {consumed_time}.")
+                f"Consumed time must be >= 0, but is {consumed_time} "
+                f"for {algorithm} on {objective}.")
 
         last_imp_time: Final[int] = process.get_last_improvement_time_millis()
         if not isinstance(last_imp_time, int):
@@ -136,47 +144,53 @@ def validate_algorithm(algorithm: Algorithm,
         if (last_imp_time < 0) or (last_imp_time > consumed_time):
             raise ValueError(
                 f"Consumed time must be >= 0 and <= {consumed_time}, but "
-                f"is {last_imp_time}.")
+                f"is {last_imp_time} for {algorithm} on {objective}.")
 
         if lb != process.lower_bound():
             raise ValueError(
                 "Inconsistent lower bounds between process "
-                f"({process.lower_bound()}) and objective ({lb}).")
+                f"({process.lower_bound()}) and objective ({lb})"
+                f" for {algorithm} on {objective}.")
         if ub != process.upper_bound():
             raise ValueError(
                 "Inconsistent upper bounds between process "
-                f"({process.upper_bound()}) and objective ({ub}).")
+                f"({process.upper_bound()}) and objective ({ub}) "
+                f" for {algorithm} on {objective}.")
 
         res_f: Final[Union[float, int]] = process.get_best_f()
         if not isfinite(res_f):
-            raise ValueError("Infinite objective value of result.")
+            raise ValueError(f"Infinite objective value of result "
+                             f"for {algorithm} on {objective}.")
         if (res_f < lb) or (res_f > ub):
-            raise ValueError(
-                f"Objective value {res_f} outside of bounds [{lb},{ub}].")
+            raise ValueError(f"Objective value {res_f} outside of bounds "
+                             f"[{lb},{ub}] for {algorithm} on {objective}.")
 
         if required_result is not None:
             if res_f > required_result:
                 raise ValueError(
-                    "Algorithm should find solution of quality "
-                    f"{required_result}, but got one of {res_f}.")
+                    f"Algorithm {algorithm} should find solution of quality "
+                    f"{required_result} on {objective}, but got one of "
+                    f"{res_f}.")
 
         if res_f <= goal:
             if last_imp_fe != consumed_fes:
                 raise ValueError(
                     f"if result={res_f} is as good as goal={goal}, then "
                     f"last_imp_fe={last_imp_fe} must equal"
-                    f" consumed_fe={consumed_fes}.")
+                    f" consumed_fe={consumed_fes} for {algorithm} on "
+                    f"{objective}.")
             if (10_000 + (1.05 * last_imp_time)) < consumed_time:
                 raise ValueError(
                     f"if result={res_f} is as good as goal={goal}, then "
                     f"last_imp_time={last_imp_time} must not be much less"
-                    f" than consumed_time={consumed_time}.")
+                    f" than consumed_time={consumed_time} for {algorithm} "
+                    f"on {objective}.")
         else:
             if uses_all_fes_if_goal_not_reached and (consumed_fes != max_fes):
                 raise ValueError(
                     f"if result={res_f} is worse than goal={goal}, then "
                     f"consumed_fes={consumed_fes} must equal "
-                    f"max_fes={max_fes}.")
+                    f"max_fes={max_fes} for {algorithm} on {objective}.")
 
         y = solution_space.create()
         process.get_copy_of_best_y(y)
@@ -185,7 +199,8 @@ def validate_algorithm(algorithm: Algorithm,
         if check_f != res_f:
             raise ValueError(
                 f"Inconsistent objective value {res_f} from process compared "
-                f"to {check_f} from objective function.")
+                f"to {check_f} from objective function for {algorithm} on "
+                f"{objective}.")
 
         x: Optional[Any] = None
         if search_space is not None:
@@ -197,5 +212,9 @@ def validate_algorithm(algorithm: Algorithm,
             y2 = solution_space.create()
             encoding.map(x, y2)
             solution_space.validate(y2)
-            if is_encoding_deterministic:
-                solution_space.is_equal(y, y2)
+            if is_encoding_deterministic \
+                    and not solution_space.is_equal(y, y2):
+                raise ValueError(
+                    f"error when mapping point in search space {x} to "
+                    f"solution {y2}, because it should be {y} for "
+                    f"{algorithm} on {objective} under encoding {encoding}")

@@ -9,7 +9,6 @@ from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
-from moptipy.algorithms.so.ea_with_clearing import EAwithClearing
 from moptipy.algorithms.so.greedy_2plus1_ea_mod import GreedyTwoPlusOneEAmod
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import \
@@ -94,13 +93,6 @@ for muexp in range(0, 14):
                 Op0Shuffle(pwr), Op1Swap2(), None,
                 mm, ll, 0.0))  # EA without crossover
         )
-        if mu == lambda_:
-            DEFAULT_ALGORITHMS.append(cast(
-                Callable[[Instance, Permutations], Algorithm],
-                lambda inst, pwr, mm=mu, ll=lambda_: EAwithClearing(
-                    Op0Shuffle(pwr), Op1Swap2(), None,
-                    mm, ll, 0.0))  # EA with clearing and without crossover
-            )
 
         if 1 < mu < 32:
             brr = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.05, 0.25] \
