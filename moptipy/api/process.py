@@ -3,7 +3,33 @@ Processes offer data to both the user and the optimization algorithm.
 
 They provide the information about the optimization process and its current
 state as handed to the optimization algorithm and, after the algorithm has
-finished, to the user.
+finished, to the user. They also supply the optimization algorithm with
+everything it needs to run, e.g., random numbers
+(:meth:`~moptipy.api.process.Process.get_random`), they evaluate solutions
+(:meth:`~moptipy.api.process.Process.evaluate`) , and they tell it when to
+stop (:meth:`~moptipy.api.process.Process.should_terminate`).
+
+The idea behind this interface is to treat optimization algorithms as
+so-called *anytime algorithms*. An anytime algorithm will begin with a guess
+about what the solution for a problem could be. It will then iteratively
+sample and evaluate (:meth:`~moptipy.api.process.Process.evaluate`) new
+solutions, i.e., new and hopefully better guesses. It can be stopped at any
+time, e.g., by the termination criterion,
+:meth:`~moptipy.api.process.Process.should_terminate` and then return the best
+guess of the solution (:meth:`~moptipy.api.process.Process.get_copy_of_best_y`,
+:meth:`~moptipy.api.process.Process.get_best_f`).
+
+Finally, the process API also collects all the information about the
+optimization process, performs in-memory logging if wanted, and can write a
+standardized, text-based log file for each run of an algorithm in a clear
+folder structure. By storing information about the algorithm, the problem, and
+the system, as well as the random seed, this allows for self-documenting and
+replicable experiments.
+
+1. Mark S. Boddy and Thomas L. Dean. *Solving Time-Dependent Planning
+   Problems.* Report CS-89-03, February 1989. Providence, RI, USA: Brown
+   University, Department of Computer Science.
+   ftp://ftp.cs.brown.edu/pub/techreports/89/cs89-03.pdf
 """
 from contextlib import AbstractContextManager
 from math import inf, isnan
@@ -229,6 +255,15 @@ class Process(Space, Objective, AbstractContextManager):
         :meth:`register` so far. It is *NOT* the best possible objective
         value for the optimization problem. It is the best solution that
         the process has seen *so far*, the current best solution.
+        Even if the optimization algorithm using this process does not
+        preserve this solution in special variable and has already lost it
+        again, this method will still return it. The optimization process
+        encapsulated by this `process` object will always remember it.
+
+        This also means that your algorithm implementations do not need to
+        store the best-so-far solution anywhere if doing so would be
+        complicated. They can obtain it simply from this method whenever
+        needed.
 
         You should only call this method if you are either sure that you
         have invoked :meth:`evaluate` before :meth:`register` of if you called
