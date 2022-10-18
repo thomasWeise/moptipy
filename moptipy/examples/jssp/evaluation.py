@@ -544,7 +544,6 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source)
     progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source,
              millis=False)
-    tests(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
 
     logger("Now evaluating the hill climbing algorithm with "
            "restarts 'hcr' on 'swapn'.")
@@ -560,10 +559,12 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
                             "hcr_32768_swap2"], dest)
     progress(["hcr_65536_swapn", "hc_swapn",
               "hcr_32768_swap2"], dest, source)
+    tests(end_results, ["hcr_65536_swapn", "hcr_32768_swap2", "hc_swapn"], dest)
 
     logger("Now evaluating the RLS algorithm with 'swap2' and 'swapn'.")
     table(end_results, ["rls_swapn", "rls_swap2",
                         "hcr_32768_swap2", "hcr_65536_swapn"], dest)
+    tests(end_results, ["rls_swapn", "rls_swap2", "hcr_32768_swap2"], dest)
     makespans(end_results, ["rls_swapn", "rls_swap2", "hcr_32768_swap2",
                             "hcr_65536_swapn"], dest)
     gantt(end_results, "rls_swap2", dest, source)
