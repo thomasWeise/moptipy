@@ -592,6 +592,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     table(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
                         "ea_512_512_swap2", "rls_swap2"], dest,
           swap_stats=[(lims, totfes)])
+    tests(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "rls_swap2"], dest)
     makespans(end_results, ["ea_1_2_swap2", "ea_2_2_swap2",
                             "ea_512_512_swap2", "rls_swap2"], dest, 0.6)
     progress(["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
