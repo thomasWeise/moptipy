@@ -1,16 +1,17 @@
 """The base class for fitness assignment processes."""
 
 from math import inf
-from typing import Union, Final, List
+from typing import Union, List
 
 from numpy.random import Generator
 
+from moptipy.algorithms.modules.selection import FitnessRecord
+from moptipy.algorithms.so.record import Record
 from moptipy.api.component import Component
 from moptipy.utils.types import type_error
-from moptipy.algorithms.so.record import Record
 
 
-class FRecord(Record):
+class FRecord(Record, FitnessRecord):
     """A point `x` in the search space with its quality and fitness."""
 
     def __init__(self, x, f: Union[int, float]):
@@ -22,17 +23,15 @@ class FRecord(Record):
         """
         super().__init__(x, f)
         #: the fitness assigned to the solution `x`
-        self.v: Union[int, float] = inf
+        self.fitness: Union[int, float] = inf
 
     def __lt__(self, other) -> bool:
         """
-        Precedence if 1) better ftness or b) equally good but younger.
+        Precedence on better ftness.
 
         :param other: the other record
         :returns: `True` if this record has a better fitness value
-            (:attr:`v`) or if it has the same objective value but is newer,
-            i.e., has a larger :attr:`~moptipy.algorithms.so.record.Record.it`
-            value
+            (:attr:`fitness`)
 
         >>> r1 = FRecord(None, 1)
         >>> r2 = FRecord(None, 1)
@@ -40,23 +39,21 @@ class FRecord(Record):
         False
         >>> r2 < r1
         False
-        >>> r1.v = 10
-        >>> r2.v = 9
+        >>> r1.fitness = 10
+        >>> r2.fitness = 9
         >>> r2 < r1
         True
         >>> r1 < r2
         False
-        >>> r1.v = r2.v
+        >>> r1.fitness = r2.fitness
         >>> r1.it = 10
         >>> r2.it = 9
         >>> r1 < r2
-        True
+        False
         >>> r2 < r1
         False
         """
-        v1: Final[Union[int, float]] = self.v
-        v2: Final[Union[int, float]] = other.v
-        return (v1 < v2) or ((v1 == v2) and (self.it > other.it))
+        return self.fitness < other.fitness
 
 
 class Fitness(Component):
@@ -71,16 +68,6 @@ class Fitness(Component):
         :param p: the list of :class:`FRecord` instances
         :param random: the random number generator
         """
-        for i in p:
-            i.v = i.f
-
-    def __str__(self):
-        """
-        Get the name of the fitness assignment process.
-
-        :return: the name of the fitness assignment process
-        """
-        return "f"
 
 
 def check_fitness(fitness: Fitness) -> Fitness:
@@ -93,4 +80,6 @@ def check_fitness(fitness: Fitness) -> Fitness:
     """
     if not isinstance(fitness, Fitness):
         raise type_error(fitness, "op0", Fitness)
+    if fitness.__class__ is Fitness:
+        raise TypeError("cannot use abstract class 'Fitness' directly")
     return fitness

@@ -266,7 +266,7 @@ def validate_algorithm_on_onemax(
         if i < 3:
             rr = 1
         else:
-            rr = max(2, i // 2, i - int(max_fes ** 0.5))
+            rr = 1 + max(1, i // 2, i - int(max_fes ** 0.5))
         validate_algorithm_on_bitstrings(
             objective=OneMax,
             algorithm=algorithm,

@@ -1,6 +1,7 @@
 """Utilities for creating and storing figures."""
 import os.path
 import statistics as st
+import warnings
 from math import sqrt, isfinite
 from typing import Final, Iterable, Union, List, Optional, Callable, cast, \
     Tuple, Sequence, Dict
@@ -432,11 +433,15 @@ def save_figure(fig: Figure,
             raise type_error(fmt, "element of formats", str)
         dest_file = Path.path(os.path.join(use_dir, f"{file_name}.{fmt}"))
         dest_file.ensure_file_exists()
-        fig.savefig(dest_file, transparent=True, format=fmt,
-                    orientation=orientation,
-                    dpi="figure",
-                    bbox_inches='tight',
-                    pad_inches=1.0 / 72.0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # UserWarning: There are no gridspecs with layoutgrids.
+            # Possibly did not call parent GridSpec with the "figure" keyword
+            fig.savefig(dest_file, transparent=True, format=fmt,
+                        orientation=orientation,
+                        dpi="figure",
+                        bbox_inches='tight',
+                        pad_inches=1.0 / 72.0)
         dest_file.enforce_file()
         files.append(dest_file)
 

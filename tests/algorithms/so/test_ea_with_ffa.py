@@ -3,7 +3,7 @@ from typing import Final
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.so.fitness_ea import FitnessEA
+from moptipy.algorithms.so.full_ea import FullEA
 from moptipy.algorithms.so.fitnesses.ffa import FFA
 from moptipy.api.objective import Objective
 from moptipy.examples.bitstrings.onemax import OneMax
@@ -31,11 +31,11 @@ def test_fitness_ea_on_jssp_random():
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
         mu: Final[int] = int(random.integers(1, 12))
-        return FitnessEA(Op0Shuffle(search_space), Op1Swap2(),
-                         Op2GeneralizedAlternatingPosition(search_space),
-                         mu, int(random.integers(1, 12)),
-                         0.0 if mu <= 1 else float(random.random()),
-                         FFA(objective))
+        return FullEA(Op0Shuffle(search_space), Op1Swap2(),
+                      Op2GeneralizedAlternatingPosition(search_space),
+                      mu, int(random.integers(1, 12)),
+                      0.0 if mu <= 1 else float(random.random()),
+                      FFA(objective))
 
     validate_algorithm_on_jssp(create)
 
@@ -48,10 +48,10 @@ def test_fitness_ea_on_onemax_random():
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
         mu: Final[int] = int(random.integers(1, 12))
-        return FitnessEA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
-                         Op2Uniform(), mu, int(random.integers(1, 12)),
-                         0.0 if mu <= 1 else float(random.random()),
-                         FFA(objective))
+        return FullEA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
+                      Op2Uniform(), mu, int(random.integers(1, 12)),
+                      0.0 if mu <= 1 else float(random.random()),
+                      FFA(objective))
 
     validate_algorithm_on_onemax(create)
 
@@ -62,8 +62,8 @@ def test_ea_on_onemax_1_1_0():
     def create(bs: BitStrings, objective: Objective):
         assert isinstance(objective, Objective)
         assert isinstance(bs, BitStrings)
-        return FitnessEA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
-                         Op2Uniform(), 1, 1, 0.0, FFA(objective))
+        return FullEA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
+                      Op2Uniform(), 1, 1, 0.0, FFA(objective))
 
     validate_algorithm_on_onemax(create)
 
@@ -77,44 +77,44 @@ def test_fitness_ea_naming():
     n2: Final[str] = str(op2)
     ffa: Final[FFA] = FFA(OneMax(10))
 
-    ea: FitnessEA = FitnessEA(op0, op1, op2, 10, 5, 0.5)
-    assert str(ea) == f"eaf_10_5_0d5_{n2}_{n1}"
+    ea: FullEA = FullEA(op0, op1, op2, 10, 5, 0.5)
+    assert str(ea) == f"fullea_10_5_0d5_{n2}_{n1}"
 
-    ea: FitnessEA = FitnessEA(op0, op1, op2, 10, 5, 0.5, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_0d5_{n2}_{n1}"
+    ea: FullEA = FullEA(op0, op1, op2, 10, 5, 0.5, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_0d5_{n2}_{n1}"
 
-    ea = FitnessEA(op0, op1, op2, 10, 5, 0.0)
-    assert str(ea) == f"eaf_10_5_{n1}"
+    ea = FullEA(op0, op1, op2, 10, 5, 0.0)
+    assert str(ea) == f"fullea_10_5_{n1}"
 
-    ea = FitnessEA(op0, op1, op2, 10, 5, 0.0, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_{n1}"
+    ea = FullEA(op0, op1, op2, 10, 5, 0.0, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_{n1}"
 
-    ea = FitnessEA(op0, op1, None, 10, 5, 0.0)
-    assert str(ea) == f"eaf_10_5_{n1}"
+    ea = FullEA(op0, op1, None, 10, 5, 0.0)
+    assert str(ea) == f"fullea_10_5_{n1}"
 
-    ea = FitnessEA(op0, op1, None, 10, 5, 0.0, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_{n1}"
+    ea = FullEA(op0, op1, None, 10, 5, 0.0, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_{n1}"
 
-    ea = FitnessEA(op0, op1, None, 10, 5, None)
-    assert str(ea) == f"eaf_10_5_{n1}"
+    ea = FullEA(op0, op1, None, 10, 5, None)
+    assert str(ea) == f"fullea_10_5_{n1}"
 
-    ea = FitnessEA(op0, op1, None, 10, 5, None, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_{n1}"
+    ea = FullEA(op0, op1, None, 10, 5, None, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_{n1}"
 
-    ea = FitnessEA(op0, op1, op2, 10, 5, 1.0)
-    assert str(ea) == f"eaf_10_5_{n2}"
+    ea = FullEA(op0, op1, op2, 10, 5, 1.0)
+    assert str(ea) == f"fullea_10_5_{n2}"
 
-    ea = FitnessEA(op0, op1, op2, 10, 5, 1.0, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_{n2}"
+    ea = FullEA(op0, op1, op2, 10, 5, 1.0, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_{n2}"
 
-    ea = FitnessEA(op0, None, op2, 10, 5, 1.0)
-    assert str(ea) == f"eaf_10_5_{n2}"
+    ea = FullEA(op0, None, op2, 10, 5, 1.0)
+    assert str(ea) == f"fullea_10_5_{n2}"
 
-    ea = FitnessEA(op0, None, op2, 10, 5, 1.0, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_{n2}"
+    ea = FullEA(op0, None, op2, 10, 5, 1.0, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_{n2}"
 
-    ea = FitnessEA(op0, None, op2, 10, 5, None)
-    assert str(ea) == f"eaf_10_5_{n2}"
+    ea = FullEA(op0, None, op2, 10, 5, None)
+    assert str(ea) == f"fullea_10_5_{n2}"
 
-    ea = FitnessEA(op0, None, op2, 10, 5, None, ffa)
-    assert str(ea) == f"eaf_ffa_10_5_{n2}"
+    ea = FullEA(op0, None, op2, 10, 5, None, ffa)
+    assert str(ea) == f"fullea_ffa_10_5_{n2}"

@@ -49,8 +49,8 @@ def validate_fitness(fitness: Fitness,
         op0.op0(random, fr.x)
         fr.f = objective.evaluate(fr.x)
         fr.it = int(random.integers(1, 20))
-        if fr.v != inf:
-            raise ValueError(f"v = {fr.v}, should be inf")
+        if fr.fitness != inf:
+            raise ValueError(f"v = {fr.fitness}, should be inf")
         pop1.append(fr)
         fr2: _FRecord = _FRecord(fr.x, fr.z)
         fr2.f = fr.f
@@ -66,17 +66,17 @@ def validate_fitness(fitness: Fitness,
                 fr = _FRecord(fr0.x, i)
                 fr.f = fr0.f
                 fr.it = fr0.it
-                fr.v = fr0.v
+                fr.fitness = fr0.fitness
                 pop1[i] = fr
                 fr = _FRecord(fr0.x, i)
                 fr.f = fr0.f
                 fr.it = fr0.it
-                fr.v = fr0.v
+                fr.fitness = fr0.fitness
                 pop2[i] = fr
         if k in (2, 4):
             for fr in pop1:
                 if random.integers(2) <= 0:
-                    fr.v = inf if random.integers(2) <= 0 else -inf
+                    fr.fitness = inf if random.integers(2) <= 0 else -inf
 
         fitness.assign_fitness(cast(List[FRecord], pop1), random)
         pop1.sort(key=lambda r: r.z)
@@ -93,7 +93,8 @@ def validate_fitness(fitness: Fitness,
             if fr.f is not fr2.f:
                 raise ValueError(
                     f"fitness assignment assigned rec.f to {fr.f}!")
-            if not isinstance(fr.v, (int, float)):
-                raise type_error(fr.v, "rec.v", (int, float))
-            if not isfinite(fr.v):
-                raise ValueError(f"rec.v should be finite, but is {fr.v}")
+            if not isinstance(fr.fitness, (int, float)):
+                raise type_error(fr.fitness, "rec.fitness", (int, float))
+            if not isfinite(fr.fitness):
+                raise ValueError(
+                    f"rec.fitness should be finite, but is {fr.fitness}")

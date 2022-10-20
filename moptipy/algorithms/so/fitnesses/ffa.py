@@ -6,6 +6,16 @@ encounter frequencies in the selection decisions. The more often an
 objective value is encountered, the higher gets its encounter frequency.
 Therefore, local optima are slowly receiving worse and worse fitness.
 
+Notice that this implementation of FFA has a slight twist to it:
+It will incorporate the iteration index
+(:attr:`~moptipy.algorithms.so.record.Record.it`) of the solutions
+into the fitness.
+This index is used to break ties, in which case newer solutions are preferred.
+This can make the EA with FFA compatible with the
+:class:`moptipy.algorithms.so.fea1plus1.FEA1plus1` if truncation selection
+(:class:`moptipy.algorithms.modules.selections.truncation.Truncation`) is used
+at mu=lambda=1.
+
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
    Assignment: Making Optimization Algorithms Invariant under Bijective
    Transformations of the Objective Function Value. *IEEE Transactions on
@@ -94,9 +104,7 @@ class _IntFFA1(FFA):
         instance.__h = np.zeros(ub + 1, dtype=DEFAULT_UNSIGNED_INT)
         return instance
 
-    def assign_fitness(self,
-                       p: List[FRecord],
-                       random: Generator) -> None:
+    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
 
@@ -104,10 +112,19 @@ class _IntFFA1(FFA):
         :param random: ignored
         """
         h: Final[np.ndarray] = self.__h
+        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
+        max_it: int = -1  # the maximum iteration index
         for r in p:
+            it: int = r.it  # get iteration index from record
+            if it < min_it:  # update minimum iteration index
+                min_it = it
+            if it > max_it:  # update maximum iteration index
+                max_it = it
             h[r.f] += 1  # type: ignore
+        it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
-            r.v = int(h[r.f])  # type: ignore
+            r.fitness = ((int(h[r.f]) * it_range)  # type: ignore
+                         + max_it - r.it)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -134,9 +151,7 @@ class _IntFFA2(FFA):
         instance.__lb = lb
         return instance
 
-    def assign_fitness(self,
-                       p: List[FRecord],
-                       random: Generator) -> None:
+    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
 
@@ -145,10 +160,20 @@ class _IntFFA2(FFA):
         """
         h: Final[np.ndarray] = self.__h
         lb: Final[int] = self.__lb
+
+        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
+        max_it: int = -1  # the maximum iteration index
         for r in p:
+            it: int = r.it  # get iteration index from record
+            if it < min_it:  # update minimum iteration index
+                min_it = it
+            if it > max_it:  # update maximum iteration index
+                max_it = it
             h[r.f - lb] += 1  # type: ignore
+        it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
-            r.v = int(h[r.f - lb])  # type: ignore
+            r.fitness = ((int(h[r.f - lb]) * it_range)  # type: ignore
+                         + max_it - r.it)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -173,9 +198,7 @@ class _DictFFA(FFA):
         instance.__h = Counter()
         return instance
 
-    def assign_fitness(self,
-                       p: List[FRecord],
-                       random: Generator) -> None:
+    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
 
@@ -183,7 +206,16 @@ class _DictFFA(FFA):
         :param random: ignored
         """
         h: Final[Counter[Union[int, float]]] = self.__h
+
+        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
+        max_it: int = -1  # the maximum iteration index
         for r in p:
+            it: int = r.it  # get iteration index from record
+            if it < min_it:  # update minimum iteration index
+                min_it = it
+            if it > max_it:  # update maximum iteration index
+                max_it = it
             h[r.f] += 1
+        it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
-            r.v = h[r.f]
+            r.fitness = (h[r.f] * it_range) + max_it - r.it
