@@ -38,8 +38,8 @@ class RankAndIteration(Fitness):
 
     This way, better solutions receive better fitness and ties are broken such
     that younger solutions (with higher iteration index) are preferred.
-    In combination with truncation selection
-    (:class:`moptipy.algorithms.modules.selections.truncation.Truncation`),
+    In combination with best selection
+    (:class:`moptipy.algorithms.modules.selections.best.Best`),
     this replicates the behavior of our simple (mu+lambda) Evolutionary
     Algorithm (:class:`~moptipy.algorithms.so.ea.EA`).
     """

@@ -12,8 +12,8 @@ It will incorporate the iteration index
 into the fitness.
 This index is used to break ties, in which case newer solutions are preferred.
 This can make the EA with FFA compatible with the
-:class:`moptipy.algorithms.so.fea1plus1.FEA1plus1` if truncation selection
-(:class:`moptipy.algorithms.modules.selections.truncation.Truncation`) is used
+:class:`moptipy.algorithms.so.fea1plus1.FEA1plus1` if "best" selection
+(:class:`moptipy.algorithms.modules.selections.best.Best`) is used
 at mu=lambda=1.
 
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness

@@ -24,9 +24,7 @@ class _FRecord(FRecord):
         self.z: Final[int] = z
 
 
-def validate_fitness(fitness: Fitness,
-                     objective: Objective,
-                     space: Space,
+def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
                      op0: Op0) -> None:
     """
     Validate a fitness assignment process on a given problem.

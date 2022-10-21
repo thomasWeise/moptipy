@@ -14,6 +14,13 @@ survival and mating selection
    Estimation, Simulation, and Control - Wiley-Interscience Series in Discrete
    Mathematics and Optimization, volume 6. 2003. Chichester, West Sussex, UK:
    Wiley Interscience. ISBN: 0-471-33052-3. http://www.jhuapl.edu/ISSO/.
+3. Frank Hoffmeister and Thomas Bäck. Genetic Algorithms and Evolution
+   Strategies: Similarities and Differences. In Hans-Paul Schwefel and
+   Reinhard Männer, *Proceedings of the International Conference on Parallel
+   Problem Solving from Nature (PPSN I),* October 1-3, 1990, Dortmund,
+   Germany, volume 496 of Lecture Notes in Computer Science, pages 455-469,
+   Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-540-54148-6.
+   https://doi.org/10.1007/BFb0029787.
 """
 from typing import Final, Union, Callable, List, cast, Optional
 
@@ -22,7 +29,7 @@ from numpy.random import Generator
 from moptipy.algorithms.modules.selection import Selection, check_selection
 from moptipy.algorithms.modules.selections.random_without_replacement \
     import RandomWithoutReplacement
-from moptipy.algorithms.modules.selections.truncation import Truncation
+from moptipy.algorithms.modules.selections.best import Best
 from moptipy.algorithms.so.ea import EA, _float_0
 from moptipy.algorithms.so.fitness import check_fitness, Fitness, FRecord
 from moptipy.algorithms.so.fitnesses.rank_and_iteration import RankAndIteration
@@ -174,10 +181,10 @@ class FullEA(EA):
         if fitness.__class__ is not RankAndIteration:
             name = f"{name}{PART_SEPARATOR}{fitness}"
         if survival is None:
-            survival = Truncation()
+            survival = Best()
         if mating is None:
             mating = RandomWithoutReplacement()
-        if (survival.__class__ is not Truncation) \
+        if (survival.__class__ is not Best) \
                 or (mating.__class__ is not RandomWithoutReplacement):
             name = f"{name}{PART_SEPARATOR}{survival}{PART_SEPARATOR}{mating}"
 

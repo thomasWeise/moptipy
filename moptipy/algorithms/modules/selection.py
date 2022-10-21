@@ -38,6 +38,13 @@ class Selection(Component):
         only the :attr:`~FitnessRecord.fitness` attribute of the records and
         the random numbers from `random` should be used as decision criteria.
 
+        Selection algorithms are modules of the fully-configurable
+        Evolutionary Algorithm :class:`~moptipy.algorithms.so.full_ea.FullEA`.
+        They can utilize fitness values computed by the fitness assignment
+        processes (:class:`~moptipy.algorithms.so.fitness.Fitness`). Of
+        course, they can also be applied in different contexts and are not
+        bound to single-objective optimization.
+
         :param source: the list with the records to select from
         :param dest: the destination to append the selected records to
         :param n: the number of records to select
