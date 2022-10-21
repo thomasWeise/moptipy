@@ -7,4 +7,4 @@ from moptipy.tests.selection import validate_selection
 
 def test_random_without_replacement():
     """Test the random selection without replacement strategy."""
-    validate_selection(RandomWithoutReplacement(), True, True)
+    validate_selection(RandomWithoutReplacement(), True)

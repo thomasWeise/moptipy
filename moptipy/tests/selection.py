@@ -23,43 +23,55 @@ class _FRecord(FitnessRecord):
 
 
 def __join(sets: Iterable[Iterable[int]],
-           limit: Union[int, float] = inf) -> Iterable[int]:
+           lower_limit: Union[int, float] = -inf,
+           upper_limit: Union[int, float] = inf) -> Iterable[int]:
     """
     Joint iterables preserving unique values.
 
     :param sets: the iterables
-    :param limit: the upper limit
+    :param lower_limit: the lower limit
+    :param upper_limit: the upper limit
     :returns: the joint iterable
     """
     if not isinstance(sets, Iterable):
         raise type_error(sets, "sets", Iterable)
+    if not isinstance(lower_limit, (int, float)):
+        raise type_error(lower_limit, "lower_limit", (int, float))
+    if not isinstance(upper_limit, (int, float)):
+        raise type_error(upper_limit, "upper_limit", (int, float))
+    if upper_limit < lower_limit:
+        raise ValueError(
+            f"lower_limit={lower_limit} but upper_limit={upper_limit}")
     x: Final[Set[int]] = set()
     for it in sets:
         if not isinstance(it, Iterable):
             raise type_error(it, "it", Iterable)
-        x.update([int(i) for i in it if i <= limit])
+        x.update([int(i) for i in it if lower_limit <= i <= upper_limit])
     return list(x)
 
 
 def validate_selection(selection: Selection,
-                       limited: bool = False,
-                       without_replacement: bool = False) -> None:
+                       without_replacement: bool = False,
+                       lower_source_size_limit: int = 0) -> None:
     """
     Validate a selection algorithm.
 
     :param selection: the selection algorithm
-    :param limited: is this selection algorithm limited, i.e., can it not
-        select more elements than in the input set?
     :param without_replacement: is this selection algorithm without
         replacement, i.e., can it select each element at most once?
+    :param lower_source_size_limit: the lower limit of the source
+        size
     """
     check_selection(selection)
     validate_component(selection)
 
-    if not isinstance(limited, bool):
-        raise type_error(limited, "limited", bool)
     if not isinstance(without_replacement, bool):
         raise type_error(without_replacement, "without_replacement", bool)
+    if not isinstance(lower_source_size_limit, int):
+        raise type_error(lower_source_size_limit,
+                         "lower_source_size_limit", int)
+    if not 0 <= lower_source_size_limit < 1000:
+        raise ValueError(f"lower_source_size_limit={lower_source_size_limit}")
 
     random: Final[Generator] = default_rng()
     source: Final[List[FitnessRecord]] = []
@@ -68,12 +80,14 @@ def validate_selection(selection: Selection,
     tag: int = 0
 
     for source_size in __join([range(1, 10), [16, 32, 50, 101],
-                               random.choice(100, 4, False)]):
+                               random.choice(100, 4, False),
+                               [lower_source_size_limit]],
+                              lower_limit=max(1, lower_source_size_limit)):
         for dest_size in __join([
             [1, 2, 3, source_size, 2 * source_size],
             random.choice(min(6, 4 * source_size),
                           min(6, 4 * source_size), False)],
-                source_size if limited or without_replacement else inf):
+                upper_limit=source_size if without_replacement else inf):
 
             source.clear()
             copy.clear()
