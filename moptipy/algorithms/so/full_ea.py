@@ -26,10 +26,11 @@ from typing import Final, Union, Callable, List, cast, Optional
 
 from numpy.random import Generator
 
-from moptipy.algorithms.modules.selection import Selection, check_selection
+from moptipy.algorithms.modules.selection import Selection, check_selection, \
+    FitnessRecord
+from moptipy.algorithms.modules.selections.best import Best
 from moptipy.algorithms.modules.selections.random_without_replacement \
     import RandomWithoutReplacement
-from moptipy.algorithms.modules.selections.best import Best
 from moptipy.algorithms.so.ea import EA, _float_0
 from moptipy.algorithms.so.fitness import check_fitness, Fitness, FRecord
 from moptipy.algorithms.so.fitnesses.rank_and_iteration import RankAndIteration
@@ -82,12 +83,12 @@ class FullEA(EA):
         assign_fitness: Final[Callable[[List[FRecord], Generator], None]] = \
             self.fitness.assign_fitness
         survival: Final[Callable[
-            [List[FRecord], List[FRecord], int, Generator], None]] = \
-            cast(Callable[[List[FRecord], List[FRecord], int, Generator],
+            [List[FRecord], Callable, int, Generator], None]] = \
+            cast(Callable[[List[FRecord], Callable, int, Generator],
                           None], self.survival.select)
         mating: Final[Callable[
-            [List[FRecord], List[FRecord], int, Generator], None]] = \
-            cast(Callable[[List[FRecord], List[FRecord], int, Generator],
+            [List[FRecord], Callable, int, Generator], None]] = \
+            cast(Callable[[List[FRecord], Callable, int, Generator],
                           None], self.mating.select)
 
         # create list of mu random records and lambda empty records
@@ -107,10 +108,21 @@ class FullEA(EA):
         mating_pool: Final[List] = [None, None]
         population: Final[List] = [None] * lst_size
 
+        # Fast calls
+        mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
+        mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
+            cast(Callable[[FitnessRecord], None], mating_pool.append)
+        survived_clear: Final[Callable[[], None]] = survived.clear
+        survived_append: Final[Callable[[FitnessRecord], None]] = \
+            cast(Callable[[FitnessRecord], None], survived.append)
+        population_clear: Final[Callable[[], None]] = population.clear
+        population_append: Final[Callable[[_Record], None]] = \
+            cast(Callable[[_Record], None], population.append)
+
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step the iteration counter
-            population.clear()  # clear next population
+            population_clear()  # clear next population
 
             di = 0  # set index of next potential destination
             for _ in range(lambda_):  # for all lambda offspring
@@ -122,7 +134,7 @@ class FullEA(EA):
                     di = di + 1  # step counter
                     if dest._selected:  # if it was selected
                         dest._selected = False  # mark it as unselected
-                        population.append(dest)  # store in population
+                        population_append(dest)  # store in population
                         continue  # try next record
                     break  # use the record as destination
 
@@ -130,26 +142,27 @@ class FullEA(EA):
                 dest.it = it  # remember iteration of solution creation
 
                 do_binary = r01() < br  # should we do binary operation?
-                mating_pool.clear()  # clear mating pool: room for 2
-                mating(survived, mating_pool, 2 if do_binary else 1, random)
+                mating_pool_clear()  # clear mating pool: room for 2
+                mating(survived, mating_pool_append,
+                       2 if do_binary else 1, random)
 
                 if do_binary:  # binary operation (with p == br)
                     op2(random, x, mating_pool[0].x, mating_pool[1].x)
                 else:  # unary operation otherwise
                     op1(random, x, mating_pool[0].x)  # apply unary operator
                 dest.f = evaluate(x)  # evaluate new point
-                population.append(dest)  # store in population
+                population_append(dest)  # store in population
 
             # we now need to add the remaining surviving solutions
             for di in range(di, lst_size):
                 other = recs[di]
                 if other._selected:  # only if the solution was selected
                     other._selected = False  # set as unselected
-                    population.append(other)  # put into population
+                    population_append(other)  # put into population
 
             assign_fitness(population, random)  # assign fitness
-            survived.clear()  # clear list of survived records
-            survival(population, survived, mu, random)  # selection
+            survived_clear()  # clear list of survived records
+            survival(population, survived_append, mu, random)
             for rec in survived:  # mark all selected solutions as
                 rec._selected = True  # selected
 

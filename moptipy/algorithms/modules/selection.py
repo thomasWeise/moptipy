@@ -1,5 +1,5 @@
 """The base class for selection algorithms."""
-from typing import List, Protocol, Union
+from typing import List, Protocol, Union, Callable, Any
 
 from numpy.random import Generator
 
@@ -29,7 +29,8 @@ class FitnessRecord(Protocol):
 class Selection(Component):
     """The base class for selections algorithms."""
 
-    def select(self, source: List[FitnessRecord], dest: List[FitnessRecord],
+    def select(self, source: List[FitnessRecord],
+               dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:  # pylint: disable=W0613
         """
         Select `n` records from `source` and append them to `dest`.
@@ -46,7 +47,8 @@ class Selection(Component):
         bound to single-objective optimization.
 
         :param source: the list with the records to select from
-        :param dest: the destination to append the selected records to
+        :param dest: the destination collector to invoke for each selected
+            record
         :param n: the number of records to select
         :param random: the random number generator
         """

@@ -45,10 +45,9 @@ paper of Blickle and Thiele.
    Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
 """
 
-from typing import List
+from typing import List, Callable, Any
 
 from numpy.random import Generator
-
 
 from moptipy.algorithms.modules.selection import Selection, FitnessRecord
 
@@ -56,18 +55,21 @@ from moptipy.algorithms.modules.selection import Selection, FitnessRecord
 class Best(Selection):
     """The best selection: select each of the best `n` elements once."""
 
-    def select(self, source: List[FitnessRecord], dest: List[FitnessRecord],
+    def select(self, source: List[FitnessRecord],
+               dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:  # pylint: disable=W0613
         """
         Perform deterministic best selection without replacement.
 
         :param source: the list with the records to select from
-        :param dest: the destination to append the selected records to
+        :param dest: the destination collector to invoke for each selected
+            record
         :param n: the number of records to select
         :param random: the random number generator
         """
         source.sort()
-        dest.extend(source[0:n])
+        for i in range(n):
+            dest(source[i])
 
     def __str__(self):
         """

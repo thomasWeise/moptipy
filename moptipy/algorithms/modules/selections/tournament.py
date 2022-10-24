@@ -32,12 +32,13 @@ times.
    Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
 """
 
-from typing import List, Final, Callable, Iterable, cast, Union, Optional
 from math import inf
+from typing import List, Final, Callable, Iterable, cast, Union, Optional, Any
+
 from numpy.random import Generator
 
-
 from moptipy.algorithms.modules.selection import Selection, FitnessRecord
+from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
 
 
@@ -63,19 +64,24 @@ class Tournament(Selection):
         #: should we perform replacements in the tournaments?
         self.replacement: Final[bool] = replacement
 
-    def select(self, source: List[FitnessRecord], dest: List[FitnessRecord],
+    def select(self, source: List[FitnessRecord],
+               dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
         """
         Perform deterministic best selection without replacement.
 
         :param source: the list with the records to select from
-        :param dest: the destination to append the selected records to
+        :param dest: the destination collector to invoke for each selected
+            record
         :param n: the number of records to select
         :param random: the random number generator
         """
+        # set up constants
         s: Final[int] = self.s
         r: Final[bool] = self.replacement
         l: Final[int] = len(source)
+
+        # fast call
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
             cast(Callable[[int, int, bool], Iterable[int]], random.choice)
 
@@ -90,7 +96,7 @@ class Tournament(Selection):
                     best = rec  # ... rec becomes the new best record
                     best_fitness = rec_fitness  # and we remember its fitness
 
-            dest.append(best)  # at end of the tournament, store best in dest
+            dest(best)  # at end of the tournament, store best in dest
 
     def __str__(self):
         """
@@ -102,3 +108,13 @@ class Tournament(Selection):
         if self.replacement:
             return f"{st}r"
         return st
+
+    def log_parameters_to(self, logger: KeyValueLogSection):
+        """
+        Log the parameters of the algorithm to a logger.
+
+        :param logger: the logger for the parameters
+        """
+        super().log_parameters_to(logger)
+        logger.key_value("size", self.s)
+        logger.key_value("withReplacement", self.replacement)

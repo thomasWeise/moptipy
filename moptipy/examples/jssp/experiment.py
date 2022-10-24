@@ -5,10 +5,16 @@ from typing import Tuple, Dict, Final, Iterable, Callable, \
     Optional, Union, cast, Any, List
 
 import moptipy.api.experiment as ex
+from moptipy.algorithms.modules.selections.fitness_proportionate_sus \
+    import FitnessProportionateSUS
+from moptipy.algorithms.modules.selections.tournament import Tournament
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
+from moptipy.algorithms.so.fitnesses.direct import Direct
+from moptipy.algorithms.so.fitnesses.rank import Rank
+from moptipy.algorithms.so.full_ea import FullEA
 from moptipy.algorithms.so.greedy_2plus1_ea_mod import GreedyTwoPlusOneEAmod
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import \
@@ -25,7 +31,6 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.operators.permutations.op2_gap import \
     Op2GeneralizedAlternatingPosition
-from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
@@ -102,13 +107,6 @@ for muexp in range(0, 14):
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
                         Op0Shuffle(pwr), Op1Swap2(),
-                        Op2OrderBased(pwr),
-                        mm, ll, bb))  # EA with crossover 1
-                )
-                DEFAULT_ALGORITHMS.append(cast(
-                    Callable[[Instance, Permutations], Algorithm],
-                    lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2(),
                         Op2GeneralizedAlternatingPosition(pwr),
                         mm, ll, bb))  # EA with crossover 2
                 )
@@ -129,6 +127,58 @@ DEFAULT_ALGORITHMS.append(
     lambda inst, pwr: GreedyTwoPlusOneEAmod(
         Op0Shuffle(pwr), Op1SwapN(),
         Op2GeneralizedAlternatingPosition(pwr)))
+for mu_lambda in [4, 32]:
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: FullEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr),
+            ml, ml, 0.05,
+            survival=Tournament(2)))
+    )
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: FullEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr),
+            ml, ml, 0.05,
+            survival=Tournament(4)))
+    )
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: FullEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr),
+            ml, ml, 0.05,
+            mating=Tournament(2)))
+    )
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: FullEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr),
+            ml, ml, 0.05,
+            fitness=Direct(),
+            survival=FitnessProportionateSUS()))
+    )
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: FullEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr),
+            ml, ml, 0.05,
+            fitness=Direct(),
+            survival=FitnessProportionateSUS(1 / (ml ** 2))))
+    )
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: FullEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr),
+            ml, ml, 0.05,
+            fitness=Rank(),
+            survival=FitnessProportionateSUS(1 / (ml ** 2))))
+    )
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

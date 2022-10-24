@@ -1,5 +1,5 @@
 """
-Apply 3 algorithms on 6 problems for 31 runs and compare results with tests.
+Apply 3 algorithms on 6 problems for 21 runs and compare results with tests.
 
 We apply three algorithms to six problem instances and conduct 31 runs per
 instance-algorithm combination. We then apply the two-tailed Mann-Whitney U

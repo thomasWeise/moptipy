@@ -21,6 +21,10 @@ class _FRecord(FitnessRecord):
         #: the tag
         self.tag: Final[int] = tag
 
+    def __str__(self):
+        """Get the string describing this record."""
+        return f"{self.tag}/{self.fitness}"
+
 
 def __join(sets: Iterable[Iterable[int]],
            lower_limit: Union[int, float] = -inf,
@@ -52,15 +56,16 @@ def __join(sets: Iterable[Iterable[int]],
 
 def validate_selection(selection: Selection,
                        without_replacement: bool = False,
-                       lower_source_size_limit: int = 0) -> None:
+                       lower_source_size_limit: int = 0,
+                       upper_source_size_limit: int = 999999) -> None:
     """
     Validate a selection algorithm.
 
     :param selection: the selection algorithm
     :param without_replacement: is this selection algorithm without
         replacement, i.e., can it select each element at most once?
-    :param lower_source_size_limit: the lower limit of the source
-        size
+    :param lower_source_size_limit: the lower limit of the source size
+    :param upper_source_size_limit: the upper limit for the source size
     """
     check_selection(selection)
     validate_component(selection)
@@ -72,6 +77,13 @@ def validate_selection(selection: Selection,
                          "lower_source_size_limit", int)
     if not 0 <= lower_source_size_limit < 1000:
         raise ValueError(f"lower_source_size_limit={lower_source_size_limit}")
+    if not isinstance(upper_source_size_limit, int):
+        raise type_error(upper_source_size_limit,
+                         "upper_source_size_limit", int)
+    if upper_source_size_limit < lower_source_size_limit:
+        raise ValueError(
+            f"upper_source_size_limit={upper_source_size_limit} while "
+            f"lower_source_size_limit={lower_source_size_limit}")
 
     random: Final[Generator] = default_rng()
     source: Final[List[FitnessRecord]] = []
@@ -82,12 +94,14 @@ def validate_selection(selection: Selection,
     for source_size in __join([range(1, 10), [16, 32, 50, 101],
                                random.choice(100, 4, False),
                                [lower_source_size_limit]],
-                              lower_limit=max(1, lower_source_size_limit)):
+                              lower_limit=max(1, lower_source_size_limit),
+                              upper_limit=upper_source_size_limit):
         for dest_size in __join([
             [1, 2, 3, source_size, 2 * source_size],
             random.choice(min(6, 4 * source_size),
                           min(6, 4 * source_size), False)],
-                upper_limit=source_size if without_replacement else inf):
+                upper_limit=source_size if without_replacement else inf,
+                lower_limit=1):
 
             source.clear()
             copy.clear()
@@ -116,7 +130,7 @@ def validate_selection(selection: Selection,
                 copy[r2.tag] = [r2, 0, False]
 
             # perform the selection
-            selection.select(source, dest, dest_size, random)
+            selection.select(source, dest.append, dest_size, random)
 
             if len(dest) != dest_size:
                 raise ValueError(
