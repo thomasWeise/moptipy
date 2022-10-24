@@ -14,7 +14,7 @@ from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.fitnesses.direct import Direct
 from moptipy.algorithms.so.fitnesses.rank import Rank
-from moptipy.algorithms.so.full_ea import FullEA
+from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.algorithms.so.greedy_2plus1_ea_mod import GreedyTwoPlusOneEAmod
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import \
@@ -130,7 +130,7 @@ DEFAULT_ALGORITHMS.append(
 for mu_lambda in [4, 32]:
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: FullEA(
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr),
             ml, ml, 0.05,
@@ -138,7 +138,7 @@ for mu_lambda in [4, 32]:
     )
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: FullEA(
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr),
             ml, ml, 0.05,
@@ -146,7 +146,7 @@ for mu_lambda in [4, 32]:
     )
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: FullEA(
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr),
             ml, ml, 0.05,
@@ -154,7 +154,7 @@ for mu_lambda in [4, 32]:
     )
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: FullEA(
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr),
             ml, ml, 0.05,
@@ -163,21 +163,21 @@ for mu_lambda in [4, 32]:
     )
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: FullEA(
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr),
             ml, ml, 0.05,
             fitness=Direct(),
-            survival=FitnessProportionateSUS(1 / (ml ** 2))))
+            survival=FitnessProportionateSUS(0.01)))
     )
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: FullEA(
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr),
             ml, ml, 0.05,
             fitness=Rank(),
-            survival=FitnessProportionateSUS(1 / (ml ** 2))))
+            survival=FitnessProportionateSUS(0.01)))
     )
 
 

@@ -9,7 +9,7 @@ from numpy.random import default_rng
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
 from moptipy.algorithms.so.fitnesses.ffa import FFA
-from moptipy.algorithms.so.full_ea import FullEA
+from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.algorithms.so.record import Record
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.operators import Op0, Op1, Op2
@@ -29,7 +29,7 @@ def __test_opoea_equals_rls():
     verify_algorithms_equivalent([
         lambda bs, f: RLS(op0, op1),
         lambda bs, f: EA(op0, op1, op2, 1, 1, 0.0),
-        lambda bs, f: FullEA(op0, op1, op2, 1, 1, 0.0),
+        lambda bs, f: GeneralEA(op0, op1, op2, 1, 1, 0.0),
     ])
 
 
@@ -128,7 +128,7 @@ def test_fitness_ea_equals_ea():
 
         verify_algorithms_equivalent([
             lambda bs, f: __EAC(op0, op1, op2, mu, lambda_, br),
-            lambda bs, f: FullEA(op0, op1, op2, mu, lambda_, br),
+            lambda bs, f: GeneralEA(op0, op1, op2, mu, lambda_, br),
         ])
 
 
@@ -139,5 +139,5 @@ def test_fitness_ea_with_ffa_equals_fea():
 
     verify_algorithms_equivalent([
         lambda bs, f: FEA1plus1(op0, op1),
-        lambda bs, f: FullEA(op0, op1, fitness=FFA(f)),
+        lambda bs, f: GeneralEA(op0, op1, fitness=FFA(f)),
     ])

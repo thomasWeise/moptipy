@@ -1,1 +1,1 @@
-"""This package provides a set of re-useable algorithm modules."""
+"""This package provides a set of reuseable algorithm modules."""

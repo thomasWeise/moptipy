@@ -1,11 +1,34 @@
 """
-A fully configurable (mu+lambda) Evolutionary Algorithm.
+A fully configurable, general (mu+lambda) Evolutionary Algorithm.
+
+This evolutionary algorithm begins by sampling
+:attr:`~moptipy.algorithms.so.ea.EA.mu`
+solutions using the nullary search operation
+:attr:`~moptipy.api.algorithm.Algorithm0.op0`. In each iteration, it then uses
+:attr:`~moptipy.algorithms.so.ea.EA.mu` existing solutions as input for
+the search operations, where, for each solution to be sampled, the binary
+operation :attr:`~moptipy.api.algorithm.Algorithm2.op2` is used with
+probability :attr:`~moptipy.algorithms.so.ea.EA.br` and (otherwise), the unary
+operator :attr:`~moptipy.api.algorithm.Algorithm1` is used. The inputs of both
+operators are chosen from the :attr:`~moptipy.algorithms.so.ea.EA.mu`
+solutions using :attr:`~moptipy.algorithms.so.general_ea.GeneralEA.mating`
+selection. After :attr:`~moptipy.algorithms.so.ea.EA.lambda_` new solutions
+have been created this way (and have been evaluated as well), a fitness
+assignment process (:class:`~moptipy.algorithms.so.fitness.Fitness`) assigns
+fitness values to them based on their objective values
+(:attr:`~moptipy.algorithms.so.record.Record.f`), maybe also using the index
+of the iteration (:attr:`~moptipy.algorithms.so.record.Record.it`) in which
+they were created. The survival selection
+:attr:`~moptipy.algorithms.so.general_ea.GeneralEA.survival` then chooses,
+from the joint set of `mu+lambda` solutions, the `mu` solutions for the
+next iteration. Both mating and survival selection are instances of class
+:class:`~moptipy.algorithms.modules.selection.Selection`.
 
 This algorithm is equivalent to :class:`~moptipy.algorithms.so.ea.EA`, but
 allows for using a customized fitness assignment step
 (:class:`~moptipy.algorithms.so.fitness.Fitness`) as well as customizable
-survival and mating selection
-(:class:`~moptipy.algorithms.modules.selection.Selection`).
+survival and :attr:`~moptipy.algorithms.so.general_ea.GeneralEA.mating`
+selection (:class:`~moptipy.algorithms.modules.selection.Selection`).
 
 1. Thomas Bäck, David B. Fogel, and Zbigniew Michalewicz, eds., *Handbook of
    Evolutionary Computation.* 1997. Computational Intelligence Library.
@@ -56,7 +79,7 @@ class _Record(FRecord):
         self._selected: bool = selected
 
 
-class FullEA(EA):
+class GeneralEA(EA):
     """The fully customizable (mu+lambda) EA."""
 
     def solve(self, process: Process) -> None:
@@ -174,7 +197,7 @@ class FullEA(EA):
                  fitness: Optional[Fitness] = None,
                  survival: Optional[Selection] = None,
                  mating: Optional[Selection] = None,
-                 name: str = "fullea") -> None:
+                 name: str = "generalEa") -> None:
         """
         Create the customizable Evolutionary Algorithm (EA).
 
