@@ -44,6 +44,8 @@ class Algorithm0(Algorithm):
             raise type_error(name, "name", str)
         if len(name) <= 0:
             raise ValueError(f"Algorithm name cannot be '{name}'.")
+        #: the name of this optimization algorithm, which is also the return
+        #: value of `__str__()`
         self.name: Final[str] = name
 
     def __str__(self) -> str:
