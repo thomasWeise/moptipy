@@ -79,25 +79,21 @@ for scale in range(7, 21):  # add the hill climbers with restarts
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
-            Op0Shuffle(pwr), Op1Swap2(), 2 ** i))  # hill climb. with restarts
-    )
+            Op0Shuffle(pwr), Op1Swap2(), 2 ** i)))  # hill clim. with restarts
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
-            Op0Shuffle(pwr), Op1SwapN(), 2 ** i))  # hill climb. with restarts
-    )
-for muexp in range(0, 14):
-    mu: int = 2 ** muexp
-    for lambda_ in sorted({1, max(1, muexp), round(mu ** 0.5), mu, mu + mu,
+            Op0Shuffle(pwr), Op1SwapN(), 2 ** i)))  # hill clim. with restarts
+for log2_mu in range(0, 14):
+    mu: int = 2 ** log2_mu
+    for lambda_ in sorted({1, max(1, log2_mu), round(mu ** 0.5), mu, mu + mu,
                            4 * mu, 8 * mu}):
         if lambda_ > 65536:
             continue
         DEFAULT_ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
-                Op0Shuffle(pwr), Op1Swap2(), None,
-                mm, ll, 0.0))  # EA without crossover
-        )
+                Op0Shuffle(pwr), Op1Swap2(), None, mm, ll, 0.0)))
 
         if 1 < mu < 32:
             brr = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.05, 0.25] \
@@ -107,78 +103,83 @@ for muexp in range(0, 14):
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
                         Op0Shuffle(pwr), Op1Swap2(),
-                        Op2GeneralizedAlternatingPosition(pwr),
-                        mm, ll, bb))  # EA with crossover 2
-                )
-
+                        Op2GeneralizedAlternatingPosition(pwr), mm, ll, bb)))
                 DEFAULT_ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
                         Op0Shuffle(pwr), Op1Swap2(),
-                        Op2GeneralizedAlternatingPosition(pwr),
-                        mm, ll, bb))  # EA with crossover 2
-                )
+                        Op2GeneralizedAlternatingPosition(pwr), mm, ll, bb)))
 
 DEFAULT_ALGORITHMS.append(
     lambda inst, pwr: GreedyTwoPlusOneEAmod(
-        Op0Shuffle(pwr), Op1Swap2(),
-        Op2GeneralizedAlternatingPosition(pwr)))
+        Op0Shuffle(pwr), Op1Swap2(), Op2GeneralizedAlternatingPosition(pwr)))
 DEFAULT_ALGORITHMS.append(
     lambda inst, pwr: GreedyTwoPlusOneEAmod(
-        Op0Shuffle(pwr), Op1SwapN(),
-        Op2GeneralizedAlternatingPosition(pwr)))
-for mu_lambda in [4, 32]:
+        Op0Shuffle(pwr), Op1SwapN(), Op2GeneralizedAlternatingPosition(pwr)))
+
+for mu_lambda in [3, 4, 32]:
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr),
-            ml, ml, 0.05,
-            survival=Tournament(2)))
-    )
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            survival=Tournament(2))))
+    if mu_lambda > 3:
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda: GeneralEA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+                survival=Tournament(4))))
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda: GeneralEA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+                mating=Tournament(3, replacement=False))))
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda: GeneralEA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+                mating=Tournament(3, replacement=True))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr),
-            ml, ml, 0.05,
-            survival=Tournament(4)))
-    )
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            mating=Tournament(2, replacement=False))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr),
-            ml, ml, 0.05,
-            mating=Tournament(2)))
-    )
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            mating=Tournament(2, replacement=True))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr),
-            ml, ml, 0.05,
-            fitness=Direct(),
-            survival=FitnessProportionateSUS()))
-    )
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            fitness=Direct(), survival=FitnessProportionateSUS())))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr),
-            ml, ml, 0.05,
-            fitness=Direct(),
-            survival=FitnessProportionateSUS(0.01)))
-    )
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            fitness=Direct(), survival=FitnessProportionateSUS(),
+            mating=Tournament(2))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr),
-            ml, ml, 0.05,
-            fitness=Rank(),
-            survival=FitnessProportionateSUS(0.01)))
-    )
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            fitness=Direct(), survival=FitnessProportionateSUS(0.01))))
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
+            fitness=Rank(), survival=FitnessProportionateSUS(0.01))))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

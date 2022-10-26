@@ -721,7 +721,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 We develop several data formats to store and evaluate the results of computational experiments with our `moptipy` software.
 Here you can find their basic definitions.
 On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with our software.
-For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.zip) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
+For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.tar.xz) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
 The files and folders in this archive will then exactly comply to the structure discussed here.
 
 ### 5.1. Log Files
@@ -1687,7 +1687,7 @@ The ERT plots are implemented in the module [moptipy.evaluation.plot_ert](https:
 
 ### 6.6. ERT-ECDF Plots
 
-In the file [examples/ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecd_plot.html), you can find some code running a small experiment and creating ERT-ECDF plots.
+In the file [examples/ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot.html), you can find some code running a small experiment and creating ERT-ECDF plots.
 These plots combine the concepts of [ERTs](#65-expected-running-time-ert-plots) with [ECDFs](#64-ecdf-plots):
 Their vertical axis shows the fraction of problem instances that can be expected to be solved by an algorithm.
 Their horizontal axis shows the runtime consumed to do so, which is equivalent to the ERT of the algorithm to reach the global optimum.
@@ -1889,7 +1889,7 @@ We also try to extensively test our own code, see the [coverage report](https://
 3. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
    It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
 4. A nice discussion of experimentation with (numerical) optimization methods is:
-   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). [Research Report] RR-7215, INRIA. 2010. inria-00462481
+   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
 
 ## 10. License
