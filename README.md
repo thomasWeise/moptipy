@@ -40,7 +40,7 @@
 
 ## 1. Introduction
 
-This will be a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10.
+This will be a library with implementations of metaheuristic optimization methods in Python&nbsp;3.9.
 The framework, [algorithm implementations](#41-implemented-algorithms), and the library design is intended to accompany the university course book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently working on.
 They are all structured from an educational and learning perspective, but still with performance, ease-of-use, and generality in mind.
 
