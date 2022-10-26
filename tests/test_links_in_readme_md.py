@@ -4,7 +4,9 @@ from time import sleep
 from typing import Final, Set, List
 
 # noinspection PyPackageRequirements
-import requests
+import urllib3
+# noinspection PyPackageRequirements
+import certifi
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
@@ -24,12 +26,15 @@ def __ve(msg: str, text: str, idx: int) -> ValueError:
     return ValueError(f"{msg}: '...{piece}...'")
 
 
-def __check(url: str, valid_urls: Set[str]) -> None:
+def __check(url: str, valid_urls: Set[str],
+            http: urllib3.PoolManager = urllib3.PoolManager(
+                cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())) -> None:
     """
     Check if a url exists.
 
     :param url: str
     :param valid_urls: the set of valid urls
+    :param http: the pool manager
     """
     if (url != url.strip()) or (len(url) < 3):
         raise ValueError(f"invalid url '{url}'")
@@ -49,9 +54,8 @@ def __check(url: str, valid_urls: Set[str]) -> None:
 
     try:
         sleep(1)
-        code = requests.head(
-            check_url, verify=False, timeout=35, allow_redirects=True,
-            params={'cert_reqs': 'CERT_REQUIRED'}).status_code
+        code = http.request("HEAD", check_url, timeout=35,
+                            redirect=True, retries=5).status
     except BaseException as be:
         # sometimes, I cannot reach github from here...
         if url.startswith("http://github.com") \
