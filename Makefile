@@ -52,11 +52,11 @@ test: init
 	echo "The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "PATH is now '${PATH}'." &&\
-	echo "Running py.test tests." && \
-	coverage run --include="moptipy*" -m py.test --strict-config tests -o faulthandler_timeout=360 && \
-	echo "Running py.test with doctests." && \
-	coverage run --include="moptipy*" -a -m py.test --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
-	echo "Finished running py.test tests."
+	echo "Running pytest tests." && \
+	coverage run --include="moptipy*" -m pytest --strict-config tests -o faulthandler_timeout=360 && \
+	echo "Running pytest with doctests." && \
+	coverage run --include="moptipy*" -a -m pytest --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
+	echo "Finished running pytest tests."
 
 # Perform static code analysis.
 static_analysis: init
