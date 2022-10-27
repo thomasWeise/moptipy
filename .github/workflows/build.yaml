@@ -10,10 +10,10 @@ jobs:
         python-version: ["3.9"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 # set up python
     - name: set up python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 # execute the actual make build process
@@ -36,7 +36,7 @@ jobs:
         touch /home/runner/work/moptipy/moptipy/docs/build/.nojekyll
 # deploy to github pages
     - name: deploy documentation
-      uses: JamesIves/github-pages-deploy-action@4.1.4
+      uses: JamesIves/github-pages-deploy-action@4.4.1
       with:
         branch: gh-pages
         folder: /home/runner/work/moptipy/moptipy/docs/build/
