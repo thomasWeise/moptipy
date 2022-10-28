@@ -176,6 +176,7 @@ from moptipy.algorithms.modules.selection import Selection, FitnessRecord
 from moptipy.utils.nputils import DEFAULT_FLOAT
 from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
+from moptipy.utils.logger import KeyValueLogSection
 
 
 @numba.njit(nogil=True, cache=True)
@@ -321,3 +322,12 @@ class FitnessProportionateSUS(Selection):
         """
         return "fpsus" if self.min_prob <= 0.0 \
             else f"fpsus{num_to_str_for_name(self.min_prob)}"
+
+    def log_parameters_to(self, logger: KeyValueLogSection):
+        """
+        Log the parameters of the algorithm to a logger.
+
+        :param logger: the logger for the parameters
+        """
+        super().log_parameters_to(logger)
+        logger.key_value("minprob", self.min_prob, also_hex=True)
