@@ -32,7 +32,9 @@
   - [End Results Tables](#68-end-results-table)
   - [Tables of Tests Comparing End Results](#69-testing-end-results-for-statistically-significant-differences-table)
 - [Examples](#7-examples)
-- [Unit Tests](#8-unit-tests)
+- [More Features](#8-more-features)
+  - [Unit Tests](#81-unit-tests)
+  - [Reproducibility](#82-reproducibility)
 - [Uselful Links and References](#9-useful-links-and-references)
 - [License](#10-license)
 - [Contact](#11-contact)
@@ -48,7 +50,7 @@ Metaheuristic optimization algorithms are methods for solving hard problems.
 Here we provide an API that can be used to implement them and to experiment with them.
 
 A metaheuristic algorithm can be a black-box method, which can solve problems without deeper knowledge about their nature.
-Such a black-box algorithm only requires methods to create and modifiy points in the search space and to evaluate their quality.
+Such a black-box algorithm only requires methods to create and `modifiy` points in the search space and to evaluate their quality.
 With these operations, it will try to step-by-step discover better points.
 Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
 White and gray-box algorithms, on the other hand, are tailored to specified problems.
@@ -57,7 +59,7 @@ They make use of the problem structure and can implement more efficient search o
 
 Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
-What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a *reproducable* fashion.
+What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
 The `moptipy` API now supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 
@@ -750,7 +752,7 @@ The philosophy of our log files are:
    7. The [system configuration](#5124-the-section-sys_info), such as the CPU nd operating system and Python version and [library versions](#5124-the-section-sys_info).
       We need to this to understand and reproduce time-dependent measures or to understand situations where changes in the underlying system configuration may have led to different results.
    8. [Errors](#5126-the-error_-sections), if any occurred.
-      We can guard against errors using unit tests, but it may still happen that a run of the optimization algorithm crashed.
+      We can guard against errors using [unit tests](#81-unit-tests), but it may still happen that a run of the optimization algorithm crashed.
       Our system tries to catch as detailed error information as possible and store it in the log files in order to allow us to figure out what went wrong.
    9. The [progress](#5121-the-section-progress) that the algorithm made over time, if capturing this information [was demanded](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements).
    10. The [contents of the archive](#5128-the-archive_j_x-and-archive_j_y-sections) of non-dominated solutions, if we perform [multi-objective optimization](#514-example-log-file-for-multi-objective-optimization).
@@ -1872,12 +1874,34 @@ Here we list the set of examples that are provided in the [moptipy](https://gith
 - [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
 
 
-## 8. Unit Tests
+## 8. More Features
+
+### 8.1. Unit Tests
 
 We provide a set of tools for testing implemented algorithms, spaces, and operators in the package [moptipy.tests](https://thomasweise.github.io/moptipy/moptipy.tests.html).
 Here, you can find functions where you pass in instances of your implemented components and they are checked for compliance with the [moptipy API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 
 We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/tc/index.html).
+
+
+### 8.2. Reproducibility
+
+Experiments with `moptipy` are reproducible and repeatable if the results are recorded in [log files](#51-log-files).
+As stated in the [log files section](#51-log-files), our log files should store all the information relevant to a single run of an optimization algorithm.
+First, the log files can store the complete [algorithm setups and objective function information](#5123-the-section-setup) as well as the involved fully-qualified class names.
+They also store the [system configuration](#5124-the-section-sys_info), which includes the versions of the libraries used.
+This should allow to re-create algorithm setups and system configuration.
+
+Each run of the optimization algorithms on every problem instance is provided with a seeded [random number generator](https://numpy.org/doc/stable/reference/random/generator.html) via [`process.get_random()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_random).
+This must be the *only* source of randomness used in the algorithms.
+In other words, every algorithm must be deterministic and make the same decisions on the same problem instance with the same sequence of random numbers provided by this generator.
+The random seed using the generator as well as the [`numpy`](https://numpy.org/) classes of the generator and the `numpy` version are all stored in the [log files](#51-log-files).
+The random seed for a new run can be set via the [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) builder object.
+Therefore, if a given algorithm configuration can be re-created on a known instance, it can be started with the same random seed as a known run.
+Since the version information and classes of all involved libraries in the random number generation are stored as well, the same random number sequences can be reproduced.
+
+Finally, the solutions found by the algorithms are also stored in the log files.
+Therefore, it is also possible to re-evaluate and verify them as well.
 
 
 ## 9. Useful Links and References
