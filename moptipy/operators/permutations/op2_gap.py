@@ -45,8 +45,8 @@ from moptipy.utils.nputils import DEFAULT_BOOL
 from moptipy.utils.types import type_error
 
 
-# start book
 @numba.njit(nogil=True, cache=True)
+# start book
 def _op2_gap(r: np.ndarray, dest: np.ndarray,
              x0: np.ndarray, x1: np.ndarray,
              x0_done: np.ndarray, x1_done: np.ndarray) -> None:
@@ -84,7 +84,7 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
             x0i = x0i + 1  # value in x0
 
         if desti >= length_minus_1:
-            dest[desti] = x0[x0i]  # store the final missing value
+            dest[desti] = x0[x0i]  # = x1[x1i]: the final missing value
             return  # we are finished, so we return
 
         for x1j in range(x1i, length):  # mark value as done in x1
@@ -110,7 +110,7 @@ class Op2GeneralizedAlternatingPosition(Op2):
         :param x0: the first existing point in the search space
         :param x1: the second existing point in the search space
         """
-        _op2_gap(random.integers(low=2, high=None, size=len(dest)),
+        _op2_gap(random.integers(low=2, high=None, size=len(dest) - 1),
                  dest, x0, x1, self.__x0_done, self.__x1_done)
     # end book
 
