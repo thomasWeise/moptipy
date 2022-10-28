@@ -13,9 +13,7 @@ from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.fitnesses.direct import Direct
-from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
-from moptipy.algorithms.so.greedy_2plus1_ea_mod import GreedyTwoPlusOneEAmod
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import \
     HillClimberWithRestarts
@@ -95,27 +93,13 @@ for log2_mu in range(0, 14):
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
                 Op0Shuffle(pwr), Op1Swap2(), None, mm, ll, 0.0)))
 
-        if 1 < mu < 32:
-            brr = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.05, 0.25] \
-                if (mu == 2) and (lambda_ <= 3) else [0.01, 0.05, 0.25]
-            for br in brr:
-                DEFAULT_ALGORITHMS.append(cast(
-                    Callable[[Instance, Permutations], Algorithm],
-                    lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2(),
-                        Op2GeneralizedAlternatingPosition(pwr), mm, ll, bb)))
-                DEFAULT_ALGORITHMS.append(cast(
-                    Callable[[Instance, Permutations], Algorithm],
-                    lambda inst, pwr, mm=mu, ll=lambda_, bb=br: EA(
-                        Op0Shuffle(pwr), Op1Swap2(),
-                        Op2GeneralizedAlternatingPosition(pwr), mm, ll, bb)))
-
-DEFAULT_ALGORITHMS.append(
-    lambda inst, pwr: GreedyTwoPlusOneEAmod(
-        Op0Shuffle(pwr), Op1Swap2(), Op2GeneralizedAlternatingPosition(pwr)))
-DEFAULT_ALGORITHMS.append(
-    lambda inst, pwr: GreedyTwoPlusOneEAmod(
-        Op0Shuffle(pwr), Op1SwapN(), Op2GeneralizedAlternatingPosition(pwr)))
+for mu_lambda in [2, 4, 32]:
+    for br_exp in range(1, 11):
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda, br=(2 ** -br_exp): EA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
 
 for mu_lambda in [3, 4, 32]:
     DEFAULT_ALGORITHMS.append(cast(
@@ -168,18 +152,6 @@ for mu_lambda in [3, 4, 32]:
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
             fitness=Direct(), survival=FitnessProportionateSUS(),
             mating=Tournament(2))))
-    DEFAULT_ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
-            fitness=Direct(), survival=FitnessProportionateSUS(0.01))))
-    DEFAULT_ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 0.05,
-            fitness=Rank(), survival=FitnessProportionateSUS(0.01))))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
