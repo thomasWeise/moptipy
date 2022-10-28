@@ -53,7 +53,7 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
     """
     Apply a sequence mix from `x0` and `x1` to `dest`.
 
-    :param r: the random numbers
+    :param r: the random numbers, of length `n - 1` (!!)
     :param dest: the array to receive the result
     :param x0: the first existing point in the search space
     :param x1: the second existing point in the search space
@@ -64,8 +64,7 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
     """
     x0_done.fill(False)  # all values in x0 are available
     x1_done.fill(False)  # all values in x1 are available
-    length: Final[int] = len(x0_done)
-    length_minus_1: Final[int] = length - 1
+    length: Final[int] = len(x0)
 
     desti: int = 0  # writing to dest starts at index 0
     x0i: int = 0  # first valid value in x0 is at index 0
@@ -83,16 +82,14 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
         while x0_done[x0i]:  # now we find the next not-yet-done
             x0i = x0i + 1  # value in x0
 
-        if desti >= length_minus_1:
-            dest[desti] = x0[x0i]  # = x1[x1i]: the final missing value
-            return  # we are finished, so we return
-
         for x1j in range(x1i, length):  # mark value as done in x1
             if (x1[x1j] == value) and (not x1_done[x1j]):  # find
                 x1_done[x1j] = True  # value is found and not done
                 break  # so we mark it as done and break the loop
         while x1_done[x1i]:  # now we find the next not-yet-done
             x1i = x1i + 1  # value in x1
+
+    dest[desti] = x0[x0i]  # = x1[x1i]: the final missing value
 # end book
 
 
