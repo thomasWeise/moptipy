@@ -13,19 +13,22 @@ CWD := $(shell pwd)
 # Get the moptipy version.
 VERSION := $(shell (less '$(CWD)/moptipy/version.py' | sed -n 's/__version__.*=\s*"\(.*\)"/\1/p'))
 
+# Get the current date and time
+NOW := $(shell date +'%0Y-%0m-%0d %0R:%0S')
+
 # Print the status information.
 status:
-	echo "working directory: '$(CWD)'." &&\
-	echo "moptipy version to build: '$(VERSION)'." &&\
-	echo "python package binaries: '$(PYTHON_PACKAGE_BINARIES)'." &&\
-	echo "shell: '$(SHELL)'"
+	echo "$(NOW): working directory: '$(CWD)'." &&\
+	echo "$(NOW): moptipy version to build: '$(VERSION)'." &&\
+	echo "$(NOW): python package binaries: '$(PYTHON_PACKAGE_BINARIES)'." &&\
+	echo "$(NOW): shell: '$(SHELL)'"
 
 # Cleaning means that the package is uninstalled if it is installed.
 # Also, all build artifacts are deleted (as they will be later re-created).
 clean: status
-	echo "Cleaning up by first uninstalling moptipy (if installed) and then deleting all auto-generated stuff." && \
+	echo "$(NOW): Cleaning up by first uninstalling moptipy (if installed) and then deleting all auto-generated stuff." && \
 	pip uninstall -y moptipy || true && \
-	echo "Moptipy is no longer installed; now deleting auto-generated stuff." && \
+	echo "$(NOW): Moptipy is no longer installed; now deleting auto-generated stuff." && \
 	rm -rf moptipy.egg-info && \
 	rm -rf .pytest_cache && \
 	rm -rf build && \
@@ -35,105 +38,105 @@ clean: status
 	mv docs/source/index.rst docs/source/index.x && \
 	rm -rf docs/source/*.rst && \
 	mv docs/source/index.x docs/source/index.rst && \
-	echo "Done cleaning up, moptipy is uninstalled and auto-generated stuff is deleted."
+	echo "$(NOW): Done cleaning up, moptipy is uninstalled and auto-generated stuff is deleted."
 
 # Initialization: Install all requirements, both for executing the library and for the tests.
 init: clean
-	echo "Initialization: first install required packages from requirements.txt." && \
+	echo "$(NOW): Initialization: first install required packages from requirements.txt." && \
 	pip install --no-input --timeout 360 --retries 100 -r requirements.txt && ## nosem \
-	echo "Finished installing required packages from requirements.txt, now installing packages required for development from requirements-dev.txt." && \
+	echo "$(NOW): Finished installing required packages from requirements.txt, now installing packages required for development from requirements-dev.txt." && \
 	pip install --no-input --timeout 360 --retries 100 -r requirements-dev.txt && ## nosem \
-	echo "Finished installing requirements from requirements-dev.txt."
+	echo "$(NOW): Finished installing requirements from requirements-dev.txt."
 
 # Run the unit tests.
 test: init
-	echo "Erasing old coverage data." &&\
+	echo "$(NOW): Erasing old coverage data." &&\
 	coverage erase &&\
-	echo "The original value of PATH is '${PATH}'." &&\
+	echo "$(NOW): The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
-	echo "PATH is now '${PATH}'." &&\
-	echo "Running pytest tests." && \
+	echo "$(NOW): PATH is now '${PATH}'." &&\
+	echo "$(NOW): Running pytest tests." && \
 	coverage run --include="moptipy*" -m pytest --strict-config tests -o faulthandler_timeout=360 && \
-	echo "Running pytest with doctests." && \
+	echo "$(NOW): Running pytest with doctests." && \
 	coverage run --include="moptipy*" -a -m pytest --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
-	echo "Finished running pytest tests."
+	echo "$(NOW): Finished running pytest tests."
 
 # Perform static code analysis.
 static_analysis: init
-	echo "The original value of PATH is '${PATH}'." &&\
+	echo "$(NOW): The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
-	echo "PATH is now '${PATH}'." &&\
-	echo "Running static code analysis, starting with flake8." && \
+	echo "$(NOW): PATH is now '${PATH}'." &&\
+	echo "$(NOW): Running static code analysis, starting with flake8." && \
 	flake8 . --ignore=W503,TC003,TC101 && \
-	echo "Finished running flake8, now applying pylint to package." &&\
+	echo "$(NOW): Finished running flake8, now applying pylint to package." &&\
 	pylint moptipy --disable=C0103,C0302,C0325,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
-	echo "Done with pylint, now trying mypy." &&\
+	echo "$(NOW): Done with pylint, now trying mypy." &&\
 	mypy moptipy --no-strict-optional &&\
-	echo "Done with mypy, now doing pyflakes." &&\
+	echo "$(NOW): Done with mypy, now doing pyflakes." &&\
 	python3 -m pyflakes . &&\
-	echo "Done with pyflakes, now applying bandit to find security issues." &&\
+	echo "$(NOW): Done with pyflakes, now applying bandit to find security issues." &&\
 	bandit -r moptipy -s B311 &&\
 	bandit -r examples -s B311 &&\
-	echo "Done with bandit, now using pyroma to check setup.py." &&\
+	echo "$(NOW): Done with bandit, now using pyroma to check setup.py." &&\
 	pyroma . &&\
-	echo "Done with pyroma, now applying semgrep." &&\
+	echo "$(NOW): Done with pyroma, now applying semgrep." &&\
 	(semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto || semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto --verbose) &&\
-	echo "Done with semgrep, now applying pydocstyle." &&\
+	echo "$(NOW): Done with semgrep, now applying pydocstyle." &&\
 	pydocstyle --convention=pep257 &&\
-	echo "Done with pydocstype, now applying tryceratops." &&\
+	echo "$(NOW): Done with pydocstype, now applying tryceratops." &&\
 	tryceratops -i TC003 -i TC101 moptipy &&\
 	tryceratops -i TC003 -i TC101 examples &&\
 	tryceratops -i TC003 -i TC101 tests &&\
-	echo "Done with tryceratops, now applying unimport." &&\
+	echo "$(NOW): Done with tryceratops, now applying unimport." &&\
 	unimport moptipy &&\
 	unimport examples &&\
 	unimport tests &&\
-	echo "Done with unimport, now applying vulture." &&\
+	echo "$(NOW): Done with unimport, now applying vulture." &&\
 	vulture . --min-confidence 61 &&\
-	echo "Done with vulture, now applying dodgy." &&\
+	echo "$(NOW): Done with vulture, now applying dodgy." &&\
 	dodgy &&\
-	echo "Done: All static checks passed."
+	echo "$(NOW): Done: All static checks passed."
 
 # We use sphinx to generate the documentation.
 # This automatically checks the docstrings and such and such.
 create_documentation: static_analysis test
-	echo "The original value of PATH is '${PATH}'." &&\
+	echo "$(NOW): The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
-	echo "PATH is now '${PATH}'." &&\
-	echo "First creating the .rst files from the source code." && \
+	echo "$(NOW): PATH is now '${PATH}'." &&\
+	echo "$(NOW): First creating the .rst files from the source code." && \
 	sphinx-apidoc -M --ext-autodoc -o docs/source ./moptipy && \
-	echo "Now creating the documentation build folder and building the documentation." && \
+	echo "$(NOW): Now creating the documentation build folder and building the documentation." && \
 	sphinx-build -W -a -E -b html docs/source docs/build && \
-	echo "Done creating HTML documentation, cleaning up documentation temp files." && \
+	echo "$(NOW): Done creating HTML documentation, cleaning up documentation temp files." && \
 	mv docs/source/index.rst docs/source/index.tmp && \
 	rm -rf docs/source/*.rst && \
 	rm -rf docs/source/*.md && \
 	mv docs/source/index.tmp docs/source/index.rst && \
-	echo "Now we pygmentize all the examples in 'examples' to 'build/examples'." &&\
+	echo "$(NOW): Now we pygmentize all the examples in 'examples' to 'build/examples'." &&\
 	mkdir -p docs/build/examples &&\
 	for f in examples/*.py; do \
 		if [ -z "$$f" ]; then \
-			echo "Empty module '$$f'?"; \
+			echo "$(NOW): Empty module '$$f'?"; \
 		else \
-			echo "Now pygmentizing example '$$f'." &&\
+			echo "$(NOW): Now pygmentizing example '$$f'." &&\
 			{ pygmentize -f html -l python -O full -O style=default -o docs/build/"$${f%.py}.html" "$$f" || exit 1; };\
 		fi \
 	done &&\
-	echo "Finished pygmentizing all examples, now copying LICENSE." &&\
+	echo "$(NOW): Finished pygmentizing all examples, now copying LICENSE." &&\
 	pygmentize -f html -l text -O full -O style=default -o docs/build/LICENSE.html LICENSE &&\
-	echo "Finished copying LICENSE, now creating coverage report." &&\
+	echo "$(NOW): Finished copying LICENSE, now creating coverage report." &&\
 	mkdir -p docs/build/tc &&\
 	coverage html -d docs/build/tc --include="moptipy*" &&\
-	echo "Now creating coverage badge." &&\
+	echo "$(NOW): Now creating coverage badge." &&\
 	coverage-badge -o docs/build/tc/badge.svg &&\
 	if [[ -f docs/build/tc/badge.svg ]];then \
-		echo "docs/build/tc/badge.svg exists."; \
+		echo "$(NOW): docs/build/tc/badge.svg exists."; \
 	else \
-		echo "docs/build/tc/badge.svg does not exist!"; exit 1; \
+		echo "$(NOW): docs/build/tc/badge.svg does not exist!"; exit 1; \
 	fi &&\
-	echo "Deleting .gitignore file." &&\
+	echo "$(NOW): Deleting .gitignore file." &&\
 	rm -f docs/build/tc/.gitignore &&\
-	echo "Done creating coverage data. Now creating .nojekyll files." &&\
+	echo "$(NOW): Done creating coverage data. Now creating .nojekyll files." &&\
 	touch "docs/build/.nojekyll" &&\
 	touch "docs/build/.doctrees/.nojekyll" &&\
 	touch "docs/build/_modules/.nojekyll" &&\
@@ -141,65 +144,65 @@ create_documentation: static_analysis test
 	touch "docs/build/_static/.nojekyll" &&\
 	touch "docs/build/tc/.nojekyll" &&\
 	touch "docs/build/examples/.nojekyll" &&\
-	echo "Done creating the documentation."
+	echo "$(NOW): Done creating the documentation."
 
 # Create different distribution formats, also to check if there is any error.
 create_distribution: static_analysis test create_documentation
-	echo "Now building source distribution file." &&\
+	echo "$(NOW): Now building source distribution file." &&\
 	python3 setup.py check &&\
 	python3 -m build &&\
-	echo "Done with the build process, now checking result." &&\
+	echo "$(NOW): Done with the build process, now checking result." &&\
 	python3 -m twine check dist/* &&\
-	echo "Now testing the tar.gz." &&\
+	echo "$(NOW): Now testing the tar.gz." &&\
 	export tempDir=`mktemp -d` &&\
-	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
+	echo "$(NOW): Created temp directory '$$tempDir'. Creating virtual environment." &&\
 	python3 -m venv "$$tempDir" &&\
-	echo "Created virtual environment, now activating it." &&\
+	echo "$(NOW): Created virtual environment, now activating it." &&\
 	source "$$tempDir/bin/activate" &&\
-	echo "Now installing tar.gz." &&\
+	echo "$(NOW): Now installing tar.gz." &&\
 	python3 -m pip --no-input --timeout 360 --retries 100 --require-virtualenv install "$(CWD)/dist/moptipy-$(VERSION).tar.gz" && ## nosem \
-	echo "Installing tar.gz has worked. We now create the list of packages in this environment via pip freeze." &&\
+	echo "$(NOW): Installing tar.gz has worked. We now create the list of packages in this environment via pip freeze." &&\
 	pip freeze > "$(CWD)/dist/moptipy-$(VERSION)-requirements_frozen.txt" &&\
-	echo "Now fixing moptipy line in requirements file." &&\
+	echo "$(NOW): Now fixing moptipy line in requirements file." &&\
 	sed -i "s/^moptipy.*/moptipy==$(VERSION)/" "$(CWD)/dist/moptipy-$(VERSION)-requirements_frozen.txt" &&\
-	echo "Now we deactivate the environment." &&\
+	echo "$(NOW): Now we deactivate the environment." &&\
 	deactivate &&\
 	rm -rf "$$tempDir" &&\
-	echo "Now testing the wheel." &&\
+	echo "$(NOW): Now testing the wheel." &&\
 	export tempDir=`mktemp -d` &&\
-	echo "Created temp directory '$$tempDir'. Creating virtual environment." &&\
+	echo "$(NOW): Created temp directory '$$tempDir'. Creating virtual environment." &&\
 	python3 -m venv "$$tempDir" &&\
-	echo "Created virtual environment, now activating it." &&\
+	echo "$(NOW): Created virtual environment, now activating it." &&\
 	source "$$tempDir/bin/activate" &&\
-	echo "Now installing wheel." &&\
+	echo "$(NOW): Now installing wheel." &&\
 	python3 -m pip --no-input --timeout 360 --retries 100 --require-virtualenv install "$(CWD)/dist/moptipy-$(VERSION)-py3-none-any.whl" && ## nosem \
-	echo "Now we deactivate the environment." &&\
+	echo "$(NOW): Now we deactivate the environment." &&\
 	deactivate &&\
-	echo "Finished, cleaning up." &&\
+	echo "$(NOW): Finished, cleaning up." &&\
 	rm -rf "$$tempDir" &&\
-	echo "Now also packaging the documentation." &&\
+	echo "$(NOW): Now also packaging the documentation." &&\
 	cd docs/build &&\
 	tar --dereference --exclude=".nojekyll" -c * | xz -v -9e -c > "$(CWD)/dist/moptipy-$(VERSION)-documentation.tar.xz" &&\
 	cd $(CWD) &&\
-	echo "Successfully finished building source distribution."
+	echo "$(NOW): Successfully finished building source distribution."
 
 # We install the package and see if that works out.
 install: create_distribution
-	echo "Now installing moptipy." && \
+	echo "$(NOW): Now installing moptipy." && \
 	pip --no-input --timeout 360 --retries 100 -v install . && \
-	echo "Successfully installed moptipy."
+	echo "$(NOW): Successfully installed moptipy."
 
 # now test applying all the tools to an example dataset
 test_tools: install
-	echo "Testing all tools." &&\
+	echo "$(NOW): Testing all tools." &&\
 	export tempDir=`mktemp -d` &&\
-	echo "Using temp dir '$$tempDir'." &&\
+	echo "$(NOW): Using temp dir '$$tempDir'." &&\
 	cd "$$tempDir" &&\
-	echo "Downloading dataset from https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz." &&\
+	echo "$(NOW): Downloading dataset from https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz." &&\
 	(curl -s -o "jssp_hc_swap2.tar.xz" "https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz" || wget "https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz")&&\
-	echo "Successfully downloaded dataset, now unpacking." &&\
+	echo "$(NOW): Successfully downloaded dataset, now unpacking." &&\
 	tar -xf jssp_hc_swap2.tar.xz &&\
-	echo "Successfully unpacked, now CDing into directory and applying tools." &&\
+	echo "$(NOW): Successfully unpacked, now CDing into directory and applying tools." &&\
 	cd "$$tempDir/jssp" &&\
 	python3 -m moptipy.evaluation.end_results "$$tempDir/jssp/results" "$$tempDir/jssp/evaluation/end_results.txt" &&\
 	ls "$$tempDir/jssp/evaluation/end_results.txt" &&\
@@ -210,13 +213,13 @@ test_tools: install
 	python3 -m moptipy.evaluation.ioh_analyzer "$$tempDir/jssp/results" "$$tempDir/jssp/ioh" &&\
 	ls "$$tempDir/jssp/ioh" &&\
 	cd "$(CWD)" &&\
-	echo "Now deleting directory $$tempDir." &&\
+	echo "$(NOW): Now deleting directory $$tempDir." &&\
 	rm -rf "$$tempDir" &&\
-	echo "Done checking all tools."
+	echo "$(NOW): Done checking all tools."
 
 # The meta-goal for a full build
 build: status clean init test static_analysis create_documentation create_distribution install test_tools
-	echo "The build has completed."
+	echo "$(NOW): The build has completed."
 
 # .PHONY means that the targets init and test are not associated with files.
 # see https://stackoverflow.com/questions/2145590

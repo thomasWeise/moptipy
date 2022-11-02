@@ -118,7 +118,7 @@ def test_all_examples_from_readme_md():
         if k < j:
             raise __ve("Headline without end", text, i)
         rid: str = text[j:k].strip().replace(" ", "-")
-        for ch in ".:,()`":
+        for ch in ".:,()`/":
             rid = rid.replace(ch, "")
         rid = replace_all("--", "-", rid).lower()
         if (len(rid) <= 2) or ((rid[0] not in "123456789")

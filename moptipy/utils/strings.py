@@ -34,6 +34,8 @@ def num_to_str_for_name(x: Union[int, float]) -> str:
     """
     Convert a float to a string for use in a component name.
 
+    This function can be inverted by applying :func:`name_str_to_num`.
+
     :param x: the float
     :returns: the string
 
@@ -46,8 +48,33 @@ def num_to_str_for_name(x: Union[int, float]) -> str:
     >>> num_to_str_for_name(-6.32)
     'm6d32'
     """
-    return num_to_str(x).replace('.', DECIMAL_DOT_REPLACEMENT)\
+    return num_to_str(x).replace('.', DECIMAL_DOT_REPLACEMENT) \
         .replace('-', MINUS_REPLACEMENT)
+
+
+def name_str_to_num(s: str) -> Union[int, float]:
+    """
+    Convert a string from a name to a number.
+
+    This function is the inverse of :func:`num_to_str_for_name`.
+
+    :param s: the string from the name
+    :returns: an integer or float, depending on the number represented by
+        `s`
+
+    >>> name_str_to_num(num_to_str_for_name(1.1))
+    1.1
+    >>> name_str_to_num(num_to_str_for_name(1))
+    1
+    >>> name_str_to_num(num_to_str_for_name(-5e3))
+    -5000
+    >>> name_str_to_num(num_to_str_for_name(-6e-3))
+    -0.006
+    >>> name_str_to_num(num_to_str_for_name(100.0))
+    100
+    """
+    return str_to_intfloat(s.replace(MINUS_REPLACEMENT, "-")
+                           .replace(DECIMAL_DOT_REPLACEMENT, '.'))
 
 
 def bool_to_str(value: bool) -> str:

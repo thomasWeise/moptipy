@@ -354,7 +354,8 @@ def plot_end_makespans_over_param(
     plot_single_instances: bool = True,
     plot_instance_summary: bool = True,
     legend_pos: str = "upper right",
-    title_x: float = 0.5) \
+    title_x: float = 0.5,
+    y_label_location: float = 1.0) \
         -> List[Path]:
     """
     Plot the performance over a parameter.
@@ -376,6 +377,7 @@ def plot_end_makespans_over_param(
     :param plot_instance_summary: shall we plot the value over all instances?
     :param legend_pos: the legend position
     :param title_x: the title position
+    :param y_label_location: the location of the y label
     :returns: the list of generated files
     """
     logger(f"beginning to plot chart {name_base}.")
@@ -395,6 +397,8 @@ def plot_end_makespans_over_param(
         raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
     if not isinstance(x_label_location, float):
         raise type_error(x_label_location, "x_label_location", float)
+    if not isinstance(y_label_location, float):
+        raise type_error(y_label_location, "y_label_location", float)
     if (title is not None) and (not isinstance(title, str)):
         raise type_error(title, "title", (str, None))
     if not isinstance(plot_single_instances, bool):
@@ -434,7 +438,8 @@ def plot_end_makespans_over_param(
             x_label_location=x_label_location,
             algorithm_sort_key=algorithm_sort_key,
             instance_sort_key=instance_sort_key,
-            legend_pos=legend_pos)
+            legend_pos=legend_pos,
+            y_label_location=y_label_location)
         if title is not None:
             pu.label_box(axes, title, x=title_x, y=1)
 

@@ -1,4 +1,5 @@
 [![make build](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml/badge.svg)](https://github.com/thomasWeise/moptipy/actions/workflows/build.yaml)
+[![pypi version](https://img.shields.io/pypi/v/moptipy)](https://pypi.org/project/moptipy)
 [![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)](https://pypistats.org/packages/moptipy)
 [![coverage report](https://thomasweise.github.io/moptipy/tc/badge.svg)](https://thomasweise.github.io/moptipy/tc/index.html)
 
@@ -57,10 +58,10 @@ White and gray-box algorithms, on the other hand, are tailored to specified prob
 They have more knowledge about these problems.
 They make use of the problem structure and can implement more efficient search operations.
 
-Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
+Within our [`moptipy`](https://thomasweise.github.io/moptipy) framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
-What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
-The `moptipy` API now supports both single-objective and multi-objective optimization.
+What [`moptipy`](https://thomasweise.github.io/moptipy) *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
+The [`moptipy`](https://thomasweise.github.io/moptipy) API now supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 
 
@@ -89,7 +90,7 @@ git install moptipy
 
 This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.
 You can also clone the repository and then run a `make` build, which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
-If this build completes successful, you can be sure that `moptipy` will work properly on your machine.
+If this build completes successful, you can be sure that [`moptipy`](https://thomasweise.github.io/moptipy) will work properly on your machine.
 
 
 ## 3. How-Tos
@@ -119,7 +120,7 @@ Then, via [`ex.set_solution_space(...)`](https://thomasweise.github.io/moptipy/m
 The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
 It provides all methods necessary to create a solution data structure, to copy the contents of one solution data structure to another one, to convert solution data structures to and from strings, and to verify whether a solution data structure is valid.
 It is used by the optimization algorithm for instantiating the solution data structures and for copying them.
-It is used internally by the `moptipy` system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#51-log-files).
+It is used internally by the [`moptipy`](https://thomasweise.github.io/moptipy) system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#51-log-files).
 
 If the search and solution spaces are different, then you can also set a search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) via [`ex.set_search_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_search_space) and an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) via [`ex.set_encoding(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_encoding).
 This is not necessary if the algorithm works directly on the solutions (as in our example below).
@@ -389,7 +390,7 @@ You may need more components, but if you have these three, then you can [run an 
 #### 3.3.1. Define a New Problem Type
 
 At the core of all optimization problems lies the objective function.
-All objective functions in `moptipy` are instances of the class [Objective](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective).
+All objective functions in [`moptipy`](https://thomasweise.github.io/moptipy) are instances of the class [Objective](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective).
 If you want to add a new optimization problem, you must derive a new subclass from this class. 
 
 There are two functions you must implement:
@@ -427,7 +428,7 @@ We provide the corresponding code in [Section 3.3.3](#333-applying-an-own-algori
 
 #### 3.3.2. Define a New Algorithm
 
-While `moptipy` comes with several well-known algorithms out-of-the-box, you can of course also implement your own [algorithms](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
+While [`moptipy`](https://thomasweise.github.io/moptipy) comes with several well-known algorithms out-of-the-box, you can of course also implement your own [algorithms](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
 These can then make use of the existing [spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) and [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators) &ndash; or not.
 Let us here create an example algorithm implementation that does *not* use any of the pre-defined [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators).
 
@@ -438,7 +439,7 @@ Each of them must implement two methods:
 - `__str__()` must return a short string representation identifying the algorithm and its setup.
   This string will be used in file and folder names and therefore must not contain spaces or otherwise dodgy characters.
 
-The instance `process` of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process) passed to the function [`solve`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm.solve) is a key element of our `moptipy` API.
+The instance `process` of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process) passed to the function [`solve`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm.solve) is a key element of our [`moptipy`](https://thomasweise.github.io/moptipy) API.
 If the algorithm needs a data structure to hold a point in the search space, it should invoke [`process.create()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.create).
 If it needs to copy the point `source` to the point `dest`, it should invoke [`process.copy(dest, source)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.copy).
 
@@ -661,7 +662,7 @@ myAlgo on sort5: 1
 
 ## 4. Implemented Algorithms, Search Spaces, and Problems
 
-Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-implemented-search-spaces-and-operators), and [optimization problems](#43-implemented-problems) that we implement in our `moptipy` framework.
+Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-implemented-search-spaces-and-operators), and [optimization problems](#43-implemented-problems) that we implement in our [`moptipy`](https://thomasweise.github.io/moptipy) framework.
 
 
 ### 4.1. Implemented Algorithms
@@ -715,12 +716,12 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
     - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
 2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
     - The NP-hard Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)), where the goal is to find an assignment of jobs to machines with the minimum makespan.
-      On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with `moptipy` on the JSSP.
+      On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with [`moptipy`](https://thomasweise.github.io/moptipy) on the JSSP.
 
 
 ## 5. Data Formats
 
-We develop several data formats to store and evaluate the results of computational experiments with our `moptipy` software.
+We develop several data formats to store and evaluate the results of computational experiments with our [`moptipy`](https://thomasweise.github.io/moptipy) software.
 Here you can find their basic definitions.
 On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with our software.
 For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.tar.xz) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
@@ -759,7 +760,7 @@ The philosophy of our log files are:
    11. The [objective values](#5127-the-archive_qualities-section) of the solutions in the archive of non-dominated solutions, if we perform [multi-objective optimization](#514-example-log-file-for-multi-objective-optimization).
 
 All of this information is stored (almost) automatically.
-Experiments with `moptipy` are intended to be self-documenting, such that you can still see what was going on if you open a log file of someone else or one of your log files five years after the experiment.
+Experiments with [`moptipy`](https://thomasweise.github.io/moptipy) are intended to be self-documenting, such that you can still see what was going on if you open a log file of someone else or one of your log files five years after the experiment.
 Each log file contains all the information, so you will not end up with a situation where you have a "results file" but cannot find the matching setup information because it was stored elsewhere.
 
 By capturing and storing as much information about the setup, configuration, and parameters of each run automatically, we also try to prevent situations where a vital piece of information turns out to be missing some time after the experiment.
@@ -767,7 +768,7 @@ For example, the library author himself has encountered situations where he stil
 And did no longer remember when this information was needed.
 In such a case we have no choice but to repeat the experiment.
 Unless our system is clever enough to automatically store such data.
-`moptipy` is &#x1F601;.
+[`moptipy`](https://thomasweise.github.io/moptipy) is &#x1F601;.
 
 
 #### 5.1.1. File Names and Folder Structure
@@ -786,11 +787,18 @@ A log file is a simple text file divided into several sections.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
 There are three types of sections:
 
-- *[Semicolon-separated values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.CsvSection)* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`
+- *[Semicolon-separated values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.CsvSection)* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`.
+  We use ';', as both '.' and ',' might be misinterpreted as decimal or fractional separaters under different locales, whereas ';', to the best of our knowledge, is rarely used for such purposes.
+  We will still call such sections "CSV" sections (comma-separated-values), though, as most people know what CSV is and the structure basically is exactly that, except that we use ';' instead of ','.
 - *[Key-values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueSection)* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2/spec.html#mapping).
   In other words, each line contains a key, followed by `: `, followed by the value.
   The keys can be hierarchically structured in scopes, for example `a.b` and `a.c` indicate two keys `b` and `c` that belong to scope `a`.
+  This allows representing complex data such as [configuration parameters](#5123-the-section-setup) in a rather straight-forward, easy-to-parse canonical way.
+  All keys within a section must be unique, i.e., if a section contains a value under key `a.a`, it cannot contain the same key `a.a` again, even with the same value.
 - *[Raw text](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.TextSection)* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
+  Obviously, such raw text cannot contain things such as section delimiters or other reserved keywords.
+  Apart from that, basically any type of data may be stored there.
+  This is useful for, for instance, storing the [final solutions](#5125-the-result_-sections) of runs or [exceptions caught during the runs](#5126-the-error_-sections).
 
 In all the above sections, all the character `#` is removed from output.
 The character `#` indicates a starting comment and can only be written by the routines dedicated to produce comments.
@@ -1326,7 +1334,7 @@ While a [log file](#51-log-files) contains all the data of a single run, you oft
 The class [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) provides the tools needed to parse all log files, extract these information, and store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
-If you have the `moptipy` package installed, then you can call the module directly from the command line as:
+If you have the [`moptipy`](https://thomasweise.github.io/moptipy) package installed, then you can call the module directly from the command line as:
 
 ```shell
 python3 -m moptipy.evaluation.end_results source_dir dest_file
@@ -1434,7 +1442,7 @@ We can also aggregate the end result data over either algorithm x instance combi
 The class [`moptipy.evaluation.end_statistics.EndStatistics`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_statistics.EndStatistics) provides the tools needed to aggregate statistics over sequences of [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult) and to store them into a semicolon-separated-values formatted file.
 The files generated this way can easily be imported into applications like Microsoft Excel.
 
-If you have the `moptipy` package installed, then you can call the module directly from the command line as:
+If you have the [`moptipy`](https://thomasweise.github.io/moptipy) package installed, then you can call the module directly from the command line as:
 
 ```shell
 python3 -m moptipy.evaluation.end_statistics source dest_file
@@ -1565,7 +1573,7 @@ This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.g
 You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/) that you can either install locally or use online at <https://iohanalyzer.liacs.nl/>.
 In the latter case, you first need to zip-compress your data before uploading it.
 
-If you have the `moptipy` package installed, then you can call the module directly from the command line as:
+If you have the [`moptipy`](https://thomasweise.github.io/moptipy) package installed, then you can call the module directly from the command line as:
 
 ```shell
 python3 -m moptipy.evaluation.ioh_analyzer source_dir dest_dir
@@ -1886,7 +1894,7 @@ We also try to extensively test our own code, see the [coverage report](https://
 
 ### 8.2. Reproducibility
 
-Experiments with `moptipy` are reproducible and repeatable if the results are recorded in [log files](#51-log-files).
+Experiments with [`moptipy`](https://thomasweise.github.io/moptipy) are reproducible and repeatable if the results are recorded in [log files](#51-log-files).
 As stated in the [log files section](#51-log-files), our log files should store all the information relevant to a single run of an optimization algorithm.
 First, the log files can store the complete [algorithm setups and objective function information](#5123-the-section-setup) as well as the involved fully-qualified class names.
 They also store the [system configuration](#5124-the-section-sys_info), which includes the versions of the libraries used.
@@ -1921,7 +1929,7 @@ Therefore, it is also possible to re-evaluate and verify them as well.
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#11-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
-`moptipy` is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
+[`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
 
 Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
 

@@ -101,6 +101,13 @@ for mu_lambda in [2, 4, 32]:
             lambda inst, pwr, ml=mu_lambda, br=(2 ** -br_exp): EA(
                 Op0Shuffle(pwr), Op1Swap2(),
                 Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
+        if br_exp == 1:
+            continue
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda, br=1.0 - (2 ** -br_exp): EA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
 
 for mu_lambda in [4, 32]:
     DEFAULT_ALGORITHMS.append(cast(

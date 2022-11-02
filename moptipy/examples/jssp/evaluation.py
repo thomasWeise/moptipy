@@ -1,20 +1,24 @@
 """Evaluate the results of the example experiment."""
 import os.path as pp
 import sys
+from math import log2
 from re import compile as _compile, match, sub
 from statistics import median
 from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
     Iterable, cast, Tuple
 
-from math import log2
+from moptipy.api.logging import KEY_TOTAL_FES, \
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.statistics import KEY_MEAN_ARITH
 from moptipy.evaluation.tabulate_end_results import \
     tabulate_end_results, command_column_namer, \
     DEFAULT_ALGORITHM_INSTANCE_STATISTICS, \
     DEFAULT_ALGORITHM_SUMMARY_STATISTICS
+from moptipy.evaluation.tabulate_result_tests import tabulate_result_tests
 from moptipy.examples.jssp.experiment import DEFAULT_ALGORITHMS
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.instance import Instance
@@ -22,16 +26,12 @@ from moptipy.examples.jssp.plots import plot_end_makespans, \
     plot_stat_gantt_charts, plot_progresses, plot_end_makespans_over_param
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
-from moptipy.api.logging import KEY_TOTAL_FES,\
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS
-from moptipy.evaluation.statistics import KEY_MEAN_ARITH
 from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 from moptipy.utils.logger import sanitize_name, SCOPE_SEPARATOR
-from moptipy.evaluation.tabulate_result_tests import tabulate_result_tests
-
+from moptipy.utils.path import Path
+from moptipy.utils.strings import name_str_to_num
+from moptipy.utils.types import type_error
 
 #: The letter mu
 LETTER_M: Final[str] = "\u03BC"
@@ -42,7 +42,6 @@ LETTER_L: Final[str] = "\u03BB"
 __INST_SORT_KEYS: Final[Dict[str, int]] = {
     __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
 }
-
 
 #: the name of the mu+1 EA
 NAME_EA_MU_PLUS_1: Final[str] = f"{LETTER_M}+1_ea"
@@ -62,8 +61,9 @@ def ea_family(name: str) -> str:
     :returns: the short name of the family
     """
     if name.startswith("ea_"):
-        ss = name.split("_")
-        if len(ss) == 4:
+        ss: Final[List[str]] = name.split("_")
+        ll: Final[int] = len(ss)
+        if ll == 4:
             lambda_ = int(ss[2])
             if lambda_ == 1:
                 return NAME_EA_MU_PLUS_1
@@ -77,6 +77,8 @@ def ea_family(name: str) -> str:
                 if ratio == 1:
                     return NAME_EA_MU_PLUS_MU
                 return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
+        elif (ll == 6) and (ss[-2] == "gap") and (ss[-1] == "swap2"):
+            return f"{ss[1]}+{ss[2]}_ea_br"
     raise ValueError(f"Invalid name '{name}'.")
 
 
@@ -247,6 +249,7 @@ def get_end_results(
     :param algos: only these algorithms will be included if this parameter is
         provided
     """
+
     def __filter(er: EndResult,
                  ins=None if insts is None else
                  insts.__contains__ if isinstance(insts, Set)
@@ -450,7 +453,8 @@ def makespans_over_param(
         algo_getter: Optional[Callable[[str], str]] = None,
         title: Optional[str] = None,
         legend_pos: str = "right",
-        title_x: float = 0.5) -> List[Path]:
+        title_x: float = 0.5,
+        y_label_location: float = 1.0) -> List[Path]:
     """
     Plot the performance over a parameter.
 
@@ -467,8 +471,10 @@ def makespans_over_param(
     :param title: the optional title (use `name_base` if unspecified)
     :param legend_pos: the legend position, set to "right"
     :param title_x: the title x
+    :param y_label_location: the y label location
     :returns: the list of generated files
     """
+
     def _algo_name_getter(es: EndStatistics,
                           n=name_base, g=algo_getter) -> str:
         return n if g is None else g(es.algorithm)
@@ -482,7 +488,8 @@ def makespans_over_param(
         algorithm_sort_key=algorithm_sort_key,
         x_axis=x_axis, x_label=x_label,
         plot_single_instances=algo_getter is None,
-        legend_pos=legend_pos, title_x=title_x)
+        legend_pos=legend_pos, title_x=title_x,
+        y_label_location=y_label_location)
 
 
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
@@ -599,6 +606,20 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
               "ea_64_1_swap2", "ea_1024_1024_swap2", "ea_8192_65536_swap2",
               "rls_swap2"],
              dest, source)
+
+    logger("Now evaluating EA with crossover.")
+    makespans_over_param(
+        end_results=end_results,
+        selector=lambda n: n.startswith("ea_") and n.endswith("_gap_swap2"),
+        x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[3]),
+        name_base="ea_cr",
+        algo_getter=ea_family,
+        title=f"{LETTER_M}+{LETTER_M}_ea_br", x_label="br",
+        x_axis=AxisRanger(log_scale=True, log_base=2.0),
+        legend_pos="lower center",
+        y_label_location=0.2,
+        title_x=0.1,
+        dest_dir=dest)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 
