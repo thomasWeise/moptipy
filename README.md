@@ -134,8 +134,10 @@ Notice that optimization algorithms may not terminate unless the system tells th
 If you only specify a goal objective value and the algorithm cannot reach it, it may not terminate.
 
 Finally, you can also set the path to a log file via [`ex.set_log_file(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_file).
-If you specify a log file, the system will automatically gather system information, collect the progress of the algorithm (in terms of improving moves by default), and the final results.
-It will store all of that in a text file *after* the algorithm has completed and you have left the process scope (see below). 
+If you specify a log file, the system will automatically gather system information and collect the end result.
+Via [`ex.set_log_improvements(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), you can instruct the system to also collect the progress of the algorithm in terms of improving moves by default.
+In the rare case that you want to log every single move that the algorithm makes, you could call [`ex.set_log_all_fes(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes).
+All of that will be stored in a [text file](#51-log-files) *after* the algorithm has completed and you have left the process scope (see below). 
 
 Anyway, after you have completed building the execution, you can run the process you have configured via `ex.execute()`.
 This method returns an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process).
@@ -144,7 +146,7 @@ For us, the algorithm user, it provides the information about the end result, th
 In the code below, we illustrate how to extract these information.
 Notice that you *must* always use the instances of `Process` in a [`with` block](https://peps.python.org/pep-0343/):
 Once this block is left, the log file will be written.
-If you use it outside of a `with` block, no log file will be generated.
+If you do not use a `with` block, no log file will be generated.
 
 Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html).
 As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls).
