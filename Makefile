@@ -14,7 +14,7 @@ CWD := $(shell pwd)
 VERSION := $(shell (less '$(CWD)/moptipy/version.py' | sed -n 's/__version__.*=\s*"\(.*\)"/\1/p'))
 
 # Get the current date and time
-NOW := $(shell date +'%0Y-%0m-%0d %0R:%0S')
+NOW = $(shell date +'%0Y-%0m-%0d %0R:%0S')
 
 # Print the status information.
 status:
