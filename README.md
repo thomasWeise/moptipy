@@ -54,9 +54,12 @@ A metaheuristic algorithm can be a black-box method, which can solve problems wi
 Such a black-box algorithm only requires methods to create and `modifiy` points in the search space and to evaluate their quality.
 With these operations, it will try to step-by-step discover better points.
 Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
-White and gray-box algorithms, on the other hand, are tailored to specified problems.
-They have more knowledge about these problems.
-They make use of the problem structure and can implement more efficient search operations.
+Such algorithms allow us to plug in almost arbitrary search operators, search spaces, and objective functions.
+But it is also possible to develop algorithms that are tailored to specified problems.
+For example, one could either design the search operators and the optimization algorithm as a unit.
+Then, the algorithm could change its way to sample new points based on the information it gathers.
+Or one could design an algorithm for a specific problem, making use of specific features of the objective function.
+Finally, there are multi-objective optimization problems where multiple criteria need to be optimized at once.
 
 Within our [`moptipy`](https://thomasweise.github.io/moptipy) framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
@@ -67,8 +70,8 @@ A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longe
 
 ## 2. Installation
 
-In order to use this package and to, e.g., run the example codes, you need to first install it using [`pip`](https://pypi.org/project/pip/).
-You can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy/) using [`pip`](https://pypi.org/project/pip/) by doing
+In order to use this package and to, e.g., run the example codes, you need to first install it using [`pip`](https://pypi.org/project/pip/) or some other tool that can install packages from [PyPi](https://pypi.org).
+You then can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy/) using [`pip`](https://pypi.org/project/pip/) by doing
 
 ```shell
 pip install moptipy
@@ -90,6 +93,7 @@ git install moptipy
 
 This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.
 You can also clone the repository and then run a `make` build, which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
+This will work only on Linux, though.
 If this build completes successful, you can be sure that [`moptipy`](https://thomasweise.github.io/moptipy) will work properly on your machine.
 
 
@@ -137,7 +141,7 @@ Finally, you can also set the path to a log file via [`ex.set_log_file(...)`](ht
 If you specify a log file, the system will automatically gather system information and collect the end result.
 Via [`ex.set_log_improvements(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), you can instruct the system to also collect the progress of the algorithm in terms of improving moves by default.
 In the rare case that you want to log every single move that the algorithm makes, you could call [`ex.set_log_all_fes(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes).
-All of that will be stored in a [text file](#51-log-files) *after* the algorithm has completed and you have left the process scope (see below). 
+All of the collected data will be stored in a [text file](#51-log-files) *after* the algorithm has completed and you have left the process scope (see below). 
 
 Anyway, after you have completed building the execution, you can run the process you have configured via `ex.execute()`.
 This method returns an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process).
@@ -160,9 +164,8 @@ from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.temp import TempFile
 
-n = 10  # we chose dimension 10
-space = BitStrings(n)  # search in bit strings of length 10
-problem = OneMax(n)  # we maximize the number of 1 bits
+space = BitStrings(10)  # search in bit strings of length 10
+problem = OneMax(10)  # we maximize the number of 1 bits
 algorithm = RLS(  # create RLS that
     Op0Random(),  # starts with a random bit string and
     Op1Flip1())  # flips exactly one bit in each step
@@ -243,17 +246,21 @@ The second concept to understand here are "setups."
 A "setup" is basically an almost fully configured [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution) (see the [previous section](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance) for a detailed discussion of Executions.)
 The only things that need to be left blank are the log file path and random seed, which will be filled automatically by our system.
 
-You will basically provide a sequence of callables, i.e., functions or lambdas, each of which will return one "instance."
+You will basically provide a sequence of [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)s, i.e., functions or [lambda](https://docs.python.org/3/reference/expressions.html#lambda)s, each of which will return one "instance."
 Additionally, you provide a sequence of callables (functions or lambdas), each of which receiving one "instance" as input and should return an almost fully configured [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution).
 You also provide the number of runs to be executed per "setup" * "instance" combination and a base directory path identifying the directory where one log file should be written for each run.
 Additionally, you can specify the number of parallel processes to use, unless you want the system to automatically decide this.
-All of this is passed to the function `run_experiment` in module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment).
+(*Parallelization currently only works under Linux.*
+If you have Windows or Mac, you can just start the program several times independently in parallel to achieve a similar effect.)
+All of this is passed to the function [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) in module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment).
 
 This function will do all the work and generate a [folder structure](#511-file-names-and-folder-structure) of log files.
-It will spawn the right number of processes, use your functions to generate "instances" and "setups," execute and them.
-It will also automatically determine the random seed for each run.
-The random seed sequence per instance will be the same for algorithm setups, which means that different algorithms would still start with the same solutions if they sample the first solution in the same way.
-The system will even do "warmup" runs, i.e., very short dummy runs with the algorithms that are just used to make sure that the interpreter has seen all code before actually doing the experiments to avoid strange timing problems.
+It will spawn the right number of processes, use your functions to generate "instances" and "setups," and execute them.
+It will also [automatically determine](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str) the random seed for each run.
+The seed sequence is determined from the instance name using a [deterministic procedure](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str).
+This means that the random seed sequence per instance will be the same for algorithm setups, which means that different algorithms would still start with the same solutions if they sample the first solution in the same way.
+The system will even do "warmup" runs, i.e., very short dummy runs with the algorithms that are just used to make sure that the interpreter has seen all code before actually doing the experiments.
+This avoids situations where the first actual run is slower than the others due to additional interpreter action, i.e., it reduces the bias of time measurements.
 
 Below, we show one example for the automated experiment execution facility, which applies two algorithms to four problem instances with five runs per setup.
 We use again the  [bit strings domain](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings).
@@ -422,7 +429,7 @@ If `n=5`, then the permutation `0;1;2;3;4` has no sorting error, i.e., the best 
 The permutation `4;3;2;1;0` has `n-1=4` sorting errors, i.e., is the worst possible solution.
 The permutation `3;4;2;0;1` as `2` sorting errors.
 
-From these thoughts, we also know that we can implement `lower_bound()` to return 0 and `upper_bound()` to return `n-1`.
+From these thoughts, we also know that we can implement `lower_bound()` to return `0` and `upper_bound()` to return `n-1`.
 `__str__` could be `"sort" + n`, i.e., `sort5` in the above example where `n=5`.
 
 We provide the corresponding code in [Section 3.3.3](#333-applying-an-own-algorithm-to-an-own-problem) below.
@@ -430,7 +437,7 @@ We provide the corresponding code in [Section 3.3.3](#333-applying-an-own-algori
 
 #### 3.3.2. Define a New Algorithm
 
-While [`moptipy`](https://thomasweise.github.io/moptipy) comes with several well-known algorithms out-of-the-box, you can of course also implement your own [algorithms](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
+While [`moptipy`](https://thomasweise.github.io/moptipy) comes with several [well-known algorithms](#41-implemented-algorithms) out-of-the-box, you can of course also implement your own [algorithms](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
 These can then make use of the existing [spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) and [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators) &ndash; or not.
 Let us here create an example algorithm implementation that does *not* use any of the pre-defined [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators).
 
@@ -446,7 +453,7 @@ If the algorithm needs a data structure to hold a point in the search space, it 
 If it needs to copy the point `source` to the point `dest`, it should invoke [`process.copy(dest, source)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.copy).
 
 If it wants to know the quality of the point `x`, it should invoke [`process.evaluate(x)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.evaluate).
-This function will actually forward the call to the actual objective function (see, e.g., [Section 3.3.1](#331-define-a-new-problem-type) above).
+This function will forward the call to the actual objective function (see, e.g., [Section 3.3.1](#331-define-a-new-problem-type) above).
 However, it will do more:
 It will automatically keep track of the best-so-far solution and, if needed, build logging information in memory.
 
@@ -458,13 +465,13 @@ Since many optimization algorithms make random choices, the function [`process.g
 This generator *must* be the only source of randomness used by an algorithm.
 It will automatically be seeded by our system, allowing for repeatable and reproducible runs.
 
-The `process` also can provide information about the best-so-far solution, the consumed runtime and FEs, as well as when the last improvement was achieved.
+The `process` also can provide information about the best-so-far [solution](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_copy_of_best_y) or [point in the search space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_copy_of_best_x), the consumed [runtime](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_consumed_time_millis) and [FEs](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_consumed_fes), as well as [when the last improvement was achieved](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_last_improvement_fe).
 Anyway, all interaction between the algorithm and the actual optimization algorithm will happen through the `process` object.
 
 Equipped with this information, we can develop a simple and rather stupid algorithm to attack the sorting problem.
 The search space that we use are the [permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.permutations) of `n` numbers.
 (These will be internally represented as [numpy `ndarray`s](https://numpy.org/doc/stable/reference/arrays.ndarray.html), but we do not need to bother with this, as we this is done automatically for us.) 
-Our algorithm should start with allocating a point `x_cur` in the search space, filling it with the numbers `0..n-1`, and shuffling it randomly.
+Our algorithm should start with allocating a point `x_cur` in the search space, filling it with the numbers `0..n-1`, and shuffling it randomly (because we want to start at a random solution).
 For the shuffling, it will use than random number generator provided by `process`.
 It will evaluate this solution and remember its quality in variable `f_cur`.
 It will also allocate a second container `x_new` for permutations.
@@ -685,6 +692,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 #### 4.1.2. Multi-Objective Optimization
 
 1. [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS), but it accepts a solution if it is not dominated by the current solution.
+  This is *not* a good algorithm.
 2. The [Fast Elitist Non-Dominated Sorting Genetic Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2) (NSGA-II) is maybe the most popular multi-objective evolutionary algorithm.
 
 
@@ -728,6 +736,7 @@ Here you can find their basic definitions.
 On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with our software.
 For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.tar.xz) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
 The files and folders in this archive will then exactly comply to the structure discussed here.
+
 
 ### 5.1. Log Files
 
@@ -1910,8 +1919,14 @@ The random seed for a new run can be set via the [`Execution`](https://thomaswei
 Therefore, if a given algorithm configuration can be re-created on a known instance, it can be started with the same random seed as a known run.
 Since the version information and classes of all involved libraries in the random number generation are stored as well, the same random number sequences can be reproduced.
 
-Finally, the solutions found by the algorithms are also stored in the log files.
+The solutions found by the algorithms are also stored in the log files.
 Therefore, it is also possible to re-evaluate and verify them as well.
+
+Additionally, if the [experiment API](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) is used, then the random seeds are [determined based on the instance names](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str).
+This means that all algorithms will use the same seeds for each instance, while different problem instances will lead to different seeds.
+This, in turn, means that the algorithms start with the same first random solutions (if they use the same [nullary operator](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op0)).
+It also means that if you run the same experiment program twice, the same random seeds will be used automatically.
+In other words, if you have the complete code of a `moptipy` compliant experiment, it should (re)produce the exactly same runs with the exactly same results.
 
 
 ## 9. Useful Links and References
