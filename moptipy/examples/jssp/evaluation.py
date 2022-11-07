@@ -616,9 +616,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         algo_getter=ea_family,
         title=f"{LETTER_M}+{LETTER_M}_ea_br", x_label="br",
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
-        legend_pos="lower center",
-        y_label_location=0.2,
-        title_x=0.1,
+        legend_pos="upper right",
         dest_dir=dest)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")

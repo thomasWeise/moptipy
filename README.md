@@ -3,6 +3,7 @@
 [![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)](https://pypistats.org/packages/moptipy)
 [![coverage report](https://thomasweise.github.io/moptipy/tc/badge.svg)](https://thomasweise.github.io/moptipy/tc/index.html)
 
+
 # moptipy: Metaheuristic Optimization in Python
 
 - [Introduction](#1-introduction)
@@ -63,8 +64,8 @@ Finally, there are multi-objective optimization problems where multiple criteria
 
 Within our [`moptipy`](https://thomasweise.github.io/moptipy) framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
-What [`moptipy`](https://thomasweise.github.io/moptipy) *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
-The [`moptipy`](https://thomasweise.github.io/moptipy) API now supports both single-objective and multi-objective optimization.
+What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
+The `moptipy` API now supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 
 
@@ -1869,6 +1870,7 @@ The bottom row of the table sums up the numbers of `<`, `?`, and `>` outcomes fo
 
 The end result comparison tables are implemented in the module [moptipy.evaluation.tabulate_result_tests](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.tabulate_result_tests).
 
+
 ## 7. Examples
 
 Here we list the set of examples that are provided in the [moptipy](https://github.com/thomasWeise/moptipy) repository in the folder "[examples](https://github.com/thomasWeise/moptipy/tree/main/examples)".
@@ -1934,9 +1936,10 @@ In other words, if you have the complete code of a `moptipy` compliant experimen
 1. Our book on optimization algorithms, which is currently work in progress:
    Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
 2. Our old book optimization algorithms:
-   Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://www.it-weise.de/projects/book.pdf).
+   Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://iao.hfuu.edu.cn/images/publications/W2009GOEB.pdf).
 3. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
-   It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
+   It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the [IOHanalyzer](https://iohanalyzer.liacs.nl/), which allows you to use this software to analyze your optimization results as well.
+   You can then upload the data to the online [IOHanalyzer service](https://iohanalyzer.liacs.nl/) and evaluate it. 
 4. A nice discussion of experimentation with (numerical) optimization methods is:
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
