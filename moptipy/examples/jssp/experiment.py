@@ -93,21 +93,19 @@ for log2_mu in range(0, 14):
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
                 Op0Shuffle(pwr), Op1Swap2(), None, mm, ll, 0.0)))
-
-for mu_lambda in [2, 4, 32, 256, 4096]:
-    for br_exp in range(1, 11):
-        DEFAULT_ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, br=(2 ** -br_exp): EA(
-                Op0Shuffle(pwr), Op1Swap2(),
-                Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
-        if br_exp == 1:
-            continue
-        DEFAULT_ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, br=1.0 - (2 ** -br_exp): EA(
-                Op0Shuffle(pwr), Op1Swap2(),
-                Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
+        if (mu == lambda_) and (mu in {2, 4, 32, 256, 4096}):
+            for br_exp in range(1, 11):
+                DEFAULT_ALGORITHMS.append(cast(
+                    Callable[[Instance, Permutations], Algorithm],
+                    lambda inst, pwr, ml=mu, br=(2 ** -br_exp): EA(
+                        Op0Shuffle(pwr), Op1Swap2(),
+                        Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
+            for br_exp in range(2, 11):
+                DEFAULT_ALGORITHMS.append(cast(
+                    Callable[[Instance, Permutations], Algorithm],
+                    lambda inst, pwr, ml=mu, br=1.0 - (2 ** -br_exp): EA(
+                        Op0Shuffle(pwr), Op1Swap2(),
+                        Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
 
 for mu_lambda in [4, 32]:
     DEFAULT_ALGORITHMS.append(cast(

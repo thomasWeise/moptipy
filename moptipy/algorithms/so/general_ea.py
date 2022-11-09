@@ -63,9 +63,11 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
 
 
+# begin book
 class _Record(FRecord):
     """Same as :class:`FRecord`, but with a secret selection marker."""
 
+# end book
     def __init__(self, x, f: Union[int, float], selected: bool = False):
         """
         Create the record.
@@ -79,6 +81,7 @@ class _Record(FRecord):
         self._selected: bool = selected
 
 
+# begin book
 class GeneralEA(EA):
     """The fully customizable (mu+lambda) EA."""
 
@@ -91,7 +94,7 @@ class GeneralEA(EA):
         mu: Final[int] = self.mu  # mu: number of best solutions kept
         lambda_: Final[int] = self.lambda_
         lst_size: Final[int] = mu + lambda_  # size = mu + lambda
-
+# end book
         random: Final[Generator] = process.get_random()  # random gen
         create: Final[Callable] = process.create  # create x container
         evaluate: Final[Callable] = process.evaluate  # the objective
@@ -113,7 +116,7 @@ class GeneralEA(EA):
             [List[FRecord], Callable, int, Generator], None]] = \
             cast(Callable[[List[FRecord], Callable, int, Generator],
                           None], self.mating.select)
-
+# begin book
         # create list of mu random records and lambda empty records
         recs: Final[List] = [None] * lst_size  # pre-allocate list
         f: Union[int, float] = 0  # variable to hold objective values
@@ -130,7 +133,7 @@ class GeneralEA(EA):
         survived: Final[List] = recs[0:mu]
         mating_pool: Final[List] = [None, None]
         population: Final[List] = [None] * lst_size
-
+# end book
         # Fast calls
         mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
         mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
@@ -141,7 +144,7 @@ class GeneralEA(EA):
         population_clear: Final[Callable[[], None]] = population.clear
         population_append: Final[Callable[[_Record], None]] = \
             cast(Callable[[_Record], None], population.append)
-
+# begin book
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step the iteration counter
@@ -164,7 +167,7 @@ class GeneralEA(EA):
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
 
-                do_binary = r01() < br  # should we do binary operation?
+                do_binary = r01() < br  # will we do binary operation?
                 mating_pool_clear()  # clear mating pool: room for 2
                 mating(survived, mating_pool_append,
                        2 if do_binary else 1, random)
@@ -172,14 +175,14 @@ class GeneralEA(EA):
                 if do_binary:  # binary operation (with p == br)
                     op2(random, x, mating_pool[0].x, mating_pool[1].x)
                 else:  # unary operation otherwise
-                    op1(random, x, mating_pool[0].x)  # apply unary operator
+                    op1(random, x, mating_pool[0].x)  # apply unary op
                 dest.f = evaluate(x)  # evaluate new point
                 population_append(dest)  # store in population
 
             # we now need to add the remaining surviving solutions
             for di in range(di, lst_size):
                 other = recs[di]
-                if other._selected:  # only if the solution was selected
+                if other._selected:  # only if solution was selected
                     other._selected = False  # set as unselected
                     population_append(other)  # put into population
 
@@ -188,6 +191,7 @@ class GeneralEA(EA):
             survival(population, survived_append, mu, random)
             for rec in survived:  # mark all selected solutions as
                 rec._selected = True  # selected
+# end book
 
     def __init__(self, op0: Op0,
                  op1: Optional[Op1] = None,

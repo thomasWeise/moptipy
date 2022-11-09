@@ -2,7 +2,7 @@
 import os.path as pp
 import sys
 from math import log2
-from re import compile as _compile, match, sub
+from re import compile as _compile, Pattern, Match
 from statistics import median
 from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
     Iterable, cast, Tuple
@@ -30,7 +30,7 @@ from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.logger import sanitize_name, SCOPE_SEPARATOR
 from moptipy.utils.path import Path
-from moptipy.utils.strings import name_str_to_num
+from moptipy.utils.strings import name_str_to_num, num_to_str
 from moptipy.utils.types import type_error
 
 #: The letter mu
@@ -93,21 +93,38 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
     names: List[str] = [str(a(inst, space)) for a in DEFAULT_ALGORITHMS]
     names_new = list(names)
 
+    def __eacr(mtch: Match) -> str:
+        """Transform the EA name with crossover."""
+        br = name_str_to_num(mtch.group(3))
+        if not 0.0 < br < 1.0:
+            raise ValueError(f"{mtch} has invalid br={br}.")
+        a = log2(br)
+        b = int(a)
+        c = log2(1.0 - br)
+        d = int(c)
+        if abs(c - d) < abs(a - b):
+            q = f"(1-2^{d})"
+        else:
+            q = f"2^{b}"
+        q2 = num_to_str(br)
+        if len(q2) <= (len(q) + 1):
+            q = q2
+        return f"{mtch.group(1)}+{mtch.group(2)}_ea_{q}"
+
     namer: Dict[str, str] = {}
     used_names: Set[str] = set(names)
-    for pattern, repl in [("hc_swap2", "hc"),
-                          ("hcr_32768_swap2", "hcr"),
-                          ("hc_swapn", "hcn"),
-                          ("hcr_65536_swapn", "hcrn"),
-                          ("rls_swap2", "rls"),
-                          ("rls_swapn", "rlsn"),
-                          ("ea_([0-9]+)_([0-9]+)_swap2", "\\1+\\2_ea")]:
-        re = _compile(pattern)
+    for pattern, repl in [("hc_swap2", "hc"), ("hcr_32768_swap2", "hcr"),
+                          ("hc_swapn", "hcn"), ("hcr_65536_swapn", "hcrn"),
+                          ("rls_swap2", "rls"), ("rls_swapn", "rlsn"),
+                          ("ea_([0-9]+)_([0-9]+)_swap2", "\\1+\\2_ea"),
+                          ("ea_([0-9]+)_([0-9]+)_(0d[0-9]+)_gap_swap2",
+                           __eacr)]:
+        re: Pattern = _compile(pattern)
         found = False
         for s in names:
-            m = match(re, s)
+            m: Match = re.match(s)
             if m is not None:
-                ns = sub(re, repl, s)
+                ns = re.sub(cast(Union[str, Callable[[Match], str]], repl), s)
                 if (ns is None) or (len(ns) <= 0):
                     raise ValueError(f"'{s}' -> '{ns}'?")
                 if ns == s:
@@ -618,6 +635,14 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
         legend_pos="upper right",
         dest_dir=dest)
+    table(end_results, ["ea_2_2_0d001953125_gap_swap2", "ea_2_2_swap2",
+                        "rls_swap2"], dest)
+    tests(end_results, ["ea_2_2_0d001953125_gap_swap2", "ea_2_2_swap2",
+                        "rls_swap2"], dest)
+    progress(["ea_2_2_0d001953125_gap_swap2", "ea_2_2_swap2", "rls_swap2",
+              "ea_256_256_swap2", "ea_256_256_0d25_gap_swap2",
+              "ea_32_32_swap2", "ea_32_32_0d125_gap_swap2"],
+             dest, source)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

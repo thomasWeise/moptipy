@@ -45,9 +45,11 @@ from moptipy.api.component import Component
 from moptipy.utils.types import type_error
 
 
+# start book
 class FRecord(Record, FitnessRecord):
     """A point `x` in the search space with its quality and fitness."""
 
+# end book
     def __init__(self, x, f: Union[int, float]):
         """
         Create the record.
@@ -90,6 +92,7 @@ class FRecord(Record, FitnessRecord):
         return self.fitness < other.fitness
 
 
+# start book
 class Fitness(Component):
     """The base class for fitness assignment processes."""
 
@@ -102,6 +105,7 @@ class Fitness(Component):
         :param p: the list of :class:`FRecord` instances
         :param random: the random number generator
         """
+# end book
 
 
 def check_fitness(fitness: Fitness) -> Fitness:

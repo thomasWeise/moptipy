@@ -1,6 +1,13 @@
 """
 Selection algorithms are common modules that choose `n` out of `N` objects.
 
+Selection algorithms are modules of the fully-configurable Evolutionary
+Algorithm :class:`~moptipy.algorithms.so.general_ea.GeneralEA`. They can
+utilize fitness values computed by the fitness assignment processes
+(:class:`~moptipy.algorithms.so.fitness.Fitness`). Of course, they can
+also be applied in different contexts and are not bound to single-objective
+optimization.
+
 :class:`~moptipy.algorithms.modules.selection.Selection` is especially
 important in Evolutionary Algorithms
 (`~moptipy.algorithms.so.general_ea.GeneralEA`), where it is used in two
@@ -43,12 +50,14 @@ from moptipy.api.component import Component
 from moptipy.utils.types import type_error
 
 
+# start book
 class FitnessRecord(Protocol):
     """A fitness record stores data together with a fitness."""
 
     #: the fitness value, the only criterion to be used by a selection
     #: algorithm
     fitness: Union[int, float]
+# end book
 
     def __lt__(self, other) -> bool:
         """
@@ -59,6 +68,7 @@ class FitnessRecord(Protocol):
         return self.fitness < other.fitness
 
 
+# start book
 class Selection(Component):
     """The base class for selections algorithms."""
 
@@ -68,24 +78,18 @@ class Selection(Component):
         """
         Select `n` records from `source` and pass them to `dest`.
 
-        When choosing the `n` records from `source` to be appended to `dest`,
-        only the :attr:`~FitnessRecord.fitness` attribute of the records (and
-        the random numbers from `random`) must be used as decision criteria.
-
-        Selection algorithms are modules of the fully-configurable
-        Evolutionary Algorithm
-        :class:`~moptipy.algorithms.so.general_ea.GeneralEA`. They can utilize
-        fitness values computed by the fitness assignment processes
-        (:class:`~moptipy.algorithms.so.fitness.Fitness`). Of course, they can
-        also be applied in different contexts and are not bound to
-        single-objective optimization.
+        When choosing the `n` records from `source` to be passed to
+        `dest`, only the :attr:`~FitnessRecord.fitness` attribute of
+        the records and the random numbers from `random` must be used
+        as decision criteria.
 
         :param source: the list with the records to select from
-        :param dest: the destination collector to invoke for each selected
-            record
+        :param dest: the destination collector to invoke for each
+            selected record
         :param n: the number of records to select
         :param random: the random number generator
         """
+# end book
 
 
 def check_selection(selection: Selection) -> Selection:
