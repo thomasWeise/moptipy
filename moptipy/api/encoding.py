@@ -1,4 +1,27 @@
-"""This module provides the base class for implementing encodings."""
+"""
+This module provides the base class for implementing encodings.
+
+Sometimes, in optimization, the search space and the space of possible
+solutions are different. For example, in the Job Shop Scheduling Problem
+(JSSP), the search operators of the optimization algorithm may process
+permutations with repetitions
+(:class:`~moptipy.spaces.permutations.Permutations`) while the objective
+function rates :class:`~moptipy.examples.jssp.gantt.Gantt` charts. The
+Gantt charts are the solutions that the user wants, but they are harder to
+deal with for search operators. However, we can easily develop search
+operators for permutations and permutations can be mapped to Gantt charts
+(see :class:`~moptipy.examples.jssp.ob_encoding.OperationBasedEncoding`).
+A combination of search space, solution space, and encoding can be configured
+when setting up an experiment :class:`~moptipy.api.execution.Execution`, which
+then takes care of showing the search space to the optimization algorithm
+while providing the objective function and user with the elements of the
+solution spaces.
+
+All encodings inherit from the class :class:`~moptipy.api.encoding.Encoding`.
+If you implement a new such encoding, you may want to test it using the
+pre-defined unit test routine
+:func:`~moptipy.tests.encoding.validate_encoding`.
+"""
 from typing import Optional
 
 from moptipy.api.component import Component

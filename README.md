@@ -1904,6 +1904,25 @@ Here, you can find functions where you pass in instances of your implemented com
 
 We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/tc/index.html).
 
+Examples for the variety of testing tools provided are:
+
+- [`validate_component`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.component.validate_component) checks whether an object is a valid `moptipy` [component](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.component) (which is the base class of all `moptipy` objects).
+  It tests whether the conversion to string yields a valid name without invalid characters and whether [logging](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.component.Component.log_parameters_to) of the component parameters works.
+- [`validate_algorithm`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.algorithm.validate_algorithm) first checks if an [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm) is valid `moptipy` component and then applies it to a (user-provided) example problem.
+  It checks whether this works without exception, whether the computational budget is used correctly, and whether any inconsistencies in the final solution can be detected.
+- [`validate_mo_algorithm`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.mo_algorithm.validate_mo_algorithm) is the [multi-objective](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.mo_algorithm.MOAlgorithm) version of `validate_algorithm`.
+- [`validate_objective`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.objective.validate_objective) checks whether an [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) is implemented consistently, i.e., if its upper and lower bound are valid, if the result of evaluating some random solutions falls within these bounds, if it really only returns integers if it [claims to do so](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective.is_always_integer), if it returns the same objective value for the same solution, and so on.
+- [`validate_encoding`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.encoding.validate_encoding) checks whether an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) is implemented consistently.
+- [`validate_op0`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.op0.validate_op0), [`validate_op1`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.op1.validate_op1), and [`validate_op2`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.op2.validate_op2) check whether [nullary](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op0), [unary](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op1), and [binary](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op2) operators are implemented consistently, respectively.
+- [`validate_space`](https://thomasweise.github.io/moptipy/moptipy.tests.html#moptipy.tests.space.validate_space) checks whether an object is a consistent implementation of a `moptipy` [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
+
+There are also a set of pre-defined objectives, encodings, and spaces that can be used as shortcuts so that you do not need to specify them manually for the different `validate_*` routines.
+You can test elements on
+
+- [bit string](https://thomasweise.github.io/moptipy/moptipy.tests.html#module-moptipy.tests.on_bitstrings)-based problems,
+- [permutation](https://thomasweise.github.io/moptipy/moptipy.tests.html#module-moptipy.tests.on_permutations)-based problems, or on
+- the [JSSP](https://thomasweise.github.io/moptipy/moptipy.tests.html#module-moptipy.tests.on_jssp)
+
 
 ### 8.2. Reproducibility
 

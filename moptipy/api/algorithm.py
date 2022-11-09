@@ -1,4 +1,11 @@
-"""The base classes for implementing optimization algorithms."""
+"""
+The base classes for implementing optimization algorithms.
+
+All optimization algorithms implemented based on the `moptipy` API inherit
+from :class:`~moptipy.api.algorithm.Algorithm`. If you implement a new
+algorithm, you can test with the pre-defined unit test routine
+:func:`~moptipy.tests.algorithm.validate_algorithm`.
+"""
 from typing import Final
 
 from moptipy.api.component import Component

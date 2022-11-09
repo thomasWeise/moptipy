@@ -106,7 +106,7 @@ class EA(Algorithm2):
         :param process: the black-box process object
         """
         mu: Final[int] = self.mu  # mu: number of best solutions kept
-        lst_size: Final[int] = mu + self.lambda_  # size = mu + lambda
+        mu_plus_lambda: Final[int] = mu + self.lambda_  # size
         # Omitted for brevity: store function references in variables
         # end nobinary
         random: Final[Generator] = process.get_random()  # random gen
@@ -125,9 +125,9 @@ class EA(Algorithm2):
             random.random if 0 < br < 1 else _float_0)
         # start nobinary
         # create list of mu random records and lambda empty records
-        lst: Final[List] = [None] * lst_size  # pre-allocate list
+        lst: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
         f: Union[int, float] = 0  # variable to hold objective values
-        for i in range(lst_size):  # fill list of size mu+lambda
+        for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
             if i < mu:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
@@ -139,7 +139,7 @@ class EA(Algorithm2):
         it: int = 0
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step iteration counter
-            for oi in range(mu, lst_size):  # for all lambda offspring
+            for oi in range(mu, mu_plus_lambda):  # for all offspring
                 if should_terminate():  # only continue if we still...
                     return  # have sufficient budget ... otherwise quit
                 dest: Record = lst[oi]  # pick destination record

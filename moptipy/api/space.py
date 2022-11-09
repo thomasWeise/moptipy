@@ -3,7 +3,14 @@ Provide the functionality to access search and solution spaces.
 
 A :class:`Space` is the abstraction of the data structures for solutions and
 points in the search space that need to be generated, copied, and stored
-during the optimization process.
+during the optimization process. This allows us to develop black-box
+algorithms while still being able to properly remember the best solutions,
+storing them as text strings in log files, and to validate whether they are
+correct.
+
+All search or solution spaces in `moptipy` inherit from :class:`Space`. If
+you implement a new space, you should test it with the pre-defined unit test
+routine :func:`~moptipy.tests.space.validate_space`.
 """
 from typing import Optional
 

@@ -63,11 +63,9 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
 
 
-# begin book
 class _Record(FRecord):
     """Same as :class:`FRecord`, but with a secret selection marker."""
 
-# end book
     def __init__(self, x, f: Union[int, float], selected: bool = False):
         """
         Create the record.
@@ -91,10 +89,10 @@ class GeneralEA(EA):
 
         :param process: the black-box process object
         """
+# end book
         mu: Final[int] = self.mu  # mu: number of best solutions kept
         lambda_: Final[int] = self.lambda_
-        lst_size: Final[int] = mu + lambda_  # size = mu + lambda
-# end book
+        mu_plus_lambda: Final[int] = mu + lambda_  # size = mu + lambda
         random: Final[Generator] = process.get_random()  # random gen
         create: Final[Callable] = process.create  # create x container
         evaluate: Final[Callable] = process.evaluate  # the objective
@@ -118,21 +116,22 @@ class GeneralEA(EA):
                           None], self.mating.select)
 # begin book
         # create list of mu random records and lambda empty records
-        recs: Final[List] = [None] * lst_size  # pre-allocate list
+        recs: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
         f: Union[int, float] = 0  # variable to hold objective values
-        for i in range(lst_size):  # fill list of size mu+lambda
+        for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
-            full: bool = i < mu
-            if full:  # only the first mu records are initialized by
+            selected: bool = i < mu
+            if selected:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?
                     return  # computational budget exhausted -> quit
                 f = evaluate(x)  # continue? ok, evaluate new solution
-            recs[i] = _Record(x, f, full)  # create and store record
+            recs[i] = _Record(x, f, selected)  # create and store record
 
         survived: Final[List] = recs[0:mu]
+        assign_fitness(survived, random)
         mating_pool: Final[List] = [None, None]
-        population: Final[List] = [None] * lst_size
+        population: Final[List] = [None] * mu_plus_lambda
 # end book
         # Fast calls
         mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
@@ -180,7 +179,7 @@ class GeneralEA(EA):
                 population_append(dest)  # store in population
 
             # we now need to add the remaining surviving solutions
-            for di in range(di, lst_size):
+            for di in range(di, mu_plus_lambda):
                 other = recs[di]
                 if other._selected:  # only if solution was selected
                     other._selected = False  # set as unselected

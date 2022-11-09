@@ -120,6 +120,11 @@ class _IntFFA1(FFA):
                 min_it = it
             if it > max_it:  # update maximum iteration index
                 max_it = it
+        if max_it <= 0:  # in the first iteration, all elements get the
+            for r in p:  # same fitness: 0
+                r.fitness = 0
+            return
+        for r in p:
             h[r.f] += 1  # type: ignore
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
@@ -169,6 +174,11 @@ class _IntFFA2(FFA):
                 min_it = it
             if it > max_it:  # update maximum iteration index
                 max_it = it
+        if max_it <= 0:  # in the first iteration, all elements get the
+            for r in p:  # same fitness: 0
+                r.fitness = 0
+            return
+        for r in p:
             h[r.f - lb] += 1  # type: ignore
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
@@ -215,6 +225,11 @@ class _DictFFA(FFA):
                 min_it = it
             if it > max_it:  # update maximum iteration index
                 max_it = it
+        if max_it <= 0:  # in the first iteration, all elements get the
+            for r in p:  # same fitness: 0
+                r.fitness = 0
+            return
+        for r in p:
             h[r.f] += 1
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:

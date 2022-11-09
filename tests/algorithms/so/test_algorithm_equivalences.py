@@ -88,6 +88,9 @@ class __EAC(EA):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             lst[i] = Record(x, f)  # create and store record
 
+        # fix sorting
+        lst[0:mu] = sorted(lst[0:mu], key=lambda r: (r.f, -r.it))
+
         it: int = 0
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step iteration counter

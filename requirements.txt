@@ -4,13 +4,13 @@
 numpy >= 1.23.4
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba >= 0.56.3
+numba >= 0.56.4
 
 # matplotlib is used to create plots in the evaluation procedures
-matplotlib >= 3.6.1
+matplotlib >= 3.6.2
 
 # getting information about the system configuration to enrich the log files
-psutil >= 5.9.3
+psutil >= 5.9.4
 
 # we need this to obtain some clusters of JSSP instances for our experiments
 scikit-learn >= 1.1.3

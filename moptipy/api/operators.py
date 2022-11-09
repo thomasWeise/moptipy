@@ -1,4 +1,24 @@
-"""The base classes for implementing search operators."""
+"""
+The base classes for implementing search operators.
+
+Nullary search operators are used to sample the initial starting points of the
+optimization processes. They inherit from class
+:class:`~moptipy.api.operators.Op0`. The pre-defined unit test routine
+:func:`~moptipy.tests.op0.validate_op0` can and should be used to test all the
+nullary operators that are implemented.
+
+Unary search operators accept one point in the search space as input and
+generate a new, similar point as output. They inherit from class
+:class:`~moptipy.api.operators.Op1`. The pre-defined unit test routine
+:func:`~moptipy.tests.op1.validate_op1` can and should be used to test all the
+unary operators that are implemented.
+
+Binary search operators accept two points in the search space as input and
+generate a new point that should be similar to both inputs as output. They
+inherit from class :class:`~moptipy.api.operators.Op2`. The pre-defined unit
+test routine :func:`~moptipy.tests.op2.validate_op2` can and should be used to
+test all the binary operators that are implemented.
+"""
 from numpy.random import Generator
 
 from moptipy.api.component import Component

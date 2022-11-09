@@ -1,4 +1,11 @@
-"""Provides the base class for all components of the moptipy API."""
+"""
+Provides the base class for all components of the moptipy API.
+
+All elements of the `moptipy` API inherit from
+:class:`~moptipy.api.component.Component`. If you implement a new such
+component, you can test it using the pre-defined unit test routine
+:func:`~moptipy.tests.component.validate_component`.
+"""
 from typing import Final
 
 from moptipy.api import logging

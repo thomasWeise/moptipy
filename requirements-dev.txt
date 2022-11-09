@@ -11,7 +11,7 @@ wheel >= 0.37.1
 
 # sphinx is needed for generating the documentation.
 sphinx >= 5.3.0
-sphinx-autodoc-typehints >= 1.19.4
+sphinx-autodoc-typehints >= 1.19.5
 # myst-parser is needed for including README.md into the documentation
 myst-parser >= 0.18.1
 
@@ -21,14 +21,14 @@ coverage >= 6.5.0
 coverage-badge >= 1.1.0
 dodgy >= 0.2.1
 flake8 >= 5.0.4
-mypy >= 0.982
+mypy >= 0.990
 pydocstyle >= 6.1.1
 pyflakes >= 2.5.0
 pylint >= 2.15.5
 pyroma >= 4.0
-semgrep >= 0.118.0
+semgrep >= 0.121.1
 tryceratops >= 1.1.0
-unimport >= 0.12.1
+unimport >= 0.12.2
 vulture >= 2.6
 
 # yaml is used only in tests and examples and therefore not strictly needed.

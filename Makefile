@@ -71,7 +71,7 @@ static_analysis: init
 	echo "$(NOW): Finished running flake8, now applying pylint to package." &&\
 	pylint moptipy --disable=C0103,C0302,C0325,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
 	echo "$(NOW): Done with pylint, now trying mypy." &&\
-	mypy moptipy --no-strict-optional &&\
+	mypy moptipy --no-strict-optional --check-untyped-defs &&\
 	echo "$(NOW): Done with mypy, now doing pyflakes." &&\
 	python3 -m pyflakes . &&\
 	echo "$(NOW): Done with pyflakes, now applying bandit to find security issues." &&\

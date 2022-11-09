@@ -1,4 +1,13 @@
-"""This module provides the class for implementing objective functions."""
+"""
+This module provides the class for implementing objective functions.
+
+An objective function evaluates the quality of a candidate solution of an
+optimization problem. Solutions with smaller objective values are better,
+i.e., objective functions are subject to minimization. All objective
+functions inherit from :class:`~moptipy.api.objective.Objective`. If you
+implement a new objective function, you can test it via the pre-defined unit
+test routine :func:`~moptipy.tests.objective.validate_objective`.
+"""
 from math import inf, isfinite
 from typing import Union
 

@@ -389,7 +389,7 @@ class CsvLogSection(LogSection):
 
         # noinspection PyProtectedMember
         txt = [str(c) if isinstance(c, int)
-               else bool_to_str(c) if isinstance(c, bool)
+               else bool_to_str(c) if isinstance(c, bool)  # type: ignore
                else (float_to_str(c) if isinstance(c, float) else
                cast(None, self._logger._error(
                    f"Invalid log value {c} in row {row}")))
