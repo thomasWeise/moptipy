@@ -79,7 +79,7 @@ class _Record(FRecord):
         self._selected: bool = selected
 
 
-# begin book
+# start book
 class GeneralEA(EA):
     """The fully customizable (mu+lambda) EA."""
 
@@ -89,6 +89,7 @@ class GeneralEA(EA):
 
         :param process: the black-box process object
         """
+        # the initialization of variables is omitted for brevety
 # end book
         mu: Final[int] = self.mu  # mu: number of best solutions kept
         lambda_: Final[int] = self.lambda_
@@ -114,7 +115,7 @@ class GeneralEA(EA):
             [List[FRecord], Callable, int, Generator], None]] = \
             cast(Callable[[List[FRecord], Callable, int, Generator],
                           None], self.mating.select)
-# begin book
+# start book
         # create list of mu random records and lambda empty records
         recs: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
         f: Union[int, float] = 0  # variable to hold objective values
@@ -128,10 +129,10 @@ class GeneralEA(EA):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             recs[i] = _Record(x, f, selected)  # create and store record
 
-        survived: Final[List] = recs[0:mu]
-        assign_fitness(survived, random)
-        mating_pool: Final[List] = [None, None]
-        population: Final[List] = [None] * mu_plus_lambda
+        survived: Final[List] = recs[0:mu]  # survival selection result
+        assign_fitness(survived, random)  # assign fitness first time
+        mating_pool: Final[List] = [None, None]  # mating pool: length 2
+        population: Final[List] = [None] * mu_plus_lambda  # whole
 # end book
         # Fast calls
         mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
@@ -143,7 +144,7 @@ class GeneralEA(EA):
         population_clear: Final[Callable[[], None]] = population.clear
         population_append: Final[Callable[[_Record], None]] = \
             cast(Callable[[_Record], None], population.append)
-# begin book
+# start book
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step the iteration counter
