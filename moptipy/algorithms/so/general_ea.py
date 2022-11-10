@@ -131,7 +131,7 @@ class GeneralEA(EA):
         f: Union[int, float] = 0  # variable to hold objective values
         for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
-            selected: bool = i < mu
+            selected: bool = i < mu  # only fully create first mu recs
             if selected:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?  # -book
@@ -148,7 +148,7 @@ class GeneralEA(EA):
 # start book
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
-            it += 1  # step the iteration counter
+            it = it + 1  # step the iteration counter
             population_clear()  # clear population
 
             di = 0  # set index of next potential destination
@@ -178,8 +178,8 @@ class GeneralEA(EA):
                 dest.f = evaluate(x)  # evaluate new point
                 population_append(dest)  # store in population
 
-            # add the remaining surviving/selected solutions
-            # omitted for brevity in the book
+            # add remaining selected solutions from recs to population
+            # from index di to mu+lambda ... omitted for brevity in book
             # end book
             for di in range(di, mu_plus_lambda):
                 other = recs[di]
