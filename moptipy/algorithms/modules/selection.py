@@ -57,6 +57,7 @@ class FitnessRecord(Protocol):
     #: the fitness value, the only criterion to be used by a selection
     #: algorithm (besides random numbers)
     fitness: Union[int, float]
+# end book
 
     def __lt__(self, other) -> bool:
         """
@@ -65,6 +66,7 @@ class FitnessRecord(Protocol):
         :param other: the other fitness record
         """
         return self.fitness < other.fitness
+# start book
 
 
 class Selection(Component):
