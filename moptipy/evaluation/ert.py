@@ -289,7 +289,7 @@ class Ert(MultiRun2DData):
         :param use_default_lower_bounds: should we use the default lower
             bounds
         :param consumer: the destination to which the new records will be
-            passed
+            passed, can be the `append` method of a :class:`list`
         :param join_all_algorithms: should the Ert be aggregated over all
             algorithms
         :param join_all_instances: should the Ert be aggregated over all

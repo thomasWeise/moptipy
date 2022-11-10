@@ -464,7 +464,7 @@ class StatRun(MultiRun2DData):
         :param source: the stream of progress data
         :param statistics: the statistics that should be computed per group
         :param consumer: the destination to which the new stat runs will be
-            passed
+            passed, can be the `append` method of a :class:`list`
         :param join_all_algorithms: should the statistics be aggregated
             over all algorithms
         :param join_all_instances: should the statistics be aggregated

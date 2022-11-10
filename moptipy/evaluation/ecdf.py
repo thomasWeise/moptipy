@@ -326,7 +326,7 @@ class Ecdf(MultiRun2DData):
         :param source: the set of progress instances
         :param f_goal: one or multiple goal values
         :param consumer: the destination to which the new records will be
-            passed
+            passed, can be the `append` method of a :class:`list`
         :param join_all_algorithms: should the Ert-Ecdf be aggregated over all
             algorithms
         """

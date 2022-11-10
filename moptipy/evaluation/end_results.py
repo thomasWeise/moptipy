@@ -316,7 +316,7 @@ class EndResult(PerRunData):
         is parsed recursively for each log file found, one record is passed to
         the `consumer`. As `consumer`, you could pass any `callable` that
         accepts instances of :class:`EndResult`, e.g., the `append` method of
-        a list.
+        a :class:`list`.
 
         :param path: the path to parse
         :param consumer: the consumer
@@ -363,7 +363,8 @@ class EndResult(PerRunData):
         Parse a given CSV file to get :class:`EndResult` Records.
 
         :param file: the path to parse
-        :param consumer: the collector
+        :param consumer: the collector, can be the `append` method of a
+            :class:`list`
         :param filterer: an optional filter function
         """
         if not callable(consumer):

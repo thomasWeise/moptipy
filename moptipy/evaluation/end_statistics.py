@@ -575,7 +575,8 @@ class EndStatistics(MultiRunData):
         Aggregate statistics over a stream of end results.
 
         :param source: the stream of end results
-        :param consumer: the destination to which the new records will be sent
+        :param consumer: the destination to which the new records will be
+            sent, can be the `append` method of a :class:`list`
         :param join_all_algorithms: should the statistics be aggregated
             over all algorithms
         :param join_all_instances: should the statistics be aggregated
@@ -863,7 +864,8 @@ class EndStatistics(MultiRunData):
 
         :param file: the file to parse
         :param consumer: the consumer to receive all the parsed instances of
-            :class:`~moptipy.evaluation.end_statistics.EndStatistics`.
+            :class:`~moptipy.evaluation.end_statistics.EndStatistics`, can be
+            the `append` method of a :class:`list`
         """
         path: Final[Path] = Path.file(file)
         logger(f"Begin reading end result statistics from CSV file '{path}'.")

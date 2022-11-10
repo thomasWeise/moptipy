@@ -156,10 +156,11 @@ class Progress(PerRunData):
         the `collector`. If `path` identifies a directory, then this directory
         is parsed recursively for each log file found, one record is passed to
         the `consumer`. The `consumer` is simply a callable function. You could
-        pass in a list's `append` method.
+        pass in the `append` method of a :class:`list`.
 
         :param path: the path to parse
-        :param consumer: the consumer
+        :param consumer: the consumer, can be the `append` method of a
+            :class:`list`
         :param time_unit: the time unit
         :param f_name: the objective name
         :param f_standard: a dictionary mapping instances to standard values

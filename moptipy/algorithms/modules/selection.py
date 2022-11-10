@@ -55,9 +55,8 @@ class FitnessRecord(Protocol):
     """A fitness record stores data together with a fitness."""
 
     #: the fitness value, the only criterion to be used by a selection
-    #: algorithm
+    #: algorithm (besides random numbers)
     fitness: Union[int, float]
-# end book
 
     def __lt__(self, other) -> bool:
         """
@@ -66,7 +65,6 @@ class FitnessRecord(Protocol):
         :param other: the other fitness record
         """
         return self.fitness < other.fitness
-# start book
 
 
 class Selection(Component):
@@ -84,8 +82,8 @@ class Selection(Component):
         as decision criteria.
 
         :param source: the list with the records to select from
-        :param dest: the destination collector to invoke for each
-            selected record
+        :param dest: the destination collector Callable to invoke for
+            each selected record, can be :class:`list`.`append`.
         :param n: the number of records to select
         :param random: the random number generator
         """
