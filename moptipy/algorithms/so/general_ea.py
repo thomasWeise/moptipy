@@ -89,7 +89,7 @@ class GeneralEA(EA):
 
         :param process: the black-box process object
         """
-        # the initialization of variables is omitted for brevety
+        # the initialization of variables is omitted for brevity
 # end book
         mu: Final[int] = self.mu  # mu: number of best solutions kept
         lambda_: Final[int] = self.lambda_
@@ -107,54 +107,54 @@ class GeneralEA(EA):
             random.random if 0 < br < 1 else _float_0)
         assign_fitness: Final[Callable[[List[FRecord], Generator], None]] = \
             self.fitness.assign_fitness
-        survival: Final[Callable[
+        survival_selection: Final[Callable[
             [List[FRecord], Callable, int, Generator], None]] = \
             cast(Callable[[List[FRecord], Callable, int, Generator],
                           None], self.survival.select)
-        mating: Final[Callable[
+        mating_selection: Final[Callable[
             [List[FRecord], Callable, int, Generator], None]] = \
             cast(Callable[[List[FRecord], Callable, int, Generator],
                           None], self.mating.select)
+
+        recs: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
+        mating_pool: Final[List] = [None, None]  # mating pool: length 2
+        population: Final[List] = [None] * mu_plus_lambda  # whole
+        # Fast calls
+        mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
+        mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
+            cast(Callable[[FitnessRecord], None], mating_pool.append)
+        population_clear: Final[Callable[[], None]] = population.clear
+        population_append: Final[Callable[[_Record], None]] = \
+            cast(Callable[[_Record], None], population.append)
 # start book
         # create list of mu random records and lambda empty records
-        recs: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
         f: Union[int, float] = 0  # variable to hold objective values
         for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
             selected: bool = i < mu
             if selected:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
-                if should_terminate():  # should we quit?
-                    return  # computational budget exhausted -> quit
+                if should_terminate():  # should we quit?  # -book
+                    return  # computational budget exhausted -> quit  # -book
                 f = evaluate(x)  # continue? ok, evaluate new solution
             recs[i] = _Record(x, f, selected)  # create and store record
 
         survived: Final[List] = recs[0:mu]  # survival selection result
         assign_fitness(survived, random)  # assign fitness first time
-        mating_pool: Final[List] = [None, None]  # mating pool: length 2
-        population: Final[List] = [None] * mu_plus_lambda  # whole
 # end book
-        # Fast calls
-        mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
-        mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
-            cast(Callable[[FitnessRecord], None], mating_pool.append)
         survived_clear: Final[Callable[[], None]] = survived.clear
         survived_append: Final[Callable[[FitnessRecord], None]] = \
             cast(Callable[[FitnessRecord], None], survived.append)
-        population_clear: Final[Callable[[], None]] = population.clear
-        population_append: Final[Callable[[_Record], None]] = \
-            cast(Callable[[_Record], None], population.append)
 # start book
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step the iteration counter
-            population_clear()  # clear next population
+            population_clear()  # clear population
 
             di = 0  # set index of next potential destination
             for _ in range(lambda_):  # for all lambda offspring
-                if should_terminate():  # only continue if we still...
-                    return  # have sufficient budget ... otherwise quit
-
+                if should_terminate():  # only continue if we still... # -book
+                    return  # ...have sufficient budget # -book
                 while True:  # get the next non-selected record
                     dest = recs[di]  # get the record
                     di = di + 1  # step counter
@@ -162,15 +162,14 @@ class GeneralEA(EA):
                         dest._selected = False  # mark it as unselected
                         population_append(dest)  # store in population
                         continue  # try next record
-                    break  # use the record as destination
+                    break  # use the (unselected) record as destination
 
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
-
-                do_binary = r01() < br  # will we do binary operation?
+                do_binary: bool = r01() < br  # will we do binary operation?
                 mating_pool_clear()  # clear mating pool: room for 2
-                mating(survived, mating_pool_append,
-                       2 if do_binary else 1, random)
+                mating_selection(survived, mating_pool_append,
+                                 2 if do_binary else 1, random)
 
                 if do_binary:  # binary operation (with p == br)
                     op2(random, x, mating_pool[0].x, mating_pool[1].x)
@@ -179,16 +178,18 @@ class GeneralEA(EA):
                 dest.f = evaluate(x)  # evaluate new point
                 population_append(dest)  # store in population
 
-            # we now need to add the remaining surviving solutions
+            # add the remaining surviving/selected solutions
+            # omitted for brevity in the book
+            # end book
             for di in range(di, mu_plus_lambda):
                 other = recs[di]
                 if other._selected:  # only if solution was selected
                     other._selected = False  # set as unselected
                     population_append(other)  # put into population
-
+            # start book
             assign_fitness(population, random)  # assign fitness
             survived_clear()  # clear list of survived records
-            survival(population, survived_append, mu, random)
+            survival_selection(population, survived_append, mu, random)
             for rec in survived:  # mark all selected solutions as
                 rec._selected = True  # selected
 # end book
