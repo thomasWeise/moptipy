@@ -17,15 +17,37 @@ class Rank(Fitness):
 
         :param p: the list of records
         :param random: ignored
+
+        >>> l = [FRecord(0, 10), FRecord(1, 5), FRecord(2, 5), FRecord(3, -1)]
+        >>> from numpy.random import default_rng
+        >>> Rank().assign_fitness(l, default_rng())
+        >>> l[0].x
+        3
+        >>> l[0].fitness
+        1
+        >>> l[1].x
+        1
+        >>> l[1].fitness
+        2
+        >>> l[2].x
+        2
+        >>> l[2].fitness
+        2
+        >>> l[3].x
+        0
+        >>> l[3].fitness
+        4
         """
+        for rec in p:
+            rec.fitness = rec.f  # set f as fitness for sorting
         p.sort()  # sort based on objective values
 
         rank: int = -1  # the rank counter
         last_f: Union[int, float] = -inf
-        for rec in p:
+        for i, rec in enumerate(p):
             v = rec.fitness
             if v > last_f:  # if fitness differs, step rank
-                rank = rank + 1
+                rank = i + 1  # smallest rank = 1
                 last_f = v
             rec.fitness = rank
 

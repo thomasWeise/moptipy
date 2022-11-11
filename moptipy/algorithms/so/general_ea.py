@@ -117,12 +117,12 @@ class GeneralEA(EA):
                           None], self.mating.select)
 
         recs: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
-        mating_pool: Final[List] = [None, None]  # mating pool: length 2
+        parents: Final[List] = [None, None]  # mating pool: length 2
         population: Final[List] = [None] * mu_plus_lambda  # whole
         # Fast calls
-        mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
-        mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
-            cast(Callable[[FitnessRecord], None], mating_pool.append)
+        parents_clear: Final[Callable[[], None]] = parents.clear
+        parents_append: Final[Callable[[FitnessRecord], None]] = \
+            cast(Callable[[FitnessRecord], None], parents.append)
         population_clear: Final[Callable[[], None]] = population.clear
         population_append: Final[Callable[[_Record], None]] = \
             cast(Callable[[_Record], None], population.append)
@@ -139,12 +139,12 @@ class GeneralEA(EA):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             recs[i] = _Record(x, f, selected)  # create and store record
 
-        survived: Final[List] = recs[0:mu]  # survival selection result
-        assign_fitness(survived, random)  # assign fitness first time
+        mating_pool: Final[List] = recs[0:mu]  # the selection survivers
+        assign_fitness(mating_pool, random)  # assign fitness first time
 # end book
-        survived_clear: Final[Callable[[], None]] = survived.clear
-        survived_append: Final[Callable[[FitnessRecord], None]] = \
-            cast(Callable[[FitnessRecord], None], survived.append)
+        mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
+        mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
+            cast(Callable[[FitnessRecord], None], mating_pool.append)
 # start book
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
@@ -167,14 +167,14 @@ class GeneralEA(EA):
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
                 do_binary: bool = r01() < br  # will we do binary operation?
-                mating_pool_clear()  # clear mating pool: room for 2
-                mating_selection(survived, mating_pool_append,
+                parents_clear()  # clear mating pool: room for 2
+                mating_selection(mating_pool, parents_append,
                                  2 if do_binary else 1, random)
 
                 if do_binary:  # binary operation (with p == br)
-                    op2(random, x, mating_pool[0].x, mating_pool[1].x)
+                    op2(random, x, parents[0].x, parents[1].x)
                 else:  # unary operation otherwise
-                    op1(random, x, mating_pool[0].x)  # apply unary op
+                    op1(random, x, parents[0].x)  # apply unary op
                 dest.f = evaluate(x)  # evaluate new point
                 population_append(dest)  # store in population
 
@@ -188,9 +188,9 @@ class GeneralEA(EA):
                     population_append(other)  # put into population
             # start book
             assign_fitness(population, random)  # assign fitness
-            survived_clear()  # clear list of survived records
-            survival_selection(population, survived_append, mu, random)
-            for rec in survived:  # mark all selected solutions as
+            mating_pool_clear()  # clear list of survived records
+            survival_selection(population, mating_pool_append, mu, random)
+            for rec in mating_pool:  # mark all selected solutions as
                 rec._selected = True  # selected
 # end book
 
