@@ -42,9 +42,11 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
 
 
+# start book
 class Tournament(Selection):
     """Tournament selection with or without replacement in the tournament."""
 
+# end book
     def __init__(self, s: int = 2, replacement: bool = True) -> None:
         """
         Create the tournament selection method.
@@ -64,6 +66,7 @@ class Tournament(Selection):
         #: should we perform replacements in the tournaments?
         self.replacement: Final[bool] = replacement
 
+# start book
     def select(self, source: List[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
@@ -76,27 +79,28 @@ class Tournament(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        # set up constants
+        # set up tournament size=s, source length=m, replacement
+        # such initialization is omitted for the sake of brevity
+        # end book
         s: Final[int] = self.s
-        r: Final[bool] = self.replacement
-        l: Final[int] = len(source)
+        replacement: Final[bool] = self.replacement
+        m: Final[int] = len(source)
 
         # fast call
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
             cast(Callable[[int, int, bool], Iterable[int]], random.choice)
-
+        # start book
         for _ in range(n):  # conduct n tournaments
             best: Optional[FitnessRecord] = None  # best competitor
             best_fitness: Union[int, float] = inf  # best fitness
-
-            for i in choice(l, s, r):  # perform single tournament
+            for i in choice(m, s, replacement):  # perform tournament
                 rec = source[i]  # get record from source
                 rec_fitness = rec.fitness  # get its fitness
-                if rec_fitness <= best_fitness:  # if it is better or equal...
+                if rec_fitness <= best_fitness:  # if better or equal...
                     best = rec  # ... rec becomes the new best record
-                    best_fitness = rec_fitness  # and we remember its fitness
-
+                    best_fitness = rec_fitness  # and remember fitness
             dest(best)  # at end of the tournament, store best in dest
+        # end book
 
     def __str__(self):
         """

@@ -180,7 +180,8 @@ from moptipy.utils.logger import KeyValueLogSection
 
 
 @numba.njit(nogil=True, cache=True)
-def _create_wheel(a: np.ndarray, offset_mul: float) -> None:
+# start book
+def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
     """
     Compute the roulette wheel based on a given offset multiplier.
 
@@ -193,60 +194,54 @@ def _create_wheel(a: np.ndarray, offset_mul: float) -> None:
 
     >>> import numpy as nn
     >>> ar = nn.array([1, 2, 3, 4], float)
-    >>> _create_wheel(ar, 0)
+    >>> _make_cum_sum(ar, 0)
     >>> list(map(str, ar))
     ['3.0', '5.0', '6.0', '6.0']
     >>> ar = nn.array([1, 2, 3, 4], float)
     >>> min_prob = 0.01
     >>> offset_mult = (min_prob / (1.0 - (min_prob * len(ar))))
-    >>> _create_wheel(ar, offset_mult)
+    >>> _make_cum_sum(ar, offset_mult)
     >>> list(map(str, ar))
     ['3.0625', '5.125', '6.1875', '6.25']
     >>> (ar[-1] - ar[-2]) / ar[-1]  # compute prob of 4 being selected
     0.01
     >>> ar.fill(12)
-    >>> _create_wheel(ar, 0.01)
+    >>> _make_cum_sum(ar, 0.01)
     >>> list(map(str, ar))
-    ['0.25', '0.5', '0.75', '1.0']
+    ['1.0', '2.0', '3.0', '4.0']
     """
-    # get the minimum and maximum fitness and negate the array
     max_fitness: float = -np.inf
     min_fitness: float = np.inf
-    for v in a:
+    for v in a:  # get minimum nd maximum fitness
         if v > max_fitness:
             max_fitness = v
         if v < min_fitness:
             min_fitness = v
 
-    # handle the special case where all elements are the same
-    if min_fitness >= max_fitness:
-        # If all elements are the same, they should be selected
-        # with equal probability.
-        # Therefore, the array should be filled with values increasing
-        # by 1/l.
-        ll: Final[int] = len(a)
-        for i in range(ll):
-            a[i] = (i + 1.0) / ll
-        return
+    if min_fitness >= max_fitness:  # all elements are the same
+        for i in range(len(a)):  # pylint: disable=C0200
+            a[i] = i + 1  # assign equal probability
+        return  # to all elements: each range = 1
 
-    for i, v in enumerate(a):
+    for i, v in enumerate(a):  # negate the array for minimization
         a[i] = max_fitness - a[i]
 
-    # get the new fitness sum
-    fitness_sum: Final[float] = a.sum()
+    fitness_sum: Final[float] = a.sum()  # get the new fitness sum
 
     # compute the offset to accommodate the probability adjustment
     offset: Final[float] = fitness_sum * offset_mul
 
-    # compute the scaled cumulative sum
     cum_sum: float = 0.0
-    for i, v in enumerate(a):
+    for i, v in enumerate(a):  # compute the scaled cumulative sum
         a[i] = cum_sum = cum_sum + offset + a[i]
+# end book
 
 
+# start book
 class FitnessProportionateSUS(Selection):
     """Fitness Proportionate Selection with Stochastic Universal Sampling."""
 
+# end book
     def __init__(self, min_prob: float = 0.0) -> None:
         """
         Create the stochastic universal sampling method.
@@ -264,6 +259,7 @@ class FitnessProportionateSUS(Selection):
         #: the array to store the cumulative sum
         self.__cumsum: np.ndarray = np.empty(0, DEFAULT_FLOAT)
 
+# start book
     def select(self, source: List[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
@@ -276,42 +272,38 @@ class FitnessProportionateSUS(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        l: Final[int] = len(source)
-
+        m: Final[int] = len(source)
         # compute the offset multiplier from the minimum probability
-        # for this, min_prob must be < 1 / l
+        # for this, min_prob must be < 1 / m
         min_prob: Final[float] = self.min_prob
-        if min_prob >= (1.0 / l):
-            raise ValueError(f"min_prob={min_prob} >= {1 / l}!")
-        offset_mul: Final[float] = (min_prob / (1.0 - (min_prob * l)))
+        if min_prob >= (1.0 / m):  # -book
+            raise ValueError(f"min_prob={min_prob} >= {1 / m}!")  # -book
+        offset_mul: Final[float] = (min_prob / (1.0 - (min_prob * m)))
+        # end book
         if (offset_mul < 0.0) or (not isfinite(offset_mul)):
             raise ValueError(
-                f"min_prob={min_prob}, len={l} => offset_mul={offset_mul}")
+                f"min_prob={min_prob}, len={m} => offset_mul={offset_mul}")
 
-        a: np.ndarray = self.__cumsum  # get the array for the cumulative sum
-        if len(a) != l:  # re-allocate only if lengths don't match
-            self.__cumsum = a = np.empty(l, DEFAULT_FLOAT)
-
-        #: flush the fitnesses to the numpy array
+        # start book
+        a: np.ndarray = self.__cumsum  # get array for cumulative sum
+        # end book
+        if len(a) != m:  # re-allocate only if lengths don't match
+            self.__cumsum = a = np.empty(m, DEFAULT_FLOAT)
+        # start book
         for i, rec in enumerate(source):
-            a[i] = rec.fitness
+            a[i] = rec.fitness  # store the fitnesses in the numpy array
 
-        # create the roulette wheel of cumulative sum values
-        # and get the total cumulative sum
-        _create_wheel(a, offset_mul)  # invoke the numba optimized function
-        cum_sum: Final[float] = a[-1]  # cumulative sum = last element of `a`
+        _make_cum_sum(a, offset_mul)  # construct cumulative sum array
+        cum_sum: Final[float] = a[-1]  # cumulative sum = last element
 
-        # now perform the stochastic uniform sampling:
-        # pick a starting point in [0, cum_sum)
-        current: float = random.uniform(0, cum_sum)
-        # and step in `n` equally-sized steps through the array
-        step_width: Final[float] = cum_sum / n
+        # stochastic uniform sampling
+        current: float = random.uniform(0, cum_sum)  # starting point
+        step_width: Final[float] = cum_sum / n  # step width
 
-        for _ in range(n):  # perform the `n` steps
-            # get the solution at this point of the wheel
-            dest(source[a.searchsorted(current, "right")])
-            # compute the next point
-            current = (current + step_width) % cum_sum
+        for _ in range(n):  # select the `n` solutions
+            dest(source[a.searchsorted(current, "right")])  # select
+            current = (current + step_width) % cum_sum  # get next point
+# end book
 
     def __str__(self):
         """

@@ -12,6 +12,7 @@ from numpy.random import Generator
 from moptipy.algorithms.modules.selection import Selection, FitnessRecord
 
 
+# start book
 class RandomWithoutReplacement(Selection):
     """Select random elements without replacement."""
 
@@ -27,19 +28,20 @@ class RandomWithoutReplacement(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        source_len: Final[int] = len(source)
-        if n == 1:
-            dest(source[random.integers(source_len)])
-        elif n == 2:
-            ri = random.integers
-            a = b = ri(source_len)
-            while a == b:
-                b = ri(source_len)
-            dest(source[a])
-            dest(source[b])
-        else:
-            for i in random.choice(source_len, n, False):
-                dest(source[i])
+        m: Final[int] = len(source)
+        if n == 1:  # handle n=1 exactly as in (mu+lambda) EA
+            dest(source[random.integers(m)])  # pick 1 solution randomly
+        elif n == 2:  # handle n=2 exactly as in (mu+lambda) EA
+            ri = random.integers  # fast call
+            a = b = ri(m)  # get first random index
+            while a == b:  # find a second, different random index
+                b = ri(m)
+            dest(source[a])  # send first solution to dest
+            dest(source[b])  # send second solution to dest
+        else:  # handle other cases: n ints from 0..m-1 w/o replacement
+            for i in random.choice(m, n, False):  # get the ints
+                dest(source[i])  # send randomly chosen records to dest
+# end book
 
     def __str__(self):
         """

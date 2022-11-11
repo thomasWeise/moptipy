@@ -8,6 +8,7 @@ from numpy.random import Generator
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 
 
+# start book
 class Rank(Fitness):
     """A fitness computing the rank of an individual based on its quality."""
 
@@ -38,18 +39,19 @@ class Rank(Fitness):
         >>> l[3].fitness
         4
         """
-        for rec in p:
-            rec.fitness = rec.f  # set f as fitness for sorting
+        for rec in p:  # first copy rec.f to rec.fitness
+            rec.fitness = rec.f  # because then we can easily sort
         p.sort()  # sort based on objective values
 
         rank: int = -1  # the rank counter
-        last_f: Union[int, float] = -inf
+        last_fitness: Union[int, float] = -inf
         for i, rec in enumerate(p):
             v = rec.fitness
-            if v > last_f:  # if fitness differs, step rank
-                rank = i + 1  # smallest rank = 1
-                last_f = v
-            rec.fitness = rank
+            if v > last_fitness:  # if fitness differs, step rank
+                rank = i + 1  # +1 so smallest-possible rank is 1
+                last_fitness = v
+            rec.fitness = rank  # assign the rank
+# end book
 
     def __str__(self):
         """

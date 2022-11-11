@@ -754,7 +754,7 @@ The philosophy of our log files are:
    And so on.
 2. Each log file contains all information needed to fully understand the algorithm run, such as
    1. The results in numerical form, e.g., the [best achieved objective value](#5122-the-section-state).
-   2. The result in textual form, e.g., the textual representation of the [best solution discovered](#5125-the-result_-sections)
+   2. The result in textual form, e.g., the textual representation of the [best solution discovered](#5125-the-result-sections)
       This allows us to later load, use, or validate the result.
    3. The [random seed](#5123-the-section-setup) used.
    4. The [termination criteria](#5123-the-section-setup) used, i.e., the maximum objective function evaluations or the maximum runtime or the goal objective value.
@@ -764,7 +764,7 @@ The philosophy of our log files are:
       This makes sure that we know which problem instance did we solve.
    7. The [system configuration](#5124-the-section-sys_info), such as the CPU nd operating system and Python version and [library versions](#5124-the-section-sys_info).
       We need to this to understand and reproduce time-dependent measures or to understand situations where changes in the underlying system configuration may have led to different results.
-   8. [Errors](#5126-the-error_-sections), if any occurred.
+   8. [Errors](#5126-the-error-sections), if any occurred.
       We can guard against errors using [unit tests](#81-unit-tests), but it may still happen that a run of the optimization algorithm crashed.
       Our system tries to catch as detailed error information as possible and store it in the log files in order to allow us to figure out what went wrong.
    9. The [progress](#5121-the-section-progress) that the algorithm made over time, if capturing this information [was demanded](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements).
@@ -810,7 +810,7 @@ There are three types of sections:
 - *[Raw text](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.TextSection)* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
   Obviously, such raw text cannot contain things such as section delimiters or other reserved keywords.
   Apart from that, basically any type of data may be stored there.
-  This is useful for, for instance, storing the [final solutions](#5125-the-result_-sections) of runs or [exceptions caught during the runs](#5126-the-error_-sections).
+  This is useful for, for instance, storing the [final solutions](#5125-the-result-sections) of runs or [exceptions caught during the runs](#5126-the-error-sections).
 
 In all the above sections, all the character `#` is removed from output.
 The character `#` indicates a starting comment and can only be written by the routines dedicated to produce comments.
@@ -826,7 +826,7 @@ If you really log all algorithm steps, then your log files will become quite lar
 In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa/) book, for example, we can do several million objective function evaluations (FEs) within the two minutes of runtime granted to each run.
 This then would equate to several millions of lines in the `PROGRESS` section of each log file.
 So normally you would rather only log the improving moves, which would normally be between a few ten to a few thousand of lines, which is usually acceptable.
-Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#5122-the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the [`RESULT_*` sections](#5125-the-result_-sections) with the best encountered candidate solution and point in the search space as well as the [`SETUP`](#5123-the-section-setup) and [`SYS_INFO`](#5124-the-section-sys_info) still will be included in the log files.
+Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#5122-the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the [`RESULT_*` sections](#5125-the-result-sections) with the best encountered candidate solution and point in the search space as well as the [`SETUP`](#5123-the-section-setup) and [`SYS_INFO`](#5124-the-section-sys_info) still will be included in the log files.
 
 The `PROGRESS` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
 It has an internal header describing the data columns.
@@ -922,7 +922,7 @@ It holds key-value pairs describing features of the machine on which the experim
 This includes information about the CPU, the operating system, the Python installation, as well as the version information of packages used by moptipy.
 
 
-##### 5.1.2.5 The `RESULT_` Sections
+##### 5.1.2.5 The `RESULT` Sections
 
 The textual representation of the best encountered solution (whose objective value is noted as `bestF` in section `STATE`) is stored in the section `RESULT_Y`.
 Since we can use many different solution spaces, this section just contains raw text.
@@ -931,7 +931,7 @@ If the search and solution space are different, the section `RESULT_X` is includ
 It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
 
 
-##### 5.1.2.6 The `ERROR_` Sections
+##### 5.1.2.6 The `ERROR` Sections
 
 Our package has mechanisms to catch and store errors that occurred during the experiments.
 Each type of error will be stored in a separate log section and each such sections may store the class of the error in form `exceptionType: error-class`, the error message in the form `exceptionValue: error-message` and the stack trace line by line after a line header `exceptionStackTrace:`.

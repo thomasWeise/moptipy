@@ -52,6 +52,7 @@ from numpy.random import Generator
 from moptipy.algorithms.modules.selection import Selection, FitnessRecord
 
 
+# start book
 class Best(Selection):
     """The best selection: select each of the best `n` elements once."""
 
@@ -67,9 +68,10 @@ class Best(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        source.sort()
-        for i in range(n):
-            dest(source[i])
+        source.sort()  # sort by fitness, best solutions come first
+        for i in range(n):  # select the n first=best solutions
+            dest(source[i])  # by sending them to dest
+# end book
 
     def __str__(self):
         """

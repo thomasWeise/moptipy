@@ -25,8 +25,9 @@ class RankAndIteration(Fitness):
     determine the fitness of a solution:
 
     1. the rank the solutions by their objective values
-       (:attr:`~moptipy.algorithms.so.record.Record.f`). Ranks are consecutive
-       even if the objective values appear several times.
+       (:attr:`~moptipy.algorithms.so.record.Record.f`). If two solutions have
+       the same fitness, they get the same rank, but the next-worst solution
+       will then get a rank with is larger by 2.
     2. the iteration index (:attr:`~moptipy.algorithms.so.record.Record.it`)
        relative to the maximum and minimum iteration index.
 
@@ -68,12 +69,12 @@ class RankAndIteration(Fitness):
 
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         rank: int = -1  # the rank counter
-        last_f: Union[int, float] = -inf
-        for rec in p:
+        last_fitness: Union[int, float] = -inf
+        for i, rec in enumerate(p):
             v = rec.fitness
-            if v > last_f:  # if fitness differs, step rank
-                rank = rank + 1
-                last_f = v
+            if v > last_fitness:  # if fitness differs, step rank
+                rank = i + 1  # +1 so smallest-possible rank is 1
+                last_fitness = v
             rec.fitness = (rank * it_range) + max_it - rec.it
 
     def __str__(self):

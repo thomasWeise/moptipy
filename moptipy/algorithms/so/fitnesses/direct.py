@@ -7,6 +7,7 @@ from numpy.random import Generator
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 
 
+# start book
 class Direct(Fitness):
     """
     Objective values are used as fitness directly.
@@ -29,6 +30,7 @@ class Direct(Fitness):
         """
         for rec in p:
             rec.fitness = rec.f
+# end book
 
     def __str__(self):
         """
