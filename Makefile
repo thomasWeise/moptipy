@@ -136,6 +136,10 @@ create_documentation: static_analysis test
 	fi &&\
 	echo "$(NOW): Deleting .gitignore file." &&\
 	rm -f docs/build/tc/.gitignore &&\
+	echo "$(NOW): Now minifying all html files." &&\
+	cd "docs/build/" &&\
+	find -type f -name "*.html" -exec python3 -c "print('{}');import minify_html;f=open('{}','r');s=f.read();f.close();s=minify_html.minify(s,do_not_minify_doctype=True,ensure_spec_compliant_unquoted_attribute_values=True,keep_html_and_head_opening_tags=False,minify_css=True,minify_js=True,remove_bangs=True,remove_processing_instructions=True);f=open('{}','w');f.write(s);f.close()" \; &&\
+	cd "../../" &&\
 	echo "$(NOW): Done creating coverage data. Now creating .nojekyll files." &&\
 	touch "docs/build/.nojekyll" &&\
 	touch "docs/build/.doctrees/.nojekyll" &&\

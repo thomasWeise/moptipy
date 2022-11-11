@@ -49,6 +49,8 @@ from moptipy.utils.types import type_error
 class FRecord(Record, FitnessRecord):
     """A point `x` in the search space with its quality and fitness."""
 
+# end book
+
     def __init__(self, x, f: Union[int, float]):
         """
         Create the record.
@@ -59,7 +61,6 @@ class FRecord(Record, FitnessRecord):
         super().__init__(x, f)
         #: the fitness assigned to the solution `x`
         self.fitness: Union[int, float] = inf
-# end book
 
     def __lt__(self, other) -> bool:
         """

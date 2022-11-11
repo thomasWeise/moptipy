@@ -37,3 +37,6 @@ pyyaml >= 6.0
 # urllib3 and certifi are used to check the URLs in the README.md
 urllib3 >= 1.26.12
 certifi >= 2022.9.24
+
+# needed to minify html output
+minify_html >= 0.10.3

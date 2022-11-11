@@ -11,6 +11,30 @@ correct.
 All search or solution spaces in `moptipy` inherit from :class:`Space`. If
 you implement a new space, you should test it with the pre-defined unit test
 routine :func:`~moptipy.tests.space.validate_space`.
+
+The following pre-defined spaces are currently available:
+
+- :class:`~moptipy.spaces.bitstrings.BitStrings`, the space of `n`-dimensional
+  bit strings
+- :class:`~moptipy.spaces.intspace.IntSpace`, a space of `n`-dimensional
+  integer strings, where each element is between (and including) a minimum
+  (:attr:`~moptipy.spaces.intspace.IntSpace.min_value`) and a maximum
+  (:attr:`~moptipy.spaces.intspace.IntSpace.max_value`) value (inclusive)
+- :class:`~moptipy.spaces.permutations.Permutations` is a special version of
+  the :class:`~moptipy.spaces.intspace.IntSpace` where all elements are
+  permutations of a base string
+  :attr:`~moptipy.spaces.permutations.Permutations.blueprint`. This means that
+  it can represent permutations both with and without repetitions. Depending
+  on the base string, each element may occur an element-specific number of
+  times. For the base string `(-1, -1, 2, 7, 7, 7)`, for example, `-1` may
+  occur twice, `2` can occur once, and `7` three times.
+- :class:`~moptipy.spaces.vectorspace.VectorSpace` is an unconstrained space
+  of `n`-dimensional floating point number vectors
+- :class:`~moptipy.spaces.bounded_vectorspace.BoundedVectorSpace` is a space
+  of `n`-dimensional floating point number vectors whose values are within
+  the pre-defined inclusive bounds
+  :attr:`~moptipy.spaces.bounded_vectorspace.BoundedVectorSpace.x_min` and
+  :attr:`~moptipy.spaces.bounded_vectorspace.BoundedVectorSpace.x_max`.
 """
 from typing import Optional
 

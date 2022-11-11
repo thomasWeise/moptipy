@@ -54,10 +54,10 @@ from moptipy.utils.types import type_error
 class FitnessRecord(Protocol):
     """A fitness record stores data together with a fitness."""
 
+# end book
     #: the fitness value, the only criterion to be used by a selection
     #: algorithm (besides random numbers)
     fitness: Union[int, float]
-# end book
 
     def __lt__(self, other) -> bool:
         """
