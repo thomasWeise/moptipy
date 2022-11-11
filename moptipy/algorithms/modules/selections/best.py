@@ -79,4 +79,4 @@ class Best(Selection):
 
         :return: the name of the best selection algorithm
         """
-        return "trunc"
+        return "best"
