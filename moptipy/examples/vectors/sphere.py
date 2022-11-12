@@ -1,4 +1,4 @@
-"""The welll-known sphere function."""
+"""The well-known sphere function."""
 
 import numba  # type: ignore
 import numpy as np
@@ -12,7 +12,7 @@ def sphere(x: np.ndarray) -> float:
     Get the sum of the squares of the elements in an array.
 
     :param x: the np array
-    :return: the number of ones
+    :return: the sum of the squares of all elements
 
     >>> print(sphere(np.array([1.0, -2.0, 3.0])))
     14.0
@@ -45,6 +45,7 @@ class Sphere(Objective):
         Get the name of the sphere problem.
 
         :return: `sphere`
+        :retval "sphere": always
 
         >>> print(Sphere())
         sphere

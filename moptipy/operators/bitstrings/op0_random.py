@@ -11,7 +11,7 @@ class Op0Random(Op0):
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:
         """
-        Fill the string `dest` with radom values.
+        Fill the string `dest` with random values.
 
         :param random: the random number generator
         :param dest: the bit string to fill. Afterwards, its contents will

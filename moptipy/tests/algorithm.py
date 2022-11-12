@@ -110,9 +110,10 @@ def validate_algorithm(algorithm: Algorithm,
                              f"any solution on {objective}.")
 
         if not process.should_terminate():
-            raise ValueError(f"The algorithm {algorithm} stopped before "
-                             "hitting the termination criterion "
-                             f"on {objective}.")
+            if uses_all_fes_if_goal_not_reached:
+                raise ValueError(f"The algorithm {algorithm} stopped before "
+                                 "hitting the termination criterion "
+                                 f"on {objective}.")
 
         consumed_fes: Final[int] = process.get_consumed_fes()
         if not isinstance(consumed_fes, int):

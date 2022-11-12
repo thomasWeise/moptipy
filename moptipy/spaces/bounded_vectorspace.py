@@ -6,7 +6,8 @@ from typing import Final
 import numpy
 
 from moptipy.spaces.vectorspace import VectorSpace
-from moptipy.utils.strings import float_to_str
+from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
 
 
@@ -40,7 +41,7 @@ class BoundedVectorSpace(VectorSpace):
         if not isfinite(x_max):
             raise ValueError(f"x_max must be finite, but is {x_max}.")
         if x_min >= x_max:
-            raise ValueError(f"x_max > x_min must hold, but got"
+            raise ValueError(f"x_max > x_min must hold, but got "
                              f"x_min={x_min} and x_max={x_max}.")
         #: the minimum value for each element of the vectors in the space
         self.x_min: Final[float] = x_min
@@ -76,6 +77,15 @@ class BoundedVectorSpace(VectorSpace):
         >>> print(BoundedVectorSpace(3, -1.0, 1.6))
         vector3d_m1_1d6
         """
-        a = float_to_str(self.x_min).replace(".", "d").replace("-", "m")
-        b = float_to_str(self.x_max).replace(".", "d").replace("-", "m")
-        return f"{super().__str__()}_{a}_{b}"
+        return f"{super().__str__()}_{num_to_str_for_name(self.x_min)}_" \
+               f"{num_to_str_for_name(self.x_max)}"
+
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
+        """
+        Log the parameters of this space to the given logger.
+
+        :param logger: the logger for the parameters
+        """
+        super().log_parameters_to(logger)
+        logger.key_value("xMin", self.x_min, also_hex=True)
+        logger.key_value("xMax", self.x_max, also_hex=True)

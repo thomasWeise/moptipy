@@ -479,7 +479,8 @@ class __WithoutShouldTerminateMO(MOProcess):
         return True
 
 
-def without_should_terminate(algorithm: Callable[[T], Any], process: T):
+def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
+        -> None:
     """
     Apply an algorithm that does not call `should_terminate` to a process.
 

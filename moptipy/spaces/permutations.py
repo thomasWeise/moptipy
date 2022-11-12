@@ -6,6 +6,7 @@ import numpy
 
 from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.nputils import array_to_str
 from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
 
@@ -175,7 +176,7 @@ class Permutations(IntSpace):  # +book
             if self.is_dense():
                 return
         logger.key_value(KEY_BASE_STRING,
-                         ",".join([str(xx) for xx in self.blueprint]))
+                         array_to_str(self.blueprint))
 
     def create(self) -> numpy.ndarray:  # +book
         r"""

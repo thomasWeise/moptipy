@@ -1,10 +1,11 @@
-"""Test the sphere objective function."""
+"""Test the several vector objective function."""
 from math import nextafter, inf
 from typing import Final
 
 import numpy as np
 from numpy.random import Generator, default_rng
 
+from moptipy.examples.vectors.ackley import Ackley
 from moptipy.examples.vectors.sphere import Sphere
 from moptipy.spaces.bounded_vectorspace import BoundedVectorSpace
 from moptipy.tests.objective import validate_objective
@@ -59,3 +60,23 @@ def test_sphere() -> None:
         lower_bound_threshold=0,
         upper_bound_threshold=inf,
         must_be_equal_to=lambda x, uub=ub: _sphere(x, uub))
+
+
+def test_ackley() -> None:
+    """Test the sphere objective function."""
+    random: Final[Generator] = default_rng()
+    space: BoundedVectorSpace = BoundedVectorSpace(
+        dimension=int(random.integers(2, 32)),
+        x_min=float(-1 - (random.random() * 100)),
+        x_max=float(1 + (random.random() * 100)))
+    f: Ackley = Ackley()
+
+    validate_objective(
+        objective=f,
+        solution_space=space,
+        make_solution_space_element_valid=lambda
+        r, xx, xmi=space.x_min, xma=space.x_max:
+        random_vector(r, xx, xmi, xma),
+        is_deterministic=True,
+        lower_bound_threshold=0,
+        upper_bound_threshold=inf)
