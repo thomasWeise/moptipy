@@ -64,11 +64,16 @@ class NelderMead(Algorithm0):
             x0: Final = pp.create()  # Create the solution record.
             sf.op0.op0(pp.get_random(), x0)  # create first solution
             # create clipped/bounded evaluation method if needed
+            mf = pp.get_max_fes()
+            if mf is not None:
+                mf -= pp.get_consumed_fes()
+            else:
+                mf = 1_000_000_000_000_000
             _minimize_neldermead(
-                func=pp.evaluate, x0=x0, bounds=None
-                if (sf.x_min is None) and (sf.x_max is None) else
+                func=pp.evaluate, x0=x0, maxiter=mf, maxfev=mf,
+                bounds=None if (sf.x_min is None) and (sf.x_max is None) else
                 Bounds(sf.x_min, sf.x_max),
-                adaptive=sf.adaptive)
+                adaptive=sf.adaptive, xatol=0, fatol=0)
 
         # invoke the Nelder-Mead implementation
         without_should_terminate(

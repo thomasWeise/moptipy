@@ -119,6 +119,12 @@ for mu_lambda in [4, 32]:
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
+            survival=Tournament(4))))
+    DEFAULT_ALGORITHMS.append(cast(
+        Callable[[Instance, Permutations], Algorithm],
+        lambda inst, pwr, ml=mu_lambda: GeneralEA(
+            Op0Shuffle(pwr), Op1Swap2(),
+            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
             mating=Tournament(2, replacement=False))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
