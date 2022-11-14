@@ -12,6 +12,7 @@ from moptipy.api.subprocesses import without_should_terminate
 from moptipy.utils.bounds import to_scipy_bounds, OptionalFloatBounds
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
+from moptipy.operators.vectors.op0_uniform import Op0Uniform
 
 
 class NelderMead(Algorithm0, OptionalFloatBounds):
@@ -32,6 +33,11 @@ class NelderMead(Algorithm0, OptionalFloatBounds):
         """
         Algorithm0.__init__(
             self, "nelderMeadA" if adaptive else "nelderMead", op0)
+        # load bounds from nullary operator, if possible and not overriden
+        if (min_value is None) and (max_value is None) \
+                and isinstance(op0, Op0Uniform):
+            min_value = op0.min_value
+            max_value = op0.max_value
         OptionalFloatBounds.__init__(self, min_value, max_value)
 
         if not isinstance(adaptive, bool):

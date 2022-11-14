@@ -53,7 +53,7 @@ def __check(url: str, valid_urls: Set[str],
         return
 
     try:
-        sleep(0.1)
+        sleep(0.3)
         code = http.request("HEAD", check_url, timeout=35,
                             redirect=True, retries=5).status
     except BaseException as be:
