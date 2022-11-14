@@ -12,8 +12,8 @@ def test_nelder_mead_on_ackley():
 
     def create(space: VectorSpace, _):
         if isinstance(space, BoundedVectorSpace):
-            mi = space.x_min
-            ma = space.x_max
+            mi = space.min_value
+            ma = space.max_value
             return NelderMead(Op0Uniform(mi, ma), mi, ma)
         return NelderMead(Op0Uniform(-100.0, 100.0))
 

@@ -1,17 +1,15 @@
 """An implementation of an unconstrained n-dimensional continuous space."""
 
-from math import isfinite
 from typing import Final
 
 import numpy
 
 from moptipy.spaces.vectorspace import VectorSpace
+from moptipy.utils.bounds import FloatBounds
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.strings import num_to_str_for_name
-from moptipy.utils.types import type_error
 
 
-class BoundedVectorSpace(VectorSpace):
+class BoundedVectorSpace(VectorSpace, FloatBounds):
     """
     A bounded vector space whose elements are a one-dimensional numpy array.
 
@@ -19,34 +17,20 @@ class BoundedVectorSpace(VectorSpace):
     """
 
     def __init__(self, dimension: int,
-                 x_min: float = -1, x_max: float = 1,
+                 min_value: float = -1.0, max_value: float = 1.0,
                  dtype: numpy.dtype = numpy.dtype(numpy.float64)) -> None:
         """
         Create the vector-based search space.
 
         :param dimension: The dimension of the search space,
             i.e., the number of decision variables.
-        :param x_min: the minimum permitted value
-        :param x_max: the maximum permitted value
+        :param min_value: the minimum permitted value
+        :param max_value: the maximum permitted value
         :param dtype: The basic data type of the vector space,
             i.e., the type of the decision variables
         """
-        super().__init__(dimension, dtype)
-        if not isinstance(x_min, float):
-            raise type_error(x_min, "x_min", float)
-        if not isfinite(x_min):
-            raise ValueError(f"x_min must be finite, but is {x_min}.")
-        if not isinstance(x_max, float):
-            raise type_error(x_max, "x_max", float)
-        if not isfinite(x_max):
-            raise ValueError(f"x_max must be finite, but is {x_max}.")
-        if x_min >= x_max:
-            raise ValueError(f"x_max > x_min must hold, but got "
-                             f"x_min={x_min} and x_max={x_max}.")
-        #: the minimum value for each element of the vectors in the space
-        self.x_min: Final[float] = x_min
-        #: the maximum value for each element of the vectors in the space
-        self.x_max: Final[float] = x_max
+        VectorSpace.__init__(self, dimension, dtype)
+        FloatBounds.__init__(self, min_value, max_value)
 
     def validate(self, x: numpy.ndarray) -> None:
         """
@@ -60,10 +44,11 @@ class BoundedVectorSpace(VectorSpace):
         super().validate(x)
         xmin: Final[float] = x.min()
         xmax: Final[float] = x.max()
-        if not (self.x_min <= xmin <= xmax <= self.x_max):
-            raise ValueError(f"permitted range of elements is [{self.x_min}"
-                             f", {self.x_max}] but found elements in range "
-                             f"[{xmin}, {xmax}].")
+        if not (self.min_value <= xmin <= xmax <= self.max_value):
+            raise ValueError(
+                f"permitted range of elements is [{self.min_value}"
+                f", {self.max_value}] but found elements in range "
+                f"[{xmin}, {xmax}].")
 
     def __str__(self) -> str:
         """
@@ -77,8 +62,8 @@ class BoundedVectorSpace(VectorSpace):
         >>> print(BoundedVectorSpace(3, -1.0, 1.6))
         vector3d_m1_1d6
         """
-        return f"{super().__str__()}_{num_to_str_for_name(self.x_min)}_" \
-               f"{num_to_str_for_name(self.x_max)}"
+        return f"{VectorSpace.__str__(self)}_" \
+               f"{FloatBounds.__str__(self)}"  # type: ignore
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -86,6 +71,5 @@ class BoundedVectorSpace(VectorSpace):
 
         :param logger: the logger for the parameters
         """
-        super().log_parameters_to(logger)
-        logger.key_value("xMin", self.x_min, also_hex=True)
-        logger.key_value("xMax", self.x_max, also_hex=True)
+        VectorSpace.log_parameters_to(self, logger)
+        FloatBounds.log_parameters_to(self, logger)  # type: ignore

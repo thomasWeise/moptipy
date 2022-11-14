@@ -1,20 +1,15 @@
 """An implementation of an integer string based search space."""
-from typing import Final
 
 import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
+from moptipy.utils.bounds import IntBounds
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
-from moptipy.utils.strings import sanitize_name
-
-#: the minimum value
-KEY_MIN: Final[str] = "min"
-#: the maximum value
-KEY_MAX: Final[str] = "max"
+from moptipy.utils.strings import sanitize_name, num_to_str_for_name
 
 
-class IntSpace(NPArraySpace):
+class IntSpace(NPArraySpace, IntBounds):
     """
     A space where each element is a one-dimensional numpy integer array.
 
@@ -33,13 +28,10 @@ class IntSpace(NPArraySpace):
         :param min_value: the minimum value
         :param max_value: the maximum value
         """
-        super().__init__(
-            dimension,
+        NPArraySpace.__init__(
+            self, dimension,
             int_range_to_dtype(min_value=min_value, max_value=max_value))
-        #: The minimum permitted value.
-        self.min_value: Final[int] = min_value
-        #: The maximum permitted value.
-        self.max_value: Final[int] = max_value
+        IntBounds.__init__(self, min_value, max_value)
 
     def create(self) -> numpy.ndarray:
         """
@@ -98,8 +90,10 @@ class IntSpace(NPArraySpace):
         >>> print(IntSpace(4, -1, 3))
         ints4bm1to3
         """
-        return sanitize_name(f"ints{self.dimension}{self.dtype.char}"
-                             f"{self.min_value}to{self.max_value}")
+        return sanitize_name(
+            f"ints{self.dimension}{self.dtype.char}"
+            f"{num_to_str_for_name(self.min_value)}to"
+            f"{num_to_str_for_name(self.max_value)}")
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -107,6 +101,5 @@ class IntSpace(NPArraySpace):
 
         :param logger: the logger for the parameters
         """
-        super().log_parameters_to(logger)
-        logger.key_value(KEY_MIN, self.min_value)
-        logger.key_value(KEY_MAX, self.max_value)
+        NPArraySpace.log_parameters_to(self, logger)
+        IntBounds.log_parameters_to(self, logger)  # type: ignore
