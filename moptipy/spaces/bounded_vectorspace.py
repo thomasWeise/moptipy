@@ -62,8 +62,7 @@ class BoundedVectorSpace(VectorSpace, FloatBounds):
         >>> print(BoundedVectorSpace(3, -1.0, 1.6))
         vector3d_m1_1d6
         """
-        return f"{VectorSpace.__str__(self)}_" \
-               f"{FloatBounds.__str__(self)}"  # type: ignore
+        return f"{VectorSpace.__str__(self)}_{FloatBounds.__str__(self)}"
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

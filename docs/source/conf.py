@@ -119,6 +119,9 @@ intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable/', None)
 }
 
+# inherit docstrings in autodoc
+autodoc_inherit_docstrings = True
+
 # add default values after comma
 typehints_defaults = "comma"
 

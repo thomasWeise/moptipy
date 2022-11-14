@@ -102,4 +102,4 @@ class IntSpace(NPArraySpace, IntBounds):
         :param logger: the logger for the parameters
         """
         NPArraySpace.log_parameters_to(self, logger)
-        IntBounds.log_parameters_to(self, logger)  # type: ignore
+        IntBounds.log_parameters_to(self, logger)

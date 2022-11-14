@@ -37,7 +37,7 @@ class Op0Uniform(Op0, FloatBounds):
         :param logger: the logger for the parameters
         """
         Op0.log_parameters_to(self, logger)
-        FloatBounds.log_parameters_to(self, logger)  # type: ignore
+        FloatBounds.log_parameters_to(self, logger)
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:
         """
