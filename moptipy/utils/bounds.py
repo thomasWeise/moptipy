@@ -3,7 +3,7 @@
 from math import isfinite
 from typing import Final, Optional
 
-from numpy import inf  # type: ignore
+from numpy import inf, full  # type: ignore
 from scipy.optimize import Bounds as SBounds  # type: ignore
 
 from moptipy.utils.logger import KeyValueLogSection
@@ -186,27 +186,3 @@ class OptionalIntBounds(Bounds):
                     f"max_value > min_value must hold, but got "
                     f"min_value={min_value} and max_value={max_value}.")
         super().__init__(min_value, max_value)
-
-
-def to_scipy_bounds(maybe_bounds) -> Optional[SBounds]:
-    """
-    Create a SciPy Bounds instance of maybe_bounds is a Bounds object.
-
-    :param maybe_bounds: an instance of bounds
-    :returns: `None` if `maybe_bounds` does not represent any strict bounds,
-        or an instance of :class:`scipy.optimize.Bounds` with the
-        corresponding values filled in otherwise
-    """
-    if not isinstance(maybe_bounds, Bounds):
-        return None
-    if maybe_bounds.min_value is None:
-        if maybe_bounds.max_value is None:
-            return None
-        mi = -inf
-    else:
-        mi = maybe_bounds.min_value
-    if maybe_bounds.max_value is None:
-        ma = inf
-    else:
-        ma = maybe_bounds.max_value
-    return SBounds(mi, ma)

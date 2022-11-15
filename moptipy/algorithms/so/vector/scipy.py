@@ -1,6 +1,7 @@
 """A set of numerical optimization algorithms from SciPy."""
 from typing import Final, Callable, Optional, cast, Any
 
+from numpy import full, inf
 from scipy.optimize import Bounds  # type: ignore
 # noinspection PyProtectedMember
 from scipy.optimize._optimize import _minimize_neldermead  # type: ignore
@@ -12,8 +13,9 @@ from moptipy.api.operators import Op0
 from moptipy.api.process import Process
 from moptipy.api.subprocesses import without_should_terminate
 from moptipy.operators.vectors.op0_uniform import Op0Uniform
-from moptipy.utils.bounds import to_scipy_bounds, OptionalFloatBounds
+from moptipy.utils.bounds import OptionalFloatBounds
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.nputils import DEFAULT_FLOAT
 
 
 class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
@@ -37,8 +39,10 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
             min_value = op0.min_value
             max_value = op0.max_value
         OptionalFloatBounds.__init__(self, min_value, max_value)
-        #: the bounds to be used for the internal nelder-mead call
-        self.__bounds: Optional[Bounds] = to_scipy_bounds(self)
+        #: the bounds to be used for the internal function call
+        self.__bounds: Optional[Bounds] = None
+        #: the bounds cache
+        self.__no_bounds_cached: bool = True
 
     def _call(self, func: Callable, x0, max_fes: int,
               bounds: Optional[Bounds]) -> None:
@@ -72,7 +76,26 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
                 mf -= pp.get_consumed_fes()
             else:
                 mf = 1_000_000_000_000_000
-            self._call(pp.evaluate, x0, mf, self.__bounds)
+
+            x0_dim = len(x0)
+            bounds = self.__bounds
+            if self.__no_bounds_cached or ((bounds is not None) and
+                                           (len(bounds.lb) != x0_dim)):
+                if self.min_value is None:
+                    if self.max_value is None:
+                        return None
+                    mi = -inf
+                else:
+                    mi = self.min_value
+                if self.max_value is None:
+                    ma = inf
+                else:
+                    ma = self.max_value
+                self.__bounds = bounds = Bounds(
+                    full(x0_dim, mi, DEFAULT_FLOAT),
+                    full(x0_dim, ma, DEFAULT_FLOAT))
+                self.__no_bounds_cached = False
+            self._call(pp.evaluate, x0, mf, bounds)
 
         # invoke the Powell algorithm implementation
         without_should_terminate(
@@ -101,6 +124,11 @@ class Powell(SciPyAlgorithmWrapper):
     The function :func:`scipy.optimize.minimize` with parameter
     "Powell" can perform unconstrained continuous optimization
     (potentially with boundary constraints)
+
+    1. Michael James David Powell. An Efficient Method for Finding the Minimum
+       of a Function of Several Variables without Calculating Derivatives. The
+       Computer Journal. 7(2):155-162. 1964.
+       doi:https://doi.org/10.1093/comjnl/7.2.155
     """
 
     def __init__(self, op0: Op0,
