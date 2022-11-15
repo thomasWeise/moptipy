@@ -17,7 +17,7 @@ from moptipy.utils.logger import KeyValueLogSection
 
 
 class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
-    """An wrapper for the Sci-Py API."""
+    """A wrapper for the Sci-Py API."""
 
     def __init__(self, name: str, op0: Op0,
                  min_value: Optional[float] = None,
@@ -119,7 +119,7 @@ class Powell(SciPyAlgorithmWrapper):
 
 def _call_nelder_mead(func: Callable, x0, max_fes: int,
                       bounds: Optional[Bounds]) -> None:
-    _minimize_neldermead(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
+    _minimize_neldermead(func, x0, bounds=bounds, xatol=0.0, fatol=0.0,
                          maxiter=max_fes, maxfev=max_fes)
 
 
