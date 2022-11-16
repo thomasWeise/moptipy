@@ -1,10 +1,7 @@
 """A set of bounds, i.e., a minimal and a maximal value."""
 
-from math import isfinite
+from math import isfinite, inf
 from typing import Final, Optional
-
-from numpy import inf, full  # type: ignore
-from scipy.optimize import Bounds as SBounds  # type: ignore
 
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import num_to_str_for_name

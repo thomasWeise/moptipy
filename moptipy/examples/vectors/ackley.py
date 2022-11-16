@@ -32,8 +32,9 @@ def ackley(x: ndarray) -> float:
     >>> print(ackley(array([-3.0, 2.0])))
     7.9889108105187
     """
-    return float(20.0 + e + (-20.0 * exp(-0.2 * sqrt(
-        mean(x ** 2)))) - exp(mean(cos(2.0 * pi * x))))
+    res = 20.0 + e + (-20.0 * exp(-0.2 * sqrt(
+        mean(x ** 2)))) - exp(mean(cos(2.0 * pi * x)))
+    return 0.0 if res <= 0.0 else float(res)
 
 
 class Ackley(Objective):
