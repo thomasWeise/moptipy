@@ -155,7 +155,7 @@ class Execution:
         :returns: this execution
         """
         max_fes = check_max_fes(max_fes)
-        if not (self._max_fes is None):
+        if self._max_fes is not None:
             if max_fes >= self._max_fes:
                 if not force_override:
                     return self
@@ -177,7 +177,7 @@ class Execution:
         :returns: this execution
         """
         max_time_millis = check_max_time_millis(max_time_millis)
-        if not (self._max_time_millis is None):
+        if self._max_time_millis is not None:
             if max_time_millis >= self._max_time_millis:
                 if not force_override:
                     return self
@@ -195,7 +195,7 @@ class Execution:
         :returns: this execution
         """
         goal_f = check_goal_f(goal_f)
-        if not (self._goal_f is None):
+        if self._goal_f is not None:
             if goal_f <= self._goal_f:
                 return self
         self._goal_f = goal_f
@@ -267,13 +267,13 @@ class Execution:
         encoding: Final[Optional[Encoding]] = check_encoding(
             self._encoding, search_space is None)
         rand_seed = self._rand_seed
-        if not (rand_seed is None):
+        if rand_seed is not None:
             rand_seed = rand_seed_check(rand_seed)
         max_time_millis = check_max_time_millis(self._max_time_millis, True)
         max_fes = check_max_fes(self._max_fes, True)
         goal_f = check_goal_f(self._goal_f, True)
         f_lb = objective.lower_bound()
-        if (not (f_lb is None)) and isfinite(f_lb):
+        if (f_lb is not None) and isfinite(f_lb):
             if (goal_f is None) or (f_lb > goal_f):
                 goal_f = f_lb
 

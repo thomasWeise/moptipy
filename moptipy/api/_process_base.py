@@ -347,16 +347,14 @@ class _ProcessBase(Process):
         :param logger: the logger
         """
         super().log_parameters_to(logger)
-        if not (self._max_fes is None):
+        if self._max_fes is not None:
             logger.key_value(KEY_MAX_FES, self._max_fes)
-        if not (self._max_time_millis is None):
-            logger.key_value(KEY_MAX_TIME_MILLIS,
-                             self._max_time_millis)
-        if not (self._goal_f is None):
+        if self._max_time_millis is not None:
+            logger.key_value(KEY_MAX_TIME_MILLIS, self._max_time_millis)
+        if self._goal_f is not None:
             logger.key_value(KEY_GOAL_F, self._goal_f)
         logger.key_value(KEY_RAND_SEED, self.__rand_seed, True)
-        logger.key_value(KEY_RAND_GENERATOR_TYPE,
-                         type_name_of(self.__random))
+        logger.key_value(KEY_RAND_GENERATOR_TYPE, type_name_of(self.__random))
         logger.key_value(KEY_RAND_BIT_GENERATOR_TYPE,
                          type_name_of(self.__random.bit_generator))
 

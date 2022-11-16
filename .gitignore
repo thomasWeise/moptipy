@@ -217,3 +217,4 @@ docs/build
 build
 dist
 .idea
+.ruff_cache

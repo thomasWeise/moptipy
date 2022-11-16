@@ -38,7 +38,7 @@ class TempDir(Path, AbstractContextManager):
         :param directory: an optional root directory
         :raises TypeError: if `directory` is not `None` but also no `str`
         """
-        if not (directory is None):
+        if directory is not None:
             root_dir = Path.path(directory)
             root_dir.enforce_dir()
         else:

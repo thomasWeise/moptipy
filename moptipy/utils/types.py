@@ -1,5 +1,5 @@
 """Some basic type handling routines."""
-from typing import Any, Type, Iterable, Union, Final
+from typing import Any, Final, Iterable, Type, Union
 
 
 def type_name(tpe: Type) -> str:

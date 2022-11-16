@@ -95,6 +95,10 @@ static_analysis: init
 	vulture . --min-confidence 61 &&\
 	echo "$(NOW): Done with vulture, now applying dodgy." &&\
 	dodgy &&\
+	echo "$(NOW): Done with dodgy, now running pycodestyle." &&\
+	pycodestyle moptipy &&\
+	echo "$(NOW): Done with pycodestyle, now running ruff." &&\
+	ruff moptipy &&\
 	echo "$(NOW): Done: All static checks passed."
 
 # We use sphinx to generate the documentation.

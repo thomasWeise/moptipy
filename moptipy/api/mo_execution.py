@@ -273,13 +273,13 @@ class MOExecution(Execution):
         encoding: Final[Optional[Encoding]] = check_encoding(
             self._encoding, search_space is None)
         rand_seed = self._rand_seed
-        if not (rand_seed is None):
+        if rand_seed is not None:
             rand_seed = rand_seed_check(rand_seed)
         max_time_millis = check_max_time_millis(self._max_time_millis, True)
         max_fes = check_max_fes(self._max_fes, True)
         goal_f = check_goal_f(self._goal_f, True)
         f_lb = objective.lower_bound()
-        if (not (f_lb is None)) and isfinite(f_lb):
+        if (f_lb is not None) and isfinite(f_lb):
             if (goal_f is None) or (f_lb > goal_f):
                 goal_f = f_lb
 

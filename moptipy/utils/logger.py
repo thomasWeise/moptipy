@@ -94,9 +94,9 @@ class Logger(AbstractContextManager):
         :param exception_value: ignored
         :param traceback: ignored
         """
-        if not (self.__section is None):
+        if self.__section is not None:
             self._error("Cannot close logger, because section still open")
-        if not (self._stream is None):
+        if self._stream is not None:
             if not self.__starts_new_line:
                 self._stream.write("\n")
             self._stream.close()
@@ -112,7 +112,7 @@ class Logger(AbstractContextManager):
             self._error(f"Cannot open section '{title}' "
                         "because logger already closed")
 
-        if not (self.__section is None):
+        if self.__section is not None:
             self._error(f"Cannot open section '{title}' because "
                         "another one is open")
 
@@ -310,7 +310,7 @@ class LogSection(AbstractContextManager):
         """
         self._logger: Logger = logger
         self._title: Optional[str] = title
-        if not (title is None):
+        if title is not None:
             # noinspection PyProtectedMember
             logger._open_section(title)
 
@@ -331,7 +331,7 @@ class LogSection(AbstractContextManager):
         :param traceback: ignored
         :return: ignored
         """
-        if not (self._title is None):
+        if self._title is not None:
             # noinspection PyProtectedMember
             self._logger._close_section(self._title)
             self._title = None

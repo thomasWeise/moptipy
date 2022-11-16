@@ -144,7 +144,7 @@ class AxisRanger:
             raise type_error(which_axis, "which_axis", str)
 
         for is_x_axis in (True, False):
-            if not (("x" if is_x_axis else "y") in which_axis):
+            if ("x" if is_x_axis else "y") not in which_axis:
                 continue
 
             use_min, use_max = \

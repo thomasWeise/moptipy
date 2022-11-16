@@ -372,7 +372,7 @@ class Table(AbstractContextManager):
         :param traceback: ignored
         :returns: `True` to suppress an exception, `False` to rethrow it
         """
-        if not (self.__stream is None):
+        if self.__stream is not None:
             self.__driver.end_table_body(self.__stream, self.columns)
             self.__stream = None
         if self.__section_state <= 0:

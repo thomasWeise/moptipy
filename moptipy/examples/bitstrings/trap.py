@@ -33,9 +33,9 @@ def trap(x: np.ndarray) -> int:
     >>> print(trap(np.array([False, True,  True, True, False])))
     4
     """
-    l: Final[int] = len(x)
+    length: Final[int] = len(x)
     s: Final[int] = x.sum()
-    return 0 if (s >= l) else int(s + 1)
+    return 0 if (s >= length) else int(s + 1)
 
 
 class Trap(Objective):
