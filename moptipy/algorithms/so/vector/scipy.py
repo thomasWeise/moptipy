@@ -180,7 +180,7 @@ class Powell(SciPyAlgorithmWrapper):
     1. Michael James David Powell. An Efficient Method for Finding the Minimum
        of a Function of Several Variables without Calculating Derivatives. The
        Computer Journal. 7(2):155-162. 1964.
-       doi:https://doi.org/10.1093/comjnl/7.2.155
+       https://doi.org/10.1093/comjnl/7.2.155
     """
 
     def __init__(self, op0: Op0,
@@ -217,10 +217,10 @@ class NelderMead(SciPyAlgorithmWrapper):
     1. Fuchang Gao and Lixing Han. Implementing the Nelder-Mead Simplex
        Algorithm with Adaptive Parameters. *Computational Optimization and
        Applications*. 51(1):259–277. January 2012.
-       doi:https://doi.org/10.1007/s10589-010-932
+       https://doi.org/10.1007/s10589-010-932
     2. J. A. Nelder and R. Mead. A Simplex Method for Function Minimization.
        *The Computer Journal*. 7(4):308-313. January 1965. Oxford University
-       Press (OUP). doi:http://dx.doi.org/10.1093/COMJNL/7.4.308
+       Press (OUP). http://dx.doi.org/10.1093/COMJNL/7.4.308
        https://people.duke.edu/~hpgavin/cee201/Nelder+Mead-\
 ComputerJournal-1965.pdf
     3. M. H. Wright. Direct Search Methods: Once Scorned, Now Respectable.
@@ -231,7 +231,7 @@ ComputerJournal-1965.pdf
        Springer Series in Operations Research and Financial Engineering.
        New York, NY, USA: Springer. 2006. Second Edition.
        ISBN: 978-0-387-30303-1. Chapter 9.5, Page 238.
-       doi:https://doi.org/10.1007/978-0-387-40065-5.
+       https://doi.org/10.1007/978-0-387-40065-5.
     """
 
     def __init__(self, op0: Op0,
@@ -263,13 +263,13 @@ class BGFS(SciPyAlgorithmWrapper):
        Springer Series in Operations Research and Financial Engineering.
        New York, NY, USA: Springer. 2006. Second Edition.
        ISBN: 978-0-387-30303-1. Chapter 6, Page 136.
-       doi:https://doi.org/10.1007/978-0-387-40065-5.
+       https://doi.org/10.1007/978-0-387-40065-5.
     2. Roger Fletcher. *Practical Methods of Optimization* (2nd ed.),
        New York: John Wiley & Sons. 1987. ISBN 978-0-471-91547-8.
     3. C. G. Broyden. The convergence of a class of double-rank minimization
        algorithms. *Journal of the Institute of Mathematics and Its
        Applications*. 6(1):76-90. March 1970.
-       doi:http://dx.doi.org/10.1093/imamat/6.1.76
+       http://dx.doi.org/10.1093/imamat/6.1.76
     """
 
     def __init__(self, op0: Op0,
@@ -361,7 +361,7 @@ class TNC(SciPyAlgorithmWrapper):
     2. Jorge Nocedal and Stephen J. Wright. *Numerical Optimization*. In
        Springer Series in Operations Research and Financial Engineering.
        New York, NY, USA: Springer. 2006. Second Edition.
-       ISBN: 978-0-387-30303-1. doi:https://doi.org/10.1007/978-0-387-40065-5.
+       ISBN: 978-0-387-30303-1. https://doi.org/10.1007/978-0-387-40065-5.
     """
 
     def __init__(self, op0: Op0,
@@ -389,7 +389,7 @@ class DE(Algorithm, FloatBounds):
     1. Rainer Storn and Kenneth Price. Differential Evolution – A Simple and
        Efficient Heuristic for global Optimization over Continuous Spaces.
        *Journal of Global Optimization* 11(4):341–359. December 1997.
-       doi:https://doi.org/10.1023/A:1008202821328.
+       https://doi.org/10.1023/A:1008202821328.
        https://www.researchgate.net/publication/227242104
     """
 
