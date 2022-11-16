@@ -3,7 +3,7 @@
 from math import inf
 
 from moptipy.algorithms.so.vector.scipy import NelderMead, Powell, BGFS, CG, \
-    SLSQP, TNC
+    SLSQP, TNC, DE
 from moptipy.operators.vectors.op0_uniform import Op0Uniform
 from moptipy.spaces.bounded_vectorspace import BoundedVectorSpace
 from moptipy.spaces.vectorspace import VectorSpace
@@ -89,6 +89,20 @@ def test_tnc_on_ackley():
             ma = space.max_value
             return TNC(Op0Uniform(mi, ma))
         return TNC(Op0Uniform(-100.0, 100.0), -inf, inf)
+
+    validate_algorithm_on_ackley(
+        create, uses_all_fes_if_goal_not_reached=False)
+
+
+def test_de_on_ackley():
+    """Validate Differential Evolution on Ackley's Function."""
+
+    def create(space: VectorSpace, _):
+        if isinstance(space, BoundedVectorSpace):
+            mi = space.min_value
+            ma = space.max_value
+            return DE(space.dimension, mi, ma)
+        return DE(space.dimension, -100.0, 100.0)
 
     validate_algorithm_on_ackley(
         create, uses_all_fes_if_goal_not_reached=False)
