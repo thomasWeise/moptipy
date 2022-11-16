@@ -19,6 +19,7 @@ myst-parser >= 0.18.1
 bandit >= 1.7.4
 coverage >= 6.5.0
 coverage-badge >= 1.1.0
+dlint >= 0.13.0
 dodgy >= 0.2.1
 flake8 >= 5.0.4
 mypy >= 0.990

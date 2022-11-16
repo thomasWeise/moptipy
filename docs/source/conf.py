@@ -98,7 +98,7 @@ myst_all_links_external = True
 release = {}
 with open(os.path.abspath(os.path.sep.join([
         root_path, "moptipy", "version.py"]))) as fp:
-    exec(fp.read(), release)  # nosec # nosemgrep
+    exec(fp.read(), release)  # nosec # nosemgrep # noqa: DUO105
 release = release["__version__"]
 
 # The Sphinx extension modules that we use.
