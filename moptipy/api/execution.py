@@ -1,6 +1,6 @@
 """The algorithm execution API."""
 from math import isfinite
-from typing import Final, Optional, Union
+from typing import Final
 
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
@@ -22,8 +22,8 @@ from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
 
-def _check_log_file(log_file: Optional[str],
-                    none_is_ok: bool = True) -> Optional[Path]:
+def _check_log_file(log_file: str | None,
+                    none_is_ok: bool = True) -> Path | None:
     """
     Check a log file.
 
@@ -53,16 +53,16 @@ class Execution:
     def __init__(self) -> None:
         """Initialize the execution builder."""
         super().__init__()
-        self._algorithm: Optional[Algorithm] = None
-        self._solution_space: Optional[Space] = None
-        self._objective: Optional[Objective] = None
-        self._search_space: Optional[Space] = None
-        self._encoding: Optional[Encoding] = None
-        self._rand_seed: Optional[int] = None
-        self._max_fes: Optional[int] = None
-        self._max_time_millis: Optional[int] = None
-        self._goal_f: Union[None, int, float] = None
-        self._log_file: Optional[Path] = None
+        self._algorithm: Algorithm | None = None
+        self._solution_space: Space | None = None
+        self._objective: Objective | None = None
+        self._search_space: Space | None = None
+        self._encoding: Encoding | None = None
+        self._rand_seed: int | None = None
+        self._max_fes: int | None = None
+        self._max_time_millis: int | None = None
+        self._goal_f: None | int | float = None
+        self._log_file: Path | None = None
         self._log_improvements: bool = False
         self._log_all_fes: bool = False
 
@@ -106,7 +106,7 @@ class Execution:
         self._objective = check_objective(objective)
         return self
 
-    def set_search_space(self, search_space: Optional[Space]) -> 'Execution':
+    def set_search_space(self, search_space: Space | None) -> 'Execution':
         """
         Set the search space to be used for this experiment.
 
@@ -119,7 +119,7 @@ class Execution:
         self._search_space = check_space(search_space, none_is_ok=True)
         return self
 
-    def set_encoding(self, encoding: Optional[Encoding]) -> 'Execution':
+    def set_encoding(self, encoding: Encoding | None) -> 'Execution':
         """
         Set the encoding to be used for this experiment.
 
@@ -132,7 +132,7 @@ class Execution:
         self._encoding = check_encoding(encoding, none_is_ok=True)
         return self
 
-    def set_rand_seed(self, rand_seed: Optional[int]) -> 'Execution':
+    def set_rand_seed(self, rand_seed: int | None) -> 'Execution':
         """
         Set the seed to be used for initializing the random number generator.
 
@@ -187,7 +187,7 @@ class Execution:
         self._max_time_millis = max_time_millis
         return self
 
-    def set_goal_f(self, goal_f: Union[int, float]) -> 'Execution':
+    def set_goal_f(self, goal_f: int | float) -> 'Execution':
         """
         Set the goal objective value after which the process can stop.
 
@@ -204,7 +204,7 @@ class Execution:
         self._goal_f = goal_f
         return self
 
-    def set_log_file(self, log_file: Optional[str]) -> 'Execution':
+    def set_log_file(self, log_file: str | None) -> 'Execution':
         """
         Set the log file to write to.
 
@@ -265,9 +265,9 @@ class Execution:
         algorithm: Final[Algorithm] = check_algorithm(self._algorithm)
         solution_space: Final[Space] = check_space(self._solution_space)
         objective: Final[Objective] = check_objective(self._objective)
-        search_space: Final[Optional[Space]] = check_space(
+        search_space: Final[Space | None] = check_space(
             self._search_space, self._encoding is None)
-        encoding: Final[Optional[Encoding]] = check_encoding(
+        encoding: Final[Encoding | None] = check_encoding(
             self._encoding, search_space is None)
         rand_seed = self._rand_seed
         if rand_seed is not None:

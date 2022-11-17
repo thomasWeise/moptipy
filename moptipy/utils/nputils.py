@@ -1,7 +1,7 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
 from math import isfinite
-from typing import Dict, Final, List, Set, Tuple, Union, cast
+from typing import Final, cast
 
 import numba  # type: ignore
 import numpy
@@ -18,20 +18,20 @@ from moptipy.utils.types import type_error
 #: If we have a range `[min..max]` of valid value, then we can look up this
 #: range and find the integer type with the smallest memory footprint to
 #: accommodate it. This is what :func:`int_range_to_dtype` does.
-__INTS_AND_RANGES: Final[Tuple[Tuple[numpy.dtype, int, int], ...]] = \
+__INTS_AND_RANGES: Final[tuple[tuple[numpy.dtype, int, int], ...]] = \
     tuple(sorted([
         (dtx, int(numpy.iinfo(dtx).min), int(numpy.iinfo(dtx).max))
-        for dtx in cast(Set[numpy.dtype], set(numpy.dtype(bdt) for bdt in [
+        for dtx in cast(set[numpy.dtype], set(numpy.dtype(bdt) for bdt in [
             int, numpy.int8, numpy.int16, numpy.uint8, numpy.uint16,
             numpy.int32, numpy.uint32, numpy.int64, numpy.uint64]))],
         key=lambda a: (a[2], a[1])))
 
 #: The numpy integer data types.
-INTS: Final[Tuple[numpy.dtype, ...]] = tuple(a[0] for a in __INTS_AND_RANGES)
+INTS: Final[tuple[numpy.dtype, ...]] = tuple(a[0] for a in __INTS_AND_RANGES)
 
 #: A map associating all numpy integer types associated to tuples
 #: of their respective minimum and maximum value.
-__NP_INTS_MAP: Final[Dict[numpy.dtype, Tuple[int, int]]] = \
+__NP_INTS_MAP: Final[dict[numpy.dtype, tuple[int, int]]] = \
     {a[0]: (a[1], a[2]) for a in __INTS_AND_RANGES}
 
 #: The default integer type: the signed 64-bit integer.
@@ -47,7 +47,7 @@ DEFAULT_BOOL: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
 DEFAULT_FLOAT: Final[numpy.dtype] = numpy.dtype(float)
 
 #: The default numerical types.
-DEFAULT_NUMERICAL: Final[Tuple[numpy.dtype, ...]] = tuple(
+DEFAULT_NUMERICAL: Final[tuple[numpy.dtype, ...]] = tuple(
     list(INTS) + [DEFAULT_FLOAT])
 
 
@@ -148,8 +148,8 @@ def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
 
 
 def dtype_for_data(always_int: bool,
-                   lower_bound: Union[int, float],
-                   upper_bound: Union[int, float]) -> numpy.dtype:
+                   lower_bound: int | float,
+                   upper_bound: int | float) -> numpy.dtype:
     """
     Obtain the most suitable numpy data type to represent the data.
 
@@ -252,7 +252,7 @@ def rand_generator(seed: int) -> Generator:
 
 
 def rand_seeds_from_str(string: str,
-                        n_seeds: int) -> List[int]:
+                        n_seeds: int) -> list[int]:
     """
     Reproducibly generate `n_seeds` unique random seeds from a `string`.
 
@@ -303,7 +303,7 @@ def rand_seeds_from_str(string: str,
     g1 = Generator(PCG64(seed1))
     g2 = Generator(PCG64(seed2))
 
-    generated: Set[int] = set()
+    generated: set[int] = set()
     while len(generated) < n_seeds:
         g1, g2 = g2, g1
         generated.add(rand_seed_generate(g1))
@@ -359,7 +359,7 @@ def val_numpy_type(dtype: numpy.dtype) -> str:
     return dtype.char
 
 
-def np_to_py_number(number) -> Union[int, float]:
+def np_to_py_number(number) -> int | float:
     """
     Convert a scalar number from numpy to a corresponding Python type.
 

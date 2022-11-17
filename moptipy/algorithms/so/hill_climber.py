@@ -42,7 +42,7 @@ algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts`.
 7. Thomas Weise. *Global Optimization Algorithms - Theory and Application.*
    2009. http://www.it-weise.de/projects/book.pdf
 """
-from typing import Callable, Final, Union
+from typing import Callable, Final
 
 from numpy.random import Generator
 
@@ -80,11 +80,11 @@ class HillClimber(Algorithm1):
 
         # Start at a random point in the search space and evaluate it.
         self.op0.op0(random, best_x)  # Create 1 solution randomly and
-        best_f: Union[int, float] = evaluate(best_x)  # evaluate it.
+        best_f: int | float = evaluate(best_x)  # evaluate it.
 
         while not should_terminate():  # Until we need to quit...
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
-            new_f: Union[int, float] = evaluate(new_x)
+            new_f: int | float = evaluate(new_x)
             if new_f < best_f:  # new_x is _better_ than best_x?
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.

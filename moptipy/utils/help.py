@@ -2,7 +2,7 @@
 
 import os.path
 import sys
-from typing import Final, Iterable, List, Tuple, Union
+from typing import Final, Iterable
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import _canonicalize_path
@@ -37,11 +37,9 @@ __BASE_PATH: Final[str] = _canonicalize_path(os.path.dirname(
     os.path.dirname(os.path.dirname(_canonicalize_path(__file__))))) + os.sep
 
 
-def help_screen(title: str,
-                file: str,
-                text: str = "",
-                args: Iterable[Union[Tuple[str, str],
-                                     Tuple[str, str, bool]]] = ()) -> None:
+def help_screen(title: str, file: str, text: str = "",
+                args: Iterable[tuple[str, str]
+                               | tuple[str, str, bool]] = ()) -> None:
     """
     Print a help screen on the console.
 
@@ -75,7 +73,7 @@ def help_screen(title: str,
         f"[{t[0]}]" if (len(t) > 2) and t[2]  # type: ignore
         else t[0] for t in args)
     # prepare the text dump
-    cons: Final[List[str]] = [
+    cons: Final[list[str]] = [
         title,
         f"usage: {__INTERPRETER_SHORT} -m {module} {sargs}",
         f" call: {__INTERPRETER_LONG} -m {module} '{mid.join(sys.argv[1:])}'"]
@@ -86,7 +84,7 @@ def help_screen(title: str,
     # iterate over the arguments
     for arg in args:
         if not isinstance(arg, tuple):
-            raise type_error(arg, "args[i]", Tuple)
+            raise type_error(arg, "args[i]", tuple)
         if not 1 < len(arg) < 4:
             raise ValueError(
                 f"invalid argument tuple {arg}, should have length 2 or 3.")

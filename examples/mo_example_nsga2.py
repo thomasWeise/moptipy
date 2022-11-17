@@ -7,7 +7,6 @@ NSGA-II algorithm instead of the multi-objective version of the randomized
 local search. If you compare the results, you will find that NSGA-II indeed
 performs much better.
 """
-from typing import List
 
 from moptipy.algorithms.mo.nsga2 import NSGA2
 from moptipy.api.mo_archive import MORecord
@@ -72,7 +71,7 @@ with TempFile.create() as tf:  # create temporary file `tf`
     ex.set_log_file(tf)            # set log file = temp file `tf`
     ex.set_max_fes(2800)           # allow at most 2800 function evaluations
     with ex.execute() as process:  # now run the algorithm*problem combination
-        arch: List[MORecord] = process.get_archive()
+        arch: list[MORecord] = process.get_archive()
         print(f"We found the {len(arch)} non-dominated trade-off solutions:")
         print("makespan;worktime")
         arch.sort()

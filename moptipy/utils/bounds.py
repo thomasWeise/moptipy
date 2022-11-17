@@ -1,7 +1,7 @@
 """A set of bounds, i.e., a minimal and a maximal value."""
 
 from math import inf, isfinite
-from typing import Final, Optional
+from typing import Final
 
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import num_to_str_for_name
@@ -106,8 +106,8 @@ class FloatBounds(Bounds):
 class OptionalFloatBounds(Bounds):
     """A class representing optional floating point number bounds."""
 
-    def __init__(self, min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+    def __init__(self, min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Initialize the optional floating point bounds.
 
@@ -164,8 +164,8 @@ class IntBounds(Bounds):
 class OptionalIntBounds(Bounds):
     """A class representing optional integer bounds."""
 
-    def __init__(self, min_value: Optional[int] = None,
-                 max_value: Optional[int] = None) -> None:
+    def __init__(self, min_value: int | None = None,
+                 max_value: int | None = None) -> None:
         """
         Initialize the optional integer bounds.
 

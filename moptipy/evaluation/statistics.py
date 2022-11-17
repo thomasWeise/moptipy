@@ -3,7 +3,7 @@
 import statistics
 from dataclasses import dataclass
 from math import gcd, inf, isfinite, sqrt
-from typing import Callable, Dict, Final, Iterable, Union, cast
+from typing import Callable, Final, Iterable, cast
 
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import (
@@ -43,8 +43,8 @@ CSV_COLS: Final[int] = 6
 EMPTY_CSV_ROW: Final[str] = CSV_SEPARATOR * (CSV_COLS - 1)
 
 #: the internal getters
-_GETTERS: Final[Dict[str, Callable[['Statistics'],
-                                   Union[int, float, None]]]] = {
+_GETTERS: Final[dict[str, Callable[['Statistics'],
+                                   int | float | None]]] = {
     KEY_MINIMUM: lambda s: s.minimum,
     KEY_MEDIAN: lambda s: s.median,
     KEY_MEAN_ARITH: lambda s: s.mean_arith,
@@ -59,25 +59,25 @@ class Statistics:
     """An immutable record with statistics of one quantity."""
 
     #: The minimum.
-    minimum: Union[int, float]
+    minimum: int | float
     #: The median.
-    median: Union[int, float]
+    median: int | float
     #: The arithmetic mean value.
-    mean_arith: Union[int, float]
+    mean_arith: int | float
     #: The geometric mean value, if defined.
-    mean_geom: Union[int, float, None]
+    mean_geom: int | float | None
     #: The maximum.
-    maximum: Union[int, float]
+    maximum: int | float
     #: The standard deviation.
-    stddev: Union[int, float]
+    stddev: int | float
 
     def __init__(self, n: int,
-                 minimum: Union[int, float],
-                 median: Union[int, float],
-                 mean_arith: Union[int, float],
-                 mean_geom: Union[int, float, None],
-                 maximum: Union[int, float],
-                 stddev: Union[int, float]):
+                 minimum: int | float,
+                 median: int | float,
+                 mean_arith: int | float,
+                 mean_geom: int | float | None,
+                 maximum: int | float,
+                 stddev: int | float):
         """
         Initialize the statistics class.
 
@@ -208,7 +208,7 @@ class Statistics:
                            None if mean_geom is None else try_int(mean_geom))
         object.__setattr__(self, "stddev", try_int(stddev))
 
-    def min_mean(self) -> Union[int, float]:
+    def min_mean(self) -> int | float:
         """
         Obtain the smallest of the three mean values.
 
@@ -224,7 +224,7 @@ class Statistics:
             return self.mean_geom
         return self.median
 
-    def max_mean(self) -> Union[int, float]:
+    def max_mean(self) -> int | float:
         """
         Obtain the largest of the three mean values.
 
@@ -236,7 +236,7 @@ class Statistics:
         return self.median
 
     @staticmethod
-    def create(source: Iterable[Union[int, float]]) -> 'Statistics':
+    def create(source: Iterable[int | float]) -> 'Statistics':
         """
         Create a statistics object from an iterable.
 
@@ -264,8 +264,8 @@ class Statistics:
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
 
-        minimum: Union[int, float] = inf
-        maximum: Union[int, float] = -inf
+        minimum: int | float = inf
+        maximum: int | float = -inf
         can_int: bool = True  # are all values integers?
         int_sum: int = 0  # the integer sum (for mean, stddev)
         int_prod: int = 1  # the integer product (for geom_mean)
@@ -302,9 +302,9 @@ class Statistics:
                               maximum=maximum,
                               stddev=0)
 
-        stddev: Union[int, float] = 0
-        mean_geom: Union[int, float, None] = None
-        mean_arith: Union[int, float]
+        stddev: int | float = 0
+        mean_geom: int | float | None = None
+        mean_arith: int | float
 
         if can_int:  # if we get here, we have exact sums and product
             mean_arith = try_int_div(int_sum, n)
@@ -315,7 +315,7 @@ class Statistics:
                 int_sum2 = int_sum2 // i_gcd
                 i_n = n // i_gcd
 
-                var: Union[int, float]  # the container for the variance
+                var: int | float  # the container for the variance
                 if i_n == 1:
                     var = try_int_div(int_sum_sqr - int_sum2, n - 1)
                 else:  # variance is float
@@ -370,7 +370,7 @@ class Statistics:
                           KEY_MAXIMUM, KEY_STDDEV]]
 
     @staticmethod
-    def value_to_csv(value: Union[int, float]) -> str:
+    def value_to_csv(value: int | float) -> str:
         """
         Expand a single value to a CSV row.
 
@@ -400,7 +400,7 @@ class Statistics:
                f"{num_to_str(self.stddev)}"
 
     @staticmethod
-    def from_csv(n: int, row: Union[str, Iterable[str]]) -> 'Statistics':
+    def from_csv(n: int, row: str | Iterable[str]) -> 'Statistics':
         """
         Convert a CSV string (or separate CSV cells) to a Statistics object.
 
@@ -424,7 +424,7 @@ class Statistics:
 
     @staticmethod
     def getter(dimension: str) -> Callable[['Statistics'],
-                                           Union[int, float, None]]:
+                                           int | float | None]:
         """
         Produce a function that obtains the given dimension from Statistics.
 

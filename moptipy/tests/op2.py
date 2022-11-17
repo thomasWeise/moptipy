@@ -1,6 +1,6 @@
 """Functions that can be used to test binary search operators."""
 from math import isqrt
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable
 
 from numpy.random import Generator, default_rng
 
@@ -13,9 +13,9 @@ from moptipy.utils.types import type_error
 def validate_op2(op2: Op2,
                  search_space: Space = None,
                  make_search_space_element_valid:
-                 Optional[Callable[[Generator, Any], Any]] = lambda _, x: x,
+                 Callable[[Generator, Any], Any] | None = lambda _, x: x,
                  number_of_samples: int = 100,
-                 min_unique_samples: Union[int, Callable[[int, Space], int]]
+                 min_unique_samples: int | Callable[[int, Space], int]
                  = lambda samples, space:
                  max(1, min(samples // 2, isqrt(space.n_points())))) -> None:
     """

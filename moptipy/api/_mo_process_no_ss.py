@@ -1,7 +1,7 @@
 """Providing a multi-objective process without logging with a single space."""
 
 from math import isfinite
-from typing import Any, Callable, Final, List, Optional, Union, cast
+from typing import Any, Callable, Final, cast
 
 import numpy as np
 from numpy import copyto
@@ -52,11 +52,11 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                  pruner: MOArchivePruner,
                  archive_max_size: int,
                  archive_prune_limit: int,
-                 log_file: Optional[Path] = None,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None) -> None:
+                 log_file: Path | None = None,
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -85,7 +85,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
 
         #: the internal evaluation function
         self._f_evaluate: Final[Callable[
-            [Any, np.ndarray], Union[int, float]]] = objective.f_evaluate
+            [Any, np.ndarray], int | float]] = objective.f_evaluate
 
         #: the temporary variable for objective function evaluations
         self._fs_temp: Final[np.ndarray] = self.f_create()
@@ -94,7 +94,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the internal archive pruner
         self._pruner: Final[MOArchivePruner] = check_mo_archive_pruner(pruner)
         #: the fast call to the pruning routine
-        self._prune: Final[Callable[[List[MORecord], int, int], None]] \
+        self._prune: Final[Callable[[list[MORecord], int, int], None]] \
             = pruner.prune
         if not isinstance(archive_max_size, int):
             raise TypeError(archive_max_size, "archive_max_size", int)
@@ -111,7 +111,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the current archive size
         self._archive_size: int = 0
         #: the internal archive (pre-allocated to the prune limit)
-        self._archive: Final[List[MORecord]] = []
+        self._archive: Final[list[MORecord]] = []
 
     def _after_init(self) -> None:
         self._archive.extend(
@@ -131,7 +131,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         :returns: `True` if the solution was non-dominated, `False` if it was
             dominated by at least one solution in the archive
         """
-        archive: Final[List[MORecord]] = self._archive
+        archive: Final[list[MORecord]] = self._archive
         added_to_archive: bool = False
         archive_size: int = self._archive_size
         # we update the archive
@@ -171,14 +171,14 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                 self._archive_size = archive_size
         return True
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
+    def f_evaluate(self, x, fs: np.ndarray) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
                                  'the algorithm knows it.')
             return self._current_best_f
 
-        result: Final[Union[int, float]] = self._f_evaluate(x, fs)
+        result: Final[int | float] = self._f_evaluate(x, fs)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
@@ -200,14 +200,14 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
 
         return result
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         return self.f_evaluate(x, self._fs_temp)
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         raise ValueError(
             "register is not supported in multi-objective optimization")
 
-    def get_archive(self) -> List[MORecord]:
+    def get_archive(self) -> list[MORecord]:
         return self._archive[0:self._archive_size]
 
     def get_copy_of_best_fs(self, fs: np.ndarray) -> None:
@@ -231,7 +231,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         kv.key_value(KEY_ARCHIVE_SIZE, self._archive_size)
 
     def _log_and_check_archive_entry(self, index: int, rec: MORecord,
-                                     logger: Logger) -> Union[int, float]:
+                                     logger: Logger) -> int | float:
         """
         Write an archive entry.
 
@@ -243,7 +243,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         self.f_validate(rec.fs)
         self.validate(rec.x)
         tfs: Final[np.ndarray] = self._fs_temp
-        f: Final[Union[int, float]] = self._f_evaluate(rec.x, tfs)
+        f: Final[int | float] = self._f_evaluate(rec.x, tfs)
         if not np.array_equal(tfs, rec.fs):
             raise ValueError(
                 f"expected {rec.fs} but got {tfs} when re-evaluating {rec}")
@@ -262,18 +262,18 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
 
         if self._archive_size > 0:
             # write and verify the archive
-            archive: Final[List[MORecord]] = \
+            archive: Final[list[MORecord]] = \
                 self._archive[0:self._archive_size]
             archive.sort()
-            qualities: Final[List[List[Union[int, float]]]] = []
+            qualities: Final[list[list[int | float]]] = []
             for i, rec in enumerate(archive):
-                q: List[Union[int, float]] = [
+                q: list[int | float] = [
                     np_to_py_number(n) for n in rec.fs]
                 q.insert(0, self._log_and_check_archive_entry(i, rec, logger))
                 qualities.append(q)
 
             # now write the qualities
-            headline: List[str] = [
+            headline: list[str] = [
                 f"{KEY_ARCHIVE_F}{i}" for i in range(self.f_dimension())]
             headline.insert(0, KEY_ARCHIVE_F)
             with logger.csv(SECTION_ARCHIVE_QUALITY, headline) as csv:
@@ -281,7 +281,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                     csv.row(qq)
 
     def _write_mo_log(self,
-                      log: List[List[Union[int, float, np.ndarray]]],
+                      log: list[list[int | float | np.ndarray]],
                       start_time: int,
                       keep_all: bool,
                       logger: Logger) -> None:
@@ -304,17 +304,17 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             # first we clean the log from potentially dominated entries
             for i in range(loglen - 1, 0, -1):
                 reci = log[i]
-                fi = cast(Union[int, float], reci[2])
+                fi = cast(int | float, reci[2])
                 fsi = cast(np.ndarray, reci[3])
                 for j in range(i - 1, -1, -1):
                     recj = log[j]
-                    fj = cast(Union[int, float], recj[2])
+                    fj = cast(int | float, recj[2])
                     fsj = cast(np.ndarray, recj[3])
                     if (fj <= fi) and (domination(fsi, fsj) > 0):
                         del log[i]
                         break
 
-        header: List[str] = [PROGRESS_FES, PROGRESS_TIME_MILLIS,
+        header: list[str] = [PROGRESS_FES, PROGRESS_TIME_MILLIS,
                              PROGRESS_CURRENT_F]
         for i in range(len(cast(np.ndarray, log[0])[3])):
             header.append(f"{PROGRESS_CURRENT_F}{i}")

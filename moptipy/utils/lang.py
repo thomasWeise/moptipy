@@ -5,7 +5,7 @@ The idea here is to have simply tools that provide locale-specific keywords,
 texts, and number formats.
 """
 
-from typing import Callable, Dict, Final, Iterable, List, Optional
+from typing import Callable, Final, Iterable
 
 import matplotlib  # type: ignore
 import matplotlib.font_manager  # type: ignore
@@ -18,7 +18,7 @@ class Lang:
     """A language-based dictionary for locale-specific keywords."""
 
     def __init__(self, name: str, font: str, decimal_stepwidth: int = 3,
-                 data: Optional[Dict[str, str]] = None,
+                 data: dict[str, str] | None = None,
                  is_default: bool = False):
         """
         Instantiate the language formatter.
@@ -51,7 +51,7 @@ class Lang:
         self.__decimal_stepwidth: Final[int] = decimal_stepwidth
 
         #: the dictionary with the translation data
-        self.__dict: Final[Dict[str, str]] = {}
+        self.__dict: Final[dict[str, str]] = {}
         if data:
             self.extend(data)
 
@@ -59,7 +59,7 @@ class Lang:
         self.__is_default: Final[bool] = is_default
 
         # register the language
-        dc: Final[Dict[str, Lang]] = Lang.__get_langs()
+        dc: Final[dict[str, Lang]] = Lang.__get_langs()
         if self.__name in dc:
             raise ValueError(f"Language '{self.__name}' already registered.")
         if is_default:
@@ -73,14 +73,14 @@ class Lang:
         if is_default:
             self.set_current()
 
-    def extend(self, data: Dict[str, str]) -> None:
+    def extend(self, data: dict[str, str]) -> None:
         """
         Add a set of entries to this dictionary.
 
         :param data: the language-specific data
         """
         if not isinstance(data, dict):
-            raise type_error(data, "data", Dict)
+            raise type_error(data, "data", dict)
         for ko, v in data.items():
             k = sanitize_name(ko)
             if k != ko:
@@ -192,7 +192,7 @@ class Lang:
 
         # We divide the string into equally-sized chunks and insert "'"
         # between them.
-        chunks: List[str] = []
+        chunks: list[str] = []
         for i in range(i, -1, -self.__decimal_stepwidth):
             k: str = sss[i:(i + self.__decimal_stepwidth)]
             if k:
@@ -202,7 +202,7 @@ class Lang:
         return prefix + "'".join(chunks)
 
     @staticmethod
-    def __get_langs() -> Dict[str, 'Lang']:
+    def __get_langs() -> dict[str, 'Lang']:
         """
         Get the languages map.
 
@@ -222,7 +222,7 @@ class Lang:
         :return: the language
         """
         name = sanitize_name(name)
-        lang: Optional[Lang] = Lang.__get_langs().get(name, None)
+        lang: Lang | None = Lang.__get_langs().get(name, None)
         if lang:
             return lang
         raise ValueError(f"Unknown language '{name}'.")
@@ -335,7 +335,7 @@ class Lang:
 
 
 # noinspection PyBroadException
-def __get_font(choices: List[str]) -> str:
+def __get_font(choices: list[str]) -> str:
     """
     Try to find an installed version of the specified font.
 
@@ -347,7 +347,7 @@ def __get_font(choices: List[str]) -> str:
     func: Final = globals()["__get_font"]
 
     # get the list of installed fonts
-    font_list: List[str]
+    font_list: list[str]
     if not hasattr(func, attr):
         font_list = []
         for fname in matplotlib.font_manager.findSystemFonts():
@@ -365,8 +365,8 @@ def __get_font(choices: List[str]) -> str:
     # find the installed font
     for choice in choices:
         clc: str = choice.lower()
-        found_inside: Optional[str] = None
-        found_start: Optional[str] = None
+        found_inside: str | None = None
+        found_start: str | None = None
         for got in font_list:
             gotlc = got.lower()
             if clc == gotlc:

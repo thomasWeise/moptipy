@@ -1,5 +1,5 @@
 """Test the weighted sum scalarization."""
-from typing import Final, List, Union
+from typing import Final
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -22,7 +22,7 @@ def test_weighted_sum_on_onemax_and_leadingones() -> None:
     w1: Final[int] = int(random.integers(1, 100))
     w2: Final[int] = int(random.integers(1, 100))
 
-    weights: List[Union[int, float]] = [
+    weights: list[int | float] = [
         w1 if random.integers(2) <= 0 else float(w1),
         w2 if random.integers(2) <= 0 else float(w2),
     ]

@@ -1,6 +1,6 @@
 """The mock multi-objective optimization problem."""
 
-from typing import Iterable, List, Tuple, Union, cast
+from typing import Iterable, cast
 
 import numpy as np
 from numpy.random import default_rng
@@ -14,7 +14,7 @@ class MockMOProblem(WeightedSum):
     """A mock-up of a multi-objective optimization problem."""
 
     def __init__(self, objectives: Iterable[MockObjective],
-                 weights: Iterable[Union[int, float]]) -> None:
+                 weights: Iterable[int | float]) -> None:
         """
         Create the mock multi-objective problem.
 
@@ -38,7 +38,7 @@ class MockMOProblem(WeightedSum):
             raise type_error(dtype, "dtype", np.dtype)
 
         random = default_rng()
-        weights: List[Union[int, float]] =\
+        weights: list[int | float] =\
             [int(w) for w in random.integers(1, 3, n)] \
             if random.integers(2) <= 0 \
             else [float(w) for w in random.uniform(0.2, 3, n)]
@@ -51,15 +51,15 @@ class MockMOProblem(WeightedSum):
                 return MockMOProblem(funcs, weights)
         raise ValueError("Huh?")
 
-    def get_objectives(self) -> Tuple[MockObjective, ...]:
+    def get_objectives(self) -> tuple[MockObjective, ...]:
         """
         Get the internal objective functions.
 
         :return: the internal mock objective functions
         """
-        return cast(Tuple[MockObjective, ...], self._objectives)
+        return cast(tuple[MockObjective, ...], self._objectives)
 
-    def sample(self, fs: np.ndarray) -> Union[int, float]:
+    def sample(self, fs: np.ndarray) -> int | float:
         """
         Sample one vector of ojective values.
 

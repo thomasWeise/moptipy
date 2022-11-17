@@ -5,19 +5,7 @@ from math import log2
 from re import Match, Pattern
 from re import compile as _compile
 from statistics import median
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES
 from moptipy.evaluation.axis_ranger import AxisRanger
@@ -58,7 +46,7 @@ LETTER_M: Final[str] = "\u03BC"
 LETTER_L: Final[str] = "\u03BB"
 
 #: the pre-defined instance sort keys
-__INST_SORT_KEYS: Final[Dict[str, int]] = {
+__INST_SORT_KEYS: Final[dict[str, int]] = {
     __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
 }
 
@@ -80,7 +68,7 @@ def ea_family(name: str) -> str:
     :returns: the short name of the family
     """
     if name.startswith("ea_"):
-        ss: Final[List[str]] = name.split("_")
+        ss: Final[list[str]] = name.split("_")
         ll: Final[int] = len(ss)
         if ll == 4:
             lambda_ = int(ss[2])
@@ -101,7 +89,7 @@ def ea_family(name: str) -> str:
     raise ValueError(f"Invalid name '{name}'.")
 
 
-def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
+def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     """
     Create the algorithm sort keys and name map.
 
@@ -109,7 +97,7 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
     """
     inst = Instance.from_resource("demo")
     space = Permutations.with_repetitions(inst.jobs, inst.machines)
-    names: List[str] = [str(a(inst, space)) for a in DEFAULT_ALGORITHMS]
+    names: list[str] = [str(a(inst, space)) for a in DEFAULT_ALGORITHMS]
     names_new = list(names)
 
     def __eacr(mtch: Match) -> str:
@@ -130,8 +118,8 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
             q = q2
         return f"{mtch.group(1)}+{mtch.group(2)}_ea_{q}"
 
-    namer: Dict[str, str] = {}
-    used_names: Set[str] = set(names)
+    namer: dict[str, str] = {}
+    used_names: set[str] = set(names)
     for pattern, repl in [("hc_swap2", "hc"), ("hcr_32768_swap2", "hcr"),
                           ("hc_swapn", "hcn"), ("hcr_65536_swapn", "hcrn"),
                           ("rls_swap2", "rls"), ("rls_swapn", "rlsn"),
@@ -143,7 +131,7 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
         for s in names:
             m: Match = re.match(s)
             if m is not None:
-                ns = re.sub(cast(Union[str, Callable[[Match], str]], repl), s)
+                ns = re.sub(cast(str | Callable[[Match], str], repl), s)
                 if (ns is None) or (len(ns) <= 0):
                     raise ValueError(f"'{s}' -> '{ns}'?")
                 if ns == s:
@@ -162,7 +150,7 @@ def __make_algo_names() -> Tuple[Dict[str, int], Dict[str, str]]:
             raise ValueError(f"did not find '{pattern}'.")
 
     ea1p1: Final[int] = names_new.index("ea_1_1_swap2")
-    ea_families: Dict[str, int] = {
+    ea_families: dict[str, int] = {
         NAME_EA_MU_PLUS_MU: ea1p1,
         NAME_EA_MU_PLUS_SQRT_MU: ea1p1,
         NAME_EA_MU_PLUS_LOG_MU: ea1p1,
@@ -252,7 +240,7 @@ def compute_end_results(results_dir: str,
     results_file: Final[Path] = dest.resolve_inside("end_results.txt")
     if results_file.is_file():
         return results_file
-    results: Final[List[EndResult]] = []
+    results: Final[list[EndResult]] = []
 
     source: Final[Path] = Path.directory(results_dir)
     logger(f"loading end results from path '{source}'.")
@@ -273,9 +261,9 @@ def compute_end_results(results_dir: str,
 
 def get_end_results(
         file: str,
-        insts: Union[None, Set[str], Callable[[str], bool]] = None,
-        algos: Union[None, Set[str], Callable[[str], bool]] = None) \
-        -> List[EndResult]:
+        insts: None | set[str] | Callable[[str], bool] = None,
+        algos: None | set[str] | Callable[[str], bool] = None) \
+        -> list[EndResult]:
     """
     Get a specific set of end results..
 
@@ -288,10 +276,10 @@ def get_end_results(
 
     def __filter(er: EndResult,
                  ins=None if insts is None else
-                 insts.__contains__ if isinstance(insts, Set)
+                 insts.__contains__ if isinstance(insts, set)
                  else insts,
                  alg=None if algos is None else
-                 algos.__contains__ if isinstance(algos, Set)
+                 algos.__contains__ if isinstance(algos, set)
                  else algos) -> bool:
         if ins is not None:
             if not ins(er.instance):
@@ -301,7 +289,7 @@ def get_end_results(
                 return False
         return True
 
-    col: Final[List[EndResult]] = []
+    col: Final[list[EndResult]] = []
     EndResult.from_csv(file=file, consumer=col.append, filterer=__filter)
     if len(col) <= 0:
         raise ValueError(
@@ -323,10 +311,10 @@ def compute_end_statistics(end_results_file: str,
     if stats_file.is_file():
         return stats_file
 
-    results: Final[List[EndResult]] = get_end_results(end_results_file)
+    results: Final[list[EndResult]] = get_end_results(end_results_file)
     if len(results) <= 0:
         raise ValueError("end results cannot be empty")
-    stats: Final[List[EndStatistics]] = []
+    stats: Final[list[EndStatistics]] = []
     EndStatistics.from_end_results(results, stats.append)
     if len(stats) <= 0:
         raise ValueError("end result statistics cannot be empty")
@@ -340,8 +328,8 @@ def compute_end_statistics(end_results_file: str,
     return stats_file
 
 
-def table(end_results: Path, algos: List[str], dest: Path,
-          swap_stats: Optional[Iterable[Tuple[str, str]]] = None) -> None:
+def table(end_results: Path, algos: list[str], dest: Path,
+          swap_stats: Iterable[tuple[str, str]] | None = None) -> None:
     """
     Tabulate the end results.
 
@@ -352,8 +340,8 @@ def table(end_results: Path, algos: List[str], dest: Path,
     """
     EN.set_current()
     n: Final[str] = algorithm_namer(algos[0])
-    algo_inst_stat: Union[List, Tuple] = DEFAULT_ALGORITHM_INSTANCE_STATISTICS
-    algo_sum_stat: Union[List, Tuple] = DEFAULT_ALGORITHM_SUMMARY_STATISTICS
+    algo_inst_stat: list | tuple = DEFAULT_ALGORITHM_INSTANCE_STATISTICS
+    algo_sum_stat: list | tuple = DEFAULT_ALGORITHM_SUMMARY_STATISTICS
     if swap_stats is not None:
         algo_inst_stat = list(algo_inst_stat)
         algo_sum_stat = list(algo_sum_stat)
@@ -380,7 +368,7 @@ def table(end_results: Path, algos: List[str], dest: Path,
         use_lang=False)
 
 
-def tests(end_results: Path, algos: List[str], dest: Path) -> None:
+def tests(end_results: Path, algos: list[str], dest: Path) -> None:
     """
     Tabulate the end result tests.
 
@@ -399,7 +387,7 @@ def tests(end_results: Path, algos: List[str], dest: Path) -> None:
         use_lang=False)
 
 
-def makespans(end_results: Path, algos: List[str], dest: Path,
+def makespans(end_results: Path, algos: list[str], dest: Path,
               x_label_location: float = 1.0) -> None:
     """
     Plot the end makespans.
@@ -421,7 +409,7 @@ def makespans(end_results: Path, algos: List[str], dest: Path,
 
 def gantt(end_results: Path, algo: str, dest: Path, source: Path,
           best: bool = False,
-          insts: Optional[Iterable[str]] = None) -> None:
+          insts: Iterable[str] | None = None) -> None:
     """
     Plot the median Gantt charts.
 
@@ -442,11 +430,11 @@ def gantt(end_results: Path, algo: str, dest: Path, source: Path,
         results_dir=source,
         instance_sort_key=instance_sort_key,
         statistic=cast(
-            Callable[[Iterable[Union[int, float]]], Union[int, float]],
+            Callable[[Iterable[int | float]], int | float],
             min if best else median))
 
 
-def progress(algos: List[str], dest: Path, source: Path,
+def progress(algos: list[str], dest: Path, source: Path,
              log: bool = True, millis: bool = True) -> None:
     """
     Plot the median Gantt charts.
@@ -480,17 +468,17 @@ def progress(algos: List[str], dest: Path, source: Path,
 def makespans_over_param(
         end_results: Path,
         selector: Callable[[str], bool],
-        x_getter: Callable[[EndStatistics], Union[int, float]],
+        x_getter: Callable[[EndStatistics], int | float],
         name_base: str,
         dest_dir: str,
-        x_axis: Union[AxisRanger, Callable[[], AxisRanger]]
+        x_axis: AxisRanger | Callable[[], AxisRanger]
         = AxisRanger,
-        x_label: Optional[str] = None,
-        algo_getter: Optional[Callable[[str], str]] = None,
-        title: Optional[str] = None,
+        x_label: str | None = None,
+        algo_getter: Callable[[str], str] | None = None,
+        title: str | None = None,
         legend_pos: str = "right",
         title_x: float = 0.5,
-        y_label_location: float = 1.0) -> List[Path]:
+        y_label_location: float = 1.0) -> list[Path]:
     """
     Plot the performance over a parameter.
 
@@ -529,7 +517,7 @@ def makespans_over_param(
 
 
 def evaluate_experiment(results_dir: str = pp.join(".", "results"),
-                        dest_dir: Optional[str] = None) -> None:
+                        dest_dir: str | None = None) -> None:
     """
     Evaluate the experiment.
 
@@ -677,7 +665,7 @@ if __name__ == '__main__':
          ("dest_dir",
           "the directory where the evaluation results should be stored",
           True)])
-    mkwargs: Dict[str, Any] = {}
+    mkwargs: dict[str, Any] = {}
     if len(sys.argv) > 1:
         results_dir_str: Final[str] = sys.argv[1]
         mkwargs["results_dir"] = results_dir_str

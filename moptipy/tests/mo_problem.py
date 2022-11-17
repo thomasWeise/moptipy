@@ -1,6 +1,6 @@
 """Functions for testing multi-objective optimization problems."""
 from math import inf, isfinite
-from typing import Any, Callable, Final, List, Optional, Tuple, Union
+from typing import Any, Callable, Final
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -14,14 +14,13 @@ from moptipy.utils.types import type_error
 
 def validate_mo_problem(
         mo_problem: MOProblem,
-        solution_space: Optional[Space] = None,
+        solution_space: Space | None = None,
         make_solution_space_element_valid:
-        Optional[Callable[[Generator, Any], Any]] = lambda _, x: x,
+        Callable[[Generator, Any], Any] | None = lambda _, x: x,
         is_deterministic: bool = True,
-        lower_bound_threshold: Union[int, float] = -inf,
-        upper_bound_threshold: Union[int, float] = inf,
-        must_be_equal_to: Optional[
-            Callable[[Any], Union[int, float]]] = None) -> None:
+        lower_bound_threshold: int | float = -inf,
+        upper_bound_threshold: int | float = inf,
+        must_be_equal_to: Callable[[Any], int | float] | None = None) -> None:
     """
     Check whether an object is a moptipy multi-objective optimization problem.
 
@@ -54,7 +53,7 @@ def validate_mo_problem(
 
     all_int: Final[bool] = mo_problem.is_always_integer()
 
-    fses: Final[Tuple[np.ndarray, np.ndarray]] = \
+    fses: Final[tuple[np.ndarray, np.ndarray]] = \
         mo_problem.f_create(), mo_problem.f_create()
 
     exp_dtype: Final[np.dtype] = mo_problem.f_dtype()
@@ -68,7 +67,7 @@ def validate_mo_problem(
     elif not is_np_int(exp_dtype):
         raise ValueError(f"f_dtype() cannot be {exp_dtype}")
 
-    shape: Final[Tuple[int]] = (dim, )
+    shape: Final[tuple[int]] = (dim, )
     for fs in fses:
         if not isinstance(fs, np.ndarray):
             raise type_error(fs, "f_create()", np.ndarray)
@@ -103,7 +102,7 @@ def validate_mo_problem(
         raise ValueError("encountered two different dtypes when invoking "
                          f"f_create() twice: {fs1.dtype}, {fs2.dtype}")
 
-    lower: Final[Union[int, float]] = mo_problem.lower_bound()
+    lower: Final[int | float] = mo_problem.lower_bound()
     if not (isinstance(lower, (int, float))):
         raise type_error(lower, "lower_bound()", (int, float))
     if (not isfinite(lower)) and (not (lower <= (-inf))):
@@ -113,7 +112,7 @@ def validate_mo_problem(
         raise ValueError("lower bound must not be less than "
                          f"{lower_bound_threshold}, but is {lower}.")
 
-    upper: Final[Union[int, float]] = mo_problem.upper_bound()
+    upper: Final[int | float] = mo_problem.upper_bound()
     if not (isinstance(upper, (int, float))):
         raise type_error(upper, "upper_bound()", (int, float))
     if (not isfinite(upper)) and (not (upper >= inf)):
@@ -148,7 +147,7 @@ def validate_mo_problem(
         raise ValueError("make_solution_space_element_valid() produced None.")
     solution_space.validate(x)
 
-    reses: Final[List[Union[int, float]]] = [
+    reses: Final[list[int | float]] = [
         mo_problem.f_evaluate(x, fs1), mo_problem.f_evaluate(x, fs2)]
     if len(reses) != 2:
         raise ValueError(f"Huh? {len(reses)} != 2 for {reses}??")

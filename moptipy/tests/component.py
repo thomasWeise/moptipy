@@ -1,5 +1,5 @@
 """Functions that can be used to test component implementations."""
-from typing import Final, Set
+from typing import Final
 
 from moptipy.api import logging
 from moptipy.api.component import Component
@@ -81,7 +81,7 @@ def validate_component(component: Component) -> None:
         raise ValueError("A component must produce at least two lines of "
                          f"key-value data, but produced {len(lines)}.")
 
-    done_keys: Set[str] = set()
+    done_keys: set[str] = set()
     idx: int = 0
     key: str = logging.KEY_NAME
     done_keys.add(key)

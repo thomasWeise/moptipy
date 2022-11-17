@@ -1,7 +1,6 @@
 """Approximate the ECDF over the ERT to reach certain goals."""
 
 from dataclasses import dataclass
-from typing import List, Union
 
 from moptipy.evaluation.ecdf import Ecdf
 from moptipy.evaluation.ert import compute_single_ert
@@ -29,8 +28,8 @@ class ErtEcdf(Ecdf):
         return f"ert[{super()._time_key()}]"
 
     @staticmethod
-    def _compute_times(source: List[Progress],
-                       goal: Union[int, float]) -> List[float]:
+    def _compute_times(source: list[Progress],
+                       goal: int | float) -> list[float]:
         """
         Compute the times for the given goals.
 

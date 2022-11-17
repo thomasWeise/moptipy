@@ -31,7 +31,7 @@ Basically, a multi-objective problem provides three essential components:
    (:class:`~moptipy.mo.problem.weighted_sum.WeightedSum`) may be the method
    of choice for scalarization.
 """
-from typing import Final, Union
+from typing import Final
 
 import numpy as np
 
@@ -153,7 +153,7 @@ class MOProblem(Objective):
         if x.dtype != dt:
             raise ValueError(f"{x} should have dtype {dt} but has {x.dtype}!")
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
+    def f_evaluate(self, x, fs: np.ndarray) -> int | float:
         """
         Perform the multi-objective evaluation of a solution.
 
@@ -190,7 +190,7 @@ class MOProblem(Objective):
         """
         return dominates(a, b)
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """
         Evaluate a solution `x` and return its scalarized objective value.
 
@@ -240,8 +240,8 @@ class MOSOProblemBridge(MOProblem):
 
         dt: np.dtype
         if self.is_always_integer():
-            lb: Union[int, float] = self.lower_bound()
-            ub: Union[int, float] = self.upper_bound()
+            lb: int | float = self.lower_bound()
+            ub: int | float = self.upper_bound()
             dt = DEFAULT_INT
             if isinstance(lb, int):
                 if isinstance(ub, int):
@@ -258,7 +258,7 @@ class MOSOProblemBridge(MOProblem):
         self.f_create = lambda dd=dt: np.empty(1, dd)  # type: ignore
         self.f_dimension = lambda: 1  # type: ignore
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
+    def f_evaluate(self, x, fs: np.ndarray) -> int | float:
         """
         Evaluate the candidate solution.
 
@@ -266,7 +266,7 @@ class MOSOProblemBridge(MOProblem):
         :param fs: the objective vector, will become `[res]`
         :returns: the objective value `res`
         """
-        res: Final[Union[int, float]] = self.evaluate(x)
+        res: Final[int | float] = self.evaluate(x)
         fs[0] = res
         return res
 

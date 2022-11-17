@@ -33,7 +33,6 @@ replicable experiments.
 """
 from contextlib import AbstractContextManager
 from math import inf, isnan
-from typing import Optional, Union
 
 from numpy.random import Generator
 
@@ -81,7 +80,7 @@ class Process(Space, Objective, AbstractContextManager):
         :return: True if the process should terminate, False if not
         """
 
-    def evaluate(self, x) -> Union[float, int]:  # +book
+    def evaluate(self, x) -> float | int:  # +book
         """
         Evaluate a solution `x` and return its objective value.
 
@@ -139,7 +138,7 @@ class Process(Space, Objective, AbstractContextManager):
         :return: the objective value
         """
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         """
         Register a solution `x` with externally-evaluated objective value.
 
@@ -186,7 +185,7 @@ class Process(Space, Objective, AbstractContextManager):
         :rtype: int
         """
 
-    def get_max_fes(self) -> Optional[int]:
+    def get_max_fes(self) -> int | None:
         """
         Obtain the maximum number of permitted objective function evaluations.
 
@@ -196,7 +195,7 @@ class Process(Space, Objective, AbstractContextManager):
             or `None` if no limit is specified.
         """
 
-    def get_max_time_millis(self) -> Optional[int]:
+    def get_max_time_millis(self) -> int | None:
         """
         Obtain the maximum runtime permitted in milliseconds.
 
@@ -224,7 +223,7 @@ class Process(Space, Objective, AbstractContextManager):
             - :meth:`get_copy_of_best_y`
         """
 
-    def get_best_f(self) -> Union[int, float]:  # +book
+    def get_best_f(self) -> int | float:  # +book
         """
         Get the objective value of the current best solution.
 
@@ -404,8 +403,8 @@ class Process(Space, Objective, AbstractContextManager):
         return exception_type is None
 
 
-def check_max_fes(max_fes: Optional[int],
-                  none_is_ok: bool = False) -> Optional[int]:
+def check_max_fes(max_fes: int | None,
+                  none_is_ok: bool = False) -> int | None:
     """
     Check the maximum FEs.
 
@@ -424,8 +423,8 @@ def check_max_fes(max_fes: Optional[int],
     return max_fes
 
 
-def check_max_time_millis(max_time_millis: Optional[int],
-                          none_is_ok: bool = False) -> Optional[int]:
+def check_max_time_millis(max_time_millis: int | None,
+                          none_is_ok: bool = False) -> int | None:
     """
     Check the maximum time in milliseconds.
 
@@ -445,8 +444,8 @@ def check_max_time_millis(max_time_millis: Optional[int],
     return max_time_millis
 
 
-def check_goal_f(goal_f: Union[int, float, None],
-                 none_is_ok: bool = False) -> Union[int, float, None]:
+def check_goal_f(goal_f: int | float | None,
+                 none_is_ok: bool = False) -> int | float | None:
     """
     Check the goal objective value.
 

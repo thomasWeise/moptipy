@@ -1,5 +1,5 @@
 """A nullary operator forwarding to another function."""
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 import numpy as np
 from numpy.random import Generator
@@ -14,7 +14,7 @@ class Op0Forward(Op0):
     def __init__(self):
         """Initialize this operator."""
         #: the internal blueprint for filling permutations
-        self.__call: Optional[Callable[[Any], None]] = None
+        self.__call: Callable[[Any], None] | None = None
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:
         """Forward the call."""

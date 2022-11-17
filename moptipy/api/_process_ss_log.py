@@ -1,5 +1,5 @@
 """A process with logging and different search and solution space."""
-from typing import Final, List, Optional, Union
+from typing import Final
 
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api._process_no_ss import _write_log
@@ -23,10 +23,10 @@ class _ProcessSSLog(_ProcessSS):
                  log_file: Path,
                  search_space: Space = None,
                  encoding: Encoding = None,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None,
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None,
                  log_all_fes: bool = False) -> None:
         """
         Perform the internal initialization. Do not call directly.
@@ -61,11 +61,11 @@ class _ProcessSSLog(_ProcessSS):
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
         #: The in-memory log
-        self.__log: List[List[Union[int, float]]] = []
+        self.__log: list[list[int | float]] = []
         #: the quick access to the log appending method
         self.__log_append = self.__log.append
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '
@@ -74,7 +74,7 @@ class _ProcessSSLog(_ProcessSS):
 
         current_y: Final = self._current_y
         self._g(x, current_y)
-        result: Final[Union[int, float]] = self._f(current_y)
+        result: Final[int | float] = self._f(current_y)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all
@@ -101,7 +101,7 @@ class _ProcessSSLog(_ProcessSS):
 
         return result
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '

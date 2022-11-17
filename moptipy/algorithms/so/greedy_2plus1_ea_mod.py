@@ -30,7 +30,7 @@ Greedy (2+1) GA, with some improvements for efficiency.
    (GECCO'12), July 7-11, 2012, Philadelphia, Pennsylvania, USA,
    pages 689-702. ACM, 2012. https://doi.org/10.1145/2330163.2330260.
 """
-from typing import Callable, Final, Union
+from typing import Callable, Final
 
 from numpy.random import Generator
 
@@ -61,13 +61,13 @@ class GreedyTwoPlusOneEAmod(Algorithm2):
 
         x0 = create()  # allocate record for first solution
         op0(random, x0)  # randomly initialize first solution
-        f0: Union[int, float] = evaluate(x0)  # evaluate first solution
+        f0: int | float = evaluate(x0)  # evaluate first solution
         if should_terminate():  # should we quit?
             return  # yes.
 
         x1 = create()  # allocate record for first solution
         op0(random, x1)  # randomly initialize second solution
-        f1: Union[int, float] = evaluate(x1)  # evaluate 2nd solution
+        f1: int | float = evaluate(x1)  # evaluate 2nd solution
 
         z1 = create()  # create record for result of binary operation
         z2 = create()  # create record for result of unary operation

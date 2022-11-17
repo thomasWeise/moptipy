@@ -1,5 +1,5 @@
 """A factory for functions checking whether argument values are new."""
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 
 def is_new() -> Callable[[str], bool]:
@@ -25,7 +25,7 @@ def is_new() -> Callable[[str], bool]:
     >>> print(check("b"))
     False
     """
-    s: Dict[Any, int] = {}
+    s: dict[Any, int] = {}
     setdefault = s.setdefault
     n = 0
 

@@ -1,18 +1,7 @@
 """Provides function :func:`tabulate_end_results` to tabulate end results."""
 
 from math import inf, isfinite, isnan, nan
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 from moptipy.api.logging import (
     KEY_ALGORITHM,
@@ -202,8 +191,8 @@ def command_column_namer(
     return f"$\\{stat}{key}$" if put_dollars else f"\\{stat}{key}"
 
 
-def __finite_max(data: Iterable[Union[int, float, None]]) \
-        -> Union[int, float]:
+def __finite_max(data: Iterable[int | float | None]) \
+        -> int | float:
     """
     Compute the finite maximum of a data column.
 
@@ -213,7 +202,7 @@ def __finite_max(data: Iterable[Union[int, float, None]]) \
     """
     if not isinstance(data, Iterable):
         raise type_error(data, "data", Iterable)
-    maxi: Union[int, float] = -inf
+    maxi: int | float = -inf
     count: int = 0
     for d in data:
         count += 1
@@ -224,8 +213,8 @@ def __finite_max(data: Iterable[Union[int, float, None]]) \
     return maxi if (count > 1) and isfinite(maxi) else nan
 
 
-def __finite_min(data: Iterable[Union[int, float, None]]) \
-        -> Union[int, float]:
+def __finite_min(data: Iterable[int | float | None]) \
+        -> int | float:
     """
     Compute the finite minimum of a data column.
 
@@ -234,7 +223,7 @@ def __finite_min(data: Iterable[Union[int, float, None]]) \
     """
     if not isinstance(data, Iterable):
         raise type_error(data, "data", Iterable)
-    mini: Union[int, float] = inf
+    mini: int | float = inf
     count: int = 0
     for d in data:
         count += 1
@@ -245,7 +234,7 @@ def __finite_min(data: Iterable[Union[int, float, None]]) \
     return mini if (count > 1) and isfinite(mini) else nan
 
 
-def __nan(data: Iterable[Union[int, float, None]]) -> float:
+def __nan(data: Iterable[int | float | None]) -> float:
     """
     Get `nan`.
 
@@ -257,7 +246,7 @@ def __nan(data: Iterable[Union[int, float, None]]) -> float:
 
 
 def default_column_best(col: str) ->\
-        Callable[[Iterable[Union[int, float, None]]], Union[int, float]]:
+        Callable[[Iterable[int | float | None]], int | float]:
     """
     Get a function to compute the best value in a column.
 
@@ -326,7 +315,7 @@ def default_number_renderer(col: str) -> NumberRenderer:
     return DEFAULT_NUMBER_RENDERER
 
 
-def __getter(s: str) -> Callable[[EndStatistics], Union[int, float, None]]:
+def __getter(s: str) -> Callable[[EndStatistics], int | float | None]:
     """
     Obtain a getter for the end statistics.
 
@@ -337,7 +326,7 @@ def __getter(s: str) -> Callable[[EndStatistics], Union[int, float, None]]:
         raise type_error(s, "getter name", str)
     getter = EndStatistics.getter(s)
 
-    def __fixed(e: EndStatistics, g=getter, n=s) -> Union[int, float, None]:
+    def __fixed(e: EndStatistics, g=getter, n=s) -> int | float | None:
         res = g(e)
         if res is None:
             return None
@@ -349,7 +338,7 @@ def __getter(s: str) -> Callable[[EndStatistics], Union[int, float, None]]:
 
 
 #: the default algorithm-instance statistics
-DEFAULT_ALGORITHM_INSTANCE_STATISTICS: Final[Tuple[
+DEFAULT_ALGORITHM_INSTANCE_STATISTICS: Final[tuple[
     str, str, str, str, str, str]] = (
     f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
     f"{KEY_BEST_F}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}",
@@ -360,7 +349,7 @@ DEFAULT_ALGORITHM_INSTANCE_STATISTICS: Final[Tuple[
     f"{KEY_MEAN_ARITH}")
 
 #: the default algorithm summary statistics
-DEFAULT_ALGORITHM_SUMMARY_STATISTICS: Final[Tuple[
+DEFAULT_ALGORITHM_SUMMARY_STATISTICS: Final[tuple[
     str, str, str, str, str, str]] = (
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MINIMUM}",
     f"{KEY_BEST_F_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
@@ -377,23 +366,23 @@ def tabulate_end_results(
         dir_name: str = ".",
         algorithm_instance_statistics: Iterable[str] =
         DEFAULT_ALGORITHM_INSTANCE_STATISTICS,
-        algorithm_summary_statistics: Optional[Iterable[Optional[str]]] =
+        algorithm_summary_statistics: Iterable[str | None] | None =
         DEFAULT_ALGORITHM_SUMMARY_STATISTICS,
-        text_format_driver: Union[TextFormatDriver,
-                                  Callable[[], TextFormatDriver]]
+        text_format_driver: TextFormatDriver | Callable[[], TextFormatDriver]
         = Markdown.instance,
         algorithm_sort_key: Callable[[str], Any] = lambda a: a,
         instance_sort_key: Callable[[str], Any] = lambda i: i,
         col_namer: Callable[[str], str] = default_column_namer,
-        col_best: Callable[[str], Callable[[Iterable[Union[
-            int, float, None]]], Union[int, float]]] = default_column_best,
+        col_best: Callable[[str], Callable[
+            [Iterable[int | float | None]],
+            int | float]] = default_column_best,
         col_renderer: Callable[[str], NumberRenderer] =
         default_number_renderer,
         put_lower_bound: bool = True,
-        lower_bound_getter: Optional[Callable[[EndStatistics],
-                                              Union[int, float, None]]] =
+        lower_bound_getter: Callable[[EndStatistics],
+                                     int | float | None] | None =
         __getter(KEY_GOAL_F),
-        lower_bound_name: Optional[str] = __KEY_LOWER_BOUND,
+        lower_bound_name: str | None = __KEY_LOWER_BOUND,
         use_lang: bool = True,
         instance_namer: Callable[[str], str] = lambda x: x,
         algorithm_namer: Callable[[str], str] = lambda x: x) -> Path:
@@ -522,14 +511,14 @@ def tabulate_end_results(
         return res
 
     # get the getters
-    algo_inst_getters: Final[List[Callable[[EndStatistics],
-                                           Union[int, float, None]]]] = \
+    algo_inst_getters: Final[list[Callable[[EndStatistics],
+                                           int | float | None]]] = \
         [__getter(d) for d in algorithm_instance_statistics]
     n_algo_inst_getters: Final[int] = len(algo_inst_getters)
     if n_algo_inst_getters <= 0:
         raise ValueError("algorithm-instance dimensions must not be empty.")
-    algo_getters: Final[Optional[List[Optional[
-        Callable[[EndStatistics], Union[int, float, None]]]]]] = \
+    algo_getters: Final[list[Callable[[EndStatistics],
+                                      int | float | None] | None] | None] = \
         (None if (algorithm_summary_statistics is None)
          else [None if (d is None) else __getter(d)
                for d in cast(Iterable, algorithm_summary_statistics)])
@@ -544,26 +533,26 @@ def tabulate_end_results(
                 "then specify algorithm_summary_statistics=None")
 
     # gather the statistics for each algorithm-instance combination
-    algo_inst_list: Final[List[EndStatistics]] = []
+    algo_inst_list: Final[list[EndStatistics]] = []
     EndStatistics.from_end_results(end_results, algo_inst_list.append)
     if len(algo_inst_list) <= 0:
         raise ValueError("no algorithm-instance combinations?")
     # get the sorted lists of algorithms and instances
-    insts: Final[List[str]] = sorted({s.instance for s in algo_inst_list},
+    insts: Final[list[str]] = sorted({s.instance for s in algo_inst_list},
                                      key=instance_sort_key)
     n_insts: Final[int] = len(insts)
     if n_insts <= 0:
         raise ValueError("no instance found?")
-    inst_names: Final[List[str]] = [instance_namer(inst) for inst in insts]
-    algos: Final[List[str]] = sorted({s.algorithm for s in algo_inst_list},
+    inst_names: Final[list[str]] = [instance_namer(inst) for inst in insts]
+    algos: Final[list[str]] = sorted({s.algorithm for s in algo_inst_list},
                                      key=algorithm_sort_key)
     n_algos: Final[int] = len(algos)
     if n_algos <= 0:
         raise ValueError("no algos found?")
-    algo_names: Final[List[str]] = [algorithm_namer(algo) for algo in algos]
+    algo_names: Final[list[str]] = [algorithm_namer(algo) for algo in algos]
 
     # finalize the data dictionaries: d[inst][algo] = stats
-    algo_inst_dict: Final[Dict[str, Dict[str, EndStatistics]]] = {}
+    algo_inst_dict: Final[dict[str, dict[str, EndStatistics]]] = {}
     for e in algo_inst_list:
         if e.instance not in algo_inst_dict:
             algo_inst_dict[e.instance] = {}
@@ -576,9 +565,9 @@ def tabulate_end_results(
                 f"{algo_inst_dict[ina].keys()} instead of {algos}.")
 
     # compute the per-instance lower bounds if we need them
-    lower_bounds: Optional[List[str]]
+    lower_bounds: list[str] | None
     if put_lower_bound:
-        lb: List[Union[int, float, None]] = []
+        lb: list[int | float | None] = []
         for inst in insts:
             bounds = list({lower_bound_getter(d)
                            for d in algo_inst_dict[inst].values()})
@@ -586,7 +575,7 @@ def tabulate_end_results(
                 raise ValueError(f"inconsistent lower bounds {bounds} for "
                                  f"instance '{inst}'.")
             lb.append(bounds[0])
-        lower_bounds = cast(List[str], __col_renderer(
+        lower_bounds = cast(list[str], __col_renderer(
             __KEY_LOWER_BOUND).render(lb))
         del lb
     else:
@@ -594,7 +583,7 @@ def tabulate_end_results(
     del algo_inst_list
 
     # gather the algorithm summary statistics
-    algo_dict: Final[Optional[Dict[str, EndStatistics]]] = {} \
+    algo_dict: Final[dict[str, EndStatistics] | None] = {} \
         if (n_insts > 1) and (algo_getters is not None) else None
     if algo_dict is not None:
         def __put(es: EndStatistics):
@@ -623,11 +612,11 @@ def tabulate_end_results(
             raise ValueError(f"name computed for {s} cannot be empty.")
         return na
 
-    algo_inst_cols: Final[List[str]] = \
+    algo_inst_cols: Final[list[str]] = \
         [__fix_name(s) for s in algorithm_instance_statistics]
     if len(algo_inst_cols) <= 0:
         raise ValueError("no algorithm_instance columns?")
-    algo_cols: Optional[List[Optional[str]]] = \
+    algo_cols: list[str | None] | None = \
         None if algo_dict is None else \
         [(None if s is None else __fix_name(s))
          for s in cast(Iterable, algorithm_summary_statistics)]
@@ -653,12 +642,12 @@ def tabulate_end_results(
     # format: column -> columns data
     # we first need to get all the data at once to allow for a uniform
     # formatting via numbers_to_strings
-    algo_inst_data_raw: Final[List[List[Union[int, float, None]]]] =\
+    algo_inst_data_raw: Final[list[list[int | float | None]]] =\
         [[None if getter is None else getter(algo_inst_dict[inst][algo])
           for inst in insts for algo in algos]
          for getter in algo_inst_getters]
-    algo_inst_strs_raw: Final[List[List[Optional[str]]]] = [
-        cast(List[Optional[str]],
+    algo_inst_strs_raw: Final[list[list[str | None]]] = [
+        cast(list[str | None],
              __col_renderer(ais).render(algo_inst_data_raw[i]))
         for i, ais in enumerate(algorithm_instance_statistics)]
 
@@ -666,11 +655,11 @@ def tabulate_end_results(
     # format: column -> per-instance section -> section data
     # after we break the data in sections, we can mark the per-section bests
     # and we can flush the data to the table section-wise
-    algo_inst_data: Final[List[List[List[Union[int, float, None]]]]] = \
+    algo_inst_data: Final[list[list[list[int | float | None]]]] = \
         [[col[c * n_algos:(c + 1) * n_algos] for c in range(n_insts)]
          for col in algo_inst_data_raw]
     del algo_inst_data_raw
-    algo_inst_strs: Final[List[List[List[Optional[str]]]]] = \
+    algo_inst_strs: Final[list[list[list[str | None]]]] = \
         [[col[c * n_algos:(c + 1) * n_algos] for c in range(n_insts)]
          for col in algo_inst_strs_raw]
     del algo_inst_strs_raw
@@ -696,7 +685,7 @@ def tabulate_end_results(
     del algorithm_instance_statistics
 
     # now we pre-pend the instance and algorithm information
-    algo_names_formatted: List[str] = [
+    algo_names_formatted: list[str] = [
         FormattedStr.add_format(algo, code=True) for algo in algo_names]
     algo_inst_strs.insert(0, [algo_names_formatted] * n_insts)
     if put_lower_bound:
@@ -706,15 +695,15 @@ def tabulate_end_results(
     del lower_bounds
     del insts
 
-    algo_strs: Optional[List[List[Optional[str]]]] = None
+    algo_strs: list[list[str | None]] | None = None
     if (algo_dict is not None) and (algorithm_summary_statistics is not None):
         # get the data columns of the algorithm summaries
         # format: column -> columns data
-        algo_data: Final[List[List[Union[int, float, None]]]] = \
+        algo_data: Final[list[list[int | float | None]]] = \
             [[None if getter is None else getter(algo_dict[algo])
               for algo in algos]
              for getter in algo_getters]
-        algo_strs = [cast(List[str], __col_renderer(ass).render(algo_data[i]))
+        algo_strs = [cast(list[str], __col_renderer(ass).render(algo_data[i]))
                      for i, ass in enumerate(algorithm_summary_statistics)]
 
         # now format the data, i.e., compute the per-section best value

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import ceil, inf
-from typing import Dict, Final, List, Optional, Tuple, Union
+from typing import Final
 
 from numpy.random import Generator
 
@@ -20,8 +20,8 @@ from moptipy.utils.types import type_error
 
 def end_result(performance: BasePerformance,
                seed: int,
-               max_fes: Optional[int] = None,
-               max_time_millis: Optional[int] = None) -> EndResult:
+               max_fes: int | None = None,
+               max_time_millis: int | None = None) -> EndResult:
     """
     Compute the end result of a mock run.
 
@@ -34,8 +34,8 @@ def end_result(performance: BasePerformance,
     if not isinstance(performance, BasePerformance):
         raise type_error(performance, "performance", BasePerformance)
 
-    limit_time: Union[int, float] = inf
-    limit_fes: Union[int, float] = inf
+    limit_time: int | float = inf
+    limit_fes: int | float = inf
     if max_time_millis is not None:
         if not isinstance(max_time_millis, int):
             raise type_error(max_time_millis, "max_time_millis", int)
@@ -102,7 +102,7 @@ def end_result(performance: BasePerformance,
         qual = random.normal(loc=performance.performance, scale=0.02 * jitter)
 
     # Second, find the right attractor and remember it in base.
-    att: Final[Tuple[int, ...]] = performance.instance.attractors
+    att: Final[tuple[int, ...]] = performance.instance.attractors
     attn: Final[int] = len(att)
     att_index: int = -1
     best: Final[int] = performance.instance.best
@@ -169,21 +169,21 @@ class EndResults:
     #: The experiment.
     experiment: Experiment
     #: The end results.
-    results: Tuple[EndResult, ...]
+    results: tuple[EndResult, ...]
     #: The maximum permitted FEs.
-    max_fes: Optional[int]
+    max_fes: int | None
     #: The maximum permitted milliseconds.
-    max_time_millis: Optional[int]
+    max_time_millis: int | None
     #: the results per algorithm
-    __results_for_algo: Dict[Union[str, Algorithm], Tuple[EndResult, ...]]
+    __results_for_algo: dict[str | Algorithm, tuple[EndResult, ...]]
     #: the results per instance
-    __results_for_inst: Dict[Union[str, Instance], Tuple[EndResult, ...]]
+    __results_for_inst: dict[str | Instance, tuple[EndResult, ...]]
 
     def __init__(self,
                  experiment: Experiment,
-                 results: Tuple[EndResult, ...],
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None):
+                 results: tuple[EndResult, ...],
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None):
         """
         Create a mock results of an experiment.
 
@@ -196,10 +196,10 @@ class EndResults:
             raise type_error(experiment, "experiment", Experiment)
         object.__setattr__(self, "experiment", experiment)
 
-        per_algo: Final[Dict[Union[str, Algorithm], List[EndResult]]] = {}
-        per_inst: Final[Dict[Union[str, Instance], List[EndResult]]] = {}
+        per_algo: Final[dict[str | Algorithm, list[EndResult]]] = {}
+        per_inst: Final[dict[str | Instance, list[EndResult]]] = {}
         if not isinstance(results, tuple):
-            raise type_error(results, "results", Tuple)
+            raise type_error(results, "results", tuple)
         if len(results) <= 0:
             raise ValueError("end_results must not be empty.")
         for a in results:
@@ -218,14 +218,14 @@ class EndResults:
 
         object.__setattr__(self, "results", results)
 
-        pa: Dict[Union[str, Algorithm], Tuple[EndResult, ...]] = {}
+        pa: dict[str | Algorithm, tuple[EndResult, ...]] = {}
         for ax in experiment.algorithms:
-            lax: List[EndResult] = per_algo[ax]
+            lax: list[EndResult] = per_algo[ax]
             lax.sort()
             pa[ax.name] = pa[ax] = tuple(lax)
-        pi: Dict[Union[str, Instance], Tuple[EndResult, ...]] = {}
+        pi: dict[str | Instance, tuple[EndResult, ...]] = {}
         for ix in experiment.instances:
-            lix: List[EndResult] = per_inst[ix]
+            lix: list[EndResult] = per_inst[ix]
             lix.sort()
             pi[ix.name] = pi[ix] = tuple(lix)
 
@@ -249,8 +249,8 @@ class EndResults:
 
     @staticmethod
     def create(experiment: Experiment,
-               max_fes: Optional[int] = None,
-               max_time_millis: Optional[int] = None) -> 'EndResults':
+               max_fes: int | None = None,
+               max_time_millis: int | None = None) -> 'EndResults':
         """
         Create the end results for a given experiment.
 
@@ -279,7 +279,7 @@ class EndResults:
             if max_time_millis <= 0:
                 raise ValueError("max_time_millis must be > 0, "
                                  f"but are {max_time_millis}.")
-        results: List[EndResult] = []
+        results: list[EndResult] = []
         for per in experiment.applications:
             for seed in experiment.seeds_for_instance(per.instance):
                 results.append(end_result(performance=per,
@@ -295,8 +295,8 @@ class EndResults:
         logger(f"finished creating all {len(res.results)} end results.")
         return res
 
-    def results_for_algorithm(self, algorithm: Union[str, Algorithm]) \
-            -> Tuple[EndResult, ...]:
+    def results_for_algorithm(self, algorithm: str | Algorithm) \
+            -> tuple[EndResult, ...]:
         """
         Get the end results per algorithm.
 
@@ -305,8 +305,8 @@ class EndResults:
         """
         return self.__results_for_algo[algorithm]
 
-    def results_for_instance(self, instance: Union[str, Instance]) \
-            -> Tuple[EndResult, ...]:
+    def results_for_instance(self, instance: str | Instance) \
+            -> tuple[EndResult, ...]:
         """
         Get the end results per instance.
 

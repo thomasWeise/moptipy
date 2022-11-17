@@ -22,7 +22,6 @@ If you implement a new such encoding, you may want to test it using the
 pre-defined unit test routine
 :func:`~moptipy.tests.encoding.validate_encoding`.
 """
-from typing import Optional
 
 from moptipy.api.component import Component
 from moptipy.utils.types import type_error
@@ -46,8 +45,8 @@ class Encoding(Component):
     # end book
 
 
-def check_encoding(encoding: Optional[Encoding],
-                   none_is_ok: bool = True) -> Optional[Encoding]:
+def check_encoding(encoding: Encoding | None,
+                   none_is_ok: bool = True) -> Encoding | None:
     """
     Check whether an object is a valid instance of :class:`Encoding`.
 

@@ -1,16 +1,5 @@
 """Styler allows to discover groups of data and associate styles with them."""
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
@@ -23,11 +12,11 @@ class Styler:
     """A class for determining groups of elements and styling them."""
 
     #: The tuple with the names becomes valid after compilation.
-    names: Tuple[str, ...]
+    names: tuple[str, ...]
     #: The tuple with the keys becomes valid after compilation.
-    keys: Tuple[Any, ...]
+    keys: tuple[Any, ...]
     #: The dictionary mapping keys to indices; only valid after compilation.
-    __indexes: Dict[Any, int]
+    __indexes: dict[Any, int]
     #: Is there a None key? Valid after compilation.
     has_none: bool
     #: The number of registered keys.
@@ -39,8 +28,8 @@ class Styler:
                  key_func: Callable = lambda x: x,
                  namer: Callable[[Any], str] = str,
                  none_name: str = "None",
-                 priority: Union[int, float] = 0,
-                 name_sort_function: Optional[Callable[[str], str]] =
+                 priority: int | float = 0,
+                 name_sort_function: Callable[[str], str] | None =
                  lambda s: s):
         """
         Initialize the style grouper.
@@ -79,7 +68,7 @@ class Styler:
             return rv
 
         #: the name sort function
-        self.__name_sort_function: Final[Optional[Callable[[str], str]]] = \
+        self.__name_sort_function: Final[Callable[[str], str] | None] = \
             name_sort_function
         #: The key function of the grouper
         self.key_func: Final[Callable] = key_func
@@ -89,15 +78,15 @@ class Styler:
         #: The base priority of this grouper
         self.priority: float = float(priority)
         #: The internal collection.
-        self.__collection: Set = set()
+        self.__collection: set = set()
         #: the line colors
-        self.__line_colors: Optional[Tuple] = None
+        self.__line_colors: tuple | None = None
         #: the line dashes
-        self.__line_dashes: Optional[Tuple] = None
+        self.__line_dashes: tuple | None = None
         #: the line widths
-        self.__line_widths: Optional[Tuple[float, ...]] = None
+        self.__line_widths: tuple[float, ...] | None = None
         #: the optional line alpha
-        self.__line_alphas: Optional[Tuple[float, ...]] = None
+        self.__line_alphas: tuple[float, ...] | None = None
 
     def add(self, obj) -> None:
         """
@@ -113,7 +102,7 @@ class Styler:
         if self.has_none:
             self.__collection.remove(None)
 
-        nsf: Final[Optional[Callable[[str], str]]] = self.__name_sort_function
+        nsf: Final[Callable[[str], str] | None] = self.__name_sort_function
         if nsf is None:
             data = [(k, self.name_func(k)) for k in self.__collection]
             data.sort()
@@ -218,7 +207,7 @@ class Styler:
         self.has_style = True
 
     def add_line_style(self, obj,
-                       style: Dict[str, object]) -> None:
+                       style: dict[str, object]) -> None:
         """
         Apply this styler's contents based on the given object.
 
@@ -231,7 +220,7 @@ class Styler:
             self.__add_line_style(index, style)
 
     def __add_line_style(self, index,
-                         style: Dict[str, object]) -> None:
+                         style: dict[str, object]) -> None:
         """
         Apply this styler's contents based on the given object.
 

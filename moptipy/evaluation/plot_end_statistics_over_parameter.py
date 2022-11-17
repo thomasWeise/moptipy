@@ -1,16 +1,6 @@
 """Plot the end results over a parameter."""
 from math import isfinite
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -58,15 +48,15 @@ def __make_y_axis(y_dim: str) -> AxisRanger:
 
 def plot_end_statistics_over_param(
         data: Iterable[EndStatistics],
-        figure: Union[SubplotBase, Figure],
-        x_getter: Callable[[EndStatistics], Union[int, float]],
+        figure: SubplotBase | Figure,
+        x_getter: Callable[[EndStatistics], int | float],
         y_dim: str = f"{F_NAME_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
-        algorithm_getter: Callable[[EndStatistics], Optional[str]] =
+        algorithm_getter: Callable[[EndStatistics], str | None] =
         lambda es: es.algorithm,
-        instance_getter: Callable[[EndStatistics], Optional[str]] =
+        instance_getter: Callable[[EndStatistics], str | None] =
         lambda es: es.instance,
-        x_axis: Union[AxisRanger, Callable[[], AxisRanger]] = AxisRanger,
-        y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        x_axis: AxisRanger | Callable[[], AxisRanger] = AxisRanger,
+        y_axis: AxisRanger | Callable[[str], AxisRanger] =
         __make_y_axis,
         legend: bool = True,
         legend_pos: str = "upper right",
@@ -79,10 +69,10 @@ def plot_end_statistics_over_param(
         pd.importance_to_font_size,
         x_grid: bool = True,
         y_grid: bool = True,
-        x_label: Optional[str] = None,
+        x_label: str | None = None,
         x_label_inside: bool = True,
         x_label_location: float = 0.5,
-        y_label: Union[None, str, Callable[[str], str]] = __make_y_label,
+        y_label: None | str | Callable[[str], str] = __make_y_label,
         y_label_inside: bool = True,
         y_label_location: float = 1.0,
         inst_priority: float = 0.666,
@@ -217,8 +207,8 @@ def plot_end_statistics_over_param(
                          "color_algorithms_as_fallback_group", bool)
 
     # the getter for the dimension value
-    y_getter: Final[Callable[[EndStatistics], Union[int, float]]] \
-        = cast(Callable[[EndStatistics], Union[int, float]],
+    y_getter: Final[Callable[[EndStatistics], int | float]] \
+        = cast(Callable[[EndStatistics], int | float],
                EndStatistics.getter(y_dim))
     if not callable(y_getter):
         raise type_error(y_getter, "y-getter", call=True)
@@ -247,8 +237,8 @@ def plot_end_statistics_over_param(
         priority=algo_priority, name_sort_function=algorithm_sort_key)
 
     # we now extract the data: x -> algo -> inst -> y
-    dataset: Final[Dict[Optional[str], Dict[
-        Optional[str], Dict[Union[int, float], Union[int, float]]]]] = {}
+    dataset: Final[dict[str | None, dict[
+        str | None, dict[int | float, int | float]]]] = {}
     for endstat in data:
         if not isinstance(endstat, EndStatistics):
             raise type_error(endstat, "element in data", EndStatistics)
@@ -296,7 +286,7 @@ def plot_end_statistics_over_param(
                                      for i in range(p)])
 
     # determine the style groups
-    groups: List[Styler] = []
+    groups: list[Styler] = []
     instances.compile()
     algorithms.compile()
 
@@ -323,7 +313,7 @@ def plot_end_statistics_over_param(
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
-    plot_list: List[Dict] = []
+    plot_list: list[dict] = []
     for algo in algorithms.keys:
         _dataset = dataset[algo]
         for inst in instances.keys:
@@ -364,7 +354,7 @@ def plot_end_statistics_over_param(
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = []
+        handles: list[Artist] = []
 
         for g in groups:
             g.add_to_legend(handles.append)

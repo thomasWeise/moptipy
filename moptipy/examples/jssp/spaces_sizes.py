@@ -29,7 +29,7 @@ count how many of them are feasible.
 """
 import sys
 from math import factorial, log10
-from typing import Iterable, List, Tuple
+from typing import Iterable
 
 import numba  # type: ignore
 import numpy as np
@@ -55,8 +55,8 @@ def permutations_with_repetitions_space_size(n: int, m: int) -> int:
 
 
 #: the pre-computed values
-__PRE_COMPUTED: Tuple[Tuple[int, int, int,
-                            Tuple[Tuple[int, ...], ...]], ...] = (
+__PRE_COMPUTED: tuple[tuple[int, int, int,
+                            tuple[tuple[int, ...], ...]], ...] = (
     (3, 2, 22, ((0, 1), (0, 1), (1, 0))),
     (3, 3, 63, ((0, 1, 2), (1, 0, 2), (2, 0, 1))),
     (3, 4, 147, ((0, 1, 2, 3), (1, 0, 3, 2), (2, 3, 0, 1))),
@@ -74,7 +74,7 @@ __PRE_COMPUTED: Tuple[Tuple[int, int, int,
 
 
 def gantt_min_feasible(jobs: int, machines: int) \
-        -> Tuple[int, Tuple[Tuple[int, ...], ...]]:
+        -> tuple[int, tuple[tuple[int, ...], ...]]:
     """
     Find the minimum number of feasible gantt charts.
 
@@ -468,7 +468,7 @@ def make_gantt_space_size_table(
             + r"})$|$\left|\solutionSpace\right|$|",
             r"|:--|--:|--:|--:|--:|"]
 
-    inst_scales: List[Tuple[int, int, int, int, str]] = []
+    inst_scales: list[tuple[int, int, int, int, str]] = []
 
     # enumerate the pre-defined instances
     for inst in set(instances):
@@ -547,7 +547,7 @@ def make_search_space_size_table(
             + r"$\jsspJobs$|$\jsspMachines$|$\left|\solutionSpace\right|$|"
             + r"$\left|\searchSpace\right|$|",
             r"|:--|--:|--:|--:|--:|"]
-    inst_scales: List[Tuple[int, int, int, int, str]] = []
+    inst_scales: list[tuple[int, int, int, int, str]] = []
 
     # enumerate the pre-defined instances
     for inst in set(instances):

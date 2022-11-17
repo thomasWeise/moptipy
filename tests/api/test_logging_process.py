@@ -1,6 +1,6 @@
 """Test the Logging Process API."""
 from os.path import getsize, isfile
-from typing import Final, Union
+from typing import Final
 
 import numpy as np
 from numpy.random import Generator
@@ -45,7 +45,7 @@ class MyAlgorithm(Algorithm):
 class MyObjective(Objective):
     """The internal test objective."""
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """Return x[0] as dummy objective value."""
         return x[0]
 

@@ -50,7 +50,7 @@ at mu=lambda=1.
 
 
 from collections import Counter
-from typing import Final, List, Union, cast
+from typing import Final, cast
 
 import numpy as np
 from numpy.random import Generator
@@ -72,8 +72,8 @@ class FFA(Fitness):
         """
         check_objective(f)
         if f.is_always_integer():
-            lb: Final[Union[int, float]] = f.lower_bound()
-            ub: Final[Union[int, float]] = f.upper_bound()
+            lb: Final[int | float] = f.lower_bound()
+            ub: Final[int | float] = f.upper_bound()
             if isinstance(ub, int) and isinstance(lb, int) \
                     and ((ub - lb) <= 100_000_000):
                 if 0 <= lb <= 10_000_000:
@@ -104,7 +104,7 @@ class _IntFFA1(FFA):
         instance.__h = np.zeros(ub + 1, dtype=DEFAULT_UNSIGNED_INT)
         return instance
 
-    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
 
@@ -156,7 +156,7 @@ class _IntFFA2(FFA):
         instance.__lb = lb
         return instance
 
-    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
 
@@ -208,14 +208,14 @@ class _DictFFA(FFA):
         instance.__h = Counter()
         return instance
 
-    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
 
         :param p: the list of records
         :param random: ignored
         """
-        h: Final[Counter[Union[int, float]]] = self.__h
+        h: Final[Counter[int | float]] = self.__h
 
         min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
         max_it: int = -1  # the maximum iteration index

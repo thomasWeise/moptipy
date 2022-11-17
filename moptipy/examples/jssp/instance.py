@@ -14,7 +14,7 @@ Nevertheless, this memory layout and encapsulation as numpy array are
 the most efficient way to store the data I could come up with.
 """
 from importlib import resources  # nosem
-from typing import Final, List, Optional, Tuple
+from typing import Final
 
 import numpy as np
 
@@ -37,7 +37,7 @@ MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
 MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
 #: the internal final set of instances
-_INSTANCES: Final[Tuple[str, ...]] = \
+_INSTANCES: Final[tuple[str, ...]] = \
     ('abz5', 'abz6', 'abz7', 'abz8', 'abz9',
      'demo',
      'dmu01', 'dmu02', 'dmu03', 'dmu04', 'dmu05', 'dmu06', 'dmu07',
@@ -170,7 +170,7 @@ class Instance(Component, np.ndarray):
 
     def __new__(cls, name: str, machines: int, jobs: int,
                 matrix: np.ndarray,
-                makespan_lower_bound: Optional[int] = None) -> 'Instance':
+                makespan_lower_bound: int | None = None) -> 'Instance':
         """
         Create an instance of the Job Shop Scheduling Problem.
 
@@ -199,7 +199,7 @@ class Instance(Component, np.ndarray):
         if not isinstance(matrix, np.ndarray):
             raise type_error(matrix, "matrix", np.ndarray)
 
-        use_shape: Tuple[int, int, int] = (jobs, machines, 2)
+        use_shape: tuple[int, int, int] = (jobs, machines, 2)
         if matrix.shape[0] != jobs:
             raise ValueError(
                 f"Invalid shape '{matrix.shape}' of matrix: must have "
@@ -301,7 +301,7 @@ class Instance(Component, np.ndarray):
         logger.key_value(npu.KEY_NUMPY_TYPE, self.dtype.char)
 
     @staticmethod
-    def from_text(name: str, rows: List[str]) -> 'Instance':
+    def from_text(name: str, rows: list[str]) -> 'Instance':
         """
         Convert a name and a set of rows of text to an JSSP instance.
 
@@ -310,7 +310,7 @@ class Instance(Component, np.ndarray):
         :return: the JSSP Instance
         """
         if not isinstance(rows, list):
-            raise type_error(rows, "rows", List)
+            raise type_error(rows, "rows", list)
         if len(rows) < 3:
             raise ValueError(
                 f"Must have at least 3 rows, but found {rows}.")
@@ -370,7 +370,7 @@ class Instance(Component, np.ndarray):
         :return: the instance
         """
         state = 0
-        rows: Optional[List[str]] = None
+        rows: list[str] | None = None
         for line in stream:
             line = str(line).strip()
             if len(line) <= 0:
@@ -430,7 +430,7 @@ class Instance(Component, np.ndarray):
             return Instance.from_stream(name=name, stream=stream)
 
     @staticmethod
-    def list_resources() -> Tuple[str, ...]:
+    def list_resources() -> tuple[str, ...]:
         """
         Get a tuple with all JSSP instances provided in the moptipy resources.
 

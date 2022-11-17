@@ -1,5 +1,5 @@
 """Functions for testing multi-objective archive pruners."""
-from typing import Callable, Final, Iterable, List, Optional
+from typing import Callable, Final, Iterable
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -55,8 +55,8 @@ def __run_single_test(
         dim_mode.append(True)
 
     for use_collapse in dim_mode:
-        archive: List[MORecord] = []
-        archivec: List[MORecord] = []
+        archive: list[MORecord] = []
+        archivec: list[MORecord] = []
 
         collapse_dim: int = -1
         if use_collapse:
@@ -66,8 +66,8 @@ def __run_single_test(
 
         for _ in range(alen):
             needed: bool = True
-            rec: Optional[MORecord] = None
-            fs: Optional[np.ndarray] = None
+            rec: MORecord | None = None
+            fs: np.ndarray | None = None
             while needed:   # we make sure that all records are unique
                 max_samples -= 1
                 if max_samples <= 0:
@@ -98,10 +98,10 @@ def __run_single_test(
 
         # done creating archive and copy of archive
 
-        if not isinstance(archive, List):
-            raise type_error(archive, "archive", List)
-        if not isinstance(archivec, List):
-            raise type_error(archivec, "archivec", List)
+        if not isinstance(archive, list):
+            raise type_error(archive, "archive", list)
+        if not isinstance(archivec, list):
+            raise type_error(archivec, "archivec", list)
 
         thelen: int = len(archive)
         if not isinstance(thelen, int):

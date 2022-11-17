@@ -1,6 +1,6 @@
 """Functions that can be used to test objective functions."""
 from math import inf, isfinite
-from typing import Any, Callable, Final, Optional, Union
+from typing import Any, Callable, Final
 
 from numpy.random import Generator, default_rng
 
@@ -12,14 +12,13 @@ from moptipy.utils.types import type_error
 
 def validate_objective(
         objective: Objective,
-        solution_space: Optional[Space] = None,
+        solution_space: Space | None = None,
         make_solution_space_element_valid:
-        Optional[Callable[[Generator, Any], Any]] = lambda _, x: x,
+        Callable[[Generator, Any], Any] | None = lambda _, x: x,
         is_deterministic: bool = True,
-        lower_bound_threshold: Union[int, float] = -inf,
-        upper_bound_threshold: Union[int, float] = inf,
-        must_be_equal_to: Optional[
-            Callable[[Any], Union[int, float]]] = None) -> None:
+        lower_bound_threshold: int | float = -inf,
+        upper_bound_threshold: int | float = inf,
+        must_be_equal_to: Callable[[Any], int | float] | None = None) -> None:
     """
     Check whether an object is a moptipy objective function.
 
@@ -44,7 +43,7 @@ def validate_objective(
     if not (hasattr(objective, 'lower_bound')
             and callable(getattr(objective, 'lower_bound'))):
         raise ValueError("objective must have method lower_bound.")
-    lower: Final[Union[int, float]] = objective.lower_bound()
+    lower: Final[int | float] = objective.lower_bound()
     if not (isinstance(lower, (int, float))):
         raise type_error(lower, "lower_bound()", (int, float))
     if (not isfinite(lower)) and (not (lower <= (-inf))):
@@ -57,7 +56,7 @@ def validate_objective(
     if not (hasattr(objective, 'upper_bound')
             and callable(getattr(objective, 'upper_bound'))):
         raise ValueError("objective must have method upper_bound.")
-    upper: Final[Union[int, float]] = objective.upper_bound()
+    upper: Final[int | float] = objective.upper_bound()
     if not (isinstance(upper, (int, float))):
         raise type_error(upper, "upper_bound()", (int, float))
     if (not isfinite(upper)) and (not (upper >= inf)):

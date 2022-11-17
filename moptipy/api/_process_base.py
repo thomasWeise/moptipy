@@ -5,7 +5,7 @@ from math import inf, isfinite
 from threading import Lock, Timer
 from time import time_ns
 from traceback import print_tb
-from typing import Any, Callable, Dict, Final, List, Optional, Union, cast
+from typing import Any, Callable, Final, cast
 
 from numpy.random import Generator
 
@@ -177,11 +177,11 @@ class _ProcessBase(Process):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: Optional[Path] = None,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None) -> None:
+                 log_file: Path | None = None,
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -203,15 +203,15 @@ class _ProcessBase(Process):
         #: The internal lock, needed to protect :meth:`terminate`.
         self.__lock: Final[Lock] = Lock()
         #: The maximum FEs.
-        self._max_fes: Final[Optional[int]] = check_max_fes(max_fes, True)
+        self._max_fes: Final[int | None] = check_max_fes(max_fes, True)
         #: A version of :attr:`_max_fes` that can be used in comparisons.
         self._end_fes: Final[int] = 9_223_372_036_854_775_800 \
             if (self._max_fes is None) else self._max_fes
         #: The goal objective value.
-        self._goal_f: Final[Union[int, float, None]] = \
+        self._goal_f: Final[int | float | None] = \
             check_goal_f(goal_f, True)
         #: A comparable version of :attr:`self._goal_f`.
-        self._end_f: Union[int, float] = \
+        self._end_f: int | float = \
             -inf if (self._goal_f is None) else self._goal_f
         #: The currently consumed nanoseconds.
         self._current_time_nanos: int = 0
@@ -227,7 +227,7 @@ class _ProcessBase(Process):
         #: The objective function rating candidate solutions.
         self.__objective: Final[Objective] = check_objective(objective)
         #: the internal invoker for the objective function
-        self._f: Final[Callable[[Any], Union[int, float]]] = \
+        self._f: Final[Callable[[Any], int | float]] = \
             self.__objective.evaluate
         #: The algorithm to be applied.
         self.__algorithm: Final[Algorithm] = check_algorithm(algorithm)
@@ -240,12 +240,12 @@ class _ProcessBase(Process):
         #: The current best solution.
         self._current_best_y = solution_space.create()
         #: The current best objective value
-        self._current_best_f: Union[int, float] = inf
+        self._current_best_f: int | float = inf
         #: The log file, or `None` is needed
         if log_file is not None:
             if not isinstance(log_file, Path):
                 raise type_error(log_file, "log_file", Path)
-        self.__log_file: Final[Optional[Path]] = log_file
+        self.__log_file: Final[Path | None] = log_file
         #: the method for copying y
         self._copy_y: Final[Callable] = solution_space.copy
         #: set up the method forwards
@@ -263,30 +263,30 @@ class _ProcessBase(Process):
         self.n_points = solution_space.n_points  # type: ignore
         self.validate = solution_space.validate  # type: ignore
         #: the internal section logger
-        self.__sections: Optional[Dict[str, str]] = \
+        self.__sections: dict[str, str] | None = \
             None if log_file is None else {}
 
         #: The time when the process was started, in nanoseconds.
         self._start_time_nanos: Final[int] = _TIME_IN_NS()
         #: The maximum runtime in milliseconds.
-        self._max_time_millis: Final[Optional[int]] = \
+        self._max_time_millis: Final[int | None] = \
             check_max_time_millis(max_time_millis, True)
         #: A comparable version of :attr:`_max_time_millis`, but representing
         #: the end time in nanoseconds rounded to the next highest
         #: millisecond.
-        self._end_time_nanos: Final[Union[float, int]] = \
+        self._end_time_nanos: Final[float | int] = \
             inf if (self._max_time_millis is None) else \
             _ns_to_ms(int(self._start_time_nanos
                           + (1_000_000 * self._max_time_millis))) \
             * 1_000_000
         #: The timer until the end-of-run, or `None` if there is no end time.
-        self.__timer: Final[Optional[Timer]] = None \
+        self.__timer: Final[Timer | None] = None \
             if (self._max_time_millis is None) else \
             Timer(interval=self._max_time_millis / 1_000.0,
                   function=self.terminate)
 
         #: an internal base exception caught by the algorithm execution
-        self._caught: Optional[BaseException] = None
+        self._caught: BaseException | None = None
 
     def _after_init(self) -> None:
         """
@@ -316,10 +316,10 @@ class _ProcessBase(Process):
                 self.terminate()
         return _ns_to_ms(self._current_time_nanos - self._start_time_nanos)
 
-    def get_max_time_millis(self) -> Optional[int]:
+    def get_max_time_millis(self) -> int | None:
         return self._max_time_millis
 
-    def get_max_fes(self) -> Optional[int]:
+    def get_max_fes(self) -> int | None:
         return self._max_fes
 
     def get_last_improvement_fe(self) -> int:
@@ -338,7 +338,7 @@ class _ProcessBase(Process):
     def has_best(self) -> bool:
         return self._current_fes > 0
 
-    def get_best_f(self) -> Union[int, float]:
+    def get_best_f(self) -> int | float:
         if self._current_fes > 0:
             return self._current_best_f
         raise ValueError('No current best available.')
@@ -513,7 +513,7 @@ class _ProcessBase(Process):
 
         :raises ValueError: if there is an error
         """
-        ff: Final[Union[int, float]] = self._f(self._current_best_y)
+        ff: Final[int | float] = self._f(self._current_best_y)
         if ff != self._current_best_f:
             raise ValueError(  # noqa
                 "We re-computed the objective value of the best solution"
@@ -533,11 +533,11 @@ class _ProcessBase(Process):
         # below.
         self._current_time_nanos = _TIME_IN_NS()
 
-        y_error: Optional[BaseException] = None  # error in solution?
-        v_error: Optional[BaseException] = None  # error in objective value?
-        x_error: Optional[BaseException] = None  # error in search space?
-        t_error: Optional[BaseException] = None  # error in timing?
-        log_error: Optional[BaseException] = None  # error while logging?
+        y_error: BaseException | None = None  # error in solution?
+        v_error: BaseException | None = None  # error in objective value?
+        x_error: BaseException | None = None  # error in search space?
+        t_error: BaseException | None = None  # error in timing?
+        log_error: BaseException | None = None  # error while logging?
         try:
             self._solution_space.validate(self._current_best_y)
         except BaseException as be:
@@ -612,7 +612,7 @@ class _ProcessBase(Process):
 
 
 def _check_log_time(start_time: int, current_time: int,
-                    log: List[List]) -> None:
+                    log: list[list]) -> None:
     """
     Check the time inside the log.
 

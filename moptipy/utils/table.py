@@ -2,7 +2,7 @@
 
 from contextlib import AbstractContextManager
 from io import TextIOBase
-from typing import Callable, Final, Iterable, List, Optional, Union
+from typing import Callable, Final, Iterable
 
 from moptipy.utils.formatted_string import TEXT, FormattedStr
 from moptipy.utils.text_format import (
@@ -285,7 +285,7 @@ class Table(AbstractContextManager):
                                     self.__section_index, self.__row_index)
         self.__row_state = 2
 
-    def _cell(self, text: Optional[Union[str, Iterable[str]]]):
+    def _cell(self, text: str | Iterable[str] | None):
         """
         Render a cell.
 
@@ -445,7 +445,7 @@ class Rows(AbstractContextManager):
         """
         return Row(self._owner, self._mode)
 
-    def full_row(self, cells: Iterable[Optional[str]]) -> None:
+    def full_row(self, cells: Iterable[str | None]) -> None:
         """
         Print a complete row with a single call.
 
@@ -460,7 +460,7 @@ class Rows(AbstractContextManager):
                         raise type_error(cell, f"cell[{i}]", str)
                 row.cell(cell)
 
-    def cols(self, cols: List[List[Optional[str]]]):
+    def cols(self, cols: list[list[str | None]]):
         """
         Print cells and rows column-by-column.
 
@@ -525,7 +525,7 @@ class Row(AbstractContextManager):
         #: the owner
         self.__owner: Final[Table] = owner
 
-    def cell(self, text: Optional[Union[str, Iterable[str]]] = None) -> None:
+    def cell(self, text: str | Iterable[str] | None = None) -> None:
         """
         Render the text of a cell.
 

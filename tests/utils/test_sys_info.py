@@ -1,6 +1,6 @@
 """Test the sys-info and logging."""
 
-from typing import Dict, Final, List
+from typing import Final
 
 from moptipy.utils.logger import InMemoryLogger
 from moptipy.utils.sys_info import log_sys_info, refresh_sys_info
@@ -10,14 +10,14 @@ def __check_sys_info() -> None:
     """Test the system information."""
     with InMemoryLogger() as logger:
         log_sys_info(logger)
-        log: List[str] = logger.get_log()
+        log: list[str] = logger.get_log()
 
     assert log[0] == "BEGIN_SYS_INFO"
     assert log[-1] == "END_SYS_INFO"
     assert len(log) > 2
     log = log[1:-1]
 
-    values: Final[Dict[str, str]] = {}
+    values: Final[dict[str, str]] = {}
     sep: Final[str] = ": "
     for line in log:
         i = line.find(sep)

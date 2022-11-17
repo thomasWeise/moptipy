@@ -7,17 +7,7 @@ impression of how long an algorithm needs to reach a certain solution quality.
 
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 
@@ -44,7 +34,7 @@ from moptipy.utils.types import type_error
 
 
 def compute_single_ert(source: Iterable[Progress],
-                       goal_f: Union[int, float]) -> float:
+                       goal_f: int | float) -> float:
     """
     Compute a single ERT.
 
@@ -84,8 +74,8 @@ class Ert(MultiRun2DData):
     ert: np.ndarray
 
     def __init__(self,
-                 algorithm: Optional[str],
-                 instance: Optional[str],
+                 algorithm: str | None,
+                 instance: str | None,
                  n: int,
                  time_unit: str,
                  f_name: str,
@@ -167,7 +157,7 @@ class Ert(MultiRun2DData):
 
     @staticmethod
     def create(source: Iterable[Progress],
-               f_lower_bound: Union[int, float, Callable, None] = None,
+               f_lower_bound: int | float | Callable | None = None,
                use_default_lower_bounds: bool = True) -> 'Ert':
         """
         Create one single Ert record from an iterable of Progress records.
@@ -183,7 +173,7 @@ class Ert(MultiRun2DData):
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
 
-        lower_bound: Union[int, float] = inf
+        lower_bound: int | float = inf
         if f_lower_bound is not None:
             if not callable(f_lower_bound):
                 if not isfinite(f_lower_bound):
@@ -192,14 +182,14 @@ class Ert(MultiRun2DData):
                 lower_bound = f_lower_bound
                 f_lower_bound = None
 
-        algorithm: Optional[str] = None
-        instance: Optional[str] = None
-        time_unit: Optional[str] = None
-        f_name: Optional[str] = None
-        f_list: List[np.ndarray] = []
+        algorithm: str | None = None
+        instance: str | None = None
+        time_unit: str | None = None
+        f_name: str | None = None
+        f_list: list[np.ndarray] = []
         n: int = 0
 
-        prgs: Final[List[Progress]] = cast(List[Progress], source) \
+        prgs: Final[list[Progress]] = cast(list[Progress], source) \
             if isinstance(source, list) else list(source)
 
         for progress in prgs:
@@ -294,7 +284,7 @@ class Ert(MultiRun2DData):
     @staticmethod
     def from_progresses(source: Iterable[Progress],
                         consumer: Callable[['Ert'], Any],
-                        f_lower_bound: Optional[float] = None,
+                        f_lower_bound: float | None = None,
                         use_default_lower_bounds: bool = True,
                         join_all_algorithms: bool = False,
                         join_all_instances: bool = False) -> None:
@@ -326,7 +316,7 @@ class Ert(MultiRun2DData):
                                 use_default_lower_bounds))
             return
 
-        sorter: Dict[str, List[Progress]] = {}
+        sorter: dict[str, list[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
                 raise type_error(er, "progress source", Progress)

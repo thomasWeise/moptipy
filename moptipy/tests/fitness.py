@@ -2,7 +2,7 @@
 
 
 from math import inf, isfinite
-from typing import Final, List, cast
+from typing import Final, cast
 
 from numpy.random import Generator, default_rng
 
@@ -40,8 +40,8 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
     validate_component(fitness)
 
     random: Final[Generator] = default_rng()
-    pop1: Final[List[_FRecord]] = []
-    pop2: Final[List[_FRecord]] = []
+    pop1: Final[list[_FRecord]] = []
+    pop2: Final[list[_FRecord]] = []
     for i in range(int(1 + random.integers(48))):
         fr: _FRecord = _FRecord(space.create(), i)
         op0.op0(random, fr.x)
@@ -76,7 +76,7 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
                 if random.integers(2) <= 0:
                     fr.fitness = inf if random.integers(2) <= 0 else -inf
 
-        fitness.assign_fitness(cast(List[FRecord], pop1), random)
+        fitness.assign_fitness(cast(list[FRecord], pop1), random)
         pop1.sort(key=lambda r: r.z)
 
         for i, fr in enumerate(pop1):

@@ -1,6 +1,6 @@
 """A simple record for storing a solution with its quality."""
 
-from typing import Final, Union
+from typing import Final
 
 
 # start record
@@ -20,7 +20,7 @@ class Record:
     preferred.
     """
 
-    def __init__(self, x, f: Union[int, float]):
+    def __init__(self, x, f: int | float):
         """
         Create the record.
 
@@ -30,7 +30,7 @@ class Record:
         #: the point in the search space
         self.x: Final = x
         #: the objective value corresponding to x
-        self.f: Union[int, float] = f
+        self.f: int | float = f
         #: the iteration index when the record was created
         self.it: int = 0
 
@@ -62,7 +62,7 @@ class Record:
         >>> r2 < r1
         True
         """
-        f1: Final[Union[int, float]] = self.f
-        f2: Final[Union[int, float]] = other.f
+        f1: Final[int | float] = self.f
+        f2: Final[int | float] = other.f
         return (f1 < f2) or ((f1 == f2) and (self.it > other.it))
 # end record

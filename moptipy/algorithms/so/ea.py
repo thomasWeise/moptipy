@@ -48,7 +48,7 @@ breaking, which is implemented in the `__lt__` dunder method of class
    https://doi.org/10.1007/BFb0029787.
 """
 from math import isfinite
-from typing import Callable, Final, List, Optional, Union, cast
+from typing import Callable, Final, cast
 
 from numpy.random import Generator
 
@@ -124,8 +124,8 @@ class EA(Algorithm2):
             random.random if 0 < br < 1 else _float_0)
         # start nobinary
         # create list of mu random records and lambda empty records
-        lst: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
-        f: Union[int, float] = 0  # variable to hold objective values
+        lst: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
+        f: int | float = 0  # variable to hold objective values
         for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
             if i < mu:  # only the first mu records are initialized by
@@ -164,10 +164,10 @@ class EA(Algorithm2):
 # end nobinary
 
     def __init__(self, op0: Op0,
-                 op1: Optional[Op1] = None,
-                 op2: Optional[Op2] = None,
+                 op1: Op1 | None = None,
+                 op2: Op2 | None = None,
                  mu: int = 1, lambda_: int = 1,
-                 br: Optional[float] = None,
+                 br: float | None = None,
                  name: str = "ea") -> None:
         """
         Create the Evolutionary Algorithm (EA).

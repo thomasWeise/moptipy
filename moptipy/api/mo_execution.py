@@ -1,7 +1,7 @@
 """The multi-objective algorithm execution API."""
 
 from math import isfinite
-from typing import Final, Optional, Union, cast
+from typing import Final, cast
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._mo_process_no_ss_log import _MOProcessNoSSLog
@@ -42,11 +42,11 @@ class MOExecution(Execution):
         """Create the multi-objective execution."""
         super().__init__()
         #: the maximum size of a pruned archive
-        self._archive_max_size: Optional[int] = None
+        self._archive_max_size: int | None = None
         #: the archive size limit at which pruning should be performed
-        self._archive_prune_limit: Optional[int] = None
+        self._archive_prune_limit: int | None = None
         #: the archive pruning strategy
-        self._archive_pruner: Optional[MOArchivePruner] = None
+        self._archive_pruner: MOArchivePruner | None = None
 
     def set_archive_max_size(self, size: int) -> 'MOExecution':
         """
@@ -145,7 +145,7 @@ class MOExecution(Execution):
         super().set_solution_space(solution_space)
         return self
 
-    def set_search_space(self, search_space: Optional[Space]) -> 'MOExecution':
+    def set_search_space(self, search_space: Space | None) -> 'MOExecution':
         """
         Set the search space to be used for this experiment.
 
@@ -158,7 +158,7 @@ class MOExecution(Execution):
         super().set_search_space(search_space)
         return self
 
-    def set_encoding(self, encoding: Optional[Encoding]) -> 'MOExecution':
+    def set_encoding(self, encoding: Encoding | None) -> 'MOExecution':
         """
         Set the encoding to be used for this experiment.
 
@@ -171,7 +171,7 @@ class MOExecution(Execution):
         super().set_encoding(encoding)
         return self
 
-    def set_rand_seed(self, rand_seed: Optional[int]) -> 'MOExecution':
+    def set_rand_seed(self, rand_seed: int | None) -> 'MOExecution':
         """
         Set the seed to be used for initializing the random number generator.
 
@@ -215,7 +215,7 @@ class MOExecution(Execution):
         super().set_max_time_millis(max_time_millis, force_override)
         return self
 
-    def set_goal_f(self, goal_f: Union[int, float]) -> 'MOExecution':
+    def set_goal_f(self, goal_f: int | float) -> 'MOExecution':
         """
         Set the goal objective value after which the process can stop.
 
@@ -228,7 +228,7 @@ class MOExecution(Execution):
         super().set_goal_f(goal_f)
         return self
 
-    def set_log_file(self, log_file: Optional[str]) -> 'MOExecution':
+    def set_log_file(self, log_file: str | None) -> 'MOExecution':
         """
         Set the log file to write to.
 
@@ -273,9 +273,9 @@ class MOExecution(Execution):
         """
         objective: Final[MOProblem] = cast(MOProblem, self._objective)
         solution_space: Final[Space] = check_space(self._solution_space)
-        search_space: Final[Optional[Space]] = check_space(
+        search_space: Final[Space | None] = check_space(
             self._search_space, self._encoding is None)
-        encoding: Final[Optional[Encoding]] = check_encoding(
+        encoding: Final[Encoding | None] = check_encoding(
             self._encoding, search_space is None)
         rand_seed = self._rand_seed
         if rand_seed is not None:

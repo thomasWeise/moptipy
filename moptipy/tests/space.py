@@ -1,5 +1,5 @@
 """Functions that can be used to test spaces."""
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 # noinspection PyPackageRequirements
 from pytest import raises
@@ -12,8 +12,8 @@ from moptipy.utils.types import type_error
 
 def validate_space(
         space: Space,
-        make_element_valid: Optional[Callable[[Any], Any]] = lambda x: x,
-        make_element_invalid: Optional[Callable[[Any], Any]] = None) -> None:
+        make_element_valid: Callable[[Any], Any] | None = lambda x: x,
+        make_element_invalid: Callable[[Any], Any] | None = None) -> None:
     """
     Check whether an object is a moptipy space.
 

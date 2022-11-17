@@ -1,7 +1,7 @@
 """Strings that carry format information."""
 
 from math import inf, isnan, nan
-from typing import Final, Optional, Union
+from typing import Final
 
 from moptipy.utils.types import type_error
 
@@ -82,7 +82,7 @@ class FormattedStr(str):
         if (mode < TEXT) or (mode > SPECIAL):
             raise ValueError(f"invalid number mode: {mode}")
         if bold or italic or code or (mode != TEXT):
-            ret = super(FormattedStr, cls).__new__(cls, value)
+            ret = super().__new__(cls, value)
             ret.bold = bold
             ret.italic = italic
             ret.code = code
@@ -134,7 +134,7 @@ class FormattedStr(str):
         return s
 
     @staticmethod
-    def number(number: Optional[Union[int, float, str]]) -> 'FormattedStr':
+    def number(number: int | float | str | None) -> 'FormattedStr':
         """
         Create a formatted string representing a number.
 

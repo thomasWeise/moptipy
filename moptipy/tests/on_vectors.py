@@ -1,6 +1,6 @@
 """Test stuff on real vectors."""
 
-from typing import Callable, Final, Iterable, List, Tuple, Union
+from typing import Callable, Final, Iterable
 
 from numpy.random import Generator, default_rng
 
@@ -13,7 +13,7 @@ from moptipy.tests.algorithm import validate_algorithm
 from moptipy.utils.types import type_error
 
 #: The dimensions for tests
-DIMENSIONS_FOR_TESTS: Final[Tuple[int, ...]] = (1, 2, 3, 4, 5, 10)
+DIMENSIONS_FOR_TESTS: Final[tuple[int, ...]] = (1, 2, 3, 4, 5, 10)
 
 
 def vectors_for_tests() -> Iterable[VectorSpace]:
@@ -23,7 +23,7 @@ def vectors_for_tests() -> Iterable[VectorSpace]:
     :returns: the sequence of vector spaces
     """
     random: Final[Generator] = default_rng()
-    spaces: Final[List[VectorSpace]] = []
+    spaces: Final[list[VectorSpace]] = []
     for dim in DIMENSIONS_FOR_TESTS:
         if random.integers(2) <= 0:
             spaces.append(VectorSpace(dim))
@@ -38,9 +38,8 @@ def vectors_for_tests() -> Iterable[VectorSpace]:
 
 
 def validate_algorithm_on_vectors(
-        objective: Union[Objective, Callable[[VectorSpace], Objective]],
-        algorithm: Union[Algorithm,
-                         Callable[[VectorSpace, Objective], Algorithm]],
+        objective: Objective | Callable[[VectorSpace], Objective],
+        algorithm: Algorithm | Callable[[VectorSpace, Objective], Algorithm],
         max_fes: int = 100,
         uses_all_fes_if_goal_not_reached=True) -> None:
     """
@@ -80,8 +79,7 @@ def validate_algorithm_on_vectors(
 
 
 def validate_algorithm_on_ackley(
-        algorithm: Union[Algorithm, Callable[
-            [VectorSpace, Objective], Algorithm]],
+        algorithm: Algorithm | Callable[[VectorSpace, Objective], Algorithm],
         uses_all_fes_if_goal_not_reached: bool = True) -> None:
     """
     Check the validity of a black-box algorithm on Ackley's function.

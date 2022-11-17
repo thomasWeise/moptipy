@@ -1,7 +1,7 @@
 """Simple routines for handling numbers and numerical stuff."""
 
 from math import exp, gcd, inf, isfinite, isqrt, log, log2, nextafter
-from typing import Final, Union
+from typing import Final
 
 from moptipy.utils.types import type_error
 
@@ -11,7 +11,7 @@ DBL_INT_LIMIT_P: Final[float] = 9007199254740992.0  # = 1 << 53
 _DBL_INT_LIMIT_N: Final[float] = -DBL_INT_LIMIT_P
 
 
-def __try_int(val: float) -> Union[int, float]:
+def __try_int(val: float) -> int | float:
     """
     Convert a float to an int without any fancy checks.
 
@@ -25,7 +25,7 @@ def __try_int(val: float) -> Union[int, float]:
     return val
 
 
-def try_int(val: Union[int, float]) -> Union[int, float]:
+def try_int(val: int | float) -> int | float:
     """
     Attempt to convert a float to an integer.
 
@@ -57,7 +57,7 @@ def try_int(val: Union[int, float]) -> Union[int, float]:
     raise type_error(val, "val", (int, float))
 
 
-def try_int_div(a: int, b: int) -> Union[int, float]:
+def try_int_div(a: int, b: int) -> int | float:
     """
     Try to divide two integers at best precision.
 
@@ -112,8 +112,8 @@ def try_int_div(a: int, b: int) -> Union[int, float]:
     return __try_int(val)
 
 
-def try_float_div(a: Union[int, float], b: Union[int, float]) \
-        -> Union[int, float]:
+def try_float_div(a: int | float, b: int | float) \
+        -> int | float:
     """
     Try to divide two numbers at best precision.
 
@@ -172,7 +172,7 @@ def __bin_search_root(value: int, power: int) -> int:
 
 
 def try_int_root(value: int, power: int,
-                 none_on_overflow: bool = True) -> Union[int, float, None]:
+                 none_on_overflow: bool = True) -> int | float | None:
     """
     Compute `value**(1/power)` where `value` and `power` are both integers.
 
@@ -251,10 +251,10 @@ def try_int_root(value: int, power: int,
         raise ValueError(f"huh? {int_root}**{power}={root_power} > {value}?")
 
     # from now on, root may be either and int or (more likely) a float.
-    root: Union[int, float] = int_root
+    root: int | float = int_root
     try:
-        rest: Union[int, float] = try_int_div(value, root_power)
-        rest_root: Union[int, float] = __try_int(rest ** (1.0 / power))
+        rest: int | float = try_int_div(value, root_power)
+        rest_root: int | float = __try_int(rest ** (1.0 / power))
         root = __try_int(root * rest_root)
     except OverflowError:  # as ofe:
         if none_on_overflow:
@@ -265,8 +265,8 @@ def try_int_root(value: int, power: int,
     # Let's see if we can refine it.
     try:
         diff = abs((root ** power) - value)
-        root2: Union[int, float] = __try_int(exp(log(value) / root))
-        diff2: Union[int, float] = abs((root2 ** power) - value)
+        root2: int | float = __try_int(exp(log(value) / root))
+        diff2: int | float = abs((root2 ** power) - value)
         if diff2 < diff:
             diff = diff2
             root = root2

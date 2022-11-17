@@ -1,5 +1,5 @@
 """Plot a Gantt chart into one figure."""
-from typing import Callable, Dict, Final, Iterable, Optional, Tuple, Union
+from typing import Callable, Final, Iterable
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -18,7 +18,7 @@ from moptipy.utils.lang import Lang
 from moptipy.utils.types import type_error
 
 
-def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
+def marker_lb(x: Gantt) -> tuple[str, int | float]:
     """
     Compute the marker for the lower bound.
 
@@ -29,7 +29,7 @@ def marker_lb(x: Gantt) -> Tuple[str, Union[int, float]]:
         x.instance.makespan_lower_bound
 
 
-def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
+def marker_makespan(x: Gantt) -> tuple[str, int | float]:
     """
     Compute the marker for the makespan.
 
@@ -40,34 +40,33 @@ def marker_makespan(x: Gantt) -> Tuple[str, Union[int, float]]:
 
 
 #: the color for markers at the left end
-__LEFT_END_MARK: Final[Tuple[float, float, float]] = (0.95, 0.02, 0.02)
+__LEFT_END_MARK: Final[tuple[float, float, float]] = (0.95, 0.02, 0.02)
 #: the color for markers at the right end
-__RIGHT_END_MARK: Final[Tuple[float, float, float]] = (0.02, 0.02, 0.95)
+__RIGHT_END_MARK: Final[tuple[float, float, float]] = (0.02, 0.02, 0.95)
 #: the color for markers in the middle
-__MIDDLE_MARK: Final[Tuple[float, float, float]] = pd.COLOR_BLACK
+__MIDDLE_MARK: Final[tuple[float, float, float]] = pd.COLOR_BLACK
 
 
 def plot_gantt_chart(
-        gantt: Union[Gantt, str],
-        figure: Union[SubplotBase, Figure],
-        markers: Optional[Iterable[Union[
-            Tuple[str, Union[int, float]], Callable[[Gantt], Tuple[
-                str, Union[int, float]]]]]] = (marker_lb,),
-        x_axis: Union[AxisRanger, Callable[[Gantt], AxisRanger]] =
+        gantt: Gantt | str,
+        figure: SubplotBase | Figure,
+        markers: Iterable[tuple[str, int | float] | Callable[
+            [Gantt], tuple[str, int | float]]] | None = (marker_lb,),
+        x_axis: AxisRanger | Callable[[Gantt], AxisRanger] =
         lambda gantt: AxisRanger(chosen_min=0),
         importance_to_line_width_func: Callable[[int], float] =
         pd.importance_to_line_width,
         importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
-        info: Union[None, str, Callable[[Gantt], str]] =
+        info: None | str | Callable[[Gantt], str] =
         lambda gantt: Lang.current().format("gantt_info", gantt=gantt),
         x_grid: bool = False,
         y_grid: bool = False,
-        x_label: Union[None, str, Callable[[Gantt], str]] =
+        x_label: None | str | Callable[[Gantt], str] =
         Lang.translate_call("time"),
         x_label_inside: bool = True,
         x_label_location: float = 1.0,
-        y_label: Union[None, str, Callable[[Gantt], str]] =
+        y_label: None | str | Callable[[Gantt], str] =
         Lang.translate_call("machine"),
         y_label_inside: bool = True,
         y_label_location: float = 0.5) -> Axes:
@@ -114,7 +113,7 @@ def plot_gantt_chart(
         raise type_error(x_axis, "x_axis", AxisRanger)
 
     # Compute all the marks
-    marks: Dict[Union[int, float], str] = {}
+    marks: dict[int | float, str] = {}
     if markers is not None:
         if not isinstance(markers, Iterable):
             raise type_error(markers, "markers", Iterable)
@@ -157,7 +156,7 @@ def plot_gantt_chart(
                                              integer=True))
 
     # get the color and font styles
-    colors: Final[Tuple] = pd.distinct_colors(jobs)
+    colors: Final[tuple] = pd.distinct_colors(jobs)
     font_size: Final[float] = importance_to_font_size_func(-1)
 
     # get the transforms needed to obtain text dimensions

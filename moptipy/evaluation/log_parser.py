@@ -3,7 +3,7 @@
 from abc import ABC
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, join
-from typing import Final, List, Optional
+from typing import Final
 
 from moptipy.api import logging
 from moptipy.utils.console import logger
@@ -143,7 +143,7 @@ class LogParser(ABC):
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
-    def lines(self, lines: List[str]) -> bool:
+    def lines(self, lines: list[str]) -> bool:
         """
         Consume all the lines from a section.
 
@@ -229,8 +229,8 @@ class LogParser(ABC):
                 logger(f"skipping file '{file}'.")
             return True
 
-        lines: List[str] = []
-        buffer: List[str] = []
+        lines: list[str] = []
+        buffer: list[str] = []
         state: int = 0
         wants_section: bool = False
         sec_end: str = ""
@@ -412,13 +412,13 @@ class ExperimentParser(LogParser):
         super().__init__(print_begin_end=True, print_dir_start=True)
 
         #: The name of the algorithm to which the current log file belongs.
-        self.algorithm: Optional[str] = None
+        self.algorithm: str | None = None
 
         #: The name of the instance to which the current log file belongs.
-        self.instance: Optional[str] = None
+        self.instance: str | None = None
 
         #: The random seed of the current log file.
-        self.rand_seed: Optional[int] = None
+        self.rand_seed: int | None = None
 
     def start_file(self, path: Path) -> bool:
         """

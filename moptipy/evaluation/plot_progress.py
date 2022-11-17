@@ -1,6 +1,6 @@
 """Plot a set of `Progress` or `StatRun` objects into one figure."""
 from math import isfinite
-from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
+from typing import Any, Callable, Final, Iterable
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -18,11 +18,11 @@ from moptipy.utils.types import type_error
 
 
 def plot_progress(
-        progresses: Iterable[Union[Progress, StatRun]],
-        figure: Union[SubplotBase, Figure],
-        x_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        progresses: Iterable[Progress | StatRun],
+        figure: SubplotBase | Figure,
+        x_axis: AxisRanger | Callable[[str], AxisRanger] =
         AxisRanger.for_axis,
-        y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        y_axis: AxisRanger | Callable[[str], AxisRanger] =
         AxisRanger.for_axis,
         legend: bool = True,
         distinct_colors_func: Callable[[int], Any] = pd.distinct_colors,
@@ -36,10 +36,10 @@ def plot_progress(
         pd.importance_to_font_size,
         x_grid: bool = True,
         y_grid: bool = True,
-        x_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        x_label: None | str | Callable[[str], str] = Lang.translate,
         x_label_inside: bool = True,
         x_label_location: float = 0.5,
-        y_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        y_label: None | str | Callable[[str], str] = Lang.translate,
         y_label_inside: bool = True,
         y_label_location: float = 1.0,
         inst_priority: float = 0.666,
@@ -181,10 +181,10 @@ def plot_progress(
                                        none_name=Lang.translate("single_run"),
                                        priority=stat_priority,
                                        name_sort_function=stat_sort_key)
-    x_dim: Optional[str] = None
-    y_dim: Optional[str] = None
-    progress_list: List[Progress] = []
-    statrun_list: List[StatRun] = []
+    x_dim: str | None = None
+    y_dim: str | None = None
+    progress_list: list[Progress] = []
+    statrun_list: list[StatRun] = []
 
     # First pass: find out the statistics, instances, algorithms, and types
     for prg in progresses:
@@ -224,20 +224,20 @@ def plot_progress(
     statistics.compile()
 
     # pick the right sorting order
-    sf: Callable[[Union[StatRun, Progress]], Any] = sort_key
+    sf: Callable[[StatRun | Progress], Any] = sort_key
     if (instances.count > 1) and (algorithms.count == 1) \
             and (statistics.count == 1):
-        def __x(r: Union[StatRun, Progress], ssf=instance_sort_key) -> str:
+        def __x(r: StatRun | Progress, ssf=instance_sort_key) -> str:
             return ssf(r.instance)
         sf = __x
     elif (instances.count == 1) and (algorithms.count > 1) \
             and (statistics.count == 1):
-        def __x(r: Union[StatRun, Progress], ssf=algorithm_sort_key) -> str:
+        def __x(r: StatRun | Progress, ssf=algorithm_sort_key) -> str:
             return ssf(r.instance)
         sf = __x
     elif (instances.count == 1) and (algorithms.count == 1) \
             and (statistics.count > 1):
-        def __x(r: Union[StatRun, Progress], ssf=stat_sort_key) -> str:
+        def __x(r: StatRun | Progress, ssf=stat_sort_key) -> str:
             return ssf(r.instance)
         sf = __x
 
@@ -261,7 +261,7 @@ def plot_progress(
                                      for i in range(x)])
 
     # determine the style groups
-    groups: List[Styler] = []
+    groups: list[Styler] = []
 
     no_importance = True
     if instances.count > 1:
@@ -310,7 +310,7 @@ def plot_progress(
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
-    plot_list: List[Dict] = []
+    plot_list: list[dict] = []
 
     # first we collect all progress object
     for prgs in progress_list:
@@ -375,7 +375,7 @@ def plot_progress(
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = []
+        handles: list[Artist] = []
 
         for g in groups:
             g.add_to_legend(handles.append)

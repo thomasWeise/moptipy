@@ -3,7 +3,7 @@ import os.path
 import sys
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
+from typing import Any, Callable, Final, Iterable
 
 from moptipy.api.logging import (
     FILE_SUFFIX,
@@ -66,7 +66,7 @@ _HEADER = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
           f"{KEY_MAX_TIME_MILLIS}\n"
 
 
-def __get_goal_f(e: 'EndResult') -> Union[int, float]:
+def __get_goal_f(e: 'EndResult') -> int | float:
     """
     Get the goal_f.
 
@@ -81,7 +81,7 @@ def __get_goal_f(e: 'EndResult') -> Union[int, float]:
     return g
 
 
-def __get_max_fes(e: 'EndResult') -> Union[int, float]:
+def __get_max_fes(e: 'EndResult') -> int | float:
     """
     Get the max FEs.
 
@@ -94,7 +94,7 @@ def __get_max_fes(e: 'EndResult') -> Union[int, float]:
     return g
 
 
-def __get_max_time_millis(e: 'EndResult') -> Union[int, float]:
+def __get_max_time_millis(e: 'EndResult') -> int | float:
     """
     Get the maximum time in milliseconds.
 
@@ -107,7 +107,7 @@ def __get_max_time_millis(e: 'EndResult') -> Union[int, float]:
     return g
 
 
-def __get_goal_f_for_div(e: 'EndResult') -> Union[int, float]:
+def __get_goal_f_for_div(e: 'EndResult') -> int | float:
     """
     Get the goal_f.
 
@@ -120,7 +120,7 @@ def __get_goal_f_for_div(e: 'EndResult') -> Union[int, float]:
     return g
 
 
-def __get_f_norm(e: 'EndResult') -> Union[int, float]:
+def __get_f_norm(e: 'EndResult') -> int | float:
     """
     Get the normalized f.
 
@@ -132,7 +132,7 @@ def __get_f_norm(e: 'EndResult') -> Union[int, float]:
 
 
 #: A set of getters for accessing variables of the end result
-_GETTERS: Final[Dict[str, Callable[['EndResult'], Union[int, float]]]] = {
+_GETTERS: Final[dict[str, Callable[['EndResult'], int | float]]] = {
     KEY_LAST_IMPROVEMENT_FE: lambda e: e.last_improvement_fe,
     KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         lambda e: e.last_improvement_time_millis,
@@ -158,7 +158,7 @@ class EndResult(PerRunData):
     """
 
     #: The best objective value encountered.
-    best_f: Union[int, float]
+    best_f: int | float
 
     #: The index of the function evaluation when best_f was reached.
     last_improvement_fe: int
@@ -173,26 +173,26 @@ class EndResult(PerRunData):
     total_time_millis: int
 
     #: The goal objective value if provided
-    goal_f: Union[int, float, None]
+    goal_f: int | float | None
 
     #: The (optional) maximum permitted FEs.
-    max_fes: Optional[int]
+    max_fes: int | None
 
     #: The (optional) maximum runtime.
-    max_time_millis: Optional[int]
+    max_time_millis: int | None
 
     def __init__(self,
                  algorithm: str,
                  instance: str,
                  rand_seed: int,
-                 best_f: Union[int, float],
+                 best_f: int | float,
                  last_improvement_fe: int,
                  last_improvement_time_millis: int,
                  total_fes: int,
                  total_time_millis: int,
-                 goal_f: Union[int, float, None],
-                 max_fes: Optional[int],
-                 max_time_millis: Optional[int]):
+                 goal_f: int | float | None,
+                 max_fes: int | None,
+                 max_time_millis: int | None):
         """
         Create a consistent instance of :class:`EndResult`.
 
@@ -297,7 +297,7 @@ class EndResult(PerRunData):
                             hex(self.rand_seed)]) + FILE_SUFFIX)
 
     @staticmethod
-    def getter(dimension: str) -> Callable[['EndResult'], Union[int, float]]:
+    def getter(dimension: str) -> Callable[['EndResult'], int | float]:
         """
         Produce a function that obtains the given dimension from EndResults.
 
@@ -441,14 +441,14 @@ class _InnerLogParser(ExperimentParser):
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[['EndResult'], Any]] = consumer
-        self.__total_fes: Optional[int] = None
-        self.__total_time_millis: Optional[int] = None
-        self.__best_f: Union[int, float, None] = None
-        self.__last_improvement_fe: Optional[int] = None
-        self.__last_improvement_time_millis: Optional[int] = None
-        self.__goal_f: Union[int, float, None] = None
-        self.__max_fes: Optional[int] = None
-        self.__max_time_millis: Optional[int] = None
+        self.__total_fes: int | None = None
+        self.__total_time_millis: int | None = None
+        self.__best_f: int | float | None = None
+        self.__last_improvement_fe: int | None = None
+        self.__last_improvement_time_millis: int | None = None
+        self.__goal_f: int | float | None = None
+        self.__max_fes: int | None = None
+        self.__max_time_millis: int | None = None
         self.__state: int = 0
 
     def start_file(self, path: Path) -> bool:
@@ -521,7 +521,7 @@ class _InnerLogParser(ExperimentParser):
             return True
         return False
 
-    def lines(self, lines: List[str]) -> bool:
+    def lines(self, lines: list[str]) -> bool:
         data = parse_key_values(lines)
         if not isinstance(data, dict):
             raise type_error(data, "data", dict)
@@ -582,6 +582,6 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         raise ValueError("two command line arguments expected")
 
-    end_results: Final[List[EndResult]] = []
+    end_results: Final[list[EndResult]] = []
     EndResult.from_logs(sys.argv[1], end_results.append)
     EndResult.to_csv(end_results, sys.argv[2])

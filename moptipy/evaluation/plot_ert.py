@@ -1,15 +1,5 @@
 """Plot a set of ERT objects into one figure."""
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
@@ -27,10 +17,10 @@ from moptipy.utils.types import type_error
 
 
 def plot_ert(erts: Iterable[Ert],
-             figure: Union[SubplotBase, Figure],
-             x_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+             figure: SubplotBase | Figure,
+             x_axis: AxisRanger | Callable[[str], AxisRanger]
              = AxisRanger.for_axis,
-             y_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+             y_axis: AxisRanger | Callable[[str], AxisRanger]
              = AxisRanger.for_axis,
              legend: bool = True,
              distinct_colors_func: Callable[[int], Any] =
@@ -45,9 +35,9 @@ def plot_ert(erts: Iterable[Ert],
              pd.importance_to_font_size,
              x_grid: bool = True,
              y_grid: bool = True,
-             x_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+             x_label: None | str | Callable[[str], str] = Lang.translate,
              x_label_inside: bool = True,
-             y_label: Union[None, str, Callable[[str], str]] =
+             y_label: None | str | Callable[[str], str] =
              Lang.translate_func("ERT"),
              y_label_inside: bool = True,
              inst_priority: float = 0.666,
@@ -136,9 +126,9 @@ def plot_ert(erts: Iterable[Ert],
         key_func=get_algorithm,
         none_name=Lang.translate("all_algos"),
         priority=algo_priority)
-    x_dim: Optional[str] = None
-    y_dim: Optional[str] = None
-    source: List[Ert] = cast(List[Ert], erts) if isinstance(erts, list) \
+    x_dim: str | None = None
+    y_dim: str | None = None
+    source: list[Ert] = cast(list[Ert], erts) if isinstance(erts, list) \
         else list(erts)
     del erts
 
@@ -180,7 +170,7 @@ def plot_ert(erts: Iterable[Ert],
                                      for i in range(p)])
 
     # determine the style groups
-    groups: List[Styler] = []
+    groups: list[Styler] = []
     instances.compile()
     algorithms.compile()
 
@@ -204,7 +194,7 @@ def plot_ert(erts: Iterable[Ert],
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
-    plot_list: List[Dict] = []
+    plot_list: list[dict] = []
 
     # set up the axis rangers
     if callable(x_axis):
@@ -262,7 +252,7 @@ def plot_ert(erts: Iterable[Ert],
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = []
+        handles: list[Artist] = []
 
         for g in groups:
             g.add_to_legend(handles.append)

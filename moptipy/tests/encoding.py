@@ -1,5 +1,5 @@
 """Functions that can be used to test encodings."""
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.space import Space
@@ -8,10 +8,10 @@ from moptipy.utils.types import type_error
 
 
 def validate_encoding(encoding: Encoding,
-                      search_space: Optional[Space] = None,
-                      solution_space: Optional[Space] = None,
+                      search_space: Space | None = None,
+                      solution_space: Space | None = None,
                       make_search_space_element_valid:
-                      Optional[Callable[[Any], Any]] = lambda x: x,
+                      Callable[[Any], Any] | None = lambda x: x,
                       is_deterministic: bool = True) -> None:
     """
     Check whether an object is a proper moptipy encoding.

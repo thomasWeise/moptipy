@@ -1,7 +1,7 @@
 """A utility to specify axis ranges."""
 import sys
 from math import inf, isfinite
-from typing import Callable, Final, Optional
+from typing import Callable, Final
 
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
@@ -30,12 +30,12 @@ class AxisRanger:
     """An object for simplifying axis range computations."""
 
     def __init__(self,
-                 chosen_min: Optional[float] = None,
-                 chosen_max: Optional[float] = None,
+                 chosen_min: float | None = None,
+                 chosen_max: float | None = None,
                  use_data_min: bool = True,
                  use_data_max: bool = True,
                  log_scale: bool = False,
-                 log_base: Optional[float] = None):
+                 log_base: float | None = None):
         """
         Initialize the axis ranger.
 
@@ -51,7 +51,7 @@ class AxisRanger:
         #: Should the axis be log-scaled?
         self.log_scale: Final[bool] = log_scale
 
-        self.__log_base: Final[Optional[float]] = \
+        self.__log_base: Final[float | None] = \
             log_base if self.log_scale else None
         if self.__log_base is not None:
             if not isinstance(log_base, float):
@@ -71,7 +71,7 @@ class AxisRanger:
                     f"be > 0, but is {chosen_min}.")
 
         #: The pre-defined, chosen minimum axis value.
-        self.__chosen_min: Final[Optional[float]] = chosen_min
+        self.__chosen_min: Final[float | None] = chosen_min
 
         if chosen_max is not None:
             if not isinstance(chosen_max, (float, int)):
@@ -86,7 +86,7 @@ class AxisRanger:
                         f"chosen_max cannot be {chosen_max}.")
 
         #: The pre-defined, chosen maximum axis value.
-        self.__chosen_max: Final[Optional[float]] = chosen_max
+        self.__chosen_max: Final[float | None] = chosen_max
 
         if not isinstance(use_data_min, bool):
             raise type_error(use_data_min, "use_data_min", bool)
@@ -239,12 +239,12 @@ class AxisRanger:
 
     @staticmethod
     def for_axis(name: str,
-                 chosen_min: Optional[float] = None,
-                 chosen_max: Optional[float] = None,
-                 use_data_min: Optional[bool] = None,
-                 use_data_max: Optional[bool] = None,
-                 log_scale: Optional[bool] = None,
-                 log_base: Optional[float] = None) -> 'AxisRanger':
+                 chosen_min: float | None = None,
+                 chosen_max: float | None = None,
+                 use_data_min: bool | None = None,
+                 use_data_max: bool | None = None,
+                 log_scale: bool | None = None,
+                 log_base: float | None = None) -> 'AxisRanger':
         """
         Create a default axis ranger based on the axis type.
 
@@ -266,8 +266,8 @@ class AxisRanger:
             raise type_error(name, "axis name", str)
 
         __log: bool = False
-        __min: Optional[float] = None
-        __max: Optional[float] = None
+        __min: float | None = None
+        __max: float | None = None
         __data_min: bool = chosen_min is None
         __data_max: bool = chosen_max is None
 
@@ -364,12 +364,12 @@ class AxisRanger:
                           __log, log_base if __log else None)
 
     @staticmethod
-    def for_axis_func(chosen_min: Optional[float] = None,
-                      chosen_max: Optional[float] = None,
-                      use_data_min: Optional[bool] = None,
-                      use_data_max: Optional[bool] = None,
-                      log_scale: Optional[bool] = None,
-                      log_base: Optional[float] = None) -> Callable:
+    def for_axis_func(chosen_min: float | None = None,
+                      chosen_max: float | None = None,
+                      use_data_min: bool | None = None,
+                      use_data_max: bool | None = None,
+                      log_scale: bool | None = None,
+                      log_base: float | None = None) -> Callable:
         """
         Generate a function that provides the default per-axis ranger.
 

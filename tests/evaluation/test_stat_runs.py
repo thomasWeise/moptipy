@@ -1,5 +1,5 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
-from typing import Final, List
+from typing import Final
 
 import numpy as np
 
@@ -24,7 +24,7 @@ def test_stat_runs():
                                    None,
                                    True)
 
-    collector: Final[List[StatRun]] = list()
+    collector: Final[list[StatRun]] = list()
     StatRun.create([p0], ["mean"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]

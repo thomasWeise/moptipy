@@ -5,7 +5,7 @@ This selection scheme is the standard mating selection scheme in an
 Evolutionary Algorithm.
 """
 
-from typing import Any, Callable, Final, List
+from typing import Any, Callable, Final
 
 from numpy.random import Generator
 
@@ -16,7 +16,7 @@ from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 class RandomWithoutReplacement(Selection):
     """Select random elements without replacement."""
 
-    def select(self, source: List[FitnessRecord],
+    def select(self, source: list[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
         """

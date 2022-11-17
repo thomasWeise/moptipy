@@ -1,7 +1,7 @@
 """Validate selection algorithms."""
 
 from math import inf
-from typing import Dict, Final, Iterable, List, Set, Union
+from typing import Final, Iterable
 
 from numpy.random import Generator, default_rng
 
@@ -20,7 +20,7 @@ class _FRecord(FitnessRecord):
     def __init__(self, tag: int):
         """Initialize."""
         #: the fitness
-        self.fitness: Union[int, float] = inf
+        self.fitness: int | float = inf
         #: the tag
         self.tag: Final[int] = tag
 
@@ -30,8 +30,8 @@ class _FRecord(FitnessRecord):
 
 
 def __join(sets: Iterable[Iterable[int]],
-           lower_limit: Union[int, float] = -inf,
-           upper_limit: Union[int, float] = inf) -> Iterable[int]:
+           lower_limit: int | float = -inf,
+           upper_limit: int | float = inf) -> Iterable[int]:
     """
     Joint iterables preserving unique values.
 
@@ -49,7 +49,7 @@ def __join(sets: Iterable[Iterable[int]],
     if upper_limit < lower_limit:
         raise ValueError(
             f"lower_limit={lower_limit} but upper_limit={upper_limit}")
-    x: Final[Set[int]] = set()
+    x: Final[set[int]] = set()
     for it in sets:
         if not isinstance(it, Iterable):
             raise type_error(it, "it", Iterable)
@@ -89,9 +89,9 @@ def validate_selection(selection: Selection,
             f"lower_source_size_limit={lower_source_size_limit}")
 
     random: Final[Generator] = default_rng()
-    source: Final[List[FitnessRecord]] = []
-    copy: Final[Dict[int, List]] = {}
-    dest: Final[List[FitnessRecord]] = []
+    source: Final[list[FitnessRecord]] = []
+    copy: Final[dict[int, list]] = {}
+    dest: Final[list[FitnessRecord]] = []
     tag: int = 0
 
     for source_size in __join([range(1, 10), [16, 32, 50, 101],

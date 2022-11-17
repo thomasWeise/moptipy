@@ -1,18 +1,7 @@
 """Run the moptipy example experiment."""
 import os.path as pp
 import sys
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import moptipy.api.experiment as ex
 from moptipy.algorithms.modules.selections.fitness_proportionate_sus import (
@@ -63,7 +52,7 @@ from moptipy.utils.types import type_error
 #: Therefore, `dmu67` in this ordering here comes after `dmu72`, but it would
 #: come before if we were sorting instances by the solution space size.
 EXPERIMENT_INSTANCES: \
-    Final[Tuple[str, str, str, str, str, str, str, str]] = \
+    Final[tuple[str, str, str, str, str, str, str, str]] = \
     ('orb06', 'la38', 'abz8', 'yn4', 'swv14', 'dmu72', 'dmu67', 'ta70')
 
 #: The number of runs per instance in our JSSP experiment.
@@ -77,7 +66,7 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 #: The default set of algorithms for our experiments.
 #: Each of them is a Callable that receives two parameters, the instance
 #: `inst` and the permutation with repetitions-space `pwr`.
-DEFAULT_ALGORITHMS: Final[List[
+DEFAULT_ALGORITHMS: Final[list[
     Callable[[Instance, Permutations], Algorithm]]] = [
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
@@ -167,9 +156,9 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                                 Algorithm]] = tuple(DEFAULT_ALGORITHMS),
                    instances: Iterable[str] = EXPERIMENT_INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
-                   max_time: Optional[int] = EXPERIMENT_RUNTIME_MS,
-                   max_fes: Optional[int] = None,
-                   n_threads: Optional[int] = None) -> None:
+                   max_time: int | None = EXPERIMENT_RUNTIME_MS,
+                   max_fes: int | None = None,
+                   n_threads: int | None = None) -> None:
     """
     Run the experiment.
 
@@ -229,7 +218,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
             pwr: Permutations = Permutations.with_repetitions(
                 inst.jobs, inst.machines)
 
-            val: Union[Execution, Algorithm] = algor(inst, pwr)
+            val: Execution | Algorithm = algor(inst, pwr)
             experiment: Execution
             if isinstance(val, Execution):
                 experiment = cast(Execution, val)
@@ -258,7 +247,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     if len(algo_gens) <= 0:
         raise ValueError("There must be at least one algorithm.")
 
-    ikwargs: Dict[str, Any] = {"base_dir": base_dir,
+    ikwargs: dict[str, Any] = {"base_dir": base_dir,
                                "instances": inst_gens,
                                "setups": algo_gens,
                                "n_runs": n_runs,
@@ -283,7 +272,7 @@ if __name__ == '__main__':
          ("n_threads",
           "the number of threads to use for the experiment",
           True)])
-    mkwargs: Dict[str, Any] = {}
+    mkwargs: dict[str, Any] = {}
     if len(sys.argv) > 1:
         dest_dir: Final[Path] = Path.path(sys.argv[1])
         dest_dir.ensure_dir_exists()

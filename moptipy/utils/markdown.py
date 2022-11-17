@@ -1,7 +1,7 @@
 """The markdown text format driver."""
 
 from io import TextIOBase
-from typing import Dict, Final
+from typing import Final
 
 from moptipy.utils.formatted_string import (
     NAN,
@@ -15,7 +15,7 @@ from moptipy.utils.latex import SPECIAL_CHARS as __SC
 from moptipy.utils.text_format import MODE_TABLE_HEADER, TextFormatDriver
 
 #: the special chars
-SPECIAL_CHARS: Final[Dict[str, str]] = dict(__SC)
+SPECIAL_CHARS: Final[dict[str, str]] = dict(__SC)
 SPECIAL_CHARS["\u2014"] = "&mdash;"
 
 

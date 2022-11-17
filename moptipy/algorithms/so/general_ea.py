@@ -45,7 +45,7 @@ selection (:class:`~moptipy.algorithms.modules.selection.Selection`).
    Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-540-54148-6.
    https://doi.org/10.1007/BFb0029787.
 """
-from typing import Callable, Final, List, Optional, Union, cast
+from typing import Callable, Final, cast
 
 from numpy.random import Generator
 
@@ -70,7 +70,7 @@ from moptipy.utils.strings import PART_SEPARATOR
 class _Record(FRecord):
     """Same as :class:`FRecord`, but with a secret selection marker."""
 
-    def __init__(self, x, f: Union[int, float], selected: bool = False):
+    def __init__(self, x, f: int | float, selected: bool = False):
         """
         Create the record.
 
@@ -109,20 +109,20 @@ class GeneralEA(EA):
         r01: Final[Callable[[], float]] = cast(  # only if 0<br<1, we
             Callable[[], float],  # need random floats
             random.random if 0 < br < 1 else _float_0)
-        assign_fitness: Final[Callable[[List[FRecord], Generator], None]] = \
+        assign_fitness: Final[Callable[[list[FRecord], Generator], None]] = \
             self.fitness.assign_fitness
         survival_selection: Final[Callable[
-            [List[FRecord], Callable, int, Generator], None]] = \
-            cast(Callable[[List[FRecord], Callable, int, Generator],
+            [list[FRecord], Callable, int, Generator], None]] = \
+            cast(Callable[[list[FRecord], Callable, int, Generator],
                           None], self.survival.select)
         mating_selection: Final[Callable[
-            [List[FRecord], Callable, int, Generator], None]] = \
-            cast(Callable[[List[FRecord], Callable, int, Generator],
+            [list[FRecord], Callable, int, Generator], None]] = \
+            cast(Callable[[list[FRecord], Callable, int, Generator],
                           None], self.mating.select)
 
-        recs: Final[List] = [None] * mu_plus_lambda  # pre-allocate list
-        parents: Final[List] = [None, None]  # mating pool: length 2
-        population: Final[List] = [None] * mu_plus_lambda  # whole
+        recs: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
+        parents: Final[list] = [None, None]  # mating pool: length 2
+        population: Final[list] = [None] * mu_plus_lambda  # whole
         # Fast calls
         parents_clear: Final[Callable[[], None]] = parents.clear
         parents_append: Final[Callable[[FitnessRecord], None]] = \
@@ -132,7 +132,7 @@ class GeneralEA(EA):
             cast(Callable[[_Record], None], population.append)
 # start book
         # create list of mu random records and lambda empty records
-        f: Union[int, float] = 0  # variable to hold objective values
+        f: int | float = 0  # variable to hold objective values
         for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
             selected: bool = i < mu  # only fully create first mu recs
@@ -143,7 +143,7 @@ class GeneralEA(EA):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             recs[i] = _Record(x, f, selected)  # create and store record
 
-        mating_pool: Final[List] = recs[0:mu]  # the selection survivers
+        mating_pool: Final[list] = recs[0:mu]  # the selection survivers
         assign_fitness(mating_pool, random)  # assign fitness first time
 # end book
         mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
@@ -199,13 +199,13 @@ class GeneralEA(EA):
 # end book
 
     def __init__(self, op0: Op0,
-                 op1: Optional[Op1] = None,
-                 op2: Optional[Op2] = None,
+                 op1: Op1 | None = None,
+                 op2: Op2 | None = None,
                  mu: int = 1, lambda_: int = 1,
-                 br: Optional[float] = None,
-                 fitness: Optional[Fitness] = None,
-                 survival: Optional[Selection] = None,
-                 mating: Optional[Selection] = None,
+                 br: float | None = None,
+                 fitness: Fitness | None = None,
+                 survival: Selection | None = None,
+                 mating: Selection | None = None,
                  name: str = "generalEa") -> None:
         """
         Create the customizable Evolutionary Algorithm (EA).

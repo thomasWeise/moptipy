@@ -1,11 +1,10 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
 import statistics
-from typing import List, Union
 
 from moptipy.evaluation.statistics import Statistics
 
 
-def __test_statistics(a: List[Union[int, float]],
+def __test_statistics(a: list[int | float],
                       geoprec=1e-12) -> None:
     stat = Statistics.create(a)
     assert stat is not None

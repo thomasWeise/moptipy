@@ -2,7 +2,7 @@
 
 from collections import Counter
 from math import inf
-from typing import Final, Iterable, List, Optional, Set
+from typing import Final, Iterable
 
 import numpy as np
 from numpy.linalg import norm
@@ -31,7 +31,7 @@ class KeepFarthest(MOArchivePruner):
     """
 
     def __init__(self, problem: MOProblem,
-                 keep_best_of_dimension: Optional[Iterable[int]] = None):
+                 keep_best_of_dimension: Iterable[int] | None = None):
         """
         Create the distance-based pruner.
 
@@ -73,11 +73,11 @@ class KeepFarthest(MOArchivePruner):
         #: the initial number for maximum searching
         self.__ninf: Final[np.number] = ninf
         #: the list of items to preserve per dimension
-        self.__preserve: Final[List[Optional[Set]]] = [None] * dimension
+        self.__preserve: Final[list[set | None]] = [None] * dimension
         for d in keep_best_of_dimension:
             self.__preserve[d] = set()
         #: the list of all items to preserve
-        self.__all_preserve: Final[List[Set]] = []
+        self.__all_preserve: Final[list[set]] = []
         for p in self.__preserve:
             if p is not None:
                 self.__all_preserve.append(p)
@@ -88,11 +88,11 @@ class KeepFarthest(MOArchivePruner):
         #: the counter for keeping the best
         self.__counter: Final[Counter] = Counter()
         #: the chosen elements to keep
-        self.__chosen: Final[List[int]] = []
+        self.__chosen: Final[list[int]] = []
         #: the minimal distances
         self.__min_dists: np.ndarray = np.empty(8, DEFAULT_FLOAT)
 
-    def prune(self, archive: List[MORecord], n_keep: int, size: int) -> None:
+    def prune(self, archive: list[MORecord], n_keep: int, size: int) -> None:
         """
         Preserve the best of certain dimensions and keep the rest diverse.
 
@@ -110,13 +110,13 @@ class KeepFarthest(MOArchivePruner):
         ma: Final[np.ndarray] = self.__max
         ma.fill(self.__ninf)
         dim: Final[int] = len(mi)
-        preserve: Final[List[Optional[Set]]] = self.__preserve
-        all_preserve: Final[List[Set]] = self.__all_preserve
+        preserve: Final[list[set | None]] = self.__preserve
+        all_preserve: Final[list[set]] = self.__all_preserve
         for p in all_preserve:
             p.clear()
         counter: Final[Counter] = self.__counter
         counter.clear()
-        chosen: Final[List[int]] = self.__chosen
+        chosen: Final[list[int]] = self.__chosen
         chosen.clear()
         min_dists: np.ndarray = self.__min_dists
         mdl: int = len(min_dists)
@@ -131,7 +131,7 @@ class KeepFarthest(MOArchivePruner):
             fs: np.ndarray = ind.fs
             for i, f in enumerate(fs):
                 if f <= mi[i]:
-                    q: Optional[Set[int]] = preserve[i]
+                    q: set[int] | None = preserve[i]
                     if f < mi[i]:
                         mi[i] = f
                         if q is not None:

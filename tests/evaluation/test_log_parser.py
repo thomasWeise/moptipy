@@ -1,5 +1,4 @@
 """Test the sections parser."""
-from typing import List
 
 from moptipy.api import logging
 from moptipy.evaluation.log_parser import LogParser
@@ -38,7 +37,7 @@ class _TestParser(LogParser):
             return True
         raise AssertionError("Should never get here.")
 
-    def lines(self, lines: List[str]) -> bool:
+    def lines(self, lines: list[str]) -> bool:
         if self.__state == 2:
             assert lines == ["a", "b", "c"]
             self.__state = 3

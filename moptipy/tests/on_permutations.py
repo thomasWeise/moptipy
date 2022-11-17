@@ -1,6 +1,6 @@
 """Test stuff on permutations with repetitions."""
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
+from typing import Any, Callable, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -19,7 +19,7 @@ def permutations_for_tests() -> Iterable[Permutations]:
     :returns: the sequence of Permutations
     """
     r = default_rng()
-    pwrs: List[Permutations] = [
+    pwrs: list[Permutations] = [
         Permutations.with_repetitions(2, 2),
         Permutations.with_repetitions(2, 3),
         Permutations.with_repetitions(3, 2),
@@ -31,7 +31,7 @@ def permutations_for_tests() -> Iterable[Permutations]:
                                       int(r.integers(6, 10))),
         Permutations.with_repetitions(int(r.integers(130, 500)),
                                       int(r.integers(2, 200)))]
-    r.shuffle(cast(List, pwrs))
+    r.shuffle(cast(list, pwrs))
     return pwrs
 
 
@@ -54,12 +54,11 @@ def make_permutation_valid(pwr: Permutations) -> \
 
 
 def validate_op0_on_1_permutations(
-        op0: Union[Op0, Callable[[Permutations], Op0]],
+        op0: Op0 | Callable[[Permutations], Op0],
         search_space: Permutations,
-        number_of_samples: Optional[int] = None,
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int,
-                                      Permutations], int]]]
+        int | Callable[[int, Permutations], int] | None
         = None) -> None:
     """
     Validate the nullary operator on one `Permutations` instance.
@@ -69,7 +68,7 @@ def validate_op0_on_1_permutations(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "op0": op0(search_space) if callable(op0) else op0,
         "search_space": search_space,
         "make_search_space_element_valid":
@@ -83,11 +82,10 @@ def validate_op0_on_1_permutations(
 
 
 def validate_op0_on_permutations(
-        op0: Union[Op0, Callable[[Permutations], Op0]],
-        number_of_samples: Optional[int] = None,
+        op0: Op0 | Callable[[Permutations], Op0],
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int,
-                                      Permutations], int]]]
+        int | Callable[[int, Permutations], int] | None
         = None) -> None:
     """
     Validate the nullary operator on several `Permutations` instances.
@@ -102,12 +100,11 @@ def validate_op0_on_permutations(
 
 
 def validate_op1_on_1_permutations(
-        op1: Union[Op1, Callable[[Permutations], Op1]],
+        op1: Op1 | Callable[[Permutations], Op1],
         search_space: Permutations,
-        number_of_samples: Optional[int] = None,
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int,
-                                      Permutations], int]]]
+        int | Callable[[int, Permutations], int] | None
         = None) -> None:
     """
     Validate the unary operator on one `Permutations` instance.
@@ -117,7 +114,7 @@ def validate_op1_on_1_permutations(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "op1": op1(search_space) if callable(op1) else op1,
         "search_space": search_space,
         "make_search_space_element_valid":
@@ -131,11 +128,10 @@ def validate_op1_on_1_permutations(
 
 
 def validate_op1_on_permutations(
-        op1: Union[Op1, Callable[[Permutations], Op1]],
-        number_of_samples: Optional[int] = None,
+        op1: Op1 | Callable[[Permutations], Op1],
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int,
-                                      Permutations], int]]]
+        int | Callable[[int, Permutations], int] | None
         = None) -> None:
     """
     Validate the unary operator on several `Permutations` instances.
@@ -150,12 +146,11 @@ def validate_op1_on_permutations(
 
 
 def validate_op2_on_1_permutations(
-        op2: Union[Op2, Callable[[Permutations], Op2]],
+        op2: Op2 | Callable[[Permutations], Op2],
         search_space: Permutations,
-        number_of_samples: Optional[int] = None,
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int,
-                                      Permutations], int]]]
+        int | Callable[[int, Permutations], int] | None
         = None) -> None:
     """
     Validate the binary operator on one `Permutations` instance.
@@ -165,7 +160,7 @@ def validate_op2_on_1_permutations(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "op2": op2(search_space) if callable(op2) else op2,
         "search_space": search_space,
         "make_search_space_element_valid":
@@ -179,11 +174,10 @@ def validate_op2_on_1_permutations(
 
 
 def validate_op2_on_permutations(
-        op2: Union[Op2, Callable[[Permutations], Op2]],
-        number_of_samples: Optional[int] = None,
+        op2: Op2 | Callable[[Permutations], Op2],
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int,
-                                      Permutations], int]]]
+        int | Callable[[int, Permutations], int] | None
         = None) -> None:
     """
     Validate the binary operator on several `Permutations` instances.

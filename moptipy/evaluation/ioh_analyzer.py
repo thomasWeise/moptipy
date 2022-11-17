@@ -1,7 +1,7 @@
 """Convert moptipy data to IOHanalyzer data."""
 
 import sys
-from typing import Callable, Dict, Final, List, Optional, Tuple, Union
+from typing import Callable, Final
 
 import numpy as np
 
@@ -60,7 +60,7 @@ def moptipy_to_ioh_analyzer(
         inst_name_to_inst_id: Callable[[str], int] = lambda x: 1,
         suite: str = "moptipy",
         f_name: str = F_NAME_RAW,
-        f_standard: Optional[Dict[str, Union[int, float]]] = None) -> None:
+        f_standard: dict[str, int | float] | None = None) -> None:
     """
     Convert moptipy log data to IOHanalyzer log data.
 
@@ -84,7 +84,7 @@ def moptipy_to_ioh_analyzer(
            f"IOHprofiler data in '{dest}'. First we load the data.")
 
     if (f_standard is not None) and (not isinstance(f_standard, dict)):
-        raise type_error(f_standard, "f_standard", Dict)
+        raise type_error(f_standard, "f_standard", dict)
     if not isinstance(suite, str):
         raise type_error(suite, "suite", str)
     if (len(suite) <= 0) or (" " in suite):
@@ -100,8 +100,8 @@ def moptipy_to_ioh_analyzer(
             inst_name_to_inst_id, "inst_name_to_inst_id", call=True)
 
     # the data
-    data: Final[Dict[str, Dict[str, Dict[int, List[
-        Tuple[int, np.ndarray, np.ndarray]]]]]] = {}
+    data: Final[dict[str, dict[str, dict[int, list[
+        tuple[int, np.ndarray, np.ndarray]]]]]] = {}
 
     # this consumer collects all the data in a structured fashion
     def __consume(progress: Progress) -> None:
@@ -110,7 +110,7 @@ def moptipy_to_ioh_analyzer(
         nonlocal inst_name_to_dimension
         nonlocal inst_name_to_inst_id
 
-        _algo: Dict[str, Dict[int, List[Tuple[int, np.ndarray, np.ndarray]]]]
+        _algo: dict[str, dict[int, list[tuple[int, np.ndarray, np.ndarray]]]]
         if progress.algorithm in data:
             _algo = data[progress.algorithm]
         else:
@@ -120,7 +120,7 @@ def moptipy_to_ioh_analyzer(
             raise type_error(_func_id, "function id", str)
         if (len(_func_id) <= 0) or ("_" in _func_id):
             raise ValueError(f"invalid function id '{_func_id}'.")
-        _func: Dict[int, List[Tuple[int, np.ndarray, np.ndarray]]]
+        _func: dict[int, list[tuple[int, np.ndarray, np.ndarray]]]
         if _func_id in _algo:
             _func = _algo[_func_id]
         else:
@@ -135,7 +135,7 @@ def moptipy_to_ioh_analyzer(
             raise type_error(_iid, "instance id", int)
         if _iid <= 0:
             raise ValueError(f"invalid instance id: {_iid}.")
-        _res: Final[Tuple[int, np.ndarray, np.ndarray]] = \
+        _res: Final[tuple[int, np.ndarray, np.ndarray]] = \
             (_iid, progress.time, progress.f)
         if _dim in _func:
             _func[_dim].append(_res)

@@ -2,7 +2,7 @@
 import multiprocessing as mp
 from math import ceil, factorial, inf, log2, sqrt
 from os import sched_getaffinity
-from typing import Callable, Dict, Final, List, Set, Tuple
+from typing import Callable, Final
 
 import numpy as np  # type: ignore
 from numpy.random import Generator, RandomState  # type: ignore
@@ -80,7 +80,7 @@ def __is_instance_too_easy(inst: Instance) -> bool:
     :returns: `True` if the instance is too easy to be interesting
     """
     n_runs: Final[int] = 16
-    seeds: Final[List[int]] = rand_seeds_from_str(string=inst.name,
+    seeds: Final[list[int]] = rand_seeds_from_str(string=inst.name,
                                                   n_seeds=n_runs)
     queue: Final[mp.Queue] = mp.Queue()
 
@@ -95,7 +95,7 @@ def __is_instance_too_easy(inst: Instance) -> bool:
 
     goal: Final[int] = inst.makespan_lower_bound
     num_solved: int = 0
-    diff: Set[int] = set()
+    diff: set[int] = set()
     min_makespan: int = 1 << 62
     sum_makespans: int = 0
     max_makespan: int = 0
@@ -143,7 +143,7 @@ def __is_instance_too_easy(inst: Instance) -> bool:
 __DEFAULT_N_THREADS: Final[int] = max(1, min(len(sched_getaffinity(0)), 128))
 
 
-def compute_instances_that_are_too_easy() -> Tuple[str, ...]:
+def compute_instances_that_are_too_easy() -> tuple[str, ...]:
     """
     Compute the set of instances that are too easy to be of any interest.
 
@@ -159,7 +159,7 @@ def compute_instances_that_are_too_easy() -> Tuple[str, ...]:
         the experiment
     """
     logger("We now test the instances whether they are too easy.")
-    easy: Final[List[str]] = []
+    easy: Final[list[str]] = []
     for inst_name in Instance.list_resources():
         if __is_instance_too_easy(Instance.from_resource(inst_name)):
             easy.append(inst_name)
@@ -172,7 +172,7 @@ def compute_instances_that_are_too_easy() -> Tuple[str, ...]:
 #: therefore be skipped from our experiments.
 #: For a documentation about what constitutes 'too easy', see
 #: :func:`compute_instances_that_are_too_easy`
-__TOO_EASY: Final[Set[str]] = \
+__TOO_EASY: Final[set[str]] = \
     {'demo', 'dmu21', 'dmu22', 'dmu24', 'dmu25', 'dmu31', 'dmu32', 'dmu33',
      'dmu34', 'dmu35', 'ft06', 'ft20', 'la01', 'la02', 'la03', 'la04',
      'la05', 'la06', 'la07', 'la08', 'la09', 'la10', 'la11', 'la12', 'la13',
@@ -183,7 +183,7 @@ __TOO_EASY: Final[Set[str]] = \
      'ta74', 'ta75', 'ta76', 'ta77', 'ta78', 'ta79', 'ta80'}
 
 
-def __get_instances() -> List[Instance]:
+def __get_instances() -> list[Instance]:
     """
     Get the instances.
 
@@ -193,11 +193,11 @@ def __get_instances() -> List[Instance]:
             Instance.list_resources() if name not in __TOO_EASY]
 
 
-def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
+def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
                         n_groups: int,
-                        extreme_groups: Tuple[Tuple[Tuple[int,
+                        extreme_groups: tuple[tuple[tuple[int,
                                                           int], ...], ...],
-                        random: Generator) -> Tuple[int, ...]:
+                        random: Generator) -> tuple[int, ...]:
     """
     Try to find optimal cluster-to-group assignments.
 
@@ -211,18 +211,18 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
     """
     n: Final[int] = len(cluster_groups)
     current: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
-    current_f: Tuple[int, int, int, int, float]
+    current_f: tuple[int, int, int, int, float]
     best: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
-    best_f: Tuple[int, int, int, int, float]
+    best_f: tuple[int, int, int, int, float]
     total_best: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
-    total_best_f: Tuple[int, int, int, int, float] = (-1, -1, -1, -1, -1)
+    total_best_f: tuple[int, int, int, int, float] = (-1, -1, -1, -1, -1)
     run_last_improved: int = 1
     run_current: int = 0
     run_max_none_improved: Final[int] = 4
     step_max_none_improved: Final[int] = int((2 + (n_groups * n)) ** 2)
 
     done: Final[np.ndarray] = np.zeros(n_groups, DEFAULT_INT)
-    extremes: Final[Set[int]] = set()
+    extremes: Final[set[int]] = set()
 
     logger(f"Beginning to optimize the assignment of {len(cluster_groups)} "
            f"clusters to {n_groups} groups. The minimum groups are "
@@ -231,7 +231,7 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
            f"before termination and {step_max_none_improved} FEs without "
            "improvement before stopping a run.")
 
-    def __f(sol: np.ndarray) -> Tuple[int, int, int, int, float]:
+    def __f(sol: np.ndarray) -> tuple[int, int, int, int, float]:
         """
         Compute the quality: The internal objective function.
 
@@ -338,8 +338,8 @@ def __optimize_clusters(cluster_groups: Tuple[Tuple[int, ...], ...],
     return result
 
 
-def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
-                      random: Generator) -> List[int]:
+def __optimize_scales(scale_choices: list[list[tuple[int, int]]],
+                      random: Generator) -> list[int]:
     """
     Pick a diverse scale choice.
 
@@ -349,8 +349,8 @@ def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
     """
     n: Final[int] = len(scale_choices)
 
-    x_total_best: List[int] = [0] * n
-    opt_idx: List[Tuple[int, int]] = []  # the relevant indexes
+    x_total_best: list[int] = [0] * n
+    opt_idx: list[tuple[int, int]] = []  # the relevant indexes
     opt_sum: int = 0
     for idx, choices in enumerate(scale_choices):
         if len(choices) > 1:
@@ -360,7 +360,7 @@ def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
     if not opt_idx:
         return x_total_best
 
-    def __f(xx: List[int]) -> Tuple[float, float, int]:
+    def __f(xx: list[int]) -> tuple[float, float, int]:
         """
         Compute the quality of a suggestion, bigger is better.
 
@@ -393,17 +393,17 @@ def __optimize_scales(scale_choices: List[List[Tuple[int, int]]],
                 dist_sum += d
         return dist_min, dist_sum, diff_cnt
 
-    f_total_best: Tuple[float, float, int] = __f(x_total_best)
+    f_total_best: tuple[float, float, int] = __f(x_total_best)
     logger(f"The following index-choices tuple exist: {opt_idx} and "
            f"the initial choice is {x_total_best} at quality {f_total_best}.")
 
-    x_cur_best: List[int] = [0] * n
-    x_cur: List[int] = [0] * n
+    x_cur_best: list[int] = [0] * n
+    x_cur: list[int] = [0] * n
 
     for _ in range(int(opt_sum ** 2.35)):
         for ii, sc in enumerate(scale_choices):
             x_cur_best[ii] = random.integers(len(sc))
-        f_cur_best: Tuple[float, float, int] = __f(x_cur_best)
+        f_cur_best: tuple[float, float, int] = __f(x_cur_best)
         if f_cur_best > f_total_best:
             f_total_best = f_cur_best
             x_total_best.clear()
@@ -442,7 +442,7 @@ def __scale(jobs: int, machines: int) -> int:
 
 def propose_instances(n: int,
                       get_instances: Callable = __get_instances) -> \
-        Tuple[str, ...]:
+        tuple[str, ...]:
     """
     Propose a set of instances to be used for our experiment.
 
@@ -499,19 +499,19 @@ def propose_instances(n: int,
     random: Final[Generator] = rand_generator(0)  # the random number generator
     random.shuffle(instances)
 
-    inst_names: Final[Tuple[str, ...]] = tuple([  # get the instance names
+    inst_names: Final[tuple[str, ...]] = tuple([  # get the instance names
         inst.get_name() for inst in instances])
-    inst_sizes: Final[List[Tuple[int, int]]] =\
+    inst_sizes: Final[list[tuple[int, int]]] =\
         [(inst.jobs, inst.machines) for inst in instances]
 
     # the group to which the instances belong
     rm = str.maketrans("", "", "0123456789")
-    inst_groups: Final[Tuple[str, ...]] = tuple([  # get the instance groups
+    inst_groups: Final[tuple[str, ...]] = tuple([  # get the instance groups
         inst.translate(rm) for inst in inst_names])
 
     # create bi-directional mapping between group names and integer IDs
-    group_ids: Final[Dict[str, int]] = {}
-    id_groups: Final[Dict[int, str]] = {}
+    group_ids: Final[dict[str, int]] = {}
+    id_groups: Final[dict[int, str]] = {}
     for group in inst_groups:
         if group in group_ids:
             continue
@@ -527,9 +527,9 @@ def propose_instances(n: int,
     features = np.zeros((len(instances), base_features + n_groups),
                         DEFAULT_FLOAT)
     min_scale_val = inf
-    min_scale_inst: Set[int] = set()
+    min_scale_inst: set[int] = set()
     max_scale_val = -inf
-    max_scale_inst: Set[int] = set()
+    max_scale_inst: set[int] = set()
     for i, inst in enumerate(instances):
         features[i, 0] = inst.jobs
         features[i, 1] = inst.machines
@@ -596,7 +596,7 @@ def propose_instances(n: int,
            f"clusters to groups.")
 
     # find which groups belong to which cluster
-    cluster_groups: Final[Tuple[Tuple[int, ...], ...]] = tuple([
+    cluster_groups: Final[tuple[tuple[int, ...], ...]] = tuple([
         tuple(sorted(list({group_ids[inst_groups[j]]
                            for j in np.where(clusters == i)[0]})))
         for i in range(n)])
@@ -630,17 +630,17 @@ def propose_instances(n: int,
     # In a first step, we find out
     needs_min_scale = True
     needs_max_scale = True
-    scale_choices: List[List[Tuple[int, int]]] = []
-    inst_choices: List[List[str]] = []
+    scale_choices: list[list[tuple[int, int]]] = []
+    inst_choices: list[list[str]] = []
 
     for i in range(n):
         elements = np.where(clusters == i)[0]
         sgroup: str = id_groups[chosen_groups[i]]
-        possibility: Set[int] = {i for i in elements
+        possibility: set[int] = {i for i in elements
                                  if inst_groups[i] == sgroup}
-        cur_scale_choices: List[Tuple[int, int]] = []
+        cur_scale_choices: list[tuple[int, int]] = []
         scale_choices.append(cur_scale_choices)
-        cur_inst_choices: List[str] = []
+        cur_inst_choices: list[str] = []
         inst_choices.append(cur_inst_choices)
         can_skip: bool = False
 
@@ -675,7 +675,7 @@ def propose_instances(n: int,
         if can_skip:
             continue
 
-        scales: Set[Tuple[int, int]] = set()
+        scales: set[tuple[int, int]] = set()
         sel = list(possibility)
         random.shuffle(sel)
         for ii in sel:
@@ -690,11 +690,11 @@ def propose_instances(n: int,
     # do the actual scale optimization
     final_sel = __optimize_scales(scale_choices, random)
 
-    res_tmp: Final[List[Tuple[int, str]]] = \
+    res_tmp: Final[list[tuple[int, str]]] = \
         [(__scale(scale_choices[i][k][0], scale_choices[i][k][1]),
           inst_choices[i][k]) for i, k in enumerate(final_sel)]
     res_tmp.sort()
-    result: Final[List[str]] = [sey[1] for sey in res_tmp]
+    result: Final[list[str]] = [sey[1] for sey in res_tmp]
 
     # Finally, we sort and finalize the set of chosen instances.
     logger(f"Found final instance selection {result}.")

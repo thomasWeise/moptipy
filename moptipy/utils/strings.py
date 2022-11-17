@@ -3,7 +3,7 @@
 from math import isnan
 from re import MULTILINE, sub
 from re import compile as _compile
-from typing import Final, Iterable, Optional, Pattern, Union
+from typing import Final, Iterable, Pattern
 
 from moptipy.utils.math import __try_int
 from moptipy.utils.types import type_error
@@ -31,7 +31,7 @@ def float_to_str(x: float) -> str:
     return s
 
 
-def num_to_str_for_name(x: Union[int, float]) -> str:
+def num_to_str_for_name(x: int | float) -> str:
     """
     Convert a float to a string for use in a component name.
 
@@ -53,7 +53,7 @@ def num_to_str_for_name(x: Union[int, float]) -> str:
         .replace('-', MINUS_REPLACEMENT)
 
 
-def name_str_to_num(s: str) -> Union[int, float]:
+def name_str_to_num(s: str) -> int | float:
     """
     Convert a string from a name to a number.
 
@@ -117,7 +117,7 @@ def str_to_bool(value: str) -> bool:
     raise ValueError(f"Expected 'T' or 'F', but got '{value}'.")
 
 
-def num_to_str(value: Union[int, float]) -> str:
+def num_to_str(value: int | float) -> str:
     """
     Transform a numerical type to a string.
 
@@ -132,7 +132,7 @@ def num_to_str(value: Union[int, float]) -> str:
     return str(value) if isinstance(value, int) else float_to_str(value)
 
 
-def intfloatnone_to_str(val: Union[int, float, None]) -> str:
+def intfloatnone_to_str(val: int | float | None) -> str:
     """
     Convert an integer ot float or `None` to a string.
 
@@ -150,7 +150,7 @@ def intfloatnone_to_str(val: Union[int, float, None]) -> str:
     return "" if val is None else num_to_str(val)
 
 
-def intnone_to_str(val: Optional[int]) -> str:
+def intnone_to_str(val: int | None) -> str:
     """
     Convert an integer or `None` to a string.
 
@@ -165,7 +165,7 @@ def intnone_to_str(val: Optional[int]) -> str:
     return "" if val is None else str(val)
 
 
-def str_to_intfloat(val: str) -> Union[int, float]:
+def str_to_intfloat(val: str) -> int | float:
     """
     Convert a string to an int or float.
 
@@ -183,7 +183,7 @@ def str_to_intfloat(val: str) -> Union[int, float]:
                                     ("inf" in val) else int(val)
 
 
-def str_to_intfloatnone(val: str) -> Union[int, float, None]:
+def str_to_intfloatnone(val: str) -> int | float | None:
     """
     Convert a string to an int or float or None.
 
@@ -200,7 +200,7 @@ def str_to_intfloatnone(val: str) -> Union[int, float, None]:
     return None if len(val) <= 0 else str_to_intfloat(val)
 
 
-def str_to_intnone(val: str) -> Optional[int]:
+def str_to_intnone(val: str) -> int | None:
     """
     Convert a string to an int or None.
 
@@ -329,7 +329,7 @@ def sanitize_names(names: Iterable[str]) -> str:
         sanitize_name(name) for name in names if len(name) > 0])
 
 
-def regex_sub(search: Union[str, Pattern],
+def regex_sub(search: str | Pattern,
               replace: str,
               inside: str) -> str:
     r"""

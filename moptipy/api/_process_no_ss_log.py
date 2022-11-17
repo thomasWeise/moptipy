@@ -1,5 +1,5 @@
 """A process with logging, where search and solution space are the same."""
-from typing import Final, List, Optional, Union
+from typing import Final
 
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api._process_no_ss import _ProcessNoSS, _write_log
@@ -19,10 +19,10 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  objective: Objective,
                  algorithm: Algorithm,
                  log_file: Path,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None,
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None,
                  log_all_fes: bool = False) -> None:
         """
         Perform the internal initialization. Do not call directly.
@@ -54,18 +54,18 @@ class _ProcessNoSSLog(_ProcessNoSS):
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
         #: The in-memory log
-        self.__log: List[List[Union[int, float]]] = []
+        self.__log: list[list[int | float]] = []
         #: the quick access to the log appending method
         self.__log_append = self.__log.append
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
                                  'the algorithm knows it.')
             return self._current_best_f
 
-        result: Final[Union[int, float]] = self._f(x)
+        result: Final[int | float] = self._f(x)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all
@@ -90,7 +90,7 @@ class _ProcessNoSSLog(_ProcessNoSS):
 
         return result
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '

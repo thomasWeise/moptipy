@@ -42,7 +42,7 @@ The following selection algorithms have currently been implemented:
   selection probability threshold. It is the classic survival selection
   algorithm in Genetic Algorithm.
 """
-from typing import Any, Callable, List, Protocol, Union
+from typing import Any, Callable, Protocol
 
 from numpy.random import Generator
 
@@ -57,7 +57,7 @@ class FitnessRecord(Protocol):
 # end book
     #: the fitness value, the only criterion to be used by a selection
     #: algorithm (besides random numbers)
-    fitness: Union[int, float]
+    fitness: int | float
 
     def __lt__(self, other) -> bool:
         """
@@ -72,7 +72,7 @@ class FitnessRecord(Protocol):
 class Selection(Component):
     """The base class for selections algorithms."""
 
-    def select(self, source: List[FitnessRecord],
+    def select(self, source: list[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:  # pylint: disable=W0613
         """

@@ -2,19 +2,7 @@
 
 from math import isfinite
 from statistics import mean, median
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 from scipy.stats import mannwhitneyu  # type: ignore
 
@@ -43,12 +31,12 @@ __UNCLEAR: Final[FormattedStr] = FormattedStr("?", code=True)
 __GREATER: Final[FormattedStr] = FormattedStr(">", code=True)
 
 #: the name of the win-equal-loss column
-__WEL: Final[Tuple[FormattedStr, str, FormattedStr, str, FormattedStr]] \
+__WEL: Final[tuple[FormattedStr, str, FormattedStr, str, FormattedStr]] \
     = __LESS, " / ", __UNCLEAR, " / ", __GREATER
 
 
-def __compare(a: List[Union[int, float]],
-              b: List[Union[int, float]]) -> int:
+def __compare(a: list[int | float],
+              b: list[int | float]) -> int:
     """
     Compare two lists of numbers.
 
@@ -80,8 +68,8 @@ def __compare(a: List[Union[int, float]],
     return 0
 
 
-def __compare_to_str(cmp: int, p_str: Optional[FormattedStr],
-                     p: float, alpha_prime: float) -> Union[str, List[str]]:
+def __compare_to_str(cmp: int, p_str: FormattedStr | None,
+                     p: float, alpha_prime: float) -> str | list[str]:
     """
     Transform a comparison result and a string to an output.
 
@@ -108,8 +96,7 @@ def tabulate_result_tests(
         file_name: str = "tests",
         dir_name: str = ".",
         alpha: float = 0.02,
-        text_format_driver: Union[TextFormatDriver,
-                                  Callable[[], TextFormatDriver]]
+        text_format_driver: TextFormatDriver | Callable[[], TextFormatDriver]
         = Markdown.instance,
         algorithm_sort_key: Callable[[str], Any] = lambda a: a,
         instance_sort_key: Callable[[str], Any] = lambda i: i,
@@ -117,7 +104,7 @@ def tabulate_result_tests(
         algorithm_namer: Callable[[str], str] = lambda x: x,
         use_lang: bool = False,
         p_renderer: NumberRenderer = DEFAULT_NUMBER_RENDERER,
-        value_getter: Callable[[EndResult], Union[int, float]]
+        value_getter: Callable[[EndResult], int | float]
         = EndResult.getter(KEY_BEST_F)) -> Path:
     r"""
     Tabulate the results of statistical comparisons of end result qualities.
@@ -235,8 +222,8 @@ def tabulate_result_tests(
         raise type_error(value_getter, "value_getter", call=True)
 
     # now gather the data: algorithms -> instances -> bestF
-    data_dict: Dict[str, Dict[str, List[Union[int, float]]]] = {}
-    inst_set: Set[str] = set()
+    data_dict: dict[str, dict[str, list[int | float]]] = {}
+    inst_set: set[str] = set()
     for i, end_result in enumerate(end_results):
         if not isinstance(end_result, EndResult):
             raise type_error(end_result, f"end_results[{i}]", EndResult)
@@ -263,9 +250,9 @@ def tabulate_result_tests(
     if not (1 < n_algos < 5):
         raise ValueError(f"invalid number {n_algos} of "
                          "algorithms, must be 1<n_algos<5.")
-    instances: Final[List] = sorted(inst_set, key=instance_sort_key)
+    instances: Final[list] = sorted(inst_set, key=instance_sort_key)
     n_insts: Final[int] = len(instances)
-    algorithms: Final[List] = sorted(data_dict.keys(), key=algorithm_sort_key)
+    algorithms: Final[list] = sorted(data_dict.keys(), key=algorithm_sort_key)
 
     # validate data
     for algo in algorithms:
@@ -283,7 +270,7 @@ def tabulate_result_tests(
                          f"<0.5, stems from alpha={alpha} and N={n_pairs}")
 
     # compute the comparison results
-    comparisons: Final[List[List[int]]] = \
+    comparisons: Final[list[list[int]]] = \
         [[__compare(data_dict[algorithms[i]][inst],
                     data_dict[algorithms[j]][inst])
           for inst in instances]
@@ -291,7 +278,7 @@ def tabulate_result_tests(
          for j in range(i + 1, n_algos)]
 
     # compute the p_values
-    p_values: Final[List[List[float]]] = \
+    p_values: Final[list[list[float]]] = \
         [[float(mannwhitneyu(data_dict[algorithms[ij[0]]][inst],
                              data_dict[algorithms[ij[1]]][inst]).pvalue)
           if comparisons[z][k] != 0 else None
@@ -300,10 +287,10 @@ def tabulate_result_tests(
                                  for jj in range(ii + 1, n_algos)])]
 
     # now format all p values to strings
-    p_flat: Final[List[float]] = [y for x in p_values for y in x]
+    p_flat: Final[list[float]] = [y for x in p_values for y in x]
     p_flat.append(alpha)
     p_flat.append(alpha_prime)
-    p_flat_strs: Final[List[Optional[FormattedStr]]] = \
+    p_flat_strs: Final[list[FormattedStr | None]] = \
         p_renderer.render(p_flat)
     alpha_str: FormattedStr = cast(FormattedStr, p_flat_strs[-2])
     a2 = FormattedStr.number(alpha)
@@ -315,17 +302,17 @@ def tabulate_result_tests(
         alpha_prime_str = a2
     del p_flat_strs[-1]
     del p_flat_strs[-1]
-    p_strs: Final[List[List[Optional[FormattedStr]]]] = \
+    p_strs: Final[list[list[FormattedStr | None]]] = \
         [p_flat_strs[(i * n_insts):((i + 1) * n_insts)] for i in range(n_cols)]
 
-    summary_row: Optional[List[Union[Iterable[str], str]]] = None
+    summary_row: list[Iterable[str] | str] | None = None
     if n_insts > 0:
         summary_row = [__WEL]
         for i, col in enumerate(comparisons):
             wins: int = 0
             equals: int = 0
             losses: int = 0
-            pv: List[float] = p_values[i]
+            pv: list[float] = p_values[i]
             for j, cv in enumerate(col):
                 if (cv == 0) or (pv[j] >= alpha_prime):
                     equals += 1
@@ -336,7 +323,7 @@ def tabulate_result_tests(
             summary_row.append(f"{wins}/{equals}/{losses}")
 
     #: the columns
-    cols: Final[List[List[Union[str, List[str]]]]] = \
+    cols: Final[list[list[str | list[str]]]] = \
         [[__compare_to_str(comparisons[i][j], p_strs[i][j], p_values[i][j],
                            alpha_prime)
           for j in range(n_insts)]
@@ -349,7 +336,7 @@ def tabulate_result_tests(
     # We now can render the headlines. If there is only one pair of
     # algorithms, we render a single headline with all the information.
     # If there are multiple algorithm pairs, we do two headlines.
-    head_lines: List[List[Union[str, List[str]]]]
+    head_lines: list[list[str | list[str]]]
     multi_header: Final[bool] = \
         (n_algos > 2) and (not isinstance(text_format_driver, Markdown))
     if multi_header:

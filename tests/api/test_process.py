@@ -1,7 +1,7 @@
 """Test the Process API."""
 from math import sin
 from os.path import getsize, isfile
-from typing import Final, Union
+from typing import Final
 
 import numpy as np
 
@@ -68,7 +68,7 @@ class MyAlgorithm2(Algorithm):
 class MyObjective1(Objective):
     """The internal test objective."""
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """Return x[0] as dummy objective value."""
         return x[0]
 
@@ -76,7 +76,7 @@ class MyObjective1(Objective):
 class MyObjective2(Objective):
     """The internal test objective."""
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """Return x[0] as dummy objective value."""
         return sin(x[0])
 

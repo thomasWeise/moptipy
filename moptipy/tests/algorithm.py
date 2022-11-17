@@ -1,6 +1,6 @@
 """Functions that can be used to test algorithm implementations."""
 from math import inf, isfinite
-from typing import Any, Final, Optional, Union
+from typing import Any, Final
 
 from moptipy.api.algorithm import (
     Algorithm,
@@ -24,10 +24,10 @@ from moptipy.utils.types import type_error
 def validate_algorithm(algorithm: Algorithm,
                        solution_space: Space,
                        objective: Objective,
-                       search_space: Optional[Space] = None,
-                       encoding: Optional[Encoding] = None,
+                       search_space: Space | None = None,
+                       encoding: Encoding | None = None,
                        max_fes: int = 100,
-                       required_result: Optional[Union[int, float]] = None,
+                       required_result: int | float | None = None,
                        uses_all_fes_if_goal_not_reached: bool = True,
                        is_encoding_deterministic: bool = True) \
         -> None:
@@ -82,7 +82,7 @@ def validate_algorithm(algorithm: Algorithm,
         exp.set_search_space(search_space)
         exp.set_encoding(encoding)
 
-    lb: Final[Union[int, float]] = objective.lower_bound()
+    lb: Final[int | float] = objective.lower_bound()
     if (not isfinite(lb)) and (lb != -inf):
         raise ValueError(f"objective lower bound cannot be {lb}"
                          f" for {algorithm} on objective {objective}.")
@@ -91,7 +91,7 @@ def validate_algorithm(algorithm: Algorithm,
         raise ValueError(f"objective upper bound cannot be {ub}"
                          f" for {algorithm} on objective {objective}.")
 
-    goal: Union[int, float] = lb
+    goal: int | float = lb
     if required_result is not None:
         if not (lb <= required_result <= ub):
             raise ValueError(f"required result must be in [{lb},{ub}], "
@@ -163,7 +163,7 @@ def validate_algorithm(algorithm: Algorithm,
                 f"({process.upper_bound()}) and objective ({ub}) "
                 f" for {algorithm} on {objective}.")
 
-        res_f: Final[Union[float, int]] = process.get_best_f()
+        res_f: Final[float | int] = process.get_best_f()
         if not isfinite(res_f):
             raise ValueError(f"Infinite objective value of result "
                              f"for {algorithm} on {objective}.")
@@ -208,7 +208,7 @@ def validate_algorithm(algorithm: Algorithm,
                 f"to {check_f} from objective function for {algorithm} on "
                 f"{objective}.")
 
-        x: Optional[Any] = None
+        x: Any | None = None
         if search_space is not None:
             x = search_space.create()
             process.get_copy_of_best_x(x)

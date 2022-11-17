@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import inf
-from typing import Final, Optional, Tuple, Union
+from typing import Final
 
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name
@@ -123,15 +123,15 @@ class MultiRunData:
     """
 
     #: The algorithm that was applied, if the same over all runs.
-    algorithm: Optional[str]
+    algorithm: str | None
     #: The problem instance that was solved, if the same over all runs.
-    instance: Optional[str]
+    instance: str | None
     #: The number of runs over which the statistic information is computed.
     n: int
 
     def __init__(self,
-                 algorithm: Optional[str],
-                 instance: Optional[str],
+                 algorithm: str | None,
+                 instance: str | None,
                  n: int):
         """
         Create the dataset of an experiment-setup combination.
@@ -183,8 +183,8 @@ class MultiRun2DData(MultiRunData):
     f_name: str
 
     def __init__(self,
-                 algorithm: Optional[str],
-                 instance: Optional[str],
+                 algorithm: str | None,
+                 instance: str | None,
                  n: int,
                  time_unit: str,
                  f_name: str):
@@ -205,7 +205,7 @@ class MultiRun2DData(MultiRunData):
         object.__setattr__(self, "f_name", check_f_name(f_name))
 
 
-def get_instance(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
+def get_instance(obj: PerRunData | MultiRunData) -> str | None:
     """
     Get the instance of a given object.
 
@@ -222,7 +222,7 @@ def get_instance(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
     return obj.instance
 
 
-def get_algorithm(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
+def get_algorithm(obj: PerRunData | MultiRunData) -> str | None:
     """
     Get the algorithm of a given object.
 
@@ -239,8 +239,8 @@ def get_algorithm(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
     return obj.algorithm
 
 
-def sort_key(obj: Union[PerRunData, MultiRunData]) -> \
-        Tuple[str, str, str, int, int, str, str, float]:
+def sort_key(obj: PerRunData | MultiRunData) -> \
+        tuple[str, str, str, int, int, str, str, float]:
     """
     Get a default sort key for the given object.
 

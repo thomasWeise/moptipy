@@ -15,7 +15,7 @@ while piping all their function evaluations through the
 :meth:`~moptipy.api.process.Process`. This way, we can make these external
 algorithms usable within `moptipy` in a transparent manner.
 """
-from typing import Any, Callable, Final, List, Optional, Tuple, cast
+from typing import Any, Callable, Final, cast
 
 from numpy import clip, full, inf, ndarray
 from scipy.optimize import Bounds  # type: ignore
@@ -51,8 +51,6 @@ from moptipy.utils.types import type_error
 
 
 # noinspection PyProtectedMember
-
-
 class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
     """
     A wrapper for the Sci-Py API.
@@ -62,8 +60,8 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
     """
 
     def __init__(self, name: str, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create the algorithm importer from scipy.
 
@@ -80,12 +78,12 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
             max_value = op0.max_value
         OptionalFloatBounds.__init__(self, min_value, max_value)
         #: the bounds to be used for the internal function call
-        self.__bounds_cache: Optional[Bounds] = None
+        self.__bounds_cache: Bounds | None = None
         #: the cache for starting points
-        self.__x0_cache: Optional[ndarray] = None
+        self.__x0_cache: ndarray | None = None
 
     def _call(self, func: Callable, x0, max_fes: int,
-              bounds: Optional[Bounds]) -> None:
+              bounds: Bounds | None) -> None:
         """
         Invoke the SciPi Algorithm.
 
@@ -168,7 +166,7 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
 
 
 def _call_powell(func: Callable, x0, max_fes: int,
-                 bounds: Optional[Bounds]) -> None:
+                 bounds: Bounds | None) -> None:
     _minimize_powell(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
                      maxiter=max_fes, maxfev=max_fes)
 
@@ -188,8 +186,8 @@ class Powell(SciPyAlgorithmWrapper):
     """
 
     def __init__(self, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create Powell's Algorithm from SciPy.
 
@@ -202,7 +200,7 @@ class Powell(SciPyAlgorithmWrapper):
 
 
 def _call_nelder_mead(func: Callable, x0, max_fes: int,
-                      bounds: Optional[Bounds]) -> None:
+                      bounds: Bounds | None) -> None:
     _minimize_neldermead(func, x0, bounds=bounds, xatol=0.0, fatol=0.0,
                          maxiter=max_fes, maxfev=max_fes)
 
@@ -239,8 +237,8 @@ ComputerJournal-1965.pdf
     """
 
     def __init__(self, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create the Nelder-Mead Algorithm from SciPy.
 
@@ -277,8 +275,8 @@ class BGFS(SciPyAlgorithmWrapper):
     """
 
     def __init__(self, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create the BGFS Algorithm from SciPy.
 
@@ -305,8 +303,8 @@ class CG(SciPyAlgorithmWrapper):
     """
 
     def __init__(self, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create the CG Algorithm from SciPy.
 
@@ -332,8 +330,8 @@ class SLSQP(SciPyAlgorithmWrapper):
     """
 
     def __init__(self, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create the SLSQP Algorithm from SciPy.
 
@@ -346,7 +344,7 @@ class SLSQP(SciPyAlgorithmWrapper):
 
 
 def _call_tnc(func: Callable, x0, max_fes: int,
-              bounds: Optional[Bounds]) -> None:
+              bounds: Bounds | None) -> None:
     if bounds is None:
         b = None
     else:
@@ -369,8 +367,8 @@ class TNC(SciPyAlgorithmWrapper):
     """
 
     def __init__(self, op0: Op0,
-                 min_value: Optional[float] = None,
-                 max_value: Optional[float] = None) -> None:
+                 min_value: float | None = None,
+                 max_value: float | None = None) -> None:
         """
         Create the TNC Algorithm from SciPy.
 
@@ -414,7 +412,7 @@ class DE(Algorithm, FloatBounds):
             raise ValueError(
                 f"dim must be in 1...100_000 but is {dim}.")
         #: the bounds
-        self.__bounds: Final[List[Tuple[float, float]]] = \
+        self.__bounds: Final[list[tuple[float, float]]] = \
             [(self.min_value, self.max_value)] * dim
 
     def __run(self, pp: Process):

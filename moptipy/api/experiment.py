@@ -15,7 +15,7 @@ import multiprocessing as mp
 import os.path
 from contextlib import AbstractContextManager, nullcontext
 from math import ceil
-from typing import Any, Callable, Final, Iterable, List, Sequence, Union, cast
+from typing import Any, Callable, Final, Iterable, Sequence, cast
 
 import psutil  # type: ignore
 from numpy.random import Generator, default_rng
@@ -32,8 +32,8 @@ from moptipy.utils.types import type_error
 
 
 def __run_experiment(base_dir: Path,
-                     experiments: List[List[Callable]],
-                     n_runs: List[int],
+                     experiments: list[list[Callable]],
+                     n_runs: list[int],
                      perform_warmup: bool,
                      warmup_fes: int,
                      perform_pre_warmup: bool,
@@ -96,7 +96,7 @@ def __run_experiment(base_dir: Path,
                 cd.ensure_dir_exists()
 
                 # generate sequence of seeds
-                seeds: List[int] = [0] if warmup else \
+                seeds: list[int] = [0] if warmup else \
                     rand_seeds_from_str(string=inst_name, n_seeds=runs)
                 random.shuffle(seeds)
                 needs_warmup = warmup or perform_warmup
@@ -155,8 +155,8 @@ __DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1)
 
 
 def __waiting_run_experiment(base_dir: Path,
-                             experiments: List[List[Callable]],
-                             n_runs: List[int],
+                             experiments: list[list[Callable]],
+                             n_runs: list[int],
                              perform_warmup: bool,
                              warmup_fes: int,
                              perform_pre_warmup: bool,
@@ -182,7 +182,7 @@ def __waiting_run_experiment(base_dir: Path,
 def run_experiment(base_dir: str,
                    instances: Iterable[Callable[[], Any]],
                    setups: Iterable[Callable[[Any], Execution]],
-                   n_runs: Union[int, Iterable[int]] = 11,
+                   n_runs: int | Iterable[int] = 11,
                    n_threads: int = __DEFAULT_N_THREADS,
                    perform_warmup: bool = True,
                    warmup_fes: int = 20,
@@ -285,7 +285,7 @@ def run_experiment(base_dir: str,
         if not callable(setup):
             raise type_error(setup, "all setups", call=True)
 
-    experiments: Final[List[List[Callable]]] = \
+    experiments: Final[list[list[Callable]]] = \
         [[ii, ss] for ii in instances for ss in setups]
 
     del instances
@@ -326,7 +326,7 @@ def run_experiment(base_dir: str,
         event: Final = mp.Event()
         pre_warmup_barrier: Final = mp.Barrier(n_threads) \
             if perform_pre_warmup else None
-        processes: Final[List[mp.Process]] = \
+        processes: Final[list[mp.Process]] = \
             [mp.Process(target=__waiting_run_experiment,
                         args=(use_dir,
                               experiments.copy(),
@@ -360,7 +360,7 @@ def run_experiment(base_dir: str,
         last_core: int = 0
         for i, p in enumerate(processes):
             pid: int = int(p.pid)
-            aff: List[int] = []
+            aff: list[int] = []
             for _ in range(n_cores_per_thread):
                 aff.append(int((last_core + core_ofs) % __CPU_LOGICAL_CORES))
                 last_core += 1

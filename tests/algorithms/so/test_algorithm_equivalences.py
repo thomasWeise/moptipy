@@ -1,6 +1,6 @@
 """Test the RLS."""
 
-from typing import Callable, Final, List, Union, cast
+from typing import Callable, Final, cast
 
 from numpy.random import Generator, default_rng
 
@@ -75,8 +75,8 @@ class __EAC(EA):
             Callable[[], float],  # need random floats
             random.random if 0 < br < 1 else _float_0)
         # create list of mu random records and lambda empty records
-        lst: Final[List] = [None] * lst_size  # pre-allocate list
-        f: Union[int, float] = 0  # variable to hold objective values
+        lst: Final[list] = [None] * lst_size  # pre-allocate list
+        f: int | float = 0  # variable to hold objective values
         for i in range(lst_size):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
             if i < mu:  # only the first mu records are initialized by

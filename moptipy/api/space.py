@@ -33,7 +33,6 @@ The following pre-defined spaces are currently available:
   of `n`-dimensional floating point number vectors whose values are within
   the pre-defined inclusive bounds `[min_value,max_value]`.
 """
-from typing import Optional
 
 from moptipy.api.component import Component
 from moptipy.utils.types import type_error
@@ -142,8 +141,8 @@ class Space(Component):
         return 2
 
 
-def check_space(space: Optional[Space],
-                none_is_ok: bool = False) -> Optional[Space]:
+def check_space(space: Space | None,
+                none_is_ok: bool = False) -> Space | None:
     """
     Check whether an object is a valid instance of :class:`Space`.
 

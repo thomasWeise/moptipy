@@ -10,7 +10,7 @@ value. Ties will be broken based on the iteration counter
 """
 
 from math import inf
-from typing import Final, List, Union
+from typing import Final
 
 from numpy.random import Generator
 
@@ -45,7 +45,7 @@ class RankAndIteration(Fitness):
     Algorithm (:class:`~moptipy.algorithms.so.ea.EA`).
     """
 
-    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the rank and iteration fitness.
 
@@ -69,7 +69,7 @@ class RankAndIteration(Fitness):
 
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         rank: int = -1  # the rank counter
-        last_fitness: Union[int, float] = -inf
+        last_fitness: int | float = -inf
         for i, rec in enumerate(p):
             v = rec.fitness
             if v > last_fitness:  # if fitness differs, step rank

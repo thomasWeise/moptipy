@@ -1,6 +1,6 @@
 """Perform tests on the Job Shop Scheduling Problem."""
 
-from typing import Callable, Final, Iterable, List, Optional, Union, cast
+from typing import Callable, Final, Iterable, cast
 
 from numpy.random import Generator, default_rng
 
@@ -31,11 +31,11 @@ def jssp_instances_for_tests() -> Iterable[str]:
     """
     r = default_rng()
     ri = r.integers
-    insts: List[str] = [
+    insts: list[str] = [
         "demo", "ft06", "ft10", f"abz{ri(5, 10)}", f"dmu{ri(10, 81)}",
         f"orb0{ri(1, 10)}", f"swv{ri(10, 21)}", f"ta{ri(10, 65)}",
         f"ta{ri(65, 70)}", f"ta{ri(70, 75)}", f"yn{ri(1, 5)}"]
-    r.shuffle(cast(List, insts))
+    r.shuffle(cast(list, insts))
     return insts
 
 
@@ -61,11 +61,10 @@ def make_gantt_valid(inst: Instance) -> Callable[[Generator, Gantt], Gantt]:
 
 
 def validate_algorithm_on_1_jssp(
-        algorithm: Union[Algorithm, Callable[
-            [Instance, Permutations, Objective], Algorithm]],
-        instance: Optional[str] = None,
-        max_fes: int = 100,
-        required_result: Optional[int] = None) -> None:
+        algorithm: Algorithm | Callable[
+            [Instance, Permutations, Objective], Algorithm],
+        instance: str | None = None, max_fes: int = 100,
+        required_result: int | None = None) -> None:
     """
     Check the validity of a black-box algorithm on the JSSP.
 
@@ -125,8 +124,8 @@ def validate_algorithm_on_jssp(
 
 
 def validate_objective_on_1_jssp(
-        objective: Union[Objective, Callable[[Instance], Objective]],
-        instance: Optional[str] = None,
+        objective: Objective | Callable[[Instance], Objective],
+        instance: str | None = None,
         is_deterministic: bool = True) -> None:
     """
     Validate an objective function on 1 JSSP instance.
@@ -154,7 +153,7 @@ def validate_objective_on_1_jssp(
 
 
 def validate_objective_on_jssp(
-        objective: Union[Objective, Callable[[Instance], Objective]],
+        objective: Objective | Callable[[Instance], Objective],
         is_deterministic: bool = True) -> None:
     """
     Validate an objective function on JSSP instances.
@@ -167,10 +166,9 @@ def validate_objective_on_jssp(
 
 
 def validate_mo_algorithm_on_1_jssp(
-        algorithm: Union[MOAlgorithm, Callable[
-            [Instance, Permutations, MOProblem], MOAlgorithm]],
-        instance: Optional[str] = None,
-        max_fes: int = 100) -> None:
+        algorithm: MOAlgorithm | Callable[
+            [Instance, Permutations, MOProblem], MOAlgorithm],
+        instance: str | None = None, max_fes: int = 100) -> None:
     """
     Check the validity of a black-box multi-objective algorithm on the JSSP.
 
@@ -195,7 +193,7 @@ def validate_mo_algorithm_on_1_jssp(
     solution_space = GanttSpace(inst)
     encoding = OperationBasedEncoding(inst)
 
-    weights: List[Union[int, float]]
+    weights: list[int | float]
     if random.integers(2) <= 0:
         weights = [float(random.uniform(0.01, 10)),
                    float(random.uniform(0.01, 10))]

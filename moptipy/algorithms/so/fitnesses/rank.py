@@ -1,7 +1,6 @@
 """A fitness representing the rank of a solution based on its quality."""
 
 from math import inf
-from typing import List, Union
 
 from numpy.random import Generator
 
@@ -12,7 +11,7 @@ from moptipy.algorithms.so.fitness import Fitness, FRecord
 class Rank(Fitness):
     """A fitness computing the rank of an individual based on its quality."""
 
-    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the rank fitness.
 
@@ -44,7 +43,7 @@ class Rank(Fitness):
         p.sort()  # sort based on objective values
 
         rank: int = -1  # the rank counter
-        last_fitness: Union[int, float] = -inf
+        last_fitness: int | float = -inf
         for i, rec in enumerate(p):
             v = rec.fitness
             if v > last_fitness:  # if fitness differs, step rank

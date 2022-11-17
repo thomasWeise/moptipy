@@ -1,5 +1,4 @@
 """Test the plot utilities."""
-from typing import List, Set, Tuple
 
 from matplotlib.figure import Figure, SubplotBase  # type: ignore
 
@@ -17,7 +16,7 @@ def test_create_and_save_figure():
     with TempDir.create() as td:
         res = pu.save_figure(fig=f, file_name="test", dir_name=td,
                              formats=["svg", "pdf"])
-        assert isinstance(res, List)
+        assert isinstance(res, list)
         assert len(res) == 2
         assert td.resolve_inside("test.pdf") in res
         assert td.resolve_inside("test.svg") in res
@@ -31,13 +30,13 @@ def test_create_multi_figure():
                                          max_items_per_plot=10,
                                          max_rows=30,
                                          max_cols=5)
-    assert isinstance(res, Tuple)
+    assert isinstance(res, tuple)
     assert isinstance(res[0], Figure)
     inner = res[1]
-    assert isinstance(inner, Tuple)
-    xy: Set[Tuple[int, int]] = set()
-    ids: Set[int] = set()
-    data: Set[int] = set()
+    assert isinstance(inner, tuple)
+    xy: set[tuple[int, int]] = set()
+    ids: set[int] = set()
+    data: set[int] = set()
     for fig, first, last, x, y, idx in inner:
         assert isinstance(fig, SubplotBase)
         assert isinstance(first, int)

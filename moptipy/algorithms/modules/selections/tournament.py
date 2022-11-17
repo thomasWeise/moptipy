@@ -33,7 +33,7 @@ times.
 """
 
 from math import inf
-from typing import Any, Callable, Final, Iterable, List, Optional, Union, cast
+from typing import Any, Callable, Final, Iterable, cast
 
 from numpy.random import Generator
 
@@ -67,7 +67,7 @@ class Tournament(Selection):
         self.replacement: Final[bool] = replacement
 
 # start book
-    def select(self, source: List[FitnessRecord],
+    def select(self, source: list[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
         """
@@ -91,8 +91,8 @@ class Tournament(Selection):
             cast(Callable[[int, int, bool], Iterable[int]], random.choice)
         # start book
         for _ in range(n):  # conduct n tournaments
-            best: Optional[FitnessRecord] = None  # best competitor
-            best_fitness: Union[int, float] = inf  # best fitness
+            best: FitnessRecord | None = None  # best competitor
+            best_fitness: int | float = inf  # best fitness
             for i in choice(m, s, replacement):  # perform tournament
                 rec = source[i]  # get record from source
                 rec_fitness = rec.fitness  # get its fitness

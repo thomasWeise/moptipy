@@ -1,7 +1,7 @@
 """Test all the links in the project's README.md file."""
 import os.path
 from time import sleep
-from typing import Final, List, Set
+from typing import Final
 
 # noinspection PyPackageRequirements
 import certifi
@@ -27,7 +27,7 @@ def __ve(msg: str, text: str, idx: int) -> ValueError:
     return ValueError(f"{msg}: '...{piece}...'")
 
 
-def __check(url: str, valid_urls: Set[str],
+def __check(url: str, valid_urls: set[str],
             http: urllib3.PoolManager = urllib3.PoolManager(
                 cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())) -> None:
     """
@@ -84,7 +84,7 @@ def test_all_links_in_readme_md():
 
     # remove all code blocks
     start: int = -1
-    lines: Final[List[str]] = []
+    lines: Final[list[str]] = []
     while True:
         start += 1
         i = text.find("\n```", start)
@@ -104,7 +104,7 @@ def test_all_links_in_readme_md():
     lines.clear()
 
     # these are all urls that have been verified
-    valid_urls: Final[Set[str]] = set()
+    valid_urls: Final[set[str]] = set()
 
     # build the map of local reference marks
     start = -1

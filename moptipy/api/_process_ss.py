@@ -1,5 +1,5 @@
 """An implementation of processes with different search and solution spaces."""
-from typing import Callable, Final, Optional, Union
+from typing import Callable, Final
 
 from moptipy.api._process_base import _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
@@ -23,13 +23,13 @@ class _ProcessSS(_ProcessNoSS):
                  solution_space: Space,
                  objective: Objective,
                  algorithm: Algorithm,
-                 log_file: Optional[Path] = None,
+                 log_file: Path | None = None,
                  search_space: Space = None,
                  encoding: Encoding = None,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None) -> None:
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -73,7 +73,7 @@ class _ProcessSS(_ProcessNoSS):
         self.n_points = search_space.n_points  # type: ignore
         self.validate = search_space.validate  # type: ignore
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '
@@ -82,7 +82,7 @@ class _ProcessSS(_ProcessNoSS):
 
         current_y: Final = self._current_y
         self._g(x, current_y)
-        result: Final[Union[int, float]] = self._f(current_y)
+        result: Final[int | float] = self._f(current_y)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
@@ -101,7 +101,7 @@ class _ProcessSS(_ProcessNoSS):
 
         return result
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '

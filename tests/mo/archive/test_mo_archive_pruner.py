@@ -1,6 +1,5 @@
 """Test the basic archive pruner."""
 
-from typing import List
 
 import numpy as np
 
@@ -14,7 +13,7 @@ def test_mo_archive_pruner() -> None:
     validate_mo_archive_pruner(lambda _: pruner, range(1, 10))
 
     dt = np.dtype(int)
-    orig: List[MORecord] = [
+    orig: list[MORecord] = [
         MORecord(str(i), np.empty(2, dt)) for i in range(10)]
     cpy = orig.copy()
 

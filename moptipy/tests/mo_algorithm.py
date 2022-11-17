@@ -1,6 +1,6 @@
 """Functions that can be used to test multi-objective algorithms."""
 from math import inf, isfinite
-from typing import Any, Final, List, Optional, Union
+from typing import Any, Final
 
 from numpy import array_equal
 from numpy.random import Generator, default_rng
@@ -30,8 +30,8 @@ def validate_mo_algorithm(
         algorithm: MOAlgorithm,
         solution_space: Space,
         problem: MOProblem,
-        search_space: Optional[Space] = None,
-        encoding: Optional[Encoding] = None,
+        search_space: Space | None = None,
+        encoding: Encoding | None = None,
         max_fes: int = 100,
         is_encoding_deterministic: bool = True) -> None:
     """
@@ -73,7 +73,7 @@ def validate_mo_algorithm(
     if max_fes <= 0:
         raise ValueError(f"max_fes must be > 0, but is {max_fes}.")
 
-    lb: Final[Union[int, float]] = problem.lower_bound()
+    lb: Final[int | float] = problem.lower_bound()
     if (not isfinite(lb)) and (lb != -inf):
         raise ValueError(f"objective lower bound cannot be {lb}.")
     ub = problem.upper_bound()
@@ -99,7 +99,7 @@ def validate_mo_algorithm(
         choice: int = int(random.integers(2))
         pruner: MOArchivePruner
         if choice <= 0:
-            lst: List[int]
+            lst: list[int]
             while True:
                 lst = [i for i in range(problem.f_dimension())
                        if random.integers(2) <= 0]
@@ -163,7 +163,7 @@ def validate_mo_algorithm(
                 "Inconsistent upper bounds between process "
                 f"({process.upper_bound()}) and scalarized objective ({ub}).")
 
-        res_f: Final[Union[float, int]] = process.get_best_f()
+        res_f: Final[float | int] = process.get_best_f()
         if not isfinite(res_f):
             raise ValueError("Infinite scalarized objective value of result.")
         if (res_f < lb) or (res_f > ub):
@@ -186,7 +186,7 @@ def validate_mo_algorithm(
             raise ValueError(
                 f"Inconsistent objective vectors {fs1} and {fs2}.")
 
-        x: Optional[Any] = None
+        x: Any | None = None
         if search_space is not None:
             x = search_space.create()
             process.get_copy_of_best_x(x)

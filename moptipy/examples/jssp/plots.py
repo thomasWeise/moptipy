@@ -2,17 +2,7 @@
 
 from math import inf
 from statistics import median
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Union,
-)
+from typing import Any, Callable, Final, Iterable
 
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
@@ -41,7 +31,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
                        algorithm_sort_key: Callable = lambda x: x,
                        algorithm_namer: Callable[[str], str] = lambda x: x,
                        x_label_location: float = 1.0) \
-        -> List[Path]:
+        -> list[Path]:
     """
     Plot a set of end result boxes/violins functions into one chart.
 
@@ -67,9 +57,9 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     if not callable(algorithm_sort_key):
         raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
 
-    algorithms: Set[str] = set()
-    instances: Set[str] = set()
-    pairs: Set[str] = set()
+    algorithms: set[str] = set()
+    instances: set[str] = set()
+    pairs: set[str] = set()
     for er in end_results:
         algorithms.add(er.algorithm)
         instances.add(er.instance)
@@ -86,8 +76,8 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     if n_algos >= 16:
         raise ValueError(f"{n_algos} are just too many algorithms...")
     max_insts: Final[int] = 16 // n_algos
-    insts: Final[List[str]] = sorted(instances, key=instance_sort_key)
-    result: Final[List[Path]] = []
+    insts: Final[list[str]] = sorted(instances, key=instance_sort_key)
+    result: Final[list[Path]] = []
 
     for lang in Lang.all():
         lang.set_current()
@@ -125,8 +115,8 @@ def plot_stat_gantt_charts(
         name_base: str,
         dest_dir: str,
         instance_sort_key: Callable = lambda x: x,
-        statistic: Callable[[Iterable[Union[int, float]]],
-                            Union[int, float]] = median) -> List[Path]:
+        statistic: Callable[[Iterable[int | float]],
+                            int | float] = median) -> list[Path]:
     """
     Plot a set of Gantt charts following a specific statistics.
 
@@ -152,11 +142,11 @@ def plot_stat_gantt_charts(
     if not callable(statistic):
         raise type_error(statistic, "statistic", call=True)
 
-    results: Final[List[Path]] = []  # the list of generated files
+    results: Final[list[Path]] = []  # the list of generated files
 
     # gather all the data
-    data: Final[Dict[str, List[EndResult]]] = {}
-    algorithm: Optional[str] = None
+    data: Final[dict[str, list[EndResult]]] = {}
+    algorithm: str | None = None
     for er in end_results:
         if algorithm is None:
             algorithm = er.algorithm
@@ -169,18 +159,18 @@ def plot_stat_gantt_charts(
             data[er.instance] = [er]
     if algorithm is None:
         raise ValueError("Did not encounter any algorithm?")
-    instances: Final[List[str]] = sorted(data.keys(), key=instance_sort_key)
+    instances: Final[list[str]] = sorted(data.keys(), key=instance_sort_key)
     del end_results
 
     # get the median runs
-    stat_runs: List[Path] = []
+    stat_runs: list[Path] = []
     results_dir = Path.directory(results_dir)
     for instance in instances:
-        runs: List[EndResult] = data[instance]
+        runs: list[EndResult] = data[instance]
         runs.sort()
         med = statistic([er.best_f for er in runs])
-        best: Union[int, float] = inf
-        solution: Optional[EndResult] = None
+        best: int | float = inf
+        solution: EndResult | None = None
         for er in runs:
             current = abs(er.best_f - med)
             if current < best:
@@ -209,7 +199,7 @@ def plot_stat_gantt_charts(
             if start != (end - 1):
                 raise ValueError(f"{start} != {end} - 1")
 
-            args: Dict[str, Any] = {
+            args: dict[str, Any] = {
                 "gantt": stat_runs[start],
                 "figure": plot
             }
@@ -243,7 +233,7 @@ def plot_progresses(results_dir: str,
                     x_label_location: float = 0.0,
                     include_runs: bool = False,
                     algorithm_namer: Callable[[str], str] = lambda x: x) \
-        -> List[Path]:
+        -> list[Path]:
     """
     Plot a set of end result boxes/violins functions into one chart.
 
@@ -287,14 +277,14 @@ def plot_progresses(results_dir: str,
 
     # get the data
     spath: Final[Path] = Path.directory(results_dir)
-    progresses: Final[List[Progress]] = []
+    progresses: Final[list[Progress]] = []
     for algorithm in sorted(algorithms, key=algorithm_sort_key):
         Progress.from_logs(spath.resolve_inside(algorithm), progresses.append,
                            time_unit=time_unit, f_name=F_NAME_RAW)
     if len(progresses) <= 0:
         raise ValueError(f"did not find log files in dir '{results_dir}'.")
 
-    stat_runs: Final[List[Union[Progress, StatRun]]] = []
+    stat_runs: Final[list[Progress | StatRun]] = []
     StatRun.from_progress(progresses, STAT_MEAN_ARITH,
                           stat_runs.append, False, False)
     if len(stat_runs) <= 0:
@@ -303,18 +293,18 @@ def plot_progresses(results_dir: str,
     if include_runs:
         stat_runs.extend(progresses)
     del progresses
-    instances: Final[List[str]] = sorted({sr.instance for sr in stat_runs},
+    instances: Final[list[str]] = sorted({sr.instance for sr in stat_runs},
                                          key=instance_sort_key)
     if len(instances) <= 0:
         raise ValueError(f"no instances in dir '{results_dir}'.")
-    algos: Final[List[str]] = sorted({sr.algorithm for sr in stat_runs},
+    algos: Final[list[str]] = sorted({sr.algorithm for sr in stat_runs},
                                      key=algorithm_sort_key)
     if len(set(algorithms).difference(algos)) > 0:
         raise ValueError(
             f"found the {len(algos)} algorithms {algos}, but expected "
             f"algorithms {algorithms}.")
 
-    results: Final[List[Path]] = []  # the list of generated files
+    results: Final[list[Path]] = []  # the list of generated files
 
     # plot the progress charts
     for lang in Lang.all():
@@ -352,21 +342,21 @@ def plot_end_makespans_over_param(
     end_results: Iterable[EndResult],
     name_base: str,
     dest_dir: str,
-    x_getter: Callable[[EndStatistics], Union[int, float]],
-    algorithm_getter: Callable[[EndStatistics], Optional[str]] =
+    x_getter: Callable[[EndStatistics], int | float],
+    algorithm_getter: Callable[[EndStatistics], str | None] =
     lambda es: es.algorithm,
     instance_sort_key: Callable = lambda x: x,
     algorithm_sort_key: Callable = lambda x: x,
-    title: Optional[str] = None,
-    x_axis: Union[AxisRanger, Callable[[], AxisRanger]] = AxisRanger,
-    x_label: Optional[str] = None,
+    title: str | None = None,
+    x_axis: AxisRanger | Callable[[], AxisRanger] = AxisRanger,
+    x_label: str | None = None,
     x_label_location: float = 1.0,
     plot_single_instances: bool = True,
     plot_instance_summary: bool = True,
     legend_pos: str = "upper right",
     title_x: float = 0.5,
     y_label_location: float = 1.0) \
-        -> List[Path]:
+        -> list[Path]:
     """
     Plot the performance over a parameter.
 
@@ -425,7 +415,7 @@ def plot_end_makespans_over_param(
 
     logger(f"now plotting end statistics over parameter '{title}'.")
 
-    end_stats: Final[List[EndStatistics]] = []
+    end_stats: Final[list[EndStatistics]] = []
     if plot_single_instances:
         EndStatistics.from_end_results(end_results, end_stats.append)
     if plot_instance_summary:
@@ -433,7 +423,7 @@ def plot_end_makespans_over_param(
                                        join_all_instances=True)
     if len(end_stats) <= 0:
         raise ValueError("no end statistics records to plot!")
-    result: List[Path] = []
+    result: list[Path] = []
 
     for lang in Lang.all():
         lang.set_current()

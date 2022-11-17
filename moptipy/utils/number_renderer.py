@@ -1,7 +1,7 @@
 """The numeric format definitions."""
 
 from math import inf, isfinite
-from typing import Callable, Final, Iterable, List, Optional, Union, cast
+from typing import Callable, Final, Iterable, cast
 
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang
@@ -30,11 +30,11 @@ def default_get_int_renderer() -> Callable[[int], str]:
 
 
 def default_get_float_format(
-        min_finite: Union[int, float] = 0,
-        max_finite: Union[int, float] = 0,
+        min_finite: int | float = 0,
+        max_finite: int | float = 0,
         max_frac_len: int = 2,
-        min_non_zero_abs: Union[int, float] = inf,
-        int_to_float_threshold: Union[int, float] = 10_000_000_000) -> str:
+        min_non_zero_abs: int | float = inf,
+        int_to_float_threshold: int | float = 10_000_000_000) -> str:
     """
     Get the default float format for numbers in the given range.
 
@@ -139,12 +139,12 @@ class NumberRenderer:
     """
 
     def __init__(self,
-                 int_to_float_threshold: Union[int, float] = 10_000_000_000,
+                 int_to_float_threshold: int | float = 10_000_000_000,
                  get_int_renderer: Callable[[], Callable[[int], str]]
                  = default_get_int_renderer,
                  get_float_format: Callable[
-                     [Union[int, float], Union[int, float], int,
-                      Union[int, float], Union[int, float]], str] =
+                     [int | float, int | float, int,
+                      int | float, int | float], str] =
                  default_get_float_format):
         """
         Create the number group format.
@@ -177,7 +177,7 @@ class NumberRenderer:
                 break
         #: the absolute threshold above which all integer numbers must be
         #: converted to floats to render them in the 'E' notation
-        self.int_to_float_threshold: Final[Union[int, float]] \
+        self.int_to_float_threshold: Final[int | float] \
             = int_to_float_threshold
         if not callable(get_int_renderer):
             raise type_error(get_int_renderer, "int_renderer", call=True)
@@ -188,16 +188,16 @@ class NumberRenderer:
         #: the getter for the float format to be used to represent a range of
         #: values
         self.get_float_format: Final[Callable[
-            [Union[int, float], Union[int, float], int,
-             Union[int, float], Union[int, float]], str]] = get_float_format
+            [int | float, int | float, int,
+             int | float, int | float], str]] = get_float_format
 
     def derive(self,
-               int_to_float_threshold: Optional[Union[int, float]] = None,
-               get_int_renderer: Optional[
-                   Callable[[], Callable[[int], str]]] = None,
-               get_float_format: Optional[Callable[
-                   [Union[int, float], Union[int, float], int,
-                    Union[int, float], Union[int, float]], str]] = None) \
+               int_to_float_threshold: int | float | None = None,
+               get_int_renderer: Callable[[], Callable[
+                   [int], str]] | None = None,
+               get_float_format: Callable[[int | float, int | float, int,
+                                           int | float, int | float],
+                                          str] | None = None) \
             -> 'NumberRenderer':
         """
         Derive a new number group format from this one.
@@ -244,10 +244,9 @@ class NumberRenderer:
             self.get_float_format if get_float_format is None
             else get_float_format)
 
-    def render(self, source: Union[int, float, None,
-                                   Iterable[Union[int, float, None]]],
-               none_str: Optional[FormattedStr] = None) \
-            -> List[Optional[FormattedStr]]:
+    def render(self, source: int | float | None | Iterable[int | float | None],
+               none_str: FormattedStr | None = None) \
+            -> list[FormattedStr | None]:
         r"""
         Convert a sequence of numbers to text with uniform shape.
 
@@ -325,12 +324,12 @@ class NumberRenderer:
             self.get_int_renderer()
         if not callable(int_renderer):
             raise type_error(int_renderer, "int_renderer", call=True)
-        int_to_float_threshold: Final[Union[int, float]] \
+        int_to_float_threshold: Final[int | float] \
             = self.int_to_float_threshold
 
         # step one: get the raw numerical data
-        data: Final[List[Union[int, float, None]]] = \
-            cast(List, source) if isinstance(source, List) else list(source)
+        data: Final[list[int | float | None]] = \
+            cast(list, source) if isinstance(source, list) else list(source)
         dlen: Final[int] = len(data)
         if dlen <= 0:
             raise ValueError("Data cannot be empty.")
@@ -338,11 +337,11 @@ class NumberRenderer:
         # step two: investigate the data ranges and structure
         all_is_none: bool = True
         all_is_int: bool = True
-        max_finite: Union[int, float] = -inf
-        min_finite: Union[int, float] = inf
-        min_non_zero_abs: Union[int, float] = inf
+        max_finite: int | float = -inf
+        min_finite: int | float = inf
+        min_non_zero_abs: int | float = inf
         longest_fraction: int = -1
-        da: Union[int, float]
+        da: int | float
 
         for i, d in enumerate(data):
             if d is None:
@@ -395,8 +394,8 @@ class NumberRenderer:
         # step four: if all data are integer, we can convert them directly
         if all_is_int:
             # an int render also processing None and special floats
-            def __toint2(value: Union[None, int, float], _ns=none_str,
-                         form=__toint) -> Optional[FormattedStr]:
+            def __toint2(value: None | int | float, _ns=none_str,
+                         form=__toint) -> FormattedStr | None:
                 if value is None:
                     return none_str
                 return FormattedStr.number(form(cast(int, value))
@@ -416,7 +415,7 @@ class NumberRenderer:
                 or ('}' not in float_format) or (':' not in float_format):
             raise ValueError(f"invalid float format '{float_format}'.")
 
-        def __render_float(value: Union[int, float], ir=__toint,
+        def __render_float(value: int | float, ir=__toint,
                            ff=float_format) -> FormattedStr:
             if value is None:
                 return none_str

@@ -1,6 +1,5 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
 from os import environ
-from typing import List
 
 import numpy as np
 
@@ -73,7 +72,7 @@ def test_experiment_jssp():
                        n_runs=4,
                        base_dir=base_dir)
 
-        results: List[EndResult] = list()
+        results: list[EndResult] = list()
         EndResult.from_logs(base_dir, results.append)
 
         assert len(results) == (4 * 2 * 3)
@@ -117,7 +116,7 @@ def test_experiment_jssp():
                              suffix=logging.FILE_SUFFIX) as path:
             EndResult.to_csv(results=results, file=path)
 
-            results2: List[EndResult] = list()
+            results2: list[EndResult] = list()
             EndResult.from_csv(file=path, consumer=results2.append)
 
             assert results == results2

@@ -5,17 +5,7 @@ from io import StringIO, TextIOBase
 from math import isfinite
 from os.path import realpath
 from re import sub
-from typing import (
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Callable, Final, Iterable, cast
 
 from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
@@ -72,11 +62,11 @@ class Logger(AbstractContextManager):
 
         #: The internal stream
         self._stream: TextIOBase = stream
-        self.__section: Optional[str] = None
+        self.__section: str | None = None
         self.__starts_new_line: bool = True
         self.__log_name: str = name
         self.__sections: Callable = is_new()
-        self.__closer: Optional[str] = None
+        self.__closer: str | None = None
 
     def __enter__(self):
         """
@@ -226,7 +216,7 @@ class Logger(AbstractContextManager):
         return KeyValueLogSection(title=title, logger=self, prefix="",
                                   done=None)
 
-    def csv(self, title: str, header: List[str]) -> 'CsvLogSection':
+    def csv(self, title: str, header: list[str]) -> 'CsvLogSection':
         """
         Create a log section for CSV data with `;` as column separator.
 
@@ -302,7 +292,7 @@ class InMemoryLogger(Logger):
         super().__init__(stream=StringIO(),
                          name="in-memory-logger")
 
-    def get_log(self) -> List[str]:
+    def get_log(self) -> list[str]:
         """
         Obtain all the lines logged to this logger.
 
@@ -314,7 +304,7 @@ class InMemoryLogger(Logger):
 class LogSection(AbstractContextManager):
     """An internal base class for logger sections."""
 
-    def __init__(self, title: Optional[str], logger: Logger) -> None:
+    def __init__(self, title: str | None, logger: Logger) -> None:
         """
         Perform internal construction. Do not call directly.
 
@@ -322,7 +312,7 @@ class LogSection(AbstractContextManager):
         :param logger: the logger
         """
         self._logger: Logger = logger
-        self._title: Optional[str] = title
+        self._title: str | None = title
         if title is not None:
             # noinspection PyProtectedMember
             logger._open_section(title)
@@ -363,7 +353,7 @@ class LogSection(AbstractContextManager):
 class CsvLogSection(LogSection):
     """A logger that is designed to output CSV data."""
 
-    def __init__(self, title: str, logger: Logger, header: List[str]) -> None:
+    def __init__(self, title: str, logger: Logger, header: list[str]) -> None:
         """
         Perform internal construction. Do not call directly.
 
@@ -387,8 +377,8 @@ class CsvLogSection(LogSection):
         logger._write(CSV_SEPARATOR.join(
             [c.strip() for c in header]) + "\n")
 
-    def row(self, row: Union[Tuple[Union[int, float, bool], ...],
-                             List[Union[int, float, bool]]]) -> None:
+    def row(self, row: tuple[int | float | bool, ...]
+            | list[int | float | bool]) -> None:
         """
         Write a row of csv data.
 
@@ -415,7 +405,7 @@ class CsvLogSection(LogSection):
 class KeyValueLogSection(LogSection):
     """A logger for key-value pairs."""
 
-    def __init__(self, title: Optional[str],
+    def __init__(self, title: str | None,
                  logger: Logger, prefix: str, done) -> None:
         """
         Perform internal construction, do not call directly.
@@ -506,7 +496,7 @@ class TextLogSection(LogSection):
         self.write = self._logger._write  # type: ignore
 
 
-def parse_key_values(lines: Iterable[str]) -> Dict[str, str]:
+def parse_key_values(lines: Iterable[str]) -> dict[str, str]:
     """
     Parse a :meth:`~moptipy.utils.logger.Logger.key_values` section's text.
 

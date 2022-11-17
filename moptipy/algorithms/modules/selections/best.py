@@ -45,7 +45,7 @@ paper of Blickle and Thiele.
    Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
 """
 
-from typing import Any, Callable, List
+from typing import Any, Callable
 
 from numpy.random import Generator
 
@@ -56,7 +56,7 @@ from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 class Best(Selection):
     """The best selection: select each of the best `n` elements once."""
 
-    def select(self, source: List[FitnessRecord],
+    def select(self, source: list[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:  # pylint: disable=W0613
         """

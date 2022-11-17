@@ -9,7 +9,6 @@ implement a new objective function, you can test it via the pre-defined unit
 test routine :func:`~moptipy.tests.objective.validate_objective`.
 """
 from math import inf, isfinite
-from typing import Union
 
 from moptipy.api import logging
 from moptipy.api.component import Component
@@ -28,7 +27,7 @@ class Objective(Component):
     are better.
     """
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """
         Evaluate a solution `x` and return its objective value.
 
@@ -41,7 +40,7 @@ class Objective(Component):
         """
     # end book
 
-    def lower_bound(self) -> Union[float, int]:
+    def lower_bound(self) -> float | int:
         """
         Get the lower bound of the objective value.
 
@@ -53,7 +52,7 @@ class Objective(Component):
         """
         return -inf
 
-    def upper_bound(self) -> Union[float, int]:
+    def upper_bound(self) -> float | int:
         """
         Get the upper bound of the objective value.
 

@@ -6,7 +6,7 @@ import re
 import socket
 import sys
 from datetime import datetime
-from typing import Dict, Final, List, Optional, Tuple
+from typing import Final
 
 import psutil  # type: ignore
 
@@ -23,7 +23,7 @@ from moptipy.utils.logger import (
 from moptipy.utils.path import Path
 
 
-def __cpu_affinity(proc: Optional[psutil.Process] = None) -> Optional[str]:
+def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
     """
     Get the CPU affinity.
 
@@ -68,7 +68,7 @@ def __make_sys_info() -> str:
         sec.key_value(key, value)
 
     # noinspection PyBroadException
-    def __get_processor_name() -> Optional[str]:
+    def __get_processor_name() -> str | None:
         """
         Get the processor name.
 
@@ -86,7 +86,7 @@ def __make_sys_info() -> str:
         return None
 
     # noinspection PyBroadException
-    def __get_mem_size_sysconf() -> Optional[int]:
+    def __get_mem_size_sysconf() -> int | None:
         """
         Get the memory size information from sysconf.
 
@@ -118,7 +118,7 @@ def __make_sys_info() -> str:
         return None
 
     # noinspection PyBroadException
-    def __get_mem_size_meminfo() -> Optional[int]:
+    def __get_mem_size_meminfo() -> int | None:
         """
         Get the memory size information from meminfo.
 
@@ -135,7 +135,7 @@ def __make_sys_info() -> str:
             pass
         return None
 
-    def __get_mem_size() -> Optional[int]:
+    def __get_mem_size() -> int | None:
         """
         Get the memory size information from any available source.
 
@@ -191,13 +191,13 @@ def __make_sys_info() -> str:
                     psutil.cpu_count(logical=True))
 
                 # store the CPU speed information
-                cpuf: Dict[Tuple[int, int], int] = {}
+                cpuf: dict[tuple[int, int], int] = {}
                 total: int = 0
                 for cf in psutil.cpu_freq(True):
                     t = (int(cf.min), int(cf.max))
                     cpuf[t] = cpuf.get(t, 0) + 1
                     total += 1
-                memlst: List[Tuple[int, ...]]
+                memlst: list[tuple[int, ...]]
                 if total > 1:
                     memlst = [(key[0], key[1], value) for
                               key, value in cpuf.items()]
@@ -205,7 +205,7 @@ def __make_sys_info() -> str:
                 else:
                     memlst = list(cpuf)
 
-                def __make_mhz_str(tpl: Tuple[int, ...]) -> str:
+                def __make_mhz_str(tpl: tuple[int, ...]) -> str:
                     """Convert a MHz tuple to a string."""
                     base: str = f"({tpl[0]}MHz..{tpl[1]}MHz)" \
                         if tpl[1] > tpl[0] else f"{tpl[0]}MHz"
@@ -236,7 +236,7 @@ def __make_sys_info() -> str:
 
 
 #: The internal variable holding the system information
-__SYS_INFO: Final[List[str]] = [__make_sys_info()]
+__SYS_INFO: Final[list[str]] = [__make_sys_info()]
 
 
 def refresh_sys_info():

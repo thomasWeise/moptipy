@@ -12,17 +12,7 @@ using weights, namely
   one over the third, and so on.
 """
 from math import inf, isfinite
-from typing import (
-    Any,
-    Callable,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy import sum as npsum
@@ -70,12 +60,11 @@ class BasicWeightedSum(BasicMOProblem):
 
     def __init__(self, objectives: Iterable[Objective],
                  get_scalarizer: Callable[
-                     [bool, int, List[Union[int, float]],
-                      List[Union[int, float]], Callable[
-                          [Union[None, np.dtype, Tuple[
-                              Union[int, float], ...]]], None]],
-                     Callable[[np.ndarray], Union[int, float]]],
-                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                     [bool, int, list[int | float],
+                      list[int | float], Callable[
+                          [None | np.dtype | tuple[int | float, ...]], None]],
+                     Callable[[np.ndarray], int | float]],
+                 domination: Callable[[np.ndarray, np.ndarray], int] | None
                  = dominates) -> None:
         """
         Create the sum-based scalarization.
@@ -87,12 +76,12 @@ class BasicWeightedSum(BasicMOProblem):
             the same as :func:`moptipy.api.mo_utils.dominates`, to which it
             defaults. `None` overrides nothing.
         """
-        holder: List[Any] = []
+        holder: list[Any] = []
         super().__init__(
             objectives,
-            cast(Callable[[bool, int, List[Union[int, float]],
-                           List[Union[int, float]]], Callable[
-                [np.ndarray], Union[int, float]]],
+            cast(Callable[[bool, int, list[int | float],
+                           list[int | float]], Callable[
+                [np.ndarray], int | float]],
                 lambda ai, n, lb, ub, fwd=holder.append:
                 get_scalarizer(ai, n, lb, ub, fwd)),
             domination)
@@ -100,8 +89,8 @@ class BasicWeightedSum(BasicMOProblem):
             raise ValueError(
                 f"need weights and weights dtype, but got {holder}.")
         #: the internal weights
-        self.weights: Final[Optional[Tuple[Union[int, float], ...]]] = \
-            cast(Optional[Tuple[Union[int, float], ...]], holder[0])
+        self.weights: Final[tuple[int | float, ...] | None] = \
+            cast(tuple[int | float, ...] | None, holder[0])
         if self.weights is not None:
             if not isinstance(self.weights, tuple):
                 raise type_error(self.weights, "weights", [tuple, None])
@@ -110,8 +99,8 @@ class BasicWeightedSum(BasicMOProblem):
                     f"length of weights {self.weights} is not "
                     f"f_dimension={self.f_dimension()}.")
         #: the internal weights dtype
-        self.__weights_dtype: Final[Optional[np.dtype]] = \
-            cast(Optional[np.dtype], holder[1])
+        self.__weights_dtype: Final[np.dtype | None] = \
+            cast(np.dtype | None, holder[1])
         if self.__weights_dtype is not None:
             if not isinstance(self.__weights_dtype, np.dtype):
                 raise type_error(
@@ -133,7 +122,7 @@ class BasicWeightedSum(BasicMOProblem):
         """
         super().log_parameters_to(logger)
 
-        weights: Optional[Tuple[Union[int, float], ...]] = self.weights
+        weights: tuple[int | float, ...] | None = self.weights
         logger.key_value("weights", ";".join(
             (['1'] * self.f_dimension()) if weights is None else
             [num_to_str(w) for w in weights]))
@@ -142,14 +131,12 @@ class BasicWeightedSum(BasicMOProblem):
                          else self.__weights_dtype.char)
 
 
-def _make_sum_scalarizer(always_int: bool,
-                         n: int,
-                         lower_bounds: List[Union[int, float]],
-                         upper_bounds: List[Union[int, float]],
-                         weights: Optional[Tuple[Union[int, float], ...]],
-                         callback: Callable[[Union[None, np.dtype, Tuple[
-                             Union[int, float], ...]]], None]) \
-        -> Callable[[np.ndarray], Union[int, float]]:
+def _make_sum_scalarizer(
+        always_int: bool, n: int,
+        lower_bounds: list[int | float], upper_bounds: list[int | float],
+        weights: tuple[int | float, ...] | None,
+        callback: Callable[[None | np.dtype | tuple[
+            int | float, ...]], None]) -> Callable[[np.ndarray], int | float]:
     """
     Create a weighted sum scalarization function.
 
@@ -178,14 +165,14 @@ def _make_sum_scalarizer(always_int: bool,
     :param callback: the callback function to receive the weights
     :returns: the scalarization function
     """
-    if not isinstance(lower_bounds, List):
-        raise type_error(lower_bounds, "lower_bounds", List)
+    if not isinstance(lower_bounds, list):
+        raise type_error(lower_bounds, "lower_bounds", list)
     if len(lower_bounds) != n:
         raise ValueError(
             f"there should be {n} values in lower_bounds={lower_bounds}")
 
-    if not isinstance(upper_bounds, List):
-        raise type_error(upper_bounds, "upper_bounds", List)
+    if not isinstance(upper_bounds, list):
+        raise type_error(upper_bounds, "upper_bounds", list)
     if len(upper_bounds) != n:
         raise ValueError(
             f"there should be {n} values in upper_bounds={lower_bounds}")
@@ -202,10 +189,10 @@ def _make_sum_scalarizer(always_int: bool,
     if not isinstance(always_int, bool):
         raise type_error(always_int, "always_int", bool)
 
-    min_sum: Union[int, float] = 0
-    max_sum: Union[int, float] = 0
-    min_weight: Union[int, float] = inf
-    max_weight: Union[int, float] = -inf
+    min_sum: int | float = 0
+    max_sum: int | float = 0
+    min_weight: int | float = inf
+    max_weight: int | float = -inf
     everything_is_int: bool = always_int
 
     for i, weight in enumerate(weights):
@@ -250,9 +237,9 @@ def _make_sum_scalarizer(always_int: bool,
     callback(dtype)
 
     if everything_is_int:
-        return cast(Callable[[np.ndarray], Union[int, float]],
+        return cast(Callable[[np.ndarray], int | float],
                     lambda a, w=use_weights: int(npsum(a * w)))
-    return cast(Callable[[np.ndarray], Union[int, float]],
+    return cast(Callable[[np.ndarray], int | float],
                 lambda a, w=use_weights: float(npsum(a * w)))
 
 
@@ -260,8 +247,8 @@ class WeightedSum(BasicWeightedSum):
     """Scalarize objective values by computing their weighted sum."""
 
     def __init__(self, objectives: Iterable[Objective],
-                 weights: Optional[Iterable[Union[int, float]]] = None,
-                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                 weights: Iterable[int | float] | None = None,
+                 domination: Callable[[np.ndarray, np.ndarray], int] | None
                  = dominates) -> None:
         """
         Create the sum-based scalarization.
@@ -275,17 +262,16 @@ class WeightedSum(BasicWeightedSum):
             the same as :func:`moptipy.api.mo_utils.dominates`, to which it
             defaults. `None` overrides nothing.
         """
-        use_weights: Optional[Tuple[Union[int, float], ...]] \
+        use_weights: tuple[int | float, ...] | None \
             = None if weights is None else tuple(try_int(w) for w in weights)
 
         super().__init__(
             objectives,
             cast(Callable[
-                 [bool, int, List[Union[int, float]],
-                  List[Union[int, float]], Callable[
-                      [Union[None, np.dtype, Tuple[
-                          Union[int, float], ...]]], None]],
-                 Callable[[np.ndarray], Union[int, float]]],
+                 [bool, int, list[int | float],
+                  list[int | float], Callable[
+                      [None | np.dtype | tuple[int | float, ...]], None]],
+                 Callable[[np.ndarray], int | float]],
                  lambda ai, n, lb, ub, cb, uw=use_weights:
                  _make_sum_scalarizer(ai, n, lb, ub, uw, cb)),
             domination)
@@ -300,13 +286,11 @@ class WeightedSum(BasicWeightedSum):
             else "weightedSumWithDominationFunc"
 
 
-def _prioritize(always_int: bool,
-                n: int,
-                lower_bounds: List[Union[int, float]],
-                upper_bounds: List[Union[int, float]],
-                callback: Callable[[Union[None, np.dtype, Tuple[
-                    Union[int, float], ...]]], None]) \
-        -> Callable[[np.ndarray], Union[int, float]]:
+def _prioritize(
+        always_int: bool, n: int,
+        lower_bounds: list[int | float], upper_bounds: list[int | float],
+        callback: Callable[[None | np.dtype | tuple[
+            int | float, ...]], None]) -> Callable[[np.ndarray], int | float]:
     """
     Create a weighted-sum based prioritization of the objective functions.
 
@@ -330,17 +314,17 @@ def _prioritize(always_int: bool,
     if not always_int:
         raise ValueError("priority-based weighting is only possible for "
                          "integer-valued objectives")
-    weights: List[int] = [1]
+    weights: list[int] = [1]
     weight: int = 1
     for i in range(n - 1, 0, -1):
-        lb: Union[int, float] = lower_bounds[i]
+        lb: int | float = lower_bounds[i]
         if not isinstance(lb, (int, float)):
             raise type_error(lb, f"lower_bound[{i}]", (int, float))
         if not isfinite(lb):
             raise ValueError(f"lower_bound[{i}]={lb}, but must be finite")
         if not isinstance(lb, int):
             raise type_error(lb, f"finite lower_bound[{i}]", int)
-        ub: Union[int, float] = upper_bounds[i]
+        ub: int | float = upper_bounds[i]
         if not isinstance(ub, (int, float)):
             raise type_error(ub, f"upper_bound[{i}]", (int, float))
         if not isfinite(ub):
@@ -359,7 +343,7 @@ class Prioritize(BasicWeightedSum):
     """Prioritize the first objective over the second and so on."""
 
     def __init__(self, objectives: Iterable[Objective],
-                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                 domination: Callable[[np.ndarray, np.ndarray], int] | None
                  = dominates) -> None:
         """
         Create the sum-based prioritization.

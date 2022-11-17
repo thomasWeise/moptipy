@@ -1,17 +1,6 @@
 """Plot a set of ECDF or ERT-ECDF objects into one figure."""
 from math import inf, isfinite
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
@@ -29,10 +18,10 @@ from moptipy.utils.types import type_error
 
 
 def plot_ecdf(ecdfs: Iterable[Ecdf],
-              figure: Union[SubplotBase, Figure],
-              x_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+              figure: SubplotBase | Figure,
+              x_axis: AxisRanger | Callable[[str], AxisRanger]
               = AxisRanger.for_axis,
-              y_axis: Union[AxisRanger, Callable[[str], AxisRanger]]
+              y_axis: AxisRanger | Callable[[str], AxisRanger]
               = AxisRanger.for_axis,
               legend: bool = True,
               distinct_colors_func: Callable[[int], Any] =
@@ -47,10 +36,10 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               pd.importance_to_font_size,
               x_grid: bool = True,
               y_grid: bool = True,
-              x_label: Union[None, str, Callable[[str], str]] =
+              x_label: None | str | Callable[[str], str] =
               lambda x: x if isinstance(x, str) else x[0],
               x_label_inside: bool = True,
-              y_label: Union[None, str, Callable[[str], str]] =
+              y_label: None | str | Callable[[str], str] =
               Lang.translate_func("ECDF"),
               y_label_inside: bool = True,
               algo_priority: float = 5.0,
@@ -149,13 +138,13 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                                        namer=algorithm_namer,
                                        none_name=Lang.translate("all_algos"),
                                        priority=algo_priority)
-    f_dim: Optional[str] = None
-    t_dim: Optional[str] = None
-    source: List[Ecdf] = cast(List[Ecdf], ecdfs) \
+    f_dim: str | None = None
+    t_dim: str | None = None
+    source: list[Ecdf] = cast(list[Ecdf], ecdfs) \
         if isinstance(ecdfs, list) else list(ecdfs)
     del ecdfs
 
-    x_labels: Set[str] = set()
+    x_labels: set[str] = set()
 
     # First pass: find out the goals and algorithms
     for ee in source:
@@ -200,7 +189,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                                      for i in range(p)])
 
     # determine the style groups
-    groups: List[Styler] = []
+    groups: list[Styler] = []
     goals.compile()
     algorithms.compile()
 
@@ -227,7 +216,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         __set_importance(algorithms)
 
     # we will collect all lines to plot in plot_list
-    plot_list: List[Dict] = []
+    plot_list: list[dict] = []
 
     # set up the axis rangers
     if callable(x_axis):
@@ -241,9 +230,9 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
         raise type_error(y_axis, "y_axis", AxisRanger)
 
     # first we collect all progress object
-    max_time: Union[int, float] = -inf
-    min_time: Union[int, float] = inf
-    max_ecdf: Union[int, float] = -inf
+    max_time: int | float = -inf
+    min_time: int | float = inf
+    max_ecdf: int | float = -inf
     max_ecdf_is_at_max_time: bool = False
     for ee in source:
         style = pd.create_line_style()
@@ -301,7 +290,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
             axes.grid(axis="y", color=pd.GRID_COLOR, linewidth=grid_lwd)
 
     max_x: float = x_axis.get_pinf_replacement()
-    min_x: Optional[float] = x_axis.get_0_replacement() \
+    min_x: float | None = x_axis.get_0_replacement() \
         if x_axis.log_scale else None
 
     # plot the lines
@@ -326,7 +315,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     y_axis.apply(axes, "y")
 
     if legend:
-        handles: List[Artist] = []
+        handles: list[Artist] = []
 
         for g in groups:
             g.add_to_legend(handles.append)

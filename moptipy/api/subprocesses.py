@@ -1,5 +1,5 @@
 """Different ways to transform and slice processes."""
-from typing import Any, Callable, Final, Optional, TypeVar, Union
+from typing import Any, Callable, Final, TypeVar
 
 import numpy as np
 
@@ -50,10 +50,10 @@ class __ForFEs(Process):
         self.__should_terminate: Final[Callable[[], bool]] \
             = owner.should_terminate
         #: the fast call to the owner's evaluate method
-        self.__evaluate: Final[Callable[[Any], Union[int, float]]] \
+        self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
         #: the fast call to the owner's register method
-        self.__register: Final[Callable[[Any, Union[int, float]], None]] \
+        self.__register: Final[Callable[[Any, int | float], None]] \
             = owner.register
         #: the start fe
         self.__start_fe: Final[int] = owner.get_consumed_fes()
@@ -64,15 +64,15 @@ class __ForFEs(Process):
     def terminate(self) -> None:
         self.__terminated = True
 
-    def evaluate(self, x) -> Union[float, int]:
-        f: Final[Union[int, float]] = self.__evaluate(x)
+    def evaluate(self, x) -> float | int:
+        f: Final[int | float] = self.__evaluate(x)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
         if fel <= 0:
             self.__terminated = True
         return f
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         self.__register(x, f)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
@@ -139,14 +139,14 @@ class __ForFEsMO(MOProcess):
         self.__should_terminate: Final[Callable[[], bool]] \
             = owner.should_terminate
         #: the fast call to the owner's evaluate method
-        self.__evaluate: Final[Callable[[Any], Union[int, float]]] \
+        self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
         #: the fast call to the owner's register method
-        self.__register: Final[Callable[[Any, Union[int, float]], None]] \
+        self.__register: Final[Callable[[Any, int | float], None]] \
             = owner.register
         #: the evaluation wrapper
         self.__f_evaluate: Final[Callable[
-            [Any, np.ndarray], Union[int, float]]] = owner.f_evaluate
+            [Any, np.ndarray], int | float]] = owner.f_evaluate
         #: the start fe
         self.__start_fe: Final[int] = owner.get_consumed_fes()
 
@@ -156,23 +156,23 @@ class __ForFEsMO(MOProcess):
     def terminate(self) -> None:
         self.__terminated = True
 
-    def evaluate(self, x) -> Union[float, int]:
-        f: Final[Union[int, float]] = self.__evaluate(x)
+    def evaluate(self, x) -> float | int:
+        f: Final[int | float] = self.__evaluate(x)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
         if fel <= 0:
             self.__terminated = True
         return f
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         self.__register(x, f)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
         if fel <= 0:
             self.__terminated = True
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
-        f: Final[Union[int, float]] = self.__f_evaluate(x, fs)
+    def f_evaluate(self, x, fs: np.ndarray) -> float | int:
+        f: Final[int | float] = self.__f_evaluate(x, fs)
         fel: Final[int] = self.__fes_left - 1
         self.__fes_left = fel
         if fel <= 0:
@@ -214,7 +214,7 @@ class __FromStatingPoint(Process):
     """A process searching from a given point."""
 
     def __init__(self, owner: Process, in_and_out_x: Any,
-                 f: Union[int, float]):
+                 f: int | float):
         """
         Create a sub-process searching from one starting point.
 
@@ -250,21 +250,21 @@ class __FromStatingPoint(Process):
         #: the best solution
         self.__best_x: Final[Any] = in_and_out_x
         #: the best-so-far solution
-        self.__best_f: Union[int, float] = f
+        self.__best_f: int | float = f
         #: the last improvement fe
         self.__last_improvement_fe: int = 0
         #: the consumed FEs
         self.__fes: int = 0
-        mfes: Optional[int] = owner.get_max_fes()
+        mfes: int | None = owner.get_max_fes()
         if mfes is not None:
             mfes = mfes - owner.get_consumed_fes()
         #: the maximum permitted FEs
-        self.__max_fes: Final[Optional[int]] = mfes
+        self.__max_fes: Final[int | None] = mfes
         #: the fast call to the owner's evaluate method
-        self.__evaluate: Final[Callable[[Any], Union[int, float]]] \
+        self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
         #: the fast call to the owner's register method
-        self.__register: Final[Callable[[Any, Union[int, float]], None]] \
+        self.__register: Final[Callable[[Any, int | float], None]] \
             = owner.register
         #: True as long as only the seed has been used
         self.__only_seed_used: bool = True
@@ -275,23 +275,23 @@ class __FromStatingPoint(Process):
     def get_copy_of_best_x(self, x) -> None:
         self.copy(x, self.__best_x)
 
-    def get_best_f(self) -> Union[int, float]:
+    def get_best_f(self) -> int | float:
         return self.__best_f
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self.__only_seed_used:
             if self.is_equal(x, self.__best_x):
                 return self.__best_f
             self.__only_seed_used = False
         self.__fes = fe = self.__fes + 1
-        f: Final[Union[int, float]] = self.__evaluate(x)
+        f: Final[int | float] = self.__evaluate(x)
         if f < self.__best_f:
             self.__best_f = f
             self.copy(self.__best_x, x)
             self.__last_improvement_fe = fe
         return f
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self.__only_seed_used:
             if self.is_equal(x, self.__best_x):
                 return
@@ -309,7 +309,7 @@ class __FromStatingPoint(Process):
     def get_last_improvement_fe(self) -> int:
         return self.__last_improvement_fe
 
-    def get_max_fes(self) -> Optional[int]:
+    def get_max_fes(self) -> int | None:
         return self.__max_fes
 
     def __str__(self) -> str:
@@ -317,7 +317,7 @@ class __FromStatingPoint(Process):
 
 
 def from_starting_point(owner: Process, in_and_out_x: Any,
-                        f: Union[int, float]) -> Process:
+                        f: int | float) -> Process:
     """
     Create a sub-process searching from one starting point.
 
@@ -381,18 +381,18 @@ class __WithoutShouldTerminate(Process):
         self.get_max_fes = owner.get_max_fes  # type: ignore
         self.get_consumed_fes = owner.get_consumed_fes  # type: ignore
         #: the fast call to the owner's evaluate method
-        self.__evaluate: Final[Callable[[Any], Union[int, float]]] \
+        self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
         #: the fast call to the owner's register method
-        self.__register: Final[Callable[[Any, Union[int, float]], None]] \
+        self.__register: Final[Callable[[Any, int | float], None]] \
             = owner.register
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self.should_terminate():
             raise _InternalTerminationError()
         return self.__evaluate(x)
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self.should_terminate():
             raise _InternalTerminationError()
         self.__register(x, f)
@@ -447,27 +447,27 @@ class __WithoutShouldTerminateMO(MOProcess):
         self.get_archive = owner.get_archive  # type: ignore
         self.check_in = owner.check_in  # type: ignore
         #: the fast call to the owner's evaluate method
-        self.__evaluate: Final[Callable[[Any], Union[int, float]]] \
+        self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
         #: the fast call to the owner's register method
-        self.__register: Final[Callable[[Any, Union[int, float]], None]] \
+        self.__register: Final[Callable[[Any, int | float], None]] \
             = owner.register
         #: the fast call to the owner's f_evaluate method
         self.__f_evaluate: Final[Callable[
-            [Any, np.ndarray], Union[int, float]]] \
+            [Any, np.ndarray], int | float]] \
             = owner.f_evaluate
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self.should_terminate():
             raise _InternalTerminationError()
         return self.__evaluate(x)
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self.should_terminate():
             raise _InternalTerminationError()
         self.__register(x, f)
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
+    def f_evaluate(self, x, fs: np.ndarray) -> int | float:
         if self.should_terminate():
             raise _InternalTerminationError()
         return self.__f_evaluate(x, fs)

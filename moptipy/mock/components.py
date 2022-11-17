@@ -2,17 +2,7 @@
 
 from dataclasses import dataclass
 from math import ceil, isfinite
-from typing import (
-    Any,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, Final, Iterable
 
 from numpy.random import Generator
 
@@ -46,7 +36,7 @@ def _random_name(namelen: int,
         raise type_error(namelen, "namelen", int)
     if namelen <= 0:
         raise ValueError(f"namelen must be > 0, but is {namelen}.")
-    namer: Final[Tuple[str, str, str]] = ("bcdfghjklmnpqrstvwxyz", "aeiou",
+    namer: Final[tuple[str, str, str]] = ("bcdfghjklmnpqrstvwxyz", "aeiou",
                                           "0123456789")
     name = ["x"] * namelen
     index: int = 0
@@ -70,7 +60,7 @@ def _random_name(namelen: int,
 
 
 def __append_not_allowed(forbidden,
-                         dest: Set[Union[str, float, int]]):
+                         dest: set[str | float | int]):
     """
     Append items to the set of not-allowed values.
 
@@ -100,16 +90,15 @@ def __append_not_allowed(forbidden,
                          (str, int, float, Instance, Algorithm, Iterable))
 
 
-def _make_not_allowed(forbidden: Optional[Iterable[Union[
-    str, float, int, Iterable[Any]]]] = None) -> \
-        Set[Union[str, float, int]]:
+def _make_not_allowed(forbidden: Iterable[str | float | int | Iterable[
+        Any]] | None = None) -> set[str | float | int]:
     """
     Create a set of not-allowed values.
 
     :param forbidden: the forbidden elements
     :returns: the set of not-allowed values
     """
-    not_allowed: Set[Any] = set()
+    not_allowed: set[Any] = set()
     __append_not_allowed(forbidden, not_allowed)
     return not_allowed
 
@@ -131,7 +120,7 @@ class Instance:
     #: The worst (largest) possible objective value
     worst: int
     #: The set of attractors, i.e., local optima - including best and worst
-    attractors: Tuple[int, ...]
+    attractors: tuple[int, ...]
 
     def __init__(self,
                  name: str,
@@ -140,7 +129,7 @@ class Instance:
                  scale: float,
                  best: int,
                  worst: int,
-                 attractors: Tuple[int, ...]):
+                 attractors: tuple[int, ...]):
         """
         Create a mock problem instance description.
 
@@ -195,7 +184,7 @@ class Instance:
         object.__setattr__(self, "worst", worst)
 
         if not isinstance(attractors, tuple):
-            raise type_error(attractors, "attractors", Tuple)
+            raise type_error(attractors, "attractors", tuple)
         if len(attractors) < 4:
             raise ValueError("attractors must contain at least 2 values,"
                              f" but contains only {len(attractors)}.")
@@ -217,9 +206,9 @@ class Instance:
 
     @staticmethod
     def create(n: int,
-               forbidden: Optional[Any] = None,
+               forbidden: Any | None = None,
                random: Generator = fixed_random_generator()) \
-            -> Tuple['Instance', ...]:
+            -> tuple['Instance', ...]:
         """
         Create a set of fixed problem instances.
 
@@ -234,12 +223,12 @@ class Instance:
             raise ValueError(f"n must be > 0, but is {n}.")
         logger(f"now creating {n} instances.")
 
-        not_allowed: Final[Set[Union[str, float]]] = \
+        not_allowed: Final[set[str | float]] = \
             _make_not_allowed(forbidden)
-        names: List[str] = []
-        hardnesses: List[float] = []
-        jitters: List[float] = []
-        scales: List[float] = []
+        names: list[str] = []
+        hardnesses: list[float] = []
+        jitters: list[float] = []
+        scales: list[float] = []
 
         # First we choose a unique name.
         max_name_len: int = int(max(2, ceil(n / 6)))
@@ -312,7 +301,7 @@ class Instance:
         trials = 0
         scale: int = 1000
         loc: int = 1000
-        limits: List[int] = []
+        limits: list[int] = []
         while len(limits) < (2 * n):
             tbound: int = -1
             while (tbound <= 0) or (tbound >= 1_000_000_000):
@@ -332,8 +321,8 @@ class Instance:
                 limits.append(tbound)
                 not_allowed.add(tbound)
 
-        result: List[Instance] = []
-        attdone: Set[int] = set()
+        result: list[Instance] = []
+        attdone: set[int] = set()
 
         for i in range(n, 0, -1):
             trials = 0
@@ -446,9 +435,9 @@ class Algorithm:
 
     @staticmethod
     def create(n: int,
-               forbidden: Optional[Any] = None,
+               forbidden: Any | None = None,
                random: Generator = fixed_random_generator()) \
-            -> Tuple['Algorithm', ...]:
+            -> tuple['Algorithm', ...]:
         """
         Create a set of fixed mock algorithms.
 
@@ -463,18 +452,18 @@ class Algorithm:
             raise ValueError(f"n must be > 0, but is {n}.")
         logger(f"now creating {n} algorithms.")
 
-        not_allowed: Final[Set[Union[str, float]]] = \
+        not_allowed: Final[set[str | float]] = \
             _make_not_allowed(forbidden)
-        names: List[str] = []
-        strengths: List[float] = []
-        jitters: List[float] = []
-        complexities: List[float] = []
+        names: list[str] = []
+        strengths: list[float] = []
+        jitters: list[float] = []
+        complexities: list[float] = []
 
-        prefixes: Final[Tuple[str, ...]] = ('aco', 'bobyqa', 'cma-es', 'de',
+        prefixes: Final[tuple[str, ...]] = ('aco', 'bobyqa', 'cma-es', 'de',
                                             'ea', 'eda', 'ga', 'gp', 'hc',
                                             'ma', 'pso', 'rs', 'rw', 'sa',
                                             'umda')
-        suffixes: Final[Tuple[str, ...]] = ("1swap", "2swap", "µ")
+        suffixes: Final[tuple[str, ...]] = ("1swap", "2swap", "µ")
 
         max_name_len: int = int(max(2, ceil(n / 6)))
         trials: int = 0
@@ -577,7 +566,7 @@ class Algorithm:
                 complexities.append(v)
                 not_allowed.add(v)
 
-        result: List[Algorithm] = []
+        result: list[Algorithm] = []
         for i in range(n, 0, -1):
             result.append(Algorithm(
                 name=names.pop(random.integers(i)),
@@ -711,7 +700,7 @@ class BasePerformance:
         return bp
 
 
-def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
+def get_run_seeds(instance: Instance, n_runs: int) -> tuple[int, ...]:
     """
     Get the seeds for the runs.
 
@@ -725,7 +714,7 @@ def get_run_seeds(instance: Instance, n_runs: int) -> Tuple[int, ...]:
         raise type_error(n_runs, "n_runs", int)
     if n_runs <= 0:
         raise ValueError(f"n_runs must be > 0, but is {n_runs}.")
-    res: Final[Tuple[int, ...]] = tuple(sorted(rand_seeds_from_str(
+    res: Final[tuple[int, ...]] = tuple(sorted(rand_seeds_from_str(
         string=instance.name, n_seeds=n_runs)))
     logger(f"finished creating {n_runs} seeds for instance {instance.name}.")
     return res
@@ -736,33 +725,33 @@ class Experiment:
     """An immutable experiment description."""
 
     #: The instances.
-    instances: Tuple[Instance, ...]
+    instances: tuple[Instance, ...]
     #: The algorithms.
-    algorithms: Tuple[Algorithm, ...]
+    algorithms: tuple[Algorithm, ...]
     #: The applications of the algorithms to the instances.
-    applications: Tuple[BasePerformance, ...]
+    applications: tuple[BasePerformance, ...]
     #: The random seeds per instance.
-    per_instance_seeds: Tuple[Tuple[int, ...]]
+    per_instance_seeds: tuple[tuple[int, ...]]
     #: the seeds per instance
-    __seeds_per_inst: Dict[Union[str, Instance], Tuple[int, ...]]
+    __seeds_per_inst: dict[str | Instance, tuple[int, ...]]
     #: the performance per algorithm
-    __perf_per_algo: Dict[Union[str, Algorithm], Tuple[BasePerformance, ...]]
+    __perf_per_algo: dict[str | Algorithm, tuple[BasePerformance, ...]]
     #: the performance per instance
-    __perf_per_inst: Dict[Union[str, Instance], Tuple[BasePerformance, ...]]
+    __perf_per_inst: dict[str | Instance, tuple[BasePerformance, ...]]
     #: the algorithm by names
-    __algo_by_name: Dict[str, Algorithm]
+    __algo_by_name: dict[str, Algorithm]
     #: the algorithm names
-    algorithm_names: Tuple[str, ...]
+    algorithm_names: tuple[str, ...]
     #: the instance by names
-    __inst_by_name: Dict[str, Instance]
+    __inst_by_name: dict[str, Instance]
     #: the instance names
-    instance_names: Tuple[str, ...]
+    instance_names: tuple[str, ...]
 
     def __init__(self,
-                 instances: Tuple[Instance, ...],
-                 algorithms: Tuple[Algorithm, ...],
-                 applications: Tuple[BasePerformance, ...],
-                 per_instance_seeds: Tuple[Tuple[int, ...], ...]):
+                 instances: tuple[Instance, ...],
+                 algorithms: tuple[Algorithm, ...],
+                 applications: tuple[BasePerformance, ...],
+                 per_instance_seeds: tuple[tuple[int, ...], ...]):
         """
         Create a mock experiment definition.
 
@@ -773,10 +762,10 @@ class Experiment:
         :param per_instance_seeds: the seeds
         """
         if not isinstance(instances, tuple):
-            raise type_error(instances, "instances", Tuple)
+            raise type_error(instances, "instances", tuple)
         if len(instances) <= 0:
             raise ValueError("instances must not be empty.")
-        inst_bn: Dict[str, Instance] = {}
+        inst_bn: dict[str, Instance] = {}
         for a in instances:
             if not isinstance(a, Instance):
                 raise type_error(a, "element of instances", Instance)
@@ -789,10 +778,10 @@ class Experiment:
                            tuple(sorted(inst_bn.keys())))
 
         if not isinstance(algorithms, tuple):
-            raise type_error(algorithms, "algorithms", Tuple)
+            raise type_error(algorithms, "algorithms", tuple)
         if len(algorithms) <= 0:
             raise ValueError("algorithms must not be empty.")
-        algo_bn: Dict[str, Algorithm] = {}
+        algo_bn: dict[str, Algorithm] = {}
         for b in algorithms:
             if not isinstance(b, Algorithm):
                 raise type_error(b, "element of algorithms", Algorithm)
@@ -807,16 +796,16 @@ class Experiment:
                            tuple(sorted(algo_bn.keys())))
 
         if not isinstance(applications, tuple):
-            raise type_error(applications, "applications", Tuple)
+            raise type_error(applications, "applications", tuple)
         if len(applications) != len(algorithms) * len(instances):
             raise ValueError(
                 f"There must be {len(algorithms) * len(instances)} "
                 f"applications, but found {len(applications)}.")
 
-        perf_per_inst: Dict[Instance, List[BasePerformance]] = {}
-        perf_per_algo: Dict[Algorithm, List[BasePerformance]] = {}
+        perf_per_inst: dict[Instance, list[BasePerformance]] = {}
+        perf_per_algo: dict[Algorithm, list[BasePerformance]] = {}
 
-        done: Set[str] = set()
+        done: set[str] = set()
         for c in applications:
             if not isinstance(c, BasePerformance):
                 raise type_error(c, "element of applications", BasePerformance)
@@ -834,31 +823,31 @@ class Experiment:
                 perf_per_inst[c.instance] = [c]
         object.__setattr__(self, "applications", applications)
 
-        pa: Dict[Union[str, Algorithm], Tuple[BasePerformance, ...]] = {}
+        pa: dict[str | Algorithm, tuple[BasePerformance, ...]] = {}
         for ax in algorithms:
-            lax: List[BasePerformance] = perf_per_algo[ax]
+            lax: list[BasePerformance] = perf_per_algo[ax]
             lax.sort()
             pa[ax.name] = pa[ax] = tuple(lax)
-        pi: Dict[Union[str, Instance], Tuple[BasePerformance, ...]] = {}
+        pi: dict[str | Instance, tuple[BasePerformance, ...]] = {}
         for ix in instances:
-            lix: List[BasePerformance] = perf_per_inst[ix]
+            lix: list[BasePerformance] = perf_per_inst[ix]
             lix.sort()
             pi[ix.name] = pi[ix] = tuple(lix)
         object.__setattr__(self, "_Experiment__perf_per_algo", pa)
         object.__setattr__(self, "_Experiment__perf_per_inst", pi)
 
         if not isinstance(per_instance_seeds, tuple):
-            raise type_error(per_instance_seeds, "per_instance_seeds", Tuple)
+            raise type_error(per_instance_seeds, "per_instance_seeds", tuple)
         if len(per_instance_seeds) != len(instances):
             raise ValueError(
                 f"There must be one entry for each of the {len(instances)} "
                 "instances, but per_instance_seeds only "
                 f"has {len(per_instance_seeds)}.")
         xl: int = -1
-        inst_seeds: Final[Dict[Union[str, Instance], Tuple[int, ...]]] = {}
+        inst_seeds: Final[dict[str | Instance, tuple[int, ...]]] = {}
         for idx, d in enumerate(per_instance_seeds):
             if not isinstance(d, tuple):
-                raise type_error(d, "element of per_instance_seeds", Tuple)
+                raise type_error(d, "element of per_instance_seeds", tuple)
             if len(d) <= 0:
                 raise ValueError(f"there must be at least one per "
                                  f"instance seed, but found {len(d)}.")
@@ -922,8 +911,8 @@ class Experiment:
                f"algorithm combination.")
         return res
 
-    def seeds_for_instance(self, instance: Union[str, Instance]) \
-            -> Tuple[int, ...]:
+    def seeds_for_instance(self, instance: str | Instance) \
+            -> tuple[int, ...]:
         """
         Get the seeds for the specified instance.
 
@@ -932,8 +921,8 @@ class Experiment:
         """
         return self.__seeds_per_inst[instance]
 
-    def instance_applications(self, instance: Union[str, Instance]) \
-            -> Tuple[BasePerformance, ...]:
+    def instance_applications(self, instance: str | Instance) \
+            -> tuple[BasePerformance, ...]:
         """
         Get the applications of the algorithms to a specific instance.
 
@@ -942,8 +931,8 @@ class Experiment:
         """
         return self.__perf_per_inst[instance]
 
-    def algorithm_applications(self, algorithm: Union[str, Algorithm]) \
-            -> Tuple[BasePerformance, ...]:
+    def algorithm_applications(self, algorithm: str | Algorithm) \
+            -> tuple[BasePerformance, ...]:
         """
         Get the applications of an algorithm to the instances.
 

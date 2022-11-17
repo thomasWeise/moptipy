@@ -3,7 +3,7 @@ import os.path
 import sys
 from dataclasses import dataclass
 from math import ceil, inf
-from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
+from typing import Any, Callable, Final, Iterable
 
 import moptipy.api.logging as log
 from moptipy.evaluation._utils import _check_max_time_millis
@@ -42,8 +42,8 @@ KEY_ERT_FES: Final[str] = "ertFEs"
 KEY_ERT_TIME_MILLIS: Final[str] = "ertTimeMillis"
 
 #: the internal getters that can work directly
-_GETTERS_0: Final[Dict[str, Callable[['EndStatistics'],
-                                     Union[int, float, None]]]] = {
+_GETTERS_0: Final[dict[str, Callable[['EndStatistics'],
+                                     int | float | None]]] = {
     KEY_N_SUCCESS: lambda s: s.n_success,
     KEY_ERT_FES: lambda s: s.ert_fes,
     KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis,
@@ -56,9 +56,8 @@ _GETTERS_0: Final[Dict[str, Callable[['EndStatistics'],
 }
 
 #: the internal getters that access end statistics
-_GETTERS_1: Final[Dict[
-    str, Callable[['EndStatistics'], Union[int, float, Statistics,
-                                           None]]]] = {
+_GETTERS_1: Final[dict[
+    str, Callable[['EndStatistics'], int | float | Statistics | None]]] = {
     log.KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
     log.KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         lambda s: s.last_improvement_time_millis,
@@ -95,44 +94,44 @@ class EndStatistics(MultiRunData):
     #: The statistics about the total time.
     total_time_millis: Statistics
     #: The goal objective value.
-    goal_f: Union[Statistics, int, float, None]
+    goal_f: Statistics | int | float | None
     #: best_f / goal_f if goal_f is consistently defined and always positive.
-    best_f_scaled: Optional[Statistics]
+    best_f_scaled: Statistics | None
     #: The number of successful runs, if goal_f != None, else None.
-    n_success: Optional[int]
+    n_success: int | None
     #: The FEs to success, if n_success > 0, None otherwise.
-    success_fes: Optional[Statistics]
+    success_fes: Statistics | None
     #: The time to success, if n_success > 0, None otherwise.
-    success_time_millis: Optional[Statistics]
+    success_time_millis: Statistics | None
     #: The ERT if FEs, while is inf if n_success=0, None if goal_f is None,
     #: and finite otherwise.
-    ert_fes: Union[int, float, None]
+    ert_fes: int | float | None
     #: The ERT if milliseconds, while is inf if n_success=0, None if goal_f
     #: is None, and finite otherwise.
-    ert_time_millis: Union[int, float, None]
+    ert_time_millis: int | float | None
     #: The budget in FEs, if every run had one; None otherwise.
-    max_fes: Union[Statistics, int, None]
+    max_fes: Statistics | int | None
     #: The budget in milliseconds, if every run had one; None otherwise.
-    max_time_millis: Union[Statistics, int, None]
+    max_time_millis: Statistics | int | None
 
     def __init__(self,
-                 algorithm: Optional[str],
-                 instance: Optional[str],
+                 algorithm: str | None,
+                 instance: str | None,
                  n: int,
                  best_f: Statistics,
                  last_improvement_fe: Statistics,
                  last_improvement_time_millis: Statistics,
                  total_fes: Statistics,
                  total_time_millis: Statistics,
-                 goal_f: Union[float, int, Statistics, None],
-                 best_f_scaled: Optional[Statistics],
-                 n_success: Optional[int],
-                 success_fes: Optional[Statistics],
-                 success_time_millis: Optional[Statistics],
-                 ert_fes: Union[int, float, None],
-                 ert_time_millis: Union[int, float, None],
-                 max_fes: Union[Statistics, int, None],
-                 max_time_millis: Union[Statistics, int, None]):
+                 goal_f: float | int | Statistics | None,
+                 best_f_scaled: Statistics | None,
+                 n_success: int | None,
+                 success_fes: Statistics | None,
+                 success_time_millis: Statistics | None,
+                 ert_fes: int | float | None,
+                 ert_time_millis: int | float | None,
+                 max_fes: Statistics | int | None,
+                 max_time_millis: Statistics | int | None):
         """
         Create the end statistics of an experiment-setup combination.
 
@@ -211,8 +210,8 @@ class EndStatistics(MultiRunData):
 
         if not isinstance(total_fes, Statistics):
             raise type_error(total_fes, "total_fes", Statistics)
-        total_fes_min: Final[Union[int, float]] = total_fes.minimum
-        total_fes_max: Final[Union[int, float]] = total_fes.maximum
+        total_fes_min: Final[int | float] = total_fes.minimum
+        total_fes_max: Final[int | float] = total_fes.maximum
         if total_fes_min <= 0:
             raise ValueError("No total_fes can be <= 0, but "
                              f"encountered {total_fes_min}.")
@@ -235,8 +234,8 @@ class EndStatistics(MultiRunData):
         if not isinstance(total_time_millis, Statistics):
             raise type_error(total_time_millis, "total_time_millis",
                              Statistics)
-        total_time_min: Final[Union[int, float]] = total_time_millis.minimum
-        total_time_max: Final[Union[int, float]] = total_time_millis.maximum
+        total_time_min: Final[int | float] = total_time_millis.minimum
+        total_time_max: Final[int | float] = total_time_millis.maximum
 
         if total_time_min < 0:
             raise ValueError("No total_time_millis can be < 0, but "
@@ -293,7 +292,7 @@ class EndStatistics(MultiRunData):
                 raise type_error(goal_f, "goal_f", (int, Statistics))
 
             if best_f_scaled is not None:
-                goal_f_min: Final[Union[int, float]] = \
+                goal_f_min: Final[int | float] = \
                     goal_f.minimum if isinstance(goal_f, Statistics) \
                     else goal_f
                 if goal_f_min <= 0:
@@ -461,26 +460,26 @@ class EndStatistics(MultiRunData):
             raise type_error(source, "source", Iterable)
 
         n: int = 0
-        best_f: List[Union[int, float]] = []
-        last_improvement_fe: List[int] = []
-        last_improvement_time_millis: List[int] = []
-        total_fes: List[int] = []
-        total_time_millis: List[int] = []
-        max_fes: Optional[List[int]] = []
+        best_f: list[int | float] = []
+        last_improvement_fe: list[int] = []
+        last_improvement_time_millis: list[int] = []
+        total_fes: list[int] = []
+        total_time_millis: list[int] = []
+        max_fes: list[int] | None = []
         max_fes_same: bool = True
-        max_time_millis: Optional[List[int]] = []
+        max_time_millis: list[int] | None = []
         max_time_same: bool = True
-        goal_f: Optional[List[Union[int, float]]] = []
+        goal_f: list[int | float] | None = []
         goal_f_same: bool = True
-        best_f_scaled: Optional[List[float]] = []
-        n_success: Optional[int] = 0
-        success_fes: Optional[List[int]] = []
-        success_times: Optional[List[int]] = []
+        best_f_scaled: list[float] | None = []
+        n_success: int | None = 0
+        success_fes: list[int] | None = []
+        success_times: list[int] | None = []
 
         fes: int = 0
         time: int = 0
-        algorithm: Optional[str] = None
-        instance: Optional[str] = None
+        algorithm: str | None = None
+        instance: str | None = None
 
         for er in source:
             if not isinstance(er, EndResult):
@@ -604,7 +603,7 @@ class EndStatistics(MultiRunData):
             consumer(EndStatistics.create(source))
             return
 
-        sorter: Dict[str, List[EndResult]] = {}
+        sorter: dict[str, list[EndResult]] = {}
         for er in source:
             if not isinstance(er, EndResult):
                 raise type_error(source, "end results from source",
@@ -632,8 +631,8 @@ class EndStatistics(MultiRunData):
                 next(iter(sorter.values()))))
 
     @staticmethod
-    def to_csv(data: Union['EndStatistics',
-                           Iterable['EndStatistics']], file: str) -> Path:
+    def to_csv(data: 'EndStatistics'
+                     | Iterable['EndStatistics'], file: str) -> Path:
         """
         Store a set of :class:`EndStatistics` in a CSV file.
 
@@ -880,11 +879,11 @@ class EndStatistics(MultiRunData):
 
         sep: Final[str] = CSV_SEPARATOR
         with path.open_for_read() as rd:
-            headerrow: Final[List[str]] = rd.readlines(1)
+            headerrow: Final[list[str]] = rd.readlines(1)
             if (headerrow is None) or (len(headerrow) <= 0):
                 raise ValueError(f"No line in file '{file}'.")
             headerstr: Final[str] = headerrow[0].strip()
-            header: Final[List[str]] = [ss.strip()
+            header: Final[list[str]] = [ss.strip()
                                         for ss in headerstr.split(sep)]
             if len(header) <= 3:
                 raise ValueError(
@@ -1050,18 +1049,18 @@ class EndStatistics(MultiRunData):
                     row = [ss.strip() for ss in line.strip().split(sep)]
 
                     idx = 0
-                    algo: Optional[str] = None
-                    inst: Optional[str] = None
+                    algo: str | None = None
+                    inst: str | None = None
                     n: int
-                    goal_f: Union[None, int, float, Statistics] = None
-                    best_f_scaled: Optional[Statistics] = None
-                    n_success: Optional[int] = None
-                    success_fes: Optional[Statistics] = None
-                    success_time: Optional[Statistics] = None
-                    ert_fes: Union[int, float, None] = None
-                    ert_time: Union[int, float, None] = None
-                    max_fes: Union[int, Statistics, None] = None
-                    max_time: Union[int, Statistics, None] = None
+                    goal_f: None | int | float | Statistics = None
+                    best_f_scaled: Statistics | None = None
+                    n_success: int | None = None
+                    success_fes: Statistics | None = None
+                    success_time: Statistics | None = None
+                    ert_fes: int | float | None = None
+                    ert_time: int | float | None = None
+                    max_fes: int | Statistics | None = None
+                    max_time: int | Statistics | None = None
 
                     try:
                         if has_algorithm:
@@ -1176,7 +1175,7 @@ class EndStatistics(MultiRunData):
 
     @staticmethod
     def getter(dimension: str) -> Callable[['EndStatistics'],
-                                           Union[int, float, None]]:
+                                           int | float | None]:
         """
         Create a function that obtains the given dimension from EndStatistics.
 
@@ -1244,7 +1243,7 @@ if __name__ == '__main__':
         raise ValueError("two command line arguments expected")
 
     src_path = Path.path(sys.argv[1])
-    end_results: Final[List[EndResult]] = []
+    end_results: Final[list[EndResult]] = []
     if src_path.is_file():
         logger(f"'{src_path}' identifies file, load as end-results csv")
         EndResult.from_csv(src_path, end_results.append)
@@ -1252,6 +1251,6 @@ if __name__ == '__main__':
         logger(f"'{src_path}' identifies directory, load it as log files")
         EndResult.from_logs(src_path, end_results.append)
 
-    end_stats: Final[List[EndStatistics]] = []
+    end_stats: Final[list[EndStatistics]] = []
     EndStatistics.from_end_results(end_results, end_stats.append)
     EndStatistics.to_csv(end_stats, sys.argv[2])

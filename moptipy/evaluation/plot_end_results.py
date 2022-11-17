@@ -1,17 +1,5 @@
 """Violin plots for end results."""
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import matplotlib.collections as mc  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -30,9 +18,9 @@ from moptipy.utils.types import type_error
 
 def plot_end_results(
         end_results: Iterable[EndResult],
-        figure: Union[SubplotBase, Figure],
+        figure: SubplotBase | Figure,
         dimension: str = F_NAME_SCALED,
-        y_axis: Union[AxisRanger, Callable[[str], AxisRanger]] =
+        y_axis: AxisRanger | Callable[[str], AxisRanger] =
         AxisRanger.for_axis,
         distinct_colors_func: Callable[[int], Any] = pd.distinct_colors,
         importance_to_line_width_func: Callable[[int], float] =
@@ -41,10 +29,10 @@ def plot_end_results(
         pd.importance_to_font_size,
         y_grid: bool = True,
         x_grid: bool = True,
-        x_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        x_label: None | str | Callable[[str], str] = Lang.translate,
         x_label_inside: bool = True,
         x_label_location: float = 1.0,
-        y_label: Union[None, str, Callable[[str], str]] = Lang.translate,
+        y_label: None | str | Callable[[str], str] = Lang.translate,
         y_label_inside: bool = True,
         y_label_location: float = 0.5,
         legend_pos: str = "best",
@@ -147,7 +135,7 @@ def plot_end_results(
     if not callable(algorithm_namer):
         raise type_error(algorithm_namer, "algorithm_namer", call=True)
 
-    getter: Final[Callable[[EndResult], Union[int, float]]] \
+    getter: Final[Callable[[EndResult], int | float]] \
         = EndResult.getter(dimension)
     logger(f"now plotting end violins for dimension {dimension}.")
 
@@ -157,8 +145,8 @@ def plot_end_results(
         raise type_error(y_axis, f"y_axis for {dimension}", AxisRanger)
 
     # instance -> algorithm -> values
-    data: Dict[str, Dict[str, List[Union[int, float]]]] = {}
-    algo_set: Set[str] = set()
+    data: dict[str, dict[str, list[int | float]]] = {}
+    algo_set: set[str] = set()
 
     # We now collect instances, the algorithms, and the measured values.
     for res in end_results:
@@ -167,18 +155,18 @@ def plot_end_results(
 
         algo_set.add(res.algorithm)
 
-        per_inst_data: Dict[str, List[Union[int, float]]]
+        per_inst_data: dict[str, list[int | float]]
         if res.instance not in data:
             data[res.instance] = per_inst_data = {}
         else:
             per_inst_data = data[res.instance]
-        inst_algo_data: List[Union[int, float]]
+        inst_algo_data: list[int | float]
         if res.algorithm not in per_inst_data:
             per_inst_data[res.algorithm] = inst_algo_data = []
         else:
             inst_algo_data = per_inst_data[res.algorithm]
 
-        value: Union[int, float] = getter(res)
+        value: int | float = getter(res)
         if not isinstance(value, (int, float)):
             raise type_error(value, "value", (int, float))
         inst_algo_data.append(value)
@@ -191,19 +179,19 @@ def plot_end_results(
     if (n_instances <= 0) or (n_algorithms <= 0):
         raise ValueError("Data cannot be empty but found "
                          f"{n_instances} and {n_algorithms}.")
-    algorithms: Final[Tuple[str, ...]] = \
+    algorithms: Final[tuple[str, ...]] = \
         tuple(sorted(algo_set, key=algorithm_sort_key))
     logger(f"- {n_algorithms} algorithms ({algorithms}) "
            f"and {n_instances} instances ({data.keys()}).")
 
     # compile the data
-    inst_algos: List[Tuple[str, List[str]]] = []
-    plot_data: List[List[Union[int, float]]] = []
-    plot_algos: List[str] = []
-    instances: Final[List[str]] = sorted(data.keys(), key=instance_sort_key)
+    inst_algos: list[tuple[str, list[str]]] = []
+    plot_data: list[list[int | float]] = []
+    plot_algos: list[str] = []
+    instances: Final[list[str]] = sorted(data.keys(), key=instance_sort_key)
     for inst in instances:
         per_inst_data = data[inst]
-        algo_names: List[str] = sorted(per_inst_data.keys(),
+        algo_names: list[str] = sorted(per_inst_data.keys(),
                                        key=algorithm_sort_key)
         plot_algos.extend(algo_names)
         inst_algos.append((inst, algo_names))
@@ -216,7 +204,7 @@ def plot_end_results(
     n_bars: Final[int] = len(plot_data)
     if n_bars < max(n_instances, n_algorithms):
         raise ValueError(f"Huh? {n_bars}, {n_instances}, {n_algorithms}")
-    bar_positions: Final[Tuple[int, ...]] = \
+    bar_positions: Final[tuple[int, ...]] = \
         tuple(range(1, len(plot_data) + 1))
 
     # Now we got all instances and all algorithms and know the axis ranges.
@@ -230,7 +218,7 @@ def plot_end_results(
     z_order: int = 0
 
     # draw the grid
-    grid_lwd: Optional[Union[int, float]] = None
+    grid_lwd: int | float | None = None
     if y_grid:
         grid_lwd = importance_to_line_width_func(-1)
         z_order += 1
@@ -259,19 +247,19 @@ def plot_end_results(
 
     violin_width: Final[float] = 3 / 4
     z_order += 1
-    violins: Final[Dict[str, Any]] = axes.violinplot(
+    violins: Final[dict[str, Any]] = axes.violinplot(
         dataset=plot_data, positions=bar_positions, vert=True,
         widths=violin_width, showmeans=False, showextrema=False,
         showmedians=False)
 
     # fix the algorithm colors
-    unique_colors: Final[Tuple[Any]] = distinct_colors_func(n_algorithms)
-    algo_colors: Final[Dict[str, Tuple[float, float, float]]] = {}
+    unique_colors: Final[tuple[Any]] = distinct_colors_func(n_algorithms)
+    algo_colors: Final[dict[str, tuple[float, float, float]]] = {}
     for i, algo in enumerate(algorithms):
         algo_colors[algo] = unique_colors[i]
 
     bodies: Final[mc.PolyCollection] = violins["bodies"]
-    use_colors: Final[List[Tuple[float, float, float]]] = []
+    use_colors: Final[list[tuple[float, float, float]]] = []
     counter = 0
     for key in inst_algos:
         for algo in key[1]:
@@ -286,12 +274,12 @@ def plot_end_results(
             bd.set_zorder(z_order)
 
     z_order += 1
-    boxes_bg: Final[Dict[str, Any]] = axes.boxplot(
+    boxes_bg: Final[dict[str, Any]] = axes.boxplot(
         x=plot_data, positions=bar_positions, widths=violin_width,
         showmeans=True, patch_artist=False, notch=True, vert=True,
         whis=(5.0, 95.0), manage_ticks=False, zorder=z_order)
     z_order += 1
-    boxes_fg: Final[Dict[str, Any]] = axes.boxplot(
+    boxes_fg: Final[dict[str, Any]] = axes.boxplot(
         x=plot_data, positions=bar_positions, widths=violin_width,
         showmeans=True, patch_artist=False, notch=True, vert=True,
         whis=(5.0, 95.0), manage_ticks=False, zorder=z_order)
@@ -309,7 +297,7 @@ def plot_end_results(
                      "means"):
             if tkey not in boxes:
                 continue
-            polys: List[Line2D] = boxes[tkey]
+            polys: list[Line2D] = boxes[tkey]
             for line in polys:
                 xdata = line.get_xdata(True)
                 if len(xdata) <= 0:
@@ -329,8 +317,8 @@ def plot_end_results(
                 line.set_zorder(z_order)
 
     # compute the labels for the x-axis
-    labels_str: List[str] = []
-    labels_x: List[float] = []
+    labels_str: list[str] = []
+    labels_x: list[float] = []
     needs_legend: bool = False
 
     counter = 0
@@ -370,7 +358,7 @@ def plot_end_results(
 
     z_order += 1
     pu.label_axes(axes=axes,
-                  x_label=cast(Optional[str], x_label),
+                  x_label=cast(str | None, x_label),
                   x_label_inside=x_label_inside,
                   x_label_location=x_label_location,
                   y_label=y_label(dimension) if callable(y_label) else y_label,
@@ -380,7 +368,7 @@ def plot_end_results(
                   z_order=z_order)
 
     if needs_legend:
-        handles: Final[List[Line2D]] = []
+        handles: Final[list[Line2D]] = []
 
         for algo in algorithms:
             linestyle = pd.create_line_style()

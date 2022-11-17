@@ -3,7 +3,6 @@ import os
 from contextlib import AbstractContextManager
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
-from typing import Optional
 
 from moptipy.utils.path import Path
 
@@ -25,13 +24,13 @@ class TempDir(Path, AbstractContextManager):
 
         :param value: the string value
         """
-        ret = super(TempDir, cls).__new__(cls, value)
+        ret = super().__new__(cls, value)
         ret.enforce_dir()
         ret.__is_open = True
         return ret
 
     @staticmethod
-    def create(directory: Optional[str] = None) -> 'TempDir':
+    def create(directory: str | None = None) -> 'TempDir':
         """
         Create the temporary directory.
 
@@ -83,15 +82,15 @@ class TempFile(Path, AbstractContextManager):
 
         :param value: the string value
         """
-        ret = super(TempFile, cls).__new__(cls, value)
+        ret = super().__new__(cls, value)
         ret.enforce_file()
         ret.__is_open = True
         return ret
 
     @staticmethod
-    def create(directory: Optional[str] = None,
-               prefix: Optional[str] = None,
-               suffix: Optional[str] = None) -> 'TempFile':
+    def create(directory: str | None = None,
+               prefix: str | None = None,
+               suffix: str | None = None) -> 'TempFile':
         """
         Create a temporary file.
 

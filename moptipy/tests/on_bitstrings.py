@@ -1,17 +1,6 @@
 """Test stuff on bit strings."""
 
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -47,9 +36,9 @@ def dimensions_for_tests() -> Iterable[int]:
     :returns: the sequence of integers
     """
     r = default_rng()
-    bs: List[int] = [1, 2, 3, 4, 5, 10, 16, 100,
+    bs: list[int] = [1, 2, 3, 4, 5, 10, 16, 100,
                      int(r.integers(20, 50)), int(r.integers(200, 300))]
-    r.shuffle(cast(List, bs))
+    r.shuffle(cast(list, bs))
     return bs
 
 
@@ -77,11 +66,11 @@ def random_bit_string(random: Generator, x: np.ndarray) -> np.ndarray:
 
 
 def validate_op0_on_1_bitstrings(
-        op0: Union[Op0, Callable[[BitStrings], Op0]],
+        op0: Op0 | Callable[[BitStrings], Op0],
         search_space: BitStrings,
-        number_of_samples: Optional[int] = None,
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int, BitStrings], int]]]
+        int | Callable[[int, BitStrings], int] | None
         = None) -> None:
     """
     Validate the unary operator on one bit strings instance.
@@ -91,7 +80,7 @@ def validate_op0_on_1_bitstrings(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "op0": op0(search_space) if callable(op0) else op0,
         "search_space": search_space,
         "make_search_space_element_valid": random_bit_string
@@ -104,10 +93,10 @@ def validate_op0_on_1_bitstrings(
 
 
 def validate_op0_on_bitstrings(
-        op0: Union[Op0, Callable[[BitStrings], Op0]],
-        number_of_samples: Optional[int] = None,
+        op0: Op0 | Callable[[BitStrings], Op0],
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int, BitStrings], int]]]
+        int | Callable[[int, BitStrings], int] | None
         = None) -> None:
     """
     Validate the unary operator on several BitStrings instances.
@@ -122,11 +111,11 @@ def validate_op0_on_bitstrings(
 
 
 def validate_op1_on_1_bitstrings(
-        op1: Union[Op1, Callable[[BitStrings], Op1]],
+        op1: Op1 | Callable[[BitStrings], Op1],
         search_space: BitStrings,
-        number_of_samples: Optional[int] = None,
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int, BitStrings], int]]]
+        int | Callable[[int, BitStrings], int] | None
         = None) -> None:
     """
     Validate the unary operator on one BitStrings instance.
@@ -136,7 +125,7 @@ def validate_op1_on_1_bitstrings(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "op1": op1(search_space) if callable(op1) else op1,
         "search_space": search_space,
         "make_search_space_element_valid": random_bit_string
@@ -149,10 +138,10 @@ def validate_op1_on_1_bitstrings(
 
 
 def validate_op1_on_bitstrings(
-        op1: Union[Op1, Callable[[BitStrings], Op1]],
-        number_of_samples: Optional[int] = None,
+        op1: Op1 | Callable[[BitStrings], Op1],
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int, BitStrings], int]]]
+        int | Callable[[int, BitStrings], int] | None
         = None) -> None:
     """
     Validate the unary operator on several BitStrings instances.
@@ -167,11 +156,11 @@ def validate_op1_on_bitstrings(
 
 
 def validate_op2_on_1_bitstrings(
-        op2: Union[Op2, Callable[[BitStrings], Op2]],
+        op2: Op2 | Callable[[BitStrings], Op2],
         search_space: BitStrings,
-        number_of_samples: Optional[int] = None,
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int, BitStrings], int]]]
+        int | Callable[[int, BitStrings], int] | None
         = None) -> None:
     """
     Validate the binary operator on one BitStrings instance.
@@ -181,7 +170,7 @@ def validate_op2_on_1_bitstrings(
     :param number_of_samples: the optional number of samples
     :param min_unique_samples: the optional unique samples
     """
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "op2": op2(search_space) if callable(op2) else op2,
         "search_space": search_space,
         "make_search_space_element_valid": random_bit_string
@@ -194,10 +183,10 @@ def validate_op2_on_1_bitstrings(
 
 
 def validate_op2_on_bitstrings(
-        op2: Union[Op2, Callable[[BitStrings], Op2]],
-        number_of_samples: Optional[int] = None,
+        op2: Op2 | Callable[[BitStrings], Op2],
+        number_of_samples: int | None = None,
         min_unique_samples:
-        Optional[Union[int, Callable[[int, BitStrings], int]]]
+        int | Callable[[int, BitStrings], int] | None
         = None) -> None:
     """
     Validate the binary operator on several BitStrings instances.
@@ -212,13 +201,12 @@ def validate_op2_on_bitstrings(
 
 
 def validate_algorithm_on_bitstrings(
-        objective: Union[Objective, Callable[[int], Objective]],
-        algorithm: Union[Algorithm,
-                         Callable[[BitStrings, Objective], Algorithm]],
-        dimension: int = 5,
-        max_fes: int = 100,
-        required_result: Optional[Union[int, Callable[
-            [int, int], int]]] = None) -> None:
+        objective: Objective | Callable[[int], Objective],
+        algorithm: Algorithm | Callable[
+            [BitStrings, Objective], Algorithm],
+        dimension: int = 5, max_fes: int = 100,
+        required_result: int | Callable[
+            [int, int], int] | None = None) -> None:
     """
     Check the validity of a black-box algorithm on a bit strings problem.
 
@@ -249,7 +237,7 @@ def validate_algorithm_on_bitstrings(
         raise type_error(algorithm, "result of callable 'algorithm'",
                          Algorithm)
 
-    goal: Optional[int]
+    goal: int | None
     if callable(required_result):
         goal = required_result(max_fes, dimension)
     else:
@@ -263,8 +251,8 @@ def validate_algorithm_on_bitstrings(
 
 
 def validate_algorithm_on_onemax(
-        algorithm: Union[Algorithm, Callable[
-            [BitStrings, Objective], Algorithm]]) -> None:
+        algorithm: Algorithm | Callable[
+            [BitStrings, Objective], Algorithm]) -> None:
     """
     Check the validity of a black-box algorithm on OneMax.
 
@@ -286,8 +274,8 @@ def validate_algorithm_on_onemax(
 
 
 def validate_algorithm_on_leadingones(
-        algorithm: Union[
-            Algorithm, Callable[[BitStrings, Objective], Algorithm]]) -> None:
+        algorithm: Algorithm | Callable[
+            [BitStrings, Objective], Algorithm]) -> None:
     """
     Check the validity of a black-box algorithm on LeadingOnes.
 
@@ -311,9 +299,9 @@ def validate_algorithm_on_leadingones(
 
 
 def validate_mo_algorithm_on_bitstrings(
-        problem: Union[MOProblem, Callable[[int], MOProblem]],
-        algorithm: Union[MOAlgorithm, Callable[
-            [BitStrings, MOProblem], MOAlgorithm]],
+        problem: MOProblem | Callable[[int], MOProblem],
+        algorithm: MOAlgorithm | Callable[
+            [BitStrings, MOProblem], MOAlgorithm],
         dimension: int = 5,
         max_fes: int = 100) -> None:
     """
@@ -352,8 +340,8 @@ def validate_mo_algorithm_on_bitstrings(
 
 
 def validate_mo_algorithm_on_2_bitstring_problems(
-        algorithm: Union[MOAlgorithm, Callable[
-            [BitStrings, MOProblem], MOAlgorithm]]) -> None:
+        algorithm: MOAlgorithm | Callable[
+            [BitStrings, MOProblem], MOAlgorithm]) -> None:
     """
     Check the validity of a black-box algorithm on OneMax and ZeroMax.
 
@@ -362,7 +350,7 @@ def validate_mo_algorithm_on_2_bitstring_problems(
     max_fes: Final[int] = 100
     random: Final[Generator] = default_rng()
     for i in dimensions_for_tests():
-        weights: List[Union[int, float]]
+        weights: list[int | float]
         if random.integers(2) <= 0:
             weights = [float(random.uniform(0.01, 10)),
                        float(random.uniform(0.01, 10))]
@@ -377,8 +365,8 @@ def validate_mo_algorithm_on_2_bitstring_problems(
 
 
 def validate_mo_algorithm_on_3_bitstring_problems(
-        algorithm: Union[MOAlgorithm, Callable[
-            [BitStrings, MOProblem], MOAlgorithm]]) -> None:
+        algorithm: MOAlgorithm | Callable[
+            [BitStrings, MOProblem], MOAlgorithm]) -> None:
     """
     Check the validity of an algorithm on OneMax, ZeroMax, and Ising1d.
 
@@ -387,7 +375,7 @@ def validate_mo_algorithm_on_3_bitstring_problems(
     max_fes: Final[int] = 100
     random: Final[Generator] = default_rng()
     for i in dimensions_for_tests():
-        weights: List[Union[int, float]]
+        weights: list[int | float]
         if random.integers(2) <= 0:
             weights = [float(random.uniform(0.01, 10)),
                        float(random.uniform(0.01, 10)),
@@ -427,12 +415,12 @@ def verify_algorithms_equivalent(
     evaluate: Final[Callable] = f.evaluate
     seed: Final[int] = int(random.integers(1 << 62))
 
-    result1: Final[List[bool]] = []
-    result2: Final[List[bool]] = []
+    result1: Final[list[bool]] = []
+    result2: Final[list[bool]] = []
     first: bool = True
     first_name: str = ""
     do_fes: int = -1
-    do_res: Union[int, float] = -1
+    do_res: int | float = -1
     index: int = -1
     for algo in algorithms:
         index += 1
@@ -497,8 +485,8 @@ def verify_algorithms_equivalent(
 
 
 def validate_fitness_on_bitstrings(
-        fitness: Union[Fitness, Callable[[Objective], Fitness]],
-        class_needed: Union[str, type] = Fitness,
+        fitness: Fitness | Callable[[Objective], Fitness],
+        class_needed: str | type = Fitness,
         prepare_objective: Callable[[Objective], Objective] = lambda x: x) \
         -> None:
     """
@@ -517,7 +505,7 @@ def validate_fitness_on_bitstrings(
         raise type_error(prepare_objective, "prepare_objective", call=True)
 
     random: Final[Generator] = default_rng()
-    sizes: Set[int] = set()
+    sizes: set[int] = set()
     while len(sizes) < 4:
         sizes.add(int(random.integers(2, 10)))
     op0: Op0Random = Op0Random()

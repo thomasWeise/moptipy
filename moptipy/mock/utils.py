@@ -1,16 +1,7 @@
 """Utilities for mock objects."""
 
 from math import ceil, floor, inf, isfinite, nextafter
-from typing import (
-    Callable,
-    Final,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Callable, Final, Sequence, cast
 
 import numpy as np
 from numpy.random import Generator
@@ -18,14 +9,14 @@ from numpy.random import Generator
 from moptipy.utils.types import type_error
 
 #: The default types to be used for testing.
-DEFAULT_TEST_DTYPES: Final[Tuple[np.dtype, ...]] = tuple(sorted(set(
+DEFAULT_TEST_DTYPES: Final[tuple[np.dtype, ...]] = tuple(sorted(set(
     np.dtype(bdt) for bdt in [
         int, float, np.int8, np.int16, np.uint8, np.uint16, np.int32,
         np.uint32, np.int64, np.uint64, np.float16, np.float32,
         np.float64, np.float128]), key=lambda dt: (dt.kind, dt.itemsize)))
 
 
-def _lb_int(lb: Union[int, float]) -> int:
+def _lb_int(lb: int | float) -> int:
     """
     Convert a finite lower bound to an integer.
 
@@ -44,7 +35,7 @@ def _lb_int(lb: Union[int, float]) -> int:
     return lb if isinstance(lb, int) else int(ceil(lb))
 
 
-def _ub_int(ub: Union[int, float]) -> int:
+def _ub_int(ub: int | float) -> int:
     """
     Convert a finite upper bound to an integer.
 
@@ -88,8 +79,8 @@ def _float_beautify(f: float) -> float:
     return r1
 
 
-def _before_int(upper_bound: Union[int, float],
-                random: Generator) -> Optional[int]:
+def _before_int(upper_bound: int | float,
+                random: Generator) -> int | None:
     """
     Get an `int` value before the given limit.
 
@@ -115,8 +106,8 @@ def _before_int(upper_bound: Union[int, float],
     return res
 
 
-def _before_float(upper_bound: Union[int, float],
-                  random: Generator) -> Optional[float]:
+def _before_float(upper_bound: int | float,
+                  random: Generator) -> float | None:
     """
     Get a `float` value before the given limit.
 
@@ -147,8 +138,8 @@ def _before_float(upper_bound: Union[int, float],
     return res
 
 
-def _after_int(lower_bound: Union[int, float],
-               random: Generator) -> Optional[int]:
+def _after_int(lower_bound: int | float,
+               random: Generator) -> int | None:
     """
     Get an `int` value after the given limit.
 
@@ -174,8 +165,8 @@ def _after_int(lower_bound: Union[int, float],
     return res
 
 
-def _after_float(lower_bound: Union[int, float],
-                 random: Generator) -> Optional[float]:
+def _after_float(lower_bound: int | float,
+                 random: Generator) -> float | None:
     """
     Get a `float` value after the given limit.
 
@@ -205,9 +196,9 @@ def _after_float(lower_bound: Union[int, float],
     return res
 
 
-def _between_int(lower_bound: Union[int, float],
-                 upper_bound: Union[int, float],
-                 random: Generator) -> Optional[int]:
+def _between_int(lower_bound: int | float,
+                 upper_bound: int | float,
+                 random: Generator) -> int | None:
     """
     Compute a number between two others.
 
@@ -229,9 +220,9 @@ def _between_int(lower_bound: Union[int, float],
     return int(random.normal(0, 1000.0))
 
 
-def _between_float(lower_bound: Union[int, float],
-                   upper_bound: Union[int, float],
-                   random: Generator) -> Optional[float]:
+def _between_float(lower_bound: int | float,
+                   upper_bound: int | float,
+                   random: Generator) -> float | None:
     """
     Compute a number between two others.
 
@@ -262,9 +253,9 @@ def _between_float(lower_bound: Union[int, float],
     return float(random.normal(0, 1000.0))
 
 
-def make_ordered_list(definition: Sequence[Union[int, float, None]],
+def make_ordered_list(definition: Sequence[int | float | None],
                       is_int: bool, random: Generator) \
-        -> Optional[List[Union[int, float]]]:
+        -> list[int | float] | None:
     """
     Make an ordered list of elements, filling in gaps.
 
@@ -305,20 +296,20 @@ def make_ordered_list(definition: Sequence[Union[int, float, None]],
         raise type_error(is_int, "is_int", bool)
 
     if is_int:
-        _before = cast(Callable[[Union[int, float], Generator],
-                                Union[int, float, None]], _before_int)
-        _after = cast(Callable[[Union[int, float], Generator],
-                               Union[int, float, None]], _after_int)
-        _between = cast(Callable[[Union[int, float], Union[int, float],
-                                  Generator], Union[int, float, None]],
+        _before = cast(Callable[[int | float, Generator],
+                                int | float | None], _before_int)
+        _after = cast(Callable[[int | float, Generator],
+                               int | float | None], _after_int)
+        _between = cast(Callable[[int | float, int | float,
+                                  Generator], int | float | None],
                         _between_int)
     else:
-        _before = cast(Callable[[Union[int, float], Generator],
-                                Union[int, float, None]], _before_float)
-        _after = cast(Callable[[Union[int, float], Generator],
-                               Union[int, float, None]], _after_float)
-        _between = cast(Callable[[Union[int, float], Union[int, float],
-                                  Generator], Union[int, float, None]],
+        _before = cast(Callable[[int | float, Generator],
+                                int | float | None], _before_float)
+        _after = cast(Callable[[int | float, Generator],
+                               int | float | None], _after_float)
+        _between = cast(Callable[[int | float, int | float,
+                                  Generator], int | float | None],
                         _between_float)
 
     max_trials: int = 1000
@@ -385,7 +376,7 @@ def make_ordered_list(definition: Sequence[Union[int, float, None]],
 
             # find start of gap and lower bound
             prev_idx: int = missing
-            prev: Union[int, float, None] = None
+            prev: int | float | None = None
             for i in range(missing - 1, -1, -1):
                 prev = result[i]
                 if prev is not None:
@@ -394,7 +385,7 @@ def make_ordered_list(definition: Sequence[Union[int, float, None]],
 
             # find end of gap and upper bound
             nxt_idx: int = missing
-            nxt: Union[int, float, None] = None
+            nxt: int | float | None = None
             for i in range(missing + 1, total):
                 nxt = result[i]
                 if nxt is not None:
@@ -428,10 +419,10 @@ def make_ordered_list(definition: Sequence[Union[int, float, None]],
 
 
 def sample_from_attractors(random: Generator,
-                           attractors: Sequence[Union[int, float]],
+                           attractors: Sequence[int | float],
                            is_int: bool = False,
-                           lb: Union[int, float] = -inf,
-                           ub: Union[int, float] = inf) -> Union[int, float]:
+                           lb: int | float = -inf,
+                           ub: int | float = inf) -> int | float:
     """
     Sample from a given range using the specified attractors.
 

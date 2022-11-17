@@ -166,7 +166,7 @@ Tidor).
 """
 
 from math import isfinite
-from typing import Any, Callable, Final, List
+from typing import Any, Callable, Final
 
 import numba  # type: ignore
 import numpy as np
@@ -260,7 +260,7 @@ class FitnessProportionateSUS(Selection):
         self.__cumsum: np.ndarray = np.empty(0, DEFAULT_FLOAT)
 
 # start book
-    def select(self, source: List[FitnessRecord],
+    def select(self, source: list[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
         """

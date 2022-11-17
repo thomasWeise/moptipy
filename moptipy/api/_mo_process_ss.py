@@ -1,7 +1,7 @@
 """A multi-objective process with different search and solution spaces."""
 
 from math import isfinite
-from typing import Callable, Final, Optional, Union
+from typing import Callable, Final
 
 import numpy as np
 from numpy import copyto
@@ -36,13 +36,13 @@ class _MOProcessSS(_MOProcessNoSS):
                  pruner: MOArchivePruner,
                  archive_max_size: int,
                  archive_prune_limit: int,
-                 log_file: Optional[Path] = None,
+                 log_file: Path | None = None,
                  search_space: Space = None,
                  encoding: Encoding = None,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None) -> None:
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -94,7 +94,7 @@ class _MOProcessSS(_MOProcessNoSS):
         self.validate = search_space.validate  # type: ignore
         self._create_y = solution_space.create  # the y creator
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
+    def f_evaluate(self, x, fs: np.ndarray) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and the '
@@ -103,7 +103,7 @@ class _MOProcessSS(_MOProcessNoSS):
 
         current_y: Final = self._current_y
         self._g(x, current_y)
-        result: Final[Union[int, float]] = self._f_evaluate(current_y, fs)
+        result: Final[int | float] = self._f_evaluate(current_y, fs)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
@@ -154,7 +154,7 @@ class _MOProcessSS(_MOProcessNoSS):
         self._search_space.validate(self._current_best_x)
 
     def _log_and_check_archive_entry(self, index: int, rec: MORecord,
-                                     logger: Logger) -> Union[int, float]:
+                                     logger: Logger) -> int | float:
         """
         Write an archive entry.
 
@@ -170,7 +170,7 @@ class _MOProcessSS(_MOProcessNoSS):
         current_y: Final = self._current_y
         self._g(rec.x, current_y)
         self._solution_space.validate(current_y)
-        f: Final[Union[int, float]] = self._f_evaluate(current_y, tfs)
+        f: Final[int | float] = self._f_evaluate(current_y, tfs)
 
         if not np.array_equal(tfs, rec.fs):
             raise ValueError(

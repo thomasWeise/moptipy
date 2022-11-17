@@ -1,5 +1,5 @@
 """Providing a process without explicit logging with a single space."""
-from typing import Final, List, Union, cast
+from typing import Final, cast
 
 from moptipy.api._process_base import _TIME_IN_NS, _ns_to_ms, _ProcessBase
 from moptipy.api.logging import (
@@ -19,14 +19,14 @@ class _ProcessNoSS(_ProcessBase):
     the search and solution space are the same.
     """
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
                                  'the algorithm knows it.')
             return self._current_best_f
 
-        result: Final[Union[int, float]] = self._f(x)
+        result: Final[int | float] = self._f(x)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
 
@@ -43,7 +43,7 @@ class _ProcessNoSS(_ProcessBase):
 
         return result
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
@@ -68,7 +68,7 @@ class _ProcessNoSS(_ProcessBase):
         return "ProcessWithoutSearchSpace"
 
 
-def _write_log(log: List[List[Union[int, float]]],
+def _write_log(log: list[list[int | float]],
                start_time: int,
                logger: Logger) -> None:
     """

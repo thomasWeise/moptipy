@@ -1,17 +1,7 @@
 """A mock-up of an objective function."""
 
 from math import inf, isfinite, nextafter
-from typing import (
-    Any,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -29,13 +19,12 @@ class MockObjective(Objective):
 
     def __init__(self,
                  is_int: bool = True,
-                 lb: Union[int, float] = -inf,
-                 ub: Union[int, float] = inf,
-                 fmin: Union[int, float, None] = None,
-                 fattractors: Optional[Iterable[Union[
-                     int, float, None]]] = None,
-                 fmax: Union[int, float, None] = None,
-                 seed: Optional[int] = None) -> None:
+                 lb: int | float = -inf,
+                 ub: int | float = inf,
+                 fmin: int | float | None = None,
+                 fattractors: Iterable[int | float | None] | None = None,
+                 fmax: int | float | None = None,
+                 seed: int | None = None) -> None:
         """
         Create a mock objective function.
 
@@ -75,9 +64,9 @@ class MockObjective(Objective):
         if lb >= ub:
             raise ValueError(f"lb={lb} >= ub={ub} not permitted")
         #: the lower bound
-        self.lb: Final[Union[int, float]] = lb
+        self.lb: Final[int | float] = lb
         #: the upper bound
-        self.ub: Final[Union[int, float]] = ub
+        self.ub: Final[int | float] = ub
 
         if fmin is not None:
             if not isinstance(fmin, int if is_int else (int, float)):
@@ -95,7 +84,7 @@ class MockObjective(Objective):
             if fmin >= fmax:
                 raise ValueError(f"fmin={fmin} >= fmax={fmax}")
 
-        values: List[Union[int, float, None]] = [lb, fmin]
+        values: list[int | float | None] = [lb, fmin]
         if fattractors is None:
             while True:
                 values.append(None)
@@ -114,16 +103,16 @@ class MockObjective(Objective):
                 f"is_int={is_int}, and seed={seed}")
 
         #: the minimum value the function actually takes on
-        self.fmin: Final[Union[int, float]] = values[1]
+        self.fmin: Final[int | float] = values[1]
         #: the maximum value the function actually takes on
-        self.fmax: Final[Union[int, float]] = values[-2]
+        self.fmax: Final[int | float] = values[-2]
         #: the mean value the function actually takes on
-        self.fattractors: Final[Tuple[Union[int, float], ...]] =\
-            cast(Tuple[Union[int, float], ...], tuple(values[2:-2]))
+        self.fattractors: Final[tuple[int | float, ...]] =\
+            cast(tuple[int | float, ...], tuple(values[2:-2]))
         #: the internal random number generator
         self.__random: Final[Generator] = random
 
-    def sample(self) -> Union[int, float]:
+    def sample(self) -> int | float:
         """
         Sample the mock objective function.
 
@@ -132,19 +121,19 @@ class MockObjective(Objective):
         return sample_from_attractors(self.__random, self.fattractors,
                                       self.is_int, self.lb, self.ub)
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """
         Return a mock objective value.
 
         :param x: the candidate solution
         :return: the objective value
         """
-        seed: Optional[int] = None
+        seed: int | None = None
         if hasattr(x, "__hash__") and (x.__hash__ is not None):
             seed = hash(x)
         elif isinstance(x, np.ndarray):
             seed = hash(x.tobytes())
-        elif isinstance(x, List):
+        elif isinstance(x, list):
             seed = hash(str(x))
 
         if seed is None:
@@ -155,7 +144,7 @@ class MockObjective(Objective):
         return sample_from_attractors(random, self.fattractors,
                                       self.is_int, self.lb, self.ub)
 
-    def lower_bound(self) -> Union[float, int]:
+    def lower_bound(self) -> float | int:
         """
         Get the lower bound of the objective value.
 
@@ -163,7 +152,7 @@ class MockObjective(Objective):
         """
         return self.lb
 
-    def upper_bound(self) -> Union[float, int]:
+    def upper_bound(self) -> float | int:
         """
         Get the upper bound of the objective value.
 
@@ -206,7 +195,7 @@ class MockObjective(Objective):
             raise type_error(dtype, "dtype", np.dtype)
 
         random = default_rng()
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         use_min = random.integers(2) <= 0
         use_max = random.integers(2) <= 0
         if not (use_min or use_max):

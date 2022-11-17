@@ -3,18 +3,7 @@ import os.path
 import statistics as st
 import warnings
 from math import isfinite, sqrt
-from typing import (
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Callable, Final, Iterable, Sequence, cast
 
 import matplotlib.pyplot  # type: ignore
 from matplotlib.artist import Artist  # type: ignore
@@ -32,9 +21,9 @@ from moptipy.utils.types import type_error, type_name_of
 __GOLDEN_RATIO: Final[float] = 0.5 + (0.5 * sqrt(5))
 
 
-def create_figure(width: Union[float, int, None] = 8.6,
-                  height: Union[float, int, None] = None,
-                  dpi: Union[float, int, None] = 384.0,
+def create_figure(width: float | int | None = 8.6,
+                  height: float | int | None = None,
+                  dpi: float | int | None = 384.0,
                   **kwargs) -> Figure:
     """
     Create a matplotlib figure.
@@ -98,7 +87,7 @@ def create_figure(width: Union[float, int, None] = 8.6,
     return Figure(**kwargs)
 
 
-def __divide_evenly(items: int, chunks: int, reverse: bool) -> List[int]:
+def __divide_evenly(items: int, chunks: int, reverse: bool) -> list[int]:
     """
     Divide `n` items into `k` chunks, trying to create equally-sized chunks.
 
@@ -130,7 +119,7 @@ def __divide_evenly(items: int, chunks: int, reverse: bool) -> List[int]:
     # Our basic solution is to put exactly this many items into each chunk.
     # For example, if items=10 and chunks=3, this will fill 3 items into each
     # chunk.
-    result: List[int] = [items // chunks] * chunks
+    result: list[int] = [items // chunks] * chunks
     # We then fill the remaining items into the chunks at the front
     # (reverse=False) or end (reverse=True) of the list.
     # We do this by putting exactly one such item into each chunk, starting
@@ -157,13 +146,13 @@ def create_figure_with_subplots(
         max_cols: int = 1,
         min_rows: int = 1,
         min_cols: int = 1,
-        default_width_per_col: Union[float, int, None] = 8.6,
-        max_width: Union[float, int, None] = 8.6,
-        default_height_per_row: Union[float, int, None] = 8.6 / __GOLDEN_RATIO,
-        max_height: Union[float, int, None] = 9,
-        dpi: Union[float, int, None] = 384.0,
+        default_width_per_col: float | int | None = 8.6,
+        max_width: float | int | None = 8.6,
+        default_height_per_row: float | int | None = 8.6 / __GOLDEN_RATIO,
+        max_height: float | int | None = 9,
+        dpi: float | int | None = 384.0,
         **kwargs) \
-        -> Tuple[Figure, Tuple[Tuple[Union[SubplotBase, Figure],
+        -> tuple[Figure, tuple[tuple[SubplotBase | Figure,
                                      int, int, int, int, int], ...]]:
     """
     Divide a figure into nrows*ncols sub-plots.
@@ -285,7 +274,7 @@ def create_figure_with_subplots(
     width_i: Final[int] = height_i + 1
     plots_per_row_i: Final[int] = width_i + 1
     chunks_i: Final[int] = plots_per_row_i + 1
-    best: Tuple[float,  # the plots-per-row std
+    best: tuple[float,  # the plots-per-row std
                 float,  # the items-per-plot std
                 float,  # the overall area of the figure
                 float,  # the std deviation of (w, h*golden_ratio),
@@ -296,8 +285,8 @@ def create_figure_with_subplots(
                 int,  # the number of cols
                 float,  # the figure height
                 float,  # the figure width
-                List[int],  # the plots per row
-                List[int]] = \
+                list[int],  # the plots per row
+                list[int]] = \
         (1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 1000000.0,
          1 << 62, 1 << 62, 1 << 62, 1000000.0, 1000000.0, [0], [0])
 
@@ -340,9 +329,9 @@ def create_figure_with_subplots(
                 plot_distr = __divide_evenly(plots, rows, reverse=False)
                 item_distr = __divide_evenly(items, plots, reverse=True)
 
-                current: Tuple[float, float, float, float, float, float,
+                current: tuple[float, float, float, float, float, float,
                                int, int, int, float, float,
-                               List[int], List[int]] = (
+                               list[int], list[int]] = (
                     st.stdev(plot_distr) if rows > 1 else 0,
                     st.stdev(item_distr) if plots > 1 else 0,
                     fig_height * fig_width,  # the area of the figure
@@ -379,14 +368,14 @@ def create_figure_with_subplots(
         return figure, tuple([(figure, 0, items, 0, 0, 0)])
 
     # if there are multiple plots, we need to generate them
-    allfigs: List[Tuple[Union[SubplotBase, Figure],
+    allfigs: list[tuple[SubplotBase | Figure,
                         int, int, int, int, int]] = []
     index: int = 0
     chunk_start: int = 0
     nrows: Final[int] = best[rows_i]  # type: ignore
     ncols: Final[int] = best[cols_i]  # type: ignore
-    chunks: Final[List[int]] = best[chunks_i]  # type: ignore
-    plots_per_row: Final[List[int]] = best[plots_per_row_i]  # type: ignore
+    chunks: Final[list[int]] = best[chunks_i]  # type: ignore
+    plots_per_row: Final[list[int]] = best[plots_per_row_i]  # type: ignore
     for i in range(nrows):
         for j in range(plots_per_row[i]):
             chunk_next = chunk_start + chunks[index]
@@ -401,7 +390,7 @@ def create_figure_with_subplots(
 def save_figure(fig: Figure,
                 file_name: str = "figure",
                 dir_name: str = ".",
-                formats: Union[str, Iterable[str]] = "svg") -> List[Path]:
+                formats: str | Iterable[str] = "svg") -> list[Path]:
     """
     Store the given figure in files of the given formats and dispose it.
 
@@ -467,12 +456,12 @@ def save_figure(fig: Figure,
 
 def label_box(axes: Axes,
               text: str,
-              x: Optional[float] = None,
-              y: Optional[float] = None,
+              x: float | None = None,
+              y: float | None = None,
               font_size: float = pd.importance_to_font_size(0),
               may_rotate_text: bool = False,
-              z_order: Optional[float] = None,
-              font: Union[None, str, Callable] =
+              z_order: float | None = None,
+              font: None | str | Callable =
               lambda: Lang.current().font()) -> None:
     """
     Put a label text box near an axis.
@@ -544,14 +533,14 @@ def label_box(axes: Axes,
 
 
 def label_axes(axes: Axes,
-               x_label: Optional[str] = None,
+               x_label: str | None = None,
                x_label_inside: bool = True,
                x_label_location: float = 0.5,
-               y_label: Optional[str] = None,
+               y_label: str | None = None,
                y_label_inside: bool = True,
                y_label_location: float = 1,
                font_size: float = pd.importance_to_font_size(0),
-               z_order: Optional[float] = None) -> None:
+               z_order: float | None = None) -> None:
     """
     Put labels on a figure.
 
@@ -595,7 +584,7 @@ def label_axes(axes: Axes,
                 axes.set_ylabel(y_label, fontsize=font_size)
 
 
-def get_axes(figure: Union[Axes, SubplotBase, Figure]) -> Axes:
+def get_axes(figure: Axes | SubplotBase | Figure) -> Axes:
     """
     Obtain the axes from a figure or axes object.
 
@@ -628,7 +617,7 @@ def get_axes(figure: Union[Axes, SubplotBase, Figure]) -> Axes:
         f"Cannot get Axes of object of type {type_name_of(figure)}.")
 
 
-def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
+def get_renderer(figure: SubplotBase | Axes | Figure) -> RendererBase:
     """
     Get a renderer that can be used for determining figure element sizes.
 
@@ -649,7 +638,7 @@ def get_renderer(figure: Union[SubplotBase, Axes, Figure]) -> RendererBase:
                        dpi=figure.get_dpi())
 
 
-def cm_to_inch(cm: Union[int, float]) -> float:
+def cm_to_inch(cm: int | float) -> float:
     """
     Convert cm to inch.
 
@@ -669,7 +658,7 @@ def cm_to_inch(cm: Union[int, float]) -> float:
 
 
 #: the color attributes
-__COLOR_ATTRS: Final[Tuple[Tuple[bool, bool, str], ...]] = \
+__COLOR_ATTRS: Final[tuple[tuple[bool, bool, str], ...]] = \
     ((True, True, "get_label"), (False, True, "label"),
      (False, True, "_label"), (True, False, "get_color"),
      (False, False, "color"), (False, False, "_color"),
@@ -677,10 +666,11 @@ __COLOR_ATTRS: Final[Tuple[Tuple[bool, bool, str], ...]] = \
      (False, False, "markeredgecolor"), (False, False, "_markeredgecolor"))
 
 
-def get_label_colors(handles: Iterable[Artist], color_map: Optional[Dict[
-                     str, Union[Tuple[float, ...], str]]] = None,
-                     default_color: Union[Tuple[float, ...], str]
-                     = pd.COLOR_BLACK) -> List[Union[Tuple[float, ...], str]]:
+def get_label_colors(
+        handles: Iterable[Artist],
+        color_map: dict[str, tuple[float, ...] | str] | None = None,
+        default_color: tuple[float, ...] | str = pd.COLOR_BLACK) \
+        -> list[tuple[float, ...] | str]:
     """
     Get a list with label colors from a set of artists.
 

@@ -1,17 +1,7 @@
 """Statistic runs are time-depending statistics over several runs."""
 from dataclasses import dataclass
 from math import erf, sqrt
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Final, Iterable
 
 import numba  # type: ignore
 import numpy as np
@@ -32,7 +22,7 @@ __Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
 
 
 @numba.njit
-def _unique_floats_1d(data: Tuple[np.ndarray, ...]) -> np.ndarray:
+def _unique_floats_1d(data: tuple[np.ndarray, ...]) -> np.ndarray:
     """
     Get all unique values that are >= than the minimum of all arrays.
 
@@ -53,8 +43,8 @@ def _unique_floats_1d(data: Tuple[np.ndarray, ...]) -> np.ndarray:
 
 @numba.njit(inline='always')
 def __apply_fun(x_unique: np.ndarray,
-                x_raw: Tuple[np.ndarray, ...],
-                y_raw: Tuple[np.ndarray, ...],
+                x_raw: tuple[np.ndarray, ...],
+                y_raw: tuple[np.ndarray, ...],
                 stat_func: Callable,
                 out_len: int,
                 dest_y: np.ndarray,
@@ -110,8 +100,8 @@ def __apply_fun(x_unique: np.ndarray,
 
 @numba.jit(forceobj=True)
 def _apply_fun(x_unique: np.ndarray,
-               x_raw: Tuple[np.ndarray, ...],
-               y_raw: Tuple[np.ndarray, ...],
+               x_raw: tuple[np.ndarray, ...],
+               y_raw: tuple[np.ndarray, ...],
                stat_func: Callable) -> np.ndarray:
     """
     Compute a time-depending statistic.
@@ -312,7 +302,7 @@ STAT_Q159: Final[str] = "q159"
 STAT_Q841: Final[str] = "q841"
 
 #: The internal function map.
-_FUNC_MAP: Final[Dict[str, Callable]] = {
+_FUNC_MAP: Final[dict[str, Callable]] = {
     STAT_MINIMUM: __stat_min,
     STAT_MEDIAN: __stat_median,
     STAT_MEAN_ARITH: __stat_arith_mean,
@@ -338,8 +328,8 @@ class StatRun(MultiRun2DData):
     stat: np.ndarray
 
     def __init__(self,
-                 algorithm: Optional[str],
-                 instance: Optional[str],
+                 algorithm: str | None,
+                 instance: str | None,
                  n: int,
                  time_unit: str,
                  f_name: str,
@@ -378,7 +368,7 @@ class StatRun(MultiRun2DData):
 
     @staticmethod
     def create(source: Iterable[Progress],
-               statistics: Union[str, Iterable[str]],
+               statistics: str | Iterable[str],
                consumer: Callable[['StatRun'], Any]) -> None:
         """
         Compute statistics from an iterable of `Progress` objects.
@@ -396,12 +386,12 @@ class StatRun(MultiRun2DData):
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
 
-        algorithm: Optional[str] = None
-        instance: Optional[str] = None
-        time_unit: Optional[str] = None
-        f_name: Optional[str] = None
-        time: List[np.ndarray] = []
-        f: List[np.ndarray] = []
+        algorithm: str | None = None
+        instance: str | None = None
+        time_unit: str | None = None
+        f_name: str | None = None
+        time: list[np.ndarray] = []
+        f: list[np.ndarray] = []
         n: int = 0
 
         for progress in source:
@@ -431,9 +421,9 @@ class StatRun(MultiRun2DData):
         if n <= 0:
             raise ValueError("Did not encounter any progress information.")
 
-        x: Final[Tuple[np.ndarray, ...]] = tuple(time)
+        x: Final[tuple[np.ndarray, ...]] = tuple(time)
         del time
-        y: Final[Tuple[np.ndarray, ...]] = tuple(f)
+        y: Final[tuple[np.ndarray, ...]] = tuple(f)
         del f
 
         x_unique = _unique_floats_1d(x)
@@ -461,7 +451,7 @@ class StatRun(MultiRun2DData):
 
     @staticmethod
     def from_progress(source: Iterable[Progress],
-                      statistics: Union[str, Iterable[str]],
+                      statistics: str | Iterable[str],
                       consumer: Callable[['StatRun'], Any],
                       join_all_algorithms: bool = False,
                       join_all_instances: bool = False) -> None:
@@ -490,7 +480,7 @@ class StatRun(MultiRun2DData):
         if not isinstance(join_all_instances, bool):
             raise type_error(join_all_instances, "join_all_instances", bool)
 
-        sorter: Dict[str, List[Progress]] = {}
+        sorter: dict[str, list[Progress]] = {}
         for prog in source:
             if not isinstance(prog, Progress):
                 raise type_error(prog, "progress source", Progress)
@@ -516,7 +506,7 @@ class StatRun(MultiRun2DData):
             StatRun.create(next(iter(sorter.values())), statistics, consumer)
 
 
-def get_statistic(obj: Union[PerRunData, MultiRunData]) -> Optional[str]:
+def get_statistic(obj: PerRunData | MultiRunData) -> str | None:
     """
     Get the statistic of a given object.
 

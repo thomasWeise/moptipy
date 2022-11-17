@@ -1,6 +1,5 @@
 """Use the objective values directly as fitness."""
 
-from typing import List
 
 from numpy.random import Generator
 
@@ -21,7 +20,7 @@ class Direct(Fitness):
     Algorithm implementation (:class:`~moptipy.algorithms.so.ea.EA`).
     """
 
-    def assign_fitness(self, p: List[FRecord], random: Generator) -> None:
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the objective value as fitness.
 

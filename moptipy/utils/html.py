@@ -1,7 +1,7 @@
 """The HTML text format driver."""
 
 from io import TextIOBase
-from typing import Dict, Final
+from typing import Final
 
 from moptipy.utils.formatted_string import (
     NAN,
@@ -17,7 +17,7 @@ from moptipy.utils.text_format import MODE_TABLE_HEADER, TextFormatDriver
 _BORDER: Final[str] = "1pt solid black"
 
 #: special characters in HTML
-SPECIAL_CHARS: Final[Dict[str, str]] = {
+SPECIAL_CHARS: Final[dict[str, str]] = {
     "\u2205": "&#x2205;",
     "\u221E": "&#x221e;",
     "-\u221E": "-&#x221e;",

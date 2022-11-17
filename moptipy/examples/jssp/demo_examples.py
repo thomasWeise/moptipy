@@ -1,7 +1,7 @@
 """Some fixed demo codes for the JSSP examples."""
 import sys
 import urllib.request as rq
-from typing import Callable, Final, Iterable, List, Union
+from typing import Callable, Final, Iterable
 
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
@@ -139,10 +139,10 @@ def demo_gantt_chart(dirname: str,
                      optimum: bool = False,
                      with_makespan: bool = False,
                      with_lower_bound: bool = False,
-                     width: Union[float, int, None] = cm_to_inch(10),
-                     height: Union[float, int, None] = None,
-                     filename: Union[str, Callable] =
-                     __make_gantt_demo_name) -> List[Path]:
+                     width: float | int | None = cm_to_inch(10),
+                     height: float | int | None = None,
+                     filename: str | Callable =
+                     __make_gantt_demo_name) -> list[Path]:
     """
     Plot the demo gantt chart.
 
@@ -164,8 +164,8 @@ def demo_gantt_chart(dirname: str,
     if not isinstance(filename, str):
         raise type_error(filename, "filename", str)
 
-    result: Final[List[Path]] = []
-    markers: List[Callable] = []
+    result: Final[list[Path]] = []
+    markers: list[Callable] = []
 
     if with_makespan:
         def info(g: Gantt):
@@ -239,7 +239,7 @@ def makespan_lower_bound_table(
 
     lang: Final[Lang] = Lang.current()
 
-    text: Final[List[str]] = [
+    text: Final[list[str]] = [
         r"|name|$\jsspJobs$|$\jsspMachines$|$\lowerBound(\objf)$|"
         + r"$\lowerBound(\objf)^{\star}$|source for&nbsp;"
         + r"$\lowerBound(\objf)^{\star}$|",

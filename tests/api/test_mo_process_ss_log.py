@@ -1,7 +1,6 @@
 """Test the `_mo_process_ss`."""
 
 from os.path import exists, isfile
-from typing import List
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -75,7 +74,7 @@ def test_mo_process_ss_log():
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
             assert 0 < process.get_consumed_fes()
             assert 0 < process.get_consumed_time_millis()
-            archive: List[MORecord] = process.get_archive()
+            archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
                 assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()
@@ -184,7 +183,7 @@ def test_process_ss_log_all():
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
             assert 0 < process.get_consumed_fes()
             assert 0 < process.get_consumed_time_millis()
-            archive: List[MORecord] = process.get_archive()
+            archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
                 assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()

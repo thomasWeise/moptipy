@@ -1,5 +1,5 @@
 """Test the Sub-Process API."""
-from typing import Callable, Final, List, Union
+from typing import Callable, Final
 
 from numpy.random import Generator, default_rng
 
@@ -46,7 +46,7 @@ class MyAlgorithm(Algorithm2):
 
     def solve(self, process: Process) -> None:
         """Apply an EA for 100 FEs, followed by RLS."""
-        fnew: Union[int, float]
+        fnew: int | float
         fes: int
         x1 = process.create()
         x2 = process.create()
@@ -74,7 +74,7 @@ class MyAlgorithm(Algorithm2):
         if fnew > 0:
             assert process.evaluate(x1) == fnew
 
-        fnew2: Union[int, float]
+        fnew2: int | float
         fes2: int
         with from_starting_point(process, x1, fnew) as z1:
             assert str(z1) == f"fromStart_{process}"
@@ -141,11 +141,11 @@ class MyAlgorithm2(Algorithm2):
 
         # Start at a random point in the search space and evaluate it.
         self.op0.op0(random, best_x)  # Create 1 solution randomly and
-        best_f: Union[int, float] = evaluate(best_x)  # evaluate it.
+        best_f: int | float = evaluate(best_x)  # evaluate it.
 
         while True:  # Never quit!
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
-            new_f: Union[int, float] = evaluate(new_x)
+            new_f: int | float = evaluate(new_x)
             if new_f <= best_f:  # new_x is not worse than best_x?
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
@@ -326,7 +326,7 @@ def test_for_fes_mo_process_no_ss_no_log():
         assert process.get_max_time_millis() is None
         assert 0 <= process.get_best_f() <= dim * dim * dim
         assert 0 < process.get_consumed_fes() <= 100
-        archive: List[MORecord] = process.get_archive()
+        archive: list[MORecord] = process.get_archive()
         for rec in archive:
             assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
             assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()
@@ -394,7 +394,7 @@ def test_without_should_terminate_mo_process_no_ss_no_log():
         assert process.get_max_time_millis() is None
         assert 0 <= process.get_best_f() <= dim * dim * dim
         assert 0 < process.get_consumed_fes() <= 100
-        archive: List[MORecord] = process.get_archive()
+        archive: list[MORecord] = process.get_archive()
         for rec in archive:
             assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
             assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()

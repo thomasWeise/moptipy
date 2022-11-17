@@ -1,6 +1,6 @@
 """Here we implement a space implementation for `Gantt` charts."""
 from math import factorial
-from typing import Final, Set, Tuple
+from typing import Final
 
 import numpy as np
 
@@ -59,7 +59,7 @@ class GanttSpace(Space):
         #: The JSSP Instance to which the Gantt record apply.
         self.instance: Final[Instance] = instance  # +book
         #: The shape for the Gantt chart arrays.
-        self.shape: Final[Tuple[int, int, int]] = (  # +book
+        self.shape: Final[tuple[int, int, int]] = (  # +book
             instance.machines, instance.jobs, 3)  # +book
         #: the data to be used for Gantt charts
         self.dtype: Final[np.dtype] = int_range_to_dtype(
@@ -163,7 +163,7 @@ class GanttSpace(Space):
 
         # now check the sequence on operations per machine
         # we check for overlaps and incorrect operation times
-        jobs_done: Final[Set[int]] = set()
+        jobs_done: Final[set[int]] = set()
         for machinei in range(machines):
             jobs_done.clear()
             last_end = 0

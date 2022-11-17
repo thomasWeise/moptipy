@@ -1,5 +1,5 @@
 """A class for representing Gantt charts as objects."""
-from typing import Final, List, Optional
+from typing import Final
 
 import numpy as np
 
@@ -43,7 +43,7 @@ class Gantt(np.ndarray):
 
     @staticmethod
     def from_log(file: str,
-                 instance: Optional[Instance] = None) -> 'Gantt':
+                 instance: Instance | None = None) -> 'Gantt':
         """
         Load a Gantt chart from a log file.
 
@@ -64,7 +64,7 @@ class Gantt(np.ndarray):
 class _GanttParser(LogParser):
     """The log parser for loading Gantt charts."""
 
-    def __init__(self, instance: Optional[Instance] = None):
+    def __init__(self, instance: Instance | None = None):
         """
         Create the gantt parser.
 
@@ -76,13 +76,13 @@ class _GanttParser(LogParser):
             if not isinstance(instance, Instance):
                 raise type_error(instance, "instance", Instance)
         #: the internal instance
-        self.__instance: Optional[Instance] = instance
+        self.__instance: Instance | None = instance
         #: the internal section mode: 0=none, 1=setup, 2=y
         self.__sec_mode: int = 0
         #: the gantt string
-        self.__gantt_str: Optional[str] = None
+        self.__gantt_str: str | None = None
         #: the result Gantt chart
-        self._result: Optional[Gantt] = None
+        self._result: Gantt | None = None
 
     def start_section(self, title: str) -> bool:
         """Start a section."""
@@ -98,7 +98,7 @@ class _GanttParser(LogParser):
             return True
         return False
 
-    def lines(self, lines: List[str]) -> bool:
+    def lines(self, lines: list[str]) -> bool:
         """Parse the lines."""
         if self.__sec_mode == 1:
             if self.__instance is not None:

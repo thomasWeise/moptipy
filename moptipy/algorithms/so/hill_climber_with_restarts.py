@@ -17,7 +17,7 @@ restart with a new random solution.
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
-from typing import Callable, Final, Union
+from typing import Callable, Final
 
 from numpy.random import Generator
 
@@ -60,12 +60,12 @@ class HillClimberWithRestarts(Algorithm1):
 
         while not should_terminate():  # Until we need to quit....
             self.op0.op0(random, best_x)  # Create random solution and
-            best_f: Union[int, float] = evaluate(best_x)
+            best_f: int | float = evaluate(best_x)
             count: int = 0  # The counter of unsuccessful moves = 0.
 
             while not should_terminate():  # Until we need to quit...
                 op1(random, new_x, best_x)  # new_x=neighbor of best_x
-                new_f: Union[int, float] = evaluate(new_x)
+                new_f: int | float = evaluate(new_x)
                 if new_f < best_f:  # new_x is _better_ than best_x?
                     best_f = new_f  # Store its objective value.
                     best_x, new_x = new_x, best_x  # Swap best and new.

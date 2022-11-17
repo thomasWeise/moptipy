@@ -1,6 +1,6 @@
 """The base class for implementing multi-objective problems."""
 from math import inf, isfinite
-from typing import Any, Callable, Final, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 from numpy import empty
@@ -50,10 +50,10 @@ class BasicMOProblem(MOProblem):
 
     def __init__(self, objectives: Iterable[Objective],
                  get_scalarizer: Callable[
-                     [bool, int, List[Union[int, float]],
-                      List[Union[int, float]]],
-                     Callable[[np.ndarray], Union[int, float]]] = None,
-                 domination: Optional[Callable[[np.ndarray, np.ndarray], int]]
+                     [bool, int, list[int | float],
+                      list[int | float]],
+                     Callable[[np.ndarray], int | float]] = None,
+                 domination: Callable[[np.ndarray, np.ndarray], int] | None
                  = dominates) -> None:
         """
         Create the basic multi-objective optimization problem.
@@ -78,18 +78,18 @@ class BasicMOProblem(MOProblem):
         if not callable(get_scalarizer):
             raise type_error(get_scalarizer, "get_scalarizer", call=True)
 
-        lower_bounds: Final[List[Union[int, float]]] = []
-        upper_bounds: Final[List[Union[int, float]]] = []
-        calls: Final[List[Callable[[Any], Union[int, float]]]] = []
-        min_lower_bound: Union[int, float] = inf
-        max_upper_bound: Union[int, float] = -inf
+        lower_bounds: Final[list[int | float]] = []
+        upper_bounds: Final[list[int | float]] = []
+        calls: Final[list[Callable[[Any], int | float]]] = []
+        min_lower_bound: int | float = inf
+        max_upper_bound: int | float = -inf
 
         # Iterate over all objective functions and see whether they are
         # integer-valued and have finite bounds and to collect the bounds.
         always_int: bool = True
         is_int: bool
-        lb: Union[int, float]
-        ub: Union[int, float]
+        lb: int | float
+        ub: int | float
         for objective in objectives:
             if not isinstance(objective, Objective):
                 raise type_error(objective, "objective[i]", Objective)
@@ -135,8 +135,8 @@ class BasicMOProblem(MOProblem):
         if n <= 0:
             raise ValueError("No objective function found!")
 
-        use_lb: Union[int, float] = min_lower_bound
-        use_ub: Union[int, float] = max_upper_bound
+        use_lb: int | float = min_lower_bound
+        use_ub: int | float = max_upper_bound
         if always_int:
             if isfinite(min_lower_bound) and isfinite(max_upper_bound):
                 use_lb = min(min_lower_bound,
@@ -166,21 +166,21 @@ class BasicMOProblem(MOProblem):
             nn, dt)  # type: ignore
 
         #: the holder for lower bounds
-        self.__lower_bounds: Final[Tuple[Union[int, float], ...]] = \
+        self.__lower_bounds: Final[tuple[int | float, ...]] = \
             tuple(lower_bounds)
         #: the holder for upper bounds
-        self.__upper_bounds: Final[Tuple[Union[int, float], ...]] = \
+        self.__upper_bounds: Final[tuple[int | float, ...]] = \
             tuple(upper_bounds)
 
         # set up the scalarizer
-        self._scalarize: Final[Callable[[np.ndarray], Union[int, float]]] \
+        self._scalarize: Final[Callable[[np.ndarray], int | float]] \
             = get_scalarizer(always_int, n, lower_bounds, upper_bounds)
         if not callable(self._scalarize):
             raise type_error(self._scalarize, "result of get_scalarizer",
                              call=True)
 
         # compute the scalarized bounds
-        temp: Optional[np.ndarray] = None
+        temp: np.ndarray | None = None
         lb = -inf
         if isfinite(min_lower_bound):
             temp = np.array(lower_bounds, dtype=self.__dtype)
@@ -192,7 +192,7 @@ class BasicMOProblem(MOProblem):
                                  f"can only be -inf, but is {lb}.")
             lb = try_int(lb)
         #: the lower bound of this scalarization
-        self.__lower_bound: Final[Union[int, float]] = lb
+        self.__lower_bound: Final[int | float] = lb
 
         ub = inf
         if isfinite(max_upper_bound):
@@ -205,11 +205,11 @@ class BasicMOProblem(MOProblem):
                                  f"can only be inf, but is {ub}.")
             ub = try_int(ub)
         #: the upper bound of this scalarization
-        self.__upper_bound: Final[Union[int, float]] = ub
+        self.__upper_bound: Final[int | float] = ub
 
         #: the internal objectives
-        self.__calls: Final[Tuple[
-            Callable[[Any], Union[int, float]], ...]] = tuple(calls)
+        self.__calls: Final[tuple[
+            Callable[[Any], int | float], ...]] = tuple(calls)
         #: the objective functions
         self._objectives = tuple(objectives)
 
@@ -239,7 +239,7 @@ class BasicMOProblem(MOProblem):
         """
         return self.__dtype
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[int, float]:
+    def f_evaluate(self, x, fs: np.ndarray) -> int | float:
         """
         Perform the multi-objective evaluation of a solution.
 
@@ -251,7 +251,7 @@ class BasicMOProblem(MOProblem):
             fs[i] = o(x)
         return self._scalarize(fs)
 
-    def lower_bound(self) -> Union[float, int]:
+    def lower_bound(self) -> float | int:
         """
         Get the lower bound of the scalarization result.
 
@@ -263,7 +263,7 @@ class BasicMOProblem(MOProblem):
         """
         return self.__lower_bound
 
-    def upper_bound(self) -> Union[float, int]:
+    def upper_bound(self) -> float | int:
         """
         Get the upper bound of the scalarization result.
 
@@ -274,7 +274,7 @@ class BasicMOProblem(MOProblem):
         """
         return self.__upper_bound
 
-    def evaluate(self, x) -> Union[float, int]:
+    def evaluate(self, x) -> float | int:
         """
         Convert the multi-objective problem into a single-objective one.
 
@@ -314,8 +314,8 @@ class BasicMOProblem(MOProblem):
         """
         super().f_validate(x)
 
-        lb: Final[Tuple[Union[int, float], ...]] = self.__lower_bounds
-        ub: Final[Tuple[Union[int, float], ...]] = self.__upper_bounds
+        lb: Final[tuple[int | float, ...]] = self.__lower_bounds
+        ub: Final[tuple[int | float, ...]] = self.__upper_bounds
         for i, v in enumerate(x):
             if v < lb[i]:
                 raise ValueError(

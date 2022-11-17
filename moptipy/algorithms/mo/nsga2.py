@@ -30,7 +30,7 @@ When selecting parents, we apply tournament selection with replacement.
 
 """
 from math import inf
-from typing import Any, Callable, Final, List, cast
+from typing import Any, Callable, Final, cast
 
 import numpy as np
 from numpy.random import Generator
@@ -57,7 +57,7 @@ class _NSGA2Record(MORecord):
         """
         super().__init__(x, fs)
         #: the list of dominated solutions
-        self.dominates: Final[List[_NSGA2Record]] = []
+        self.dominates: Final[list[_NSGA2Record]] = []
         #: the number of solutions this one is dominated by
         self.n_dominated_by: int = 0
         #: the pareto front index
@@ -81,7 +81,7 @@ class _NSGA2Record(MORecord):
 
 
 def _non_dominated_sorting(
-        pop: List[_NSGA2Record],
+        pop: list[_NSGA2Record],
         needed_at_least: int,
         domination: Callable[[np.ndarray, np.ndarray], int]) -> int:
     """
@@ -142,7 +142,7 @@ def _non_dominated_sorting(
     return done
 
 
-def _crowding_distances(pop: List[_NSGA2Record]) -> None:
+def _crowding_distances(pop: list[_NSGA2Record]) -> None:
     """
     Compute the crowding distances.
 
@@ -240,7 +240,7 @@ class NSGA2(Algorithm2, MOAlgorithm):
         # create first population
         pop_size: Final[int] = self.pop_size
         pop_size_2: Final[int] = pop_size + pop_size
-        pop: List[_NSGA2Record] = []
+        pop: list[_NSGA2Record] = []
 
         # create the population
         for _ in range(pop_size):

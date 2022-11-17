@@ -1,6 +1,6 @@
 """An archive of solutions to a multi-objective problems."""
 
-from typing import Any, Final, List
+from typing import Any, Final
 
 import numpy as np
 
@@ -76,7 +76,7 @@ class MORecord:
 class MOArchivePruner(Component):
     """A strategy for pruning an archive of solutions."""
 
-    def prune(self, archive: List[MORecord], n_keep: int, size: int) -> None:
+    def prune(self, archive: list[MORecord], n_keep: int, size: int) -> None:
         """
         Prune an archive.
 
@@ -97,7 +97,7 @@ class MOArchivePruner(Component):
         """
         if size > n_keep:
             n_delete: Final[int] = size - n_keep
-            move_to_end: Final[List[MORecord]] = archive[:n_delete]
+            move_to_end: Final[list[MORecord]] = archive[:n_delete]
             archive[0:n_keep] = archive[n_delete:size]
             archive[size - n_delete:size] = move_to_end
 

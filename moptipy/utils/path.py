@@ -5,7 +5,7 @@ import os.path
 from io import TextIOBase, open
 from re import MULTILINE
 from re import compile as _compile
-from typing import Final, Iterable, List, Pattern, Tuple, Union, cast
+from typing import Final, Iterable, Pattern, cast
 
 from moptipy.utils.strings import regex_sub
 from moptipy.utils.types import type_error
@@ -42,7 +42,7 @@ def _canonicalize_path(path: str) -> str:
 UTF8: Final[str] = 'utf-8-sig'
 
 #: The list of possible text encodings
-__ENCODINGS: Final[Tuple[Tuple[Tuple[bytes, ...], str], ...]] = \
+__ENCODINGS: Final[tuple[tuple[tuple[bytes, ...], str], ...]] = \
     (((codecs.BOM_UTF8,), UTF8),
      ((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE,), 'utf-32'),
      ((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE), 'utf-16'))
@@ -80,7 +80,7 @@ class Path(str):
 
         :param value: the string value
         """
-        ret = super(Path, cls).__new__(cls, _canonicalize_path(value))
+        ret = super().__new__(cls, _canonicalize_path(value))
         return ret
 
     def enforce_file(self) -> None:
@@ -192,7 +192,7 @@ class Path(str):
             self, mode="rt", encoding=_get_text_encoding(self),
             errors="strict"))
 
-    def read_all_list(self) -> List[str]:
+    def read_all_list(self) -> list[str]:
         """
         Read all the lines in a file.
 
@@ -201,8 +201,8 @@ class Path(str):
         self.enforce_file()
         with self.open_for_read() as reader:
             ret = reader.readlines()
-        if not isinstance(ret, List):
-            raise type_error(ret, f"return value of reading '{self}'", List)
+        if not isinstance(ret, list):
+            raise type_error(ret, f"return value of reading '{self}'", list)
         if len(ret) <= 0:
             raise ValueError(f"File '{self}' contains no text.")
         return [s.rstrip() for s in ret]
@@ -231,7 +231,7 @@ class Path(str):
         return cast(TextIOBase, open(
             self, mode="wt", encoding="utf-8", errors="strict"))
 
-    def write_all(self, contents: Union[str, Iterable[str]]) -> None:
+    def write_all(self, contents: str | Iterable[str]) -> None:
         """
         Write all the lines to this file.
 

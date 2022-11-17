@@ -10,7 +10,7 @@ It supports having multiple objective functions.
 It also provides a single core objective value, which is the scalarized
 result of several objective values.
 """
-from typing import Any, List, Union
+from typing import Any
 
 import numpy as np
 
@@ -30,12 +30,12 @@ class MOProcess(MOProblem, Process):
     :class:`~moptipy.api.mo_problem.MOProblem`.
     """
 
-    def register(self, x, f: Union[int, float]) -> None:
+    def register(self, x, f: int | float) -> None:
         """Unavailable during multi-objective optimization."""
         raise ValueError(
             "register is not available during multi-objective optimization.")
 
-    def get_archive(self) -> List[MORecord]:
+    def get_archive(self) -> list[MORecord]:
         """
         Get the archive of non-dominated solutions.
 

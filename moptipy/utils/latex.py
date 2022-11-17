@@ -1,7 +1,7 @@
 """The latex text format driver."""
 
 from io import TextIOBase
-from typing import Dict, Final
+from typing import Final
 
 from moptipy.utils.formatted_string import (
     NAN,
@@ -17,7 +17,7 @@ from moptipy.utils.text_format import TextFormatDriver
 _EPREFIX = r"\hspace*{0.15em}*\hspace*{0.1em}10\textsuperscript{"
 
 #: special characters in LaTeX
-SPECIAL_CHARS: Final[Dict[str, str]] = {
+SPECIAL_CHARS: Final[dict[str, str]] = {
     "\u2205": r"$\emptyset$",
     "\u221E": r"$\infty$",
     "-\u221E": r"$-\infty$",

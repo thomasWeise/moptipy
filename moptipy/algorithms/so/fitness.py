@@ -35,7 +35,6 @@ Processes have been implemented so far:
 """
 
 from math import inf
-from typing import List, Union
 
 from numpy.random import Generator
 
@@ -51,7 +50,7 @@ class FRecord(Record, FitnessRecord):
 
 # end book
 
-    def __init__(self, x, f: Union[int, float]):
+    def __init__(self, x, f: int | float):
         """
         Create the record.
 
@@ -60,7 +59,7 @@ class FRecord(Record, FitnessRecord):
         """
         super().__init__(x, f)
         #: the fitness assigned to the solution `x`
-        self.fitness: Union[int, float] = inf
+        self.fitness: int | float = inf
 
     def __lt__(self, other) -> bool:
         """
@@ -97,7 +96,7 @@ class FRecord(Record, FitnessRecord):
 class Fitness(Component):
     """The base class for fitness assignment processes."""
 
-    def assign_fitness(self, p: List[FRecord],
+    def assign_fitness(self, p: list[FRecord],
                        random: Generator) -> None:  # pylint: disable=W0613
         """
         Assign a fitness to each element in the list `p`.

@@ -1,7 +1,7 @@
 """Progress data over a run."""
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Dict, Final, List, Optional, Union
+from typing import Any, Callable, Final
 
 import numpy as np
 
@@ -49,7 +49,7 @@ class Progress(PerRunData):
     #: the standard value of the the objective dimension.
     #: If :attr:`f_name` is `F_NAME_SCALED` or `F_NAME_NORMALIZED`.
     #: then this value has been used to normalize the data.
-    f_standard: Union[int, float, None]
+    f_standard: int | float | None
 
     def __init__(self,
                  algorithm: str,
@@ -59,7 +59,7 @@ class Progress(PerRunData):
                  time_unit: str,
                  f: np.ndarray,
                  f_name: str,
-                 f_standard: Union[int, float, None] = None,
+                 f_standard: int | float | None = None,
                  only_improvements: bool = True):
         """
         Create a consistent instance of :class:`EndResult`.
@@ -155,7 +155,7 @@ class Progress(PerRunData):
                   consumer: Callable[['Progress'], Any],
                   time_unit: str = TIME_UNIT_FES,
                   f_name: str = F_NAME_RAW,
-                  f_standard: Optional[Dict[str, Union[int, float]]] = None,
+                  f_standard: dict[str, int | float] | None = None,
                   only_improvements: bool = True) -> None:
         """
         Parse a given path and pass all progress data found to the consumer.
@@ -230,7 +230,7 @@ class _InnerLogParser(ExperimentParser):
 
     def __init__(self, time_unit: str, f_name: str,
                  consumer: Callable[[Progress], Any],
-                 f_standard: Optional[Dict[str, Union[int, float]]] = None,
+                 f_standard: dict[str, int | float] | None = None,
                  only_improvements: bool = True):
         """
         Create the internal log parser.
@@ -248,18 +248,18 @@ class _InnerLogParser(ExperimentParser):
         self.__consumer: Final[Callable[[Progress], Any]] = consumer
         self.__time_unit = check_time_unit(time_unit)
         self.__f_name = check_f_name(f_name)
-        self.__total_time: Optional[int] = None
-        self.__total_fes: Optional[int] = None
-        self.__last_fe: Optional[int] = None
-        self.__goal_f: Union[int, float, None] = None
-        self.__t_collector: Final[List[int]] = []
-        self.__f_collector: Final[List[Union[int, float]]] = []
+        self.__total_time: int | None = None
+        self.__total_fes: int | None = None
+        self.__last_fe: int | None = None
+        self.__goal_f: int | float | None = None
+        self.__t_collector: Final[list[int]] = []
+        self.__f_collector: Final[list[int | float]] = []
         if not isinstance(only_improvements, bool):
             raise type_error(only_improvements, "only_improvements", bool)
         self.__only_improvements = only_improvements
         if (f_standard is not None) and (not isinstance(f_standard, dict)):
-            raise type_error(f_standard, "f_standard", Dict)
-        self.__f_standard: Final[Union[None, Dict[str, Union[int, float]]]] \
+            raise type_error(f_standard, "f_standard", dict)
+        self.__f_standard: Final[None | dict[str, int | float]] \
             = f_standard
         self.__state = 0
 
@@ -293,7 +293,7 @@ class _InnerLogParser(ExperimentParser):
         if not self.__t_collector:
             raise ValueError("time-collector cannot be empty.")
 
-        f_standard: Union[int, float, None] = None
+        f_standard: int | float | None = None
         if (self.__f_standard is not None) and \
                 (self.instance in self.__f_standard):
             f_standard = self.__f_standard[self.instance]
@@ -366,9 +366,9 @@ class _InnerLogParser(ExperimentParser):
             return True
         return False
 
-    def lines(self, lines: List[str]) -> bool:
+    def lines(self, lines: list[str]) -> bool:
         if not isinstance(lines, list):
-            raise type_error(lines, "lines", List)
+            raise type_error(lines, "lines", list)
 
         if (self.__state & 24) != 0:  # final state or setup
             data = parse_key_values(lines)
@@ -447,7 +447,7 @@ class _InnerLogParser(ExperimentParser):
             f = [str_to_intfloat(v) for v in f]
             if self.__only_improvements:
                 biggest_t: int = -1
-                best_f: Union[int, float] = inf
+                best_f: int | float = inf
                 for idx, t in enumerate(time):
                     v = f[idx]
                     if t > biggest_t:

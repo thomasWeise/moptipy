@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations of a base string."""
 from math import factorial
-from typing import Dict, Final, Iterable, List, Optional
+from typing import Final, Iterable
 
 import numpy
 
@@ -88,14 +88,14 @@ class Permutations(IntSpace):  # +book
         if not isinstance(base_string, Iterable):
             raise type_error(base_string, "base_string", Iterable)
 
-        string: Final[List[int]] = sorted(base_string)
+        string: Final[list[int]] = sorted(base_string)
         total: Final[int] = len(string)
         if total <= 0:
             raise ValueError(
                 f"base string must not be empty, but is {base_string}.")
 
         # get data ranges
-        self.__shape: Final[Dict[int, int]] = {}
+        self.__shape: Final[dict[int, int]] = {}
         minimum: int = string[0]
         maximum: int = string[0]
         for i in string:
@@ -124,7 +124,7 @@ class Permutations(IntSpace):  # +book
         # end book
 
         npoints: int = factorial(total)
-        rep: Optional[int] = self.__shape.get(minimum)
+        rep: int | None = self.__shape.get(minimum)
         for v in self.__shape.values():
             npoints = npoints // factorial(v)
             if v != rep:
@@ -134,7 +134,7 @@ class Permutations(IntSpace):  # +book
 
         #: the number of repetitions if all elements occur as same
         #: as often, or None otherwise
-        self.__repetitions: Final[Optional[int]] = rep
+        self.__repetitions: Final[int | None] = rep
 
     def has_repetitions(self) -> bool:
         """
@@ -170,7 +170,7 @@ class Permutations(IntSpace):  # +book
         """
         super().log_parameters_to(logger)
 
-        reps: Final[Optional[int]] = self.__repetitions
+        reps: Final[int | None] = self.__repetitions
         if reps:
             logger.key_value(KEY_REPETITIONS, reps)
             if self.is_dense():
@@ -203,7 +203,7 @@ class Permutations(IntSpace):  # +book
             element is not finite.
         """
         super().validate(x)
-        counts: Dict[int, int] = {}
+        counts: dict[int, int] = {}
         for xx in x:
             counts[xx] = counts.get(xx, 0) + 1
 
@@ -245,7 +245,7 @@ class Permutations(IntSpace):  # +book
         """
         minimum: Final[int] = self.min_value
         maximum: Final[int] = self.max_value
-        reps: Final[Optional[int]] = self.__repetitions
+        reps: Final[int | None] = self.__repetitions
         different: Final[int] = self.n()
         if reps and (different != (self.dimension // reps)):
             raise ValueError(f"huh? {different} != {self.dimension} / {reps}")

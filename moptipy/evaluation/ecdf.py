@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
+from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 
@@ -43,15 +43,15 @@ class Ecdf(MultiRun2DData):
     n_insts: int
     #: The goal value, or None if different goals were used for different
     #: instances
-    goal_f: Union[int, float, None]
+    goal_f: int | float | None
 
     def __init__(self,
-                 algorithm: Optional[str],
+                 algorithm: str | None,
                  n: int,
                  n_insts: int,
                  time_unit: str,
                  f_name: str,
-                 goal_f: Union[int, float, None],
+                 goal_f: int | float | None,
                  ecdf: np.ndarray):
         """
         Create the ECDF function.
@@ -169,8 +169,8 @@ class Ecdf(MultiRun2DData):
         return path
 
     @staticmethod
-    def _compute_times(source: List[Progress],
-                       goal: Union[int, float]) -> List[float]:
+    def _compute_times(source: list[Progress],
+                       goal: int | float) -> list[float]:
         """
         Compute the times for the given goals.
 
@@ -202,7 +202,7 @@ class Ecdf(MultiRun2DData):
     @classmethod
     def create(cls,
                source: Iterable[Progress],
-               goal_f: Union[int, float, Callable, None] = None,
+               goal_f: int | float | Callable | None = None,
                use_default_goal_f: bool = True) -> 'Ecdf':
         """
         Create one single Ecdf record from an iterable of Progress records.
@@ -217,10 +217,10 @@ class Ecdf(MultiRun2DData):
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
 
-        algorithm: Optional[str] = None
-        time_unit: Optional[str] = None
-        f_name: Optional[str] = None
-        inst_runs: Dict[str, List[Progress]] = {}
+        algorithm: str | None = None
+        time_unit: str | None = None
+        f_name: str | None = None
+        inst_runs: dict[str, list[Progress]] = {}
         n: int = 0
 
         for progress in source:
@@ -253,9 +253,9 @@ class Ecdf(MultiRun2DData):
         if (n_insts <= 0) or (n_insts > n):
             raise ValueError("Huh?.")
 
-        times: List[float] = []
-        goal: Union[int, float, None]
-        same_goal_f: Union[int, float, None] = None
+        times: list[float] = []
+        goal: int | float | None
+        same_goal_f: int | float | None = None
         first: bool = True
         for instance, pl in inst_runs.items():
             goal = None
@@ -296,8 +296,8 @@ class Ecdf(MultiRun2DData):
                        np.array([[0, 0], [inf, 0]]))
 
         times.sort()
-        time: List[float] = [0]
-        ecdf: List[float] = [0]
+        time: list[float] = [0]
+        ecdf: list[float] = [0]
         success: int = 0
         div: Final[int] = cls._get_div(n, n_insts)
         ll: int = 0
@@ -323,9 +323,8 @@ class Ecdf(MultiRun2DData):
     def from_progresses(cls,
                         source: Iterable[Progress],
                         consumer: Callable[['Ecdf'], Any],
-                        f_goal: Union[int, float, Callable,
-                                      Iterable[Union[int, float,
-                                                     Callable]]] = None,
+                        f_goal: int | float | Callable | Iterable[
+                            int | float | Callable] = None,
                         join_all_algorithms: bool = False) -> None:
         """
         Compute one or multiple ECDFs from a stream of end results.
@@ -347,7 +346,7 @@ class Ecdf(MultiRun2DData):
         if not isinstance(f_goal, Iterable):
             f_goal = [f_goal]
 
-        sorter: Dict[str, List[Progress]] = {}
+        sorter: dict[str, list[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
                 raise type_error(er, "progress", Progress)
@@ -371,7 +370,7 @@ class Ecdf(MultiRun2DData):
                 consumer(cls.create(sorter[key], goal, use_default_goal))
 
 
-def get_goal(ecdf: Ecdf) -> Union[int, float, None]:
+def get_goal(ecdf: Ecdf) -> int | float | None:
     """
     Get the goal value from the given ecdf instance.
 
@@ -381,7 +380,7 @@ def get_goal(ecdf: Ecdf) -> Union[int, float, None]:
     return ecdf.goal_f
 
 
-def goal_to_str(goal_f: Union[int, float, None]) -> str:
+def goal_to_str(goal_f: int | float | None) -> str:
     """
     Transform a goal to a string.
 

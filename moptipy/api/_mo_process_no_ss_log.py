@@ -1,5 +1,5 @@
 """A multi-objective process with logging."""
-from typing import Final, List, Optional, Union
+from typing import Final
 
 import numpy as np
 from numpy import copyto
@@ -25,11 +25,11 @@ class _MOProcessNoSSLog(_MOProcessNoSS):
                  pruner: MOArchivePruner,
                  archive_max_size: int,
                  archive_prune_limit: int,
-                 log_file: Optional[Path] = None,
-                 rand_seed: Optional[int] = None,
-                 max_fes: Optional[int] = None,
-                 max_time_millis: Optional[int] = None,
-                 goal_f: Union[int, float, None] = None,
+                 log_file: Path | None = None,
+                 rand_seed: int | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 goal_f: int | float | None = None,
                  log_all_fes: bool = False) -> None:
         """
         Perform the internal initialization. Do not call directly.
@@ -68,18 +68,18 @@ class _MOProcessNoSSLog(_MOProcessNoSS):
         #: `True` if all FEs are logged, `False` to only log improvements.
         self.__log_all: Final[bool] = log_all_fes
         #: The in-memory log
-        self.__log: List[List[Union[int, float, np.ndarray]]] = []
+        self.__log: list[list[int | float | np.ndarray]] = []
         #: the quick access to the log appending method
         self.__log_append = self.__log.append
 
-    def f_evaluate(self, x, fs: np.ndarray) -> Union[float, int]:
+    def f_evaluate(self, x, fs: np.ndarray) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
                 raise ValueError('The process has been terminated and '
                                  'the algorithm knows it.')
             return self._current_best_f
 
-        result: Final[Union[int, float]] = self._f_evaluate(x, fs)
+        result: Final[int | float] = self._f_evaluate(x, fs)
         self._current_fes = current_fes = self._current_fes + 1
         do_term: bool = current_fes >= self._end_fes
         do_log: bool = self.__log_all

@@ -1,6 +1,6 @@
 """Some internal helper functions."""
 
-from typing import Final, Union
+from typing import Final
 
 import numba  # type: ignore
 import numpy as np
@@ -19,7 +19,7 @@ _FULL_KEY_RAND_SEED: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_RAND_SEED}"
 #: the FE when the best objective value was reached
 
 
-def _check_max_time_millis(max_time_millis: Union[int, float],
+def _check_max_time_millis(max_time_millis: int | float,
                            total_fes: int,
                            total_time_millis: int) -> None:
     """
@@ -58,7 +58,7 @@ def _check_max_time_millis(max_time_millis: Union[int, float],
 
 
 @numba.njit(nogil=True)
-def _get_reach_index(f: np.ndarray, goal_f: Union[int, float]):
+def _get_reach_index(f: np.ndarray, goal_f: int | float):
     """
     Compute the offset from the end of `f` when `goal_f` was reached.
 
