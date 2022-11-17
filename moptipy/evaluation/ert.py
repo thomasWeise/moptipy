@@ -6,21 +6,38 @@ impression of how long an algorithm needs to reach a certain solution quality.
 """
 
 from dataclasses import dataclass
-from math import isfinite, inf
-from typing import Optional, Iterable, List, Final, cast, Union, Any, Dict, \
-    Callable
+from math import inf, isfinite
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
 from moptipy.evaluation._utils import _get_reach_index
-from moptipy.evaluation.base import MultiRun2DData, F_NAME_SCALED, \
-    F_NAME_NORMALIZED, F_NAME_RAW, KEY_N
+from moptipy.evaluation.base import (
+    F_NAME_NORMALIZED,
+    F_NAME_RAW,
+    F_NAME_SCALED,
+    KEY_N,
+    MultiRun2DData,
+)
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
-from moptipy.utils.logger import CSV_SEPARATOR, KEY_VALUE_SEPARATOR, \
-    COMMENT_CHAR
+from moptipy.utils.logger import (
+    COMMENT_CHAR,
+    CSV_SEPARATOR,
+    KEY_VALUE_SEPARATOR,
+)
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error

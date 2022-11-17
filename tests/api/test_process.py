@@ -1,9 +1,10 @@
 """Test the Process API."""
 from math import sin
-from os.path import isfile, getsize
+from os.path import getsize, isfile
 from typing import Final, Union
 
 import numpy as np
+
 # noinspection PyPackageRequirements
 import pytest
 from numpy.random import Generator

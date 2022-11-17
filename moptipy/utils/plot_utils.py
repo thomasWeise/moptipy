@@ -2,9 +2,19 @@
 import os.path
 import statistics as st
 import warnings
-from math import sqrt, isfinite
-from typing import Final, Iterable, Union, List, Optional, Callable, cast, \
-    Tuple, Sequence, Dict
+from math import isfinite, sqrt
+from typing import (
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import matplotlib.pyplot  # type: ignore
 from matplotlib.artist import Artist  # type: ignore

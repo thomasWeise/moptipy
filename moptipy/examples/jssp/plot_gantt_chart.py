@@ -1,5 +1,5 @@
 """Plot a Gantt chart into one figure."""
-from typing import Final, Callable, Union, Tuple, Iterable, Dict, Optional
+from typing import Callable, Dict, Final, Iterable, Optional, Tuple, Union
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore

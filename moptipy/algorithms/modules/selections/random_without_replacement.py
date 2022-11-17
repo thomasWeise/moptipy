@@ -5,11 +5,11 @@ This selection scheme is the standard mating selection scheme in an
 Evolutionary Algorithm.
 """
 
-from typing import List, Final, Callable, Any
+from typing import Any, Callable, Final, List
 
 from numpy.random import Generator
 
-from moptipy.algorithms.modules.selection import Selection, FitnessRecord
+from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 
 
 # start book

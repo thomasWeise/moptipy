@@ -2,7 +2,7 @@
 
 from collections import Counter
 from math import inf
-from typing import List, Final, Set, Iterable, Optional
+from typing import Final, Iterable, List, Optional, Set
 
 import numpy as np
 from numpy.linalg import norm

@@ -42,7 +42,7 @@ algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts`.
 7. Thomas Weise. *Global Optimization Algorithms - Theory and Application.*
    2009. http://www.it-weise.de/projects/book.pdf
 """
-from typing import Final, Union, Callable
+from typing import Callable, Final, Union
 
 from numpy.random import Generator
 

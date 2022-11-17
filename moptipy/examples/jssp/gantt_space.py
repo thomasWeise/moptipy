@@ -1,15 +1,18 @@
 """Here we implement a space implementation for `Gantt` charts."""
 from math import factorial
-from typing import Final, Tuple, Set
+from typing import Final, Set, Tuple
 
 import numpy as np
 
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
-from moptipy.examples.jssp.instance import Instance, SCOPE_INSTANCE
-from moptipy.utils.logger import KeyValueLogSection, CSV_SEPARATOR
-from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE, \
-    val_numpy_type
+from moptipy.examples.jssp.instance import SCOPE_INSTANCE, Instance
+from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
+from moptipy.utils.nputils import (
+    KEY_NUMPY_TYPE,
+    int_range_to_dtype,
+    val_numpy_type,
+)
 from moptipy.utils.types import type_error
 
 #: the array shape

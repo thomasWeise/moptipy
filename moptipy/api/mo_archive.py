@@ -1,6 +1,6 @@
 """An archive of solutions to a multi-objective problems."""
 
-from typing import Final, List, Any
+from typing import Any, Final, List
 
 import numpy as np
 

@@ -6,7 +6,7 @@ from typing import Final
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
-from moptipy.utils.temp import TempFile, TempDir
+from moptipy.utils.temp import TempDir, TempFile
 
 
 def test_all_examples_from_readme_md():

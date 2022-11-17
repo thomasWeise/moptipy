@@ -29,7 +29,7 @@ count how many of them are feasible.
 """
 import sys
 from math import factorial, log10
-from typing import Tuple, Iterable, List
+from typing import Iterable, List, Tuple
 
 import numba  # type: ignore
 import numpy as np

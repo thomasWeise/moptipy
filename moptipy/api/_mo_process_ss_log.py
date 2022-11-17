@@ -1,5 +1,5 @@
 """A multi-objective process with solution space and logging."""
-from typing import Optional, Union, List, Final
+from typing import Final, List, Optional, Union
 
 import numpy as np
 from numpy import copyto

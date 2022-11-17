@@ -13,10 +13,9 @@ import copy
 import gc
 import multiprocessing as mp
 import os.path
-from contextlib import nullcontext, AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from math import ceil
-from typing import Iterable, Union, Callable, List, Final, Sequence, cast, \
-    Any
+from typing import Any, Callable, Final, Iterable, List, Sequence, Union, cast
 
 import psutil  # type: ignore
 from numpy.random import Generator, default_rng

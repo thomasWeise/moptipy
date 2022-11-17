@@ -10,7 +10,7 @@ It supports having multiple objective functions.
 It also provides a single core objective value, which is the scalarized
 result of several objective values.
 """
-from typing import Union, List, Any
+from typing import Any, List, Union
 
 import numpy as np
 

@@ -47,7 +47,7 @@ will swap 4 elements, and so on.
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
-from typing import Final, Callable
+from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator

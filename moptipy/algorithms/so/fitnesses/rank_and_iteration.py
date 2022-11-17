@@ -10,7 +10,7 @@ value. Ties will be broken based on the iteration counter
 """
 
 from math import inf
-from typing import List, Union, Final
+from typing import Final, List, Union
 
 from numpy.random import Generator
 

@@ -1,5 +1,5 @@
 """Different ways to transform and slice processes."""
-from typing import Final, Callable, Union, Any, TypeVar, Optional
+from typing import Any, Callable, Final, Optional, TypeVar, Union
 
 import numpy as np
 

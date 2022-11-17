@@ -1,8 +1,8 @@
 """Test stuff on real vectors."""
 
-from typing import Callable, Union, Iterable, List, Final, Tuple
+from typing import Callable, Final, Iterable, List, Tuple, Union
 
-from numpy.random import default_rng, Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective

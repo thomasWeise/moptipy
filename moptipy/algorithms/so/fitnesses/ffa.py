@@ -49,16 +49,16 @@ at mu=lambda=1.
 """
 
 
-from typing import List, Final, Union, cast
 from collections import Counter
+from typing import Final, List, Union, cast
 
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.algorithms.so.fitness import Fitness, FRecord
-from moptipy.utils.nputils import DEFAULT_UNSIGNED_INT
-from moptipy.utils.logger import KeyValueLogSection
 from moptipy.api.objective import Objective, check_objective
+from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.nputils import DEFAULT_UNSIGNED_INT
 
 
 class FFA(Fitness):

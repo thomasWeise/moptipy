@@ -1,25 +1,49 @@
 """Provides function :func:`tabulate_end_results` to tabulate end results."""
 
-from math import inf, isfinite, nan, isnan
-from typing import Callable, Final, Iterable, Optional, List, Union, cast, \
-    Dict, Any, Tuple
+from math import inf, isfinite, isnan, nan
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
-from moptipy.api.logging import KEY_ALGORITHM, KEY_INSTANCE, KEY_GOAL_F
-from moptipy.api.logging import KEY_BEST_F, KEY_TOTAL_FES, \
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_TIME_MILLIS, \
-    KEY_LAST_IMPROVEMENT_FE
+from moptipy.api.logging import (
+    KEY_ALGORITHM,
+    KEY_BEST_F,
+    KEY_GOAL_F,
+    KEY_INSTANCE,
+    KEY_LAST_IMPROVEMENT_FE,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+    KEY_TOTAL_FES,
+    KEY_TOTAL_TIME_MILLIS,
+)
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.end_statistics import EndStatistics, KEY_BEST_F_SCALED
-from moptipy.evaluation.statistics import KEY_MINIMUM, KEY_MEAN_ARITH, \
-    KEY_STDDEV, KEY_MEAN_GEOM, KEY_MEDIAN, KEY_MAXIMUM
+from moptipy.evaluation.end_statistics import KEY_BEST_F_SCALED, EndStatistics
+from moptipy.evaluation.statistics import (
+    KEY_MAXIMUM,
+    KEY_MEAN_ARITH,
+    KEY_MEAN_GEOM,
+    KEY_MEDIAN,
+    KEY_MINIMUM,
+    KEY_STDDEV,
+)
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang
 from moptipy.utils.logger import SCOPE_SEPARATOR
 from moptipy.utils.markdown import Markdown
+from moptipy.utils.number_renderer import (
+    DEFAULT_NUMBER_RENDERER,
+    NumberRenderer,
+)
 from moptipy.utils.path import Path
-from moptipy.utils.number_renderer import NumberRenderer,\
-    DEFAULT_NUMBER_RENDERER
 from moptipy.utils.table import Table
 from moptipy.utils.text_format import TextFormatDriver
 from moptipy.utils.types import type_error

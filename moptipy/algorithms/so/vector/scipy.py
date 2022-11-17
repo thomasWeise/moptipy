@@ -15,23 +15,27 @@ while piping all their function evaluations through the
 :meth:`~moptipy.api.process.Process`. This way, we can make these external
 algorithms usable within `moptipy` in a transparent manner.
 """
-from typing import Callable, Optional, cast, Any, Final, List, Tuple
+from typing import Any, Callable, Final, List, Optional, Tuple, cast
 
-from numpy import full, inf, ndarray, clip
+from numpy import clip, full, inf, ndarray
 from scipy.optimize import Bounds  # type: ignore
+
 # noinspection PyProtectedMember
 from scipy.optimize._differentialevolution import (  # type: ignore
-    differential_evolution)  # type: ignore
+    differential_evolution,  # type: ignore
+)
+
 # noinspection PyProtectedMember
-from scipy.optimize._optimize import _minimize_bfgs  # type: ignore
-# noinspection PyProtectedMember
-from scipy.optimize._optimize import _minimize_cg  # type: ignore
-# noinspection PyProtectedMember
-from scipy.optimize._optimize import _minimize_neldermead  # type: ignore
-# noinspection PyProtectedMember
-from scipy.optimize._optimize import _minimize_powell  # type: ignore
+from scipy.optimize._optimize import (  # type: ignore
+    _minimize_bfgs,  # type: ignore
+    _minimize_cg,  # type: ignore
+    _minimize_neldermead,  # type: ignore
+    _minimize_powell,  # type: ignore
+)
+
 # noinspection PyProtectedMember
 from scipy.optimize._slsqp_py import _minimize_slsqp  # type: ignore
+
 # noinspection PyProtectedMember
 from scipy.optimize._tnc import _minimize_tnc  # type: ignore
 
@@ -40,7 +44,7 @@ from moptipy.api.operators import Op0
 from moptipy.api.process import Process
 from moptipy.api.subprocesses import without_should_terminate
 from moptipy.operators.vectors.op0_uniform import Op0Uniform
-from moptipy.utils.bounds import OptionalFloatBounds, FloatBounds
+from moptipy.utils.bounds import FloatBounds, OptionalFloatBounds
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_FLOAT
 from moptipy.utils.types import type_error

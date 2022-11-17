@@ -31,17 +31,22 @@ Basically, a multi-objective problem provides three essential components:
    (:class:`~moptipy.mo.problem.weighted_sum.WeightedSum`) may be the method
    of choice for scalarization.
 """
-from typing import Union, Final
+from typing import Final, Union
 
 import numpy as np
 
-from moptipy.api.logging import KEY_SPACE_NUM_VARS
-from moptipy.api.logging import SCOPE_OBJECTIVE_FUNCTION
+from moptipy.api.logging import KEY_SPACE_NUM_VARS, SCOPE_OBJECTIVE_FUNCTION
 from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective, check_objective
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import DEFAULT_INT, DEFAULT_UNSIGNED_INT, \
-    DEFAULT_FLOAT, int_range_to_dtype, KEY_NUMPY_TYPE, val_numpy_type
+from moptipy.utils.nputils import (
+    DEFAULT_FLOAT,
+    DEFAULT_INT,
+    DEFAULT_UNSIGNED_INT,
+    KEY_NUMPY_TYPE,
+    int_range_to_dtype,
+    val_numpy_type,
+)
 from moptipy.utils.types import type_error
 
 

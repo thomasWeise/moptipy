@@ -2,8 +2,15 @@
 
 from math import inf
 
-from moptipy.algorithms.so.vector.scipy import NelderMead, Powell, BGFS, CG, \
-    SLSQP, TNC, DE
+from moptipy.algorithms.so.vector.scipy import (
+    BGFS,
+    CG,
+    DE,
+    SLSQP,
+    TNC,
+    NelderMead,
+    Powell,
+)
 from moptipy.operators.vectors.op0_uniform import Op0Uniform
 from moptipy.spaces.bounded_vectorspace import BoundedVectorSpace
 from moptipy.spaces.vectorspace import VectorSpace

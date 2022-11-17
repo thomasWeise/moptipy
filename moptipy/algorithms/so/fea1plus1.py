@@ -39,7 +39,7 @@ receiving worse and worse fitness.
    Society Press. ISBN: 978-1-4799-1488-3.
    https://dx.doi.org/10.1109/CEC.2014.6900292
 """
-from typing import Final, Callable, cast
+from typing import Callable, Final, cast
 
 import numpy as np
 from numpy.random import Generator

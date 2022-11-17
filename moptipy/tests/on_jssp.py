@@ -1,8 +1,8 @@
 """Perform tests on the Job Shop Scheduling Problem."""
 
-from typing import Callable, Optional, Union, Iterable, List, cast, Final
+from typing import Callable, Final, Iterable, List, Optional, Union, cast
 
-from numpy.random import default_rng, Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_algorithm import MOAlgorithm

@@ -1,6 +1,6 @@
 """Test the sys-info and logging."""
 
-from typing import List, Dict, Final
+from typing import Dict, Final, List
 
 from moptipy.utils.logger import InMemoryLogger
 from moptipy.utils.sys_info import log_sys_info, refresh_sys_info

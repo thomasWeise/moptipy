@@ -2,8 +2,10 @@
 from math import isqrt
 
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
-from moptipy.tests.on_permutations import permutations_for_tests, \
-    validate_op2_on_1_permutations
+from moptipy.tests.on_permutations import (
+    permutations_for_tests,
+    validate_op2_on_1_permutations,
+)
 
 
 def test_op2_sequence():

@@ -1,14 +1,14 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
 from math import isfinite
-from typing import Final, List, Set, Dict, Tuple, Union, cast
+from typing import Dict, Final, List, Set, Tuple, Union, cast
 
 import numba  # type: ignore
 import numpy
-from numpy.random import default_rng, Generator, PCG64
+from numpy.random import PCG64, Generator, default_rng
 
 from moptipy.utils.logger import CSV_SEPARATOR
-from moptipy.utils.strings import num_to_str, bool_to_str
+from moptipy.utils.strings import bool_to_str, num_to_str
 from moptipy.utils.types import type_error
 
 #: All the numpy integer types and their ranges in increasing order of size.

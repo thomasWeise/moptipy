@@ -1,11 +1,11 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
-from typing import List, Final
+from typing import Final, List
 
 import numpy as np
 
 import moptipy.evaluation.progress as prg
-from moptipy.evaluation.stat_run import StatRun
 from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.stat_run import StatRun
 
 
 def test_stat_runs():

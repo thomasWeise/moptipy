@@ -1,6 +1,16 @@
 """Styler allows to discover groups of data and associate styles with them."""
-from typing import Callable, Final, Union, Set, Tuple, Any, Dict, Optional, \
-    Iterable, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore

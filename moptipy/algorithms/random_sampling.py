@@ -28,7 +28,7 @@ implemented in
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
-from typing import Final, Callable
+from typing import Callable, Final
 
 from numpy.random import Generator
 

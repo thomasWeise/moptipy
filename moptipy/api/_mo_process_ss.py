@@ -1,7 +1,7 @@
 """A multi-objective process with different search and solution spaces."""
 
 from math import isfinite
-from typing import Optional, Union, Final, Callable
+from typing import Callable, Final, Optional, Union
 
 import numpy as np
 from numpy import copyto
@@ -10,10 +10,14 @@ from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._process_base import _TIME_IN_NS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
-from moptipy.api.logging import PREFIX_SECTION_ARCHIVE, \
-    SUFFIX_SECTION_ARCHIVE_Y
-from moptipy.api.logging import SUFFIX_SECTION_ARCHIVE_X, \
-    SCOPE_SEARCH_SPACE, SCOPE_ENCODING, SECTION_RESULT_X
+from moptipy.api.logging import (
+    PREFIX_SECTION_ARCHIVE,
+    SCOPE_ENCODING,
+    SCOPE_SEARCH_SPACE,
+    SECTION_RESULT_X,
+    SUFFIX_SECTION_ARCHIVE_X,
+    SUFFIX_SECTION_ARCHIVE_Y,
+)
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.space import Space, check_space

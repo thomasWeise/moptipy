@@ -1,8 +1,16 @@
 """Utilities for mock objects."""
 
-from math import inf, isfinite, nextafter, ceil, floor
-from typing import Union, Final, List, Optional, Sequence, Tuple, Callable, \
-    cast
+from math import ceil, floor, inf, isfinite, nextafter
+from typing import (
+    Callable,
+    Final,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 from numpy.random import Generator

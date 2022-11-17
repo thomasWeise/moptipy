@@ -1,5 +1,5 @@
 """Functions that can be used to test encodings."""
-from typing import Callable, Optional, Any
+from typing import Any, Callable, Optional
 
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.space import Space

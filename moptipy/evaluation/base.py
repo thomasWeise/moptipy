@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import inf
-from typing import Final, Union, Optional, Tuple
+from typing import Final, Optional, Tuple, Union
 
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name

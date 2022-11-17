@@ -45,11 +45,11 @@ paper of Blickle and Thiele.
    Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
 """
 
-from typing import List, Callable, Any
+from typing import Any, Callable, List
 
 from numpy.random import Generator
 
-from moptipy.algorithms.modules.selection import Selection, FitnessRecord
+from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 
 
 # start book

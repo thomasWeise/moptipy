@@ -5,8 +5,8 @@ from typing import List
 import numpy as np
 
 import moptipy.evaluation.base as bs
-from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.single_random_sample import SingleRandomSample
+from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.api import logging
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment

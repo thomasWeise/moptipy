@@ -1,10 +1,20 @@
 """Test stuff on bit strings."""
 
-from typing import Callable, Union, Iterable, List, Optional, Dict, Any, \
-    cast, Final, Set
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Union,
+    cast,
+)
 
 import numpy as np
-from numpy.random import default_rng, Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.so.fitness import Fitness
 from moptipy.api.algorithm import Algorithm, check_algorithm

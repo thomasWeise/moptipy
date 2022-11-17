@@ -30,7 +30,7 @@ When selecting parents, we apply tournament selection with replacement.
 
 """
 from math import inf
-from typing import Final, Any, List, Callable, cast
+from typing import Any, Callable, Final, List, cast
 
 import numpy as np
 from numpy.random import Generator

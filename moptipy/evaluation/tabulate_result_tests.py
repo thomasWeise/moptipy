@@ -2,8 +2,19 @@
 
 from math import isfinite
 from statistics import mean, median
-from typing import Callable, Final, Iterable, Optional, List, Union, cast, \
-    Dict, Any, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from scipy.stats import mannwhitneyu  # type: ignore
 
@@ -11,8 +22,10 @@ from moptipy.api.logging import KEY_BEST_F
 from moptipy.evaluation.end_results import EndResult
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.markdown import Markdown
-from moptipy.utils.number_renderer import NumberRenderer, \
-    DEFAULT_NUMBER_RENDERER
+from moptipy.utils.number_renderer import (
+    DEFAULT_NUMBER_RENDERER,
+    NumberRenderer,
+)
 from moptipy.utils.path import Path
 from moptipy.utils.table import Table
 from moptipy.utils.text_format import TextFormatDriver

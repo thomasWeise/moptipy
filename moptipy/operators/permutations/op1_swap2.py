@@ -45,7 +45,7 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
 This operator performs one swap. It is similar to :class:`~moptipy.operators.\
 permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
 """
-from typing import Final, Callable
+from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator

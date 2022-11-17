@@ -1,8 +1,8 @@
 """Code for selecting interesting instances for smaller-scale experiments."""
 import multiprocessing as mp
-from math import factorial, log2, inf, sqrt, ceil
+from math import ceil, factorial, inf, log2, sqrt
 from os import sched_getaffinity
-from typing import Dict, Tuple, Final, List, Callable, Set
+from typing import Callable, Dict, Final, List, Set, Tuple
 
 import numpy as np  # type: ignore
 from numpy.random import Generator, RandomState  # type: ignore
@@ -18,8 +18,12 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
-from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, \
-    rand_generator, rand_seeds_from_str
+from moptipy.utils.nputils import (
+    DEFAULT_FLOAT,
+    DEFAULT_INT,
+    rand_generator,
+    rand_seeds_from_str,
+)
 from moptipy.utils.types import type_error
 
 

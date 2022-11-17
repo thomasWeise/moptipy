@@ -1,7 +1,16 @@
 """Plot the end results over a parameter."""
 from math import isfinite
-from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, cast, Any
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Union,
+    cast,
+)
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore

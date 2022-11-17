@@ -14,7 +14,7 @@ Nevertheless, this memory layout and encapsulation as numpy array are
 the most efficient way to store the data I could come up with.
 """
 from importlib import resources  # nosem
-from typing import Final, List, Tuple, Optional
+from typing import Final, List, Optional, Tuple
 
 import numpy as np
 

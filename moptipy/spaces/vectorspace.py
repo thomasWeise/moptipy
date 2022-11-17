@@ -5,7 +5,7 @@ from typing import Final
 import numpy
 
 from moptipy.spaces.nparrayspace import NPArraySpace
-from moptipy.utils.nputils import is_np_float, is_all_finite
+from moptipy.utils.nputils import is_all_finite, is_np_float
 
 #: The default numerical datatype
 _DEFAULT_TYPE: Final[numpy.dtype] = numpy.dtype(numpy.float64)

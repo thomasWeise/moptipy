@@ -1,8 +1,8 @@
 """Functions that can be used to test objective functions."""
-from math import isfinite, inf
-from typing import Callable, Optional, Any, Union, Final
+from math import inf, isfinite
+from typing import Any, Callable, Final, Optional, Union
 
-from numpy.random import default_rng, Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space

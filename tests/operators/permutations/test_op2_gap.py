@@ -1,10 +1,13 @@
 """Test the binary order crossover operation."""
 from math import isqrt
 
-from moptipy.operators.permutations.op2_gap import \
-    Op2GeneralizedAlternatingPosition
-from moptipy.tests.on_permutations import permutations_for_tests, \
-    validate_op2_on_1_permutations
+from moptipy.operators.permutations.op2_gap import (
+    Op2GeneralizedAlternatingPosition,
+)
+from moptipy.tests.on_permutations import (
+    permutations_for_tests,
+    validate_op2_on_1_permutations,
+)
 
 
 def test_op2_order():

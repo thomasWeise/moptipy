@@ -1,5 +1,5 @@
 """Test the weighted sum scalarization."""
-from typing import Final, Union, List
+from typing import Final, List, Union
 
 import numpy as np
 from numpy.random import Generator, default_rng

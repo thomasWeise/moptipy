@@ -1,7 +1,8 @@
 """Test the random selection without replacement."""
 
-from moptipy.algorithms.modules.selections.random_without_replacement \
-    import RandomWithoutReplacement
+from moptipy.algorithms.modules.selections.random_without_replacement import (
+    RandomWithoutReplacement,
+)
 from moptipy.tests.selection import validate_selection
 
 

@@ -1,12 +1,23 @@
 """Run the moptipy example experiment."""
 import os.path as pp
 import sys
-from typing import Tuple, Dict, Final, Iterable, Callable, \
-    Optional, Union, cast, Any, List
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import moptipy.api.experiment as ex
-from moptipy.algorithms.modules.selections.fitness_proportionate_sus \
-    import FitnessProportionateSUS
+from moptipy.algorithms.modules.selections.fitness_proportionate_sus import (
+    FitnessProportionateSUS,
+)
 from moptipy.algorithms.modules.selections.tournament import Tournament
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
@@ -16,8 +27,9 @@ from moptipy.algorithms.so.fitnesses.direct import Direct
 from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.algorithms.so.hill_climber import HillClimber
-from moptipy.algorithms.so.hill_climber_with_restarts import \
-    HillClimberWithRestarts
+from moptipy.algorithms.so.hill_climber_with_restarts import (
+    HillClimberWithRestarts,
+)
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
@@ -28,8 +40,9 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
-from moptipy.operators.permutations.op2_gap import \
-    Op2GeneralizedAlternatingPosition
+from moptipy.operators.permutations.op2_gap import (
+    Op2GeneralizedAlternatingPosition,
+)
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen

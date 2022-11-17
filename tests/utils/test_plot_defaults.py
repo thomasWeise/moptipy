@@ -2,8 +2,12 @@
 
 from math import isfinite
 
-from moptipy.utils.plot_defaults import distinct_colors, distinct_markers, \
-    importance_to_alpha, importance_to_font_size
+from moptipy.utils.plot_defaults import (
+    distinct_colors,
+    distinct_markers,
+    importance_to_alpha,
+    importance_to_font_size,
+)
 
 
 def test_distinct_colors() -> None:

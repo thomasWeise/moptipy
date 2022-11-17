@@ -35,7 +35,7 @@ used `OX2`.
    13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
    https://doi.org/10.1023/A:1006529012972
 """
-from typing import Final, Callable
+from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator

@@ -1,11 +1,14 @@
 """Functions for testing multi-objective archive pruners."""
-from typing import Final, List, Iterable, Optional, Callable
+from typing import Callable, Final, Iterable, List, Optional
 
 import numpy as np
 from numpy.random import Generator, default_rng
 
-from moptipy.api.mo_archive import MOArchivePruner, \
-    check_mo_archive_pruner, MORecord
+from moptipy.api.mo_archive import (
+    MOArchivePruner,
+    MORecord,
+    check_mo_archive_pruner,
+)
 from moptipy.api.mo_problem import MOProblem
 from moptipy.mock.mo_problem import MockMOProblem
 from moptipy.tests.component import validate_component

@@ -1,12 +1,16 @@
 """Functions that can be used to test multi-objective algorithms."""
-from math import isfinite, inf
-from typing import Optional, Union, Final, Any, List
+from math import inf, isfinite
+from typing import Any, Final, List, Optional, Union
 
 from numpy import array_equal
 from numpy.random import Generator, default_rng
 
-from moptipy.api.algorithm import Algorithm0, Algorithm1, Algorithm2
-from moptipy.api.algorithm import check_algorithm
+from moptipy.api.algorithm import (
+    Algorithm0,
+    Algorithm1,
+    Algorithm2,
+    check_algorithm,
+)
 from moptipy.api.encoding import Encoding
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_archive import MOArchivePruner

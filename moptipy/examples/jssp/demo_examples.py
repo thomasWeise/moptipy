@@ -1,7 +1,7 @@
 """Some fixed demo codes for the JSSP examples."""
 import sys
 import urllib.request as rq
-from typing import Final, List, Union, Callable, Iterable
+from typing import Callable, Final, Iterable, List, Union
 
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
@@ -9,17 +9,21 @@ from matplotlib.figure import Figure  # type: ignore
 from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
-from moptipy.examples.jssp.instance import Instance, \
-    compute_makespan_lower_bound
+from moptipy.examples.jssp.instance import (
+    Instance,
+    compute_makespan_lower_bound,
+)
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.examples.jssp.plot_gantt_chart import plot_gantt_chart, \
-    marker_lb, marker_makespan
+from moptipy.examples.jssp.plot_gantt_chart import (
+    marker_lb,
+    marker_makespan,
+    plot_gantt_chart,
+)
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
-from moptipy.utils.path import Path, UTF8
-from moptipy.utils.plot_utils import create_figure, save_figure, \
-    cm_to_inch
+from moptipy.utils.path import UTF8, Path
+from moptipy.utils.plot_utils import cm_to_inch, create_figure, save_figure
 from moptipy.utils.types import type_error
 
 

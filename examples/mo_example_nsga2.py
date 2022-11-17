@@ -20,9 +20,10 @@ from moptipy.examples.jssp.worktime import Worktime
 from moptipy.mo.problem.weighted_sum import Prioritize
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
+from moptipy.operators.permutations.op2_gap import (
+    Op2GeneralizedAlternatingPosition,
+)
 from moptipy.spaces.permutations import Permutations
-from moptipy.operators.permutations.op2_gap import \
-    Op2GeneralizedAlternatingPosition
 from moptipy.utils.nputils import array_to_str
 from moptipy.utils.temp import TempFile
 

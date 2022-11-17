@@ -1,9 +1,18 @@
 """Generate random mock experiment parameters."""
 
 from dataclasses import dataclass
-from math import isfinite, ceil
-from typing import Tuple, Final, Set, List, Optional, Iterable, Union, \
-    Any, Dict
+from math import ceil, isfinite
+from typing import (
+    Any,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from numpy.random import Generator
 

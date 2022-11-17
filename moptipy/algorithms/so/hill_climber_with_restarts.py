@@ -17,7 +17,7 @@ restart with a new random solution.
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
-from typing import Final, Union, Callable
+from typing import Callable, Final, Union
 
 from numpy.random import Generator
 

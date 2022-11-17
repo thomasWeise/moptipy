@@ -12,7 +12,7 @@ at the end, we can obtain the best point that was visited.
 But during the course of its run, it will walk around the search space
 randomly without direction.
 """
-from typing import Final, Callable
+from typing import Callable, Final
 
 from numpy.random import Generator
 

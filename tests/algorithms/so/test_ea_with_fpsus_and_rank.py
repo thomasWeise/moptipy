@@ -3,8 +3,9 @@ from typing import Final
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.modules.selections.fitness_proportionate_sus \
-    import FitnessProportionateSUS
+from moptipy.algorithms.modules.selections.fitness_proportionate_sus import (
+    FitnessProportionateSUS,
+)
 from moptipy.algorithms.so.fitnesses.direct import Direct
 from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
@@ -15,8 +16,9 @@ from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.operators.permutations.op2_gap import \
-    Op2GeneralizedAlternatingPosition
+from moptipy.operators.permutations.op2_gap import (
+    Op2GeneralizedAlternatingPosition,
+)
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax

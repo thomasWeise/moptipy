@@ -2,33 +2,52 @@
 import os.path as pp
 import sys
 from math import log2
-from re import compile as _compile, Pattern, Match
+from re import Match, Pattern
+from re import compile as _compile
 from statistics import median
-from typing import Dict, Final, Optional, Any, List, Set, Union, Callable, \
-    Iterable, cast, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
-from moptipy.api.logging import KEY_TOTAL_FES, \
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS
+from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.statistics import KEY_MEAN_ARITH
-from moptipy.evaluation.tabulate_end_results import \
-    tabulate_end_results, command_column_namer, \
-    DEFAULT_ALGORITHM_INSTANCE_STATISTICS, \
-    DEFAULT_ALGORITHM_SUMMARY_STATISTICS
+from moptipy.evaluation.tabulate_end_results import (
+    DEFAULT_ALGORITHM_INSTANCE_STATISTICS,
+    DEFAULT_ALGORITHM_SUMMARY_STATISTICS,
+    command_column_namer,
+    tabulate_end_results,
+)
 from moptipy.evaluation.tabulate_result_tests import tabulate_result_tests
-from moptipy.examples.jssp.experiment import DEFAULT_ALGORITHMS
-from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
+from moptipy.examples.jssp.experiment import (
+    DEFAULT_ALGORITHMS,
+    EXPERIMENT_INSTANCES,
+)
 from moptipy.examples.jssp.instance import Instance
-from moptipy.examples.jssp.plots import plot_end_makespans, \
-    plot_stat_gantt_charts, plot_progresses, plot_end_makespans_over_param
+from moptipy.examples.jssp.plots import (
+    plot_end_makespans,
+    plot_end_makespans_over_param,
+    plot_progresses,
+    plot_stat_gantt_charts,
+)
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
-from moptipy.utils.logger import sanitize_name, SCOPE_SEPARATOR
+from moptipy.utils.logger import SCOPE_SEPARATOR, sanitize_name
 from moptipy.utils.path import Path
 from moptipy.utils.strings import name_str_to_num, num_to_str
 from moptipy.utils.types import type_error

@@ -1,7 +1,8 @@
 """Test the stochastic uniform sampling selection algorithm."""
 
-from moptipy.algorithms.modules.selections.fitness_proportionate_sus \
-    import FitnessProportionateSUS
+from moptipy.algorithms.modules.selections.fitness_proportionate_sus import (
+    FitnessProportionateSUS,
+)
 from moptipy.tests.selection import validate_selection
 
 

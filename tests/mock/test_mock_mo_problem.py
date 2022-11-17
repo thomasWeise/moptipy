@@ -7,8 +7,7 @@ from moptipy.mock.mo_problem import MockMOProblem
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.mo_problem import validate_mo_problem
 from moptipy.tests.on_bitstrings import random_bit_string
-from moptipy.utils.nputils import DEFAULT_NUMERICAL
-from moptipy.utils.nputils import is_np_int, is_np_float
+from moptipy.utils.nputils import DEFAULT_NUMERICAL, is_np_float, is_np_int
 
 
 def test_mock_mo_problem() -> None:

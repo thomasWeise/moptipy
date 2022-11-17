@@ -1,5 +1,5 @@
 """A process with logging, where search and solution space are the same."""
-from typing import Optional, Union, List, Final
+from typing import Final, List, Optional, Union
 
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api._process_no_ss import _ProcessNoSS, _write_log

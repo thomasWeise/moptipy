@@ -1,9 +1,15 @@
 """Test the demo functions."""
 import numpy as np
 
-from moptipy.examples.jssp.demo_examples import demo_encoding, \
-    demo_instance, demo_solution, demo_solution_space, \
-    demo_point_in_search_space, demo_search_space, demo_gantt_chart
+from moptipy.examples.jssp.demo_examples import (
+    demo_encoding,
+    demo_gantt_chart,
+    demo_instance,
+    demo_point_in_search_space,
+    demo_search_space,
+    demo_solution,
+    demo_solution_space,
+)
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance

@@ -1,7 +1,17 @@
 """Plot a set of ECDF or ERT-ECDF objects into one figure."""
-from math import isfinite, inf
-from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, cast, Set, Any
+from math import inf, isfinite
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Union,
+    cast,
+)
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore

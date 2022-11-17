@@ -48,18 +48,17 @@ breaking, which is implemented in the `__lt__` dunder method of class
    https://doi.org/10.1007/BFb0029787.
 """
 from math import isfinite
-from typing import Final, Union, Callable, List, cast, Optional
+from typing import Callable, Final, List, Optional, Union, cast
 
 from numpy.random import Generator
 
+from moptipy.algorithms.so.record import Record
 from moptipy.api.algorithm import Algorithm2
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.strings import PART_SEPARATOR
-from moptipy.utils.strings import num_to_str_for_name
+from moptipy.utils.strings import PART_SEPARATOR, num_to_str_for_name
 from moptipy.utils.types import type_error
-from moptipy.algorithms.so.record import Record
 
 
 def _int_0(_: int) -> int:

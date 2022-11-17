@@ -1,6 +1,17 @@
 """Violin plots for end results."""
-from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Tuple, Set, Optional, Any, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import matplotlib.collections as mc  # type: ignore
 from matplotlib.axes import Axes  # type: ignore

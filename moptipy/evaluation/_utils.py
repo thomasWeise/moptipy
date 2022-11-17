@@ -1,6 +1,6 @@
 """Some internal helper functions."""
 
-from typing import Union, Final
+from typing import Final, Union
 
 import numba  # type: ignore
 import numpy as np

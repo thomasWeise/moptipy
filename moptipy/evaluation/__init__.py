@@ -14,11 +14,11 @@ processed to per-algorithm or per-instance statistics using
 
 def __lang_setup():
     """Perform the internal language setup."""
-    from moptipy.utils.lang import EN, DE, ZH  # pylint: disable=C0415
     import moptipy.api.logging as lg  # pylint: disable=C0415
     import moptipy.evaluation.base as bs  # pylint: disable=C0415
-    import moptipy.evaluation.statistics as ss  # pylint: disable=C0415
     import moptipy.evaluation.end_statistics as es  # pylint: disable=C0415
+    import moptipy.evaluation.statistics as ss  # pylint: disable=C0415
+    from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415
 
     EN.extend({
         "f": "f",

@@ -10,8 +10,10 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutations import Permutations
-from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax, \
-    validate_algorithm_on_leadingones
+from moptipy.tests.on_bitstrings import (
+    validate_algorithm_on_leadingones,
+    validate_algorithm_on_onemax,
+)
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 

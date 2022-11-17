@@ -1,12 +1,15 @@
 """An implementation of processes with different search and solution spaces."""
-from typing import Optional, Union, Final, Callable
+from typing import Callable, Final, Optional, Union
 
 from moptipy.api._process_base import _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
-from moptipy.api.logging import SCOPE_ENCODING, SCOPE_SEARCH_SPACE, \
-    SECTION_RESULT_X
+from moptipy.api.logging import (
+    SCOPE_ENCODING,
+    SCOPE_SEARCH_SPACE,
+    SECTION_RESULT_X,
+)
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space, check_space
 from moptipy.utils.logger import KeyValueLogSection, Logger

@@ -11,14 +11,23 @@ using weights, namely
   the first objective function is prioritized over the second one, the second
   one over the third, and so on.
 """
-from math import isfinite, inf
-from typing import Union, Final, Iterable, Tuple, List, Callable, \
-    Optional, cast, Any
+from math import inf, isfinite
+from typing import (
+    Any,
+    Callable,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 from numpy import sum as npsum
-from moptipy.api.mo_utils import dominates
 
+from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective
 from moptipy.mo.problem.basic_mo_problem import BasicMOProblem
 from moptipy.utils.logger import KeyValueLogSection

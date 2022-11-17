@@ -2,22 +2,30 @@
 import os.path
 import sys
 from dataclasses import dataclass
-from math import inf, ceil
-from typing import Optional, Union, Iterable, List, Dict, Final, Callable, Any
+from math import ceil, inf
+from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
 
 import moptipy.api.logging as log
 from moptipy.evaluation._utils import _check_max_time_millis
-from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
-    MultiRunData, KEY_N
+from moptipy.evaluation.base import (
+    F_NAME_RAW,
+    F_NAME_SCALED,
+    KEY_N,
+    MultiRunData,
+)
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.statistics import Statistics, EMPTY_CSV_ROW, \
-    CSV_COLS, KEY_STDDEV
+from moptipy.evaluation.statistics import (
+    CSV_COLS,
+    EMPTY_CSV_ROW,
+    KEY_STDDEV,
+    Statistics,
+)
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
-from moptipy.utils.logger import SCOPE_SEPARATOR, CSV_SEPARATOR
+from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
-from moptipy.utils.strings import str_to_intfloat, sanitize_name, num_to_str
+from moptipy.utils.strings import num_to_str, sanitize_name, str_to_intfloat
 from moptipy.utils.types import type_error, type_name_of
 
 #: The key for the best F.

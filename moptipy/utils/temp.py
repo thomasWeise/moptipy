@@ -2,7 +2,7 @@
 import os
 from contextlib import AbstractContextManager
 from shutil import rmtree
-from tempfile import mkstemp, mkdtemp
+from tempfile import mkdtemp, mkstemp
 from typing import Optional
 
 from moptipy.utils.path import Path

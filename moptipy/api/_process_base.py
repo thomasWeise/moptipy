@@ -5,33 +5,65 @@ from math import inf, isfinite
 from threading import Lock, Timer
 from time import time_ns
 from traceback import print_tb
-from typing import Optional, Union, Final, Callable, Dict, Any, List, cast
+from typing import Any, Callable, Dict, Final, List, Optional, Union, cast
 
 from numpy.random import Generator
 
 from moptipy.api.algorithm import Algorithm, check_algorithm
-from moptipy.api.logging import _ALL_SECTIONS, KEY_MAX_FES, \
-    KEY_MAX_TIME_MILLIS, SCOPE_PROCESS, KEY_GOAL_F, KEY_EXCEPTION_TYPE, \
-    KEY_EXCEPTION_VALUE, KEY_EXCEPTION_STACK_TRACE, KEY_RAND_SEED, \
-    KEY_RAND_GENERATOR_TYPE, KEY_RAND_BIT_GENERATOR_TYPE, SCOPE_ALGORITHM, \
-    SCOPE_SOLUTION_SPACE, SCOPE_OBJECTIVE_FUNCTION, SECTION_FINAL_STATE, \
-    KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS, KEY_BEST_F, \
-    KEY_LAST_IMPROVEMENT_FE, KEY_LAST_IMPROVEMENT_TIME_MILLIS, \
-    SECTION_SETUP, SECTION_RESULT_Y, SECTION_ERROR_IN_RUN, \
-    SECTION_ERROR_IN_CONTEXT, SECTION_ERROR_INVALID_Y, SECTION_ERROR_BEST_F, \
-    SECTION_ERROR_INVALID_X, SECTION_ERROR_TIMING, SECTION_ERROR_IN_LOG
+from moptipy.api.logging import (
+    _ALL_SECTIONS,
+    KEY_BEST_F,
+    KEY_EXCEPTION_STACK_TRACE,
+    KEY_EXCEPTION_TYPE,
+    KEY_EXCEPTION_VALUE,
+    KEY_GOAL_F,
+    KEY_LAST_IMPROVEMENT_FE,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+    KEY_MAX_FES,
+    KEY_MAX_TIME_MILLIS,
+    KEY_RAND_BIT_GENERATOR_TYPE,
+    KEY_RAND_GENERATOR_TYPE,
+    KEY_RAND_SEED,
+    KEY_TOTAL_FES,
+    KEY_TOTAL_TIME_MILLIS,
+    SCOPE_ALGORITHM,
+    SCOPE_OBJECTIVE_FUNCTION,
+    SCOPE_PROCESS,
+    SCOPE_SOLUTION_SPACE,
+    SECTION_ERROR_BEST_F,
+    SECTION_ERROR_IN_CONTEXT,
+    SECTION_ERROR_IN_LOG,
+    SECTION_ERROR_IN_RUN,
+    SECTION_ERROR_INVALID_X,
+    SECTION_ERROR_INVALID_Y,
+    SECTION_ERROR_TIMING,
+    SECTION_FINAL_STATE,
+    SECTION_RESULT_Y,
+    SECTION_SETUP,
+)
 from moptipy.api.objective import Objective, check_objective
-from moptipy.api.process import Process, check_max_fes, \
-    check_max_time_millis
-from moptipy.api.process import check_goal_f
+from moptipy.api.process import (
+    Process,
+    check_goal_f,
+    check_max_fes,
+    check_max_time_millis,
+)
 from moptipy.api.space import Space, check_space
-from moptipy.utils.logger import KeyValueLogSection, FileLogger, Logger, \
-    SECTION_START, SECTION_END
-from moptipy.utils.nputils import rand_generator, rand_seed_generate, \
-    rand_seed_check
+from moptipy.utils.logger import (
+    SECTION_END,
+    SECTION_START,
+    FileLogger,
+    KeyValueLogSection,
+    Logger,
+)
+from moptipy.utils.nputils import (
+    rand_generator,
+    rand_seed_check,
+    rand_seed_generate,
+)
 from moptipy.utils.path import Path
 from moptipy.utils.sys_info import log_sys_info
-from moptipy.utils.types import type_name_of, type_error
+from moptipy.utils.types import type_error, type_name_of
 
 
 def _error_1(logger: Logger, title: str, exception_type,

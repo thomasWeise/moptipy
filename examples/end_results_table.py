@@ -50,8 +50,8 @@ Tables can be rendered in different formats, such as
 :py:class:`~moptipy.utils.html.HTML`.
 """
 
-from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment

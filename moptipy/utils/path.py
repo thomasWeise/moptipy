@@ -2,9 +2,10 @@
 
 import codecs
 import os.path
-from io import open, TextIOBase
-from re import compile as _compile, MULTILINE
-from typing import cast, List, Iterable, Final, Union, Tuple, Pattern
+from io import TextIOBase, open
+from re import MULTILINE
+from re import compile as _compile
+from typing import Final, Iterable, List, Pattern, Tuple, Union, cast
 
 from moptipy.utils.strings import regex_sub
 from moptipy.utils.types import type_error

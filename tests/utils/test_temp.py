@@ -1,9 +1,9 @@
 """Test the interaction with the file system and temp files."""
 from io import open
-from os.path import isfile, isdir, exists, dirname, basename, getsize, join
+from os.path import basename, dirname, exists, getsize, isdir, isfile, join
 
 from moptipy.utils.path import Path
-from moptipy.utils.temp import TempFile, TempDir
+from moptipy.utils.temp import TempDir, TempFile
 
 
 def test_temp_file():

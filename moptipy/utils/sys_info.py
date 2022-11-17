@@ -6,14 +6,20 @@ import re
 import socket
 import sys
 from datetime import datetime
-from typing import Optional, Dict, Tuple, List, Final
+from typing import Dict, Final, List, Optional, Tuple
 
 import psutil  # type: ignore
 
 import moptipy.version as ver
 from moptipy.api import logging
-from moptipy.utils.logger import InMemoryLogger, Logger, KeyValueLogSection, \
-    CSV_SEPARATOR, KEY_VALUE_SEPARATOR, SCOPE_SEPARATOR
+from moptipy.utils.logger import (
+    CSV_SEPARATOR,
+    KEY_VALUE_SEPARATOR,
+    SCOPE_SEPARATOR,
+    InMemoryLogger,
+    KeyValueLogSection,
+    Logger,
+)
 from moptipy.utils.path import Path
 
 

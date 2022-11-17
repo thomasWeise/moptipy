@@ -6,7 +6,7 @@ from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.bounds import IntBounds
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
-from moptipy.utils.strings import sanitize_name, num_to_str_for_name
+from moptipy.utils.strings import num_to_str_for_name, sanitize_name
 
 
 class IntSpace(NPArraySpace, IntBounds):

@@ -30,7 +30,7 @@ Greedy (2+1) GA, with some improvements for efficiency.
    (GECCO'12), July 7-11, 2012, Philadelphia, Pennsylvania, USA,
    pages 689-702. ACM, 2012. https://doi.org/10.1145/2330163.2330260.
 """
-from typing import Final, Union, Callable
+from typing import Callable, Final, Union
 
 from numpy.random import Generator
 

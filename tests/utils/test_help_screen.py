@@ -1,7 +1,8 @@
 """Test the help screen."""
 
-from moptipy.utils.help import help_screen
 import os.path
+
+from moptipy.utils.help import help_screen
 
 
 def test_help_screen() -> None:

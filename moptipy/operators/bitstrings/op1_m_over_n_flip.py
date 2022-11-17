@@ -1,5 +1,5 @@
 """A unary operator flipping each bit with probability m/n."""
-from typing import Final, Callable
+from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator

@@ -1,7 +1,6 @@
 """Plot a set of `Progress` or `StatRun` objects into one figure."""
 from math import isfinite
-from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, Any
+from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -10,7 +9,7 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
+from moptipy.evaluation.base import get_algorithm, get_instance, sort_key
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, get_statistic
 from moptipy.evaluation.styler import Styler

@@ -2,8 +2,8 @@
 import os.path as pt
 from os import listdir
 
-from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.random_sampling import RandomSampling
+from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.examples.jssp.gantt_space import GanttSpace

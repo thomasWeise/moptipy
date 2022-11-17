@@ -5,10 +5,10 @@ from moptipy.utils.cache import is_new
 def test_is_new():
     """Test the is_new function."""
     is_new_1 = is_new()
-    assert not (is_new_1 is None)
+    assert is_new_1 is not None
     is_new_2 = is_new()
-    assert not (is_new_2 is None)
-    assert not (is_new_1 is is_new_2)
+    assert is_new_2 is not None
+    assert is_new_1 is not is_new_2
 
     assert is_new_1("a")
     assert is_new_2("a")

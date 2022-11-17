@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations of a base string."""
 from math import factorial
-from typing import Final, Iterable, Dict, Optional, List
+from typing import Dict, Final, Iterable, List, Optional
 
 import numpy
 

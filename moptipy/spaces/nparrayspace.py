@@ -5,9 +5,8 @@ import numpy
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.space import Space
-from moptipy.utils.logger import CSV_SEPARATOR
-from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import KEY_NUMPY_TYPE, val_numpy_type, array_to_str
+from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
+from moptipy.utils.nputils import KEY_NUMPY_TYPE, array_to_str, val_numpy_type
 from moptipy.utils.types import type_error
 
 

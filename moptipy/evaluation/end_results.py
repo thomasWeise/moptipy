@@ -3,28 +3,52 @@ import os.path
 import sys
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Union, List, Final, Optional, Iterable, Callable, Any, Dict
+from typing import Any, Callable, Dict, Final, Iterable, List, Optional, Union
 
-from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
-    KEY_TOTAL_TIME_MILLIS, KEY_GOAL_F, KEY_BEST_F, KEY_MAX_TIME_MILLIS, \
-    KEY_MAX_FES, FILE_SUFFIX, SECTION_FINAL_STATE, SECTION_SETUP, \
-    KEY_INSTANCE, KEY_ALGORITHM, KEY_RAND_SEED
-from moptipy.evaluation._utils import _FULL_KEY_RAND_SEED, _FULL_KEY_MAX_FES, \
-    _FULL_KEY_GOAL_F, _FULL_KEY_MAX_TIME_MILLIS, _check_max_time_millis
-from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, \
-    F_NAME_NORMALIZED
-from moptipy.evaluation.base import PerRunData
+from moptipy.api.logging import (
+    FILE_SUFFIX,
+    KEY_ALGORITHM,
+    KEY_BEST_F,
+    KEY_GOAL_F,
+    KEY_INSTANCE,
+    KEY_LAST_IMPROVEMENT_FE,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+    KEY_MAX_FES,
+    KEY_MAX_TIME_MILLIS,
+    KEY_RAND_SEED,
+    KEY_TOTAL_FES,
+    KEY_TOTAL_TIME_MILLIS,
+    SECTION_FINAL_STATE,
+    SECTION_SETUP,
+)
+from moptipy.evaluation._utils import (
+    _FULL_KEY_GOAL_F,
+    _FULL_KEY_MAX_FES,
+    _FULL_KEY_MAX_TIME_MILLIS,
+    _FULL_KEY_RAND_SEED,
+    _check_max_time_millis,
+)
+from moptipy.evaluation.base import (
+    F_NAME_NORMALIZED,
+    F_NAME_RAW,
+    F_NAME_SCALED,
+    PerRunData,
+)
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen
-from moptipy.utils.logger import CSV_SEPARATOR
-from moptipy.utils.logger import parse_key_values
-from moptipy.utils.math import try_int, try_float_div
+from moptipy.utils.logger import CSV_SEPARATOR, parse_key_values
+from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.path import Path
-from moptipy.utils.strings import intfloatnone_to_str, intnone_to_str, \
-    str_to_intfloat, str_to_intfloatnone, str_to_intnone, num_to_str, \
-    sanitize_names
+from moptipy.utils.strings import (
+    intfloatnone_to_str,
+    intnone_to_str,
+    num_to_str,
+    sanitize_names,
+    str_to_intfloat,
+    str_to_intfloatnone,
+    str_to_intnone,
+)
 from moptipy.utils.types import type_error
 
 #: The internal CSV header

@@ -97,8 +97,12 @@ static_analysis: init
 	dodgy &&\
 	echo "$(NOW): Done with dodgy, now running pycodestyle." &&\
 	pycodestyle moptipy &&\
+	pycodestyle --ignore=E731 examples &&\
+	pycodestyle tests &&\
 	echo "$(NOW): Done with pycodestyle, now running ruff." &&\
-	ruff moptipy &&\
+	ruff --select E,F,I --line-length 79 moptipy &&\
+	ruff --select E,F,I --line-length 79 examples &&\
+	ruff --select E,F,I --line-length 79 tests &&\
 	echo "$(NOW): Done: All static checks passed."
 
 # We use sphinx to generate the documentation.

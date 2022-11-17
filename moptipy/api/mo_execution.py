@@ -1,7 +1,7 @@
 """The multi-objective algorithm execution API."""
 
 from math import isfinite
-from typing import Optional, Union, Final, cast
+from typing import Final, Optional, Union, cast
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._mo_process_no_ss_log import _MOProcessNoSSLog
@@ -11,14 +11,19 @@ from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.execution import Execution
 from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner
-from moptipy.api.mo_problem import MOProblem, check_mo_problem, \
-    MOSOProblemBridge
+from moptipy.api.mo_problem import (
+    MOProblem,
+    MOSOProblemBridge,
+    check_mo_problem,
+)
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.objective import Objective, check_objective
-from moptipy.api.process import check_max_fes, check_max_time_millis, \
-    check_goal_f
-from moptipy.api.space import Space
-from moptipy.api.space import check_space
+from moptipy.api.process import (
+    check_goal_f,
+    check_max_fes,
+    check_max_time_millis,
+)
+from moptipy.api.space import Space, check_space
 from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.types import type_error

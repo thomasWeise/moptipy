@@ -1,5 +1,5 @@
 """A class for representing Gantt charts as objects."""
-from typing import Final, Optional, List
+from typing import Final, List, Optional
 
 import numpy as np
 
@@ -126,8 +126,10 @@ class _GanttParser(LogParser):
             raise ValueError(f"Section {SECTION_SETUP} missing or empty!")
         if self._result is not None:
             raise ValueError("Applied parser to more than one log file?")
-        from moptipy.examples.jssp\
-            .gantt_space import GanttSpace  # pylint: disable=C0415,R0401
+        # pylint: disable=C0415,R0401
+        from moptipy.examples.jssp.gantt_space import (
+            GanttSpace,  # pylint: disable=C0415,R0401
+        )
         self._result = GanttSpace(self.__instance).from_str(self.__gantt_str)
         self.__gantt_str = None
         return False

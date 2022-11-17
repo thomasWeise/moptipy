@@ -7,8 +7,11 @@ import numpy as np
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import int_range_to_dtype, KEY_NUMPY_TYPE, \
-    val_numpy_type
+from moptipy.utils.nputils import (
+    KEY_NUMPY_TYPE,
+    int_range_to_dtype,
+    val_numpy_type,
+)
 from moptipy.utils.types import type_error
 
 #: the numpy data type for machine indices

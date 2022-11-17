@@ -1,12 +1,13 @@
 """Test all the links in the project's README.md file."""
 import os.path
 from time import sleep
-from typing import Final, Set, List
+from typing import Final, List, Set
+
+# noinspection PyPackageRequirements
+import certifi
 
 # noinspection PyPackageRequirements
 import urllib3
-# noinspection PyPackageRequirements
-import certifi
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path

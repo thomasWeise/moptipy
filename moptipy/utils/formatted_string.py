@@ -1,8 +1,7 @@
 """Strings that carry format information."""
 
-from math import isnan, nan, inf
-from typing import Final
-from typing import Optional, Union
+from math import inf, isnan, nan
+from typing import Final, Optional, Union
 
 from moptipy.utils.types import type_error
 

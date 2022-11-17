@@ -1,12 +1,12 @@
 """Functions that can be used to test spaces."""
-from typing import Callable, Optional, Any
+from typing import Any, Callable, Optional
 
 # noinspection PyPackageRequirements
 from pytest import raises
 
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
-from moptipy.utils.logger import SECTION_START, SECTION_END, COMMENT_CHAR
+from moptipy.utils.logger import COMMENT_CHAR, SECTION_END, SECTION_START
 from moptipy.utils.types import type_error
 
 

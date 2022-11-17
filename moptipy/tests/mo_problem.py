@@ -1,6 +1,6 @@
 """Functions for testing multi-objective optimization problems."""
 from math import inf, isfinite
-from typing import Callable, Optional, Any, Union, Final, Tuple, List
+from typing import Any, Callable, Final, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.random import Generator, default_rng
@@ -8,7 +8,7 @@ from numpy.random import Generator, default_rng
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.api.space import Space
 from moptipy.tests.objective import validate_objective
-from moptipy.utils.nputils import is_np_int, is_np_float
+from moptipy.utils.nputils import is_np_float, is_np_int
 from moptipy.utils.types import type_error
 
 

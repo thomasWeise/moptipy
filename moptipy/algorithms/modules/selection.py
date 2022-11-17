@@ -42,7 +42,7 @@ The following selection algorithms have currently been implemented:
   selection probability threshold. It is the classic survival selection
   algorithm in Genetic Algorithm.
 """
-from typing import List, Protocol, Union, Callable, Any
+from typing import Any, Callable, List, Protocol, Union
 
 from numpy.random import Generator
 

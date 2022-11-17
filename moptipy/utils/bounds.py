@@ -1,6 +1,6 @@
 """A set of bounds, i.e., a minimal and a maximal value."""
 
-from math import isfinite, inf
+from math import inf, isfinite
 from typing import Final, Optional
 
 from moptipy.utils.logger import KeyValueLogSection

@@ -1,9 +1,9 @@
 """Test stuff on permutations with repetitions."""
 
-from typing import Callable, Union, Iterable, List, Optional, Dict, Any, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
 
 import numpy as np
-from numpy.random import default_rng, Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.spaces.permutations import Permutations

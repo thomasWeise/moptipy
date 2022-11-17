@@ -1,9 +1,13 @@
 """Providing a process without explicit logging with a single space."""
-from typing import Union, Final, List, cast
+from typing import Final, List, Union, cast
 
-from moptipy.api._process_base import _ProcessBase, _TIME_IN_NS, _ns_to_ms
-from moptipy.api.logging import SECTION_PROGRESS, PROGRESS_FES, \
-    PROGRESS_TIME_MILLIS, PROGRESS_CURRENT_F
+from moptipy.api._process_base import _TIME_IN_NS, _ns_to_ms, _ProcessBase
+from moptipy.api.logging import (
+    PROGRESS_CURRENT_F,
+    PROGRESS_FES,
+    PROGRESS_TIME_MILLIS,
+    SECTION_PROGRESS,
+)
 from moptipy.utils.logger import Logger
 
 

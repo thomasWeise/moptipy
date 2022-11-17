@@ -2,15 +2,15 @@
 
 from abc import ABC
 from os import listdir
-from os.path import isfile, isdir, join, dirname, basename
-from typing import List, Final, Optional
+from os.path import basename, dirname, isdir, isfile, join
+from typing import Final, List, Optional
 
 from moptipy.api import logging
 from moptipy.utils.console import logger
+from moptipy.utils.logger import COMMENT_CHAR, SECTION_END, SECTION_START
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
-from moptipy.utils.strings import sanitize_name, PART_SEPARATOR
-from moptipy.utils.logger import SECTION_START, SECTION_END, COMMENT_CHAR
+from moptipy.utils.strings import PART_SEPARATOR, sanitize_name
 
 
 class LogParser(ABC):

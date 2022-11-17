@@ -1,11 +1,11 @@
 """Convert moptipy data to IOHanalyzer data."""
 
 import sys
-from typing import Final, Optional, Dict, Union, Callable, List, Tuple
+from typing import Callable, Dict, Final, List, Optional, Tuple, Union
 
 import numpy as np
 
-from moptipy.evaluation.base import check_f_name, TIME_UNIT_FES, F_NAME_RAW
+from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
 from moptipy.utils.help import help_screen

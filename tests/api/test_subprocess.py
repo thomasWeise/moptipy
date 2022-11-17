@@ -1,14 +1,11 @@
 """Test the Sub-Process API."""
-from typing import Final, List
-from typing import Union, Callable
+from typing import Callable, Final, List, Union
 
 from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.rls import RLS
-from moptipy.api.algorithm import Algorithm
-from moptipy.api.algorithm import Algorithm0
-from moptipy.api.algorithm import Algorithm2
+from moptipy.api.algorithm import Algorithm, Algorithm0, Algorithm2
 from moptipy.api.execution import Execution
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
@@ -18,8 +15,11 @@ from moptipy.api.mo_process import MOProcess
 from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.api.space import Space
-from moptipy.api.subprocesses import from_starting_point, for_fes, \
-    without_should_terminate
+from moptipy.api.subprocesses import (
+    for_fes,
+    from_starting_point,
+    without_should_terminate,
+)
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.examples.bitstrings.trap import Trap

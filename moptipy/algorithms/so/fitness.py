@@ -35,7 +35,7 @@ Processes have been implemented so far:
 """
 
 from math import inf
-from typing import Union, List
+from typing import List, Union
 
 from numpy.random import Generator
 

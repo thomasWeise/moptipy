@@ -1,5 +1,5 @@
 """Default styles for plots."""
-from typing import Union, Tuple, cast, List, Final, Dict
+from typing import Dict, Final, List, Tuple, Union, cast
 
 import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore

@@ -1,10 +1,8 @@
 """Test the RLS."""
 
-from typing import Final
-from typing import Union, Callable, List, cast
+from typing import Callable, Final, List, Union, cast
 
-from numpy.random import Generator
-from numpy.random import default_rng
+from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1

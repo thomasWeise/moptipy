@@ -11,7 +11,7 @@ and scalable benchmark function for continuous optimization.
 """
 
 import numba  # type: ignore
-from numpy import exp, cos, mean, e, pi, sqrt, ndarray
+from numpy import cos, e, exp, mean, ndarray, pi, sqrt
 
 from moptipy.api.objective import Objective
 

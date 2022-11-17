@@ -1,6 +1,6 @@
 """The mock multi-objective optimization problem."""
 
-from typing import Union, cast, Tuple, Iterable, List
+from typing import Iterable, List, Tuple, Union, cast
 
 import numpy as np
 from numpy.random import default_rng

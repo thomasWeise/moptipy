@@ -1,12 +1,15 @@
 """Validate selection algorithms."""
 
 from math import inf
-from typing import Final, Union, List, Iterable, Set, Dict
+from typing import Dict, Final, Iterable, List, Set, Union
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.modules.selection import Selection, FitnessRecord, \
-    check_selection
+from moptipy.algorithms.modules.selection import (
+    FitnessRecord,
+    Selection,
+    check_selection,
+)
 from moptipy.tests.component import validate_component
 from moptipy.utils.types import type_error
 

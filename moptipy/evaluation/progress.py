@@ -1,23 +1,32 @@
 """Progress data over a run."""
 from dataclasses import dataclass
-from math import isfinite, inf
-from typing import Callable, Union, Optional, List, Final, Dict, Any
+from math import inf, isfinite
+from typing import Any, Callable, Dict, Final, List, Optional, Union
 
 import numpy as np
 
 from moptipy.api import logging
-from moptipy.evaluation._utils import _FULL_KEY_RAND_SEED, _FULL_KEY_GOAL_F
-from moptipy.evaluation.base import PerRunData, check_f_name, \
-    check_time_unit, TIME_UNIT_MILLIS, TIME_UNIT_FES, F_NAME_RAW, \
-    F_NAME_SCALED
+from moptipy.evaluation._utils import _FULL_KEY_GOAL_F, _FULL_KEY_RAND_SEED
+from moptipy.evaluation.base import (
+    F_NAME_RAW,
+    F_NAME_SCALED,
+    TIME_UNIT_FES,
+    TIME_UNIT_MILLIS,
+    PerRunData,
+    check_f_name,
+    check_time_unit,
+)
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
-from moptipy.utils.logger import parse_key_values, CSV_SEPARATOR, \
-    KEY_VALUE_SEPARATOR, COMMENT_CHAR
-from moptipy.utils.nputils import is_np_int, is_np_float, \
-    is_all_finite
+from moptipy.utils.logger import (
+    COMMENT_CHAR,
+    CSV_SEPARATOR,
+    KEY_VALUE_SEPARATOR,
+    parse_key_values,
+)
+from moptipy.utils.nputils import is_all_finite, is_np_float, is_np_int
 from moptipy.utils.path import Path
-from moptipy.utils.strings import str_to_intfloat, num_to_str
+from moptipy.utils.strings import num_to_str, str_to_intfloat
 from moptipy.utils.types import type_error
 
 

@@ -1,7 +1,7 @@
 """The `logger` routine for writing a log string to stdout."""
 import datetime
-from contextlib import nullcontext, AbstractContextManager
-from typing import Final, Callable
+from contextlib import AbstractContextManager, nullcontext
+from typing import Callable, Final
 
 #: the "now" function
 __DTN: Final[Callable[[], datetime.datetime]] = datetime.datetime.now

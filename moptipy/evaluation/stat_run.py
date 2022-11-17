@@ -1,18 +1,25 @@
 """Statistic runs are time-depending statistics over several runs."""
 from dataclasses import dataclass
 from math import erf, sqrt
-from typing import Final, Optional, Iterable, Callable, List, Tuple, Dict, \
-    Any, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numba  # type: ignore
 import numpy as np
 
 import moptipy.evaluation.statistics as statn
-from moptipy.evaluation.base import MultiRun2DData, MultiRunData, \
-    PerRunData
+from moptipy.evaluation.base import MultiRun2DData, MultiRunData, PerRunData
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT
-from moptipy.utils.nputils import is_np_float
+from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_np_float
 from moptipy.utils.types import type_error
 
 #: The value of the CDF of the standard normal distribution CDF at -1,

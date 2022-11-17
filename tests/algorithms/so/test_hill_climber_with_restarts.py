@@ -1,6 +1,7 @@
 """Test the hill climber with restarts."""
-from moptipy.algorithms.so.hill_climber_with_restarts import \
-    HillClimberWithRestarts
+from moptipy.algorithms.so.hill_climber_with_restarts import (
+    HillClimberWithRestarts,
+)
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -9,8 +10,10 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutations import Permutations
-from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax, \
-    validate_algorithm_on_leadingones
+from moptipy.tests.on_bitstrings import (
+    validate_algorithm_on_leadingones,
+    validate_algorithm_on_onemax,
+)
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 

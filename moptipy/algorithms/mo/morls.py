@@ -8,7 +8,7 @@ to the single objective function), it becomes the new best-so-far solution.
 In this multi-objective version, we accept the new solution if it is not
 dominated by the best-so-far solution.
 """
-from typing import Final, Callable
+from typing import Callable, Final
 
 from numpy.random import Generator
 

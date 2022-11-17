@@ -5,8 +5,9 @@ from os.path import exists, isfile
 from numpy.random import Generator, default_rng
 
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
-from moptipy.algorithms.so.hill_climber_with_restarts import \
-    HillClimberWithRestarts
+from moptipy.algorithms.so.hill_climber_with_restarts import (
+    HillClimberWithRestarts,
+)
 from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective

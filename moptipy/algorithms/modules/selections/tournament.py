@@ -33,11 +33,11 @@ times.
 """
 
 from math import inf
-from typing import List, Final, Callable, Iterable, cast, Union, Optional, Any
+from typing import Any, Callable, Final, Iterable, List, Optional, Union, cast
 
 from numpy.random import Generator
 
-from moptipy.algorithms.modules.selection import Selection, FitnessRecord
+from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
 

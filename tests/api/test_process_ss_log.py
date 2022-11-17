@@ -18,8 +18,9 @@ from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
-from moptipy.operators.permutations.op2_gap import \
-    Op2GeneralizedAlternatingPosition
+from moptipy.operators.permutations.op2_gap import (
+    Op2GeneralizedAlternatingPosition,
+)
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.temp import TempFile

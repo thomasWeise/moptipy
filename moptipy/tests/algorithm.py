@@ -1,9 +1,14 @@
 """Functions that can be used to test algorithm implementations."""
-from math import isfinite, inf
-from typing import Optional, Union, Final, Any
+from math import inf, isfinite
+from typing import Any, Final, Optional, Union
 
-from moptipy.api.algorithm import Algorithm, check_algorithm, Algorithm0, \
-    Algorithm1, Algorithm2
+from moptipy.api.algorithm import (
+    Algorithm,
+    Algorithm0,
+    Algorithm1,
+    Algorithm2,
+    check_algorithm,
+)
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective

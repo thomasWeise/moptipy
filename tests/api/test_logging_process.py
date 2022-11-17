@@ -1,5 +1,5 @@
 """Test the Logging Process API."""
-from os.path import isfile, getsize
+from os.path import getsize, isfile
 from typing import Final, Union
 
 import numpy as np

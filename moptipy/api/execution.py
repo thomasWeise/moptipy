@@ -1,6 +1,6 @@
 """The algorithm execution API."""
 from math import isfinite
-from typing import Optional, Union, Final
+from typing import Final, Optional, Union
 
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
@@ -10,9 +10,12 @@ from moptipy.api._process_ss_log import _ProcessSSLog
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.objective import Objective, check_objective
-from moptipy.api.process import Process
-from moptipy.api.process import check_max_fes, check_max_time_millis, \
-    check_goal_f
+from moptipy.api.process import (
+    Process,
+    check_goal_f,
+    check_max_fes,
+    check_max_time_millis,
+)
 from moptipy.api.space import Space, check_space
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path

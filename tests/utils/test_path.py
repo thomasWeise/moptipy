@@ -5,8 +5,8 @@ from typing import cast
 # noinspection PyPackageRequirements
 import pytest
 
-from moptipy.utils.temp import TempFile, TempDir
 from moptipy.utils.path import Path
+from moptipy.utils.temp import TempDir, TempFile
 
 
 def test_path_creation():

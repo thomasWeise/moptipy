@@ -1,7 +1,9 @@
 """Test the unary swap-n operation."""
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
-from moptipy.tests.on_permutations import validate_op1_on_1_permutations, \
-    permutations_for_tests
+from moptipy.tests.on_permutations import (
+    permutations_for_tests,
+    validate_op1_on_1_permutations,
+)
 
 
 def test_op1_swapn():

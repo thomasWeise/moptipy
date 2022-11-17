@@ -45,17 +45,21 @@ selection (:class:`~moptipy.algorithms.modules.selection.Selection`).
    Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-540-54148-6.
    https://doi.org/10.1007/BFb0029787.
 """
-from typing import Final, Union, Callable, List, cast, Optional
+from typing import Callable, Final, List, Optional, Union, cast
 
 from numpy.random import Generator
 
-from moptipy.algorithms.modules.selection import Selection, check_selection, \
-    FitnessRecord
+from moptipy.algorithms.modules.selection import (
+    FitnessRecord,
+    Selection,
+    check_selection,
+)
 from moptipy.algorithms.modules.selections.best import Best
-from moptipy.algorithms.modules.selections.random_without_replacement \
-    import RandomWithoutReplacement
+from moptipy.algorithms.modules.selections.random_without_replacement import (
+    RandomWithoutReplacement,
+)
 from moptipy.algorithms.so.ea import EA, _float_0
-from moptipy.algorithms.so.fitness import check_fitness, Fitness, FRecord
+from moptipy.algorithms.so.fitness import Fitness, FRecord, check_fitness
 from moptipy.algorithms.so.fitnesses.rank_and_iteration import RankAndIteration
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process

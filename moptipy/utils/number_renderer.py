@@ -1,7 +1,7 @@
 """The numeric format definitions."""
 
-from math import isfinite, inf
-from typing import Union, Final, Callable, cast, Optional, Iterable, List
+from math import inf, isfinite
+from typing import Callable, Final, Iterable, List, Optional, Union, cast
 
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang

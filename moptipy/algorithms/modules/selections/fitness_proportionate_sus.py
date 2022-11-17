@@ -166,17 +166,17 @@ Tidor).
 """
 
 from math import isfinite
-from typing import List, Final, Callable, Any
+from typing import Any, Callable, Final, List
 
 import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.algorithms.modules.selection import Selection, FitnessRecord
+from moptipy.algorithms.modules.selection import FitnessRecord, Selection
+from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_FLOAT
 from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
-from moptipy.utils.logger import KeyValueLogSection
 
 
 @numba.njit(nogil=True, cache=True)

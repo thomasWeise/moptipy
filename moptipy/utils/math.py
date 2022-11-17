@@ -1,7 +1,7 @@
 """Simple routines for handling numbers and numerical stuff."""
 
-from math import isfinite, inf, gcd, isqrt, nextafter, log, exp, log2
-from typing import Union, Final
+from math import exp, gcd, inf, isfinite, isqrt, log, log2, nextafter
+from typing import Final, Union
 
 from moptipy.utils.types import type_error
 

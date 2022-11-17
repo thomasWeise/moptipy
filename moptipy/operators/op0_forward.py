@@ -1,5 +1,5 @@
 """A nullary operator forwarding to another function."""
-from typing import Callable, Any, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 from numpy.random import Generator

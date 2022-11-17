@@ -1,8 +1,9 @@
 """Routines for handling strings."""
 
 from math import isnan
-from re import compile as _compile, sub, MULTILINE
-from typing import Union, Optional, Final, Iterable, Pattern
+from re import MULTILINE, sub
+from re import compile as _compile
+from typing import Final, Iterable, Optional, Pattern, Union
 
 from moptipy.utils.math import __try_int
 from moptipy.utils.types import type_error

@@ -2,11 +2,15 @@
 
 from contextlib import AbstractContextManager
 from io import TextIOBase
-from typing import Final, Optional, Iterable, Union, Callable, List
+from typing import Callable, Final, Iterable, List, Optional, Union
 
-from moptipy.utils.formatted_string import FormattedStr, TEXT
-from moptipy.utils.text_format import TextFormatDriver, MODE_NORMAL, \
-    MODE_TABLE_HEADER, MODE_SECTION_HEADER
+from moptipy.utils.formatted_string import TEXT, FormattedStr
+from moptipy.utils.text_format import (
+    MODE_NORMAL,
+    MODE_SECTION_HEADER,
+    MODE_TABLE_HEADER,
+    TextFormatDriver,
+)
 from moptipy.utils.types import type_error
 
 

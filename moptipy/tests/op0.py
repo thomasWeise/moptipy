@@ -1,8 +1,8 @@
 """Functions that can be used to test nullary search operators."""
 from math import isqrt
-from typing import Optional, Callable, Any, Union
+from typing import Any, Callable, Optional, Union
 
-from numpy.random import default_rng, Generator
+from numpy.random import Generator, default_rng
 
 from moptipy.api.operators import Op0, check_op0
 from moptipy.api.space import Space

@@ -1,25 +1,38 @@
 """Providing a multi-objective process without logging with a single space."""
 
 from math import isfinite
-from typing import Optional, Union, Final, Callable, Any, List, cast
+from typing import Any, Callable, Final, List, Optional, Union, cast
 
 import numpy as np
 from numpy import copyto
 
-from moptipy.api._process_base import _ProcessBase, _TIME_IN_NS, _ns_to_ms
+from moptipy.api._process_base import _TIME_IN_NS, _ns_to_ms, _ProcessBase
 from moptipy.api.algorithm import Algorithm
-from moptipy.api.logging import SCOPE_PRUNER, KEY_ARCHIVE_MAX_SIZE, \
-    KEY_ARCHIVE_PRUNE_LIMIT, KEY_BEST_FS, SECTION_ARCHIVE_QUALITY, \
-    KEY_ARCHIVE_F, PREFIX_SECTION_ARCHIVE, SUFFIX_SECTION_ARCHIVE_Y, \
-    KEY_ARCHIVE_SIZE, SECTION_PROGRESS, PROGRESS_FES, PROGRESS_TIME_MILLIS, \
-    PROGRESS_CURRENT_F
-from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner, \
-    MORecord
+from moptipy.api.logging import (
+    KEY_ARCHIVE_F,
+    KEY_ARCHIVE_MAX_SIZE,
+    KEY_ARCHIVE_PRUNE_LIMIT,
+    KEY_ARCHIVE_SIZE,
+    KEY_BEST_FS,
+    PREFIX_SECTION_ARCHIVE,
+    PROGRESS_CURRENT_F,
+    PROGRESS_FES,
+    PROGRESS_TIME_MILLIS,
+    SCOPE_PRUNER,
+    SECTION_ARCHIVE_QUALITY,
+    SECTION_PROGRESS,
+    SUFFIX_SECTION_ARCHIVE_Y,
+)
+from moptipy.api.mo_archive import (
+    MOArchivePruner,
+    MORecord,
+    check_mo_archive_pruner,
+)
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection, Logger
-from moptipy.utils.nputils import np_to_py_number, array_to_str
+from moptipy.utils.nputils import array_to_str, np_to_py_number
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 

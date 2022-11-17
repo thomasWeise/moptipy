@@ -1,6 +1,15 @@
 """Plot a set of ERT objects into one figure."""
-from typing import List, Dict, Final, Callable, Iterable, Union, \
-    Optional, cast, Any
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Union,
+    cast,
+)
 
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
@@ -10,7 +19,7 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.base import get_instance, get_algorithm, sort_key
+from moptipy.evaluation.base import get_algorithm, get_instance, sort_key
 from moptipy.evaluation.ert import Ert
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang

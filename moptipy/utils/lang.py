@@ -5,7 +5,7 @@ The idea here is to have simply tools that provide locale-specific keywords,
 texts, and number formats.
 """
 
-from typing import Dict, Final, Optional, Iterable, List, Callable
+from typing import Callable, Dict, Final, Iterable, List, Optional
 
 import matplotlib  # type: ignore
 import matplotlib.font_manager  # type: ignore

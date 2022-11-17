@@ -1,14 +1,18 @@
 """Compute the end result of one mock run."""
 
 from dataclasses import dataclass
-from math import inf, ceil
-from typing import Final, Optional, Union, Tuple, List, Dict
+from math import ceil, inf
+from typing import Dict, Final, List, Optional, Tuple, Union
 
 from numpy.random import Generator
 
 from moptipy.evaluation.end_results import EndResult
-from moptipy.mock.components import Algorithm, Instance, \
-    BasePerformance, Experiment
+from moptipy.mock.components import (
+    Algorithm,
+    BasePerformance,
+    Experiment,
+    Instance,
+)
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator
 from moptipy.utils.types import type_error

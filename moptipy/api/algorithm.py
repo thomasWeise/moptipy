@@ -10,8 +10,14 @@ from typing import Final
 
 from moptipy.api.component import Component
 from moptipy.api.logging import SCOPE_OP0, SCOPE_OP1, SCOPE_OP2
-from moptipy.api.operators import Op0, check_op0, Op1, check_op1, \
-    Op2, check_op2
+from moptipy.api.operators import (
+    Op0,
+    Op1,
+    Op2,
+    check_op0,
+    check_op1,
+    check_op2,
+)
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR

@@ -1,8 +1,10 @@
 """Test the unary m over n flips operation."""
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.tests.on_bitstrings import validate_op1_on_1_bitstrings, \
-    bitstrings_for_tests
+from moptipy.tests.on_bitstrings import (
+    bitstrings_for_tests,
+    validate_op1_on_1_bitstrings,
+)
 
 
 def test_op1_m_over_n_flips():

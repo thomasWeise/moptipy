@@ -1,16 +1,24 @@
 """A utility to specify axis ranges."""
 import sys
-from math import isfinite, inf
-from typing import Optional, Final, Callable
+from math import inf, isfinite
+from typing import Callable, Final, Optional
 
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
 
-from moptipy.api.logging import KEY_LAST_IMPROVEMENT_FE, \
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES, \
-    KEY_TOTAL_TIME_MILLIS
-from moptipy.evaluation.base import TIME_UNIT_MILLIS, TIME_UNIT_FES, \
-    F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED
+from moptipy.api.logging import (
+    KEY_LAST_IMPROVEMENT_FE,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+    KEY_TOTAL_FES,
+    KEY_TOTAL_TIME_MILLIS,
+)
+from moptipy.evaluation.base import (
+    F_NAME_NORMALIZED,
+    F_NAME_RAW,
+    F_NAME_SCALED,
+    TIME_UNIT_FES,
+    TIME_UNIT_MILLIS,
+)
 from moptipy.evaluation.end_statistics import KEY_ERT_FES, KEY_ERT_TIME_MILLIS
 from moptipy.utils.types import type_error
 

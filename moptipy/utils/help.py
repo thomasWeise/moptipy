@@ -2,7 +2,7 @@
 
 import os.path
 import sys
-from typing import Final, Iterable, Tuple, List, Union
+from typing import Final, Iterable, List, Tuple, Union
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import _canonicalize_path

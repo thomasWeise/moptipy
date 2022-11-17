@@ -1,5 +1,5 @@
 """Test the several vector objective function."""
-from math import nextafter, inf
+from math import inf, nextafter
 from typing import Final
 
 import numpy as np

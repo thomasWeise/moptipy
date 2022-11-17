@@ -1,12 +1,18 @@
 """The markdown text format driver."""
 
 from io import TextIOBase
-from typing import Final, Dict
+from typing import Dict, Final
 
-from moptipy.utils.formatted_string import NUMBER, NAN, \
-    POSITIVE_INFINITY, NEGATIVE_INFINITY, TEXT, SPECIAL
+from moptipy.utils.formatted_string import (
+    NAN,
+    NEGATIVE_INFINITY,
+    NUMBER,
+    POSITIVE_INFINITY,
+    SPECIAL,
+    TEXT,
+)
 from moptipy.utils.latex import SPECIAL_CHARS as __SC
-from moptipy.utils.text_format import TextFormatDriver, MODE_TABLE_HEADER
+from moptipy.utils.text_format import MODE_TABLE_HEADER, TextFormatDriver
 
 #: the special chars
 SPECIAL_CHARS: Final[Dict[str, str]] = dict(__SC)

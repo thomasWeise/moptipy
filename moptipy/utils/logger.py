@@ -5,13 +5,26 @@ from io import StringIO, TextIOBase
 from math import isfinite
 from os.path import realpath
 from re import sub
-from typing import Optional, List, Union, cast, Final, Callable, Tuple, \
-    Iterable, Dict
+from typing import (
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 from moptipy.utils.cache import is_new
 from moptipy.utils.path import Path
-from moptipy.utils.strings import bool_to_str, float_to_str, sanitize_name, \
-    PART_SEPARATOR
+from moptipy.utils.strings import (
+    PART_SEPARATOR,
+    bool_to_str,
+    float_to_str,
+    sanitize_name,
+)
 from moptipy.utils.types import type_error
 
 #: the separator used in CSV files to separate columns

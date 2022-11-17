@@ -1,20 +1,21 @@
 """The base class for implementing multi-objective problems."""
-from math import isfinite, inf
-from typing import Union, Final, Iterable, Tuple, List, Any, Callable, \
-    Optional
+from math import inf, isfinite
+from typing import Any, Callable, Final, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy import empty
 
-from moptipy.api.logging import KEY_SPACE_NUM_VARS
-from moptipy.api.logging import SCOPE_OBJECTIVE_FUNCTION
+from moptipy.api.logging import KEY_SPACE_NUM_VARS, SCOPE_OBJECTIVE_FUNCTION
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.math import try_int
-from moptipy.utils.nputils import KEY_NUMPY_TYPE, dtype_for_data, \
-    val_numpy_type
+from moptipy.utils.nputils import (
+    KEY_NUMPY_TYPE,
+    dtype_for_data,
+    val_numpy_type,
+)
 from moptipy.utils.types import type_error
 
 

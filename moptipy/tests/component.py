@@ -3,11 +3,14 @@ from typing import Final, Set
 
 from moptipy.api import logging
 from moptipy.api.component import Component
-from moptipy.utils.logger import InMemoryLogger
-from moptipy.utils.logger import SECTION_END, SECTION_START, \
-    KEY_VALUE_SEPARATOR
+from moptipy.utils.logger import (
+    KEY_VALUE_SEPARATOR,
+    SECTION_END,
+    SECTION_START,
+    InMemoryLogger,
+)
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_name_of, type_error
+from moptipy.utils.types import type_error, type_name_of
 
 
 def validate_component(component: Component) -> None:
