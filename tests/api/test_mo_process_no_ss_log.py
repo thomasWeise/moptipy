@@ -30,7 +30,6 @@ from moptipy.utils.types import type_name_of
 
 def test_mo_process_no_ss_log():
     """Test the `_mo_process_no_ss_log` with logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
 
@@ -131,7 +130,6 @@ def test_mo_process_no_ss_log():
 
 def test_mo_process_no_ss_log_all():
     """Test the `_mo_process_no_ss_log` with all logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
 

@@ -10,7 +10,7 @@ from moptipy.utils.temp import TempDir, TempFile
 
 
 def test_path_creation():
-    """Test that path creation failes with wrong time."""
+    """Test that path creation fails with wrong time."""
     with pytest.raises(TypeError):
         Path.path(cast(str, 1))
     with pytest.raises(TypeError):
@@ -23,7 +23,6 @@ def test_path_creation():
 
 def test_write_all_read_all_and_enforce_exists():
     """Test writing and reading text as well as enforcing existence."""
-
     with TempFile.create() as tf:
         with pytest.raises(ValueError):
             tf.write_all([])
@@ -53,7 +52,6 @@ def test_write_all_read_all_and_enforce_exists():
 
 def test_enforce_exists():
     """Test writing and reading text as well as enforcing existence."""
-
     with TempFile.create() as tf:
         tf.enforce_file()
         tf.ensure_file_exists()
@@ -82,7 +80,6 @@ def test_enforce_exists():
 
 def test_enforce_contains_and_empty_readall():
     """Test that enforce_contains works."""
-
     with TempDir.create() as td1:
 
         assert os.path.exists(td1)
@@ -147,7 +144,6 @@ def test_enforce_contains_and_empty_readall():
 
 def test_create_file_or_truncate():
     """Test create_file_or_truncate."""
-
     with TempDir.create() as td:
         f = td.resolve_inside("a")
         assert not os.path.exists(f)

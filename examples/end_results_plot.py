@@ -20,7 +20,7 @@ which, in turn, is visible in the violin plots.
 We here therefore conduct a small example experiment, collect its end results,
 and plot them into such a violin-box plot.
 
-See also:
+See Also
 - https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html
 - https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html
 """

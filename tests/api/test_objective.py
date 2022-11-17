@@ -1,7 +1,5 @@
 """Test the callable objective function."""
 
-# noinspection PyPackageRequirements
-
 from moptipy.api.component import Component
 from moptipy.api.objective import Objective
 from moptipy.tests.objective import validate_objective
@@ -11,16 +9,21 @@ from moptipy.utils.temp import TempFile
 
 class MyObjective(Objective):
     """The internal test objective."""
+
     def evaluate(self, x) -> int:
+        """Evaluate a solution."""
         return 5
 
     def lower_bound(self) -> int:
+        """Get the lower bound."""
         return -5
 
     def upper_bound(self) -> int:
+        """Get the upper bound."""
         return 11
 
     def __str__(self):
+        """Convert this object to a string."""
         return "hello"
 
 

@@ -37,7 +37,7 @@ from moptipy.api.process import Process
 
 # start book
 class SingleRandomSample(Algorithm0):
-    """This algorithm creates one single random solution."""
+    """An algorithm that creates one single random solution."""
 
     def solve(self, process: Process) -> None:
         """

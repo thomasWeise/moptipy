@@ -1,5 +1,5 @@
 """
-This file shows how a single log file is generated in an experiment.
+An example showing how a single log file is generated in an experiment.
 
 As basis for the experiment, we use the Job Shop Scheduling Problem (JSSP)
 and apply a simple Randomized Local Search (RLS) to it. We only perform one

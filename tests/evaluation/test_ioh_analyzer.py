@@ -20,6 +20,7 @@ instances = [lambda n=ins: Instance.from_resource(n)
 
 
 def algo_1(inst) -> Execution:
+    """The first algorithm."""
     ss = Permutations.with_repetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = Op0Shuffle(ss)
@@ -37,6 +38,7 @@ def algo_1(inst) -> Execution:
 
 
 def algo_2(inst) -> Execution:
+    """The second algorithm."""
     ss = Permutations.with_repetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = Op0Shuffle(ss)

@@ -21,6 +21,7 @@ instances = [lambda: Instance.from_resource("dmu01"),
 
 
 def algo_1(inst: Instance) -> Execution:
+    """Execute the first test algorithm."""
     ss = Permutations.with_repetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = Op0Shuffle(ss)
@@ -38,6 +39,7 @@ def algo_1(inst: Instance) -> Execution:
 
 
 def algo_2(inst: Instance) -> Execution:
+    """Execute the second test algorithm."""
     ss = Permutations.with_repetitions(inst.jobs, inst.machines)
     sos = GanttSpace(inst)
     op0 = Op0Shuffle(ss)
@@ -54,6 +56,7 @@ def algo_2(inst: Instance) -> Execution:
 
 
 def test_experiment_jssp():
+    """Run the JSSP test experiment."""
     with TempDir.create() as base_dir:
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],

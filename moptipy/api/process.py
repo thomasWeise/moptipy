@@ -218,7 +218,7 @@ class Process(Space, Objective, AbstractContextManager):
 
         :return: True if the current-best solution can be queried.
 
-        See also:
+        See Also
             - :meth:`get_best_f`
             - :meth:`get_copy_of_best_x`
             - :meth:`get_copy_of_best_y`
@@ -240,7 +240,7 @@ class Process(Space, Objective, AbstractContextManager):
 
         :return: the objective value of the current best solution.
 
-        See also:
+        See Also
             - :meth:`has_best`
             - :meth:`get_copy_of_best_x`
             - :meth:`get_copy_of_best_y`
@@ -271,7 +271,7 @@ class Process(Space, Objective, AbstractContextManager):
 
         :param x: the destination data structure to be overwritten
 
-        See also:
+        See Also
             - :meth:`has_best`
             - :meth:`get_best_f`
             - :meth:`get_copy_of_best_y`
@@ -293,7 +293,7 @@ class Process(Space, Objective, AbstractContextManager):
 
         :param y: the destination data structure to be overwritten
 
-        See also:
+        See Also
             - :meth:`has_best`
             - :meth:`get_best_f`
             - :meth:`get_copy_of_best_x`

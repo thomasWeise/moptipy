@@ -10,6 +10,7 @@ from moptipy.utils.temp import TempDir, TempFile
 
 
 def test_all_examples_from_readme_md():
+    """Test all the example Python codes in the README.md file."""
     # First, we load the README.md file as a single string
     base_dir = Path.directory(os.path.join(os.path.dirname(__file__), "../"))
     readme = Path.file(base_dir.resolve_inside("README.md"))

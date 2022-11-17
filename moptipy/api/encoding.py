@@ -1,5 +1,5 @@
 """
-This module provides the base class for implementing encodings.
+The base class for implementing encodings.
 
 Sometimes, in optimization, the search space and the space of possible
 solutions are different. For example, in the Job Shop Scheduling Problem

@@ -8,7 +8,7 @@ from moptipy.api.operators import Op1
 
 
 class Op1Flip1(Op1):
-    """This unary search operation flips exactly one bit."""
+    """A unary search operation that flips exactly one bit."""
 
     def op1(self, random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
         """

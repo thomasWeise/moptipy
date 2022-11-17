@@ -1,5 +1,5 @@
 """
-This binary operator merges two permutations by adding elements in sequence.
+A binary operator that merges two permutations by adding elements in sequence.
 
 Assume we have two permutations `x0` and `x1`. For each position `i` in the
 destination string `dest`, we randomly select the permutation `x` from which

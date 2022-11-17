@@ -1,1 +1,1 @@
-"""This package contains multi-objective algorithms."""
+"""The multi-objective optimization algorithms of the `moptipy` package."""

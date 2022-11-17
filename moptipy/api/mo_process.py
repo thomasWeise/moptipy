@@ -80,7 +80,7 @@ class MOProcess(MOProblem, Process):
 
         :param fs: the destination vector to be overwritten
 
-        See also:
+        See Also
             - :meth:`~moptipy.api.process.Process.has_best`
             - :meth:`~moptipy.api.process.Process.get_best_f`
             - :meth:`~moptipy.api.process.Process.get_copy_of_best_x`

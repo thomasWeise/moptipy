@@ -26,7 +26,6 @@ from moptipy.utils.types import type_name_of
 
 def test_process_ss_no_log():
     """Test the `_process_ss` without logging."""
-
     instance: Instance = Instance.from_resource("dmu23")
     search_space: Permutations = Permutations.with_repetitions(
         instance.jobs, instance.machines)
@@ -130,6 +129,7 @@ def test_process_ss_log():
 
 class _RA(Algorithm0):
     """The one-max algorithm."""
+
     def __init__(self, op0: Op0Shuffle, x, y: Gantt, f: Makespan,
                  e: OperationBasedEncoding):
         """Initialize."""
@@ -140,7 +140,7 @@ class _RA(Algorithm0):
         self.e: OperationBasedEncoding = e
 
     def solve(self, process: Process) -> None:
-        """Solve!"""
+        """Solve."""
         r = process.get_random()
         while not process.should_terminate():
             self.op0.op0(r, self.x)
@@ -151,7 +151,6 @@ class _RA(Algorithm0):
 
 def test_process_ss_no_log_reg():
     """Test the `_process_ss` without logging but registering."""
-
     instance: Instance = Instance.from_resource("la30")
     search_space: Permutations = Permutations.with_repetitions(
         instance.jobs, instance.machines)

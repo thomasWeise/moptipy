@@ -28,6 +28,7 @@ def __test_statistics(a: List[Union[int, float]],
 
 
 def test_statistics():
+    """Test the statistics."""
     __test_statistics([0, 0, 0, 0, 0, 0, 0])
     __test_statistics([0, 0, 0, 0, 0, 1, 0])
     __test_statistics([0, 0, 1, 0, 0, 0, 0])

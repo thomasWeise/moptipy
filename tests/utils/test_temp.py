@@ -65,7 +65,8 @@ def test_temp_dir():
     assert not exists(inner)
 
 
-def test_file_create_or_fail():
+def test_file_write():
+    """Test creation the writing into a file."""
     with TempDir.create() as tds:
         s = Path.path(join(tds, "a.txt"))
         assert isinstance(s, str)
@@ -80,6 +81,7 @@ def test_file_create_or_fail():
 
 
 def test_file_create_or_truncate():
+    """Test file creation or truncation."""
     with TempDir.create() as tds:
         s = Path.path(join(tds, "a.txt"))
         assert isinstance(s, str)
@@ -107,6 +109,7 @@ def test_file_create_or_truncate():
 
 
 def test_file_ensure_exists():
+    """Test ensuring that a file exists."""
     with TempDir.create() as tds:
         s = Path.path(join(tds, "a.txt"))
         assert isinstance(s, str)

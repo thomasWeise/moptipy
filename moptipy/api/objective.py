@@ -1,5 +1,5 @@
 """
-This module provides the class for implementing objective functions.
+The base class for implementing objective functions.
 
 An objective function evaluates the quality of a candidate solution of an
 optimization problem. Solutions with smaller objective values are better,

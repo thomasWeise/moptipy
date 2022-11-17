@@ -27,6 +27,7 @@ BEST_F: Final[int] = WORST_F - MAX_FES + 1
 
 
 class MyAlgorithm1(Algorithm):
+    """The algorithm for testing."""
 
     def solve(self, process: Process) -> None:
         """Perform a simple algorithm."""
@@ -46,6 +47,7 @@ class MyAlgorithm1(Algorithm):
 
 
 class MyAlgorithm2(Algorithm):
+    """The second algorithm for testing."""
 
     def solve(self, process: Process) -> None:
         """Conduct a second algorithm simply iterating over x."""
@@ -65,6 +67,7 @@ class MyAlgorithm2(Algorithm):
 
 class MyObjective1(Objective):
     """The internal test objective."""
+
     def evaluate(self, x) -> Union[float, int]:
         """Return x[0] as dummy objective value."""
         return x[0]
@@ -72,6 +75,7 @@ class MyObjective1(Objective):
 
 class MyObjective2(Objective):
     """The internal test objective."""
+
     def evaluate(self, x) -> Union[float, int]:
         """Return x[0] as dummy objective value."""
         return sin(x[0])
@@ -165,6 +169,7 @@ def test_process_noss_maxfes_log_state():
 
 
 class MyAlgorithm3(Algorithm):
+    """The third algorithm for testing."""
 
     def solve(self, process: Process) -> None:
         """Perform an algorithm that throws an error."""

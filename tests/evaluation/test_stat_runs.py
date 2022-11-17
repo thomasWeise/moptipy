@@ -9,6 +9,7 @@ from moptipy.evaluation.stat_run import StatRun
 
 
 def test_stat_runs():
+    """Test whether StatRuns work."""
     algo0: Final[str] = "a0"
     inst0: Final[str] = "i0"
     tu: Final[str] = prg.TIME_UNIT_FES

@@ -1,1 +1,1 @@
-"""This package contains single-objective algorithms."""
+"""The single-objective optimization algorithms of the `moptipy` package."""

@@ -25,7 +25,6 @@ from moptipy.utils.types import type_name_of
 
 def test_process_no_ss_log_log():
     """Test the `_process_no_ss_log` with logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(5, 12))
     space: Space = BitStrings(dim)
@@ -93,7 +92,6 @@ def test_process_no_ss_log_log():
 
 def test_process_no_ss_log_log_all():
     """Test the `_process_no_ss_log` with logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)
@@ -166,7 +164,7 @@ class _OMA(Algorithm0):
         self.f: OneMax = f
 
     def solve(self, process: Process) -> None:
-        """Solve!"""
+        """Solve."""
         x = process.create()
         r = process.get_random()
         while not process.should_terminate():
@@ -177,7 +175,6 @@ class _OMA(Algorithm0):
 
 def test_process_no_ss_no_log_register():
     """Test the `_process_no_ss` without logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)
@@ -245,7 +242,6 @@ def test_process_no_ss_no_log_register():
 
 def test_process_no_ss_no_log_all_register():
     """Test the `_process_no_ss` without logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)

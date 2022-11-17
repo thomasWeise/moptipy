@@ -24,7 +24,6 @@ from moptipy.utils.types import type_name_of
 
 def test_process_no_ss_no_log():
     """Test the `_process_no_ss` without logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)
@@ -56,7 +55,6 @@ def test_process_no_ss_no_log():
 
 def test_process_no_ss_log():
     """Test the `_process_no_ss` with logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)
@@ -121,7 +119,6 @@ class ImmediateErrorAlgo(Algorithm):
 
 def test_process_no_ss_log_with_immediate_error():
     """Test the `_process_no_ss` with logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)
@@ -190,7 +187,6 @@ class ErrorAlgoDelayed(Algorithm0):
 
 def test_process_no_ss_log_with_error_after_evaluation():
     """Test the `_process_no_ss` with logging and a later error."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)
@@ -254,13 +250,14 @@ def test_process_no_ss_log_with_error_after_evaluation():
 
 class _OMA(Algorithm0):
     """The one-max algorithm."""
+
     def __init__(self, op0: Op0Random, f: OneMax):
         """Initialize."""
         super().__init__("om", op0)
         self.f: OneMax = f
 
     def solve(self, process: Process) -> None:
-        """Solve!"""
+        """Solve."""
         x = process.create()
         r = process.get_random()
         while not process.should_terminate():
@@ -271,7 +268,6 @@ class _OMA(Algorithm0):
 
 def test_process_no_ss_no_log_register():
     """Test the `_process_no_ss` without logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
     space: Space = BitStrings(dim)

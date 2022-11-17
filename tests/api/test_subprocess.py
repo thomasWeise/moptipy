@@ -35,9 +35,10 @@ from moptipy.utils.types import type_name_of
 
 
 class MyAlgorithm(Algorithm2):
-    """The dummy algorithm"""
+    """The dummy algorithm."""
 
     def __init__(self) -> None:
+        """Initalize."""
         super().__init__("dummy", Op0Random(), Op1Flip1(), Op2Uniform())
         self.ea = EA(self.op0, self.op1, self.op2, 10, 10, 0.3)
         self.fwd = Op0Forward()
@@ -116,12 +117,14 @@ def test_from_start_for_fes():
 
 
 class MyAlgorithm2(Algorithm2):
-    """The dummy algorithm"""
+    """The dummy algorithm."""
 
     def __init__(self) -> None:
+        """Initialize."""
         super().__init__("dummy", Op0Random(), Op1Flip1(), Op2Uniform())
 
     def solve(self, process: Process) -> None:
+        """The solve routine."""
         without_should_terminate(self._solve, process)
 
     def _solve(self, process: Process) -> None:
@@ -174,7 +177,7 @@ class _OneMaxRegAlgo(Algorithm0):
         self.f: OneMax = f
 
     def solve(self, process: Process) -> None:
-        """Solve!"""
+        """Solve."""
         x = process.create()
         r = process.get_random()
         while not process.should_terminate():
@@ -193,7 +196,7 @@ class __RegisterForFEs(Algorithm):
         self.repeat = False
 
     def solve(self, process: Process) -> None:
-        """Solve!"""
+        """Solve."""
         assert process.get_consumed_fes() == 0
         mf = process.get_max_fes()
         assert mf == 100
@@ -225,7 +228,6 @@ class __RegisterForFEs(Algorithm):
 
 def test_for_fes_process_no_ss_no_log_reg_norm():
     """Test the `_process_no_ss` without logging."""
-
     random: Generator = default_rng()
 
     while True:
@@ -269,7 +271,7 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
         Algorithm0.__init__(self, "om", op0)
 
     def solve_mo(self, process: MOProcess) -> None:
-        """Solve!"""
+        """Solve."""
         me = process.get_max_fes()
         with for_fes(process, me) as pp:
             assert str(pp) == f"forFEsMO_{me}_{process}"
@@ -281,7 +283,7 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
             assert pp.get_consumed_fes() == process.get_consumed_fes()
 
     def __solve_mo(self, process: MOProcess):
-        """Solve!"""
+        """Solve."""
         x = process.create()
         fs = process.f_create()
         r = process.get_random()
@@ -295,7 +297,6 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
 
 def test_for_fes_mo_process_no_ss_no_log():
     """Test the `_mo_process_no_ss` without logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(12, 40))
 
@@ -346,14 +347,13 @@ class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
         Algorithm0.__init__(self, "om", op0)
 
     def solve_mo(self, process: MOProcess) -> None:
-        """Solve!"""
-
+        """Solve."""
         assert process.get_consumed_fes() == 0
         without_should_terminate(self.__solve_mo, process)
         assert 0 < process.get_consumed_fes() <= 100
 
     def __solve_mo(self, process: MOProcess):
-        """Solve!"""
+        """Solve."""
         assert str(process).startswith("protectMO_")
         x = process.create()
         fs = process.f_create()
@@ -368,7 +368,6 @@ class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
 
 def test_without_should_terminate_mo_process_no_ss_no_log():
     """Test the `_mo_process_no_ss` without logging."""
-
     random: Generator = default_rng()
     dim: int = int(random.integers(12, 40))
 

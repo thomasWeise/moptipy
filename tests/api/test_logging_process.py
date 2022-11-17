@@ -21,6 +21,7 @@ BEST_F: Final[int] = WORST_F - MAX_FES + 1
 
 
 class MyAlgorithm(Algorithm):
+    """The first algorithm for testing."""
 
     def solve(self, process: Process) -> None:
         """Perform a simple algorithm."""
@@ -43,6 +44,7 @@ class MyAlgorithm(Algorithm):
 
 class MyObjective(Objective):
     """The internal test objective."""
+
     def evaluate(self, x) -> Union[float, int]:
         """Return x[0] as dummy objective value."""
         return x[0]

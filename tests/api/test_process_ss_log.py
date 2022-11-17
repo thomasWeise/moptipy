@@ -183,6 +183,7 @@ def test_process_ss_log_log_all():
 
 class _RA(Algorithm0):
     """The one-max algorithm."""
+
     def __init__(self, op0: Op0Shuffle, x, y: Gantt, f: Makespan,
                  e: OperationBasedEncoding):
         """Initialize."""
@@ -193,7 +194,7 @@ class _RA(Algorithm0):
         self.e: OperationBasedEncoding = e
 
     def solve(self, process: Process) -> None:
-        """Solve!"""
+        """Solve."""
         r = process.get_random()
         i: int = 0
         while not process.should_terminate():
