@@ -9,11 +9,11 @@ from numpy.random import Generator
 from moptipy.utils.types import type_error
 
 #: The default types to be used for testing.
-DEFAULT_TEST_DTYPES: Final[tuple[np.dtype, ...]] = tuple(sorted(set(
+DEFAULT_TEST_DTYPES: Final[tuple[np.dtype, ...]] = tuple(sorted({
     np.dtype(bdt) for bdt in [
         int, float, np.int8, np.int16, np.uint8, np.uint16, np.int32,
         np.uint32, np.int64, np.uint64, np.float16, np.float32,
-        np.float64, np.float128]), key=lambda dt: (dt.kind, dt.itemsize)))
+        np.float64, np.float128]}, key=lambda dt: (dt.kind, dt.itemsize)))
 
 
 def _lb_int(lb: int | float) -> int:

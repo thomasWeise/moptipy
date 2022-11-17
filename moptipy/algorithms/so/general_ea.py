@@ -185,8 +185,8 @@ class GeneralEA(EA):
             # add remaining selected solutions from recs to population
             # from index di to mu+lambda ... omitted for brevity in book
             # end book
-            for di in range(di, mu_plus_lambda):
-                other = recs[di]
+            for di2 in range(di, mu_plus_lambda):
+                other = recs[di2]
                 if other._selected:  # only if solution was selected
                     other._selected = False  # set as unselected
                     population_append(other)  # put into population

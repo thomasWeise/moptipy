@@ -61,7 +61,7 @@ def test_log_files():
     assert len(dic) == 5
 
     csv_part_1 = result[1:4]
-    rows = list()
+    rows = []
     for r in csv.reader(csv_part_1, delimiter=";"):
         rows.append(r)
     assert rows == [["x", "y"],
@@ -69,7 +69,7 @@ def test_log_files():
                     ["3.3", "12"]]
 
     csv_part_2 = result[16:19]
-    rows = list()
+    rows = []
     for r in csv.reader(csv_part_2, delimiter=";"):
         rows.append(r)
     assert rows == [["o", "p", "q"],

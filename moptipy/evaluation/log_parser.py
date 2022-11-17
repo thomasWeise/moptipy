@@ -1,6 +1,5 @@
 """A section consumer can load the sections from a log file."""
 
-from abc import ABC
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, join
 from typing import Final
@@ -13,7 +12,7 @@ from moptipy.utils.path import Path
 from moptipy.utils.strings import PART_SEPARATOR, sanitize_name
 
 
-class LogParser(ABC):
+class LogParser:
     """
     A log parser can parse a log file and separate the sections.
 

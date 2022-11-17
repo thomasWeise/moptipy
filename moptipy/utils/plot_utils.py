@@ -365,7 +365,7 @@ def create_figure_with_subplots(
         width=best[width_i], height=best[height_i],  # type: ignore
         dpi=dpi, **kwargs)
     if n_plots <= 1:  # if there is only one plot, we are done here
-        return figure, tuple([(figure, 0, items, 0, 0, 0)])
+        return figure, ((figure, 0, items, 0, 0, 0), )
 
     # if there are multiple plots, we need to generate them
     allfigs: list[tuple[SubplotBase | Figure,

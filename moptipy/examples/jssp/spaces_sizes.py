@@ -94,13 +94,13 @@ def gantt_min_feasible(jobs: int, machines: int) \
             f"Number of machines must be n 1..127, but is {machines}.")
 
     if machines <= 1:
-        return factorial(jobs), tuple([tuple([0] * jobs)])
+        return factorial(jobs), (tuple([0] * jobs), )
     if jobs <= 1:
-        return 1, tuple([tuple(range(machines))])
+        return 1, (tuple(range(machines)), )
     if jobs <= 2:
-        return machines + 1, tuple([
+        return machines + 1, (
             tuple(list(range(machines - 2, -1, -1)) + [machines - 1]),
-            tuple([machines - 1] + list(range(machines - 1)))])
+            tuple([machines - 1] + list(range(machines - 1))), )
 
     for tup in __PRE_COMPUTED:
         if (tup[0] == jobs) and (tup[1] == machines):

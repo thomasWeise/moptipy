@@ -193,7 +193,7 @@ class Lang:
         # We divide the string into equally-sized chunks and insert "'"
         # between them.
         chunks: list[str] = []
-        for i in range(i, -1, -self.__decimal_stepwidth):
+        for i in range(i, -1, -self.__decimal_stepwidth):  # noqa
             k: str = sss[i:(i + self.__decimal_stepwidth)]
             if k:
                 chunks.insert(0, k)

@@ -29,7 +29,7 @@ def __ve(msg: str, text: str, idx: int) -> ValueError:
 
 def __check(url: str, valid_urls: set[str],
             http: urllib3.PoolManager = urllib3.PoolManager(
-                cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())) -> None:
+                cert_reqs="CERT_REQUIRED", ca_certs=certifi.where())) -> None:
     """
     Check if a url exists.
 
@@ -162,7 +162,7 @@ def test_all_links_in_readme_md():
         if "\n" in text[i:j]:
             start = i
         j += 1
-        if text[j] != '(':
+        if text[j] != "(":
             raise __ve("invalid image sequence", text, i)
         k = text.find(")", j + 1)
         if k <= j:
@@ -195,7 +195,7 @@ def test_all_links_in_readme_md():
             start = i
             continue
         j += 1
-        if text[j] != '(':
+        if text[j] != "(":
             raise __ve("invalid link", text, i)
         k = text.find(")", j + 1)
         if k <= j:

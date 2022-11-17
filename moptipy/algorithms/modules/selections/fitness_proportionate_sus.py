@@ -224,7 +224,7 @@ def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
         return  # to all elements: each range = 1
 
     for i, v in enumerate(a):  # negate the array for minimization
-        a[i] = max_fitness - a[i]
+        a[i] = max_fitness - v
 
     fitness_sum: Final[float] = a.sum()  # get the new fitness sum
 
@@ -233,7 +233,7 @@ def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
 
     cum_sum: float = 0.0
     for i, v in enumerate(a):  # compute the scaled cumulative sum
-        a[i] = cum_sum = cum_sum + offset + a[i]
+        a[i] = cum_sum = cum_sum + offset + v
 # end book
 
 

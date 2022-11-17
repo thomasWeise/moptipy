@@ -226,19 +226,19 @@ LINE_DASH_SOLID: Final[str] = "solid"
 #: An internal array of fixed line styles.
 __FIXED_LINE_DASHES: \
     Final[tuple[str | tuple[float, tuple[float, ...]], ...]] = \
-    tuple([LINE_DASH_SOLID,
-           "dashed",
-           "dashdot",
-           "dotted",
-           (0.0, (3.0, 5.0, 1.0, 5.0, 1.0, 5.0)),  # dashdotdotted
-           (0.0, (3.0, 1.0, 1.0, 1.0)),  # densely dashdotted
-           (0.0, (5.0, 1.0)),  # densely dashed
-           (0.0, (1.0, 1.0)),  # densely dotted
-           (0.0, (3.0, 1.0, 1.0, 1.0, 1.0, 1.0)),  # densely dashdotdotted
-           (0.0, (1.0, 10.0)),  # loosely dotted
-           (0.0, (5.0, 10.0)),  # loosely dashed
-           (0.0, (3.0, 10.0, 1.0, 10.0)),  # loosely dashdotted
-           (0.0, (3.0, 10.0, 1.0, 10.0, 1.0, 10.0))])  # loosely dashdotdotted
+    (LINE_DASH_SOLID,
+     "dashed",
+     "dashdot",
+     "dotted",
+     (0.0, (3.0, 5.0, 1.0, 5.0, 1.0, 5.0)),  # dashdotdotted
+     (0.0, (3.0, 1.0, 1.0, 1.0)),  # densely dashdotted
+     (0.0, (5.0, 1.0)),  # densely dashed
+     (0.0, (1.0, 1.0)),  # densely dotted
+     (0.0, (3.0, 1.0, 1.0, 1.0, 1.0, 1.0)),  # densely dashdotdotted
+     (0.0, (1.0, 10.0)),  # loosely dotted
+     (0.0, (5.0, 10.0)),  # loosely dashed
+     (0.0, (3.0, 10.0, 1.0, 10.0)),  # loosely dashdotted
+     (0.0, (3.0, 10.0, 1.0, 10.0, 1.0, 10.0)), )  # loosely dashdotdotted
 
 
 def distinct_line_dashes(n: int) -> \

@@ -7,8 +7,7 @@ from typing import Callable, Final
 __DTN: Final[Callable[[], datetime.datetime]] = datetime.datetime.now
 
 
-def logger(message: str,
-           note: str = "",
+def logger(message: str, note: str = "",
            lock: AbstractContextManager = nullcontext()) -> None:
     """
     Write a message to the log.
@@ -20,4 +19,4 @@ def logger(message: str,
     """
     text: Final[str] = f"{__DTN()}{note}: {message}"
     with lock:
-        print(text, flush=True)
+        print(text, flush=True)  # noqa

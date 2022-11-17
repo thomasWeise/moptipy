@@ -79,10 +79,7 @@ class PerRunData:
     #: The seed of the random number generator.
     rand_seed: int
 
-    def __init__(self,
-                 algorithm: str,
-                 instance: str,
-                 rand_seed: int):
+    def __init__(self, algorithm: str, instance: str, rand_seed: int):
         """
         Create a per-run data record.
 

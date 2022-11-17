@@ -125,8 +125,8 @@ def __make_sys_info() -> str:
         :returns: an integer with the memory size if available
         """
         try:
-            meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1]))
-                           for i in Path.path('/proc/meminfo').read_all_list())
+            meminfo = {i.split()[0].rstrip(':'): int(i.split()[1])
+                       for i in Path.path('/proc/meminfo').read_all_list()}
             mem_kib = meminfo['MemTotal']  # e.g. 3921852
             mem_kib = int(mem_kib)
             if mem_kib > 0:

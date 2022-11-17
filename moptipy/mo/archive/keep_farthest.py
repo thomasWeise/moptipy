@@ -157,7 +157,8 @@ class KeepFarthest(MOArchivePruner):
             counter.update(p)
 
         # Now pick the elements that minimize most objectives.
-        for maxc in sorted(sorted(counter.keys()),  # sort keys for stability
+        # We first sort keys for stability, then we sort based on the counter.
+        for maxc in sorted(sorted(counter.keys()),  # noqa
                            key=lambda kk: -counter[kk]):
             found: bool = False
             for p in all_preserve:

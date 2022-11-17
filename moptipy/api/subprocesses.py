@@ -210,7 +210,7 @@ def for_fes(process: T, max_fes: int) -> T:
         else __ForFEs(process, max_fes)
 
 
-class __FromStatingPoint(Process):
+class __FromStartingPoint(Process):
     """A process searching from a given point."""
 
     def __init__(self, owner: Process, in_and_out_x: Any,
@@ -338,7 +338,7 @@ def from_starting_point(owner: Process, in_and_out_x: Any,
         overwritten with the best encountered solution
     :param f: the objective value corresponding to `in_and_out`
     """
-    return __FromStatingPoint(owner, in_and_out_x, f)
+    return __FromStartingPoint(owner, in_and_out_x, f)
 
 
 class _InternalTerminationError(Exception):

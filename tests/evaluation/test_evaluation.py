@@ -72,7 +72,7 @@ def test_experiment_jssp():
                        n_runs=4,
                        base_dir=base_dir)
 
-        results: list[EndResult] = list()
+        results: list[EndResult] = []
         EndResult.from_logs(base_dir, results.append)
 
         assert len(results) == (4 * 2 * 3)
@@ -116,7 +116,7 @@ def test_experiment_jssp():
                              suffix=logging.FILE_SUFFIX) as path:
             EndResult.to_csv(results=results, file=path)
 
-            results2: list[EndResult] = list()
+            results2: list[EndResult] = []
             EndResult.from_csv(file=path, consumer=results2.append)
 
             assert results == results2
@@ -199,26 +199,26 @@ def test_experiment_jssp():
             assert es_l.ert_fes > 0
             assert es_l.ert_time_millis > 0
 
-            es_algos = list()
+            es_algos = []
             EndStatistics.from_end_results(results, es_algos.append,
                                            join_all_instances=True)
             assert es_algos[0] == es_rs
             assert len(es_algos) == 2
 
-            es_insts = list()
+            es_insts = []
             EndStatistics.from_end_results(results, es_insts.append,
                                            join_all_algorithms=True)
             assert es_insts[2] == es_l
             assert len(es_insts) == 3
 
-            es_sep = list()
+            es_sep = []
             EndStatistics.from_end_results(results, es_sep.append)
             assert es_sep[3] == es_hc_a
             assert es_sep[0] == es_rs_a
             assert es_sep[2] == es_rs_l
             assert len(es_sep) == 6
 
-            es_one = list()
+            es_one = []
             EndStatistics.from_end_results(results, es_one.append,
                                            True, True)
             assert es_one == [es_all]
@@ -228,15 +228,15 @@ def test_experiment_jssp():
                              suffix=logging.FILE_SUFFIX) as f:
             check = [es_hc_a]
             EndStatistics.to_csv(check, f)
-            check_2 = list()
+            check_2 = []
             EndStatistics.from_csv(f, check_2.append)
             assert check_2 == check
             assert len(check_2) == 1
 
-        progress_fes_raw = list()
-        progress_ms_raw = list()
-        progress_fes_std = list()
-        progress_ms_nrm = list()
+        progress_fes_raw = []
+        progress_ms_raw = []
+        progress_fes_std = []
+        progress_ms_nrm = []
         Progress.from_logs(base_dir, progress_fes_raw.append,
                            time_unit=bs.TIME_UNIT_FES,
                            f_name=bs.F_NAME_RAW)
@@ -310,14 +310,14 @@ def test_experiment_jssp():
         stat_names = ["min", "med", "mean", "geom", "max",
                       "mean-sd", "mean+sd", "sd",
                       "q10", "q90", "q159", "q841"]
-        stat_runs = list()
+        stat_runs = []
         StatRun.create(source=progress_fes_raw,
                        statistics=stat_names,
                        consumer=stat_runs.append)
         assert len(stat_runs) == len(stat_names)
 
         if "GITHUB_JOB" in environ:
-            all_progress = list()
+            all_progress = []
             all_progress.extend(progress_ms_raw)
             all_progress.extend(progress_fes_raw)
             all_progress.extend(progress_fes_std)

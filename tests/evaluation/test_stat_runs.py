@@ -24,7 +24,7 @@ def test_stat_runs():
                                    None,
                                    True)
 
-    collector: Final[list[StatRun]] = list()
+    collector: Final[list[StatRun]] = []
     StatRun.create([p0], ["mean"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]

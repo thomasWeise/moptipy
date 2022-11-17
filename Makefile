@@ -100,9 +100,9 @@ static_analysis: init
 	pycodestyle --ignore=E731 examples &&\
 	pycodestyle tests &&\
 	echo "$(NOW): Done with pycodestyle, now running ruff." &&\
-	ruff --select E,F,I,D,U --ignore=D212,D203,D413,D407,D208 --line-length 79 moptipy &&\
-	ruff --select E,F,I,D,U --ignore=D212,D203,D413,D407,D208 --line-length 79 examples &&\
-	ruff --select E,F,I,D,U --ignore=D212,D203,D413,D407,D208 --line-length 79 tests &&\
+	ruff --select E,F,I,D,U,N,S,C,B,T --ignore=D212,D203,D413,D407,D208,N801,B008,B009,B010 --line-length 79 moptipy &&\
+	ruff --select E,F,I,D,U,N,S,C,B --ignore=D212,D203,D413,D407,D208,N801,B008,B009,B010 --line-length 79 examples &&\
+	ruff --select E,F,I,D,U,N,S,C,B,T --ignore=D212,D203,D413,D407,D208,N801,S101,B008,B009,B010 --line-length 79 tests &&\
 	echo "$(NOW): Done: All static checks passed."
 
 # We use sphinx to generate the documentation.

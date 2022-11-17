@@ -122,7 +122,7 @@ def test_fitness_ea_equals_ea():
     op1: Final[Op1] = Op1Flip1()
     op2: Final[Op2] = Op2Uniform()
     random: Final[Generator] = default_rng()
-    for i in range(3):
+    for _ in range(3):
         mu: int = int(random.integers(2, 10))
         lambda_: int = int(random.integers(1, 10))
         br: float = float(random.uniform(0.1, 0.9))

@@ -21,9 +21,9 @@ from moptipy.utils.types import type_error
 __INTS_AND_RANGES: Final[tuple[tuple[numpy.dtype, int, int], ...]] = \
     tuple(sorted([
         (dtx, int(numpy.iinfo(dtx).min), int(numpy.iinfo(dtx).max))
-        for dtx in cast(set[numpy.dtype], set(numpy.dtype(bdt) for bdt in [
+        for dtx in cast(set[numpy.dtype], {numpy.dtype(bdt) for bdt in [
             int, numpy.int8, numpy.int16, numpy.uint8, numpy.uint16,
-            numpy.int32, numpy.uint32, numpy.int64, numpy.uint64]))],
+            numpy.int32, numpy.uint32, numpy.int64, numpy.uint64]})],
         key=lambda a: (a[2], a[1])))
 
 #: The numpy integer data types.

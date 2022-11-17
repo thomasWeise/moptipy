@@ -55,8 +55,8 @@ def __can_solve_instance(inst: Instance, seed: int,
     ex.set_max_time_millis(126_000)
     ex.set_goal_f(goal)
     ex.set_rand_seed(seed)
-    with ex.execute() as P:
-        queue.put(P.get_best_f())
+    with ex.execute() as process:
+        queue.put(process.get_best_f())
 
 
 def __is_instance_too_easy(inst: Instance) -> bool:
@@ -597,14 +597,14 @@ def propose_instances(n: int,
 
     # find which groups belong to which cluster
     cluster_groups: Final[tuple[tuple[int, ...], ...]] = tuple([
-        tuple(sorted(list({group_ids[inst_groups[j]]
-                           for j in np.where(clusters == i)[0]})))
+        tuple(sorted({group_ids[inst_groups[j]]
+                      for j in np.where(clusters == i)[0]}))
         for i in range(n)])
     logger(f"The groups available per cluster are {cluster_groups}.")
 
     # Now we need to pick the extreme groups.
-    extreme_groups = tuple(tuple(sorted(list(
-        {(clusters[xx], group_ids[inst_groups[xx]]) for xx in ex})))
+    extreme_groups = tuple(tuple(sorted(
+        {(clusters[xx], group_ids[inst_groups[xx]]) for xx in ex}))
         for ex in [min_scale_inst, max_scale_inst])
     logger(f"The extreme groups are {extreme_groups}.")
 
