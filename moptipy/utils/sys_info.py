@@ -125,9 +125,9 @@ def __make_sys_info() -> str:
         :returns: an integer with the memory size if available
         """
         try:
-            meminfo = {i.split()[0].rstrip(':'): int(i.split()[1])
-                       for i in Path.path('/proc/meminfo').read_all_list()}
-            mem_kib = meminfo['MemTotal']  # e.g. 3921852
+            meminfo = {i.split()[0].rstrip(":"): int(i.split()[1])
+                       for i in Path.path("/proc/meminfo").read_all_list()}
+            mem_kib = meminfo["MemTotal"]  # e.g. 3921852
             mem_kib = int(mem_kib)
             if mem_kib > 0:
                 return 1024 * mem_kib
@@ -165,10 +165,10 @@ def __make_sys_info() -> str:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 try:
                     # doesn't even have to be reachable
-                    s.connect(('10.255.255.255', 1))
+                    s.connect(("10.255.255.255", 1))
                     ip = s.getsockname()[0]
                 except BaseException:
-                    ip = '127.0.0.1'
+                    ip = "127.0.0.1"
                 finally:
                     s.close()
                 __v(k, logging.KEY_NODE_IP, ip)

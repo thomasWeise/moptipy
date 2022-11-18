@@ -53,7 +53,7 @@ from moptipy.utils.types import type_error
 #: come before if we were sorting instances by the solution space size.
 EXPERIMENT_INSTANCES: \
     Final[tuple[str, str, str, str, str, str, str, str]] = \
-    ('orb06', 'la38', 'abz8', 'yn4', 'swv14', 'dmu72', 'dmu67', 'ta70')
+    ("orb06", "la38", "abz8", "yn4", "swv14", "dmu72", "dmu67", "ta70")
 
 #: The number of runs per instance in our JSSP experiment.
 #: For each combination of algorithm setup and JSSP instance, we will
@@ -262,7 +262,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
 
 
 # Execute experiment if run as script
-if __name__ == '__main__':
+if __name__ == "__main__":
     help_screen(
         "JSSP Experiment Executor", __file__,
         "Run the JSSP experiment.",

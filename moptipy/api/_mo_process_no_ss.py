@@ -174,8 +174,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
     def f_evaluate(self, x, fs: np.ndarray) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and '
-                                 'the algorithm knows it.')
+                raise ValueError("The process has been terminated and "
+                                 "the algorithm knows it.")
             return self._current_best_f
 
         result: Final[int | float] = self._f_evaluate(x, fs)
@@ -213,7 +213,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
     def get_copy_of_best_fs(self, fs: np.ndarray) -> None:
         if self._current_fes > 0:
             return copyto(fs, self._current_best_fs)
-        raise ValueError('No current best available.')
+        raise ValueError("No current best available.")
 
     def _log_own_parameters(self, logger: KeyValueLogSection) -> None:
         super()._log_own_parameters(logger)

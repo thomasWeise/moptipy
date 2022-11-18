@@ -64,7 +64,7 @@ from moptipy.utils.nputils import DEFAULT_UNSIGNED_INT
 class FFA(Fitness):
     """The frequency fitness assignment (FFA) process."""
 
-    def __new__(cls, f: Objective) -> 'FFA':
+    def __new__(cls, f: Objective) -> "FFA":
         """
         Create the frequency fitness assignment mapping.
 
@@ -98,7 +98,7 @@ class _IntFFA1(FFA):
     #: the internal frequency table
     __h: np.ndarray
 
-    def __new__(cls, ub: int) -> '_IntFFA1':
+    def __new__(cls, ub: int) -> "_IntFFA1":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA1)
         instance.__h = np.zeros(ub + 1, dtype=DEFAULT_UNSIGNED_INT)
@@ -149,7 +149,7 @@ class _IntFFA2(FFA):
     #: the lower bound
     __lb: int
 
-    def __new__(cls, lb: int, ub: int) -> '_IntFFA2':
+    def __new__(cls, lb: int, ub: int) -> "_IntFFA2":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA2)
         instance.__h = np.zeros(ub - lb + 1, dtype=DEFAULT_UNSIGNED_INT)
@@ -202,7 +202,7 @@ class _DictFFA(FFA):
     #: the internal frequency table
     __h: Counter
 
-    def __new__(cls) -> '_DictFFA':
+    def __new__(cls) -> "_DictFFA":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_DictFFA)
         instance.__h = Counter()

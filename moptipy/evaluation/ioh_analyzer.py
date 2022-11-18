@@ -199,7 +199,7 @@ def moptipy_to_ioh_analyzer(
 
 
 # Run conversion if executed as script
-if __name__ == '__main__':
+if __name__ == "__main__":
     help_screen(
         "moptipy-to-IOHanalyzer data converter", __file__,
         "Convert log files obtained with moptipy to the "  # nosem

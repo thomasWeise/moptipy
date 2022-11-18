@@ -250,7 +250,7 @@ class EndResults:
     @staticmethod
     def create(experiment: Experiment,
                max_fes: int | None = None,
-               max_time_millis: int | None = None) -> 'EndResults':
+               max_time_millis: int | None = None) -> "EndResults":
         """
         Create the end results for a given experiment.
 

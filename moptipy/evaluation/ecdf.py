@@ -203,7 +203,7 @@ class Ecdf(MultiRun2DData):
     def create(cls,
                source: Iterable[Progress],
                goal_f: int | float | Callable | None = None,
-               use_default_goal_f: bool = True) -> 'Ecdf':
+               use_default_goal_f: bool = True) -> "Ecdf":
         """
         Create one single Ecdf record from an iterable of Progress records.
 
@@ -322,7 +322,7 @@ class Ecdf(MultiRun2DData):
     @classmethod
     def from_progresses(cls,
                         source: Iterable[Progress],
-                        consumer: Callable[['Ecdf'], Any],
+                        consumer: Callable[["Ecdf"], Any],
                         f_goal: int | float | Callable | Iterable[
                             int | float | Callable] = None,
                         join_all_algorithms: bool = False) -> None:

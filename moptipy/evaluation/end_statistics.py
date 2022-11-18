@@ -42,7 +42,7 @@ KEY_ERT_FES: Final[str] = "ertFEs"
 KEY_ERT_TIME_MILLIS: Final[str] = "ertTimeMillis"
 
 #: the internal getters that can work directly
-_GETTERS_0: Final[dict[str, Callable[['EndStatistics'],
+_GETTERS_0: Final[dict[str, Callable[["EndStatistics"],
                                      int | float | None]]] = {
     KEY_N_SUCCESS: lambda s: s.n_success,
     KEY_ERT_FES: lambda s: s.ert_fes,
@@ -57,7 +57,7 @@ _GETTERS_0: Final[dict[str, Callable[['EndStatistics'],
 
 #: the internal getters that access end statistics
 _GETTERS_1: Final[dict[
-    str, Callable[['EndStatistics'], int | float | Statistics | None]]] = {
+    str, Callable[["EndStatistics"], int | float | Statistics | None]]] = {
     log.KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
     log.KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         lambda s: s.last_improvement_time_millis,
@@ -448,7 +448,7 @@ class EndStatistics(MultiRunData):
         object.__setattr__(self, "max_time_millis", max_time_millis)
 
     @staticmethod
-    def create(source: Iterable[EndResult]) -> 'EndStatistics':
+    def create(source: Iterable[EndResult]) -> "EndStatistics":
         """
         Create an `EndStatistics` Record from an Iterable of `EndResult`.
 
@@ -575,7 +575,7 @@ class EndStatistics(MultiRunData):
 
     @staticmethod
     def from_end_results(source: Iterable[EndResult],
-                         consumer: Callable[['EndStatistics'], Any],
+                         consumer: Callable[["EndStatistics"], Any],
                          join_all_algorithms: bool = False,
                          join_all_instances: bool = False) -> None:
         """
@@ -631,8 +631,8 @@ class EndStatistics(MultiRunData):
                 next(iter(sorter.values()))))
 
     @staticmethod
-    def to_csv(data: 'EndStatistics'
-                     | Iterable['EndStatistics'], file: str) -> Path:
+    def to_csv(data: "EndStatistics"
+                     | Iterable["EndStatistics"], file: str) -> Path:
         """
         Store a set of :class:`EndStatistics` in a CSV file.
 
@@ -865,7 +865,7 @@ class EndStatistics(MultiRunData):
 
     @staticmethod
     def from_csv(file: str,
-                 consumer: Callable[['EndStatistics'], Any]) -> None:
+                 consumer: Callable[["EndStatistics"], Any]) -> None:
         """
         Parse a CSV file and collect all encountered :class:`EndStatistics`.
 
@@ -1174,7 +1174,7 @@ class EndStatistics(MultiRunData):
                f"file '{path}'.")
 
     @staticmethod
-    def getter(dimension: str) -> Callable[['EndStatistics'],
+    def getter(dimension: str) -> Callable[["EndStatistics"],
                                            int | float | None]:
         """
         Create a function that obtains the given dimension from EndStatistics.
@@ -1228,7 +1228,7 @@ class EndStatistics(MultiRunData):
 
 
 # Run end-results to stat file if executed as script
-if __name__ == '__main__':
+if __name__ == "__main__":
     help_screen(
         "build end results statistics-CSV file", __file__,
         "Convert log files or the end-results CSV obtained "  # nosem

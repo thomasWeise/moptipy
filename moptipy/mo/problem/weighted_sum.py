@@ -124,7 +124,7 @@ class BasicWeightedSum(BasicMOProblem):
 
         weights: tuple[int | float, ...] | None = self.weights
         logger.key_value("weights", ";".join(
-            (['1'] * self.f_dimension()) if weights is None else
+            (["1"] * self.f_dimension()) if weights is None else
             [num_to_str(w) for w in weights]))
         logger.key_value("weightsDtype",
                          "None" if self.__weights_dtype is None

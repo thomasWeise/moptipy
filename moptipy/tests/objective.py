@@ -40,8 +40,8 @@ def validate_objective(
     check_objective(objective)
     validate_component(objective)
 
-    if not (hasattr(objective, 'lower_bound')
-            and callable(getattr(objective, 'lower_bound'))):
+    if not (hasattr(objective, "lower_bound")
+            and callable(getattr(objective, "lower_bound"))):
         raise ValueError("objective must have method lower_bound.")
     lower: Final[int | float] = objective.lower_bound()
     if not (isinstance(lower, (int, float))):
@@ -53,8 +53,8 @@ def validate_objective(
         raise ValueError("lower bound must not be less than "
                          f"{lower_bound_threshold}, but is {lower}.")
 
-    if not (hasattr(objective, 'upper_bound')
-            and callable(getattr(objective, 'upper_bound'))):
+    if not (hasattr(objective, "upper_bound")
+            and callable(getattr(objective, "upper_bound"))):
         raise ValueError("objective must have method upper_bound.")
     upper: Final[int | float] = objective.upper_bound()
     if not (isinstance(upper, (int, float))):
@@ -71,8 +71,8 @@ def validate_objective(
         raise ValueError("Result of lower_bound() must be smaller than "
                          f"upper_bound(), but got {lower} vs. {upper}.")
 
-    if not (hasattr(objective, 'is_always_integer')
-            and callable(getattr(objective, 'is_always_integer'))):
+    if not (hasattr(objective, "is_always_integer")
+            and callable(getattr(objective, "is_always_integer"))):
         raise ValueError("objective must have method is_always_integer.")
     is_int: Final[bool] = objective.is_always_integer()
     if not isinstance(is_int, bool):
@@ -106,8 +106,8 @@ def validate_objective(
         raise ValueError("make_solution_space_element_valid() produced None.")
     solution_space.validate(x)
 
-    if not (hasattr(objective, 'evaluate')
-            and callable(getattr(objective, 'evaluate'))):
+    if not (hasattr(objective, "evaluate")
+            and callable(getattr(objective, "evaluate"))):
         raise ValueError("objective must have method evaluate.")
     res = objective.evaluate(x)
     if not (isinstance(res, (int, float))):

@@ -158,7 +158,7 @@ class Ert(MultiRun2DData):
     @staticmethod
     def create(source: Iterable[Progress],
                f_lower_bound: int | float | Callable | None = None,
-               use_default_lower_bounds: bool = True) -> 'Ert':
+               use_default_lower_bounds: bool = True) -> "Ert":
         """
         Create one single Ert record from an iterable of Progress records.
 
@@ -276,14 +276,14 @@ class Ert(MultiRun2DData):
             y[out_index] = inf if (found <= 0) else time_sum / found
 
         # convert the two arrays into one matrix
-        ert = np.concatenate((x, y)).reshape((base_len, 2), order='F')
+        ert = np.concatenate((x, y)).reshape((base_len, 2), order="F")
 
         return Ert(algorithm, instance, n,
                    time_unit, f_name, ert)
 
     @staticmethod
     def from_progresses(source: Iterable[Progress],
-                        consumer: Callable[['Ert'], Any],
+                        consumer: Callable[["Ert"], Any],
                         f_lower_bound: float | None = None,
                         use_default_lower_bounds: bool = True,
                         join_all_algorithms: bool = False,

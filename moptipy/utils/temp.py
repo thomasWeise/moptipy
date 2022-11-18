@@ -30,7 +30,7 @@ class TempDir(Path, AbstractContextManager):
         return ret
 
     @staticmethod
-    def create(directory: str | None = None) -> 'TempDir':
+    def create(directory: str | None = None) -> "TempDir":
         """
         Create the temporary directory.
 
@@ -44,7 +44,7 @@ class TempDir(Path, AbstractContextManager):
             root_dir = None
         return TempDir(mkdtemp(dir=root_dir))
 
-    def __enter__(self) -> 'TempDir':
+    def __enter__(self) -> "TempDir":
         """Nothing, just exists for `with`."""
         if not self.__is_open:
             raise ValueError(f"Temporary directory '{self}' already closed.")
@@ -90,7 +90,7 @@ class TempFile(Path, AbstractContextManager):
     @staticmethod
     def create(directory: str | None = None,
                prefix: str | None = None,
-               suffix: str | None = None) -> 'TempFile':
+               suffix: str | None = None) -> "TempFile":
         """
         Create a temporary file.
 
@@ -120,7 +120,7 @@ class TempFile(Path, AbstractContextManager):
         os.close(handle)
         return TempFile(path)
 
-    def __enter__(self) -> 'TempFile':
+    def __enter__(self) -> "TempFile":
         """Nothing, just exists for `with`."""
         if not self.__is_open:
             raise ValueError(f"Temporary file '{self}' already deleted.")

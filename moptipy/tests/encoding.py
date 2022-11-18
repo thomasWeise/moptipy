@@ -56,8 +56,8 @@ def validate_encoding(encoding: Encoding,
     if y1 is None:
         raise ValueError("Provided solution space created None?")
 
-    if not (hasattr(encoding, 'decode') and callable(getattr(
-            encoding, 'decode'))):
+    if not (hasattr(encoding, "decode") and callable(getattr(
+            encoding, "decode"))):
         raise ValueError("encoding must have method decode.")
 
     encoding.decode(x1, y1)

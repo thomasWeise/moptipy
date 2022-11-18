@@ -101,7 +101,7 @@ def validate_op2(op2: Op2,
         raise ValueError(
             "Search space.create must not return same object instance.")
 
-    if not (hasattr(op2, 'op2') and callable(getattr(op2, 'op2'))):
+    if not (hasattr(op2, "op2") and callable(getattr(op2, "op2"))):
         raise ValueError("op2 must have method op2.")
     for _ in range(number_of_samples):
         op2.op2(random, x3, x2, x1)

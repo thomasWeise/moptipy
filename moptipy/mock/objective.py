@@ -184,7 +184,7 @@ class MockObjective(Objective):
         logger.key_value("is_int", self.is_int)
 
     @staticmethod
-    def for_type(dtype: np.dtype) -> 'MockObjective':
+    def for_type(dtype: np.dtype) -> "MockObjective":
         """
         Create a mock objective function with values bound by a given `dtype`.
 

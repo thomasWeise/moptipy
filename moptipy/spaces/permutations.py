@@ -266,7 +266,7 @@ class Permutations(IntSpace):  # +book
         return "perm_of_string"
 
     @staticmethod
-    def standard(n: int) -> 'Permutations':
+    def standard(n: int) -> "Permutations":
         """
         Create a space for permutations of 0..n-1.
 
@@ -280,7 +280,7 @@ class Permutations(IntSpace):  # +book
         return Permutations(range(n))
 
     @staticmethod  # +book
-    def with_repetitions(n: int, repetitions: int) -> 'Permutations':  # +book
+    def with_repetitions(n: int, repetitions: int) -> "Permutations":  # +book
         """
         Create a space for permutations of `0..n-1` with repetitions.
 

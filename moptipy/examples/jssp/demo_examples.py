@@ -279,7 +279,7 @@ def makespan_lower_bound_table(
             logger(f"located instance text '{sel}' for {instn}.")
             prefix = f'<td align="right">{inst.jobs}</td>\n<td align="' \
                      f'right">{inst.machines}</td>\n<td align="right">' \
-                     f'{prefix}'
+                     f"{prefix}"
             pi = sel.find(prefix)
             if pi <= 0:
                 raise ValueError(
@@ -304,7 +304,7 @@ def makespan_lower_bound_table(
             logger(f"Source name is {srcname}.")
 
             fsrc = data.find(f'<dt id="user-content-{srcname.lower()}">'
-                             f'{srcname}</dt><dd>')
+                             f"{srcname}</dt><dd>")
             if fsrc <= 0:
                 raise ValueError(
                     f"Could not find source mark for instance {instn}.")
@@ -348,7 +348,7 @@ def makespan_lower_bound_table(
 
 
 # are we being executed?
-if __name__ == '__main__':
+if __name__ == "__main__":
     dest_dir: Final[Path] = Path.path(sys.argv[1])
     dest_dir.ensure_dir_exists()
     logger(f"We will print the JSSP examples into dir '{dest_dir}'.")

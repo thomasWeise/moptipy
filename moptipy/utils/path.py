@@ -33,19 +33,19 @@ def _canonicalize_path(path: str) -> str:
     if len(path) <= 0:
         raise ValueError("Canonicalization must yield non-empty string, "
                          f"but returned '{path}'.")
-    if path in ['.', '..']:
+    if path in [".", ".."]:
         raise ValueError(f"Canonicalization cannot yield '{path}'.")
     return path
 
 
 #: the UTF-8 encoding
-UTF8: Final[str] = 'utf-8-sig'
+UTF8: Final[str] = "utf-8-sig"
 
 #: The list of possible text encodings
 __ENCODINGS: Final[tuple[tuple[tuple[bytes, ...], str], ...]] = \
     (((codecs.BOM_UTF8,), UTF8),
-     ((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE,), 'utf-32'),
-     ((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE), 'utf-16'))
+     ((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE,), "utf-32"),
+     ((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE), "utf-16"))
 
 
 def _get_text_encoding(filename: str) -> str:
@@ -57,7 +57,7 @@ def _get_text_encoding(filename: str) -> str:
     :param filename: the filename
     :return: the encoding
     """
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         header = f.read(4)  # Read just the first four bytes.
     for boms, encoding in __ENCODINGS:
         for bom in boms:
@@ -132,7 +132,7 @@ class Path(str):
         if not self.contains(other):
             raise ValueError(f"Path '{self}' does not contain '{other}'.")
 
-    def resolve_inside(self, relative_path: str) -> 'Path':
+    def resolve_inside(self, relative_path: str) -> "Path":
         """
         Resolve a relative path to an absolute path inside this path.
 
@@ -271,7 +271,7 @@ class Path(str):
         return self.enforce_file()
 
     @staticmethod
-    def path(path: str) -> 'Path':
+    def path(path: str) -> "Path":
         """
         Get a canonical path.
 
@@ -283,7 +283,7 @@ class Path(str):
         return Path(path)
 
     @staticmethod
-    def file(path: str) -> 'Path':
+    def file(path: str) -> "Path":
         """
         Get a path identifying a file.
 
@@ -295,7 +295,7 @@ class Path(str):
         return fi
 
     @staticmethod
-    def directory(path: str) -> 'Path':
+    def directory(path: str) -> "Path":
         """
         Get a path identifying a directory.
 

@@ -340,7 +340,7 @@ class Table(AbstractContextManager):
             self.__stream, self.columns, self.__section_index,
             self.__row_index, col_index, mode)
 
-    def header(self) -> 'Rows':
+    def header(self) -> "Rows":
         """
         Construct the header of the table.
 
@@ -348,7 +348,7 @@ class Table(AbstractContextManager):
         """
         return Rows(self, MODE_TABLE_HEADER)
 
-    def section(self) -> 'Section':
+    def section(self) -> "Section":
         """
         Create a new section of rows.
 
@@ -437,7 +437,7 @@ class Rows(AbstractContextManager):
         self._owner._end_rows(self._mode)
         return exception_type is None
 
-    def row(self) -> 'Row':
+    def row(self) -> "Row":
         """
         Create a row.
 
@@ -494,7 +494,7 @@ class Section(Rows):
         """
         super().__init__(owner, MODE_NORMAL)
 
-    def header(self) -> 'Rows':
+    def header(self) -> "Rows":
         """
         Print the section header.
 

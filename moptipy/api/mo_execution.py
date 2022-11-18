@@ -48,7 +48,7 @@ class MOExecution(Execution):
         #: the archive pruning strategy
         self._archive_pruner: MOArchivePruner | None = None
 
-    def set_archive_max_size(self, size: int) -> 'MOExecution':
+    def set_archive_max_size(self, size: int) -> "MOExecution":
         """
         Set the upper limit for the archive size (after pruning).
 
@@ -76,7 +76,7 @@ class MOExecution(Execution):
         self._archive_max_size = size
         return self
 
-    def set_archive_pruning_limit(self, limit: int) -> 'MOExecution':
+    def set_archive_pruning_limit(self, limit: int) -> "MOExecution":
         """
         Set the size limit of the archive above which pruning is performed.
 
@@ -99,7 +99,7 @@ class MOExecution(Execution):
         self._archive_prune_limit = limit
         return self
 
-    def set_archive_pruner(self, pruner: MOArchivePruner) -> 'MOExecution':
+    def set_archive_pruner(self, pruner: MOArchivePruner) -> "MOExecution":
         """
         Set the pruning strategy for downsizing the archive.
 
@@ -109,7 +109,7 @@ class MOExecution(Execution):
         self._archive_pruner = check_mo_archive_pruner(pruner)
         return self
 
-    def set_objective(self, objective: Objective) -> 'MOExecution':
+    def set_objective(self, objective: Objective) -> "MOExecution":
         """
         Set the objective function in form of a multi-objective problem.
 
@@ -122,7 +122,7 @@ class MOExecution(Execution):
         super().set_objective(check_mo_problem(objective))
         return self
 
-    def set_algorithm(self, algorithm: Algorithm) -> 'MOExecution':
+    def set_algorithm(self, algorithm: Algorithm) -> "MOExecution":
         """
         Set the algorithm to be used for this experiment.
 
@@ -132,7 +132,7 @@ class MOExecution(Execution):
         super().set_algorithm(algorithm)
         return self
 
-    def set_solution_space(self, solution_space: Space) -> 'MOExecution':
+    def set_solution_space(self, solution_space: Space) -> "MOExecution":
         """
         Set the solution space to be used for this experiment.
 
@@ -145,7 +145,7 @@ class MOExecution(Execution):
         super().set_solution_space(solution_space)
         return self
 
-    def set_search_space(self, search_space: Space | None) -> 'MOExecution':
+    def set_search_space(self, search_space: Space | None) -> "MOExecution":
         """
         Set the search space to be used for this experiment.
 
@@ -158,7 +158,7 @@ class MOExecution(Execution):
         super().set_search_space(search_space)
         return self
 
-    def set_encoding(self, encoding: Encoding | None) -> 'MOExecution':
+    def set_encoding(self, encoding: Encoding | None) -> "MOExecution":
         """
         Set the encoding to be used for this experiment.
 
@@ -171,7 +171,7 @@ class MOExecution(Execution):
         super().set_encoding(encoding)
         return self
 
-    def set_rand_seed(self, rand_seed: int | None) -> 'MOExecution':
+    def set_rand_seed(self, rand_seed: int | None) -> "MOExecution":
         """
         Set the seed to be used for initializing the random number generator.
 
@@ -182,7 +182,7 @@ class MOExecution(Execution):
         return self
 
     def set_max_fes(self, max_fes: int,
-                    force_override: bool = False) -> 'MOExecution':
+                    force_override: bool = False) -> "MOExecution":
         """
         Set the maximum FEs.
 
@@ -199,7 +199,7 @@ class MOExecution(Execution):
         return self
 
     def set_max_time_millis(self, max_time_millis: int,
-                            force_override: bool = False) -> 'MOExecution':
+                            force_override: bool = False) -> "MOExecution":
         """
         Set the maximum time in milliseconds.
 
@@ -215,7 +215,7 @@ class MOExecution(Execution):
         super().set_max_time_millis(max_time_millis, force_override)
         return self
 
-    def set_goal_f(self, goal_f: int | float) -> 'MOExecution':
+    def set_goal_f(self, goal_f: int | float) -> "MOExecution":
         """
         Set the goal objective value after which the process can stop.
 
@@ -228,7 +228,7 @@ class MOExecution(Execution):
         super().set_goal_f(goal_f)
         return self
 
-    def set_log_file(self, log_file: str | None) -> 'MOExecution':
+    def set_log_file(self, log_file: str | None) -> "MOExecution":
         """
         Set the log file to write to.
 
@@ -240,7 +240,7 @@ class MOExecution(Execution):
         return self
 
     def set_log_improvements(self, log_improvements: bool = True) \
-            -> 'MOExecution':
+            -> "MOExecution":
         """
         Set whether improvements should be logged.
 
@@ -250,7 +250,7 @@ class MOExecution(Execution):
         super().set_log_improvements(log_improvements)
         return self
 
-    def set_log_all_fes(self, log_all_fes: bool = True) -> 'MOExecution':
+    def set_log_all_fes(self, log_all_fes: bool = True) -> "MOExecution":
         """
         Set whether all FEs should be logged.
 

@@ -266,8 +266,8 @@ def plot_gantt_chart(
                 z_order += 1
 
     # print the marker labels
-    bbox = {"boxstyle": 'round',
-            "color": 'white',
+    bbox = {"boxstyle": "round",
+            "color": "white",
             "fill": True,
             "linewidth": 0,
             "alpha": 0.9}

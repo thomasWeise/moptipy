@@ -173,14 +173,14 @@ def compute_instances_that_are_too_easy() -> tuple[str, ...]:
 #: For a documentation about what constitutes 'too easy', see
 #: :func:`compute_instances_that_are_too_easy`
 __TOO_EASY: Final[set[str]] = \
-    {'demo', 'dmu21', 'dmu22', 'dmu24', 'dmu25', 'dmu31', 'dmu32', 'dmu33',
-     'dmu34', 'dmu35', 'ft06', 'ft20', 'la01', 'la02', 'la03', 'la04',
-     'la05', 'la06', 'la07', 'la08', 'la09', 'la10', 'la11', 'la12', 'la13',
-     'la14', 'la15', 'la17', 'la18', 'la23', 'la26', 'la28', 'la30', 'la31',
-     'la32', 'la33', 'la34', 'la35', 'swv16', 'swv17', 'swv18', 'swv19',
-     'swv20', 'ta51', 'ta52', 'ta53', 'ta54', 'ta55', 'ta56', 'ta57', 'ta58',
-     'ta59', 'ta60', 'ta61', 'ta63', 'ta68', 'ta69', 'ta71', 'ta72', 'ta73',
-     'ta74', 'ta75', 'ta76', 'ta77', 'ta78', 'ta79', 'ta80'}
+    {"demo", "dmu21", "dmu22", "dmu24", "dmu25", "dmu31", "dmu32", "dmu33",
+     "dmu34", "dmu35", "ft06", "ft20", "la01", "la02", "la03", "la04",
+     "la05", "la06", "la07", "la08", "la09", "la10", "la11", "la12", "la13",
+     "la14", "la15", "la17", "la18", "la23", "la26", "la28", "la30", "la31",
+     "la32", "la33", "la34", "la35", "swv16", "swv17", "swv18", "swv19",
+     "swv20", "ta51", "ta52", "ta53", "ta54", "ta55", "ta56", "ta57", "ta58",
+     "ta59", "ta60", "ta61", "ta63", "ta68", "ta69", "ta71", "ta72", "ta73",
+     "ta74", "ta75", "ta76", "ta77", "ta78", "ta79", "ta80"}
 
 
 def __get_instances() -> list[Instance]:

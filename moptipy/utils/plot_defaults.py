@@ -208,7 +208,7 @@ def distinct_colors(n: int) -> tuple[tuple[float, float, float], ...]:
     # works.
     # This method does not seem to make good use of the available color space.
     # Since we use it only for cases with more than 110 colors, that's OK.
-    cm = plt.get_cmap('gist_rainbow')
+    cm = plt.get_cmap("gist_rainbow")
     c_norm = colors.Normalize(vmin=0, vmax=n - 1)
     scalar_map = mplcm.ScalarMappable(norm=c_norm, cmap=cm)
     qq = cast(list[tuple[float, float, float]],

@@ -75,8 +75,8 @@ class _MOProcessNoSSLog(_MOProcessNoSS):
     def f_evaluate(self, x, fs: np.ndarray) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and '
-                                 'the algorithm knows it.')
+                raise ValueError("The process has been terminated and "
+                                 "the algorithm knows it.")
             return self._current_best_f
 
         result: Final[int | float] = self._f_evaluate(x, fs)

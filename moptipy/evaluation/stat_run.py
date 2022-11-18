@@ -41,7 +41,7 @@ def _unique_floats_1d(data: tuple[np.ndarray, ...]) -> np.ndarray:
     return res
 
 
-@numba.njit(inline='always')
+@numba.njit(inline="always")
 def __apply_fun(x_unique: np.ndarray,
                 x_raw: tuple[np.ndarray, ...],
                 y_raw: tuple[np.ndarray, ...],
@@ -369,7 +369,7 @@ class StatRun(MultiRun2DData):
     @staticmethod
     def create(source: Iterable[Progress],
                statistics: str | Iterable[str],
-               consumer: Callable[['StatRun'], Any]) -> None:
+               consumer: Callable[["StatRun"], Any]) -> None:
         """
         Compute statistics from an iterable of `Progress` objects.
 
@@ -452,7 +452,7 @@ class StatRun(MultiRun2DData):
     @staticmethod
     def from_progress(source: Iterable[Progress],
                       statistics: str | Iterable[str],
-                      consumer: Callable[['StatRun'], Any],
+                      consumer: Callable[["StatRun"], Any],
                       join_all_algorithms: bool = False,
                       join_all_instances: bool = False) -> None:
         """

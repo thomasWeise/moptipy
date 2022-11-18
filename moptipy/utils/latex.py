@@ -120,9 +120,9 @@ class LaTeX(TextFormatDriver):
         if mode == TEXT:
             stream.write(text.replace("_", "\\_"))
         elif mode == NUMBER:
-            i: int = text.find('e')
+            i: int = text.find("e")
             if i < 0:
-                i = text.find('E')
+                i = text.find("E")
             if i > 0:
                 stream.write(f"{text[:i]}{_EPREFIX}{text[i + 1:]}}}")
             else:
@@ -158,7 +158,7 @@ class LaTeX(TextFormatDriver):
         return "tex"
 
     @staticmethod
-    def instance() -> 'LaTeX':
+    def instance() -> "LaTeX":
         """
         Get the LaTeX format singleton instance.
 

@@ -43,7 +43,7 @@ CSV_COLS: Final[int] = 6
 EMPTY_CSV_ROW: Final[str] = CSV_SEPARATOR * (CSV_COLS - 1)
 
 #: the internal getters
-_GETTERS: Final[dict[str, Callable[['Statistics'],
+_GETTERS: Final[dict[str, Callable[["Statistics"],
                                    int | float | None]]] = {
     KEY_MINIMUM: lambda s: s.minimum,
     KEY_MEDIAN: lambda s: s.median,
@@ -236,7 +236,7 @@ class Statistics:
         return self.median
 
     @staticmethod
-    def create(source: Iterable[int | float]) -> 'Statistics':
+    def create(source: Iterable[int | float]) -> "Statistics":
         """
         Create a statistics object from an iterable.
 
@@ -400,7 +400,7 @@ class Statistics:
                f"{num_to_str(self.stddev)}"
 
     @staticmethod
-    def from_csv(n: int, row: str | Iterable[str]) -> 'Statistics':
+    def from_csv(n: int, row: str | Iterable[str]) -> "Statistics":
         """
         Convert a CSV string (or separate CSV cells) to a Statistics object.
 
@@ -423,7 +423,7 @@ class Statistics:
                           str_to_intfloat(sd))
 
     @staticmethod
-    def getter(dimension: str) -> Callable[['Statistics'],
+    def getter(dimension: str) -> Callable[["Statistics"],
                                            int | float | None]:
         """
         Produce a function that obtains the given dimension from Statistics.

@@ -67,7 +67,7 @@ def validate_op0(op0: Op0,
 
     seen = set()
 
-    if not (hasattr(op0, 'op0') and callable(getattr(op0, 'op0'))):
+    if not (hasattr(op0, "op0") and callable(getattr(op0, "op0"))):
         raise ValueError("op0 must have method op0.")
     for _ in range(number_of_samples):
         op0.op0(random, x)

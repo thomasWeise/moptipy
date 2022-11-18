@@ -100,9 +100,9 @@ class Markdown(TextFormatDriver):
         if mode == TEXT:
             stream.write(text)
         elif mode == NUMBER:
-            i: int = text.find('e')
+            i: int = text.find("e")
             if i < 0:
-                i = text.find('E')
+                i = text.find("E")
             if i > 0:
                 stream.write(f"{text[:i]}\\*10^{text[i + 1:]}^")  # \u00D7
             else:
@@ -138,7 +138,7 @@ class Markdown(TextFormatDriver):
         return "md"
 
     @staticmethod
-    def instance() -> 'Markdown':
+    def instance() -> "Markdown":
         """
         Get the markdown format singleton instance.
 

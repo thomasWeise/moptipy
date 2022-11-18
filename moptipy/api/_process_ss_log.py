@@ -68,8 +68,8 @@ class _ProcessSSLog(_ProcessSS):
     def evaluate(self, x) -> float | int:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and the '
-                                 'algorithm knows it.')
+                raise ValueError("The process has been terminated and the "
+                                 "algorithm knows it.")
             return self._current_best_f
 
         current_y: Final = self._current_y
@@ -104,8 +104,8 @@ class _ProcessSSLog(_ProcessSS):
     def register(self, x, f: int | float) -> None:
         if self._terminated:
             if self._knows_that_terminated:
-                raise ValueError('The process has been terminated and the '
-                                 'algorithm knows it.')
+                raise ValueError("The process has been terminated and the "
+                                 "algorithm knows it.")
             return
 
         self._current_fes = current_fes = self._current_fes + 1

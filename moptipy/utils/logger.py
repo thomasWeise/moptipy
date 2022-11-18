@@ -183,7 +183,7 @@ class Logger(AbstractContextManager):
         self._stream.write(text)
         self.__starts_new_line = text.endswith("\n")
 
-    def key_values(self, title: str) -> 'KeyValueLogSection':
+    def key_values(self, title: str) -> "KeyValueLogSection":
         r"""
         Create a log section for key-value pairs.
 
@@ -216,7 +216,7 @@ class Logger(AbstractContextManager):
         return KeyValueLogSection(title=title, logger=self, prefix="",
                                   done=None)
 
-    def csv(self, title: str, header: list[str]) -> 'CsvLogSection':
+    def csv(self, title: str, header: list[str]) -> "CsvLogSection":
         """
         Create a log section for CSV data with `;` as column separator.
 
@@ -247,7 +247,7 @@ class Logger(AbstractContextManager):
         """
         return CsvLogSection(title=title, logger=self, header=header)
 
-    def text(self, title: str) -> 'TextLogSection':
+    def text(self, title: str) -> "TextLogSection":
         r"""
         Create a log section for unstructured text.
 
@@ -467,7 +467,7 @@ class KeyValueLogSection(LogSection):
         # noinspection PyProtectedMember
         self._logger._write(txt)
 
-    def scope(self, prefix: str) -> 'KeyValueLogSection':
+    def scope(self, prefix: str) -> "KeyValueLogSection":
         """
         Create a new scope for key prefixes.
 

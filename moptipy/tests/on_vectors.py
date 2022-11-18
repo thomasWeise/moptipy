@@ -52,7 +52,7 @@ def validate_algorithm_on_vectors(
         unless it reaches the goal?
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
-        raise type_error(algorithm, 'algorithm', Algorithm, True)
+        raise type_error(algorithm, "algorithm", Algorithm, True)
     if not (isinstance(objective, Objective) or callable(objective)):
         raise type_error(objective, "objective", Objective, True)
 

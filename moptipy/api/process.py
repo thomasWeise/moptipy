@@ -382,7 +382,7 @@ class Process(Space, Objective, AbstractContextManager):
         :param text: the text to log
         """
 
-    def __enter__(self) -> 'Process':
+    def __enter__(self) -> "Process":
         """
         Begin a `with` statement.
 

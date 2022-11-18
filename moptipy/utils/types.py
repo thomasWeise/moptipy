@@ -95,7 +95,7 @@ def type_error(obj: Any,
     """
     exp: str = ""
     if isinstance(expected, Iterable):
-        exp = ', '.join(sorted([type_name(e) for e in expected]))
+        exp = ", ".join(sorted([type_name(e) for e in expected]))
         exp = f"an instance of any in {{{exp}}}"
     elif expected is not None:
         exp = f"an instance of {type_name(expected)}"

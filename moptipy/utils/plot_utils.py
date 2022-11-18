@@ -67,7 +67,7 @@ def create_figure(width: float | int | None = 8.6,
             raise ValueError(f"Invalid width {width} as it maps to "
                              f"{nwidth} after to-point-and-back conversion.")
 
-        kwargs['figsize'] = width, height
+        kwargs["figsize"] = width, height
 
     if dpi is not None:
         if isinstance(dpi, int):
@@ -76,13 +76,13 @@ def create_figure(width: float | int | None = 8.6,
             raise ValueError(f"Invalid dpi type {type(dpi)}.")
         if not (isfinite(dpi) and (1.0 < dpi < 10000.0)):
             raise ValueError(f"Invalid dpi value {dpi}.")
-        kwargs['dpi'] = dpi
+        kwargs["dpi"] = dpi
 
-    if 'frameon' not in kwargs:
-        kwargs['frameon'] = False
+    if "frameon" not in kwargs:
+        kwargs["frameon"] = False
 
-    if 'constrained_layout' not in kwargs:
-        kwargs['constrained_layout'] = False
+    if "constrained_layout" not in kwargs:
+        kwargs["constrained_layout"] = False
 
     return Figure(**kwargs)
 
@@ -439,7 +439,7 @@ def save_figure(fig: Figure,
             fig.savefig(dest_file, transparent=True, format=fmt,
                         orientation=orientation,
                         dpi="figure",
-                        bbox_inches='tight',
+                        bbox_inches="tight",
                         pad_inches=1.0 / 72.0)
         dest_file.enforce_file()
         files.append(dest_file)
@@ -511,8 +511,8 @@ def label_box(axes: Axes,
             "xycoords": "axes fraction",
             "textcoords": "offset points",
             "fontsize": font_size,
-            "bbox": {"boxstyle": 'round',
-                     "color": 'white',
+            "bbox": {"boxstyle": "round",
+                     "color": "white",
                      "fill": True,
                      "linewidth": 0,
                      "alpha": 0.9}}
@@ -527,7 +527,7 @@ def label_box(axes: Axes,
     if font is not None:
         if not isinstance(font, str):
             raise type_error(font, "font", str)
-        args['fontname'] = font
+        args["fontname"] = font
 
     axes.annotate(**args)
 
@@ -593,8 +593,8 @@ def get_axes(figure: Axes | SubplotBase | Figure) -> Axes:
     """
     if isinstance(figure, Figure):
         return figure.add_axes([0.005, 0.005, 0.99, 0.99])
-    if hasattr(figure, 'axes') \
-            or isinstance(getattr(type(figure), 'axes', None), property):
+    if hasattr(figure, "axes") \
+            or isinstance(getattr(type(figure), "axes", None), property):
         try:
             if isinstance(figure.axes, Axes):
                 return cast(Axes, figure.axes)

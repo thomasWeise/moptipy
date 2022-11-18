@@ -244,7 +244,7 @@ class AxisRanger:
                  use_data_min: bool | None = None,
                  use_data_max: bool | None = None,
                  log_scale: bool | None = None,
-                 log_base: float | None = None) -> 'AxisRanger':
+                 log_base: float | None = None) -> "AxisRanger":
         """
         Create a default axis ranger based on the axis type.
 

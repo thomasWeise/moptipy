@@ -655,7 +655,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
 
 
 # Evaluate experiment if run as script
-if __name__ == '__main__':
+if __name__ == "__main__":
     help_screen(
         "JSSP Experiment Evaluator", __file__,
         "Evaluate the results of the JSSP experiment.",

@@ -38,45 +38,45 @@ MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
 
 #: the internal final set of instances
 _INSTANCES: Final[tuple[str, ...]] = \
-    ('abz5', 'abz6', 'abz7', 'abz8', 'abz9',
-     'demo',
-     'dmu01', 'dmu02', 'dmu03', 'dmu04', 'dmu05', 'dmu06', 'dmu07',
-     'dmu08', 'dmu09', 'dmu10', 'dmu11', 'dmu12', 'dmu13', 'dmu14',
-     'dmu15', 'dmu16', 'dmu17', 'dmu18', 'dmu19', 'dmu20', 'dmu21',
-     'dmu22', 'dmu23', 'dmu24', 'dmu25', 'dmu26', 'dmu27', 'dmu28',
-     'dmu29', 'dmu30', 'dmu31', 'dmu32', 'dmu33', 'dmu34', 'dmu35',
-     'dmu36', 'dmu37', 'dmu38', 'dmu39', 'dmu40', 'dmu41', 'dmu42',
-     'dmu43', 'dmu44', 'dmu45', 'dmu46', 'dmu47', 'dmu48', 'dmu49',
-     'dmu50', 'dmu51', 'dmu52', 'dmu53', 'dmu54', 'dmu55', 'dmu56',
-     'dmu57', 'dmu58', 'dmu59', 'dmu60', 'dmu61', 'dmu62', 'dmu63',
-     'dmu64', 'dmu65', 'dmu66', 'dmu67', 'dmu68', 'dmu69', 'dmu70',
-     'dmu71', 'dmu72', 'dmu73', 'dmu74', 'dmu75', 'dmu76', 'dmu77',
-     'dmu78', 'dmu79', 'dmu80',
-     'ft06', 'ft10', 'ft20',
-     'la01', 'la02', 'la03', 'la04', 'la05', 'la06', 'la07',
-     'la08', 'la09', 'la10', 'la11', 'la12', 'la13', 'la14',
-     'la15', 'la16', 'la17', 'la18', 'la19', 'la20', 'la21',
-     'la22', 'la23', 'la24', 'la25', 'la26', 'la27', 'la28',
-     'la29', 'la30', 'la31', 'la32', 'la33', 'la34', 'la35',
-     'la36', 'la37', 'la38', 'la39', 'la40',
-     'orb01', 'orb02', 'orb03', 'orb04', 'orb05', 'orb06', 'orb07',
-     'orb08', 'orb09', 'orb10',
-     'swv01', 'swv02', 'swv03', 'swv04', 'swv05', 'swv06', 'swv07',
-     'swv08', 'swv09', 'swv10', 'swv11', 'swv12', 'swv13', 'swv14',
-     'swv15', 'swv16', 'swv17', 'swv18', 'swv19', 'swv20',
-     'ta01', 'ta02', 'ta03', 'ta04', 'ta05', 'ta06', 'ta07',
-     'ta08', 'ta09', 'ta10', 'ta11', 'ta12', 'ta13', 'ta14',
-     'ta15', 'ta16', 'ta17', 'ta18', 'ta19', 'ta20', 'ta21',
-     'ta22', 'ta23', 'ta24', 'ta25', 'ta26', 'ta27', 'ta28',
-     'ta29', 'ta30', 'ta31', 'ta32', 'ta33', 'ta34', 'ta35',
-     'ta36', 'ta37', 'ta38', 'ta39', 'ta40', 'ta41', 'ta42',
-     'ta43', 'ta44', 'ta45', 'ta46', 'ta47', 'ta48', 'ta49',
-     'ta50', 'ta51', 'ta52', 'ta53', 'ta54', 'ta55', 'ta56',
-     'ta57', 'ta58', 'ta59', 'ta60', 'ta61', 'ta62', 'ta63',
-     'ta64', 'ta65', 'ta66', 'ta67', 'ta68', 'ta69', 'ta70',
-     'ta71', 'ta72', 'ta73', 'ta74', 'ta75', 'ta76', 'ta77',
-     'ta78', 'ta79', 'ta80',
-     'yn1', 'yn2', 'yn3', 'yn4')
+    ("abz5", "abz6", "abz7", "abz8", "abz9",
+     "demo",
+     "dmu01", "dmu02", "dmu03", "dmu04", "dmu05", "dmu06", "dmu07",
+     "dmu08", "dmu09", "dmu10", "dmu11", "dmu12", "dmu13", "dmu14",
+     "dmu15", "dmu16", "dmu17", "dmu18", "dmu19", "dmu20", "dmu21",
+     "dmu22", "dmu23", "dmu24", "dmu25", "dmu26", "dmu27", "dmu28",
+     "dmu29", "dmu30", "dmu31", "dmu32", "dmu33", "dmu34", "dmu35",
+     "dmu36", "dmu37", "dmu38", "dmu39", "dmu40", "dmu41", "dmu42",
+     "dmu43", "dmu44", "dmu45", "dmu46", "dmu47", "dmu48", "dmu49",
+     "dmu50", "dmu51", "dmu52", "dmu53", "dmu54", "dmu55", "dmu56",
+     "dmu57", "dmu58", "dmu59", "dmu60", "dmu61", "dmu62", "dmu63",
+     "dmu64", "dmu65", "dmu66", "dmu67", "dmu68", "dmu69", "dmu70",
+     "dmu71", "dmu72", "dmu73", "dmu74", "dmu75", "dmu76", "dmu77",
+     "dmu78", "dmu79", "dmu80",
+     "ft06", "ft10", "ft20",
+     "la01", "la02", "la03", "la04", "la05", "la06", "la07",
+     "la08", "la09", "la10", "la11", "la12", "la13", "la14",
+     "la15", "la16", "la17", "la18", "la19", "la20", "la21",
+     "la22", "la23", "la24", "la25", "la26", "la27", "la28",
+     "la29", "la30", "la31", "la32", "la33", "la34", "la35",
+     "la36", "la37", "la38", "la39", "la40",
+     "orb01", "orb02", "orb03", "orb04", "orb05", "orb06", "orb07",
+     "orb08", "orb09", "orb10",
+     "swv01", "swv02", "swv03", "swv04", "swv05", "swv06", "swv07",
+     "swv08", "swv09", "swv10", "swv11", "swv12", "swv13", "swv14",
+     "swv15", "swv16", "swv17", "swv18", "swv19", "swv20",
+     "ta01", "ta02", "ta03", "ta04", "ta05", "ta06", "ta07",
+     "ta08", "ta09", "ta10", "ta11", "ta12", "ta13", "ta14",
+     "ta15", "ta16", "ta17", "ta18", "ta19", "ta20", "ta21",
+     "ta22", "ta23", "ta24", "ta25", "ta26", "ta27", "ta28",
+     "ta29", "ta30", "ta31", "ta32", "ta33", "ta34", "ta35",
+     "ta36", "ta37", "ta38", "ta39", "ta40", "ta41", "ta42",
+     "ta43", "ta44", "ta45", "ta46", "ta47", "ta48", "ta49",
+     "ta50", "ta51", "ta52", "ta53", "ta54", "ta55", "ta56",
+     "ta57", "ta58", "ta59", "ta60", "ta61", "ta62", "ta63",
+     "ta64", "ta65", "ta66", "ta67", "ta68", "ta69", "ta70",
+     "ta71", "ta72", "ta73", "ta74", "ta75", "ta76", "ta77",
+     "ta78", "ta79", "ta80",
+     "yn1", "yn2", "yn3", "yn4")
 
 
 # start lb
@@ -170,7 +170,7 @@ class Instance(Component, np.ndarray):
 
     def __new__(cls, name: str, machines: int, jobs: int,
                 matrix: np.ndarray,
-                makespan_lower_bound: int | None = None) -> 'Instance':
+                makespan_lower_bound: int | None = None) -> "Instance":
         """
         Create an instance of the Job Shop Scheduling Problem.
 
@@ -301,7 +301,7 @@ class Instance(Component, np.ndarray):
         logger.key_value(npu.KEY_NUMPY_TYPE, self.dtype.char)
 
     @staticmethod
-    def from_text(name: str, rows: list[str]) -> 'Instance':
+    def from_text(name: str, rows: list[str]) -> "Instance":
         """
         Convert a name and a set of rows of text to an JSSP instance.
 
@@ -361,7 +361,7 @@ class Instance(Component, np.ndarray):
                         makespan_lower_bound=makespan_lower_bound)
 
     @staticmethod
-    def from_stream(name: str, stream) -> 'Instance':
+    def from_stream(name: str, stream) -> "Instance":
         """
         Load an instance from a text stream.
 
@@ -409,7 +409,7 @@ class Instance(Component, np.ndarray):
         raise ValueError(f"Could not find instance '{name}'.")
 
     @staticmethod
-    def from_resource(name: str) -> 'Instance':
+    def from_resource(name: str) -> "Instance":
         """
         Load the JSSP instances `name` provided as part of moptipy.
 

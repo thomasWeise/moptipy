@@ -49,8 +49,8 @@ def num_to_str_for_name(x: int | float) -> str:
     >>> num_to_str_for_name(-6.32)
     'm6d32'
     """
-    return num_to_str(x).replace('.', DECIMAL_DOT_REPLACEMENT) \
-        .replace('-', MINUS_REPLACEMENT)
+    return num_to_str(x).replace(".", DECIMAL_DOT_REPLACEMENT) \
+        .replace("-", MINUS_REPLACEMENT)
 
 
 def name_str_to_num(s: str) -> int | float:
@@ -75,7 +75,7 @@ def name_str_to_num(s: str) -> int | float:
     100
     """
     return str_to_intfloat(s.replace(MINUS_REPLACEMENT, "-")
-                           .replace(DECIMAL_DOT_REPLACEMENT, '.'))
+                           .replace(DECIMAL_DOT_REPLACEMENT, "."))
 
 
 def bool_to_str(value: bool) -> str:
@@ -90,7 +90,7 @@ def bool_to_str(value: bool) -> str:
     >>> print(bool_to_str(False))
     F
     """
-    return 'T' if value else 'F'
+    return "T" if value else "F"
 
 
 def str_to_bool(value: str) -> bool:
@@ -296,7 +296,7 @@ def sanitize_name(name: str) -> str:
     name = __replace_double("_", name)
     name = __replace_double(".", name).replace(".", DECIMAL_DOT_REPLACEMENT)
 
-    name = sub(__PATTERN_SPACE_BEFORE_MINUS, '', name)
+    name = sub(__PATTERN_SPACE_BEFORE_MINUS, "", name)
     name = sub(__PATTERN_MULTIPLE_WHITESPACE, PART_SEPARATOR, name)
     name = __replace_double("_", name)
 

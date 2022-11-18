@@ -96,7 +96,7 @@ class MOProcess(MOProblem, Process):
         """
         return "mo_process"
 
-    def __enter__(self) -> 'MOProcess':
+    def __enter__(self) -> "MOProcess":
         """
         Begin a `with` statement.
 

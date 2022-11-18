@@ -66,7 +66,7 @@ def is_np_int(dtype: numpy.dtype) -> bool:
     >>> print(is_np_int(npx.dtype(npx.float64)))
     False
     """
-    return dtype.kind in ('i', 'u')
+    return dtype.kind in ("i", "u")
 
 
 def is_np_float(dtype: numpy.dtype) -> bool:
@@ -84,7 +84,7 @@ def is_np_float(dtype: numpy.dtype) -> bool:
     >>> print(is_np_float(npx.dtype(npx.float64)))
     True
     """
-    return dtype.kind == 'f'
+    return dtype.kind == "f"
 
 
 def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
@@ -220,7 +220,7 @@ def rand_seed_generate(random: Generator = default_rng()) -> int:
     if not isinstance(random, Generator):
         raise type_error(random, "random", Generator)
     return int.from_bytes(random.bytes(__SEED_BYTES),
-                          byteorder='big', signed=False)
+                          byteorder="big", signed=False)
 
 
 def rand_seed_check(rand_seed: int) -> int:
@@ -294,8 +294,8 @@ def rand_seeds_from_str(string: str,
             f"n_seeds must be positive, but is {n_seeds}.")
 
     seeds = bytearray(sha512(string.encode("utf8")).digest())
-    seed1 = int.from_bytes(seeds[0:32], byteorder='big', signed=False)
-    seed2 = int.from_bytes(seeds[32:64], byteorder='big', signed=False)
+    seed1 = int.from_bytes(seeds[0:32], byteorder="big", signed=False)
+    seed2 = int.from_bytes(seeds[32:64], byteorder="big", signed=False)
     del seeds
 
     # seed two PCG64 generators, each of which should use two 128 bit
@@ -403,10 +403,10 @@ def array_to_str(data: numpy.ndarray) -> str:
     if not isinstance(data, numpy.ndarray):
         raise type_error(data, "data", numpy.ndarray)
     k: Final[str] = data.dtype.kind
-    if k in ('i', 'u'):
+    if k in ("i", "u"):
         return CSV_SEPARATOR.join(str(d) for d in data)
-    if k == 'f':
+    if k == "f":
         return CSV_SEPARATOR.join(num_to_str(float(d)) for d in data)
-    if k == 'b':
+    if k == "b":
         return "".join(bool_to_str(bool(d)) for d in data)
     raise ValueError(f"unsupported data kind '{k}' of type '{data.dtype}'.")

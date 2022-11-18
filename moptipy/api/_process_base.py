@@ -341,12 +341,12 @@ class _ProcessBase(Process):
     def get_best_f(self) -> int | float:
         if self._current_fes > 0:
             return self._current_best_f
-        raise ValueError('No current best available.')
+        raise ValueError("No current best available.")
 
     def get_copy_of_best_x(self, x) -> None:
         if self._current_fes > 0:
             return self._copy_y(x, self._current_best_y)
-        raise ValueError('No current best available.')
+        raise ValueError("No current best available.")
 
     def terminate(self) -> None:
         with self.__lock:

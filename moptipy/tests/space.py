@@ -31,7 +31,7 @@ def validate_space(
     check_space(space)
     validate_component(space)
 
-    if not (hasattr(space, 'create') and callable(getattr(space, 'create'))):
+    if not (hasattr(space, "create") and callable(getattr(space, "create"))):
         raise ValueError("space must have method create.")
     x1 = space.create()
     if x1 is None:
@@ -50,13 +50,13 @@ def validate_space(
         raise ValueError("The create() method must produce instances of "
                          f"the same type, but got {type(x1)} and {type(x2)}.")
 
-    if not (hasattr(space, 'copy')
-            and callable(getattr(space, 'copy'))):
+    if not (hasattr(space, "copy")
+            and callable(getattr(space, "copy"))):
         raise ValueError("space must have method copy.")
     space.copy(x2, x1)
 
-    if not (hasattr(space, 'is_equal')
-            and callable(getattr(space, 'is_equal'))):
+    if not (hasattr(space, "is_equal")
+            and callable(getattr(space, "is_equal"))):
         raise ValueError("space must have method is_equal.")
     if not space.is_equal(x1, x2):
         raise ValueError("space.copy(x1, x2) did not lead to "
@@ -67,12 +67,12 @@ def validate_space(
 
     x1 = make_element_valid(x1)
 
-    if not (hasattr(space, 'validate')
-            and callable(getattr(space, 'validate'))):
+    if not (hasattr(space, "validate")
+            and callable(getattr(space, "validate"))):
         raise ValueError("space must have method validate.")
     space.validate(x1)
 
-    if not (hasattr(space, 'to_str') and callable(getattr(space, 'to_str'))):
+    if not (hasattr(space, "to_str") and callable(getattr(space, "to_str"))):
         raise ValueError("space must have method to_str.")
     strstr = space.to_str(x1)
     if not isinstance(strstr, str):
@@ -95,8 +95,8 @@ def validate_space(
         raise ValueError(f"space.to_str() must not include "
                          f"'{COMMENT_CHAR}', but is '{strstr}'.")
 
-    if not (hasattr(space, 'from_str')
-            and callable(getattr(space, 'from_str'))):
+    if not (hasattr(space, "from_str")
+            and callable(getattr(space, "from_str"))):
         raise ValueError("space must have method from_str.")
     x3 = space.from_str(strstr)
     if (x3 is x1) or (x3 is x2):

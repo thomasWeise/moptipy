@@ -86,7 +86,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
             if body is None:
                 raise ValueError(
                     f"no body for '{url}' with base '{base_url}'??")
-            for qt in ("", "'", "\""):
+            for qt in ("", "'", '"'):
                 if f"id={qt}{selector}{qt}" in body:
                     return
             raise ValueError(
@@ -99,7 +99,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
     body: str | None
     method = "GET" if needs_body else "HEAD"
     try:
-        sleep(0.3)
+        sleep(0.5)
         response = http.request(method, base_url, timeout=20, redirect=True,
                                 retries=5, headers=__HEADER)
         code = response.status
@@ -117,7 +117,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
         raise ValueError(f"url '{url}' returns code {code}.")
 
     if selector is not None:
-        for qt in ("", "'", "\""):
+        for qt in ("", "'", '"'):
             if f"id={qt}{selector}{qt}" in body:
                 return
         raise ValueError(

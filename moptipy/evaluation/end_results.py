@@ -66,7 +66,7 @@ _HEADER = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
           f"{KEY_MAX_TIME_MILLIS}\n"
 
 
-def __get_goal_f(e: 'EndResult') -> int | float:
+def __get_goal_f(e: "EndResult") -> int | float:
     """
     Get the goal_f.
 
@@ -81,7 +81,7 @@ def __get_goal_f(e: 'EndResult') -> int | float:
     return g
 
 
-def __get_max_fes(e: 'EndResult') -> int | float:
+def __get_max_fes(e: "EndResult") -> int | float:
     """
     Get the max FEs.
 
@@ -94,7 +94,7 @@ def __get_max_fes(e: 'EndResult') -> int | float:
     return g
 
 
-def __get_max_time_millis(e: 'EndResult') -> int | float:
+def __get_max_time_millis(e: "EndResult") -> int | float:
     """
     Get the maximum time in milliseconds.
 
@@ -107,7 +107,7 @@ def __get_max_time_millis(e: 'EndResult') -> int | float:
     return g
 
 
-def __get_goal_f_for_div(e: 'EndResult') -> int | float:
+def __get_goal_f_for_div(e: "EndResult") -> int | float:
     """
     Get the goal_f.
 
@@ -120,7 +120,7 @@ def __get_goal_f_for_div(e: 'EndResult') -> int | float:
     return g
 
 
-def __get_f_norm(e: 'EndResult') -> int | float:
+def __get_f_norm(e: "EndResult") -> int | float:
     """
     Get the normalized f.
 
@@ -132,7 +132,7 @@ def __get_f_norm(e: 'EndResult') -> int | float:
 
 
 #: A set of getters for accessing variables of the end result
-_GETTERS: Final[dict[str, Callable[['EndResult'], int | float]]] = {
+_GETTERS: Final[dict[str, Callable[["EndResult"], int | float]]] = {
     KEY_LAST_IMPROVEMENT_FE: lambda e: e.last_improvement_fe,
     KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         lambda e: e.last_improvement_time_millis,
@@ -297,7 +297,7 @@ class EndResult(PerRunData):
                             hex(self.rand_seed)]) + FILE_SUFFIX)
 
     @staticmethod
-    def getter(dimension: str) -> Callable[['EndResult'], int | float]:
+    def getter(dimension: str) -> Callable[["EndResult"], int | float]:
         """
         Produce a function that obtains the given dimension from EndResults.
 
@@ -330,7 +330,7 @@ class EndResult(PerRunData):
                          f"should be one of {sorted(_GETTERS.keys())}.")
 
     @staticmethod
-    def from_logs(path: str, consumer: Callable[['EndResult'], Any]) -> None:
+    def from_logs(path: str, consumer: Callable[["EndResult"], Any]) -> None:
         """
         Parse a given path and pass all end results found to the consumer.
 
@@ -348,7 +348,7 @@ class EndResult(PerRunData):
         _InnerLogParser(consumer).parse(path)
 
     @staticmethod
-    def to_csv(results: Iterable['EndResult'], file: str) -> Path:
+    def to_csv(results: Iterable["EndResult"], file: str) -> Path:
         """
         Write a sequence of end results to a file in CSV format.
 
@@ -380,8 +380,8 @@ class EndResult(PerRunData):
         return path
 
     @staticmethod
-    def from_csv(file: str, consumer: Callable[['EndResult'], Any],
-                 filterer: Callable[['EndResult'], bool]
+    def from_csv(file: str, consumer: Callable[["EndResult"], Any],
+                 filterer: Callable[["EndResult"], bool]
                  = lambda x: True) -> None:
         """
         Parse a given CSV file to get :class:`EndResult` Records.
@@ -440,7 +440,7 @@ class _InnerLogParser(ExperimentParser):
         super().__init__()
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
-        self.__consumer: Final[Callable[['EndResult'], Any]] = consumer
+        self.__consumer: Final[Callable[["EndResult"], Any]] = consumer
         self.__total_fes: int | None = None
         self.__total_time_millis: int | None = None
         self.__best_f: int | float | None = None
@@ -572,7 +572,7 @@ class _InnerLogParser(ExperimentParser):
 
 
 # Run log files to end results if executed as script
-if __name__ == '__main__':
+if __name__ == "__main__":
     help_screen(
         "build end results-CSV from log files", __file__,
         "Convert log files obtained with moptipy to the end results "

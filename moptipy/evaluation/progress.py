@@ -152,7 +152,7 @@ class Progress(PerRunData):
 
     @staticmethod
     def from_logs(path: str,
-                  consumer: Callable[['Progress'], Any],
+                  consumer: Callable[["Progress"], Any],
                   time_unit: str = TIME_UNIT_FES,
                   f_name: str = F_NAME_RAW,
                   f_standard: dict[str, int | float] | None = None,

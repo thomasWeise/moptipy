@@ -134,7 +134,7 @@ class FormattedStr(str):
         return s
 
     @staticmethod
-    def number(number: int | float | str | None) -> 'FormattedStr':
+    def number(number: int | float | str | None) -> "FormattedStr":
         """
         Create a formatted string representing a number.
 
@@ -179,7 +179,7 @@ class FormattedStr(str):
         return FormattedStr(str(number), False, False, False, NUMBER)
 
     @staticmethod
-    def special(text: str) -> 'FormattedStr':
+    def special(text: str) -> "FormattedStr":
         r"""
         Create a special string.
 

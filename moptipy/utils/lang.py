@@ -202,7 +202,7 @@ class Lang:
         return prefix + "'".join(chunks)
 
     @staticmethod
-    def __get_langs() -> dict[str, 'Lang']:
+    def __get_langs() -> dict[str, "Lang"]:
         """
         Get the languages decode.
 
@@ -214,7 +214,7 @@ class Lang:
         return getattr(Lang.__get_langs, att)
 
     @staticmethod
-    def get(name: str) -> 'Lang':
+    def get(name: str) -> "Lang":
         """
         Get the language of the given key.
 
@@ -228,7 +228,7 @@ class Lang:
         raise ValueError(f"Unknown language '{name}'.")
 
     @staticmethod
-    def current() -> 'Lang':
+    def current() -> "Lang":
         """
         Get the current language.
 
@@ -252,7 +252,7 @@ class Lang:
         matplotlib.rc("font", family=self.font())
 
     @staticmethod
-    def all_langs() -> Iterable['Lang']:
+    def all_langs() -> Iterable["Lang"]:
         """
         Get all presently loaded languages.
 

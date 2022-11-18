@@ -24,7 +24,7 @@ class MockMOProblem(WeightedSum):
         super().__init__(objectives, weights)
 
     @staticmethod
-    def for_dtype(n: int, dtype: np.dtype) -> 'MockMOProblem':
+    def for_dtype(n: int, dtype: np.dtype) -> "MockMOProblem":
         """
         Create a mock multi-objective problem.
 

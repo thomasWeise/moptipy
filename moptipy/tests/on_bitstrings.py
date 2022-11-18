@@ -217,11 +217,11 @@ def validate_algorithm_on_bitstrings(
     :param required_result: the optional required result quality
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
-        raise type_error(algorithm, 'algorithm', Algorithm, True)
+        raise type_error(algorithm, "algorithm", Algorithm, True)
     if not (isinstance(objective, Objective) or callable(objective)):
         raise type_error(objective, "objective", Objective, True)
     if not isinstance(dimension, int):
-        raise type_error(dimension, 'dimension', int)
+        raise type_error(dimension, "dimension", int)
     if dimension <= 0:
         raise ValueError(f"dimension must be > 0, but got {dimension}.")
 
@@ -313,11 +313,11 @@ def validate_mo_algorithm_on_bitstrings(
     :param max_fes: the maximum number of FEs
     """
     if not (isinstance(algorithm, MOAlgorithm) or callable(algorithm)):
-        raise type_error(algorithm, 'algorithm', MOAlgorithm, True)
+        raise type_error(algorithm, "algorithm", MOAlgorithm, True)
     if not (isinstance(problem, MOProblem) or callable(problem)):
         raise type_error(problem, "problem", MOProblem, True)
     if not isinstance(dimension, int):
-        raise type_error(dimension, 'dimension', int)
+        raise type_error(dimension, "dimension", int)
     if dimension <= 0:
         raise ValueError(f"dimension must be > 0, but got {dimension}.")
 

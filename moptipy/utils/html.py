@@ -99,9 +99,9 @@ class HTML(TextFormatDriver):
         if mode == TEXT:
             stream.write(text)
         elif mode == NUMBER:
-            i: int = text.find('e')
+            i: int = text.find("e")
             if i < 0:
-                i = text.find('E')
+                i = text.find("E")
             if i > 0:
                 stream.write(f"{text[:i]}&#xD7;10<sup>{text[i + 1:]}</sup>")
             else:
@@ -133,7 +133,7 @@ class HTML(TextFormatDriver):
         return "html"
 
     @staticmethod
-    def instance() -> 'HTML':
+    def instance() -> "HTML":
         """
         Get the HTML format singleton instance.
 

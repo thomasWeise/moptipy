@@ -43,7 +43,7 @@ class Gantt(np.ndarray):
 
     @staticmethod
     def from_log(file: str,
-                 instance: Instance | None = None) -> 'Gantt':
+                 instance: Instance | None = None) -> "Gantt":
         """
         Load a Gantt chart from a log file.
 

@@ -59,8 +59,8 @@ def validate_component(component: Component) -> None:
                          f"got '{clean_name}' vs. '{name}'.")
 
     # test the logging of parameter values
-    if not (hasattr(component, 'log_parameters_to')
-            and callable(getattr(component, 'log_parameters_to'))):
+    if not (hasattr(component, "log_parameters_to")
+            and callable(getattr(component, "log_parameters_to"))):
         raise ValueError("component must have method log_parameters_to.")
 
     secname: Final[str] = "KV"

@@ -18,9 +18,9 @@ def fixed_random_generator() -> Generator:
 
     :returns: the random number generator
     """
-    if not hasattr(fixed_random_generator, 'gen'):
+    if not hasattr(fixed_random_generator, "gen"):
         setattr(fixed_random_generator, "gen", rand_generator(1))
-    return getattr(fixed_random_generator, 'gen')
+    return getattr(fixed_random_generator, "gen")
 
 
 def _random_name(namelen: int,
@@ -208,7 +208,7 @@ class Instance:
     def create(n: int,
                forbidden: Any | None = None,
                random: Generator = fixed_random_generator()) \
-            -> tuple['Instance', ...]:
+            -> tuple["Instance", ...]:
         """
         Create a set of fixed problem instances.
 
@@ -437,7 +437,7 @@ class Algorithm:
     def create(n: int,
                forbidden: Any | None = None,
                random: Generator = fixed_random_generator()) \
-            -> tuple['Algorithm', ...]:
+            -> tuple["Algorithm", ...]:
         """
         Create a set of fixed mock algorithms.
 
@@ -459,10 +459,10 @@ class Algorithm:
         jitters: list[float] = []
         complexities: list[float] = []
 
-        prefixes: Final[tuple[str, ...]] = ('aco', 'bobyqa', 'cma-es', 'de',
-                                            'ea', 'eda', 'ga', 'gp', 'hc',
-                                            'ma', 'pso', 'rs', 'rw', 'sa',
-                                            'umda')
+        prefixes: Final[tuple[str, ...]] = ("aco", "bobyqa", "cma-es", "de",
+                                            "ea", "eda", "ga", "gp", "hc",
+                                            "ma", "pso", "rs", "rw", "sa",
+                                            "umda")
         suffixes: Final[tuple[str, ...]] = ("1swap", "2swap", "µ")
 
         max_name_len: int = int(max(2, ceil(n / 6)))
@@ -642,7 +642,7 @@ class BasePerformance:
     def create(instance: Instance,
                algorithm: Algorithm,
                random: Generator = fixed_random_generator()) \
-            -> 'BasePerformance':
+            -> "BasePerformance":
         """
         Compute the basic performance of an algorithm on a problem instance.
 
@@ -868,7 +868,7 @@ class Experiment:
     def create(n_instances: int,
                n_algorithms: int,
                n_runs: int,
-               random: Generator = fixed_random_generator()) -> 'Experiment':
+               random: Generator = fixed_random_generator()) -> "Experiment":
         """
         Create an experiment definition.
 

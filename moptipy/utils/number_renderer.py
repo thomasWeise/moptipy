@@ -198,7 +198,7 @@ class NumberRenderer:
                get_float_format: Callable[[int | float, int | float, int,
                                            int | float, int | float],
                                           str] | None = None) \
-            -> 'NumberRenderer':
+            -> "NumberRenderer":
         """
         Derive a new number group format from this one.
 
@@ -411,8 +411,8 @@ class NumberRenderer:
         if not isinstance(float_format, str):
             raise type_error(float_format,
                              "float format from float_format_getter", str)
-        if (len(float_format) <= 0) or ('{' not in float_format) \
-                or ('}' not in float_format) or (':' not in float_format):
+        if (len(float_format) <= 0) or ("{" not in float_format) \
+                or ("}" not in float_format) or (":" not in float_format):
             raise ValueError(f"invalid float format '{float_format}'.")
 
         def __render_float(value: int | float, ir=__toint,

@@ -8,7 +8,7 @@ from moptipy.api.process import Process, check_max_fes
 from moptipy.utils.types import type_error
 
 #: the type variable for single- and multi-objective processes.
-T = TypeVar('T', Process, MOProcess)
+T = TypeVar("T", Process, MOProcess)
 
 
 class __ForFEs(Process):
