@@ -412,7 +412,7 @@ def verify_algorithms_equivalent(
         LeadingOnes(dim) if choice <= 0 else \
         OneMax(dim) if choice <= 1 else \
         Ising1d(dim)
-    evaluate: Final[Callable] = f.evaluate
+    evaluate: Final[Callable] = f.evaluate  # noqa
     seed: Final[int] = int(random.integers(1 << 62))
 
     result1: Final[list[bool]] = []

@@ -154,7 +154,7 @@ Once this block is left, the log file will be written.
 If you do not use a `with` block, no log file will be generated.
 
 Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html).
-As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls).
+As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls).
 
 ```python
 from moptipy.algorithms.so.rls import RLS
@@ -266,7 +266,7 @@ This avoids situations where the first actual run is slower than the others due 
 Below, we show one example for the automated experiment execution facility, which applies two algorithms to four problem instances with five runs per setup.
 We use again the  [bit strings domain](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings).
 We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones)) of two different sizes each, leading to four problem instances in total.
-We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
+We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
 The code below is available as file [examples/experiment_2_algorithms_4_problems](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html).
 Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 5.2.](#52-end-result-csv-files) for more information).
@@ -686,13 +686,13 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 1. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber.HillClimber) creates a random solution as initial best-so-far solution and then iteratively applies the unary search operator to the best-so-far solution. When the result of the unary operator is better, it becomes the new best-so-far solution, otherwise it is discarded.
 2. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts) works exactly like the hill climber, but restarts at a new random solution after a fixed number of unsuccessful moves.
 3. [Random Local Search / (1+1)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS) (RLS) works like the [hill climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber.HillClimber) as well, but accepts a new solution if it is *not worse* than the best-so-far solution (instead of requiring it to be strictly *better*, as the hill climber does).
-4. [(mu+lambda)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.ea.EA) is a simple population-based metaheuristic that starts with a population of `mu` random solutions. In each iteration, it retains only the `mu` best solutions from the population ("best" in terms of the objective value, ties are broken such that newer solutions are preferred). It then applies the unary operator and the binary operator to generate `lambda` new solutions and adds them to the population. The `(1+1)-EA` with `br=0` probability to use the binary operator is equivalent to [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS). 
+4. [(mu+lambda)-EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.ea.EA) is a simple population-based metaheuristic that starts with a population of `mu` random solutions. In each iteration, it retains only the `mu` best solutions from the population ("best" in terms of the objective value, ties are broken such that newer solutions are preferred). It then applies the unary operator and the binary operator to generate `lambda` new solutions and adds them to the population. The `(1+1)-EA` with `br=0` probability to use the binary operator is equivalent to [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS). 
 5. [General EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.general_ea.GeneralEA) a generalized version of the (mu+lambda)-EA that can additionally be configured with a [fitness assignment process](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html) and both survival and mating [selection algorithms](https://thomasweise.github.io/moptipy/moptipy.algorithms.modules.html#module-moptipy.algorithms.modules.selection).
 
 
 #### 4.1.2. Multi-Objective Optimization
 
-1. [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.rls.RLS), but it accepts a solution if it is not dominated by the current solution.
+1. [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS), but it accepts a solution if it is not dominated by the current solution.
   This is *not* a good algorithm.
 2. The [Fast Elitist Non-Dominated Sorting Genetic Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2) (NSGA-II) is maybe the most popular multi-objective evolutionary algorithm.
 
@@ -735,7 +735,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 We develop several data formats to store and evaluate the results of computational experiments with our [`moptipy`](https://thomasweise.github.io/moptipy) software.
 Here you can find their basic definitions.
 On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with our software.
-For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.tar.xz) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
+For example, you could download the [results](https://thomasweise.github.io/oa_data/jssp/jssp_hcr_swapn.tar.xz) of the [hill climber with restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.hill_climber_with_restarts) on the Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)) using the [operator `swapn`](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swapn) that swaps a randomly chosen number of (different) job IDs, for different restart settings.
 The files and folders in this archive will then exactly comply to the structure discussed here.
 
 
@@ -799,15 +799,15 @@ A log file is a simple text file divided into several sections.
 Each section `X` begins with the line `BEGIN_X` and ends with the line `END_X`.
 There are three types of sections:
 
-- *[Semicolon-separated values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.CsvSection)* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`.
+- *[Semicolon-separated values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.CsvLogSection)* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`.
   We use ';', as both '.' and ',' might be misinterpreted as decimal or fractional separaters under different locales, whereas ';', to the best of our knowledge, is rarely used for such purposes.
   We will still call such sections "CSV" sections (comma-separated-values), though, as most people know what CSV is and the structure basically is exactly that, except that we use ';' instead of ','.
-- *[Key-values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueSection)* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2/spec.html#mapping).
+- *[Key-values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection)* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2.2#mapping).
   In other words, each line contains a key, followed by `: `, followed by the value.
   The keys can be hierarchically structured in scopes, for example `a.b` and `a.c` indicate two keys `b` and `c` that belong to scope `a`.
   This allows representing complex data such as [configuration parameters](#5123-the-section-setup) in a rather straight-forward, easy-to-parse canonical way.
   All keys within a section must be unique, i.e., if a section contains a value under key `a.a`, it cannot contain the same key `a.a` again, even with the same value.
-- *[Raw text](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.TextSection)* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
+- *[Raw text](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.TextLogSection)* sections contain text without a general or a priori structure, e.g., the string representation of the best solutions found.
   Obviously, such raw text cannot contain things such as section delimiters or other reserved keywords.
   Apart from that, basically any type of data may be stored there.
   This is useful for, for instance, storing the [final solutions](#5125-the-result-sections) of runs or [exceptions caught during the runs](#5126-the-error-sections).
@@ -856,7 +856,7 @@ Usually, we would log one data point for every improvement of the objective valu
 
 ##### 5.1.2.2 The Section `STATE`
 
-The end state when the run terminates is logged in the section `STATE` in a [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible key-value format.
+The end state when the run terminates is logged in the section `STATE` in a [YAML](https://yaml.org/spec/1.2.2/#mapping)-compatible key-value format.
 It holds at least the following keys:
 
 - `totalFEs` the total number of objective function evaluations performed, as integer
@@ -878,7 +878,7 @@ In case that multi-objective optimization is performed, please note the followin
 
 ##### 5.1.2.3 The Section `SETUP`
 
-In this [YAML](https://yaml.org/spec/1.2/spec.html#mapping)-compatible key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
+In this [YAML](https://yaml.org/spec/1.2.2#mapping)-compatible key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
 There are at least the following keys:
 
 - [process](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process) wrapper parameters (scope `p`):
@@ -1725,9 +1725,9 @@ Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evalu
 ### 6.7. Performance over Algorithm Parameter or Instance Feature
 
 Often we want to investigate how and algorithm parameter or an instance feature impacts the algorithm performance.
-The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter) can do both:
+The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_statistics_over_parameter) can do both:
 
-In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#65-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
+In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#65-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
 Basically, the minimization version of the OneMax problem tries to minimize the number of `0`s in a bit string of length `n`.
 Of course, the higher `n`, the longer it will take to solve the problem.
 We apply the RLS several times to the instances of sizes `n` in `1..20`.
@@ -1739,7 +1739,7 @@ All we need to tell our system how it can deduce the value of the feature from a
 </a>
 
 In [examples/end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html), on the other hand, we apply the same method to analyze the impact of an algorithm parameter on the performance.
-We again apply an [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.rls) algorithm, but this time with a configurable operator, [Op1MoverNflip](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#module-moptipy.operators.bitstrings.op1_m_over_n_flip), which flips each bit in a string with a probability distributed according to `Bin(m/n)`, where `n` is the total number of bits and `m` is a parameter.
+We again apply an [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) algorithm, but this time with a configurable operator, [Op1MoverNflip](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#module-moptipy.operators.bitstrings.op1_m_over_n_flip), which flips each bit in a string with a probability distributed according to `Bin(m/n)`, where `n` is the total number of bits and `m` is a parameter.
 We apply this algorithm for different values of `m` to two instances of the minimization version of the [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones) problem.
 We plot the mean end result after 128 FEs (on the vertical axis) over the values of `m` (horizontal axis). 
 
@@ -1747,7 +1747,7 @@ We plot the mean end result after 128 FEs (on the vertical axis) over the values
 <img alt="Example for the mean end result quality over the algorithm parameter m of the Bin(m/n) operator plugged into the RLS algorithm on several LeadingOnes instances." src="https://thomasweise.github.io/moptipy/_static/mean_f_over_param.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-These plots have been implemented in the module [moptipy.evaluation.plot_end_statistics_over_parameter](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.plot_end_statistics_over_parameter).
+These plots have been implemented in the module [moptipy.evaluation.plot_end_statistics_over_parameter](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_statistics_over_parameter).
 
 
 ### 6.8. End Results Table

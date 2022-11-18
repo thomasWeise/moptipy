@@ -221,8 +221,8 @@ def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
     run_max_none_improved: Final[int] = 4
     step_max_none_improved: Final[int] = int((2 + (n_groups * n)) ** 2)
 
-    done: Final[np.ndarray] = np.zeros(n_groups, DEFAULT_INT)
-    extremes: Final[set[int]] = set()
+    done: Final[np.ndarray] = np.zeros(n_groups, DEFAULT_INT)  # noqa
+    extremes: Final[set[int]] = set()  # noqa
 
     logger(f"Beginning to optimize the assignment of {len(cluster_groups)} "
            f"clusters to {n_groups} groups. The minimum groups are "

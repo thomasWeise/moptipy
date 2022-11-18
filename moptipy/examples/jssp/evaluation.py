@@ -91,9 +91,9 @@ def ea_family(name: str) -> str:
 
 def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     """
-    Create the algorithm sort keys and name map.
+    Create the algorithm sort keys and name decode.
 
-    :returns: the algorithm sort keys and name map
+    :returns: the algorithm sort keys and name decode
     """
     inst = Instance.from_resource("demo")
     space = Permutations.with_repetitions(inst.jobs, inst.machines)

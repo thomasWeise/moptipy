@@ -51,7 +51,7 @@ def test_demo_solution() -> None:
         assert isinstance(s, Gantt)
         s2 = demo_solution_space().create()
         p2 = demo_point_in_search_space(optimum)
-        demo_encoding().map(p2, s2)
+        demo_encoding().decode(p2, s2)
         assert demo_solution_space().is_equal(s, s2)
 
 

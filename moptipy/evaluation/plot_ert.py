@@ -171,8 +171,8 @@ def plot_ert(erts: Iterable[Ert],
 
     # determine the style groups
     groups: list[Styler] = []
-    instances.compile()
-    algorithms.compile()
+    instances.finalize()
+    algorithms.finalize()
 
     if instances.count > 1:
         groups.append(instances)

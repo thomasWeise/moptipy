@@ -190,8 +190,8 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
 
     # determine the style groups
     groups: list[Styler] = []
-    goals.compile()
-    algorithms.compile()
+    goals.finalize()
+    algorithms.finalize()
 
     if goals.count > 1:
         groups.append(goals)

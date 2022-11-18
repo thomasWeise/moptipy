@@ -27,7 +27,7 @@ def is_new() -> Callable[[str], bool]:
     """
     s: dict[Any, int] = {}
     setdefault = s.setdefault
-    n = 0
+    n = 0  # noqa
 
     def add(x):
         nonlocal n

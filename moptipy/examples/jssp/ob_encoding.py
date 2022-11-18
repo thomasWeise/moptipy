@@ -101,7 +101,7 @@ class OperationBasedEncoding(Encoding):
                      int_range_to_dtype(0, instance.machines - 1))
         self.__instance: Final[Instance] = instance
 
-    def map(self, x: np.ndarray, y: np.ndarray) -> None:  # +book
+    def decode(self, x: np.ndarray, y: np.ndarray) -> None:  # +book
         """
         Map an operation-based encoded array to a Gantt chart.
 

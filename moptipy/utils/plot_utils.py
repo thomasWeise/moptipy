@@ -675,7 +675,7 @@ def get_label_colors(
     Get a list with label colors from a set of artists.
 
     :param handles: the handles
-    :param color_map: an optional color map
+    :param color_map: an optional color decode
     :param default_color: the default color
     :returns: a list of label colors
     """

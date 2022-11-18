@@ -27,11 +27,11 @@ def __check_for_instance(instance: str,
     x_space.validate(x)
 
     y = y_space.create()
-    g.map(x, y)
+    g.decode(x, y)
     y_space.validate(y)
 
     random.shuffle(x)
-    g.map(x, y)
+    g.decode(x, y)
     y_space.validate(y)
 
     x_str = x_space.to_str(x)

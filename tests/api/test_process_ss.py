@@ -144,7 +144,7 @@ class _RA(Algorithm0):
         r = process.get_random()
         while not process.should_terminate():
             self.op0.op0(r, self.x)
-            self.e.map(self.x, self.y)
+            self.e.decode(self.x, self.y)
             f = self.f.evaluate(self.y)
             process.register(self.x, f)
 

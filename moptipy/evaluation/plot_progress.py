@@ -219,9 +219,9 @@ def plot_progress(
     if (x_dim is None) or (y_dim is None):
         raise ValueError("Illegal state?")
 
-    instances.compile()
-    algorithms.compile()
-    statistics.compile()
+    instances.finalize()
+    algorithms.finalize()
+    statistics.finalize()
 
     # pick the right sorting order
     sf: Callable[[StatRun | Progress], Any] = sort_key

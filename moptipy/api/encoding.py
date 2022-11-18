@@ -29,9 +29,9 @@ from moptipy.utils.types import type_error
 
 # start book
 class Encoding(Component):
-    """The encodings translates from a search space to a solution space."""
+    """The encoding translates from a search space to a solution space."""
 
-    def map(self, x, y) -> None:
+    def decode(self, x, y) -> None:
         """
         Translate from search- to solution space.
 

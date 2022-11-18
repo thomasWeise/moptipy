@@ -22,7 +22,7 @@ def test_gantt_space():
             rg = default_rng()
             xx = ssp.create()
             op0.op0(rg, xx)
-            ob.map(xx, x)
+            ob.decode(xx, x)
             return x
 
         validate_space(GanttSpace(insx), __make_valid)

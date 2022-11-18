@@ -59,7 +59,7 @@ def plot_gantt_chart(
         importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
         info: None | str | Callable[[Gantt], str] =
-        lambda gantt: Lang.current().format("gantt_info", gantt=gantt),
+        lambda gantt: Lang.current().format_str("gantt_info", gantt=gantt),
         x_grid: bool = False,
         y_grid: bool = False,
         x_label: None | str | Callable[[Gantt], str] =

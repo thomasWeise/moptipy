@@ -96,7 +96,7 @@ class Styler:
         """
         self.__collection.add(self.key_func(obj))
 
-    def compile(self) -> None:
+    def finalize(self) -> None:
         """Compile the styler collection."""
         self.has_none = (None in self.__collection)
         if self.has_none:
@@ -212,7 +212,7 @@ class Styler:
         Apply this styler's contents based on the given object.
 
         :param obj: the object for which the style should be created
-        :param style: the map to which the styles should be added
+        :param style: the decode to which the styles should be added
         """
         key = self.key_func(obj)
         index = self.__indexes.setdefault(key, -1)
@@ -225,7 +225,7 @@ class Styler:
         Apply this styler's contents based on the given object.
 
         :param index: the index to be processed
-        :param style: the map to which the styles should be added
+        :param style: the decode to which the styles should be added
         """
         if self.__line_colors is not None:
             style["color"] = self.__line_colors[index]

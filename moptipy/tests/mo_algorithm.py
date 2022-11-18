@@ -194,7 +194,7 @@ def validate_mo_algorithm(
 
         if encoding is not None:
             y2 = solution_space.create()
-            encoding.map(x, y2)
+            encoding.decode(x, y2)
             solution_space.validate(y2)
             if is_encoding_deterministic:
                 solution_space.is_equal(y, y2)

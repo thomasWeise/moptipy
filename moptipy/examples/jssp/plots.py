@@ -79,7 +79,7 @@ def plot_end_makespans(end_results: Iterable[EndResult],
     insts: Final[list[str]] = sorted(instances, key=instance_sort_key)
     result: Final[list[Path]] = []
 
-    for lang in Lang.all():
+    for lang in Lang.all_langs():
         lang.set_current()
         figure, plots = pu.create_figure_with_subplots(
             items=n_insts, max_items_per_plot=max_insts, max_rows=5,
@@ -188,7 +188,7 @@ def plot_stat_gantt_charts(
         raise ValueError("empty set of runs?")
 
     # plot the gantt charts
-    for lang in Lang.all():
+    for lang in Lang.all_langs():
         lang.set_current()
 
         figure, plots = pu.create_figure_with_subplots(
@@ -207,7 +207,7 @@ def plot_stat_gantt_charts(
                 args["markers"] = None
             else:
                 args["info"] = lambda gantt: \
-                    Lang.current().format("gantt_info_short", gantt=gantt)
+                    Lang.current().format_str("gantt_info_short", gantt=gantt)
             if len(plots) > 2:
                 args["importance_to_font_size_func"] = lambda i: \
                     0.9 * importance_to_font_size(i)
@@ -307,7 +307,7 @@ def plot_progresses(results_dir: str,
     results: Final[list[Path]] = []  # the list of generated files
 
     # plot the progress charts
-    for lang in Lang.all():
+    for lang in Lang.all_langs():
         lang.set_current()
         figure, plots = pu.create_figure_with_subplots(
             items=len(instances), max_items_per_plot=1, max_cols=2,
@@ -425,7 +425,7 @@ def plot_end_makespans_over_param(
         raise ValueError("no end statistics records to plot!")
     result: list[Path] = []
 
-    for lang in Lang.all():
+    for lang in Lang.all_langs():
         lang.set_current()
         figure = pu.create_figure(width=5.5)
 

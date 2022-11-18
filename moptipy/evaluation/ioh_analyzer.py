@@ -203,7 +203,7 @@ if __name__ == '__main__':
     help_screen(
         "moptipy-to-IOHanalyzer data converter", __file__,
         "Convert log files obtained with moptipy to the "  # nosem
-        "data format of the IOHprofiler (see "  # nosem
+        "data format_str of the IOHprofiler (see "  # nosem
         "https://iohprofiler.github.io/IOHanalyzer/data/).",  # nosem
         [("source_dir", "the location of the moptipy data"),
          ("dest_dir", "the place to write the IOHprofiler data")])

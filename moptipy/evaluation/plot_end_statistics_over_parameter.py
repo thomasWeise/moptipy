@@ -287,8 +287,8 @@ def plot_end_statistics_over_param(
 
     # determine the style groups
     groups: list[Styler] = []
-    instances.compile()
-    algorithms.compile()
+    instances.finalize()
+    algorithms.finalize()
 
     if instances.count > 1:
         groups.append(instances)

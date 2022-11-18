@@ -54,7 +54,7 @@ def make_gantt_valid(inst: Instance) -> Callable[[Generator, Gantt], Gantt]:
                      pop0=op0, poe=oe) -> Gantt:
         xx = ppr.create()
         pop0.op0(prnd, xx)
-        poe.map(xx, x)
+        poe.decode(xx, x)
         return x
 
     return __make_valid

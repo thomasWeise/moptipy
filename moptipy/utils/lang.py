@@ -132,7 +132,7 @@ class Lang:
             raise type_error(item, "item", str)
         return self.__dict[item]
 
-    def format(self, item: str, **kwargs):
+    def format_str(self, item: str, **kwargs):
         """
         Return a string based on the specified format.
 
@@ -141,7 +141,7 @@ class Lang:
 
         >>> l = Lang.get("en")
         >>> l.extend({"z": "{a}: bla{b}"})
-        >>> print(l.format("z", a=5, b=6))
+        >>> print(l.format_str("z", a=5, b=6))
         5: bla6
         """
         if not isinstance(item, str):
@@ -204,9 +204,9 @@ class Lang:
     @staticmethod
     def __get_langs() -> dict[str, 'Lang']:
         """
-        Get the languages map.
+        Get the languages decode.
 
-        :return: the languages map
+        :return: the languages decode
         """
         att: Final[str] = "__map"
         if not hasattr(Lang.__get_langs, att):
@@ -252,7 +252,7 @@ class Lang:
         matplotlib.rc("font", family=self.font())
 
     @staticmethod
-    def all() -> Iterable['Lang']:
+    def all_langs() -> Iterable['Lang']:
         """
         Get all presently loaded languages.
 

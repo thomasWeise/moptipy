@@ -27,7 +27,26 @@ def __ve(msg: str, text: str, idx: int) -> ValueError:
     return ValueError(f"{msg}: '...{piece}...'")
 
 
-def __check(url: str, valid_urls: set[str],
+#: the headers
+__HEADER: Final[dict[str, str]] = {
+    "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64;"
+                  " rv:106.0) Gecko/20100101 Firefox/106.0"
+}
+
+
+def __needs_body(base_url: str) -> bool:
+    """
+    Check whether we need the body of the given url.
+
+    :param base_url: the url string
+    :returns: `True` if the body is needed, `False` otherwise
+    """
+    if base_url.endswith(".html") or base_url.endswith(".htm"):
+        return True
+    return base_url.startswith("https://yaml.org/spec/")
+
+
+def __check(url: str, valid_urls: dict[str, str | None],
             http: urllib3.PoolManager = urllib3.PoolManager(
                 cert_reqs="CERT_REQUIRED", ca_certs=certifi.where())) -> None:
     """
@@ -46,28 +65,71 @@ def __check(url: str, valid_urls: set[str],
     if not url.startswith("http"):
         raise ValueError(f"invalid url '{url}'")
 
-    check_url: str = url
+    base_url: str = url
+    selector: str | None = None
+    needs_body: bool
     i = url.find("#")
-    if i > 0:
-        check_url = url[:i]
-    if check_url in valid_urls:
-        return
+    if i >= 0:
+        base_url = url[:i]
+        needs_body = __needs_body(base_url)
+        if not needs_body:
+            raise ValueError(f"invalid url: '{url}'")
 
+        selector = url[i + 1:]
+        if (len(selector) <= 0) or (len(base_url) <= 0) \
+                or len(selector.strip()) != len(selector) \
+                or (len(base_url.strip()) != len(base_url)):
+            raise ValueError(f"invalid url: '{url}'")
+
+        if base_url in valid_urls:
+            body = valid_urls[base_url]
+            if body is None:
+                raise ValueError(
+                    f"no body for '{url}' with base '{base_url}'??")
+            for qt in ("", "'", "\""):
+                if f"id={qt}{selector}{qt}" in body:
+                    return
+            raise ValueError(
+                f"did not find id='{selector}' of '{url}' in body "
+                f"of '{base_url}': '{body}'")
+    else:
+        needs_body = __needs_body(base_url)
+
+    code: int
+    body: str | None
+    method = "GET" if needs_body else "HEAD"
     try:
         sleep(0.3)
-        code = http.request("HEAD", check_url, timeout=35,
-                            redirect=True, retries=5).status
+        response = http.request(method, base_url, timeout=20, redirect=True,
+                                retries=5, headers=__HEADER)
+        code = response.status
+        body = response.data.decode("utf-8") if needs_body else None
     except BaseException as be:
         # sometimes, I cannot reach github from here...
         if url.startswith("http://github.com") \
                 or url.startswith("https://github.com"):
-            valid_urls.add(check_url)
             return
         raise ValueError(f"invalid url '{url}'.") from be
-    logger(f"checked url '{url}' got code {code}.")
+
+    logger(f"checked url '{url}' got code {code} for method '{method}' and "
+           f"{0 if body is None else len(body)} chars.")
     if code != 200:
         raise ValueError(f"url '{url}' returns code {code}.")
-    valid_urls.add(check_url)
+
+    if selector is not None:
+        for qt in ("", "'", "\""):
+            if f"id={qt}{selector}{qt}" in body:
+                return
+        raise ValueError(
+            f"did not find id='{selector}' of '{url}' in body "
+            f"of '{base_url}': '{body}'")
+
+    if needs_body and (body is None):
+        raise ValueError(f"huh? body for '{url}' / '{base_url}' is None?")
+
+    valid_urls[base_url] = body
+    if url != base_url:
+        valid_urls[url] = None
 
 
 def test_all_links_in_readme_md():
@@ -104,7 +166,7 @@ def test_all_links_in_readme_md():
     lines.clear()
 
     # these are all urls that have been verified
-    valid_urls: Final[set[str]] = set()
+    valid_urls: Final[dict[str, str | None]] = {}
 
     # build the map of local reference marks
     start = -1
@@ -126,7 +188,7 @@ def test_all_links_in_readme_md():
         if (len(rid) <= 2) or ((rid[0] not in "123456789")
                                and (start > 0)) or ("-" not in rid):
             raise __ve(f"invalid id '{rid}'", text, i)
-        valid_urls.add(f"#{rid}")
+        valid_urls[f"#{rid}"] = None
         start = k
 
     # remove all inline code

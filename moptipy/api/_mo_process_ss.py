@@ -79,7 +79,7 @@ class _MOProcessSS(_MOProcessNoSS):
         #: The encoding.
         self._encoding: Final[Encoding] = check_encoding(encoding)
         #: the internal encoder
-        self._g: Final[Callable] = encoding.map
+        self._g: Final[Callable] = encoding.decode
         #: The holder for the currently de-coded solution.
         self._current_y = solution_space.create()
         #: The current best point in the search space.

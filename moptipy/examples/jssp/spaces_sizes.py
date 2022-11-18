@@ -597,7 +597,7 @@ def make_search_space_size_table(
 if __name__ == "__main__":
     dest_dir = Path.path(sys.argv[1])
     dest_dir.ensure_dir_exists()
-    for lang in Lang.all():
+    for lang in Lang.all_langs():
         lang.set_current()
         make_gantt_space_size_table(
             dest_dir.resolve_inside(

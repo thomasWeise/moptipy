@@ -108,8 +108,8 @@ def demo_solution(optimum: bool = False) -> Gantt:
     """
     space: Final[GanttSpace] = demo_solution_space()
     result: Final[Gantt] = space.create()
-    demo_encoding().map(demo_point_in_search_space(optimum=optimum),
-                        result)
+    demo_encoding().decode(demo_point_in_search_space(optimum=optimum),
+                           result)
     space.validate(result)
     return result
 
@@ -169,17 +169,17 @@ def demo_gantt_chart(dirname: str,
 
     if with_makespan:
         def info(g: Gantt):
-            return Lang.current().format("gantt_info", gantt=g)
+            return Lang.current().format_str("gantt_info", gantt=g)
         if not optimum:
             markers.append(marker_makespan)
     else:
         def info(g: Gantt):
-            return Lang.current().format("gantt_info_no_ms", gantt=g)
+            return Lang.current().format_str("gantt_info_no_ms", gantt=g)
 
     if with_lower_bound:
         markers.append(marker_lb)
 
-    for lang in Lang.all():
+    for lang in Lang.all_langs():
         lang.set_current()
         figure: Figure = create_figure(width=width, height=height)
 
