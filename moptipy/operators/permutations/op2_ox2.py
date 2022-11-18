@@ -27,12 +27,12 @@ As mnemonic for the operator, we use `ox2`, similar to Larrañaga et al., who
 used `OX2`.
 
 1. G. Syswerda. Schedule Optimization Using Genetic Algorithms. In Lawrence
-   Davis, L. (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
+   Davis, L. (ed.), *Handbook of Genetic Algorithms,* pages 332-349.
    New York: Van Nostrand Reinhold.
 2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, Iñaki Inza, and
    S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
    Review of Representations and Operators. *Artificial Intelligence Review,*
-   13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
+   13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.
    https://doi.org/10.1023/A:1006529012972
 """
 from typing import Callable, Final

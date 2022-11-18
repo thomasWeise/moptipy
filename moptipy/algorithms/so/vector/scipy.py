@@ -218,7 +218,7 @@ class NelderMead(SciPyAlgorithmWrapper):
 
     1. Fuchang Gao and Lixing Han. Implementing the Nelder-Mead Simplex
        Algorithm with Adaptive Parameters. *Computational Optimization and
-       Applications*. 51(1):259–277. January 2012.
+       Applications*. 51(1):259-277. January 2012.
        https://doi.org/10.1007/s10589-010-932
     2. J. A. Nelder and R. Mead. A Simplex Method for Function Minimization.
        *The Computer Journal*. 7(4):308-313. January 1965. Oxford University
@@ -324,7 +324,7 @@ class SLSQP(SciPyAlgorithmWrapper):
     """
     The Sequential Least Squares Programming (SLSQP) algorithm in SciPy.
 
-    1. Dieter Kraft. Algorithm 733: TOMP–Fortran modules for optimal control
+    1. Dieter Kraft. Algorithm 733: TOMP-Fortran modules for optimal control
        calculations. *ACM Transactions on Mathematical Software.*
        20(3):262-281. September 1994. https://doi.org/10.1145/192115.192124
     """
@@ -388,9 +388,9 @@ class DE(Algorithm, FloatBounds):
     :func:`scipy.optimize.differential_evolution`.
     We only use the default settings. This may change in future releases.
 
-    1. Rainer Storn and Kenneth Price. Differential Evolution – A Simple and
+    1. Rainer Storn and Kenneth Price. Differential Evolution - A Simple and
        Efficient Heuristic for global Optimization over Continuous Spaces.
-       *Journal of Global Optimization* 11(4):341–359. December 1997.
+       *Journal of Global Optimization* 11(4):341-359. December 1997.
        https://doi.org/10.1023/A:1008202821328.
        https://www.researchgate.net/publication/227242104
     """

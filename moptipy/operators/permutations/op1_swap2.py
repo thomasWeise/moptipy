@@ -20,10 +20,10 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
 1. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and
    S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
    Review of Representations and Operators. *Artificial Intelligence Review,*
-   13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
+   13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.
    https://doi.org/10.1023/A:1006529012972
 2. Wolfgang Banzhaf. The "Molecular" Traveling Salesman. *Biological
-   Cybernetics*, 64(1):7–14, November 1990, https://doi.org/10.1007/BF00203625
+   Cybernetics*, 64(1):7-14, November 1990, https://doi.org/10.1007/BF00203625
 3. I.M. Oliver, D.J. Smith, and J.R.C. Holland. A Study of Permutation
    Crossover Operators on the Traveling Salesman Problem. In *Proceedings of
    the Second International Conference on Genetic Algorithms and their
@@ -32,11 +32,11 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
 4. Balamurali Krishna Ambati, Jayakrishna Ambati, and Mazen Moein Mokhtar.
    Heuristic Combinatorial Optimization by Simulated Darwinian Evolution: A
    Polynomial Time Algorithm for the Traveling Salesman Problem. *Biological
-   Cybernetics,* 65(1):31–35, May 1991, https://doi.org/10.1007/BF00197287
+   Cybernetics,* 65(1):31-35, May 1991, https://doi.org/10.1007/BF00197287
 5. Zbigniew Michalewicz. *Genetic Algorithms + Data Structures = Evolution
    Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5
 6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
-   Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332–349.
+   Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332-349.
    1991. New York: Van Nostrand Reinhold.
 7. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
    Institute of Applied Optimization (IAO), School of Artificial Intelligence

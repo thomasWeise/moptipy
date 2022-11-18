@@ -19,7 +19,7 @@ at mu=lambda=1.
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
    Assignment: Making Optimization Algorithms Invariant under Bijective
    Transformations of the Objective Function Value. *IEEE Transactions on
-   Evolutionary Computation* 25(2):307–319. April 2021. Preprint available at
+   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at
    arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 2. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency

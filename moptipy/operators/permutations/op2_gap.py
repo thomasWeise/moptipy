@@ -25,12 +25,12 @@ version of the operator that strictly alternates between parents.
 
 1. Pedro Larrañaga, Cindy M. H. Kuijpers, Mikel Poza, and Roberto H. Murga.
    Decomposing Bayesian Networks: Triangulation of the Moral Graph with Genetic
-   Algorithms, *Statistics and Computing,* 7(1):19–34, March 1997,
+   Algorithms, *Statistics and Computing,* 7(1):19-34, March 1997,
    https://doi.org/10.1023/A:1018553211613
 2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, Iñaki Inza, and
    S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
    Review of Representations and Operators. *Artificial Intelligence Review,*
-   13(2):129–170, April 1999. Kluwer Academic Publishers, The Netherlands.
+   13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.
    https://doi.org/10.1023/A:1006529012972
 """
 from typing import Final

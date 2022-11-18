@@ -322,12 +322,12 @@ class Lang:
         >>> Lang.get("en").extend({"FEs": "time in FEs"})
         >>> f = Lang.translate_func("ERT")
         >>> print(f("FEs"))
-        ERT [time in FEs]
+        ERT\u2009[time in FEs]
         >>> Lang.get("de").set_current()
         >>> Lang.get("de").extend({"ERT": "ERT"})
         >>> Lang.get("de").extend({"FEs": "Zeit in FEs"})
         >>> print(f("FEs"))
-        ERT [Zeit in FEs]
+        ERT\u2009[Zeit in FEs]
         """
         def __tf(dim: str, f: str = func) -> str:
             return f"{Lang.translate(f)}\u2009[{Lang.translate(dim)}]"
