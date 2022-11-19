@@ -168,12 +168,12 @@ def demo_gantt_chart(dirname: str,
     markers: list[Callable] = []
 
     if with_makespan:
-        def info(g: Gantt):
+        def info(g: Gantt) -> str:
             return Lang.current().format_str("gantt_info", gantt=g)
         if not optimum:
             markers.append(marker_makespan)
     else:
-        def info(g: Gantt):
+        def info(g: Gantt) -> str:
             return Lang.current().format_str("gantt_info_no_ms", gantt=g)
 
     if with_lower_bound:

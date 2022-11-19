@@ -29,7 +29,7 @@ def is_new() -> Callable[[str], bool]:
     setdefault = s.setdefault
     n = 0  # noqa
 
-    def add(x):
+    def add(x) -> bool:
         nonlocal n
         n += 1
         return setdefault(x, n) == n

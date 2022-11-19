@@ -13,11 +13,11 @@ from moptipy.tests.on_bitstrings import (
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_random_sampling_on_jssp():
+def test_random_sampling_on_jssp() -> None:
     """Validate random sampling on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> RandomSampling:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -26,10 +26,10 @@ def test_random_sampling_on_jssp():
     validate_algorithm_on_jssp(algorithm=create)
 
 
-def test_random_sampling_on_onemax():
+def test_random_sampling_on_onemax() -> None:
     """Validate the random sampling on the OneMax Problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> RandomSampling:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return RandomSampling(Op0Random())
@@ -37,10 +37,10 @@ def test_random_sampling_on_onemax():
     validate_algorithm_on_onemax(create)
 
 
-def test_random_sampling_on_leadingones():
+def test_random_sampling_on_leadingones() -> None:
     """Validate the random sampling on the LeadingOnes problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> RandomSampling:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return RandomSampling(Op0Random())

@@ -60,7 +60,7 @@ def _random_name(namelen: int,
 
 
 def __append_not_allowed(forbidden,
-                         dest: set[str | float | int]):
+                         dest: set[str | float | int]) -> None:
     """
     Append items to the set of not-allowed values.
 

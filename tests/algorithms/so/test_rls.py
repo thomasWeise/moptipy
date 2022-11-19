@@ -15,11 +15,11 @@ from moptipy.tests.on_bitstrings import (
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_rls_on_jssp():
+def test_rls_on_jssp() -> None:
     """Validate the RLS on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> RLS:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -28,10 +28,10 @@ def test_rls_on_jssp():
     validate_algorithm_on_jssp(create)
 
 
-def test_rls_on_onemax():
+def test_rls_on_onemax() -> None:
     """Validate the RLS on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> RLS:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return RLS(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
@@ -39,10 +39,10 @@ def test_rls_on_onemax():
     validate_algorithm_on_onemax(create)
 
 
-def test_rls_on_leadingones():
+def test_rls_on_leadingones() -> None:
     """Validate the RLS on the LeadingOnes problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> RLS:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return RLS(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))

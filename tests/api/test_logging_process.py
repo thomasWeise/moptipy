@@ -50,7 +50,7 @@ class MyObjective(Objective):
         return x[0]
 
 
-def test_process_noss_log():
+def test_process_noss_log() -> None:
     """Test processes without search space and with log."""
     v = VectorSpace(10)
     x = v.create()

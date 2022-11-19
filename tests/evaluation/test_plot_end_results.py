@@ -31,7 +31,7 @@ def make_end_results_plot(dir_name: str, file_name: str) -> None:
     del fig
 
 
-def test_end_results_plot():
+def test_end_results_plot() -> None:
     """Run the violin plot test."""
     with TempDir.create() as dir_name:
         make_end_results_plot(dir_name, "test")

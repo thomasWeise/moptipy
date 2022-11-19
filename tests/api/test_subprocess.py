@@ -100,7 +100,7 @@ class MyAlgorithm(Algorithm2):
             assert process.evaluate(x1) == fnew2
 
 
-def test_from_start_for_fes():
+def test_from_start_for_fes() -> None:
     """Slice off some FEs from a process to apply another process."""
     v = BitStrings(32)
     f = Ising1d(32)
@@ -151,7 +151,7 @@ class MyAlgorithm2(Algorithm2):
                 best_x, new_x = new_x, best_x  # Swap best and new.
 
 
-def test_without_should_terminate():
+def test_without_should_terminate() -> None:
     """Test an algorithm that never terminates."""
     v = BitStrings(32)
     f = Ising1d(32)
@@ -226,7 +226,7 @@ class __RegisterForFEs(Algorithm):
             assert cf < process.get_consumed_fes() <= mf
 
 
-def test_for_fes_process_no_ss_no_log_reg_norm():
+def test_for_fes_process_no_ss_no_log_reg_norm() -> None:
     """Test the `_process_no_ss` without logging."""
     random: Generator = default_rng()
 
@@ -282,7 +282,7 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
             assert 0 < pp.get_consumed_fes() <= me
             assert pp.get_consumed_fes() == process.get_consumed_fes()
 
-    def __solve_mo(self, process: MOProcess):
+    def __solve_mo(self, process: MOProcess) -> None:
         """Solve."""
         x = process.create()
         fs = process.f_create()
@@ -295,7 +295,7 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
             process.f_evaluate(x, fs)
 
 
-def test_for_fes_mo_process_no_ss_no_log():
+def test_for_fes_mo_process_no_ss_no_log() -> None:
     """Test the `_mo_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(12, 40))
@@ -352,7 +352,7 @@ class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
         without_should_terminate(self.__solve_mo, process)
         assert 0 < process.get_consumed_fes() <= 100
 
-    def __solve_mo(self, process: MOProcess):
+    def __solve_mo(self, process: MOProcess) -> None:
         """Solve."""
         assert str(process).startswith("protectMO_")
         x = process.create()
@@ -366,7 +366,7 @@ class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
             process.f_evaluate(x, fs)
 
 
-def test_without_should_terminate_mo_process_no_ss_no_log():
+def test_without_should_terminate_mo_process_no_ss_no_log() -> None:
     """Test the `_mo_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(12, 40))

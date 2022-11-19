@@ -200,7 +200,7 @@ class Ecdf(MultiRun2DData):
         return n
 
     @classmethod
-    def create(cls,
+    def create(cls: type["Ecdf"],
                source: Iterable[Progress],
                goal_f: int | float | Callable | None = None,
                use_default_goal_f: bool = True) -> "Ecdf":
@@ -320,7 +320,7 @@ class Ecdf(MultiRun2DData):
                                     np.array(ecdf))))
 
     @classmethod
-    def from_progresses(cls,
+    def from_progresses(cls: type["Ecdf"],
                         source: Iterable[Progress],
                         consumer: Callable[["Ecdf"], Any],
                         f_goal: int | float | Callable | Iterable[

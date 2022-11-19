@@ -81,7 +81,7 @@ class MyObjective2(Objective):
         return sin(x[0])
 
 
-def test_process_noss_no_log():
+def test_process_noss_no_log() -> None:
     """Test processes without search space and without log."""
     v = VectorSpace(10)
     x = v.create()
@@ -99,7 +99,7 @@ def test_process_noss_no_log():
         assert all(x == BEST_F)
 
 
-def test_process_noss_log():
+def test_process_noss_log() -> None:
     """Test processes without search space and with log."""
     v = VectorSpace(10)
     x = v.create()
@@ -124,7 +124,7 @@ def test_process_noss_log():
         assert len(result) > 5
 
 
-def test_process_noss_timed_log():
+def test_process_noss_timed_log() -> None:
     """Test processes without search space, with log, with time limit."""
     v = VectorSpace(10)
     x = v.create()
@@ -149,7 +149,7 @@ def test_process_noss_timed_log():
         assert len(result) > 5
 
 
-def test_process_noss_maxfes_log_state():
+def test_process_noss_maxfes_log_state() -> None:
     """Test processes without search space, with log, and with MAX_FES."""
     v = VectorSpace(4)
     with TempFile.create() as path:
@@ -188,7 +188,7 @@ class MyAlgorithm3(Algorithm):
             raise ValueError("Haha!")
 
 
-def test_process_with_error():
+def test_process_with_error() -> None:
     """Test processes that throws an error."""
     v = VectorSpace(4)
     with TempFile.create() as path:

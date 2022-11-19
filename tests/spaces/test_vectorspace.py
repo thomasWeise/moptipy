@@ -10,7 +10,7 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_vector_space():
+def test_vector_space() -> None:
     """Test the vector space."""
     f = VectorSpace(12)
     assert isinstance(f, Space)
@@ -51,7 +51,7 @@ def test_vector_space():
     a = f.from_str(text)
     assert f.is_equal(a, b)
 
-    def _invalid(x):
+    def _invalid(x) -> np.ndarray:
         x[0] = inf
         return x
     validate_space(f, make_element_invalid=_invalid)

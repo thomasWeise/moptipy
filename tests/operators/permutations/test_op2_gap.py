@@ -10,7 +10,7 @@ from moptipy.tests.on_permutations import (
 )
 
 
-def test_op2_order():
+def test_op2_order() -> None:
     """Test the binary order crossover operation."""
     cumm_size: int = 0
     for pwr in permutations_for_tests():

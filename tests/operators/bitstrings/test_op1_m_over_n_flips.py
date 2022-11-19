@@ -7,7 +7,7 @@ from moptipy.tests.on_bitstrings import (
 )
 
 
-def test_op1_m_over_n_flips():
+def test_op1_m_over_n_flips() -> None:
     """Test the unary bit flip operation."""
     for flip_1 in [True, False]:
         for bs in bitstrings_for_tests():

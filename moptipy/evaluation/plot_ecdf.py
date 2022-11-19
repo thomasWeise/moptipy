@@ -176,7 +176,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
 
     source.sort(key=sort_key)
 
-    def __set_importance(st: Styler):
+    def __set_importance(st: Styler) -> None:
         none = 1
         not_none = 0
         none_lw = importance_to_line_width_func(none)

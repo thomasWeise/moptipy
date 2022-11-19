@@ -4,7 +4,7 @@ from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.on_bitstrings import validate_op0_on_bitstrings
 
 
-def test_op0_random():
+def test_op0_random() -> None:
     """Test the nullary random bitstrings creation operation."""
 
     def _min_diff(samples: int, bss: BitStrings) -> int:

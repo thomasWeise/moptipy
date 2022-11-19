@@ -9,7 +9,7 @@ from moptipy.utils.path import Path
 from moptipy.utils.temp import TempDir
 
 
-def test_examples_in_examples_directory():
+def test_examples_in_examples_directory() -> None:
     """Test all the examples in the examples directory."""
     # First, we resolve the directories
     base_dir = Path.directory(os.path.join(os.path.dirname(__file__), "../"))

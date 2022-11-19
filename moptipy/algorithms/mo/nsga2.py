@@ -318,7 +318,7 @@ class NSGA2(Algorithm2, MOAlgorithm):
             if rec.front != -1:
                 process.check_in(rec.x, rec.fs)
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

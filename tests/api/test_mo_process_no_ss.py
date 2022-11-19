@@ -27,7 +27,7 @@ from moptipy.utils.temp import TempFile
 from moptipy.utils.types import type_name_of
 
 
-def test_mo_process_no_ss_no_log():
+def test_mo_process_no_ss_no_log() -> None:
     """Test the `_mo_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(12, 40))
@@ -80,7 +80,7 @@ def test_mo_process_no_ss_no_log():
         assert np.array_equal(fs2, fs)
 
 
-def test_mo_process_no_ss_log():
+def test_mo_process_no_ss_log() -> None:
     """Test the `_mo_process_no_ss` with logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(13, 34))

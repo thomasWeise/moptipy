@@ -100,9 +100,13 @@ static_analysis: init
 	pycodestyle --ignore=E731 examples &&\
 	pycodestyle tests &&\
 	echo "$(NOW): Done with pycodestyle, now running ruff." &&\
-	ruff --select A,B,C,D,E,F,I,N,Q,RUF,S,T,U,YTT --ignore=D212,D203,D413,D407,D208,N801,B008,B009,B010 --line-length 79 moptipy &&\
-	ruff --select A,B,C,D,E,F,I,N,Q,RUF,S,U,YTT --ignore=D212,D203,D413,D407,D208,N801,B008,B009,B010 --line-length 79 examples &&\
-	ruff --select A,B,C,D,E,F,I,N,Q,RUF,S,T,U,YTT --ignore=D212,D203,D413,D407,D208,N801,S101,B008,B009,B010 --line-length 79 tests &&\
+	ruff --select A,ANN,B,C,D,E,F,I,N,Q,RUF,S,T,U,YTT --ignore=ANN001,ANN002,ANN003,ANN101,ANN204,ANN401,B008,B009,B010,C901,D203,D208,D212,D407,D413,N801 --line-length 79 moptipy &&\
+	ruff --select A,ANN,B,C,D,E,F,I,N,Q,RUF,S,U,YTT --ignore=ANN001,ANN002,ANN003,ANN101,ANN204,ANN401,B008,B009,B010,C901,D203,D208,D212,D407,D413,N801 --line-length 79 examples &&\
+	ruff --select A,ANN,B,C,D,E,F,I,N,Q,RUF,T,U,YTT --ignore=ANN001,ANN002,ANN003,ANN101,ANN204,ANN401,B008,B009,B010,C901,D203,D208,D212,D407,D413,N801 --line-length 79 tests &&\
+    echo "$(NOW): Done with ruff, now runring autoflake." &&\
+    autoflake -c -r moptipy &&\
+    autoflake -c -r tests &&\
+    autoflake -c -r examples &&\
 	echo "$(NOW): Done: All static checks passed."
 
 # We use sphinx to generate the documentation.

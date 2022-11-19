@@ -30,7 +30,7 @@ class Gantt(np.ndarray):
     instance: Instance
 # end book
 
-    def __new__(cls, space):
+    def __new__(cls, space) -> "Gantt":
         """
         Create the Gantt chart.
 

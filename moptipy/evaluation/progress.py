@@ -437,7 +437,7 @@ class _InnerLogParser(ExperimentParser):
                             "appears twice.")
                     f_col_idx = idx
 
-            def aa(splt):
+            def aa(splt):  # noqa
                 return splt[time_col_idx], splt[f_col_idx]
 
             time, f = zip(*[[c.strip()

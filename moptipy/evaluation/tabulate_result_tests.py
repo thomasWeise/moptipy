@@ -342,14 +342,14 @@ def tabulate_result_tests(
     if multi_header:
         head_lines = [[], []]
 
-        def __app(a, b):
+        def __app(a, b) -> None:
             nonlocal head_lines
             head_lines[0].append(a)
             head_lines[1].append(b)
     else:
         head_lines = [[]]
 
-        def __app(a, b):
+        def __app(a, b) -> None:
             nonlocal head_lines
             x = []
             if isinstance(a, str):

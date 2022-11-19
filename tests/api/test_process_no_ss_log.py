@@ -23,7 +23,7 @@ from moptipy.utils.temp import TempFile
 from moptipy.utils.types import type_name_of
 
 
-def test_process_no_ss_log_log():
+def test_process_no_ss_log_log() -> None:
     """Test the `_process_no_ss_log` with logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(5, 12))
@@ -90,7 +90,7 @@ def test_process_no_ss_log_log():
         assert data[-1] == "END_RESULT_Y"
 
 
-def test_process_no_ss_log_log_all():
+def test_process_no_ss_log_log_all() -> None:
     """Test the `_process_no_ss_log` with logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
@@ -173,7 +173,7 @@ class _OMA(Algorithm0):
             process.register(x, f)
 
 
-def test_process_no_ss_no_log_register():
+def test_process_no_ss_no_log_register() -> None:
     """Test the `_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
@@ -240,7 +240,7 @@ def test_process_no_ss_no_log_register():
         assert data[-1] == "END_RESULT_Y"
 
 
-def test_process_no_ss_no_log_all_register():
+def test_process_no_ss_no_log_all_register() -> None:
     """Test the `_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))

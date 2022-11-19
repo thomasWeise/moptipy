@@ -23,11 +23,11 @@ from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_general_ea_on_jssp_random():
+def test_general_ea_on_jssp_random() -> None:
     """Validate the ea on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> GeneralEA:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -43,10 +43,10 @@ def test_general_ea_on_jssp_random():
     validate_algorithm_on_jssp(create)
 
 
-def test_general_ea_on_onemax_random():
+def test_general_ea_on_onemax_random() -> None:
     """Validate the ea on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> GeneralEA:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
@@ -61,10 +61,10 @@ def test_general_ea_on_onemax_random():
     validate_algorithm_on_onemax(create)
 
 
-def test_ea_on_onemax_1_1_0():
+def test_ea_on_onemax_1_1_0() -> None:
     """Validate the ea on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> GeneralEA:
         assert isinstance(objective, Objective)
         assert isinstance(bs, BitStrings)
         return GeneralEA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
@@ -74,7 +74,7 @@ def test_ea_on_onemax_1_1_0():
     validate_algorithm_on_onemax(create)
 
 
-def test_general_ea_naming():
+def test_general_ea_naming() -> None:
     """Test the naming convention of the fitness EA."""
     op0: Final[Op0Random] = Op0Random()
     op1: Final[Op1MoverNflip] = Op1MoverNflip(10, 1, True)

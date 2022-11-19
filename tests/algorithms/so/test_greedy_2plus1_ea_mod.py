@@ -17,11 +17,11 @@ from moptipy.tests.on_bitstrings import (
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_greedy_2plus1_ea_mod_on_jssp():
+def test_greedy_2plus1_ea_mod_on_jssp() -> None:
     """Validate the Greedy(2+1)EAmod on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> GreedyTwoPlusOneEAmod:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -31,10 +31,11 @@ def test_greedy_2plus1_ea_mod_on_jssp():
     validate_algorithm_on_jssp(create)
 
 
-def test_greedy_2plus1_ea_mod_on_onemax():
+def test_greedy_2plus1_ea_mod_on_onemax() -> None:
     """Validate the Greedy(2+1)EAmod on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) \
+            -> GreedyTwoPlusOneEAmod:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return GreedyTwoPlusOneEAmod(Op0Random(),
@@ -44,10 +45,11 @@ def test_greedy_2plus1_ea_mod_on_onemax():
     validate_algorithm_on_onemax(create)
 
 
-def test_greedy_2plus1_ea_mod_on_leadingones():
+def test_greedy_2plus1_ea_mod_on_leadingones() -> None:
     """Validate the hill climber on the LeadingOnes problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) \
+            -> GreedyTwoPlusOneEAmod:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return GreedyTwoPlusOneEAmod(Op0Random(),

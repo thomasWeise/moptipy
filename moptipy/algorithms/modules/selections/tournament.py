@@ -113,7 +113,7 @@ class Tournament(Selection):
             return f"{st}r"
         return st
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

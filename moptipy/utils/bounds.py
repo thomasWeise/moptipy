@@ -159,27 +159,3 @@ class IntBounds(Bounds):
                 f"max_value > min_value must hold, but got "
                 f"min_value={min_value} and max_value={max_value}.")
         super().__init__(min_value, max_value)
-
-
-class OptionalIntBounds(Bounds):
-    """A class representing optional integer bounds."""
-
-    def __init__(self, min_value: int | None = None,
-                 max_value: int | None = None) -> None:
-        """
-        Initialize the optional integer bounds.
-
-        :param min_value: the optional minimum value
-        :param max_value: the optional maximum value
-        """
-        if min_value is not None:
-            if not isinstance(min_value, int):
-                raise type_error(min_value, "min_value", int)
-        if max_value is not None:
-            if not isinstance(max_value, int):
-                raise type_error(max_value, "max_value", int)
-            if (min_value is not None) and (min_value >= max_value):
-                raise ValueError(
-                    f"max_value > min_value must hold, but got "
-                    f"min_value={min_value} and max_value={max_value}.")
-        super().__init__(min_value, max_value)

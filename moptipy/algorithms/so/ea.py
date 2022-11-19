@@ -247,7 +247,7 @@ class EA(Algorithm2):
         #: the rate at which the binary operator is applied
         self.br: Final[float] = br
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

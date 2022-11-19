@@ -11,7 +11,7 @@ from moptipy.tests.space import validate_space
 
 
 def __check_for_instance(instance: str,
-                         random: rnd.Generator = rnd.default_rng()):
+                         random: rnd.Generator = rnd.default_rng()) -> None:
     inst = Instance.from_resource(instance)
 
     x_space = Permutations.with_repetitions(inst.jobs, inst.machines)
@@ -47,7 +47,7 @@ def __check_for_instance(instance: str,
 
 def __check_seq(prefix: str, end: int, start: int = 1,
                 random: rnd.Generator = rnd.default_rng(),
-                min_len: int = 2):
+                min_len: int = 2) -> None:
     for i in random.choice(range(start, end + 1), 2):
         s = str(i)
         if len(s) < min_len:
@@ -55,7 +55,7 @@ def __check_seq(prefix: str, end: int, start: int = 1,
         __check_for_instance(prefix + s, random=random)
 
 
-def test_for_selected():
+def test_for_selected() -> None:
     """Test the ob encoding for a selected number of instances."""
     random: rnd.Generator = rnd.default_rng()
 

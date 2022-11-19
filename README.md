@@ -35,7 +35,7 @@
   - [Tables of Tests Comparing End Results](#69-testing-end-results-for-statistically-significant-differences-table)
 - [Examples](#7-examples)
 - [More Features](#8-more-features)
-  - [Unit Tests](#81-unit-tests)
+  - [Unit Tests and Static Analysis](#81-unit-tests-and-static-analysis)
   - [Reproducibility](#82-reproducibility)
 - [Uselful Links and References](#9-useful-links-and-references)
 - [License](#10-license)
@@ -765,7 +765,7 @@ The philosophy of our log files are:
    7. The [system configuration](#5124-the-section-sys_info), such as the CPU nd operating system and Python version and [library versions](#5124-the-section-sys_info).
       We need to this to understand and reproduce time-dependent measures or to understand situations where changes in the underlying system configuration may have led to different results.
    8. [Errors](#5126-the-error-sections), if any occurred.
-      We can guard against errors using [unit tests](#81-unit-tests), but it may still happen that a run of the optimization algorithm crashed.
+      We can guard against errors using [unit tests](#81-unit-tests-and-static-analysis), but it may still happen that a run of the optimization algorithm crashed.
       Our system tries to catch as detailed error information as possible and store it in the log files in order to allow us to figure out what went wrong.
    9. The [progress](#5121-the-section-progress) that the algorithm made over time, if capturing this information [was demanded](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements).
    10. The [contents of the archive](#5128-the-archive_j_x-and-archive_j_y-sections) of non-dominated solutions, if we perform [multi-objective optimization](#514-example-log-file-for-multi-objective-optimization).
@@ -1897,10 +1897,29 @@ Here we list the set of examples that are provided in the [moptipy](https://gith
 
 ## 8. More Features
 
-### 8.1. Unit Tests
+### 8.1. Unit Tests and Static Analysis
 
-We provide a set of tools for testing implemented algorithms, spaces, and operators in the package [moptipy.tests](https://thomasweise.github.io/moptipy/moptipy.tests.html).
+When developing and applying randomized algorithms, proper testing and checking of the source code is of utmost importance.
+If we apply a randomized metaheuristic to an optimization problem, then we usually do not which solution quality we can achieve.
+Therefore, we can usually not know whether we have implemented the algorithm correctly.
+In other words, detecting bugs is very hard.
+Unfortunately, this holds also for the components of the algorithms, such as the search operators, especially if they are randomized as well.
+A bug may lead to worse results and we might not even notice that the worse result quality is caused by the bug.
+We may think that the algorithm is just not working well on the problem.
+
+Therefore, we need to test all components of the algorithm as far as we can.
+We can try check, for example, if a randomized nullary search operator indeed creates different solutions when invoked several times.
+We can try to check whether an algorithm fails with an exception.
+We can try to check whether the search operators create valid solutions and whether the algorithm passes valid solutions to the objective function.
+We can try to whether an objective function produces finite objective values and if bounds are specified for the objective values, we can check whether they indeed fall within these bounds.
+Now we cannot prove that there are no such bugs, due to the randomization.
+But by testing a few hundred times, we can at least detect very obvious and pathological bugs.
+
+To ease such testing for you, we provide a set of tools for testing implemented algorithms, spaces, and operators in the package [moptipy.tests](https://thomasweise.github.io/moptipy/moptipy.tests.html).
 Here, you can find functions where you pass in instances of your implemented components and they are checked for compliance with the [moptipy API](https://thomasweise.github.io/moptipy/moptipy.api.html).
+In other words, if you go and implement your own algorithms, operators, and optimization problems, you can use our pre-defined unit tests to give them a thorough check before using them in production.
+Again, such tests cannot prove the absence of bugs.
+But they can at least give you a fair shot to detect pathological errors before wasting serious experimentation time.
 
 We also try to extensively test our own code, see the [coverage report](https://thomasweise.github.io/moptipy/tc/index.html).
 
@@ -1922,6 +1941,43 @@ You can test elements on
 - [bit string](https://thomasweise.github.io/moptipy/moptipy.tests.html#module-moptipy.tests.on_bitstrings)-based problems,
 - [permutation](https://thomasweise.github.io/moptipy/moptipy.tests.html#module-moptipy.tests.on_permutations)-based problems, or on
 - the [JSSP](https://thomasweise.github.io/moptipy/moptipy.tests.html#module-moptipy.tests.on_jssp)
+
+Another way to try to improve and maintain code quality is to use static code analysis and type hints where possible and reasonable.
+A static analysis tool can inform you about, e.g., unused variables, which often result from a coding error.
+It can tell you if the types of expressions do not match, which usually indicates a coding error, too.
+It can tell you if you perform some security-wise unsafe operations (which is less often a problem in optimization, but it does not hurt to check). 
+Code analysis tools can also help you to enforce best practices, which are good for performance, readability, and maintainability.
+They can push you to properly format and document your code, which, too, improve readability, maintainability, and usability.
+They even can detect a set of well-known and frequently-occurring bugs.
+We therefore also run a variety of such tools on our code base, including (in alphabetical order):
+
+- [`autoflake`](https://pypi.org/project/autoflake/), a tool for finding unused imports and variables
+- [`bandit`](https://pypi.org/project/bandit/), a linter for finding security issues
+- [`dodgy`](https://pypi.org/project/dodgy/), for checking for dodgy looking values in the code
+- [`flake8`](https://pypi.org/project/flake8/), a collection of linters
+- [`mypy`](https://pypi.org/project/mypy/), for checking types and type annotations
+- [`pycodestyle`](https://pypi.org/project/pycodestyle/), for checking the formatting and coding style of the source
+- [`pydocstyle`](https://pypi.org/project/pydocstyle/), for checking the format of the docstrings
+- [`pyflakes`](https://pypi.org/project/pyflakes/), for detecting some errors in the code
+- [`pylint`](https://pypi.org/project/pylint/), another static analysis tool
+- [`pyroma`](https://pypi.org/project/pyroma/), for checking whether the code complies with various best practices
+- [`ruff`](https://pypi.org/project/ruff/), a static analysis tool checking a wide range of coding conventions
+- [`semgrep`](https://pypi.org/project/semgrep/), another static analyzer for finding bugs and problems
+- [`tryceratops`](https://pypi.org/project/tryceratops/), for checking against exception handling anti-patterns
+- [`unimport`](https://pypi.org/project/unimport/), for checking against unused import statements
+- [`vulture`](https://pypi.org/project/vulture/), for finding dead code
+
+Using these tools increases the build time.
+However, combined with thorough unit testing, it should help to prevent bugs, to improve readability, maintainability, and usability of the code.
+It does not matter whether we are doing research or try to solve practical problems in the industry &mdash; we should always strive to make good software with high code quality.
+
+Often, researchers in particular think that hacking something together that works is enough, that documentation is unimportant, that code style best practices can be ignored, and so on.
+And then they wonder why they cannot understand their own code a few years down the line (at least, this happened to me in the past&hellip;).
+Or why no one can use their code to build atop of their research (which is the normal case for me).
+
+Improving code quality can *never* come later.
+We *always* must maintain high coding and documentation standards from the very beginning.
+While `moptipy` may still be far from achieving these goals, at least we try to get there.
 
 
 ### 8.2. Reproducibility

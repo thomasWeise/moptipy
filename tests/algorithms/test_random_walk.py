@@ -15,11 +15,11 @@ from moptipy.tests.on_bitstrings import (
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_random_walk_on_jssp():
+def test_random_walk_on_jssp() -> None:
     """Validate a random walk on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> RandomWalk:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -28,10 +28,10 @@ def test_random_walk_on_jssp():
     validate_algorithm_on_jssp(algorithm=create)
 
 
-def test_random_walk_on_onemax():
+def test_random_walk_on_onemax() -> None:
     """Validate the random walk on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> RandomWalk:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return RandomWalk(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
@@ -39,10 +39,10 @@ def test_random_walk_on_onemax():
     validate_algorithm_on_onemax(create)
 
 
-def test_random_walk_on_leadingones():
+def test_random_walk_on_leadingones() -> None:
     """Validate the random walk on the LeadingOnes problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> RandomWalk:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return RandomWalk(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))

@@ -22,7 +22,7 @@ from moptipy.utils.temp import TempFile
 from moptipy.utils.types import type_name_of
 
 
-def test_process_no_ss_no_log():
+def test_process_no_ss_no_log() -> None:
     """Test the `_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
@@ -53,7 +53,7 @@ def test_process_no_ss_no_log():
         space.validate(x)
 
 
-def test_process_no_ss_log():
+def test_process_no_ss_log() -> None:
     """Test the `_process_no_ss` with logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
@@ -117,7 +117,7 @@ class ImmediateErrorAlgo(Algorithm):
         raise ValueError("Hah!")
 
 
-def test_process_no_ss_log_with_immediate_error():
+def test_process_no_ss_log_with_immediate_error() -> None:
     """Test the `_process_no_ss` with logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
@@ -185,7 +185,7 @@ class ErrorAlgoDelayed(Algorithm0):
         raise ValueError("Hah!")
 
 
-def test_process_no_ss_log_with_error_after_evaluation():
+def test_process_no_ss_log_with_error_after_evaluation() -> None:
     """Test the `_process_no_ss` with logging and a later error."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))
@@ -266,7 +266,7 @@ class _OMA(Algorithm0):
             process.register(x, f)
 
 
-def test_process_no_ss_no_log_register():
+def test_process_no_ss_no_log_register() -> None:
     """Test the `_process_no_ss` without logging."""
     random: Generator = default_rng()
     dim: int = int(random.integers(3, 12))

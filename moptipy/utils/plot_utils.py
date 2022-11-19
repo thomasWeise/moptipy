@@ -682,7 +682,8 @@ def get_label_colors(
     if not isinstance(handles, Iterable):
         raise type_error(handles, "handles", Iterable)
 
-    def __get_color(a: Artist, colmap=color_map, defcol=default_color):
+    def __get_color(a: Artist, colmap=color_map,
+                    defcol=default_color) -> tuple[float, ...] | str:
         if not isinstance(a, Artist):
             raise type_error(a, "artist", Artist)
 

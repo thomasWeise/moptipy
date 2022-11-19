@@ -27,7 +27,7 @@ class MyObjective(Objective):
         return "hello"
 
 
-def test_logged_args():
+def test_logged_args() -> None:
     """Test the logged arguments of the callable objective function."""
     f = MyObjective()
     assert isinstance(f, Objective)

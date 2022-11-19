@@ -9,14 +9,14 @@ from moptipy.api.objective import Objective
 from moptipy.tests.on_bitstrings import validate_fitness_on_bitstrings
 
 
-def test_ffa_on_bit_strings():
+def test_ffa_on_bit_strings() -> None:
     """Test the frequency fitness assignment process on bit strings."""
     validate_fitness_on_bitstrings(
         fitness=lambda f: FFA(f),
         class_needed="moptipy.algorithms.so.fitnesses.ffa._IntFFA1")
 
 
-def test_ffa_on_bit_strings_2():
+def test_ffa_on_bit_strings_2() -> None:
     """Test the frequency fitness assignment process on bit strings."""
 
     def prepare(f: Objective) -> Objective:
@@ -40,7 +40,7 @@ def test_ffa_on_bit_strings_2():
         prepare_objective=prepare)
 
 
-def test_ffa_on_bit_strings_3():
+def test_ffa_on_bit_strings_3() -> None:
     """Test the dict-based frequency fitness assignment on bit strings."""
 
     def prepare(f: Objective) -> Objective:

@@ -19,10 +19,10 @@ from moptipy.tests.on_bitstrings import (
 from moptipy.tests.on_jssp import validate_mo_algorithm_on_jssp
 
 
-def test_nsga2_on_bitstrings():
+def test_nsga2_on_bitstrings() -> None:
     """Validate the MO-RLS on bit strings problem."""
 
-    def create(bs: BitStrings, problem: MOProblem):
+    def create(bs: BitStrings, problem: MOProblem) -> NSGA2:
         assert isinstance(bs, BitStrings)
         assert isinstance(problem, MOProblem)
         random: Generator = default_rng()
@@ -34,11 +34,11 @@ def test_nsga2_on_bitstrings():
     validate_mo_algorithm_on_3_bitstring_problems(create)
 
 
-def test_nsga2_on_jssp():
+def test_nsga2_on_jssp() -> None:
     """Validate the NSGA-2 on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               problem: MOProblem):
+               problem: MOProblem) -> NSGA2:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(problem, MOProblem)

@@ -32,7 +32,7 @@ from moptipy.utils.temp import TempFile
 from moptipy.utils.types import type_name_of
 
 
-def test_mo_process_ss_log():
+def test_mo_process_ss_log() -> None:
     """Test the `_mo_process_ss_log`."""
     random: Generator = default_rng()
     instance: Instance = Instance.from_resource("ft10")
@@ -142,7 +142,7 @@ def test_mo_process_ss_log():
         assert i == len(data) - 1
 
 
-def test_process_ss_log_all():
+def test_process_ss_log_all() -> None:
     """Test the `_mo_process_ss_log` with all logging."""
     random: Generator = default_rng()
     instance: Instance = Instance.from_resource("demo")

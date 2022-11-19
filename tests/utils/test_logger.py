@@ -10,7 +10,7 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_log_files():
+def test_log_files() -> None:
     """Test the generation of log files."""
     with TempFile.create() as path:
         with FileLogger(path) as log:

@@ -7,7 +7,7 @@ problem.
 """
 
 
-def __lang_setup():
+def __lang_setup() -> None:
     """Perform the language setup."""
     from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415
 

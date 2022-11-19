@@ -27,7 +27,7 @@ from moptipy.utils.temp import TempFile
 from moptipy.utils.types import type_name_of
 
 
-def test_process_ss_log_log():
+def test_process_ss_log_log() -> None:
     """Test the `_process_ss_log_log` with logging."""
     random: Generator = default_rng()
     instance: Instance = Instance.from_resource("orb06")
@@ -104,7 +104,7 @@ def test_process_ss_log_log():
         assert j == len(data) - 1
 
 
-def test_process_ss_log_log_all():
+def test_process_ss_log_log_all() -> None:
     """Test the `_process_ss_log_log` with logging."""
     random: Generator = default_rng()
     instance: Instance = Instance.from_resource("swv15")
@@ -207,7 +207,7 @@ class _RA(Algorithm0):
             assert process.get_consumed_fes() == i
 
 
-def test_process_ss_log_log_reg():
+def test_process_ss_log_log_reg() -> None:
     """Test the `_process_ss_log_log` with logging."""
     instance: Instance = Instance.from_resource("ta33")
     search_space: Permutations = Permutations.with_repetitions(
@@ -277,7 +277,7 @@ def test_process_ss_log_log_reg():
         assert j == len(data) - 1
 
 
-def test_process_ss_log_log_all_reg():
+def test_process_ss_log_log_all_reg() -> None:
     """Test the `_process_ss_log_log` with logging."""
     instance: Instance = Instance.from_resource("ta33")
     search_space: Permutations = Permutations.with_repetitions(

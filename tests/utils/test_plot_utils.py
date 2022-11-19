@@ -6,7 +6,7 @@ import moptipy.utils.plot_utils as pu
 from moptipy.utils.temp import TempDir
 
 
-def test_create_and_save_figure():
+def test_create_and_save_figure() -> None:
     """Test figure creation and saving."""
     f = pu.create_figure(10, 10)
     assert isinstance(f, Figure)
@@ -24,7 +24,7 @@ def test_create_and_save_figure():
             k.enforce_file()
 
 
-def test_create_multi_figure():
+def test_create_multi_figure() -> None:
     """Test the creation of a data sequence figure."""
     res = pu.create_figure_with_subplots(items=100,
                                          max_items_per_plot=10,

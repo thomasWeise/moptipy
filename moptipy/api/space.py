@@ -34,6 +34,8 @@ The following pre-defined spaces are currently available:
   the pre-defined inclusive bounds `[min_value,max_value]`.
 """
 
+from typing import Any
+
 from moptipy.api.component import Component
 from moptipy.utils.types import type_error
 
@@ -56,7 +58,7 @@ class Space(Component):
     offered by the `Space` class.
     """
 
-    def create(self):
+    def create(self) -> Any:
         # end book
         """
         Generate an instance of the data structure managed by the space.
@@ -101,7 +103,7 @@ class Space(Component):
         :return: `True` if the contents are equal, `False` otherwise
         """
 
-    def from_str(self, text: str):  # +book
+    def from_str(self, text: str) -> Any:  # +book
         """
         Transform a string `text` to one element of the space.
 

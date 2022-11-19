@@ -26,7 +26,7 @@ def __test_statistics(a: list[int | float],
         assert stat.mean_geom is None
 
 
-def test_statistics():
+def test_statistics() -> None:
     """Test the statistics."""
     __test_statistics([0, 0, 0, 0, 0, 0, 0])
     __test_statistics([0, 0, 0, 0, 0, 1, 0])

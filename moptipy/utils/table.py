@@ -33,7 +33,7 @@ class Table(AbstractContextManager):
     """
 
     def __init__(self, stream: TextIOBase, cols: str,
-                 driver: TextFormatDriver):
+                 driver: TextFormatDriver) -> None:
         """
         Initialize the table context.
 
@@ -80,7 +80,7 @@ class Table(AbstractContextManager):
         #: the row state: 0=before row, 1=in row, 2=after row
         self.__row_state: int = 0
 
-    def _begin_rows(self, mode: int):
+    def _begin_rows(self, mode: int) -> None:
         """
         Start a set of rows.
 
@@ -143,7 +143,7 @@ class Table(AbstractContextManager):
         self.__row_index = 0
         self.__row_state = 0
 
-    def _end_rows(self, mode: int):
+    def _end_rows(self, mode: int) -> None:
         """
         End a set of rows.
 
@@ -210,7 +210,7 @@ class Table(AbstractContextManager):
 
         self.__row_index = 0
 
-    def _begin_row(self, mode: int):
+    def _begin_row(self, mode: int) -> None:
         """
         Start a row.
 
@@ -258,7 +258,7 @@ class Table(AbstractContextManager):
         self.__row_state = 1
         self.__col_index = 0
 
-    def _end_row(self, mode: int):
+    def _end_row(self, mode: int) -> None:
         """
         End a row.
 
@@ -285,7 +285,7 @@ class Table(AbstractContextManager):
                                     self.__section_index, self.__row_index)
         self.__row_state = 2
 
-    def _cell(self, text: str | Iterable[str] | None):
+    def _cell(self, text: str | Iterable[str] | None) -> None:
         """
         Render a cell.
 
@@ -319,8 +319,7 @@ class Table(AbstractContextManager):
 
         def __printit(st, strm: TextIOBase = self.__stream,
                       wrt: Callable[[TextIOBase, str, bool, bool, bool, int],
-                                    None] = self.__driver.text) \
-                -> None:
+                                    None] = self.__driver.text) -> None:
             if st is None:
                 return
             if isinstance(st, str):
@@ -356,7 +355,7 @@ class Table(AbstractContextManager):
         """
         return Section(self)
 
-    def __enter__(self):
+    def __enter__(self) -> "Table":
         """
         Enter the table in a `with` statement.
 
@@ -395,7 +394,7 @@ class Table(AbstractContextManager):
 class Rows(AbstractContextManager):
     """A set of table rows."""
 
-    def __init__(self, owner: Table, mode: int):
+    def __init__(self, owner: Table, mode: int) -> None:
         """
         Initialize the row section.
 
@@ -414,7 +413,7 @@ class Rows(AbstractContextManager):
         #: the rows mode
         self._mode: Final[int] = mode
 
-    def __enter__(self):
+    def __enter__(self):  # noqa
         """
         Enter the row section in a `with` statement.
 
@@ -460,7 +459,7 @@ class Rows(AbstractContextManager):
                         raise type_error(cell, f"cell[{i}]", str)
                 row.cell(cell)
 
-    def cols(self, cols: list[list[str | None]]):
+    def cols(self, cols: list[list[str | None]]) -> None:
         """
         Print cells and rows column-by-column.
 
@@ -486,7 +485,7 @@ class Rows(AbstractContextManager):
 class Section(Rows):
     """A table section is a group of rows, potentially with a header."""
 
-    def __init__(self, owner: Table):
+    def __init__(self, owner: Table) -> None:
         """
         Initialize the row section.
 
@@ -506,7 +505,7 @@ class Section(Rows):
 class Row(AbstractContextManager):
     """A row class."""
 
-    def __init__(self, owner: Table, mode: int):
+    def __init__(self, owner: Table, mode: int) -> None:
         """
         Initialize the row.
 
@@ -540,7 +539,7 @@ class Row(AbstractContextManager):
         # noinspection PyProtectedMember
         self.__owner._cell(text)
 
-    def __enter__(self):
+    def __enter__(self) -> "Row":
         """
         Enter the row in a `with` statement.
 

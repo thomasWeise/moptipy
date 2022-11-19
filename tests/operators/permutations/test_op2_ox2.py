@@ -8,7 +8,7 @@ from moptipy.tests.on_permutations import (
 )
 
 
-def test_op2_sequence():
+def test_op2_sequence() -> None:
     """Test the binary sequence crossover operation."""
     cumm_size: int = 0
     for pwr in permutations_for_tests():

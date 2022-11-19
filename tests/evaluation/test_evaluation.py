@@ -63,7 +63,7 @@ def algo_2(inst) -> Execution:
     return ex
 
 
-def test_experiment_jssp():
+def test_experiment_jssp() -> None:
     """Run a test experiment on the JSSP."""
     with TempDir.create() as base_dir:
 

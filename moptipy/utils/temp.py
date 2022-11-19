@@ -18,7 +18,7 @@ class TempDir(Path, AbstractContextManager):
     #: is the directory open?
     __is_open: bool
 
-    def __new__(cls, value):
+    def __new__(cls, value):  # noqa
         """
         Construct the object.
 
@@ -76,7 +76,7 @@ class TempFile(Path, AbstractContextManager):
     #: is the directory open?
     __is_open: bool
 
-    def __new__(cls, value):
+    def __new__(cls, value):  # noqa
         """
         Construct the object.
 

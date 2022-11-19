@@ -132,7 +132,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
         valid_urls[url] = None
 
 
-def test_all_links_in_readme_md():
+def test_all_links_in_readme_md() -> None:
     """Test all the links in the README.md file."""
     # First, we load the README.md file as a single string
     base_dir = Path.directory(os.path.join(os.path.dirname(__file__), "../"))

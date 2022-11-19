@@ -74,7 +74,7 @@ _PATTERN_TRAILING_WHITESPACE: Final[Pattern] = \
 class Path(str):
     """An immutable representation of a path."""
 
-    def __new__(cls, value):
+    def __new__(cls, value):  # noqa
         """
         Construct the object.
 

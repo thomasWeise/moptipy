@@ -3,7 +3,7 @@ import os.path
 import sys
 from dataclasses import dataclass
 from math import ceil, inf
-from typing import Any, Callable, Final, Iterable
+from typing import Any, Callable, Final, Iterable, Union
 
 import moptipy.api.logging as log
 from moptipy.evaluation._utils import _check_max_time_millis
@@ -631,8 +631,9 @@ class EndStatistics(MultiRunData):
                 next(iter(sorter.values()))))
 
     @staticmethod
-    def to_csv(data: "EndStatistics"
-                     | Iterable["EndStatistics"], file: str) -> Path:
+    def to_csv(  # noqa
+            data: Union["EndStatistics", Iterable["EndStatistics"]],  # noqa
+            file: str) -> Path:  # noqa
         """
         Store a set of :class:`EndStatistics` in a CSV file.
 
@@ -716,7 +717,7 @@ class EndStatistics(MultiRunData):
                 wrt(log.KEY_INSTANCE)
                 wrt(sep)
 
-            def h(p):
+            def h(p) -> None:
                 wrt(sep.join(Statistics.csv_col_names(p)))
 
             wrt(KEY_N)
@@ -1208,7 +1209,8 @@ class EndStatistics(MultiRunData):
         if dim != KEY_STDDEV:
             l2 = Statistics.getter(dim)
 
-            def __inner_sat(s: EndStatistics, ll1=l1, ll2=l2):
+            def __inner_sat(s: EndStatistics, ll1=l1, ll2=l2) \
+                    -> int | float | None:
                 a: Final[Statistics] = ll1(s)
                 if a is None:
                     return None
@@ -1217,7 +1219,7 @@ class EndStatistics(MultiRunData):
                 return ll2(a)  # apply statistics getter
             return __inner_sat
 
-        def __inner_sd(s: EndStatistics, ll1=l1):
+        def __inner_sd(s: EndStatistics, ll1=l1) -> int | float | None:
             a: Final[Statistics] = ll1(s)
             if a is None:
                 return None

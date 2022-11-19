@@ -6,7 +6,7 @@ from moptipy.tests.on_permutations import (
 )
 
 
-def test_op1_swapn():
+def test_op1_swapn() -> None:
     """Test the unary swap-n operation."""
     def _min_unique(samples, pwrx) -> int:
         return max(1, min(samples, pwrx.n()) // 2)

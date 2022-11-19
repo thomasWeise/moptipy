@@ -10,10 +10,10 @@ from moptipy.tests.on_bitstrings import (
 )
 
 
-def test_single_random_sample_on_onemax():
+def test_single_random_sample_on_onemax() -> None:
     """Validate the single random sample algorithm on OneMax."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> SingleRandomSample:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return SingleRandomSample(Op0Random())

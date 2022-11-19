@@ -24,7 +24,7 @@ from moptipy.utils.temp import TempFile
 from moptipy.utils.types import type_name_of
 
 
-def test_process_ss_no_log():
+def test_process_ss_no_log() -> None:
     """Test the `_process_ss` without logging."""
     instance: Instance = Instance.from_resource("dmu23")
     search_space: Permutations = Permutations.with_repetitions(
@@ -59,7 +59,7 @@ def test_process_ss_no_log():
         solution_space.validate(y)
 
 
-def test_process_ss_log():
+def test_process_ss_log() -> None:
     """Test the `_process_ss` without logging."""
     instance: Instance = Instance.from_resource("la12")
     search_space: Permutations = Permutations.with_repetitions(
@@ -149,7 +149,7 @@ class _RA(Algorithm0):
             process.register(self.x, f)
 
 
-def test_process_ss_no_log_reg():
+def test_process_ss_no_log_reg() -> None:
     """Test the `_process_ss` without logging but registering."""
     instance: Instance = Instance.from_resource("la30")
     search_space: Permutations = Permutations.with_repetitions(

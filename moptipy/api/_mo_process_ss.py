@@ -132,7 +132,7 @@ class _MOProcessSS(_MOProcessNoSS):
             return self.copy(x, self._current_best_x)
         raise ValueError("No current best x available.")
 
-    def get_copy_of_best_y(self, y):
+    def get_copy_of_best_y(self, y) -> None:
         if self._current_fes > 0:
             return self._copy_y(y, self._current_best_y)
         raise ValueError("No current best y available.")

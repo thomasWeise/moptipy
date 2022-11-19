@@ -239,7 +239,7 @@ def __make_sys_info() -> str:
 __SYS_INFO: Final[list[str]] = [__make_sys_info()]
 
 
-def refresh_sys_info():
+def refresh_sys_info() -> None:
     """Refresh the system information."""
     sys_info_str = __SYS_INFO[0]
     start = f"\n{logging.SCOPE_SESSION}{SCOPE_SEPARATOR}" \

@@ -67,7 +67,7 @@ from moptipy.utils.types import type_error, type_name_of
 
 
 def _error_1(logger: Logger, title: str, exception_type,
-             exception_value, traceback):
+             exception_value, traceback) -> None:
     """
     Create a text section with error information as from a contextmanager.
 
@@ -106,7 +106,7 @@ def _error_1(logger: Logger, title: str, exception_type,
                     ts.write(os.linesep)
 
 
-def _error_2(logger: Logger, title: str, exception: BaseException):
+def _error_2(logger: Logger, title: str, exception: BaseException) -> None:
     """
     Log an exception.
 

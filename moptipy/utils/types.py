@@ -69,8 +69,7 @@ def type_name_of(obj) -> str:
     return c1
 
 
-def type_error(obj: Any,
-               name: str,
+def type_error(obj: Any, name: str,
                expected: None | type | Iterable[type] = None,
                call: bool = False) -> ValueError | TypeError:
     """

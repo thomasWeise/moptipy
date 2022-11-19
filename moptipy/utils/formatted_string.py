@@ -58,8 +58,8 @@ class FormattedStr(str):
     #: `NEGATIVE_INFINITY`, or `SPECIAL`
     mode: int
 
-    def __new__(cls, value, bold: bool = False, italic: bool = False,
-                code: bool = False, mode: int = TEXT):
+    def __new__(cls, value, bold: bool = False, italic: bool = False,  # noqa
+                code: bool = False, mode: int = TEXT):  # noqa
         """
         Construct the object.
 

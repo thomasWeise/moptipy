@@ -8,7 +8,7 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_bit_strings():
+def test_bit_strings() -> None:
     """Test the bit strings search space."""
     f = BitStrings(12)
     assert isinstance(f, Space)

@@ -244,7 +244,7 @@ def plot_progress(
     statrun_list.sort(key=sf)
     progress_list.sort()
 
-    def __set_importance(st: Styler):
+    def __set_importance(st: Styler) -> None:
         if st is statistics:
             none = -1
             not_none = 1

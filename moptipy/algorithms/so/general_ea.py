@@ -241,7 +241,7 @@ class GeneralEA(EA):
         #: the mating selection algorithm
         self.mating: Final[Selection] = check_selection(mating)
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

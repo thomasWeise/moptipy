@@ -17,14 +17,14 @@ from moptipy.utils.types import type_error
 class _FRecord(FitnessRecord):
     """The internal Fitness-record."""
 
-    def __init__(self, tag: int):
+    def __init__(self, tag: int) -> None:
         """Initialize."""
         #: the fitness
         self.fitness: int | float = inf
         #: the tag
         self.tag: Final[int] = tag
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Get the string describing this record."""
         return f"{self.tag}/{self.fitness}"
 
@@ -113,14 +113,15 @@ def validate_selection(selection: Selection,
             # choose the fitness function
             fit_choice = random.integers(3)
             if fit_choice == 0:
-                def fitness(
+                def fitness(  # noqa
                         value=int(random.integers(-10, 10))):  # type: ignore
                     return value
             elif fit_choice == 1:
-                def fitness(limit=random.integers(100) + 1):  # type: ignore
+                def fitness(  # noqa
+                        limit=random.integers(100) + 1):  # type: ignore
                     return int(random.integers(limit))
             else:
-                def fitness():  # type: ignore
+                def fitness():  # type: ignore # noqa
                     return float(random.uniform())
 
             for _ in range(source_size):

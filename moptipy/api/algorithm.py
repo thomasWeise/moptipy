@@ -96,7 +96,7 @@ class Algorithm1(Algorithm0):
         #: The unary search operator.
         self.op1: Final[Op1] = check_op1(op1)
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 
@@ -125,7 +125,7 @@ class Algorithm2(Algorithm1):
         #: The binary search operator.
         self.op2: Final[Op2] = check_op2(op2)
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

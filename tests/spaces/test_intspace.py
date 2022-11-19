@@ -11,13 +11,13 @@ from moptipy.utils.logger import FileLogger
 from moptipy.utils.temp import TempFile
 
 
-def test_int_space():
+def test_int_space() -> None:
     """Test the integer space."""
     f = IntSpace(12, 3, 32)
     assert isinstance(f, Space)
     assert str(f) == "ints12b3to32"
 
-    def _invalid(x):
+    def _invalid(x) -> np.ndarray:
         x[0] = 33
         return x
     validate_space(f, make_element_invalid=_invalid)

@@ -18,7 +18,7 @@ from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.tests.on_bitstrings import verify_algorithms_equivalent
 
 
-def __test_opoea_equals_rls():
+def __test_opoea_equals_rls() -> None:
     """Test whether the (1+1)-EA performs exactly as RLS."""
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()
@@ -116,7 +116,7 @@ class __EAC(EA):
             lst.sort()  # best records come first, ties broken by age
 
 
-def test_fitness_ea_equals_ea():
+def test_fitness_ea_equals_ea() -> None:
     """Ensure that the EAs with and without fitness are identical."""
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()
@@ -133,7 +133,7 @@ def test_fitness_ea_equals_ea():
         ])
 
 
-def test_fitness_ea_with_ffa_equals_fea():
+def test_fitness_ea_with_ffa_equals_fea() -> None:
     """Ensure that the FEA and the EA with FFA are identical."""
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()

@@ -10,7 +10,7 @@ from moptipy.spaces.permutations import Permutations
 from moptipy.tests.space import validate_space
 
 
-def test_gantt_space():
+def test_gantt_space() -> None:
     """Test the Gantt space."""
     for name in ["abz7", "demo", "dmu48", "la14", "orb05", "swv15", "ta71"]:
         insx = Instance.from_resource(name)

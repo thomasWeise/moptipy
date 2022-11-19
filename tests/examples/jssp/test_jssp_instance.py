@@ -9,7 +9,7 @@ def __check_load_inst(inst: str) -> Instance:
     return check_instance(Instance.from_resource(inst))
 
 
-def test_load_demo_from_resource():
+def test_load_demo_from_resource() -> None:
     """Test loading the demo instance from resources."""
     i = __check_load_inst("demo")
     assert i.jobs == 4
@@ -23,7 +23,7 @@ def test_load_demo_from_resource():
         np.int8))
 
 
-def __check_seq(prefix: str, end: int, start: int = 1, min_len=2):
+def __check_seq(prefix: str, end: int, start: int = 1, min_len=2) -> None:
     """Load a sequence of instance from resources and perform basic checks."""
     for i in range(start, end + 1):
         s = str(i)
@@ -32,7 +32,7 @@ def __check_seq(prefix: str, end: int, start: int = 1, min_len=2):
         __check_load_inst(prefix + s)
 
 
-def test_load_orlib_from_resource():
+def test_load_orlib_from_resource() -> None:
     """Check loading the well-known instances."""
     __check_seq("abz", 9, 5, 1)
     __check_seq("dmu", 80)

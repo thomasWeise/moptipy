@@ -586,7 +586,7 @@ def tabulate_end_results(
     algo_dict: Final[dict[str, EndStatistics] | None] = {} \
         if (n_insts > 1) and (algo_getters is not None) else None
     if algo_dict is not None:
-        def __put(es: EndStatistics):
+        def __put(es: EndStatistics) -> None:
             nonlocal algo_dict
             if es.algorithm in algo_dict:
                 raise ValueError(f"already encountered {es.algorithm}?")

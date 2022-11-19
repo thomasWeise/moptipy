@@ -1,11 +1,13 @@
 """Test the space of permutations."""
+import numpy as np
+
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.space import validate_space
 
 
-def test_permutations_with_repetitions():
+def test_permutations_with_repetitions() -> None:
     """Test the permutations with repetitions."""
-    def _invalid(x):
+    def _invalid(x) -> np.ndarray:
         x[0] = 33
         return x
 
@@ -19,9 +21,9 @@ def test_permutations_with_repetitions():
                    make_element_invalid=_invalid)
 
 
-def test_permutations():
+def test_permutations() -> None:
     """Test the permutation space."""
-    def _invalid(x):
+    def _invalid(x) -> np.ndarray:
         x[0] = 22
         return x
 

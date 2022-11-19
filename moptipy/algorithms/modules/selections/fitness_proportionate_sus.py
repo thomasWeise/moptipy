@@ -315,7 +315,7 @@ class FitnessProportionateSUS(Selection):
         return "fpsus" if self.min_prob <= 0.0 \
             else f"fpsus{num_to_str_for_name(self.min_prob)}"
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

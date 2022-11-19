@@ -132,7 +132,7 @@ class Lang:
             raise type_error(item, "item", str)
         return self.__dict[item]
 
-    def format_str(self, item: str, **kwargs):
+    def format_str(self, item: str, **kwargs) -> str:
         """
         Return a string based on the specified format.
 

@@ -128,7 +128,7 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
         else:
             def __func(x: ndarray, ff=cast(Callable[[ndarray], Any],
                                            pp.evaluate),
-                       lb=self.min_value, ub=self.max_value):
+                       lb=self.min_value, ub=self.max_value) -> int | float:
                 clip(x, lb, ub, x)
                 return ff(x)
 
@@ -155,7 +155,7 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
         without_should_terminate(
             cast(Callable[[Process], Any], self.__run), process)
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 
@@ -415,7 +415,7 @@ class DE(Algorithm, FloatBounds):
         self.__bounds: Final[list[tuple[float, float]]] = \
             [(self.min_value, self.max_value)] * dim
 
-    def __run(self, pp: Process):
+    def __run(self, pp: Process) -> None:
         """
         Execute the algorithm.
 
@@ -424,7 +424,7 @@ class DE(Algorithm, FloatBounds):
 
         def __func(x: ndarray, ff=cast(Callable[[ndarray], Any],
                                        pp.evaluate),
-                   lb=self.min_value, ub=self.max_value):
+                   lb=self.min_value, ub=self.max_value) -> int | float:
             clip(x, lb, ub, x)
             return ff(x)
 
@@ -453,7 +453,7 @@ class DE(Algorithm, FloatBounds):
         without_should_terminate(
             cast(Callable[[Process], Any], self.__run), process)
 
-    def log_parameters_to(self, logger: KeyValueLogSection):
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
 

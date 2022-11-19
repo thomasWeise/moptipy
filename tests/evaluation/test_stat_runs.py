@@ -8,7 +8,7 @@ from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
 
 
-def test_stat_runs():
+def test_stat_runs() -> None:
     """Test whether StatRuns work."""
     algo0: Final[str] = "a0"
     inst0: Final[str] = "i0"

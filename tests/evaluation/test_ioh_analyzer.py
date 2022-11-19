@@ -54,7 +54,7 @@ def algo_2(inst) -> Execution:
     return ex
 
 
-def test_experiment_jssp_to_ioh():
+def test_experiment_jssp_to_ioh() -> None:
     """Run a quick experiment and convert to IOH format."""
     with TempDir.create() as results_dir:
         with TempDir.create() as ioh_dir:

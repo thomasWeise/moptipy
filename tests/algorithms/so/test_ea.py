@@ -23,11 +23,11 @@ from moptipy.tests.on_bitstrings import (
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
-def test_ea_on_jssp_random():
+def test_ea_on_jssp_random() -> None:
     """Validate the ea on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> EA:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -41,11 +41,11 @@ def test_ea_on_jssp_random():
     validate_algorithm_on_jssp(create)
 
 
-def test_ea_on_jssp_1_1_0():
+def test_ea_on_jssp_1_1_0() -> None:
     """Validate the ea using only mutation on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> EA:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -56,11 +56,11 @@ def test_ea_on_jssp_1_1_0():
     validate_algorithm_on_jssp(create)
 
 
-def test_ea_on_jssp_10_10_03():
+def test_ea_on_jssp_10_10_03() -> None:
     """Validate the ea using crossover and mutation on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> EA:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -71,11 +71,11 @@ def test_ea_on_jssp_10_10_03():
     validate_algorithm_on_jssp(create)
 
 
-def test_ea_on_jssp_10_10_1():
+def test_ea_on_jssp_10_10_1() -> None:
     """Validate the ea using only crossover on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective):
+               objective: Objective) -> EA:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
@@ -86,10 +86,10 @@ def test_ea_on_jssp_10_10_1():
     validate_algorithm_on_jssp(create)
 
 
-def test_ea_on_onemax_random():
+def test_ea_on_onemax_random() -> None:
     """Validate the ea on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> EA:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
@@ -102,10 +102,10 @@ def test_ea_on_onemax_random():
     validate_algorithm_on_onemax(create)
 
 
-def test_ea_on_onemax_1_1_0():
+def test_ea_on_onemax_1_1_0() -> None:
     """Validate the ea on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> EA:
         assert isinstance(objective, Objective)
         assert isinstance(bs, BitStrings)
         return EA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
@@ -114,10 +114,10 @@ def test_ea_on_onemax_1_1_0():
     validate_algorithm_on_onemax(create)
 
 
-def test_ea_on_onemax_10_10_03():
+def test_ea_on_onemax_10_10_03() -> None:
     """Validate the ea on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> EA:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return EA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
@@ -126,10 +126,10 @@ def test_ea_on_onemax_10_10_03():
     validate_algorithm_on_onemax(create)
 
 
-def test_ea_on_onemax_10_10_1():
+def test_ea_on_onemax_10_10_1() -> None:
     """Validate the ea on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> EA:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         return EA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
@@ -138,10 +138,10 @@ def test_ea_on_onemax_10_10_1():
     validate_algorithm_on_onemax(create)
 
 
-def test_ea_on_leadingones():
+def test_ea_on_leadingones() -> None:
     """Validate the ea on the LeadingOnes problem."""
 
-    def create(bs: BitStrings, objective: Objective):
+    def create(bs: BitStrings, objective: Objective) -> EA:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
@@ -154,7 +154,7 @@ def test_ea_on_leadingones():
     validate_algorithm_on_leadingones(create)
 
 
-def test_ea_naming():
+def test_ea_naming() -> None:
     """Test the naming convention of the EA."""
     op0: Final[Op0Random] = Op0Random()
     op1: Final[Op1MoverNflip] = Op1MoverNflip(10, 1, True)

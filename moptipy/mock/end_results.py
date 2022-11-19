@@ -18,8 +18,7 @@ from moptipy.utils.nputils import rand_generator
 from moptipy.utils.types import type_error
 
 
-def end_result(performance: BasePerformance,
-               seed: int,
+def end_result(performance: BasePerformance, seed: int,
                max_fes: int | None = None,
                max_time_millis: int | None = None) -> EndResult:
     """

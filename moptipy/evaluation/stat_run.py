@@ -179,7 +179,7 @@ def __stat_max(data: np.ndarray) -> np.number:
 
 
 @numba.njit
-def __stat_median(data: np.ndarray):
+def __stat_median(data: np.ndarray) -> np.ndarray:
     """
     Compute the median.
 
@@ -223,7 +223,7 @@ def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
 
 
 @numba.njit
-def __stat_quantile_10(data: np.ndarray):
+def __stat_quantile_10(data: np.ndarray) -> np.ndarray:
     """
     Compute the 10% quantile.
 
@@ -238,7 +238,7 @@ def __stat_quantile_10(data: np.ndarray):
 
 
 @numba.njit
-def __stat_quantile_90(data: np.ndarray):
+def __stat_quantile_90(data: np.ndarray) -> np.ndarray:
     """
     Compute the 90% quantile.
 
@@ -253,7 +253,7 @@ def __stat_quantile_90(data: np.ndarray):
 
 
 @numba.njit
-def __stat_quantile_159(data: np.ndarray):
+def __stat_quantile_159(data: np.ndarray) -> np.ndarray:
     """
     Compute the 15.9% quantile, which equals mean-sd in normal distributions.
 
@@ -264,7 +264,7 @@ def __stat_quantile_159(data: np.ndarray):
 
 
 @numba.njit
-def __stat_quantile_841(data: np.ndarray):
+def __stat_quantile_841(data: np.ndarray) -> np.ndarray:
     """
     Compute the 84.1% quantile, which equals mean+sd in normal distributions.
 

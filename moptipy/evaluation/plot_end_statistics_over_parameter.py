@@ -277,7 +277,7 @@ def plot_end_statistics_over_param(
     if len(dataset) <= 0:
         raise ValueError("no data found?")
 
-    def __set_importance(st: Styler):
+    def __set_importance(st: Styler) -> None:
         none = 1
         not_none = 0
         none_lw = importance_to_line_width_func(none)

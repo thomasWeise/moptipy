@@ -60,7 +60,7 @@ class _TestParser(LogParser):
         return True
 
 
-def test_sections_parser():
+def test_sections_parser() -> None:
     """Test parsing sections."""
     with TempFile.create(suffix=logging.FILE_SUFFIX) as tf:
         with FileLogger(tf) as logger:

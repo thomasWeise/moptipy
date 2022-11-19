@@ -12,7 +12,7 @@ processed to per-algorithm or per-instance statistics using
 """
 
 
-def __lang_setup():
+def __lang_setup() -> None:
     """Perform the internal language setup."""
     import moptipy.api.logging as lg  # pylint: disable=C0415
     import moptipy.evaluation.base as bs  # pylint: disable=C0415

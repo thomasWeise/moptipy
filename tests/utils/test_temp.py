@@ -6,7 +6,7 @@ from moptipy.utils.path import Path
 from moptipy.utils.temp import TempDir, TempFile
 
 
-def test_temp_file():
+def test_temp_file() -> None:
     """Test the creation and deletion of temporary files."""
     with TempFile.create() as path:
         assert isinstance(path, str)
@@ -28,7 +28,7 @@ def test_temp_file():
     assert not exists(path)
 
 
-def test_temp_dir():
+def test_temp_dir() -> None:
     """Test the creation and deletion of temporary directories."""
     with TempDir.create() as path:
         assert isinstance(path, str)
@@ -65,7 +65,7 @@ def test_temp_dir():
     assert not exists(inner)
 
 
-def test_file_write():
+def test_file_write() -> None:
     """Test creation the writing into a file."""
     with TempDir.create() as tds:
         s = Path.path(join(tds, "a.txt"))
@@ -80,7 +80,7 @@ def test_file_write():
         assert getsize(s) > 0
 
 
-def test_file_create_or_truncate():
+def test_file_create_or_truncate() -> None:
     """Test file creation or truncation."""
     with TempDir.create() as tds:
         s = Path.path(join(tds, "a.txt"))
@@ -108,7 +108,7 @@ def test_file_create_or_truncate():
         assert getsize(s) == 0
 
 
-def test_file_ensure_exists():
+def test_file_ensure_exists() -> None:
     """Test ensuring that a file exists."""
     with TempDir.create() as tds:
         s = Path.path(join(tds, "a.txt"))
