@@ -88,11 +88,46 @@ class NPArraySpace(Space):
             raise ValueError(f"x must be of shape ({self.dimension}) but is "
                              f"of shape {x.shape}.")
 
+    def __str__(self) -> str:
+        """
+        Get the name of this np array space.
+
+        :return: "ndarray" + dimension + dtype.char
+
+        >>> import numpy as npx
+        >>> print(NPArraySpace(4, npx.dtype(int)))
+        ndarray4l
+        """
+        return f"ndarray{self.dimension}{self.dtype.char}"
+
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of this space to the given logger.
 
         :param logger: the logger for the parameters
+
+        >>> from moptipy.utils.logger import InMemoryLogger
+        >>> import numpy as npx
+        >>> dt = npx.dtype(float)
+        >>> dt.char
+        'd'
+        >>> space = NPArraySpace(10, dt)
+        >>> space.dimension
+        10
+        >>> with InMemoryLogger() as l:
+        ...     with l.key_values("C") as kv:
+        ...         space.log_parameters_to(kv)
+        ...     text = l.get_log()
+        >>> text[-2]
+        'dtype: d'
+        >>> text[-3]
+        'nvars: 10'
+        >>> text[-4]
+        'class: moptipy.spaces.nparrayspace.NPArraySpace'
+        >>> text[-5]
+        'name: ndarray10d'
+        >>> len(text)
+        6
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, self.dimension)

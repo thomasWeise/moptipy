@@ -44,6 +44,18 @@ class Component:
         Log all parameters of this component as key-value pairs.
 
         :param logger: the logger for the parameters
+
+        >>> from moptipy.utils.logger import InMemoryLogger
+        >>> with InMemoryLogger() as l:
+        ...     with l.key_values("C") as kv:
+        ...         Component().log_parameters_to(kv)
+        ...     text = l.get_log()
+        >>> text[-2]
+        'class: moptipy.api.component.Component'
+        >>> text[-3]
+        'name: Component'
+        >>> len(text)
+        4
         """
         logger.key_value(logging.KEY_NAME, str(self))
         logger.key_value(logging.KEY_CLASS, type_name_of(self))
