@@ -11,7 +11,7 @@
 - [How-Tos](#3-how-tos)
   - [Applying 1 Algorithm Once to 1 Problem](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance)
   - [Run a Series of Experiments](#32-how-to-run-a-series-of-experiments)
-  - [How to Solve and Optimization Problem](#33-how-to-solve-an-optimization-problem)
+  - [How to Solve an Optimization Problem](#33-how-to-solve-an-optimization-problem)
     - [Defining a New Problem](#331-define-a-new-problem-type)
     - [Defining a New Algorithm](#332-define-a-new-algorithm)
     - [Applying an Own Algorithm to an Own Problem](#333-applying-an-own-algorithm-to-an-own-problem)
