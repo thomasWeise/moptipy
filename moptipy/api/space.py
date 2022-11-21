@@ -27,11 +27,8 @@ The following pre-defined spaces are currently available:
   on the base string, each element may occur an element-specific number of
   times. For the base string `(-1, -1, 2, 7, 7, 7)`, for example, `-1` may
   occur twice, `2` can occur once, and `7` three times.
-- :class:`~moptipy.spaces.vectorspace.VectorSpace` is an unconstrained space
-  of `n`-dimensional floating point number vectors
-- :class:`~moptipy.spaces.bounded_vectorspace.BoundedVectorSpace` is a space
-  of `n`-dimensional floating point number vectors whose values are within
-  the pre-defined inclusive bounds `[min_value,max_value]`.
+- :class:`~moptipy.spaces.vectorspace.VectorSpace` is the space of
+  `n`-dimensional floating point number vectors.
 """
 
 from typing import Any

@@ -83,7 +83,7 @@ class MyObjective2(Objective):
 
 def test_process_noss_no_log() -> None:
     """Test processes without search space and without log."""
-    v = VectorSpace(10)
+    v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
     exp = Execution()
     exp.set_algorithm(MyAlgorithm1())
@@ -101,7 +101,7 @@ def test_process_noss_no_log() -> None:
 
 def test_process_noss_log() -> None:
     """Test processes without search space and with log."""
-    v = VectorSpace(10)
+    v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
 
     with TempFile.create() as path:
@@ -126,7 +126,7 @@ def test_process_noss_log() -> None:
 
 def test_process_noss_timed_log() -> None:
     """Test processes without search space, with log, with time limit."""
-    v = VectorSpace(10)
+    v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
     with TempFile.create() as path:
         exp = Execution()
@@ -151,7 +151,7 @@ def test_process_noss_timed_log() -> None:
 
 def test_process_noss_maxfes_log_state() -> None:
     """Test processes without search space, with log, and with MAX_FES."""
-    v = VectorSpace(4)
+    v = VectorSpace(4, -1e100, 1e100)
     with TempFile.create() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm2())
@@ -190,7 +190,7 @@ class MyAlgorithm3(Algorithm):
 
 def test_process_with_error() -> None:
     """Test processes that throws an error."""
-    v = VectorSpace(4)
+    v = VectorSpace(4, -1e100, 1e100)
     with TempFile.create() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm3())

@@ -1,26 +1,30 @@
 """A nullary operator filling a vector with uniformly distribute values."""
 
+from typing import Final
+
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op0
-from moptipy.utils.bounds import FloatBounds
+from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.types import type_error
 
 
-class Op0Uniform(Op0, FloatBounds):
+class Op0Uniform(Op0):
     """Fill a vector with uniformly distributed random values."""
 
-    def __init__(self, min_value: float = -1.0,
-                 max_value: float = 1.0) -> None:
+    def __init__(self, space: VectorSpace) -> None:
         """
         Initialize the operator.
 
-        :param min_value: the minimum value
-        :param max_value: the maximum value
+        :param space: the vector space
         """
-        Op0.__init__(self)
-        FloatBounds.__init__(self, min_value, max_value)
+        super().__init__()
+        if not isinstance(space, VectorSpace):
+            raise type_error(space, "space", VectorSpace)
+        #: store the space
+        self.space: Final[VectorSpace] = space
 
     def __str__(self) -> str:
         """
@@ -30,15 +34,6 @@ class Op0Uniform(Op0, FloatBounds):
         """
         return "uniform"
 
-    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
-        """
-        Log the parameters of this space to the given logger.
-
-        :param logger: the logger for the parameters
-        """
-        Op0.log_parameters_to(self, logger)
-        FloatBounds.log_parameters_to(self, logger)
-
     def op0(self, random: Generator, dest: np.ndarray) -> None:
         """
         Fill the string `dest` with random values.
@@ -47,5 +42,15 @@ class Op0Uniform(Op0, FloatBounds):
         :param dest: the vector to be filled. Afterwards it contains uniformly
             distributed random values
         """
+        sp: Final[VectorSpace] = self.space
         np.copyto(dest, random.uniform(
-            self.min_value, self.max_value, len(dest)))
+            sp.lower_bound, sp.upper_bound, sp.dimension))
+
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
+        """
+        Log the parameters of this operator to the given logger.
+
+        :param logger: the logger for the parameters
+        """
+        super().log_parameters_to(logger)
+        self.space.log_bounds(logger)

@@ -52,7 +52,7 @@ class MyObjective(Objective):
 
 def test_process_noss_log() -> None:
     """Test processes without search space and with log."""
-    v = VectorSpace(10)
+    v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
 
     with TempFile.create() as path:

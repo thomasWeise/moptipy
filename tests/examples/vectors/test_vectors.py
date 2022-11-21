@@ -7,7 +7,7 @@ from numpy.random import Generator, default_rng
 
 from moptipy.examples.vectors.ackley import Ackley
 from moptipy.examples.vectors.sphere import Sphere
-from moptipy.spaces.bounded_vectorspace import BoundedVectorSpace
+from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.tests.objective import validate_objective
 
 
@@ -41,20 +41,22 @@ def random_vector(random: Generator, x: np.ndarray,
 def test_sphere() -> None:
     """Test the sphere objective function."""
     random: Final[Generator] = default_rng()
-    space: BoundedVectorSpace = BoundedVectorSpace(
+    space: VectorSpace = VectorSpace(
         dimension=int(random.integers(2, 32)),
-        min_value=float(-1 - (random.random() * 100)),
-        max_value=float(1 + (random.random() * 100)))
+        lower_bound=float(-1 - (random.random() * 100)),
+        upper_bound=float(1 + (random.random() * 100)))
     f: Sphere = Sphere()
 
-    ub = nextafter((max(abs(space.min_value), abs(space.max_value)) ** 2)
+    ub = nextafter((max(abs(space.lower_bound[0]),
+                        abs(space.upper_bound[0])) ** 2)
                    * space.dimension, inf)
 
     validate_objective(
         objective=f,
         solution_space=space,
         make_solution_space_element_valid=lambda
-        r, xx, xmi=space.min_value, xma=space.max_value:
+        r, xx, xmi=float(space.lower_bound[0]),
+        xma=float(space.upper_bound[0]):
         random_vector(r, xx, xmi, xma),
         is_deterministic=True,
         lower_bound_threshold=0,
@@ -65,17 +67,17 @@ def test_sphere() -> None:
 def test_ackley() -> None:
     """Test the sphere objective function."""
     random: Final[Generator] = default_rng()
-    space: BoundedVectorSpace = BoundedVectorSpace(
-        dimension=int(random.integers(2, 32)),
-        min_value=float(-1 - (random.random() * 100)),
-        max_value=float(1 + (random.random() * 100)))
+    space: VectorSpace = VectorSpace(int(random.integers(2, 32)),
+                                     float(-1 - (random.random() * 100)),
+                                     float(1 + (random.random() * 100)))
     f: Ackley = Ackley()
 
     validate_objective(
         objective=f,
         solution_space=space,
         make_solution_space_element_valid=lambda
-        r, xx, xmi=space.min_value, xma=space.max_value:
+        r, xx, xmi=float(space.lower_bound[0]),
+        xma=float(space.upper_bound[0]):
         random_vector(r, xx, xmi, xma),
         is_deterministic=True,
         lower_bound_threshold=0,

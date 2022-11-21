@@ -17,7 +17,8 @@ algorithms usable within `moptipy` in a transparent manner.
 """
 from typing import Any, Callable, Final, cast
 
-from numpy import clip, full, inf, ndarray
+import numpy as np
+from numpy import ndarray
 from scipy.optimize import Bounds  # type: ignore
 
 # noinspection PyProtectedMember
@@ -43,15 +44,13 @@ from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.operators import Op0
 from moptipy.api.process import Process
 from moptipy.api.subprocesses import without_should_terminate
-from moptipy.operators.vectors.op0_uniform import Op0Uniform
-from moptipy.utils.bounds import FloatBounds, OptionalFloatBounds
+from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import DEFAULT_FLOAT
 from moptipy.utils.types import type_error
 
 
 # noinspection PyProtectedMember
-class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
+class SciPyAlgorithmWrapper(Algorithm0):
     """
     A wrapper for the Sci-Py API.
 
@@ -59,31 +58,27 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
     problems of the same dimension.
     """
 
-    def __init__(self, name: str, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, name: str, op0: Op0, space: VectorSpace) -> None:
         """
         Create the algorithm importer from scipy.
 
         :param name: the name of the algorithm
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        Algorithm0.__init__(self, name, op0)
-        # load bounds from nullary operator, if possible and not overriden
-        if (min_value is None) and (max_value is None) \
-                and isinstance(op0, Op0Uniform):
-            min_value = op0.min_value
-            max_value = op0.max_value
-        OptionalFloatBounds.__init__(self, min_value, max_value)
+        super().__init__(name, op0)
+        if not isinstance(space, VectorSpace):
+            raise type_error(space, "space", VectorSpace)
+        #: the internal space
+        self.space: Final[VectorSpace] = space
         #: the bounds to be used for the internal function call
-        self.__bounds_cache: Bounds | None = None
+        self.__bounds: Final[Bounds] = Bounds(space.lower_bound,
+                                              space.upper_bound)
         #: the cache for starting points
-        self.__x0_cache: ndarray | None = None
+        self.__x0: Final[ndarray] = space.create()
 
-    def _call(self, func: Callable, x0, max_fes: int,
-              bounds: Bounds | None) -> None:
+    def _call(self, func: Callable[[np.ndarray], int | float],
+              x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
         """
         Invoke the SciPi Algorithm.
 
@@ -95,51 +90,23 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
         :param bounds: the bounds
         """
 
-    def __run(self, pp: Process) -> None:
+    def __run(self, process: Process) -> None:
         """
         Execute the algorithm.
 
-        :param pp: the process
+        :param process: the process
         """
-        x0 = self.__x0_cache
-        if x0 is None:
-            self.__x0_cache = x0 = pp.create()  # create the solution record
-            x0_dim = len(x0)  # the dimension of the solution record
-            no_bounds: bool = False  # True if no bounds needed
-            mi: float = -inf  # the minimum
-            ma: float = inf  # the maximum
-            if self.min_value is None:
-                if self.max_value is None:
-                    no_bounds = True  # no bounds needed if none provided
-            else:
-                mi = self.min_value  # remember minimum (otherwise, mi=-inf)
-            if self.max_value is not None:
-                ma = self.max_value  # remember maximum (otherwise ma=inf)
-            # now create bounds record
-            self.__bounds_cache = bounds = None if no_bounds else Bounds(
-                full(x0_dim, mi, DEFAULT_FLOAT),  # the lower bound vector
-                full(x0_dim, ma, DEFAULT_FLOAT))  # the upper bound vector
+        x0: Final[np.ndarray] = self.__x0
+        self.op0.op0(process.get_random(), x0)  # create first solution
 
-        else:  # ok, we have cached bounds (or cached None)
-            bounds = self.__bounds_cache
-
-        if bounds is None:
-            __func = pp.evaluate
-        else:
-            def __func(x: ndarray, ff=cast(Callable[[ndarray], Any],
-                                           pp.evaluate),
-                       lb=self.min_value, ub=self.max_value) -> int | float:
-                clip(x, lb, ub, x)
-                return ff(x)
-
-        self.op0.op0(pp.get_random(), x0)  # create first solution
-
-        mf = pp.get_max_fes()  # get the number of available FEs
+        mf = process.get_max_fes()  # get the number of available FEs
         if mf is not None:  # if an FE limit is specified, then ...
-            mf -= pp.get_consumed_fes()  # ... subtract the consumed FEs
+            mf -= process.get_consumed_fes()  # ... subtract the consumed FEs
         else:  # otherwise set a huge, unattainable limit
             mf = 4_611_686_018_427_387_904  # 2 ** 62
-        self._call(__func, x0, mf, bounds)  # invoke the algorithm
+
+        self._call(self.space.clipped(process.evaluate),
+                   x0, mf, self.__bounds)  # invoke the algorithm
 
     def solve(self, process: Process) -> None:
         """
@@ -161,12 +128,12 @@ class SciPyAlgorithmWrapper(Algorithm0, OptionalFloatBounds):
 
         :param logger: the logger for the parameters
         """
-        Algorithm0.log_parameters_to(self, logger)  # log algorithm/operator
-        OptionalFloatBounds.log_parameters_to(self, logger)  # log bounds
+        super().log_parameters_to(logger)  # log algorithm/operator
+        self.space.log_bounds(logger)  # log bounds
 
 
-def _call_powell(func: Callable, x0, max_fes: int,
-                 bounds: Bounds | None) -> None:
+def _call_powell(func: Callable[[np.ndarray], int | float],
+                 x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
     _minimize_powell(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
                      maxiter=max_fes, maxfev=max_fes)
 
@@ -185,22 +152,19 @@ class Powell(SciPyAlgorithmWrapper):
        https://doi.org/10.1093/comjnl/7.2.155
     """
 
-    def __init__(self, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, op0: Op0, space: VectorSpace) -> None:
         """
-        Create Powell's Algorithm from SciPy.
+        Create Powell's algorithm importer from scipy.
 
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        super().__init__("spPowell", op0, min_value, max_value)
+        super().__init__("spPowell", op0, space)
         self._call = _call_powell  # type: ignore
 
 
-def _call_nelder_mead(func: Callable, x0, max_fes: int,
-                      bounds: Bounds | None) -> None:
+def _call_nelder_mead(func: Callable[[np.ndarray], int | float],
+                      x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
     _minimize_neldermead(func, x0, bounds=bounds, xatol=0.0, fatol=0.0,
                          maxiter=max_fes, maxfev=max_fes)
 
@@ -236,21 +200,19 @@ ComputerJournal-1965.pdf
        https://doi.org/10.1007/978-0-387-40065-5.
     """
 
-    def __init__(self, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, op0: Op0, space: VectorSpace) -> None:
         """
-        Create the Nelder-Mead Algorithm from SciPy.
+        Create the Nelder-Mead Downhill Simplex importer from scipy.
 
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        super().__init__("spNelderMead", op0, min_value, max_value)
+        super().__init__("spNelderMead", op0, space)
         self._call = _call_nelder_mead  # type: ignore
 
 
-def _call_bgfs(func: Callable, x0, max_fes: int, _) -> None:
+def _call_bgfs(func: Callable[[np.ndarray], int | float],
+               x0: np.ndarray, max_fes: int, _) -> None:
     _minimize_bfgs(func, x0, gtol=0.0, maxiter=max_fes)
 
 
@@ -274,21 +236,19 @@ class BGFS(SciPyAlgorithmWrapper):
        http://dx.doi.org/10.1093/imamat/6.1.76
     """
 
-    def __init__(self, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, op0: Op0, space: VectorSpace) -> None:
         """
-        Create the BGFS Algorithm from SciPy.
+        Create BGFS algorithm importer from scipy.
 
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        super().__init__("spBgfs", op0, min_value, max_value)
+        super().__init__("spBgfs", op0, space)
         self._call = _call_bgfs  # type: ignore
 
 
-def _call_cg(func: Callable, x0, max_fes: int, _) -> None:
+def _call_cg(func: Callable[[np.ndarray], int | float],
+             x0: np.ndarray, max_fes: int, _) -> None:
     _minimize_cg(func, x0, gtol=0.0, maxiter=max_fes)
 
 
@@ -302,21 +262,19 @@ class CG(SciPyAlgorithmWrapper):
        ISBN: 978-0-387-30303-1. Chapter 5, Page 101.
     """
 
-    def __init__(self, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, op0: Op0, space: VectorSpace) -> None:
         """
-        Create the CG Algorithm from SciPy.
+        Create Conjugate Gradient algorithm importer from scipy.
 
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        super().__init__("spCg", op0, min_value, max_value)
+        super().__init__("spCg", op0, space)
         self._call = _call_cg  # type: ignore
 
 
-def _call_slsqp(func: Callable, x0, max_fes: int, _) -> None:
+def _call_slsqp(func: Callable[[np.ndarray], int | float],
+                x0: np.ndarray, max_fes: int, _) -> None:
     _minimize_slsqp(func, x0, ftol=0.0, maxiter=max_fes)
 
 
@@ -329,28 +287,23 @@ class SLSQP(SciPyAlgorithmWrapper):
        20(3):262-281. September 1994. https://doi.org/10.1145/192115.192124
     """
 
-    def __init__(self, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, op0: Op0, space: VectorSpace) -> None:
         """
-        Create the SLSQP Algorithm from SciPy.
+        Create the SLSQP algorithm importer from scipy.
 
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        super().__init__("spSlsqp", op0, min_value, max_value)
+        super().__init__("spSlsqp", op0, space)
         self._call = _call_slsqp  # type: ignore
 
 
-def _call_tnc(func: Callable, x0, max_fes: int,
-              bounds: Bounds | None) -> None:
-    if bounds is None:
-        b = None
-    else:
-        b = [(bounds.lb[0], bounds.ub[0])] * len(x0)
-    _minimize_tnc(func, x0, bounds=b, ftol=0.0, xtol=0.0, gtol=0.0,
-                  maxiter=max_fes, maxfun=max_fes)
+def _call_tnc(func: Callable[[np.ndarray], int | float],
+              x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
+    _minimize_tnc(
+        func, x0,
+        bounds=[(lb, bounds.ub[i]) for i, lb in enumerate(bounds.lb)],
+        ftol=0.0, xtol=0.0, gtol=0.0, maxiter=max_fes, maxfun=max_fes)
 
 
 class TNC(SciPyAlgorithmWrapper):
@@ -366,21 +319,18 @@ class TNC(SciPyAlgorithmWrapper):
        ISBN: 978-0-387-30303-1. https://doi.org/10.1007/978-0-387-40065-5.
     """
 
-    def __init__(self, op0: Op0,
-                 min_value: float | None = None,
-                 max_value: float | None = None) -> None:
+    def __init__(self, op0: Op0, space: VectorSpace) -> None:
         """
-        Create the TNC Algorithm from SciPy.
+        Create the TNC algorithm importer from scipy.
 
         :param op0: the nullary search operator
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        super().__init__("spTnc", op0, min_value, max_value)
+        super().__init__("spTnc", op0, space)
         self._call = _call_tnc  # type: ignore
 
 
-class DE(Algorithm, FloatBounds):
+class DE(Algorithm):
     """
     The Differential Evolution Algorithm as implemented by SciPy.
 
@@ -395,49 +345,39 @@ class DE(Algorithm, FloatBounds):
        https://www.researchgate.net/publication/227242104
     """
 
-    def __init__(self, dim: int,
-                 min_value: float = -1e10,
-                 max_value: float = 1e10) -> None:
+    def __init__(self, space: VectorSpace) -> None:
         """
         Create the Differential Evolution Algorithm from SciPy.
 
-        :param dim: the dimension in which the algorithm works
-        :param min_value: the minimum x-value
-        :param max_value: the maximum x-value
+        :param space: the vector space
         """
-        FloatBounds.__init__(self, min_value, max_value)
-        if not isinstance(dim, int):
-            raise type_error(dim, "dim", int)
-        if (dim < 1) or (dim > 100_000):
-            raise ValueError(
-                f"dim must be in 1...100_000 but is {dim}.")
+        super().__init__()
+        if not isinstance(space, VectorSpace):
+            raise type_error(space, "space", VectorSpace)
+        #: the vector space
+        self.space: Final[VectorSpace] = space
         #: the bounds
         self.__bounds: Final[list[tuple[float, float]]] = \
-            [(self.min_value, self.max_value)] * dim
+            [(lb, space.upper_bound[i])
+             for i, lb in enumerate(space.lower_bound)]
 
-    def __run(self, pp: Process) -> None:
+    def __run(self, process: Process) -> None:
         """
         Execute the algorithm.
 
-        :param pp: the process
+        :param process: the process
         """
-
-        def __func(x: ndarray, ff=cast(Callable[[ndarray], Any],
-                                       pp.evaluate),
-                   lb=self.min_value, ub=self.max_value) -> int | float:
-            clip(x, lb, ub, x)
-            return ff(x)
-
-        mf = pp.get_max_fes()  # get the number of available FEs
+        mf = process.get_max_fes()  # get the number of available FEs
         if mf is not None:  # if an FE limit is specified, then ...
-            mf -= pp.get_consumed_fes()  # ... subtract the consumed FEs
+            mf -= process.get_consumed_fes()  # ... subtract the consumed FEs
         else:  # otherwise set a huge, unattainable limit
             mf = 4_611_686_018_427_387_904  # 2 ** 62
 
         differential_evolution(
-            __func, bounds=self.__bounds,
+            self.space.clipped(process.evaluate),
+            bounds=self.__bounds,
             maxiter=int(mf / len(self.__bounds)) + 1,
-            tol=0.0, seed=pp.get_random(), atol=0.0)
+            tol=0.0, seed=process.get_random(), atol=0.0)
 
     def solve(self, process: Process) -> None:
         """
@@ -459,8 +399,9 @@ class DE(Algorithm, FloatBounds):
 
         :param logger: the logger for the parameters
         """
-        Algorithm.log_parameters_to(self, logger)  # log algorithm/operator
-        FloatBounds.log_parameters_to(self, logger)  # log bounds
+        super().log_parameters_to(logger)  # log algorithm/operator
+        with logger.scope("space") as sp:
+            self.space.log_parameters_to(sp)  # log space
 
     def __str__(self):
         """

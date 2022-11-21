@@ -716,7 +716,7 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
     - Binary Operators:
       - [generalized alternating position crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_gap.Op2GeneralizedAlternatingPosition) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
       - [order-based crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased) randomly selects a set of indices and copies the elements from first source permutation to the same indices in the destination string. It then copies the remaining elements from the second source, maintaining the order in which they appear in the second source string.
-3. [unbounded](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace) and [bounded](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bounded_vectorspace.BoundedVectorSpace) n-dimensional spaces of real numbers.
+3. [n-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace).
 
 
 ### 4.3. Implemented Problems
