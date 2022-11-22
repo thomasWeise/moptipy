@@ -56,7 +56,7 @@ test: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "$(NOW): PATH is now '${PATH}'." &&\
 	echo "$(NOW): Running pytest tests." && \
-	coverage run --include="moptipy*" -m pytest --strict-config tests -o faulthandler_timeout=360 && \
+	coverage run --include="moptipy*" -m pytest --strict-config tests -o faulthandler_timeout=720 && \
 	echo "$(NOW): Running pytest with doctests." && \
 	coverage run --include="moptipy*" -a -m pytest --strict-config --doctest-modules -o faulthandler_timeout=360 --ignore=tests && \
 	echo "$(NOW): Finished running pytest tests."

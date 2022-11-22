@@ -135,7 +135,8 @@ You can set the seed for this random number generator via [`ex.set_rand_seed(...
 If you create two identical executions and set the same seeds for both of them, the algorithms will make the same random decisions and hence should return the same results.
 
 Furthermore, you can also set the maximum number of candidate solutions that the optimization algorithm is allowed to investigate via [`ex.set_max_fes(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_fes), the maximum runtime budget in milliseconds via [`ex.set_max_time_millis(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_time_millis), and a goal objective value via [`ex.set_goal_f(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_goal_f) (the algorithm should stop after reaching it).
-Notice that optimization algorithms may not terminate unless the system tells them so, so you should always specify at least either a maximum number of objective function evaluations or a runtime limit.
+Notice that optimization algorithms may not terminate unless the system tells them to, i.e., unless [`process.should_terminate()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.should_terminate) returns `True`, which is triggered by the termination conditions you define as stated above.
+Therefore, you should always specify at least either a maximum number of objective function evaluations or a runtime limit.
 If you only specify a goal objective value and the algorithm cannot reach it, it may not terminate.
 
 Finally, you can also set the path to a log file via [`ex.set_log_file(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_file).
@@ -677,11 +678,22 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 
 ### 4.1. Implemented Algorithms
 
+The following algorithms are completely black-box and work for both single- and multi-objective optimization.
+(Well, *work* here is relative &hellip; they are basically the worst possible algorithms you could choose and are only included for the sake of completeness.)
+
 1. [Single Random Sample](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.single_random_sample.SingleRandomSample) creates and evaluates exactly one single random solution.
 2. [Random Sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling) keeps creating random solutions until the computational budget is exhausted.
 3. [Random Walk](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#moptipy.algorithms.random_walk.RandomWalk) creates a random solution and then keeps applying the unary search operator and always accepts the result.
 
+
 #### 4.1.1. Single-Objective Optimization
+
+Here we list optimization algorithms that optimize a *single* [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective).
+
+
+##### 4.1.1.1. Single-Objective Optimization with Continuous Search Space
+
+The first set of algorithms is general, i.e., can work with arbitrary [search spaces](#42-implemented-search-spaces-and-operators).
 
 1. Simple [Hill Climber](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber.HillClimber) creates a random solution as initial best-so-far solution and then iteratively applies the unary search operator to the best-so-far solution. When the result of the unary operator is better, it becomes the new best-so-far solution, otherwise it is discarded.
 2. [Hill Climber with Restarts](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts) works exactly like the hill climber, but restarts at a new random solution after a fixed number of unsuccessful moves.
@@ -690,7 +702,25 @@ Here we list the [algorithms](#41-implemented-algorithms), [search spaces](#42-i
 5. [General EA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.general_ea.GeneralEA) a generalized version of the (mu+lambda)-EA that can additionally be configured with a [fitness assignment process](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html) and both survival and mating [selection algorithms](https://thomasweise.github.io/moptipy/moptipy.algorithms.modules.html#module-moptipy.algorithms.modules.selection).
 
 
+##### 4.1.1.2. Single-Objective Optimization with Continuous Search Space
+
+The algorithms listed here are intended for single-objective optimization of [continuous search spaces](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace).
+They *only* work with search spaces that are instances of [`VectorSpace`](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace).
+Such spaces are defined by box-constraints over the *n*-dimensional real numbers.
+
+- The quasi-Newton method by C. G. Broyden, Roger Fletcher, D. Goldfarb, and David F. Shanno ([BFGS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html).
+- The Conjugate Gradient ([CG](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.CG)) algorithm, wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-cg.html).
+- Differential Evolution ([DE](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html).
+- The Downhill Simplex method based on the [Nelder-Mead](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.NelderMead), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html).
+- [Powell's Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.Powell), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-powell.html).
+- The Sequential Least Squares Programming ([SLSQP](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.SLSQP) algorithm, wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-slsqp.html).
+- The Truncated Newton Method ([TNC](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.TNC)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-tnc.html).
+
+
 #### 4.1.2. Multi-Objective Optimization
+
+The algorithms listed here are suitable for [multi-objective optimization](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.mo_problem.MOProblem).
+In other words, they try to minimize multiple [objective functions](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective) at once. 
 
 1. [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS), but it accepts a solution if it is not dominated by the current solution.
   This is *not* a good algorithm.

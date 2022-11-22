@@ -143,8 +143,7 @@ class Powell(SciPyAlgorithmWrapper):
     Powell's Algorithm.
 
     The function :func:`scipy.optimize.minimize` with parameter
-    "Powell" can perform unconstrained continuous optimization
-    (potentially with boundary constraints)
+    "Powell" for continuous optimization.
 
     1. Michael James David Powell. An Efficient Method for Finding the Minimum
        of a Function of Several Variables without Calculating Derivatives. The
@@ -174,8 +173,7 @@ class NelderMead(SciPyAlgorithmWrapper):
     The Downhill Simplex aka. the Nelder-Mead Algorithm.
 
     The function :func:`scipy.optimize.minimize` with parameter
-    "Nelder-Mead" can perform unconstrained continuous optimization
-    (potentially with boundary constraints) by using the Downhill Simplex
+    "Nelder-Mead" for continuous optimization  by using the Downhill Simplex
     algorithm a.k.a., the Nelder-Mead algorithm. Here we wrap it into our API.
 
     Scipy provides the following reference:

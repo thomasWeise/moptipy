@@ -99,9 +99,16 @@ def __check(url: str, valid_urls: dict[str, str | None],
     body: str | None
     method = "GET" if needs_body else "HEAD"
     try:
-        sleep(0.5)
-        response = http.request(method, base_url, timeout=20, redirect=True,
-                                retries=5, headers=__HEADER)
+        try:
+            response = http.request(
+                method, base_url, timeout=10, redirect=True,
+                retries=5, headers=__HEADER)
+        except BaseException as be:
+            logger(str(be))
+            sleep(2.0)
+            response = http.request(
+                method, base_url, timeout=30, redirect=True,
+                retries=5, headers=__HEADER)
         code = response.status
         body = response.data.decode("utf-8") if needs_body else None
     except BaseException as be:

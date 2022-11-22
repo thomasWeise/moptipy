@@ -1,4 +1,4 @@
-"""An implementation of an unconstrained n-dimensional continuous space."""
+"""An implementation of an box-constrained n-dimensional continuous space."""
 
 from math import isfinite
 from typing import Callable, Final, Iterable, cast
@@ -19,9 +19,12 @@ KEY_UPPER_BOUND: Final[str] = "ub"
 
 class VectorSpace(NPArraySpace):
     """
-    A vector space where each element is a one-dimensional numpy float array.
+    A vector space where each element is a n-dimensional real vector.
 
-    Such spaces are useful for continuous optimization.
+    Such spaces are useful for continuous optimization. The vectors are
+    implemented as one-dimensional `numpy.ndarray`s of length `n`.
+    A vector space is constraint by a box which defines the minimum and
+    maximum permitted value for each of its `n` elements.
     """
 
     def __init__(self, dimension: int,
@@ -154,10 +157,11 @@ class VectorSpace(NPArraySpace):
 
     def n_points(self) -> int:
         """
-        Get the number of different floating point values in this space.
+        Get an upper bound for the number of different values in this space.
 
-        :return: The space contains unrestricted floating point numbers, so we
-            return the approximate number of finite floating point numbers.
+        :return: We return the approximate number of finite floating point
+          numbers while ignoring the box constraint. This value here therefore
+          is an upper bound.
 
         >>> import numpy as npx
         >>> print(VectorSpace(3, dtype=npx.dtype(npx.float64)).n_points())
