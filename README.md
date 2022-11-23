@@ -708,7 +708,7 @@ The algorithms listed here are intended for single-objective optimization of [co
 They *only* work with search spaces that are instances of [`VectorSpace`](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace).
 Such spaces are defined by box-constraints over the *n*-dimensional real numbers.
 
-- The quasi-Newton method by C. G. Broyden, Roger Fletcher, D. Goldfarb, and David F. Shanno ([BFGS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html).
+- The quasi-Newton method by Broyden, Fletcher, Goldfarb, and Shanno ([BFGS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html).
 - The Conjugate Gradient ([CG](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.CG)) algorithm, wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-cg.html).
 - Differential Evolution ([DE](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html).
 - The Downhill Simplex method based on the [Nelder-Mead](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.NelderMead), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html).
@@ -960,6 +960,9 @@ Since we can use many different solution spaces, this section just contains raw 
 If the search and solution space are different, the section `RESULT_X` is included.
 It then holds the point in the search space corresponding to the solution presented in `RESULT_Y`.
 
+Both sections are plain texts, the results of the [`to_str`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.to_str) method of the corresponding [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) instances for the search and solution spaces.
+It is therefore possible to design suitable text representations for arbitrary solution data structures and have them properly stored in the log files.
+
 
 ##### 5.1.2.6 The `ERROR` Sections
 
@@ -984,13 +987,14 @@ The following exception sections are currently supported:
 If multi-objective optimization is performed, the `process` object will automatically collect an archive of non-dominated solutions.
 In the CSV-formatted section `ARCHIVE_QUALITIES` of the log files, we will find one row per non-dominated solution in the archive.
 The first number in the row is the scalarized overall solution quality `f`, followed by the value `fi` of the `i`th objective function (`i` starts at `0`).
-The solutions fitting to row `j` of this section appear in the `ARCHIVE_j_X` and `ARCHIVE_j_Y` sections (`j` starts at `0`).
+The solutions corresponding to row `j` of this section appear in the `ARCHIVE_j_X` and `ARCHIVE_j_Y` sections (`j` starts at `0`).
 
 
 ##### 5.1.2.8 The `ARCHIVE_j_X` and `ARCHIVE_j_Y` Sections
 
 In multi-objective optimization, the `process` object will automatically collect an archive of non-dominated solutions.
-The sections `ARCHIVE_j_X` and `ARCHIVE_j_Y` contain the point in the search space and the point in the solution space corresponding to the `j`th element of the archive.
+The sections `ARCHIVE_j_X` contains the point in the search space and `ARCHIVE_j_Y` the point in the solution space corresponding to the `j`th element of the archive.
+The sections are plain texts, the results of the [`to_str`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.to_str) method of the corresponding [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) instances for the search and solution spaces.
 
 
 #### 5.1.3. Example for Single-Objective Optimization

@@ -43,13 +43,22 @@ from scipy.optimize._tnc import _minimize_tnc  # type: ignore
 from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.operators import Op0
 from moptipy.api.process import Process
-from moptipy.api.subprocesses import without_should_terminate
+from moptipy.api.subprocesses import (
+    get_remaining_fes,
+    without_should_terminate,
+)
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
 
 
 # noinspection PyProtectedMember
+def _call_powell(func: Callable[[np.ndarray], int | float],
+                 x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
+    _minimize_powell(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
+                     maxiter=max_fes, maxfev=max_fes)
+
+
 class SciPyAlgorithmWrapper(Algorithm0):
     """
     A wrapper for the Sci-Py API.
@@ -98,15 +107,9 @@ class SciPyAlgorithmWrapper(Algorithm0):
         """
         x0: Final[np.ndarray] = self.__x0
         self.op0.op0(process.get_random(), x0)  # create first solution
-
-        mf = process.get_max_fes()  # get the number of available FEs
-        if mf is not None:  # if an FE limit is specified, then ...
-            mf -= process.get_consumed_fes()  # ... subtract the consumed FEs
-        else:  # otherwise set a huge, unattainable limit
-            mf = 4_611_686_018_427_387_904  # 2 ** 62
-
         self._call(self.space.clipped(process.evaluate),
-                   x0, mf, self.__bounds)  # invoke the algorithm
+                   x0, get_remaining_fes(process),
+                   self.__bounds)  # invoke the algorithm
 
     def solve(self, process: Process) -> None:
         """
@@ -132,12 +135,6 @@ class SciPyAlgorithmWrapper(Algorithm0):
         self.space.log_bounds(logger)  # log bounds
 
 
-def _call_powell(func: Callable[[np.ndarray], int | float],
-                 x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
-    _minimize_powell(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
-                     maxiter=max_fes, maxfev=max_fes)
-
-
 class Powell(SciPyAlgorithmWrapper):
     """
     Powell's Algorithm.
@@ -158,7 +155,7 @@ class Powell(SciPyAlgorithmWrapper):
         :param op0: the nullary search operator
         :param space: the vector space
         """
-        super().__init__("spPowell", op0, space)
+        super().__init__("powell_scipy", op0, space)
         self._call = _call_powell  # type: ignore
 
 
@@ -205,7 +202,7 @@ ComputerJournal-1965.pdf
         :param op0: the nullary search operator
         :param space: the vector space
         """
-        super().__init__("spNelderMead", op0, space)
+        super().__init__("nelderMead_scipy", op0, space)
         self._call = _call_nelder_mead  # type: ignore
 
 
@@ -241,7 +238,7 @@ class BGFS(SciPyAlgorithmWrapper):
         :param op0: the nullary search operator
         :param space: the vector space
         """
-        super().__init__("spBgfs", op0, space)
+        super().__init__("bgfs_scipy", op0, space)
         self._call = _call_bgfs  # type: ignore
 
 
@@ -267,7 +264,7 @@ class CG(SciPyAlgorithmWrapper):
         :param op0: the nullary search operator
         :param space: the vector space
         """
-        super().__init__("spCg", op0, space)
+        super().__init__("cg_scipy", op0, space)
         self._call = _call_cg  # type: ignore
 
 
@@ -292,7 +289,7 @@ class SLSQP(SciPyAlgorithmWrapper):
         :param op0: the nullary search operator
         :param space: the vector space
         """
-        super().__init__("spSlsqp", op0, space)
+        super().__init__("slsqp_scipy", op0, space)
         self._call = _call_slsqp  # type: ignore
 
 
@@ -324,7 +321,7 @@ class TNC(SciPyAlgorithmWrapper):
         :param op0: the nullary search operator
         :param space: the vector space
         """
-        super().__init__("spTnc", op0, space)
+        super().__init__("tnc_scipy", op0, space)
         self._call = _call_tnc  # type: ignore
 
 
@@ -365,11 +362,7 @@ class DE(Algorithm):
 
         :param process: the process
         """
-        mf = process.get_max_fes()  # get the number of available FEs
-        if mf is not None:  # if an FE limit is specified, then ...
-            mf -= process.get_consumed_fes()  # ... subtract the consumed FEs
-        else:  # otherwise set a huge, unattainable limit
-            mf = 4_611_686_018_427_387_904  # 2 ** 62
+        mf = get_remaining_fes(process)  # get the number of available FEs
 
         differential_evolution(
             self.space.clipped(process.evaluate),
@@ -407,4 +400,4 @@ class DE(Algorithm):
 
         :returns: the name of this differential evolution algorithm
         """
-        return "spDE"
+        return "de_scipy"

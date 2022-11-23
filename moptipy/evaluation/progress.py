@@ -46,7 +46,7 @@ class Progress(PerRunData):
     #: the name of the objective value axis.
     f_name: str
 
-    #: the standard value of the the objective dimension.
+    #: the standard value of the objective dimension.
     #: If :attr:`f_name` is `F_NAME_SCALED` or `F_NAME_NORMALIZED`.
     #: then this value has been used to normalize the data.
     f_standard: int | float | None

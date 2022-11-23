@@ -58,7 +58,7 @@ def compute_single_ert(source: Iterable[Progress],
             n_success += 1
         else:
             idx = cast(np.integer, -1)
-        time_sum += progress.time[idx]
+        time_sum = time_sum + int(progress.time[idx])
     if time_sum <= 0:
         raise ValueError(f"Time sum cannot be {time_sum}.")
     if n_success <= 0:
@@ -270,7 +270,7 @@ class Ert(MultiRun2DData):
                 else:
                     # condition not fulfilled, need to use maximum time
                     idx = -1
-                time_sum += pr.time[idx]
+                time_sum = time_sum + int(pr.time[idx])
 
             # compute ert value: infinite if no run meets condition
             y[out_index] = inf if (found <= 0) else time_sum / found

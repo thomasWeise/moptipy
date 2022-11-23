@@ -525,3 +525,18 @@ def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
             algorithm(proc)
     except _InternalTerminationError:
         pass  # the internal error is ignored
+
+
+def get_remaining_fes(process: Process) -> int:
+    """
+    Get a finite number representing the remaining FEs of a process.
+
+    :param process: the process
+    :returns: an integer representing the remaining FEs of the process. If
+        no FE limit is imposed by `process`, a very large number will be
+        returned.
+    """
+    mf: int | None = process.get_max_fes()  # get the number of available FEs
+    if mf is None:  # if a no FE limit is specified, then return a large value
+        return 9_223_372_036_854_775_807  # (2 ** 63) - 1
+    return mf - process.get_consumed_fes()  # else, subtract the consumed FEs

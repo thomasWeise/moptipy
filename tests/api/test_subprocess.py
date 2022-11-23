@@ -18,6 +18,7 @@ from moptipy.api.space import Space
 from moptipy.api.subprocesses import (
     for_fes,
     from_starting_point,
+    get_remaining_fes,
     without_should_terminate,
 )
 from moptipy.examples.bitstrings.ising1d import Ising1d
@@ -34,7 +35,7 @@ from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.types import type_name_of
 
 
-class MyAlgorithm(Algorithm2):
+class MyAlgorithm1(Algorithm2):
     """The dummy algorithm."""
 
     def __init__(self) -> None:
@@ -52,10 +53,12 @@ class MyAlgorithm(Algorithm2):
         x2 = process.create()
 
         assert not process.has_best()
+        assert get_remaining_fes(process) == 9_223_372_036_854_775_807
         with for_fes(process, 100) as z:
             assert str(z) == f"forFEs_100_{process}"
             assert not z.has_best()
             assert z.get_consumed_fes() == 0
+            assert get_remaining_fes(z) == 100
             self.ea.solve(z)
             fnew = z.get_best_f()
             assert fnew >= 0
@@ -79,6 +82,7 @@ class MyAlgorithm(Algorithm2):
         with from_starting_point(process, x1, fnew) as z1:
             assert str(z1) == f"fromStart_{process}"
             with for_fes(z1, 100) as z:
+                assert get_remaining_fes(z) == 100
                 self.fwd.forward_to(z.get_copy_of_best_x)
                 assert str(z) == f"forFEs_100_fromStart_{process}"
                 assert z.has_best()
@@ -92,6 +96,7 @@ class MyAlgorithm(Algorithm2):
                 assert (fnew2 == 0) or (fes2 == 100)
                 assert (fnew2 >= 0) and (fes2 <= 100)
                 assert fnew2 <= fnew
+                assert fes2 + get_remaining_fes(z) == 100
 
         allfes = process.get_consumed_fes()
         assert allfes == fes + fes2
@@ -106,7 +111,7 @@ def test_from_start_for_fes() -> None:
     f = Ising1d(32)
 
     exp = Execution()
-    exp.set_algorithm(MyAlgorithm())
+    exp.set_algorithm(MyAlgorithm1())
     exp.set_solution_space(v)
     exp.set_objective(f)
     with exp.execute() as p:
@@ -124,7 +129,7 @@ class MyAlgorithm2(Algorithm2):
         super().__init__("dummy", Op0Random(), Op1Flip1(), Op2Uniform())
 
     def solve(self, process: Process) -> None:
-        """The solve routine."""
+        """Solve the optimization problem."""
         without_should_terminate(self._solve, process)
 
     def _solve(self, process: Process) -> None:
@@ -166,6 +171,8 @@ def test_without_should_terminate() -> None:
         assert p.get_best_f() >= 0
         assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 100)
         assert (p.get_best_f() >= 0) and (p.get_consumed_fes() <= 100)
+        assert (p.get_best_f() == 0) or (get_remaining_fes(p) == 0)
+        assert (p.get_best_f() >= 0) and (get_remaining_fes(p) >= 0)
 
 
 class _OneMaxRegAlgo(Algorithm0):
@@ -210,6 +217,7 @@ class __RegisterForFEs(Algorithm):
             cf = process.get_consumed_fes()
             assert 0 < cf <= 50
             assert cf == sp1.get_consumed_fes()
+            assert cf + get_remaining_fes(sp1) == 50
         self.repeat = process.should_terminate()
         if self.repeat:
             return
@@ -394,6 +402,7 @@ def test_without_should_terminate_mo_process_no_ss_no_log() -> None:
         assert process.get_max_time_millis() is None
         assert 0 <= process.get_best_f() <= dim * dim * dim
         assert 0 < process.get_consumed_fes() <= 100
+        assert get_remaining_fes(process) + process.get_consumed_fes() == 100
         archive: list[MORecord] = process.get_archive()
         for rec in archive:
             assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()

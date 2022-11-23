@@ -97,7 +97,7 @@ static_analysis: init
 	dodgy &&\
 	echo "$(NOW): Done with dodgy, now running pycodestyle." &&\
 	pycodestyle moptipy &&\
-	pycodestyle --ignore=E731 examples &&\
+	pycodestyle --ignore=E731,W503 examples &&\
 	pycodestyle tests &&\
 	echo "$(NOW): Done with pycodestyle, now running ruff." &&\
 	ruff --select A,ANN,B,C,D,E,F,I,N,Q,RUF,S,T,U,YTT --ignore=ANN001,ANN002,ANN003,ANN101,ANN204,ANN401,B008,B009,B010,C901,D203,D208,D212,D407,D413,N801 --line-length 79 moptipy &&\

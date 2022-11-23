@@ -21,8 +21,7 @@ __Q159: Final[float] = (1.0 + erf(-1.0 / sqrt(2.0))) / 2.0
 __Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
 
 
-@numba.njit
-def _unique_floats_1d(data: tuple[np.ndarray, ...]) -> np.ndarray:
+def _unique_floats_1d(data: list[np.ndarray]) -> np.ndarray:
     """
     Get all unique values that are >= than the minimum of all arrays.
 
@@ -41,10 +40,9 @@ def _unique_floats_1d(data: tuple[np.ndarray, ...]) -> np.ndarray:
     return res
 
 
-@numba.njit(inline="always")
 def __apply_fun(x_unique: np.ndarray,
-                x_raw: tuple[np.ndarray, ...],
-                y_raw: tuple[np.ndarray, ...],
+                x_raw: list[np.ndarray],
+                y_raw: list[np.ndarray],
                 stat_func: Callable,
                 out_len: int,
                 dest_y: np.ndarray,
@@ -54,13 +52,13 @@ def __apply_fun(x_unique: np.ndarray,
     """
     Perform the work of computing the time-depending statistic.
 
-    The unique x-values `x_unique` have separate been computed with
-    :meth:`_unique_floats_1d` from `x_raw` so that they can be reused.
-    `x_raw` and `y_raw` are tuples with the raw time and objective data,
+    The unique x-values `x_unique` have separately been computed with
+    :func:`_unique_floats_1d` from `x_raw` so that they can be reused.
+    `x_raw` and `y_raw` are lists with the raw time and objective data,
     respectively. `stat_fun` is the statistic function that will be applied to
     the step-wise generated data filled into `values_buf`. `pos_buf` will be
     used maintain the current indices into `x_raw` and `y_raw`. `dest_y` will
-    be filled with the compute statistic for each element of `x_unique`.
+    be filled with the computed statistic for each element of `x_unique`.
     In a final step, we will remove all redundant elements of both arrays: If
     `x_unique` increases but `dest_y` remains the same, then the corresponding
     point is deleted if it is not the last point in the list. As a result,
@@ -90,18 +88,24 @@ def __apply_fun(x_unique: np.ndarray,
         dest_y[i] = stat_func(values_buf)
 
     changes = 1 + np.flatnonzero(dest_y[1:] != dest_y[:-1])
-    ll = len(dest_y) - 1
-    if changes[-1] != ll:
-        indexes = np.concatenate((np.array([0]), changes, np.array([ll])))
+    dest_len = len(dest_y) - 1
+    changes_len = len(changes)
+    if changes_len < 2:  # strange corner case: all values are the same
+        if dest_len <= 1:  # is there only 1 value?
+            indexes = np.array([0])  # use only that value
+        else:  # otherwise, use first and last value
+            indexes = np.array([0, dest_len])
+    elif changes[-1] != dest_len:  # always put last point
+        indexes = np.concatenate((np.array([0]), changes,
+                                  np.array([dest_len])))
     else:
         indexes = np.concatenate((np.array([0]), changes))
     return np.column_stack((x_unique[indexes], dest_y[indexes]))
 
 
-@numba.jit(forceobj=True)
 def _apply_fun(x_unique: np.ndarray,
-               x_raw: tuple[np.ndarray, ...],
-               y_raw: tuple[np.ndarray, ...],
+               x_raw: list[np.ndarray],
+               y_raw: list[np.ndarray],
                stat_func: Callable) -> np.ndarray:
     """
     Compute a time-depending statistic.
@@ -421,12 +425,7 @@ class StatRun(MultiRun2DData):
         if n <= 0:
             raise ValueError("Did not encounter any progress information.")
 
-        x: Final[tuple[np.ndarray, ...]] = tuple(time)
-        del time
-        y: Final[tuple[np.ndarray, ...]] = tuple(f)
-        del f
-
-        x_unique = _unique_floats_1d(x)
+        x_unique = _unique_floats_1d(time)
         if not isinstance(x_unique, np.ndarray):
             raise type_error(x_unique, "x_unique", np.ndarray)
         if not is_np_float(x_unique.dtype):
@@ -443,7 +442,7 @@ class StatRun(MultiRun2DData):
             if name not in _FUNC_MAP:
                 raise ValueError(f"Unknown statistic name '{name}'.")
             consumer(StatRun(algorithm, instance, n, time_unit, f_name, name,
-                             _apply_fun(x_unique, x, y, _FUNC_MAP[name])))
+                             _apply_fun(x_unique, time, f, _FUNC_MAP[name])))
             count += 1
 
         if count <= 0:
