@@ -71,8 +71,7 @@ def test_process_noss_log() -> None:
             assert all(x == BEST_F)
         assert isfile(path)
         assert getsize(path) > 10
-        result = [line.rstrip() for line in open(path, "r")
-                  .read().splitlines()]
+        result = [line.rstrip() for line in open(path).read().splitlines()]
         assert len(result) > 5
 
         i = result.index("BEGIN_A")

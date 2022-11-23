@@ -30,7 +30,7 @@ def test_log_files() -> None:
             with log.csv("D", ["o", "p", "q"]) as xsv:
                 xsv.row([-341, 42, 3])
                 xsv.row([4, 52, 12])
-        result = open(path, "r").read().splitlines()
+        result = open(path).read().splitlines()
         assert result == ["BEGIN_A",  # 0
                           "x;y",  # 1
                           "1;2",  # 2
