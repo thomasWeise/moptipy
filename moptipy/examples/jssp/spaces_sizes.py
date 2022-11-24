@@ -332,8 +332,8 @@ def __next_perm(arr: np.ndarray,
             # no need for binary search, just swap arr[idx + 1] and arr[0]
             arr[nidx], arr[0] = arr[0], arr[nidx]
         else:
-            # binary search to find the greatest value which is less than
-            # arr[idx + 1]
+            # binary search to find the greatest value which is less
+            # than arr[idx + 1]
             start = np.int64(0)
             end = idx
             mid = (start + end) // 2

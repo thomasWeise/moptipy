@@ -78,7 +78,7 @@ class SciPyAlgorithmWrapper(Algorithm0):
         super().__init__(name, op0)
         if not isinstance(space, VectorSpace):
             raise type_error(space, "space", VectorSpace)
-        #: the internal space
+        #: the vector space defining the dimensions and bounds
         self.space: Final[VectorSpace] = space
         #: the bounds to be used for the internal function call
         self.__bounds: Final[Bounds] = Bounds(space.lower_bound,
@@ -349,9 +349,9 @@ class DE(Algorithm):
         super().__init__()
         if not isinstance(space, VectorSpace):
             raise type_error(space, "space", VectorSpace)
-        #: the vector space
+        #: the vector space defining the dimensions and bounds
         self.space: Final[VectorSpace] = space
-        #: the bounds
+        #: the bounds of the search space, derived from :attr:`space`
         self.__bounds: Final[list[tuple[float, float]]] = \
             [(lb, space.upper_bound[i])
              for i, lb in enumerate(space.lower_bound)]

@@ -207,7 +207,6 @@ class KeepFarthest(MOArchivePruner):
                 for cmp_idx in range(dist_update_start, selected):
                     cmp: np.ndarray = archive[cmp_idx].fs  # objective vector
                     dst: float = float(norm((cmp - rec) / ma))
-                    # float(sum(((cmp - rec) / ma) ** 2.0))
                     if dst < min_dist_rec:  # is this one closer?
                         min_dist_rec = dst  # remember
                 min_dists[rec_idx] = min_dist_rec  # remember

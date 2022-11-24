@@ -13,6 +13,11 @@ API.
 2. http://www-optima.amp.i.kyoto-u.ac.jp/member/student/hedar/Hedar_files\
 /TestGO_files/Page2537.htm
 """
+from moptipy.algorithms.so.vector.cmaes_lib import (
+    CMAES,  # the covariance matrix adaptation evolution strategy (CMA-ES)
+    BiPopCMAES,  # the Bi-Population CMA-ES
+    SepCMAES,  # the separable CMA-ES
+)
 from moptipy.algorithms.so.vector.pdfo import BOBYQA  # Powell's BOBYQA
 from moptipy.algorithms.so.vector.scipy import (
     BGFS,  # Broyden/Fletcher/Goldfarb/Shanno from SciPy
@@ -50,11 +55,14 @@ b = space.create()  # a variable to store the best solution
 
 # Perform one single run for a variety of different optimization algorithms.
 for algorithm in [BGFS(op0, space),  # Broyden/Fletcher/Goldfarb/Shanno
+                  BiPopCMAES(space),  # the bi-population CMA-ES
                   BOBYQA(op0, space),  # Bound Optimization by Quadrat. Apprx.
                   CG(op0, space),  # conjugate gradient method
+                  CMAES(space),  # covariance matrix adaptation ES
                   DE(space),  # differential evolution
                   NelderMead(op0, space),  # downhill simplex
                   Powell(op0, space),  # other Powell method (besides BOBYQA)
+                  SepCMAES(space),  # the separable CMA-ES
                   SLSQP(op0, space),  # Sequential Least Squares Programming
                   TNC(op0, space)]:  # Truncated Newton Method
     # For each algorithm, first configure and then execute one run.

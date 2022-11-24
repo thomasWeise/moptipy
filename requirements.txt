@@ -20,4 +20,5 @@ scikit-learn >= 1.1.3
 scipy >= 1.9.3
 
 # some numerical optimization methods:
-pdfo >= 1.2  # for bobyqa
+cmaes >= 0.9.0  # for, well, CMA-ES
+pdfo >= 1.2  # for BOBYQA

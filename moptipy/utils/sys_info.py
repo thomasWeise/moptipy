@@ -175,9 +175,10 @@ def __make_sys_info() -> str:
 
             with kv.scope(logging.SCOPE_VERSIONS) as k:
                 __v(k, "moptipy", ver.__version__)
-                for package in ["cycler", "fonttools", "joblib", "kiwisolver",
-                                "llvmlite", "matplotlib", "numba", "numpy",
-                                "packaging", "Pillow", "psutil", "pyparsing",
+                for package in ["contourpy", "cycler", "fonttools", "joblib",
+                                "kiwisolver", "llvmlite", "matplotlib",
+                                "numba", "numpy", "packaging", "pdfo",
+                                "Pillow", "psutil", "pyparsing",
                                 "python-dateutil", "scikit-learn", "scipy",
                                 "six", "threadpoolctl"]:
                     __v(k, package.replace("-", ""),

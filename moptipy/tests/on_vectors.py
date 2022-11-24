@@ -83,9 +83,12 @@ def vectors_for_tests(dims: Iterable[int] = DIMENSIONS_FOR_TESTS) \
             dim, lbv if random.integers(2) <= 0 else float(min(lbv)),
             ubv if random.integers(2) <= 0 else float(max(ubv))))
 
-    spaces.append(VectorSpace(1, -1.0, 1.0))
-    spaces.append(VectorSpace(2, 0.0, 1.0))
-    spaces.append(VectorSpace(3, -1.0, 0.0))
+    if 1 in dims:
+        spaces.append(VectorSpace(1, -1.0, 1.0))
+    if 2 in dims:
+        spaces.append(VectorSpace(2, 0.0, 1.0))
+    if 3 in dims:
+        spaces.append(VectorSpace(3, -1.0, 0.0))
     return tuple(spaces)
 
 
@@ -93,7 +96,8 @@ def validate_algorithm_on_vectors(
         objective: Objective | Callable[[VectorSpace], Objective],
         algorithm: Algorithm | Callable[[VectorSpace, Objective], Algorithm],
         max_fes: int = 100,
-        uses_all_fes_if_goal_not_reached=True) -> None:
+        uses_all_fes_if_goal_not_reached=True,
+        dims: Iterable[int] = DIMENSIONS_FOR_TESTS) -> None:
     """
     Check the validity of a black-box algorithm on vector problems.
 
@@ -102,13 +106,16 @@ def validate_algorithm_on_vectors(
     :param max_fes: the maximum number of FEs
     :param uses_all_fes_if_goal_not_reached: will the algorithm use all FEs
         unless it reaches the goal?
+    :param dims: the dimensions
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
         raise type_error(algorithm, "algorithm", Algorithm, True)
     if not (isinstance(objective, Objective) or callable(objective)):
         raise type_error(objective, "objective", Objective, True)
+    if not isinstance(dims, Iterable):
+        raise type_error(dims, "dims", Iterable)
 
-    for space in vectors_for_tests():
+    for space in vectors_for_tests(dims):
         if callable(objective):
             objf = objective(space)
             if not isinstance(objf, Objective):
@@ -151,17 +158,20 @@ def make_vector_valid(space: VectorSpace) -> \
 
 def validate_algorithm_on_ackley(
         algorithm: Algorithm | Callable[[VectorSpace, Objective], Algorithm],
-        uses_all_fes_if_goal_not_reached: bool = True) -> None:
+        uses_all_fes_if_goal_not_reached: bool = True,
+        dims: Iterable[int] = DIMENSIONS_FOR_TESTS) -> None:
     """
     Check the validity of a black-box algorithm on Ackley's function.
 
     :param algorithm: the algorithm or algorithm factory
     :param uses_all_fes_if_goal_not_reached: will the algorithm use all FEs
         unless it reaches the goal?
+    :param dims: the dimensions
     """
     validate_algorithm_on_vectors(
         Ackley(), algorithm,
-        uses_all_fes_if_goal_not_reached=uses_all_fes_if_goal_not_reached)
+        uses_all_fes_if_goal_not_reached=uses_all_fes_if_goal_not_reached,
+        dims=dims)
 
 
 def validate_op0_on_1_vectors(

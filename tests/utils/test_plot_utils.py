@@ -11,7 +11,6 @@ def test_create_and_save_figure() -> None:
     f = pu.create_figure(10, 10)
     assert isinstance(f, Figure)
     ax = pu.get_axes(f)
-    # assert isinstance(f, Axes)
     ax.hist(x=range(100))
     with TempDir.create() as td:
         res = pu.save_figure(fig=f, file_name="test", dir_name=td,

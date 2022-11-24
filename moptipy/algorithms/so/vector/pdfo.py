@@ -1,9 +1,11 @@
 """
-Wrap `bobyqa` from `pdfo` into our `moptipy` API.
+Provides the Algorithm `bobyqa` from the Library `pdfo`.
 
 The library "Powell's Derivative-Free Optimization solvers" (`pdfo`) at
 https://www.pdfo.net provides an implementation of the "Bound Optimization BY
 Quadratic Approximation" algorithm, or BOBYQA for short.
+The library is dedicated to the late Professor M. J. D. Powell FRS (1936—2015)
+and maintained by Tom M. Ragonneau and Zaikun Zhang.
 Here, we wrap it into a class that complies to our `moptipy` API.
 This class offers no additional logic but directly defers to the function
 in the `pdfo` library.
@@ -13,13 +15,15 @@ in the `pdfo` library.
    Department of Applied Mathematics and Theoretical Physics, Cambridge
    University, Cambridge, UK, 2009.
    https://www.damtp.cam.ac.uk/user/na/NA_papers/NA2009_06.pdf
+
+- https://github.com/pdfo/pdfo
+- https://www.pdfo.net
 """
 
 import warnings
 from typing import Any, Callable, Final, cast
 
 import numpy as np
-from numpy import ndarray
 
 # noinspection PyProtectedMember
 from pdfo._bobyqa import bobyqa  # type: ignore
@@ -60,13 +64,8 @@ class BOBYQA(Algorithm0):
         super().__init__("bobyqa_pdfo", op0)
         if not isinstance(space, VectorSpace):
             raise type_error(space, "space", VectorSpace)
-        #: the internal space
+        #: the vector space defining the dimensions and bounds
         self.space: Final[VectorSpace] = space
-        #: the bounds to be used for the internal function call
-        self.__bounds: Final[np.ndarray] = \
-            np.stack((space.lower_bound, space.upper_bound)).transpose()
-        #: the cache for starting points
-        self.__x0: Final[ndarray] = space.create()
 
     def __run(self, process: Process) -> None:
         """
@@ -74,14 +73,16 @@ class BOBYQA(Algorithm0):
 
         :param process: the process
         """
-        x0: Final[np.ndarray] = self.__x0
+        x0: Final[np.ndarray] = process.create()
         npt: int = (2 * len(x0)) + 1  # the default npt value
         max_fes: int = max(npt + 1, get_remaining_fes(process))
+        self.op0.op0(process.get_random(), x0)  # sample start point
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             bobyqa(self.space.clipped(process.evaluate),
-                   x0, bounds=self.__bounds,
+                   x0, bounds=np.stack((self.space.lower_bound,
+                                        self.space.upper_bound)).transpose(),
                    options={
                        "rhoend": 1e-320,  # the end rho value
                        "maxfev": max_fes,  # the maximum FEs

@@ -1992,6 +1992,7 @@ We therefore also run a variety of such tools on our code base, including (in al
 - [`bandit`](https://pypi.org/project/bandit/), a linter for finding security issues
 - [`dodgy`](https://pypi.org/project/dodgy/), for checking for dodgy looking values in the code
 - [`flake8`](https://pypi.org/project/flake8/), a collection of linters
+- [`flake8-eradicate`](http://pypi.org/project/flake8-eradicate), for finding commented-out code
 - [`mypy`](https://pypi.org/project/mypy/), for checking types and type annotations
 - [`pycodestyle`](https://pypi.org/project/pycodestyle/), for checking the formatting and coding style of the source
 - [`pydocstyle`](https://pypi.org/project/pydocstyle/), for checking the format of the docstrings

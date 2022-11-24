@@ -23,6 +23,7 @@ coverage-badge >= 1.1.0
 dlint >= 0.13.0
 dodgy >= 0.2.1
 flake8 >= 5.0.4
+flake8-eradicate >= 1.4.0
 mypy >= 0.990
 pycodestyle >= 2.9.1
 pydocstyle >= 6.1.1
