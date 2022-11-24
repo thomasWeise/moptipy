@@ -711,6 +711,7 @@ Such spaces are defined by box-constraints over the *n*-dimensional real numbers
 - The quasi-Newton method by Broyden, Fletcher, Goldfarb, and Shanno ([BFGS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html).
 - The Bound Optimization BY Quadratic Approximation algorithm [`BOBYQA`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.pdfo.BOBYQA) from the library "Powell's Derivative-Free Optimization solvers" ([`pdfo`](https://www.pdfo.net)).
 - The Conjugate Gradient ([CG](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.CG)) algorithm, wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-cg.html).
+- The Covariance Matrix Adaptation Evolution Strategies [CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES), [Separable CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.SepCMAES), and [BIPOP-CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES) from the library [`cmaes`](https://pypi.org/project/cmaes/).
 - Differential Evolution ([DE](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html).
 - The Downhill Simplex method based on the [Nelder-Mead](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.NelderMead), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html).
 - [Powell's Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.Powell), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-powell.html).
@@ -2046,14 +2047,30 @@ In other words, if you have the complete code of a `moptipy` compliant experimen
 
 ## 9. Useful Links and References
 
+### 9.1. Links regarding the `moptipy` project
+
+- Our project can be found on GitHub at <https://github.com/thomasWeise/moptipy/>
+- The documentation of our project is available at <https://thomasweise.github.io/moptipy/>.
+- Our project can be found on PyPi at <https://pypi.org/project/moptipy/>
+- Our project can be found on Libraries.io at <https://libraries.io/pypi/moptipy>, however, there the wrong version is shown as current version, for some reason.
+- An example data set of experimental results obtained with `moptipy` can be found at <https://thomasweise.github.io/oa_data/>. 
+
+
+### 9.2. Links to other works of our team
+
 1. Our book on optimization algorithms, which is currently work in progress:
    Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
 2. Our old book optimization algorithms:
    Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://iao.hfuu.edu.cn/images/publications/W2009GOEB.pdf).
-3. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
+3. The website of our Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) is <http://iao.hfuu.edu.cn>.
+
+
+### 9.3. Links to related works and tools by other researchers
+
+1. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
    It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the [IOHanalyzer](https://iohanalyzer.liacs.nl/), which allows you to use this software to analyze your optimization results as well.
    You can then upload the data to the online [IOHanalyzer service](https://iohanalyzer.liacs.nl/) and evaluate it. 
-4. A nice discussion of experimentation with (numerical) optimization methods is:
+2. A nice discussion of experimentation with (numerical) optimization methods is:
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
 

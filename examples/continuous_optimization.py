@@ -69,9 +69,13 @@ for algorithm in [BGFS(op0, space),  # Broyden/Fletcher/Goldfarb/Shanno
     with Execution().set_objective(f)\
             .set_solution_space(space)\
             .set_max_fes(1000)\
-            .set_rand_seed(1000) \
+            .set_rand_seed(1000)\
             .set_algorithm(algorithm)\
             .execute() as p:  # Execute the algorithm and get result.
         p.get_copy_of_best_x(b)  # Get a copy of the best solution.
         print(f"{algorithm} reaches {p.get_best_f()} with {space.to_str(b)}"
               f" at FE {p.get_last_improvement_fe()}")
+
+# If you want to do more runs and get more detailed log information, check
+# examples log_file_jssp.py, experiment_own_algorithm_and_problem.py,
+# progress_plot.py, or experiment_2_algorithms_4_problems.py.
