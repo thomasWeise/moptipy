@@ -69,7 +69,7 @@ for algorithm in [BGFS(op0, space),  # Broyden/Fletcher/Goldfarb/Shanno
     with Execution().set_objective(f)\
             .set_solution_space(space)\
             .set_max_fes(1000)\
-            .set_rand_seed(1000)\
+            .set_rand_seed(1234)\
             .set_algorithm(algorithm)\
             .execute() as p:  # Execute the algorithm and get result.
         p.get_copy_of_best_x(b)  # Get a copy of the best solution.
