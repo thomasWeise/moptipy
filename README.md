@@ -731,7 +731,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
 
 ### 4.2. Implemented Search Spaces and Operators
 
-1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
+1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n` are represented as `numpy` arrays as well. Here, each value can either be `True` or `False`.
     - Nullary Operators:
       - [random initialization](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op0_random.Op0Random) fills the string with random bits
     - Unary Operators:
@@ -739,7 +739,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
       - [flip m/n](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1) flips each bit independently with probability `m/n`
     - Binary Operators:
       - [uniform crossover](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op2_uniform.Op2Uniform) randomly chooses, for each bit, from which of the two source strings it will be copied
-2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
+2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) with and without Repetitions are represented as numpy arrays of integers. A permutation of the values "1,2,3", for example, is an arrangement containing these values in any order. In `moptipy`, the space `Permutation` is defined over any arrangement of a given base string. For example, if a base string is "1,2,2,3", then any arrangement containing one "1", two "2"s, and one "3" is then an element of this space. This allows us to represent both normal permutations as well as those with repetitions.
     - Nullary Operators:
       - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations
     - Unary Operators:
@@ -748,7 +748,9 @@ In other words, they try to minimize multiple [objective functions](https://thom
     - Binary Operators:
       - [generalized alternating position crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_gap.Op2GeneralizedAlternatingPosition) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
       - [order-based crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased) randomly selects a set of indices and copies the elements from first source permutation to the same indices in the destination string. It then copies the remaining elements from the second source, maintaining the order in which they appear in the second source string.
-3. [n-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace).
+3. [`n`-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace) are subsets of the `n`-dimensional real numbers. They are `numpy` arrays representing vectors of length `n`. On each dimension, a [lower](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.lower_bound) and an [upper bound](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.upper_bound) are imposed.
+   - Nullary Operators:
+     - [uniform sampling](https://thomasweise.github.io/moptipy/moptipy.operators.vectors.html#module-moptipy.operators.vectors.op0_uniform) samples a point from the uniform distribution resulting from the lower- and upper bound of the search space.
 
 
 ### 4.3. Implemented Problems
@@ -760,7 +762,9 @@ In other words, they try to minimize multiple [objective functions](https://thom
 2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
     - The NP-hard Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)), where the goal is to find an assignment of jobs to machines with the minimum makespan.
       On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with [`moptipy`](https://thomasweise.github.io/moptipy) on the JSSP.
-
+3. [`n`-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace)
+   - [Ackley's Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#moptipy.examples.vectors.ackley.Ackley)
+   - [Sphere Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#moptipy.examples.vectors.sphere.Sphere)
 
 ## 5. Data Formats
 
