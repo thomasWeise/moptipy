@@ -38,8 +38,9 @@
   - [Unit Tests and Static Analysis](#81-unit-tests-and-static-analysis)
   - [Reproducibility](#82-reproducibility)
 - [Uselful Links and References](#9-useful-links-and-references)
-- [License](#10-license)
-- [Contact](#11-contact)
+- [Works using moptipy](#10-works-using-moptipy)
+- [License](#11-license)
+- [Contact](#12-contact)
 
 
 ## 1. Introduction
@@ -765,6 +766,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
 3. [`n`-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace)
    - [Ackley's Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#moptipy.examples.vectors.ackley.Ackley)
    - [Sphere Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#moptipy.examples.vectors.sphere.Sphere)
+
 
 ## 5. Data Formats
 
@@ -2069,7 +2071,26 @@ In other words, if you have the complete code of a `moptipy` compliant experimen
 3. The website of our Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) is <http://iao.hfuu.edu.cn>.
 
 
-### 9.3. Links to related works and tools by other researchers
+### 9.3. Other Python Libraries of Optimization Algorithms
+
+Here we provide a list of other Python software packages that can be used for solving optimization problems (in alphabetical order).
+
+- [`cmaes`](https://github.com/CyberAgent/cmaes) provides implementations of Covariance Matrix Adaptation Evolution Strategies for solving continuous optimization problems.
+  It is maintained by Masashi Shibata and Masahiro Nomura and available at <https://pypi.org/project/cmaes/> and <https://github.com/CyberAgent/cmaes>.
+  We wrap several of the algorithms into our `moptipy` API in module [`moptipy.algorithms.so.vector.cmaes_lib`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.cmaes_lib).
+- [`deap`](https://github.com/DEAP/deap) is a novel evolutionary computation framework for rapid prototyping and testing of ideas by Félix-Antoine Fortin, François-Michel De Rainville, Marc-André Gardner, Marc Parizeau, and Christian Gagné.
+  It offers a rich set of evolutionary computation-based metaheuristics and a straightforward API.
+  You can find it on GitHub at <https://github.com/DEAP/deap>.
+- The library "Powell's Derivative-Free Optimization solvers" ([`pdfo`](https://www.pdfo.net)) provides an implementation of the "Bound Optimization BY Quadratic Approximation" algorithm, or BOBYQA for short, for solving continuous optimization problems. 
+  The library is dedicated to the late Professor M. J. D. Powell FRS (1936—2015), maintained by Tom M. Ragonneau and Zaikun Zhang, and available at <https://github.com/pdfo/pdfo> and <https://www.pdfo.net>.
+  We wrap its `BOBYQA` implementation into our `moptipy` API in module [`algorithms.so.vector.pdfo`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo).
+- [`pgapy`](https://github.com/schlatterbeck/pgapy) by Ralf Schlatterbeck provides a Python wrapper the [PGAPack](https://github.com/schlatterbeck/pgapack) Parallel Genetic Algorithm Library.
+  It can be found on GitHub at <https://github.com/schlatterbeck/pgapy>.
+- [`scipy`](https://scipy.org) offers a set of well-established mathematical optimization techniques for continuous optimization via the function [`scipy.optimize.minimize`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html).
+  We wrap some of them into our `moptipy` API in module [`algorithms.so.vector.scipy`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.scipy).
+
+
+### 9.4. Links to related works and tools by other researchers
 
 1. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
    It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the [IOHanalyzer](https://iohanalyzer.liacs.nl/), which allows you to use this software to analyze your optimization results as well.
@@ -2078,9 +2099,17 @@ In other words, if you have the complete code of a `moptipy` compliant experimen
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
 
-## 10. License
+## 10. Works using `moptipy`
 
-The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#11-contact)).
+1. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
+   This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
+2. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org/))*, December 4-7, 2022, Singapore.
+   This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#moptipy.algorithms.so.fitnesses.ffa.FFA)) on the Traveling Salesperson Problem.
+
+
+## 11. License
+
+The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#12-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
 
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
@@ -2093,7 +2122,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 
 
-## 11. Contact
+## 12. Contact
 
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
