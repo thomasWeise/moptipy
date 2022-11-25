@@ -333,4 +333,25 @@ def test_all_links_in_readme_md() -> None:
         text = "\n".join(lines)
         lines.clear()
 
+    # now checking <...>-style URLs
+    start = -1
+    lines.clear()
+    while True:
+        start += 1
+        i = text.find("<http", start)
+        if i < start:
+            lines.append(text[start:])
+            break
+        j = text.find(">", i + 1)
+        if j <= i:
+            break
+        if "\n" in text[i:j]:
+            lines.append(text[start:i])
+            start = i
+            continue
+        __check(text[i + 1:j], valid_urls)
+
+        lines.append(text[start:i])
+        start = j
+
     logger("finished testing all links from README.md.")
