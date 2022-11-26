@@ -39,7 +39,7 @@ class Permutations(IntSpace):  # +book
     >>> print(perm.to_str(perm.blueprint))
     1;3;5;5;7
     >>> print(perm)
-    perm_of_string
+    permOfString
     >>> print(perm.n_points())
     60
 
@@ -49,7 +49,7 @@ class Permutations(IntSpace):  # +book
     >>> print(perm.to_str(perm.blueprint))
     1;2;2;3;3
     >>> print(perm)
-    perm_of_string
+    permOfString
     >>> print(perm.n_points())
     30
 
@@ -235,7 +235,7 @@ class Permutations(IntSpace):  # +book
         :return: "perm" + blueprint string
 
         >>> print(Permutations([0, 1, 0, 2, 1]))
-        perm_of_string
+        permOfString
         >>> print(Permutations([0, 2, 0, 1, 1, 2]))
         perm3w2r
         >>> print(Permutations([0, 2, 1, 3]))
@@ -263,7 +263,7 @@ class Permutations(IntSpace):  # +book
                     if min_is_0:
                         return f"perm{different}w{reps}r"
                     return sanitize_name(f"perm{minimum}to{maximum}w{reps}r")
-        return "perm_of_string"
+        return "permOfString"
 
     @staticmethod
     def standard(n: int) -> "Permutations":

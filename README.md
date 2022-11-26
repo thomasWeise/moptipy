@@ -50,20 +50,21 @@ The framework, [algorithm implementations](#41-implemented-algorithms), and the 
 They are all structured from an educational and learning perspective, but still with performance, ease-of-use, and generality in mind.
 
 Metaheuristic optimization algorithms are methods for solving hard problems.
-Here we provide an API that can be used to implement them and to experiment with them.
+`moptipy` provides an API, several algorithm implementations, as well as experiment execution and evaluation facilities for metaheuristics.
 
 A metaheuristic algorithm can be a black-box method, which can solve problems without deeper knowledge about their nature.
-Such a black-box algorithm only requires methods to create and `modifiy` points in the search space and to evaluate their quality.
+Such a black-box algorithm only requires methods to create and modify points in the search space and to evaluate their quality.
 With these operations, it will try to step-by-step discover better points.
 Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
 Such algorithms allow us to plug in almost arbitrary search operators, search spaces, and objective functions.
 But it is also possible to develop algorithms that are tailored to specified problems.
 For example, one could either design the search operators and the optimization algorithm as a unit.
 Then, the algorithm could change its way to sample new points based on the information it gathers.
+Or one could design an algorithm for a specific search space, say, the [`n`-dimensional real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace), which could then make use of the special features of this space, such as arithmetics and geometric relationships of the points within it.
 Or one could design an algorithm for a specific problem, making use of specific features of the objective function.
-Finally, there are multi-objective optimization problems where multiple criteria need to be optimized at once.
+Finally, there are multi-objective optimization problems where multiple, potentially conflicting, criteria need to be optimized at once.
 
-Within our [`moptipy`](https://thomasweise.github.io/moptipy) framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
+Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
 What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
 The `moptipy` API now supports both single-objective and multi-objective optimization.
@@ -101,7 +102,7 @@ If this build completes successful, you can be sure that [`moptipy`](https://tho
 
 ## 3. How-Tos
 
-You can find many examples of how to use the [moptipy](https://thomasweise.github.io/moptipy) library in the folder "[`examples`](https://github.com/thomasWeise/moptipy/tree/main/examples)".
+You can find many examples of how to use the `moptipy` library in the folder "[`examples`](https://github.com/thomasWeise/moptipy/tree/main/examples)".
 Here, we talk mainly about directly applying one or multiple [optimization algorithm(s)](#41-implemented-algorithms) to one or multiple [optimization problem](#43-implemented-problems) instance(s).
 In [Section 5 on Data Formats](#5-data-formats), we give examples and specifications of the log files that our system produces and how you can export the data to other formats.
 Later, in [Section 6 on Evaluating Experiments](#6-evaluating-experiments), we provide several examples on how to evaluate and visualize the results of experiments.
@@ -126,7 +127,7 @@ Then, via [`ex.set_solution_space(...)`](https://thomasweise.github.io/moptipy/m
 The solution space is an instance of the class [`Space`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space).
 It provides all methods necessary to create a solution data structure, to copy the contents of one solution data structure to another one, to convert solution data structures to and from strings, and to verify whether a solution data structure is valid.
 It is used by the optimization algorithm for instantiating the solution data structures and for copying them.
-It is used internally by the [`moptipy`](https://thomasweise.github.io/moptipy) system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#51-log-files).
+It is used internally by the `moptipy` system to automatically maintain copies of the current best solution, to check if the solutions are indeed valid once the algorithm finishes, and to convert the solution to a string to store it in the [log files](#51-log-files).
 
 If the search and solution spaces are different, then you can also set a search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) via [`ex.set_search_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_search_space) and an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) via [`ex.set_encoding(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_encoding).
 This is not necessary if the algorithm works directly on the solutions (as in our example below).
@@ -144,7 +145,7 @@ Finally, you can also set the path to a log file via [`ex.set_log_file(...)`](ht
 If you specify a log file, the system will automatically gather system information and collect the end result.
 Via [`ex.set_log_improvements(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), you can instruct the system to also collect the progress of the algorithm in terms of improving moves by default.
 In the rare case that you want to log every single move that the algorithm makes, you could call [`ex.set_log_all_fes(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes).
-All of the collected data will be stored in a [text file](#51-log-files) *after* the algorithm has completed and you have left the process scope (see below). 
+All the collected data will be stored in a [text file](#51-log-files) *after* the algorithm has completed and you have left the process scope (see below). 
 
 Anyway, after you have completed building the execution, you can run the process you have configured via `ex.execute()`.
 This method returns an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process).
@@ -386,6 +387,19 @@ rls_flip1 on leadingones_10: 0
 rls_flip1 on leadingones_10: 0
 rls_flip1 on leadingones_10: 0
 ```
+
+When you invoke [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment)  and not specify `n_threads = 1`, the system will automatically determine a suitable number of processes to launch in order to execute the runs of the experiment in parallel.
+Under Windows or MacOS, you should always specify `n_threads = 1` because this sort of parallelism doesn't work there.
+But you can simply launch the main process several times in the same folder to achieve the same effect.
+Actually, you can also execute experiments in a *distributed* fashion like this:
+All you have to do is to share the folder for the log files among all computer nodes.
+Then, in this shared folder, execute the experiment on each node.
+The system will then automatically ensure that no work is done twice and the experiment runs in a distributed fashion with almost no overhead.
+
+The trick is that we create the random seeds in a deterministic fashion so that each experiment on each node will have the same seeds and, hence, the [same names for the log files](#511-file-names-and-folder-structure).
+The log files are created emptily right before a run starts and filled with data once the run is completed.
+Since file creation is atomic in distributed file systems, the system can then automatically ensure that no run is performed by more than one node.
+This is an extremely simple yet very robust method for distribution with very low overhead.
 
 
 ### 3.3. How to Solve an Optimization Problem
@@ -2104,7 +2118,7 @@ Here we provide a list of other Python software packages that can be used for so
 1. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
    This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
 2. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org/))*, December 4-7, 2022, Singapore.
-   This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#moptipy.algorithms.so.fitnesses.ffa.FFA)) on the Traveling Salesperson Problem.
+   This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.fitnesses.ffa)) on the Traveling Salesperson Problem.
 
 
 ## 11. License
