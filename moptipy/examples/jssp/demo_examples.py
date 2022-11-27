@@ -202,7 +202,7 @@ def makespan_lower_bound_table(
         dirname: str,
         filename: str = "makespan_lower_bound",
         instances: Iterable[str] =
-        tuple(["demo"] + list(EXPERIMENT_INSTANCES))) -> Path:
+        tuple(["demo"] + list(EXPERIMENT_INSTANCES))) -> Path:  # noqa
     """
     Make a table with the makespan lower bounds.
 

@@ -435,11 +435,10 @@ def verify_algorithms_equivalent(
             result = result2
             result.clear()
 
-        def ff(x) -> int:
-            nonlocal result
+        def ff(x, rr=(result, )) -> int:
             nonlocal evaluate
             rres = evaluate(x)
-            result.extend(x)  # pylint: disable=W0640
+            rr[0].extend(x)
             return rres
 
         ex = Execution()

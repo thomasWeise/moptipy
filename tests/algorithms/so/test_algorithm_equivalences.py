@@ -128,8 +128,10 @@ def test_fitness_ea_equals_ea() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f: __EAC(op0, op1, op2, mu, lambda_, br),
-            lambda bs, f: GeneralEA(op0, op1, op2, mu, lambda_, br),
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: __EAC(
+                op0, op1, op2, mx, lx, bx),
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx),
         ])
 
 
