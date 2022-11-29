@@ -85,7 +85,9 @@ class Tournament(Selection):
 
         # fast call
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
-            cast(Callable[[int, int, bool], Iterable[int]], random.choice)
+            cast(Callable[[int, int, bool], Iterable[int]],  # -book
+                 random.choice
+                 )  # -book
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness
