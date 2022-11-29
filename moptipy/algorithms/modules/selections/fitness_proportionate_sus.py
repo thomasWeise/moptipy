@@ -94,14 +94,15 @@ element should have (of course, if we have `N` elements in the population, it
 must hold that `0 <= min_prob < 1/N`). Based on this probability, we compute
 the offset of the fitness values. We do it as follows:
 
-The idea is that, in maximization, we got `P(i) = v(i) / [sum_j=0^N v(j)]`.
-Now if `v(i) = 0`, we would get `P(i) = 0` as well. But we want
-`P(i) = min_prob`, so we need to add an `offset` to each `v(i)`. So this then
-becomes `P(i) = min_prob = offset / [sum_j=0^N (v(j) + offset)]`, which
+The idea is that, in maximization, we got
+`P(i) = v(i) / [sum_j=0^(N-1) v(j)]`. Now if `v(i) = 0`, we would get
+`P(i) = 0` as well. But we want `P(i) = min_prob`, so we need to add an
+`offset` to each `v(i)`. So this then becomes
+`P(i) = min_prob = offset / [sum_j=0^(N-1) (v(j) + offset)]`, which
 becomes `min_prob = offset / [N * offset + sum_j=0^N v(j)]`. Let's set
 `S = sum_j=0^N v(j)` to make this easier to read and we get
 `min_prob = offset / (N * offset + S)`. Solving for `offset` gives us
-`offset = (min_prob / (1.0 - (min_prob * N)))`. In other words, for any
+`offset = S * (min_prob / (1.0 - (min_prob * N)))`. In other words, for any
 allowable minimum selection probability `0<=min_prob<1/N`, we can compute an
 offset to add to each fitness value that will result in the worst solution
 having exactly this selection probability. The probabilities of the other
