@@ -2,7 +2,7 @@
 Tournament selection with or without replacement in the tournaments.
 
 For each slot in the destination, a tournament with
-:attr:`~moptipy.algorithms.modules.selections.tournament.Tournament.s`
+:attr:`~moptipy.algorithms.modules.selections.tournament.Tournament.size`
 randomly chosen participating solutions is conducted. The solution with
 the best fitness wins and is copied to the destination. If
 :attr:`~moptipy.algorithms.modules.selections.tournament.Tournament\
