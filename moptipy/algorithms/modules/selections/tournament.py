@@ -79,9 +79,6 @@ class Tournament(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        # set up tournament size=s, source length=m, replacement
-        # such initialization is omitted for the sake of brevity
-        # end book
         s: Final[int] = self.s
         replacement: Final[bool] = self.replacement
         m: Final[int] = len(source)
@@ -89,7 +86,6 @@ class Tournament(Selection):
         # fast call
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
             cast(Callable[[int, int, bool], Iterable[int]], random.choice)
-        # start book
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness
@@ -99,7 +95,7 @@ class Tournament(Selection):
                 if rec_fitness <= best_fitness:  # if better or equal...
                     best = rec  # ... rec becomes the new best record
                     best_fitness = rec_fitness  # and remember fitness
-            dest(best)  # at end of the tournament, store best in dest
+            dest(best)  # at end of the tournament, send best to dest
         # end book
 
     def __str__(self):
