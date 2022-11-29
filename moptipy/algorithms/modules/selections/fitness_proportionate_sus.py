@@ -211,30 +211,30 @@ def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
     >>> list(map(str, ar))
     ['1.0', '2.0', '3.0', '4.0']
     """
-    max_fitness: float = -np.inf
-    min_fitness: float = np.inf
-    for v in a:  # get minimum nd maximum fitness
-        if v > max_fitness:
-            max_fitness = v
-        if v < min_fitness:
-            min_fitness = v
+    max_fitness: float = -np.inf  # initialize maximum to -infinity
+    min_fitness: float = np.inf  # initialize minimum to infinity
+    for v in a:  # get minimum and maximum fitness
+        if v > max_fitness:  # if fitness is bigger than maximum...
+            max_fitness = v  # ...then update the maximum
+        if v < min_fitness:  # if fitness is smaller than minimum...
+            min_fitness = v  # ...then update the minimum
 
     if min_fitness >= max_fitness:  # all elements are the same
         for i in range(len(a)):  # pylint: disable=C0200
-            a[i] = i + 1  # assign equal probability
-        return  # to all elements: each range = 1
+            a[i] = i + 1  # assign equal probabilities to all elements
+        return  # finished: a=[1, 2, 3, 4, ...] -> each range = 1
 
-    for i, v in enumerate(a):  # negate the array for minimization
-        a[i] = max_fitness - v
+    for i, v in enumerate(a):  # since we do minimization, we now negate
+        a[i] = max_fitness - v  # the array by subtracting from maximum
 
     fitness_sum: Final[float] = a.sum()  # get the new fitness sum
 
     # compute the offset to accommodate the probability adjustment
     offset: Final[float] = fitness_sum * offset_mul
 
-    cum_sum: float = 0.0
-    for i, v in enumerate(a):  # compute the scaled cumulative sum
-        a[i] = cum_sum = cum_sum + offset + v
+    cum_sum: float = 0.0  # the cumulative sum accumulator starts at 0
+    for i, v in enumerate(a):  # iterate over array and build the sum
+        a[i] = cum_sum = cum_sum + offset + v  # store cum sum + offset
 # end book
 
 
@@ -273,7 +273,7 @@ class FitnessProportionateSUS(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        m: Final[int] = len(source)
+        m: Final[int] = len(source)  # number of elements to select from
         # compute the offset multiplier from the minimum probability
         # for this, min_prob must be < 1 / m
         min_prob: Final[float] = self.min_prob
@@ -291,19 +291,17 @@ class FitnessProportionateSUS(Selection):
         if len(a) != m:  # re-allocate only if lengths don't match
             self.__cumsum = a = np.empty(m, DEFAULT_FLOAT)
         # start book
-        for i, rec in enumerate(source):
+        for i, rec in enumerate(source):  # fill the array with fitnesses
             a[i] = rec.fitness  # store the fitnesses in the numpy array
 
         _make_cum_sum(a, offset_mul)  # construct cumulative sum array
-        cum_sum: Final[float] = a[-1]  # cumulative sum = last element
-
-        # stochastic uniform sampling
-        current: float = random.uniform(0, cum_sum)  # starting point
-        step_width: Final[float] = cum_sum / n  # step width
-
+        total_sum: Final[float] = a[-1]  # total sum = last element
+        # now perform the stochastic uniform sampling
+        current: float = random.uniform(0, total_sum)  # starting point
+        step_width: Final[float] = total_sum / n  # step width
         for _ in range(n):  # select the `n` solutions
             dest(source[a.searchsorted(current, "right")])  # select
-            current = (current + step_width) % cum_sum  # get next point
+            current = (current + step_width) % total_sum  # get next
 # end book
 
     def __str__(self):

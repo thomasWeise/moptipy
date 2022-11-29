@@ -82,8 +82,6 @@ class Tournament(Selection):
         size: Final[int] = self.size  # the tournament size
         replacement: Final[bool] = self.replacement  # w/o replacement?
         m: Final[int] = len(source)  # number of elements to select from
-
-        # fast call
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
             cast(Callable[[int, int, bool], Iterable[int]],  # -book
                  random.choice  # fast call to random.choice function
