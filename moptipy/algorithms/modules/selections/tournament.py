@@ -47,22 +47,22 @@ class Tournament(Selection):
     """Tournament selection with or without replacement in the tournament."""
 
 # end book
-    def __init__(self, s: int = 2, replacement: bool = True) -> None:
+    def __init__(self, size: int = 2, replacement: bool = True) -> None:
         """
         Create the tournament selection method.
 
-        :param s: the size of the tournaments
+        :param size: the size of the tournaments
         :param replacement: will the tournaments be with replacement?
         """
         super().__init__()
-        if not isinstance(s, int):
-            raise type_error(s, "s", int)
-        if s < 1:
-            raise ValueError(f"Tournament size must be > 1, but is {s}.")
+        if not isinstance(size, int):
+            raise type_error(size, "size", int)
+        if size < 1:
+            raise ValueError(f"Tournament size must be > 1, but is {size}.")
         if not isinstance(replacement, bool):
             raise type_error(replacement, "replacement", bool)
         #: the tournament size
-        self.s: Final[int] = s
+        self.size: Final[int] = size
         #: should we perform replacements in the tournaments?
         self.replacement: Final[bool] = replacement
 
@@ -79,20 +79,20 @@ class Tournament(Selection):
         :param n: the number of records to select
         :param random: the random number generator
         """
-        s: Final[int] = self.s
-        replacement: Final[bool] = self.replacement
-        m: Final[int] = len(source)
+        size: Final[int] = self.size  # the tournament size
+        replacement: Final[bool] = self.replacement  # w/o replacement?
+        m: Final[int] = len(source)  # number of elements to select from
 
         # fast call
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
             cast(Callable[[int, int, bool], Iterable[int]],  # -book
-                 random.choice
+                 random.choice  # fast call to random.choice function
                  )  # -book
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
-            best_fitness: int | float = inf  # best fitness
-            for i in choice(m, s, replacement):  # perform tournament
-                rec = source[i]  # get record from source
+            best_fitness: int | float = inf  # best fitness, initial infinite
+            for i in choice(m, size, replacement):  # perform tournament
+                rec = source[i]  # get contestant record from source
                 rec_fitness = rec.fitness  # get its fitness
                 if rec_fitness <= best_fitness:  # if better or equal...
                     best = rec  # ... rec becomes the new best record
@@ -106,7 +106,7 @@ class Tournament(Selection):
 
         :return: the name of the tournament selection algorithm
         """
-        st = f"tour{self.s}"
+        st = f"tour{self.size}"
         if self.replacement:
             return f"{st}r"
         return st
@@ -118,5 +118,5 @@ class Tournament(Selection):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        logger.key_value("size", self.s)
+        logger.key_value("size", self.size)
         logger.key_value("withReplacement", self.replacement)
