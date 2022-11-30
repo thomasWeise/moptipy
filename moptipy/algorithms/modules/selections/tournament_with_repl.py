@@ -2,7 +2,7 @@
 Tournament selection with replacement in the tournaments.
 
 For each slot in the destination, a tournament with
-:attr:`~moptipy.algorithms.modules.selections.tournament_with_replacement.\
+:attr:`~moptipy.algorithms.modules.selections.tournament_with_repl.\
 TournamentWithReplacement.size`
 randomly chosen participating solutions is conducted. The solution with
 the best fitness wins and is copied to the destination. The solutions are
@@ -11,8 +11,7 @@ enter a given tournament several times. A solution may be selected multiple
 times.
 
 Tournament selection without replacement is implemented in
-:mod:`moptipy.algorithms.modules.selections.\
-tournament_without_replacement`.
+:mod:`moptipy.algorithms.modules.selections.tournament_without_repl`.
 
 1. Peter J. B. Hancock. An Empirical Comparison of Selection Methods in
    Evolutionary Algorithms. In Terence Claus Fogarty, editor, *Selected Papers

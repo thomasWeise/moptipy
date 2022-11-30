@@ -3,7 +3,7 @@ Tournament selection without replacement in the tournaments.
 
 For each slot in the destination, a tournament with
 :attr:`~moptipy.algorithms.modules.selections.\
-tournament_without_replacement.TournamentWithoutReplacement.size`
+tournament_without_repl.TournamentWithoutReplacement.size`
 randomly chosen participating solutions is conducted. The solution with
 the best fitness wins and is copied to the destination. The tournaments are
 without replacement, following the algorithm by Goldberg, Korg, and Deb. This
@@ -14,7 +14,7 @@ from them by conducting tournaments of size `s`, each solution will take part
 in at least `floor(s*n / m)` tournaments and in at most `ceil(s*n / m)` ones.
 
 Tournament selection with replacement is implemented in
-:mod:`moptipy.algorithms.modules.selections.tournament_with_replacement`.
+:mod:`moptipy.algorithms.modules.selections.tournament_with_repl`.
 
 1. David Edward Goldberg and Bradley Korb and Kalyanmoy Deb. Messy Genetic
    Algorithms: Motivation, Analysis, and First Results. *Complex Systems*
