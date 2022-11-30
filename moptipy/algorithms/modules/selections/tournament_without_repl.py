@@ -14,7 +14,7 @@ from them by conducting tournaments of size `s`, each solution will take part
 in at least `floor(s*n / m)` tournaments and in at most `ceil(s*n / m)` ones.
 
 Tournament selection with replacement is implemented in
-:module:`moptipy.algorithms.modules.selections.tournament_with_replacement`.
+:mod:`moptipy.algorithms.modules.selections.tournament_with_replacement`.
 
 1. David Edward Goldberg and Bradley Korb and Kalyanmoy Deb. Messy Genetic
    Algorithms: Motivation, Analysis, and First Results. *Complex Systems*

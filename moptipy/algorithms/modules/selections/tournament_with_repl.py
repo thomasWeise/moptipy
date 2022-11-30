@@ -11,7 +11,7 @@ enter a given tournament several times. A solution may be selected multiple
 times.
 
 Tournament selection without replacement is implemented in
-:module:`moptipy.algorithms.modules.selections.\
+:mod:`moptipy.algorithms.modules.selections.\
 tournament_without_replacement`.
 
 1. Peter J. B. Hancock. An Empirical Comparison of Selection Methods in
@@ -42,7 +42,7 @@ tournament_without_replacement`.
 """
 
 from math import inf
-from typing import Any, Callable, Final, Iterable, cast
+from typing import Any, Callable, Final, cast
 
 from numpy.random import Generator
 
@@ -85,15 +85,15 @@ class TournamentWithReplacement(Selection):
         """
         size: Final[int] = self.size  # the tournament size
         m: Final[int] = len(source)  # number of elements to select from
-        choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
-            cast(Callable[[int, int, bool], Iterable[int]],  # -book
-                 random.choice  # fast call to random.choice function
+        ri: Final[Callable[[int], int]] = \
+            cast(Callable[[int], int],  # -book
+                 random.integers  # fast call to random.integers function
                  )  # -book
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness, initial infinite
-            for i in choice(m, size, True):  # perform tournament
-                rec = source[i]  # get contestant record from source
+            for __ in range(size):  # perform tournament
+                rec = source[ri(m)]  # get contestant record from source
                 rec_fitness = rec.fitness  # get its fitness
                 if rec_fitness <= best_fitness:  # if better or equal...
                     best = rec  # ... rec becomes the new best record
