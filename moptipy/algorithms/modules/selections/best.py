@@ -24,7 +24,7 @@ paper of Blickle and Thiele.
 2. Larry J.Eshelman. The CHC Adaptive Search Algorithm: How to Have Safe
    Search When Engaging in Nontraditional Genetic Recombination. In Gregory
    J. E. Rawlins, editor, Foundations of Genetic Algorithms, volume 1, 1991,
-   pages 265-283. San Francisco, CA: Morgan Kaufmann.
+   pages 265-283. San Francisco, CA, USA: Morgan Kaufmann.
    https://doi.org/10.1016/B978-0-08-050684-5.50020-3
 3. Frank Hoffmeister and Thomas Bäck. Genetic Algorithms and Evolution
    Strategies: Similarities and Differences. In Hans-Paul Schwefel and
