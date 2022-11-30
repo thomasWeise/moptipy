@@ -7,7 +7,12 @@ import moptipy.api.experiment as ex
 from moptipy.algorithms.modules.selections.fitness_proportionate_sus import (
     FitnessProportionateSUS,
 )
-from moptipy.algorithms.modules.selections.tournament import Tournament
+from moptipy.algorithms.modules.selections.tournament_with_repl import (
+    TournamentWithReplacement,
+)
+from moptipy.algorithms.modules.selections.tournament_without_repl import (
+    TournamentWithoutReplacement,
+)
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
@@ -110,24 +115,25 @@ for log2_mu in range(0, 14):
                         Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
 
 for mu_lambda in [4, 32]:
+    for ts in [2, 4]:
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda, sze=ts: GeneralEA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
+                survival=TournamentWithReplacement(sze))))
+        DEFAULT_ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda, sze=ts: GeneralEA(
+                Op0Shuffle(pwr), Op1Swap2(),
+                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
+                survival=TournamentWithoutReplacement(sze))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            survival=Tournament(2))))
-    DEFAULT_ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            survival=Tournament(4))))
-    DEFAULT_ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            mating=Tournament(2, replacement=False))))
+            mating=TournamentWithoutReplacement(2))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
@@ -140,14 +146,14 @@ for mu_lambda in [4, 32]:
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
             fitness=Direct(), survival=FitnessProportionateSUS(),
-            mating=Tournament(2, replacement=False))))
+            mating=TournamentWithoutReplacement(2))))
     DEFAULT_ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
             fitness=Rank(), survival=FitnessProportionateSUS(),
-            mating=Tournament(2, replacement=False))))
+            mating=TournamentWithoutReplacement(2))))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

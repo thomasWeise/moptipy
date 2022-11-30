@@ -30,10 +30,7 @@ The following selection algorithms have currently been implemented:
   selects the best `n` solutions without replacement. This is a common
   strategy for survival selection, especially in (mu+lambda) EAs
   (compatible to :class:`~moptipy.algorithms.so.ea.EA`).
-- :class:`~moptipy.algorithms.modules.selections.tournament.Tournament`
-  selection conducts a tournament with `k` contestants for of the `n` slots
-  in the destination and the winners of the tournaments are chosen.
-- :class:`~moptipy.algorithms.modules.selections.random_without_replacement\
+- :class:`~moptipy.algorithms.modules.selections.random_without_repl\
 .RandomWithoutReplacement` selects random solutions without replacement. It is
   a common strategy for mating selection.
 - :class:`~moptipy.algorithms.modules.selections.fitness_proportionate_sus\
@@ -41,6 +38,14 @@ The following selection algorithms have currently been implemented:
   minimization using stochastic uniform sampling and, optionally, a minimum
   selection probability threshold. It is the classic survival selection
   algorithm in Genetic Algorithm.
+- :class:`~moptipy.algorithms.modules.selections.tournament_with_repl.\
+TournamentWithReplacement`
+  performs tournament selection with a specified tournament size with
+  replacement.
+- :class:`~moptipy.algorithms.modules.selections.tournament_without_repl.\
+TournamentWithoutReplacement`
+  performs tournament selection with a specified tournament size without
+  replacement.
 """
 from typing import Any, Callable, Protocol
 

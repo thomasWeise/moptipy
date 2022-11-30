@@ -1,16 +1,18 @@
 """
-Tournament selection with or without replacement in the tournaments.
+Tournament selection with replacement in the tournaments.
 
 For each slot in the destination, a tournament with
-:attr:`~moptipy.algorithms.modules.selections.tournament.Tournament.size`
+:attr:`~moptipy.algorithms.modules.selections.tournament_with_replacement.\
+TournamentWithReplacement.size`
 randomly chosen participating solutions is conducted. The solution with
-the best fitness wins and is copied to the destination. If
-:attr:`~moptipy.algorithms.modules.selections.tournament.Tournament\
-.replacement` is `True`, then the solutions are drawn with replacement
-for each tournament, meaning that one solution may enter a given tournament
-several times. If replacements are turned off, each solution may enter each
-tournament only at most once. Either way, a solution may be selected multiple
+the best fitness wins and is copied to the destination. The solutions are
+drawn with replacement for each tournament, meaning that one solution may
+enter a given tournament several times. A solution may be selected multiple
 times.
+
+Tournament selection without replacement is implemented in
+:module:`moptipy.algorithms.modules.selections.\
+tournament_without_replacement`.
 
 1. Peter J. B. Hancock. An Empirical Comparison of Selection Methods in
    Evolutionary Algorithms. In Terence Claus Fogarty, editor, *Selected Papers
@@ -30,6 +32,13 @@ times.
    Eidgenössische Technische Hochschule (ETH) Zürich, Department of Electrical
    Engineering, Computer Engineering and Networks Laboratory (TIK), Zürich,
    Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
+4. Kumara Sastry and David Edward Goldberg. Modeling Tournament Selection with
+   Replacement using Apparent Added Noise. In Lee Spector, Erik D. Goodman,
+   Annie Wu, William Benjamin Langdon, and Hans-Michael Voigt, eds.,
+   *Proceedings of the 3rd Annual Conference on Genetic and Evolutionary
+   Computation (GECCO'01)*, July 7-11, 2001, San Francisco, CA, USA, page 781.
+   San Francisco, CA, United States: Morgan Kaufmann Publishers Inc.
+   ISBN: 978-1-55860-774-3. https://dl.acm.org/doi/pdf/10.5555/2955239.2955378
 """
 
 from math import inf
@@ -43,35 +52,30 @@ from moptipy.utils.types import type_error
 
 
 # start book
-class Tournament(Selection):
-    """Tournament selection with or without replacement in the tournament."""
+class TournamentWithReplacement(Selection):
+    """Tournament selection with replacement in the tournament."""
 
 # end book
-    def __init__(self, size: int = 2, replacement: bool = True) -> None:
+    def __init__(self, size: int = 2) -> None:
         """
-        Create the tournament selection method.
+        Create the tournament selection without replacement method.
 
         :param size: the size of the tournaments
-        :param replacement: will the tournaments be with replacement?
         """
         super().__init__()
         if not isinstance(size, int):
             raise type_error(size, "size", int)
         if size < 1:
             raise ValueError(f"Tournament size must be > 1, but is {size}.")
-        if not isinstance(replacement, bool):
-            raise type_error(replacement, "replacement", bool)
         #: the tournament size
         self.size: Final[int] = size
-        #: should we perform replacements in the tournaments?
-        self.replacement: Final[bool] = replacement
 
 # start book
     def select(self, source: list[FitnessRecord],
                dest: Callable[[FitnessRecord], Any],
                n: int, random: Generator) -> None:
         """
-        Perform deterministic best selection without replacement.
+        Perform tournament with replacement.
 
         :param source: the list with the records to select from
         :param dest: the destination collector to invoke for each selected
@@ -80,7 +84,6 @@ class Tournament(Selection):
         :param random: the random number generator
         """
         size: Final[int] = self.size  # the tournament size
-        replacement: Final[bool] = self.replacement  # w/o replacement?
         m: Final[int] = len(source)  # number of elements to select from
         choice: Final[Callable[[int, int, bool], Iterable[int]]] = \
             cast(Callable[[int, int, bool], Iterable[int]],  # -book
@@ -89,7 +92,7 @@ class Tournament(Selection):
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness, initial infinite
-            for i in choice(m, size, replacement):  # perform tournament
+            for i in choice(m, size, True):  # perform tournament
                 rec = source[i]  # get contestant record from source
                 rec_fitness = rec.fitness  # get its fitness
                 if rec_fitness <= best_fitness:  # if better or equal...
@@ -104,10 +107,7 @@ class Tournament(Selection):
 
         :return: the name of the tournament selection algorithm
         """
-        st = f"tour{self.size}"
-        if self.replacement:
-            return f"{st}r"
-        return st
+        return f"tour{self.size}r"
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -117,4 +117,3 @@ class Tournament(Selection):
         """
         super().log_parameters_to(logger)
         logger.key_value("size", self.size)
-        logger.key_value("withReplacement", self.replacement)

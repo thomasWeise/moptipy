@@ -55,7 +55,7 @@ from moptipy.algorithms.modules.selection import (
     check_selection,
 )
 from moptipy.algorithms.modules.selections.best import Best
-from moptipy.algorithms.modules.selections.random_without_replacement import (
+from moptipy.algorithms.modules.selections.random_without_repl import (
     RandomWithoutReplacement,
 )
 from moptipy.algorithms.so.ea import EA, _float_0

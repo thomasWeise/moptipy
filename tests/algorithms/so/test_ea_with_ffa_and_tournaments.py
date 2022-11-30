@@ -3,7 +3,9 @@ from typing import Final
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.modules.selections.tournament import Tournament
+from moptipy.algorithms.modules.selections.tournament_with_repl import (
+    TournamentWithReplacement,
+)
 from moptipy.algorithms.so.fitnesses.ffa import FFA
 from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.api.objective import Objective
@@ -38,7 +40,7 @@ def test_general_ea_on_jssp_random() -> None:
                          mu, int(random.integers(1, 12)),
                          0.0 if mu <= 1 else float(random.random()),
                          FFA(objective),
-                         Tournament(2))
+                         TournamentWithReplacement(2))
 
     validate_algorithm_on_jssp(create)
 
@@ -56,7 +58,7 @@ def test_general_ea_on_onemax_random() -> None:
                          0.0 if mu <= 1 else float(random.random()),
                          FFA(objective),
                          None,
-                         None if mu <= 1 else Tournament(2))
+                         None if mu <= 1 else TournamentWithReplacement(2))
 
     validate_algorithm_on_onemax(create)
 
@@ -69,7 +71,7 @@ def test_ea_on_onemax_1_1_0() -> None:
         assert isinstance(bs, BitStrings)
         return GeneralEA(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
                          Op2Uniform(), 1, 1, 0.0, FFA(objective),
-                         Tournament(2))
+                         TournamentWithReplacement(2))
 
     validate_algorithm_on_onemax(create)
 
