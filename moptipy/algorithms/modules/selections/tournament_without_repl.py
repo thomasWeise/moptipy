@@ -99,18 +99,16 @@ class TournamentWithoutReplacement(Selection):
         if len(perm) != m:  # -book
             self.__perm = perm = array(  # -book
                 range(m), DEFAULT_INT)  # -book
-
         shuffle: Final[Callable[[ndarray], None]] = random.shuffle
-
         pi: int = m  # the current permutation index
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness, initial infinite
             for __ in range(size):  # perform tournament
-                if pi >= m:
-                    shuffle(perm)
-                    pi = 0
-                rec = source[perm[pi]]  # get contestant record from source
+                if pi >= m:  # if we have exhausted current randomness
+                    shuffle(perm)  # shuffle the permutation randomly
+                    pi = 0  # set index in permutation to 0
+                rec = source[perm[pi]]  # get contestant record
                 pi = pi + 1  # step the permutation index
                 rec_fitness = rec.fitness  # get its fitness
                 if rec_fitness <= best_fitness:  # if better or equal...
