@@ -480,7 +480,7 @@ This can happen when a solution of sufficiently good quality is reached, when th
 
 Since many optimization algorithms make random choices, the function [`process.get_random()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_random) returns a [random number generator](https://numpy.org/doc/stable/reference/random/generator.html).
 This generator *must* be the only source of randomness used by an algorithm.
-It will automatically be seeded by our system, allowing for repeatable and reproducible runs.
+It will automatically be seeded by our system, allowing for [repeatable and reproducible](https://www.acm.org/publications/policies/artifact-review-and-badging-current) runs.
 
 The `process` also can provide information about the best-so-far [solution](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_copy_of_best_y) or [point in the search space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_copy_of_best_x), the consumed [runtime](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_consumed_time_millis) and [FEs](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_consumed_fes), as well as [when the last improvement was achieved](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_last_improvement_fe).
 Anyway, all interaction between the algorithm and the actual optimization algorithm will happen through the `process` object.
@@ -2042,7 +2042,7 @@ While `moptipy` may still be far from achieving these goals, at least we try to 
 
 ### 8.2. Reproducibility
 
-Experiments with [`moptipy`](https://thomasweise.github.io/moptipy) are reproducible and repeatable if the results are recorded in [log files](#51-log-files).
+Experiments with [`moptipy`](https://thomasweise.github.io/moptipy) are reproducible and repeatable (according to the [ACM definition](https://www.acm.org/publications/policies/artifact-review-and-badging-current)) if the results are recorded in [log files](#51-log-files).
 As stated in the [log files section](#51-log-files), our log files should store all the information relevant to a single run of an optimization algorithm.
 First, the log files can store the complete [algorithm setups and objective function information](#5123-the-section-setup) as well as the involved fully-qualified class names.
 They also store the [system configuration](#5124-the-section-sys_info), which includes the versions of the libraries used.
