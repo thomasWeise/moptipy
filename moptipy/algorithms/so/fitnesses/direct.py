@@ -1,4 +1,19 @@
-"""Use the objective values directly as fitness."""
+"""
+Direct fitness assignment uses the objective values directly as fitness.
+
+Together with fitness proportionate selection (:class:`~moptipy.algorithms.\
+modules.selections.fitness_proportionate_sus.FitnessProportionateSUS`), it
+turns an EA (:class:`~moptipy.algorithms.so.general_ea.GeneralEA`) to a
+minimization variant of the traditional Genetic Algorithms.
+
+1. John Henry Holland. *Adaptation in Natural and Artificial Systems: An
+   Introductory Analysis with Applications to Biology, Control, and Artificial
+   Intelligence.* Ann Arbor, MI, USA: University of Michigan Press. 1975.
+   ISBN: 0-472-08460-7
+2. David Edward Goldberg. *Genetic Algorithms in Search, Optimization, and
+   Machine Learning.* Boston, MA, USA: Addison-Wesley Longman Publishing Co.,
+   Inc. 1989. ISBN: 0-201-15767-5
+"""
 
 
 from numpy.random import Generator

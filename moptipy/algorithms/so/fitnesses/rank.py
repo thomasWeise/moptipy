@@ -3,6 +3,23 @@ A fitness representing the rank of a solution based on its quality.
 
 First, all solutions are sorted based on their objective values. Then, they
 receive their rank, i.e., index in the sorted list, as fitness.
+
+Together with fitness proportionate selection (:class:`~moptipy.algorithms.\
+modules.selections.fitness_proportionate_sus.FitnessProportionateSUS`), it
+works very similar to linear ranking selection in an EA
+(:class:`~moptipy.algorithms.so.general_ea.GeneralEA`).
+
+1. L. Darrell Whitley. The GENITOR Algorithm and Selection Pressure: Why
+   Rank-Based Allocation of Reproductive Trials is Best. In J. David Schaffer,
+   ed., Proceedings of the 3rd International Conference on Genetic Algorithms
+   (ICGA'89), June 4-7, 1989, Fairfax, VA, USA, pages 116-121. San Francisco,
+   CA, USA: Morgan Kaufmann Publishers Inc. ISBN: 1-55860-066-3
+   https://www.researchgate.net/publication/2527551
+2. Tobias Blickle and Lothar Thiele. A Comparison of Selection Schemes used in
+   Genetic Algorithms. Second edition, December 1995. TIK-Report 11 from the
+   Eidgenössische Technische Hochschule (ETH) Zürich, Department of Electrical
+   Engineering, Computer Engineering and Networks Laboratory (TIK), Zürich,
+   Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
 """
 
 from math import inf
