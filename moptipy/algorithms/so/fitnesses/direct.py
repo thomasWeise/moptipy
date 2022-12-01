@@ -27,8 +27,8 @@ class Direct(Fitness):
         :param p: the list of records
         :param random: ignored
         """
-        for rec in p:
-            rec.fitness = rec.f
+        for rec in p:  # iterate over all records in the population
+            rec.fitness = rec.f  # store objective value f as fitness
 # end book
 
     def __str__(self):

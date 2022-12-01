@@ -1,4 +1,9 @@
-"""A fitness representing the rank of a solution based on its quality."""
+"""
+A fitness representing the rank of a solution based on its quality.
+
+First, all solutions are sorted based on their objective values. Then, they
+receive their rank, i.e., index in the sorted list, as fitness.
+"""
 
 from math import inf
 
@@ -42,14 +47,14 @@ class Rank(Fitness):
             rec.fitness = rec.f  # because then we can easily sort
         p.sort()  # sort based on objective values
 
-        rank: int = -1  # the rank counter
-        last_fitness: int | float = -inf
-        for i, rec in enumerate(p):
-            v = rec.fitness
-            if v > last_fitness:  # if fitness differs, step rank
-                rank = i + 1  # +1 so smallest-possible rank is 1
-                last_fitness = v
-            rec.fitness = rank  # assign the rank
+        fitness: int = -1  # the variable for storing the current rank
+        last_f: int | float = -inf  # the previous objective value
+        for i, rec in enumerate(p):  # iterate over list
+            v = rec.fitness  # get the current objective value
+            if v > last_f:  # only increase rank if objective f changes
+                fitness = i + 1  # +1 so smallest-possible fitness is 1
+                last_f = v  # remember objective value for comparison
+            rec.fitness = fitness  # assign the rank (same f = same rank)
 # end book
 
     def __str__(self):
