@@ -1,12 +1,22 @@
-"""Test the RLS."""
+"""Test several algorithm equivalences."""
 
 from typing import Callable, Final, cast
 
 from numpy.random import Generator, default_rng
 
+from moptipy.algorithms.modules.selections.tournament_with_repl import (
+    TournamentWithReplacement,
+)
+from moptipy.algorithms.modules.selections.tournament_without_repl import (
+    TournamentWithoutReplacement,
+)
+from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
+from moptipy.algorithms.so.fitness import FRecord
+from moptipy.algorithms.so.fitnesses.direct import Direct
 from moptipy.algorithms.so.fitnesses.ffa import FFA
+from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.algorithms.so.record import Record
 from moptipy.algorithms.so.rls import RLS
@@ -18,7 +28,7 @@ from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.tests.on_bitstrings import verify_algorithms_equivalent
 
 
-def __test_opoea_equals_rls() -> None:
+def test_opoea_equals_rls() -> None:
     """Test whether the (1+1)-EA performs exactly as RLS."""
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()
@@ -29,6 +39,15 @@ def __test_opoea_equals_rls() -> None:
         lambda bs, f: EA(op0, op1, op2, 1, 1, 0.0),
         lambda bs, f: GeneralEA(op0, op1, op2, 1, 1, 0.0),
     ])
+
+
+def test_ea_equals_random_sampling_if_mu_gte_max_fes() -> None:
+    """Test whether the EA equals random sampling if max_fes<=mu."""
+    op0: Final[Op0] = Op0Random()
+    verify_algorithms_equivalent([
+        lambda bs, f: EA(op0, Op1Flip1(), Op2Uniform(), 100, 100, 0.0),
+        lambda bs, f: RandomSampling(op0),
+    ], max_fes=100)
 
 
 def _int_0(_: int) -> int:
@@ -116,7 +135,7 @@ class __EAC(EA):
             lst.sort()  # best records come first, ties broken by age
 
 
-def test_fitness_ea_equals_ea() -> None:
+def test_general_ea_equals_ea() -> None:
     """Ensure that the EAs with and without fitness are identical."""
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()
@@ -135,7 +154,7 @@ def test_fitness_ea_equals_ea() -> None:
         ])
 
 
-def test_fitness_ea_with_ffa_equals_fea() -> None:
+def test_general_ea_with_ffa_equals_fea() -> None:
     """Ensure that the FEA and the EA with FFA are identical."""
     op0: Final[Op0] = Op0Random()
     op1: Final[Op1] = Op1Flip1()
@@ -144,3 +163,66 @@ def test_fitness_ea_with_ffa_equals_fea() -> None:
         lambda bs, f: FEA1plus1(op0, op1),
         lambda bs, f: GeneralEA(op0, op1, fitness=FFA(f)),
     ])
+
+
+class __SDirect(Direct):
+    """The sorting direct."""
+
+    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
+        for rec in p:  # first copy rec.f to rec.fitness
+            rec.fitness = rec.f  # because then we can easily sort
+        p.sort()  # sort based on objective values
+        super().assign_fitness(p, random)
+
+
+def test_general_ea_under_order_preserving_fitnesses() -> None:
+    """Test that GeneralEA selects the same under order-preserving fitness."""
+    op0: Final[Op0] = Op0Random()
+    op1: Final[Op1] = Op1Flip1()
+    op2: Final[Op2] = Op2Uniform()
+    random: Final[Generator] = default_rng()
+    for _ in range(3):
+        mu: int = int(random.integers(2, 10))
+        lambda_: int = int(random.integers(1, 10))
+        br: float = float(random.uniform(0.1, 0.9))
+
+        verify_algorithms_equivalent([
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx, fitness=__SDirect()),
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx, fitness=Rank()),
+        ])
+
+
+def test_general_ea_under_order_preserving_fitnesses_and_tournament() -> None:
+    """Test that tournaments select same under order-preserving fitness."""
+    op0: Final[Op0] = Op0Random()
+    op1: Final[Op1] = Op1Flip1()
+    op2: Final[Op2] = Op2Uniform()
+    random: Final[Generator] = default_rng()
+    for _ in range(3):
+        mu: int = int(random.integers(2, 10))
+        lambda_: int = int(random.integers(1, 10))
+        br: float = float(random.uniform(0.1, 0.9))
+
+        verify_algorithms_equivalent([
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx, fitness=__SDirect(),
+                survival=TournamentWithReplacement()),
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx, fitness=Rank(),
+                survival=TournamentWithReplacement()),
+        ])
+    for _ in range(3):
+        mu: int = int(random.integers(2, 10))
+        lambda_: int = int(random.integers(1, 10))
+        br: float = float(random.uniform(0.1, 0.9))
+
+        verify_algorithms_equivalent([
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx, fitness=__SDirect(),
+                survival=TournamentWithoutReplacement()),
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+                op0, op1, op2, mx, lx, bx, fitness=Rank(),
+                survival=TournamentWithoutReplacement()),
+        ])

@@ -393,20 +393,27 @@ def validate_mo_algorithm_on_3_bitstring_problems(
 
 
 def verify_algorithms_equivalent(
-        algorithms: Iterable[Callable[[BitStrings, Objective], Algorithm]]) \
+        algorithms: Iterable[Callable[[BitStrings, Objective], Algorithm]],
+        max_fes: int | None = None) \
         -> None:
     """
     Verify that a set of algorithms performs identical steps.
 
     :param algorithms: the sequence of algorithms
+    :param max_fes: the maximum number of FEs
     """
     if not isinstance(algorithms, Iterable):
         raise type_error(algorithms, "algorithms", Iterable)
+    if (max_fes is not None) and (not isinstance(max_fes, int)):
+        raise type_error(max_fes, "max_fes", int)
 
     random: Final[Generator] = default_rng()
     dim: Final[int] = int(random.integers(4, 16))
     space: Final[BitStrings] = BitStrings(dim)
-    steps: Final[int] = int(random.integers(100, 1000))
+    steps: Final[int] = int(random.integers(100, 1000)) \
+        if max_fes is None else max_fes
+    if steps <= 0:
+        raise ValueError(f"invalid maximum FEs={steps} for max_fes={max_fes}")
     choice: Final[int] = int(random.integers(3))
     f: Final[Objective] = \
         LeadingOnes(dim) if choice <= 0 else \
