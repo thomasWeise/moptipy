@@ -6,7 +6,7 @@ from typing import Callable, Final, Iterable
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
 
-from moptipy.examples.jssp.experiment import EXPERIMENT_INSTANCES
+from moptipy.examples.jssp.experiment import INSTANCES
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import (
@@ -202,7 +202,7 @@ def makespan_lower_bound_table(
         dirname: str,
         filename: str = "makespan_lower_bound",
         instances: Iterable[str] =
-        tuple(["demo"] + list(EXPERIMENT_INSTANCES))) -> Path:  # noqa
+        tuple(["demo"] + list(INSTANCES))) -> Path:  # noqa
     """
     Make a table with the makespan lower bounds.
 

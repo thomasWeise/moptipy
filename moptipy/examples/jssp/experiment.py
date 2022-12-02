@@ -56,7 +56,7 @@ from moptipy.utils.types import type_error
 #: whereas for `dmu67`, we can only construct `1.710*(10**958)`, i.e., fewer.
 #: Therefore, `dmu67` in this ordering here comes after `dmu72`, but it would
 #: come before if we were sorting instances by the solution space size.
-EXPERIMENT_INSTANCES: \
+INSTANCES: \
     Final[tuple[str, str, str, str, str, str, str, str]] = \
     ("orb06", "la38", "abz8", "yn4", "swv14", "dmu72", "dmu67", "ta70")
 
@@ -71,7 +71,7 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
 #: The default set of algorithms for our experiments.
 #: Each of them is a Callable that receives two parameters, the instance
 #: `inst` and the permutation with repetitions-space `pwr`.
-DEFAULT_ALGORITHMS: Final[list[
+ALGORITHMS: Final[list[
     Callable[[Instance, Permutations], Algorithm]]] = [
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
@@ -82,11 +82,11 @@ DEFAULT_ALGORITHMS: Final[list[
     lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1SwapN()),  # RLS
 ]
 for scale in range(7, 21):  # add the hill climbers with restarts
-    DEFAULT_ALGORITHMS.append(cast(
+    ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
             Op0Shuffle(pwr), Op1Swap2(), 2 ** i)))  # hill clim. with restarts
-    DEFAULT_ALGORITHMS.append(cast(
+    ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
             Op0Shuffle(pwr), Op1SwapN(), 2 ** i)))  # hill clim. with restarts
@@ -96,19 +96,19 @@ for log2_mu in range(0, 14):
                            4 * mu, 8 * mu}):
         if lambda_ > 65536:
             continue
-        DEFAULT_ALGORITHMS.append(cast(
+        ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=mu, ll=lambda_: EA(
                 Op0Shuffle(pwr), Op1Swap2(), None, mm, ll, 0.0)))
         if (mu == lambda_) and (mu in {2, 4, 32, 256, 4096}):
             for br_exp in range(1, 11):
-                DEFAULT_ALGORITHMS.append(cast(
+                ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, ml=mu, br=(2 ** -br_exp): EA(
                         Op0Shuffle(pwr), Op1Swap2(),
                         Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
             for br_exp in range(2, 11):
-                DEFAULT_ALGORITHMS.append(cast(
+                ALGORITHMS.append(cast(
                     Callable[[Instance, Permutations], Algorithm],
                     lambda inst, pwr, ml=mu, br=1.0 - (2 ** -br_exp): EA(
                         Op0Shuffle(pwr), Op1Swap2(),
@@ -116,38 +116,38 @@ for log2_mu in range(0, 14):
 
 for mu_lambda in [4, 32]:
     for ts in [2, 4]:
-        DEFAULT_ALGORITHMS.append(cast(
+        ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, ml=mu_lambda, sze=ts: GeneralEA(
                 Op0Shuffle(pwr), Op1Swap2(),
                 Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
                 survival=TournamentWithReplacement(sze))))
-        DEFAULT_ALGORITHMS.append(cast(
+        ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, ml=mu_lambda, sze=ts: GeneralEA(
                 Op0Shuffle(pwr), Op1Swap2(),
                 Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
                 survival=TournamentWithoutReplacement(sze))))
-    DEFAULT_ALGORITHMS.append(cast(
+    ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
             mating=TournamentWithoutReplacement(2))))
-    DEFAULT_ALGORITHMS.append(cast(
+    ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
             fitness=Direct(), survival=FitnessProportionateSUS())))
-    DEFAULT_ALGORITHMS.append(cast(
+    ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
             Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
             fitness=Direct(), survival=FitnessProportionateSUS(),
             mating=TournamentWithoutReplacement(2))))
-    DEFAULT_ALGORITHMS.append(cast(
+    ALGORITHMS.append(cast(
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, ml=mu_lambda: GeneralEA(
             Op0Shuffle(pwr), Op1Swap2(),
@@ -159,8 +159,8 @@ for mu_lambda in [4, 32]:
 def run_experiment(base_dir: str = pp.join(".", "results"),
                    algorithms: Iterable[
                        Callable[[Instance, Permutations],
-                                Algorithm]] = tuple(DEFAULT_ALGORITHMS),
-                   instances: Iterable[str] = EXPERIMENT_INSTANCES,
+                                Algorithm]] = tuple(ALGORITHMS),
+                   instances: Iterable[str] = INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
                    max_time: int | None = EXPERIMENT_RUNTIME_MS,
                    max_fes: int | None = None,

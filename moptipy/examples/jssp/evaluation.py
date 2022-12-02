@@ -20,10 +20,7 @@ from moptipy.evaluation.tabulate_end_results import (
     tabulate_end_results,
 )
 from moptipy.evaluation.tabulate_result_tests import tabulate_result_tests
-from moptipy.examples.jssp.experiment import (
-    DEFAULT_ALGORITHMS,
-    EXPERIMENT_INSTANCES,
-)
+from moptipy.examples.jssp.experiment import ALGORITHMS, INSTANCES
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.plots import (
     plot_end_makespans,
@@ -47,7 +44,7 @@ LETTER_L: Final[str] = "\u03BB"
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[dict[str, int]] = {
-    __n: __i for __i, __n in enumerate(EXPERIMENT_INSTANCES)
+    __n: __i for __i, __n in enumerate(INSTANCES)
 }
 
 #: the name of the mu+1 EA
@@ -58,6 +55,22 @@ NAME_EA_MU_PLUS_MU: Final[str] = f"{LETTER_M}+{LETTER_M}_ea"
 NAME_EA_MU_PLUS_LOG_MU: Final[str] = f"{LETTER_M}+log\u2082{LETTER_M}_ea"
 #: the name of the mu+sqrt(mu) EA
 NAME_EA_MU_PLUS_SQRT_MU: Final[str] = f"{LETTER_M}+\u221A{LETTER_M}_ea"
+
+
+def __make_all_names() -> tuple[str, ...]:
+    """
+    Create an immutable list of all algorithm names.
+
+    :returns: the tuple with all algorithm names
+    """
+    inst = Instance.from_resource("demo")
+    space = Permutations.with_repetitions(inst.jobs, inst.machines)
+    return tuple([str(a(inst, space)) for a in ALGORITHMS])
+
+
+#: the list of all algorithm names from the experiment
+ALL_NAMES: Final[tuple[str, ...]] = __make_all_names()
+del __make_all_names
 
 
 def ea_family(name: str) -> str:
@@ -95,10 +108,8 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
 
     :returns: the algorithm sort keys and name decode
     """
-    inst = Instance.from_resource("demo")
-    space = Permutations.with_repetitions(inst.jobs, inst.machines)
-    names: list[str] = [str(a(inst, space)) for a in DEFAULT_ALGORITHMS]
-    names_new = list(names)
+    names: list[str] = list(ALL_NAMES)
+    names_new = list(ALL_NAMES)
 
     def __eacr(mtch: Match) -> str:
         """Transform the EA name with crossover."""
@@ -118,6 +129,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
             q = q2
         return f"{mtch.group(1)}+{mtch.group(2)}_ea_{q}"
 
+    # fix some names using regular expressions
     namer: dict[str, str] = {}
     used_names: set[str] = set(names)
     for pattern, repl in [("hc_swap2", "hc"), ("hcr_32768_swap2", "hcr"),
@@ -149,6 +161,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
         if not found:
             raise ValueError(f"did not find '{pattern}'.")
 
+    # fix the basic EA families
     ea1p1: Final[int] = names_new.index("ea_1_1_swap2")
     ea_families: dict[str, int] = {
         NAME_EA_MU_PLUS_MU: ea1p1,
@@ -171,6 +184,36 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     for i, n in sorted([(n[1], n[0]) for n in ea_families.items()],
                        reverse=True, key=lambda a: a[0]):
         names_new.insert(i, n)
+
+    # fix the general EA names
+    for name in names:
+        if name.startswith("generalEa_"):
+            n = name[9:]
+            has_fitness: bool = False
+            for fl, fs in (("_direct", "D"), ("_rank", "R")):
+                if fl in n:
+                    n = n.replace(fl, fs)
+                    has_fitness = True
+            if not has_fitness:
+                n = f"RI{n}"
+            n = n.replace("_tour", "t").replace("_best", "b")\
+                .replace("_rndNoRep", "n").replace("_fpsus", "f")\
+                .replace("_0d125_gap_swap2", "")
+            if "_4_4" in n:
+                n = "ea4" + n.replace("_4_4", "")
+            elif "_32_32" in n:
+                n = "ea32" + n.replace("_32_32", "")
+            else:
+                raise ValueError(f"invalid general EA: '{name}'.")
+            os = namer.get(name, None)
+            if os is not None:
+                if os == n:
+                    continue
+                raise ValueError(f"'{name}' -> '{n}', '{os}'?")
+            if n in used_names:
+                raise ValueError(f"Already got '{n}'.")
+            namer[name] = n
+            names_new.insert(names_new.index(name), n)
 
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
 
@@ -650,6 +693,20 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
               "ea_256_256_swap2", "ea_256_256_0d25_gap_swap2",
               "ea_32_32_swap2", "ea_32_32_0d125_gap_swap2"],
              dest, source)
+
+    logger("Now evaluating the general EA.")
+    for s in ["_4_4", "_32_32"]:
+        selected = [y for y in ALL_NAMES if (s in y)
+                    and y.startswith("generalEa_")]
+        selected.append("rls_swap2")
+        selected.append(f"ea{s}_0d125_gap_swap2")
+        progress(selected, dest, source, millis=False)
+
+    selected = [y for y in ALL_NAMES if y.startswith("generalEa_")]
+    selected.append("rls_swap2")
+    selected.append("ea_4_4_0d125_gap_swap2")
+    selected.append("ea_32_32_0d125_gap_swap2")
+    table(end_results, selected, dest, swap_stats=[(lims, totfes)])
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

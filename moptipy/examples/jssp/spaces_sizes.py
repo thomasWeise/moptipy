@@ -453,7 +453,7 @@ def __long_str(value: int) -> str:
 def make_gantt_space_size_table(
         dest: str = "solution_space_size.md",
         instances: Iterable[str] = tuple(list(  # noqa
-            experiment.EXPERIMENT_INSTANCES) + ["demo"])) -> Path:  # noqa
+            experiment.INSTANCES) + ["demo"])) -> Path:  # noqa
     """
     Print a table of solution space sizes.
 
@@ -534,7 +534,7 @@ def make_gantt_space_size_table(
 def make_search_space_size_table(
         dest: str = "solution_space_size.md",
         instances: Iterable[str] = tuple(list(  # noqa
-            experiment.EXPERIMENT_INSTANCES) + ["demo"])) -> Path:  # noqa
+            experiment.INSTANCES) + ["demo"])) -> Path:  # noqa
     """
     Print a table of search space sizes.
 

@@ -1,10 +1,7 @@
 """Test the demo functions."""
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
-from moptipy.examples.jssp.experiment import (
-    DEFAULT_ALGORITHMS,
-    EXPERIMENT_INSTANCES,
-)
+from moptipy.examples.jssp.experiment import ALGORITHMS, INSTANCES
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
@@ -14,7 +11,7 @@ from moptipy.spaces.permutations import Permutations
 
 def test_default_algorithms_on_default_instances() -> None:
     """Test the default algorithms on the default instances."""
-    for inst_name in EXPERIMENT_INSTANCES:
+    for inst_name in INSTANCES:
         inst = Instance.from_resource(inst_name)
         assert isinstance(inst, Instance)
         perm = Permutations.with_repetitions(inst.jobs, inst.machines)
@@ -25,7 +22,7 @@ def test_default_algorithms_on_default_instances() -> None:
         assert isinstance(gpm, OperationBasedEncoding)
         makespan = Makespan(inst)
         assert isinstance(makespan, Makespan)
-        for algo_factory in DEFAULT_ALGORITHMS:
+        for algo_factory in ALGORITHMS:
             algo = algo_factory(inst, perm)
             assert isinstance(algo, Algorithm)
             exe = Execution()
