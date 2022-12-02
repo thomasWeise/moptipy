@@ -17,6 +17,7 @@ from numpy.random import Generator
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 
 
+# start book
 class RankAndIteration(Fitness):
     """
     A fitness joining objective rank and creation iteration.
@@ -52,30 +53,30 @@ class RankAndIteration(Fitness):
         :param p: the list of records
         :param random: ignored
         """
-        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
+        min_it: int = 9_223_372_036_854_775_808  # minimum iteration index
         max_it: int = -1  # the maximum iteration index
 
         # In the first iteration, we assign objective value as fitness
         # (for sorting) and get the bounds of the iteration indices.
-        for rec in p:
+        for rec in p:  # iterate over list p
             rec.fitness = rec.f  # set f as fitness for sorting
             it: int = rec.it  # get iteration index from record
             if it < min_it:  # update minimum iteration index
                 min_it = it
             if it > max_it:  # update maximum iteration index
                 max_it = it
-
         p.sort()  # sort based on objective values
 
         it_range: Final[int] = max_it - min_it + 1  # range of it index
-        rank: int = -1  # the rank counter
-        last_fitness: int | float = -inf
-        for i, rec in enumerate(p):
-            v = rec.fitness
-            if v > last_fitness:  # if fitness differs, step rank
-                rank = i + 1  # +1 so smallest-possible rank is 1
-                last_fitness = v
+        rank: int = -1  # the variable for storing the current rank
+        last_f: int | float = -inf  # the previous objective value
+        for i, rec in enumerate(p):  # iterate over list
+            v = rec.fitness  # get the current objective value
+            if v > last_f:  # only increase rank if objective f changes
+                rank = i + 1  # +1 so smallest-possible fitness is 1
+                last_f = v  # remember objective value for comparison
             rec.fitness = (rank * it_range) + max_it - rec.it
+# end book
 
     def __str__(self):
         """
