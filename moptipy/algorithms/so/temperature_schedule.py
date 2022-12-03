@@ -12,6 +12,7 @@ from moptipy.utils.types import type_error
 # start schedule
 class TemperatureSchedule(Component):
     """The base class for temperature schedules."""
+# end schedule
 
     def __init__(self, start_temperature: float) -> None:
         """
@@ -19,17 +20,16 @@ class TemperatureSchedule(Component):
 
         :param start_temperature: the starting temperature
         """
-# end schedule
         super().__init__()
         if not isinstance(start_temperature, float):
             raise type_error(start_temperature, "start_temperature", float)
         if (not isfinite(start_temperature)) or (start_temperature < 0.0):
             raise ValueError(
                 f"start_temperature cannot be {start_temperature}.")
-# start schedule
         #: the starting temperature
         self.start_temperature: Final[float] = start_temperature
 
+# start schedule
     def temperature(self, tau: int) -> float:
         """
         Compute the temperature at iteration `tau`.
@@ -82,7 +82,7 @@ class ExponentialSchedule(TemperatureSchedule):
             raise ValueError(
                 f"epsilon cannot be {epsilon}, must be in (0, 1).")
 # start exponential
-        #: store the epsilon parameter of the exponential schedule
+        #: the epsilon parameter of the exponential schedule
         self.epsilon: Final[float] = epsilon
         #: the value used as basis for the exponent
         self.__one_minus_epsilon: Final[float] = 1.0 - epsilon
@@ -168,7 +168,7 @@ class LogarithmicSchedule(TemperatureSchedule):
             raise ValueError(
                 f"epsilon cannot be {epsilon}, must be in (0, 1).")
 # start logarithmic
-        #: store the epsilon parameter of the logarithmic schedule
+        #: the epsilon parameter of the logarithmic schedule
         self.epsilon: Final[float] = epsilon
 
     def temperature(self, tau: int) -> float:
