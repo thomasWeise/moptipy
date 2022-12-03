@@ -77,6 +77,7 @@ static_analysis: init
 	echo "$(NOW): Done with pyflakes, now applying bandit to find security issues." &&\
 	bandit -r moptipy -s B311 &&\
 	bandit -r examples -s B311 &&\
+	bandit -r tests -s B311,B101 &&\
 	echo "$(NOW): Done with bandit, now using pyroma to check setup.py." &&\
 	pyroma . &&\
 	echo "$(NOW): Done with pyroma, now applying semgrep." &&\

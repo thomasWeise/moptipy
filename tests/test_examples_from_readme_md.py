@@ -1,12 +1,10 @@
 """Test all the example code in the project's README.md file."""
 import os.path
-import subprocess  # nosec
-import sys
 from typing import Final
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
-from moptipy.utils.temp import TempDir, TempFile
+from moptipy.utils.temp import TempDir
 
 
 def test_all_examples_from_readme_md() -> None:
@@ -26,20 +24,11 @@ def test_all_examples_from_readme_md() -> None:
     mark1: Final[str] = "\n```"
     mark2: Final[str] = "python"  # python code starts with ```python
 
-    # we first need to gather the python libraries and path to moptipy
-    libpath: Final[str] = "PYTHONPATH"
-    moptipy = Path.directory(base_dir.resolve_inside("moptipy"))
-    sp = list(sys.path)
-    if len(sp) <= 0:
-        raise ValueError("Empty sys path?")
-    sp.append(moptipy)
-    ppp: Final[str] = os.pathsep.join(sp)
-    del sp
-    logger(f"new {libpath} is {ppp}.")
-
+    wd: Final[str] = os.getcwd()  # get current working directory
     # We run all the example codes in a temporary directory.
-    with TempDir.create() as td:
+    with TempDir.create() as td:  # create temporary working directory
         logger(f"using temp dir '{td}'.")
+        os.chdir(td)  # set it as working directory
         while True:
             # First, find the starting mark.
             i2 += 1
@@ -65,24 +54,16 @@ def test_all_examples_from_readme_md() -> None:
                 # OK, now we only have code left.
                 logt = fragment[0:min(100, len(fragment))]\
                     .replace("\n", "\\n")
-                logger(f"now executing fragment {logt}...")
+                logger(f"now processing fragment {logt}...")
                 del logt
 
-                with TempFile.create(suffix=".py", directory=td) as tf:
-                    logger(f"using temp file '{tf}'.")
-                    tf.write_all(fragment)
+                logger("now compiling fragment.")
+                code = compile(  # noqa # nosec
+                    fragment, f"README.md:{i1}:{i2}",  # noqa # nosec
+                    mode="exec")  # noqa # nosec
+                logger("now executing fragment.")
+                exec(code, {})  # execute file    # noqa # nosec
+                logger("successfully executed example fragment.")
 
-                    cmd = [sys.executable, os.path.basename(tf)]
-                    logger(f"now executing command {cmd} in dir '{td}'.")
-                    ret = subprocess.run(
-                        cmd,  # nosec
-                        check=True, text=True,  # nosec
-                        timeout=500, cwd=td,  # nosec
-                        env={libpath: ppp})  # nosec
-                    if ret is None:
-                        raise ValueError("ret is None?")
-                    if ret.returncode != 0:
-                        raise ValueError(f"return code is {ret.returncode}.")
-                    logger("successfully executed example.")
-
+    os.chdir(wd)  # go back to current original directory
     logger("finished executing all examples from README.md.")

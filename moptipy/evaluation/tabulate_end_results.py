@@ -741,8 +741,9 @@ def tabulate_end_results(
                     sec.cols([col[i] for col in algo_inst_strs])
             if algo_strs is not None:
                 with table.section() as sec:
-                    with sec.header() as head:
-                        head.full_row(algo_cols)
+                    if algo_cols is not None:
+                        with sec.header() as head:
+                            head.full_row(algo_cols)
                     sec.cols(algo_strs)
 
     return dest

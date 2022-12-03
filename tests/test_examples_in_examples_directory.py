@@ -1,8 +1,8 @@
 """Test all the example code in the project's examples directory."""
 import os.path
-import subprocess  # nosec
-import sys
 from typing import Final
+
+from numpy.random import default_rng
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
@@ -16,32 +16,21 @@ def test_examples_in_examples_directory() -> None:
     examples_dir = Path.directory(base_dir.resolve_inside("examples"))
     logger(f"executing all examples from examples directory '{examples_dir}'.")
 
-    # we need to gather the python libraries and path to moptipy
-    libpath: Final[str] = "PYTHONPATH"
-    moptipy = Path.directory(base_dir.resolve_inside("moptipy"))
-    sp = list(sys.path)
-    if len(sp) <= 0:
-        raise ValueError("Empty sys path?")
-    sp.append(moptipy)
-    ppp: Final[str] = os.pathsep.join(sp)
-    del sp
-    logger(f"new {libpath} is {ppp}.")
-
-    with TempDir.create() as td:
-        for name in os.listdir(examples_dir):
-            if name.endswith(".py"):
+    wd: Final[str] = os.getcwd()  # get current working directory
+    with TempDir.create() as td:  # create temporary working directory
+        logger(f"using temp dir '{td}'.")
+        os.chdir(td)  # set it as working directory
+        files: list[str] = os.listdir(examples_dir)
+        logger(f"got {len(files)} potential files")
+        default_rng().shuffle(files)  # shuffle the order for randomness
+        for name in files:  # find all files in examples
+            if name.endswith(".py"):  # if it is a python file
                 file: Path = Path.file(examples_dir.resolve_inside(name))
-                cmd = [sys.executable, file]
-                logger(f"now executing command {cmd} in dir '{td}'.")
-                ret = subprocess.run(
-                    cmd,  # nosec
-                    check=True, text=True,  # nosec
-                    timeout=500, cwd=td,  # nosec
-                    env={libpath: ppp})  # nosec
-                if ret is None:
-                    raise ValueError("ret is None?")
-                if ret.returncode != 0:
-                    raise ValueError(f"return code is {ret.returncode}.")
-                logger("successfully executed example.")
-
+                logger(f"now compiling file '{file}'.")
+                code = compile(  # noqa # nosec
+                    file.read_all_str(), file, mode="exec")  # noqa # nosec
+                logger(f"now executing file '{file}'.")
+                exec(code, {})  # execute file  # noqa # nosec
+                logger(f"successfully executed example '{file}'.")
+    os.chdir(wd)  # go back to current original directory
     logger("finished executing all examples from README.md.")
