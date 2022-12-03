@@ -5,6 +5,7 @@ from typing import Final
 
 from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.strings import num_to_str_for_name
 from moptipy.utils.types import type_error
 
 
@@ -33,7 +34,9 @@ class TemperatureSchedule(Component):
         """
         Compute the temperature at iteration `tau`.
 
-        :param tau: the iteration index
+        :param tau: the iteration index, starting with 0 at the first
+            comparison of two solutions, at which point the starting
+            temperature should be returned
         :returns: the temperature
         """
 # end schedule
@@ -93,10 +96,12 @@ class ExponentialSchedule(TemperatureSchedule):
         """
         Compute the temperature at iteration `tau`.
 
-        :param tau: the iteration index
+        :param tau: the iteration index, starting with 0 at the first
+            comparison of two solutions, at which point the starting
+            temperature should be returned
         :returns: the temperature
         """
-        return self.start_temperature * (self.__one_minus_epsilon ** (tau - 1))
+        return self.start_temperature * (self.__one_minus_epsilon ** tau)
 # end exponential
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
@@ -111,7 +116,7 @@ class ExponentialSchedule(TemperatureSchedule):
         ...         ExponentialSchedule(0.2, 0.6).log_parameters_to(kv)
         ...     text = l.get_log()
         >>> text[1]
-        'name: ExponentialSchedule'
+        'name: exp0d2_0d6'
         >>> text[3]
         'T0: 0.2'
         >>> text[5]
@@ -121,3 +126,15 @@ class ExponentialSchedule(TemperatureSchedule):
         """
         super().log_parameters_to(logger)
         logger.key_value("e", self.epsilon)
+
+    def __str__(self) -> str:
+        """
+        Get the string representation of the exponential temperature schedule.
+
+        :returns: the name of this schedule
+
+        >>> ExponentialSchedule(100.5, 0.3)
+        exp100d5_0d3
+        """
+        return f"exp{num_to_str_for_name(self.start_temperature)}_" \
+               f"{num_to_str_for_name(self.epsilon)}"
