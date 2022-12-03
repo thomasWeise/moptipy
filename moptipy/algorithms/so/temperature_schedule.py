@@ -12,9 +12,9 @@ from moptipy.utils.types import type_error
 # start schedule
 class TemperatureSchedule(Component):
     """The base class for temperature schedules."""
-# end schedule
 
     def __init__(self, start_temperature: float) -> None:
+        # end schedule
         """
         Initialize the temperature schedule.
 
@@ -26,10 +26,10 @@ class TemperatureSchedule(Component):
         if (not isfinite(start_temperature)) or (start_temperature < 0.0):
             raise ValueError(
                 f"start_temperature cannot be {start_temperature}.")
+# start schedule
         #: the starting temperature
         self.start_temperature: Final[float] = start_temperature
 
-# start schedule
     def temperature(self, tau: int) -> float:
         """
         Compute the temperature at iteration `tau`.
