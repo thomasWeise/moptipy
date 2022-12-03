@@ -61,7 +61,7 @@ class SimulatedAnnealing(Algorithm1):
         random: Final[Generator] = process.get_random()
 
         # Put function references in variables to for faster calls.
-        temparature: Final[Callable[[int], float]] = self.schedule.temperature
+        temperature: Final[Callable[[int], float]] = self.schedule.temperature
         r01: Final[Callable[[], float]] = random.random  # random from [0, 1)
         evaluate: Final[Callable] = process.evaluate  # the objective
         op1: Final[Callable] = self.op1.op1  # the unary operator
@@ -76,7 +76,7 @@ class SimulatedAnnealing(Algorithm1):
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
             new_f: int | float = evaluate(new_x)
             if (new_f <= best_f) or (  # Accept if <= or if SA criterion
-                    r01() < exp((best_f - new_f) / temparature(tau))):
+                    r01() < exp((best_f - new_f) / temperature(tau))):
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
             tau = tau + 1  # Step the iteration index.
