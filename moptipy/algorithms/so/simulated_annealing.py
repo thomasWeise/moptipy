@@ -17,7 +17,7 @@ simulated [5].
    doi: https://doi.org/10.1007/BF00940812.
    http://mkweb.bcgsc.ca/papers/cerny-travelingsalesman.pdf.
 3. Dean Jacobs, Jan Prins, Peter Siegel, and Kenneth Wilson. Monte Carlo
-   Techniques in Code Optimization. *ACM SIGMICRO Newsletter.* 1384):143-148.
+   Techniques in Code Optimization. *ACM SIGMICRO Newsletter.* 13(4):143-148.
    December 1982. Also in Proceedings of the 15th Annual Workshop on
    Microprogramming (MICRO 15), October 5-7, 1982, Palo Alto, CA, USA,
    New York, NY, USA: ACM. doi: http://doi.org/10.1145/1014194.800944.
@@ -76,7 +76,7 @@ class SimulatedAnnealing(Algorithm1):
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
             new_f: int | float = evaluate(new_x)
             if (new_f <= best_f) or (  # Accept if <= or if SA criterion
-                    r01() < exp((new_f - best_f) / temparature(tau))):
+                    r01() < exp((best_f - new_f) / temparature(tau))):
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
             tau = tau + 1  # Step the iteration index.
