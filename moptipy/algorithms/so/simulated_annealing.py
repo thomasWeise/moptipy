@@ -3,6 +3,33 @@ The simulated annealing algorithm with configurable temperature schedule.
 
 This algorithm is simular to :class:`~moptipy.algorithms.so.rls.RLS`, but it
 sometimes also accepts solutions that are worse than the current one.
+It was independently developed by several researchers [1-4].
+The idea is inspired by Metropolis' approximation of how annealing can be
+simulated [5].
+
+1. Scott Kirkpatrick, C. Daniel Gelatt, Jr., and Mario P. Vecchi. Optimization
+   by Simulated Annealing. *Science Magazine.* 220(4598):671-680.
+   May 13, 1983. doi: https://doi.org/10.1126/science.220.4598.671.
+   https://www.researchgate.net/publication/6026283
+2. Vladimír Černý. Thermodynamical Approach to the Traveling Salesman Problem:
+   An Efficient Simulation Algorithm. *Journal of Optimization Theory and
+   Applications.* 45(1):41-51. January 1985.
+   doi: https://doi.org/10.1007/BF00940812.
+   http://mkweb.bcgsc.ca/papers/cerny-travelingsalesman.pdf.
+3. Dean Jacobs, Jan Prins, Peter Siegel, and Kenneth Wilson. Monte Carlo
+   Techniques in Code Optimization. *ACM SIGMICRO Newsletter.* 1384):143-148.
+   December 1982. Also in Proceedings of the 15th Annual Workshop on
+   Microprogramming (MICRO 15), October 5-7, 1982, Palo Alto, CA, USA,
+   New York, NY, USA: ACM. doi: http://doi.org/10.1145/1014194.800944.
+4. Martin Pincus. Letter to the Editor - A Monte Carlo Method for the
+   Approximate Solution of Certain Types of Constrained Optimization Problems.
+   *Operations Research.* 18(6):1225-1228. November/December 1970.
+   doi: https://doi.org/10.1287/opre.18.6.1225.
+5. Nicholas Metropolis, Arianna W. Rosenbluth, Marshall Nicholas Rosenbluth,
+   Augusta H. Teller, Edward Teller. Equation of State Calculations by Fast
+   Computing Machines. *The Journal of Chemical Physics*. 21(6):1087-1092.
+   June 1953. doi: https://doi.org/10.1063/1.1699114.
+   http://scienze-como.uninsubria.it/bressanini/montecarlo-history/mrt2.pdf.
 """
 from math import exp
 from typing import Callable, Final
