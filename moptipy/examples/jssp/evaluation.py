@@ -708,6 +708,21 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     selected.append("ea_32_32_0d125_gap_swap2")
     table(end_results, selected, dest, swap_stats=[(lims, totfes)])
 
+    logger("now preparing to do simulated annealing")
+    EN.set_current()
+    stats = ["bestF.sd", "lastImprovementFE.med", "totalFEs.med"]
+    tabulate_end_results(
+        end_results=get_end_results(end_results, algos={"rls_swap2"}),
+        file_name="end_stats_rls_2", dir_name=dest,
+        instance_sort_key=instance_sort_key,
+        algorithm_sort_key=algorithm_sort_key,
+        col_namer=command_column_namer,
+        algorithm_namer=algorithm_namer,
+        algorithm_instance_statistics=stats,
+        algorithm_summary_statistics=stats,
+        put_lower_bound=False,
+        use_lang=False)
+
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 
 
