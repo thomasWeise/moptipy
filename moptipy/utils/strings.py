@@ -20,10 +20,12 @@ def float_to_str(x: float) -> str:
     '1.3'
     >>> float_to_str(1.0)
     '1'
+    >>> float_to_str(1e-5)
+    '1e-5'
     """
     if x == 0:
         return "0"
-    s = repr(x)
+    s = repr(x).replace("e-0", "e-")
     if isnan(x):
         raise ValueError(f"'{s}' not permitted.")
     if s.endswith(".0"):
@@ -48,6 +50,8 @@ def num_to_str_for_name(x: int | float) -> str:
     'm7'
     >>> num_to_str_for_name(-6.32)
     'm6d32'
+    >>> num_to_str_for_name(-1e-5)
+    'm1em5'
     """
     return num_to_str(x).replace(".", DECIMAL_DOT_REPLACEMENT) \
         .replace("-", MINUS_REPLACEMENT)
@@ -73,6 +77,8 @@ def name_str_to_num(s: str) -> int | float:
     -0.006
     >>> name_str_to_num(num_to_str_for_name(100.0))
     100
+    >>> name_str_to_num(num_to_str_for_name(-1e-4))
+    -0.0001
     """
     return str_to_intfloat(s.replace(MINUS_REPLACEMENT, "-")
                            .replace(DECIMAL_DOT_REPLACEMENT, "."))
