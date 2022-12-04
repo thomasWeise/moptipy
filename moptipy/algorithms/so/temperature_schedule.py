@@ -13,22 +13,21 @@ from moptipy.utils.types import type_error
 class TemperatureSchedule(Component):
     """The base class for temperature schedules."""
 
-    def __init__(self, start_temperature: float) -> None:
+    def __init__(self, t0: float) -> None:
         # end schedule
         """
         Initialize the temperature schedule.
 
-        :param start_temperature: the starting temperature
+        :param t0: the starting temperature
         """
         super().__init__()
-        if not isinstance(start_temperature, float):
-            raise type_error(start_temperature, "start_temperature", float)
-        if (not isfinite(start_temperature)) or (start_temperature < 0.0):
-            raise ValueError(
-                f"start_temperature cannot be {start_temperature}.")
+        if not isinstance(t0, float):
+            raise type_error(t0, "t0", float)
+        if (not isfinite(t0)) or (t0 < 0.0):
+            raise ValueError(f"t0 cannot be {t0}.")
 # start schedule
         #: the starting temperature
-        self.start_temperature: Final[float] = start_temperature
+        self.t0: Final[float] = t0
 
     def temperature(self, tau: int) -> float:
         """
@@ -36,7 +35,7 @@ class TemperatureSchedule(Component):
 
         :param tau: the iteration index, starting with 0 at the first
             comparison of two solutions, at which point the starting
-            temperature should be returned
+            temperature :attr:`~TemperatureSchedule.t0` should be returned
         :returns: the temperature
         """
 # end schedule
@@ -60,27 +59,27 @@ class TemperatureSchedule(Component):
         6
         """
         super().log_parameters_to(logger)
-        logger.key_value("T0", self.start_temperature)
+        logger.key_value("T0", self.t0)
 
 
 # start exponential
 class ExponentialSchedule(TemperatureSchedule):
     """The exponential temperature schedule."""
 
-    def __init__(self, start_temperature: float, epsilon: float) -> None:
+    def __init__(self, t0: float, epsilon: float) -> None:
         """
         Initialize the exponential temperature schedule.
 
-        :param start_temperature: the starting temperature
+        :param t0: the starting temperature
         :param epsilon: the epsilon parameter of the schedule
         """
-        super().__init__(start_temperature)
+        super().__init__(t0)
 # end exponential
         if not isinstance(epsilon, float):
             raise type_error(epsilon, "epsilon", float)
         if (not isfinite(epsilon)) or (not (0.0 < epsilon < 1.0)):
             raise ValueError(
-                f"epsilon cannot be {epsilon}, must be in (0, 1).")
+                f"epsilon cannot be {epsilon}, must be in (0,1).")
 # start exponential
         #: the epsilon parameter of the exponential schedule
         self.epsilon: Final[float] = epsilon
@@ -99,7 +98,7 @@ class ExponentialSchedule(TemperatureSchedule):
 
         :param tau: the iteration index, starting with 0 at the first
             comparison of two solutions, at which point the starting
-            temperature should be returned
+            temperature :attr:`~TemperatureSchedule.t0` should be returned
         :returns: the temperature
 
         >>> s = ExponentialSchedule(100.0, 0.5)
@@ -110,7 +109,7 @@ class ExponentialSchedule(TemperatureSchedule):
         >>> s.temperature(10)
         0.09765625
         """
-        return self.start_temperature * (self.__one_minus_epsilon ** tau)
+        return self.t0 * (self.__one_minus_epsilon ** tau)
 # end exponential
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
@@ -145,7 +144,7 @@ class ExponentialSchedule(TemperatureSchedule):
         >>> ExponentialSchedule(100.5, 0.3)
         exp100d5_0d3
         """
-        return f"exp{num_to_str_for_name(self.start_temperature)}_" \
+        return f"exp{num_to_str_for_name(self.t0)}_" \
                f"{num_to_str_for_name(self.epsilon)}"
 
 
@@ -153,20 +152,20 @@ class ExponentialSchedule(TemperatureSchedule):
 class LogarithmicSchedule(TemperatureSchedule):
     """The logarithmic temperature schedule."""
 
-    def __init__(self, start_temperature: float, epsilon: float) -> None:
+    def __init__(self, t0: float, epsilon: float) -> None:
         """
         Initialize the logarithmic temperature schedule.
 
-        :param start_temperature: the starting temperature
+        :param t0: the starting temperature
         :param epsilon: the epsilon parameter of the schedule
         """
-        super().__init__(start_temperature)
+        super().__init__(t0)
 # end logarithmic
         if not isinstance(epsilon, float):
             raise type_error(epsilon, "epsilon", float)
         if (not isfinite(epsilon)) or (not (0.0 < epsilon < 1.0)):
             raise ValueError(
-                f"epsilon cannot be {epsilon}, must be in (0, 1).")
+                f"epsilon cannot be {epsilon}, must be in (0,1).")
 # start logarithmic
         #: the epsilon parameter of the logarithmic schedule
         self.epsilon: Final[float] = epsilon
@@ -177,7 +176,7 @@ class LogarithmicSchedule(TemperatureSchedule):
 
         :param tau: the iteration index, starting with 0 at the first
             comparison of two solutions, at which point the starting
-            temperature should be returned
+            temperature :attr:`~TemperatureSchedule.t0` should be returned
         :returns: the temperature
 
         >>> s = LogarithmicSchedule(100.0, 0.5)
@@ -188,7 +187,7 @@ class LogarithmicSchedule(TemperatureSchedule):
         >>> s.temperature(10)
         48.93345190925178
         """
-        return self.start_temperature / log(e + (tau * self.epsilon))
+        return self.t0 / log(e + (tau * self.epsilon))
 # end logarithmic
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
@@ -223,5 +222,5 @@ class LogarithmicSchedule(TemperatureSchedule):
         >>> LogarithmicSchedule(100.5, 0.3)
         ln100d5_0d3
         """
-        return f"ln{num_to_str_for_name(self.start_temperature)}_" \
+        return f"ln{num_to_str_for_name(self.t0)}_" \
                f"{num_to_str_for_name(self.epsilon)}"
