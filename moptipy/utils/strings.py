@@ -23,7 +23,7 @@ def float_to_str(x: float) -> str:
     >>> float_to_str(1e-5)
     '1e-5'
     """
-    if x == 0:
+    if x == 0.0:
         return "0"
     s = repr(x).replace("e-0", "e-")
     if isnan(x):
