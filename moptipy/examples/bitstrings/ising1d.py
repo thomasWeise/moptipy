@@ -1,11 +1,9 @@
 """The one-dimensional Ising problem."""
-from typing import Final
 
 import numba  # type: ignore
 import numpy as np
 
-from moptipy.api.objective import Objective
-from moptipy.utils.types import type_error
+from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 
 
 @numba.njit(nogil=True, cache=True)
@@ -42,7 +40,7 @@ def ising1d(x: np.ndarray) -> int:
     return s
 
 
-class Ising1d(Objective):
+class Ising1d(BitStringProblem):
     """The one-dimensional Ising problem."""
 
     def __init__(self, n: int) -> None:  # +book
@@ -56,42 +54,8 @@ class Ising1d(Objective):
         >>> print(Ising1d(3).evaluate(np.array([True, False, True])))
         2
         """
-        super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        #: the upper bound = the length of the bit strings
-        self.n: Final[int] = n
+        super().__init__(n)
         self.evaluate = ising1d  # type: ignore
-
-    def lower_bound(self) -> int:
-        """
-        Get the lower bound of the one-dimensional Ising problem.
-
-        :return: 0
-
-        >>> print(Ising1d(7).lower_bound())
-        0
-        """
-        return 0
-
-    def upper_bound(self) -> int:
-        """
-        Get the upper bound of the one-dimensional Ising problem.
-
-        :return: the length of the bit string
-
-        >>> print(Ising1d(12).upper_bound())
-        12
-        """
-        return self.n
-
-    def is_always_integer(self) -> bool:
-        """
-        Return `True` because :func:`ising1d` always returns `int` values.
-
-        :retval True: always
-        """
-        return True
 
     def __str__(self) -> str:
         """

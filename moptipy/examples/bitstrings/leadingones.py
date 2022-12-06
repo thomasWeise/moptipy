@@ -4,8 +4,7 @@ from typing import Final
 import numba  # type: ignore
 import numpy as np
 
-from moptipy.api.objective import Objective
-from moptipy.utils.types import type_error
+from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 
 
 @numba.njit(nogil=True, cache=True)
@@ -36,7 +35,7 @@ def leadingones(x: np.ndarray) -> int:
     return 0
 
 
-class LeadingOnes(Objective):
+class LeadingOnes(BitStringProblem):
     """Maximize the number of leadings ones in a bit string."""
 
     def __init__(self, n: int) -> None:  # +book
@@ -50,42 +49,8 @@ class LeadingOnes(Objective):
         >>> print(LeadingOnes(4).evaluate(np.array([True, True, True, False])))
         1
         """
-        super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        #: the upper bound = the length of the bit strings
-        self.n: Final[int] = n
+        super().__init__(n)
         self.evaluate = leadingones  # type: ignore
-
-    def lower_bound(self) -> int:
-        """
-        Get the lower bound of the leadingones objective function.
-
-        :return: 0
-
-        >>> print(LeadingOnes(3).lower_bound())
-        0
-        """
-        return 0
-
-    def upper_bound(self) -> int:
-        """
-        Get the upper bound of the leadingones objective function.
-
-        :return: the length of the bit string
-
-        >>> print(LeadingOnes(5).upper_bound())
-        5
-        """
-        return self.n
-
-    def is_always_integer(self) -> bool:
-        """
-        Return `True` because :func:`leadingones` always returns `int` values.
-
-        :retval True: always
-        """
-        return True
 
     def __str__(self) -> str:
         """

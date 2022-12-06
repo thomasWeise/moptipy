@@ -1,11 +1,9 @@
 """An objective function counting the number of ones in a bit string."""
-from typing import Final
 
 import numba  # type: ignore
 import numpy as np
 
-from moptipy.api.objective import Objective
-from moptipy.utils.types import type_error
+from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 
 
 @numba.njit(nogil=True, cache=True)
@@ -33,7 +31,7 @@ def onemax(x: np.ndarray) -> int:
     return int(len(x) - x.sum())
 
 
-class OneMax(Objective):
+class OneMax(BitStringProblem):
     """Maximize the number of ones in a bit string."""
 
     def __init__(self, n: int) -> None:  # +book
@@ -47,42 +45,8 @@ class OneMax(Objective):
         >>> print(OneMax(4).evaluate(np.array([True, True, False, True])))
         1
         """
-        super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        #: the upper bound = the length of the bit strings
-        self.n: Final[int] = n
+        super().__init__(n)
         self.evaluate = onemax  # type: ignore
-
-    def lower_bound(self) -> int:
-        """
-        Get the lower bound of the onemax objective function.
-
-        :return: 0
-
-        >>> print(OneMax(10).lower_bound())
-        0
-        """
-        return 0
-
-    def upper_bound(self) -> int:
-        """
-        Get the upper bound of the onemax objective function.
-
-        :return: the length of the bit string
-
-        >>> print(OneMax(7).upper_bound())
-        7
-        """
-        return self.n
-
-    def is_always_integer(self) -> bool:
-        """
-        Return `True` because :func:`onemax` always returns `int` values.
-
-        :retval True: always
-        """
-        return True
 
     def __str__(self) -> str:
         """

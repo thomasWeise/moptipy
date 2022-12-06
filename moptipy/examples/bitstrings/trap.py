@@ -4,8 +4,7 @@ from typing import Final
 import numba  # type: ignore
 import numpy as np
 
-from moptipy.api.objective import Objective
-from moptipy.utils.types import type_error
+from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 
 
 @numba.njit(nogil=True, cache=True)
@@ -38,7 +37,7 @@ def trap(x: np.ndarray) -> int:
     return 0 if (s >= length) else int(s + 1)
 
 
-class Trap(Objective):
+class Trap(BitStringProblem):
     """The trap problem."""
 
     def __init__(self, n: int) -> None:  # +book
@@ -52,42 +51,8 @@ class Trap(Objective):
         >>> print(Trap(4).evaluate(np.array([True, True, False, True])))
         4
         """
-        super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        #: the upper bound = the length of the bit strings
-        self.n: Final[int] = n
+        super().__init__(n)
         self.evaluate = trap  # type: ignore
-
-    def lower_bound(self) -> int:
-        """
-        Get the lower bound of the trap objective function.
-
-        :return: 0
-
-        >>> print(Trap(20).lower_bound())
-        0
-        """
-        return 0
-
-    def upper_bound(self) -> int:
-        """
-        Get the upper bound of the trap objective function.
-
-        :return: the length of the bit string
-
-        >>> print(Trap(40).upper_bound())
-        40
-        """
-        return self.n
-
-    def is_always_integer(self) -> bool:
-        """
-        Return `True` because :func:`trap` always returns `int` values.
-
-        :retval True: always
-        """
-        return True
 
     def __str__(self) -> str:
         """
