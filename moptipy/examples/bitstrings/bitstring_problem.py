@@ -15,7 +15,7 @@ class BitStringProblem(Objective):
     This base class has a set of default behaviors. It has an attribute
     :attr:`n` denoting the lengths of the accepted bit strings. Its
     :meth:`lower_bound` returns `0` and its :meth:`upper_bound` returns
-    :attr:`n`. :meth:`always_integer` returns `True`.
+    :attr:`n`. :meth:`is_always_integer` returns `True`.
     """
 
     def __init__(self, n: int) -> None:  # +book

@@ -35,7 +35,7 @@ algorithm benchmarking. These instances are provided via
 
 from array import array
 from math import sqrt
-from typing import Callable, Final, Iterable
+from typing import Callable, Final, Iterable, cast
 
 import numba  # type: ignore  # type: ignore  # type: ignore
 import numpy as np
@@ -565,8 +565,9 @@ class WModel(BitStringProblem):
         >>> len(list(WModel.default_instances()))
         19
         """
-        return (lambda a=iid, b=z[0], c=z[1], d=z[2], g=z[3]:
-                WModel(b, c, d, g, f"wmodel{a + 1}")
+        return (cast(Callable[[], "WModel"],
+                     lambda a=iid, b=z[0], c=z[1], d=z[2], g=z[3]:
+                     WModel(b, c, d, g, f"wmodel{a + 1}"))
                 for iid, z in enumerate([
                     (10, 2, 6, 10), (10, 2, 6, 18), (16, 1, 5, 72),
                     (16, 3, 9, 72), (25, 1, 23, 90), (32, 1, 2, 397),
