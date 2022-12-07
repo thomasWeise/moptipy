@@ -1,4 +1,16 @@
-"""An objective function counting the number of ones in a bit string."""
+"""
+An objective function counting the number of ones in a bit string.
+
+1. Heinz Mühlenbein. How Genetic Algorithms Really Work: Mutation and
+   Hillclimbing. In Reinhard Männer and Bernard Manderick, editors,
+   *Proceedings of Parallel Problem Solving from Nature 2 (PPSN-II),*
+   September 28-30, 1992, Brussels, Belgium, pages 15-26. Elsevier.
+   https://www.researchgate.net/publication/220702092
+2. Stefan Droste, Thomas Jansen, and Ingo Wegener. Upper and Lower Bounds for
+   Randomized Search Heuristics in Black-Box Optimization. *Theory of
+   Computing Systems.* 39(4):525-544. July 2006.
+   doi: https://doi.org/10.1007/s00224-004-1177-z
+"""
 
 import numba  # type: ignore
 import numpy as np
