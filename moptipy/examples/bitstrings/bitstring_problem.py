@@ -68,7 +68,7 @@ class BitStringProblem(Objective):
         Create a proper search space for this problem.
 
         :returns: an instance of
-            :class:`~moptipy.spaces.bit_strings.BitStrings` for bit strings of
+            :class:`~moptipy.spaces.bitstrings.BitStrings` for bit strings of
             length :attr:`n`
         """
         return BitStrings(self.n)
