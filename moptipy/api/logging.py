@@ -2,7 +2,6 @@
 
 from typing import Final
 
-
 #: the file suffix to be used for log files
 FILE_SUFFIX: Final[str] = ".txt"
 

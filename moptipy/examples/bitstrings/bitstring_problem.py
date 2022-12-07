@@ -54,7 +54,10 @@ class BitStringProblem(Objective):
 
     def is_always_integer(self) -> bool:
         """
-        Return `True` because :func:`onemax` always returns `int` values.
+        Return `True` if the `evaluate` function always returns an `int`.
+
+        This pre-defined function for bit-string based problems will always
+        return `True`.
 
         :retval True: always
         """

@@ -130,6 +130,7 @@ class _GanttParser(LogParser):
         from moptipy.examples.jssp.gantt_space import (
             GanttSpace,  # pylint: disable=C0415,R0401
         )
+
         self._result = GanttSpace(self.__instance).from_str(self.__gantt_str)
         self.__gantt_str = None
         return False
