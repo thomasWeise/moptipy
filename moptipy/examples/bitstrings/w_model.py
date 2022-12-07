@@ -31,13 +31,17 @@ algorithm benchmarking. These instances are provided via
    Computation Conference (GECCO'08)*, pages 795-802, July 12-16, 2008,
    Atlanta, GA, USA. ISBN: 978-1-60558-130-9, New York, NY, USA: ACM Press.
    doi: https://doi.org/10.1145/1389095.1389252
+4. Carola Doerr and Furong Ye and Naama Horesh and Hao Wang and Ofer M. Shir
+   and Thomas Bäck. Benchmarking Discrete Optimization Heuristics with
+   IOHprofiler. Applied Soft Computing 88:106027, March 2020,
+   doi: https://doi.org/10.1016/j.asoc.2019.106027.
 """
 
 from array import array
 from math import sqrt
 from typing import Callable, Final, Iterable, cast
 
-import numba  # type: ignore  # type: ignore  # type: ignore
+import numba  # type: ignore
 import numpy as np
 
 from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
@@ -48,7 +52,7 @@ from moptipy.utils.types import type_error
 
 
 @numba.njit(nogil=True, cache=True, inline="always")
-def w_model_f(x: np.ndarray) -> np.int32:
+def w_model_f(x: np.ndarray) -> int:
     """
     Compute the basic hamming distance of the W-Model to the optimal string.
 
@@ -93,7 +97,7 @@ def w_model_f(x: np.ndarray) -> np.int32:
     >>> w_model_f(np.array([True, False, True, False, True, False, True]))
     7
     """
-    result: np.int32 = np.int32(0)
+    result = 0
     for i, xx in enumerate(x):
         if xx == ((i & 1) == 0):
             result = result + 1
