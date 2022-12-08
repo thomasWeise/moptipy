@@ -773,6 +773,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
 
 1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
     - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
+    - The minimization version of the [Jump](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.jump.Jump) problem, which is equivalent OneMax, but has a deceptive region right before the optimum.
     - The minimization version of the well-known [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.leadingones.LeadingOnes) problem, where the goal is to maximize the length of the trailing substring of all `True` bits.
     - The minimization version of the well-known [OneMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.OneMax) problem, where the goal is to maximize the number of `True` bits in a string.
     - The minimization version of the [Trap](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.trap.Trap) problem, which is equivalent of OneMax, but with the optimum and worst-possible solution swapped.
