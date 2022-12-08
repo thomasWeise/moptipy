@@ -869,21 +869,22 @@ There are three types of sections:
   Apart from that, basically any type of data may be stored there.
   This is useful for, for instance, storing the [final solutions](#5125-the-result-sections) of runs or [exceptions caught during the runs](#5126-the-error-sections).
 
-In all the above sections, all the character `#` is removed from output.
+In all the above sections, the character `#` is removed from output.
 The character `#` indicates a starting comment and can only be written by the routines dedicated to produce comments.
 
 
 ##### 5.1.2.1 The Section `PROGRESS`
 
-When setting up an algorithm execution, you can specify whether you want to [log the progress](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements) of the algorithm (or not).
+When setting up an algorithm execution, you can specify whether or not you want to [log the progress](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements) of the algorithm.
 If and only if you choose to log the progress, the `PROGRESS` section will be contained in the log file.
 Notice that this section can be long if the algorithm makes many improvements.
 You can also choose if you want to [log all algorithm steps](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes) or [only the improving moves](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), the latter being the default behavior.
-If you really log all algorithm steps, then your log files will become quite large.
-In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa/) book, for example, we can do several million objective function evaluations (FEs) within the two minutes of runtime granted to each run.
+If you really log all algorithm steps, then your log files will contain one line for every objective function evaluation (FE) you perform.
+It can thus become quite large.
+In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa/) book, for example, we can do several million FEs within the two minutes of runtime granted to each run.
 This then would equate to several millions of lines in the `PROGRESS` section of each log file.
-So normally you would rather only log the improving moves, which would normally be between a few ten to a few thousand of lines, which is usually acceptable.
-Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#5122-the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime as well as the [`RESULT_*` sections](#5125-the-result-sections) with the best encountered candidate solution and point in the search space as well as the [`SETUP`](#5123-the-section-setup) and [`SYS_INFO`](#5124-the-section-sys_info) still will be included in the log files.
+So normally you would rather only log the improving moves, which would often be between a few ten to a few thousand of lines, which is usually acceptable.
+Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#5122-the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime, as well as the [`RESULT_*` sections](#5125-the-result-sections) with the best encountered candidate solution and point in the search space, and also the [`SETUP`](#5123-the-section-setup) and [`SYS_INFO`](#5124-the-section-sys_info) still will be included in the log files.
 
 The `PROGRESS` section contains log points describing the algorithm progress over time in a semicolon-separated values format with one data point per line.
 It has an internal header describing the data columns.
@@ -900,8 +901,8 @@ This configuration is denoted by the header `fes;timeMS;f`.
 After this header and until `END_PROGRESS`, each line will contain one data point with values for the specified columns.
 
 If you perform multi-objective optimization, then one additional column will be added for each objective function.
-The column header will be `fi` with `i` being the zero-based index of the function.
-`f` then stands for the scalarized version of the objective values.
+The column header will be `fi` with `i` being the zero-based index of the (`i+1`th) objective function.
+`f` then stands for the [scalarized](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.mo_problem.MOProblem.evaluate) version of the objective values.
 
 You can copy the contents of this section together with the header into calculation software such as Microsoft Excel or LibreOffice Calc and choose `;` as separator when applying the text-to-column feature.
 This way, you can directly work on the raw data if you want.
@@ -924,7 +925,7 @@ It holds at least the following keys:
 
 In case that multi-objective optimization is performed, please note the following things:
 
-- `bestF` then corresponds to the best scalarization result, i.e., the best value achieved by the scalarization of the objective value vector during the search,
+- `bestF` then corresponds to the best [scalarization](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.mo_problem.MOProblem.evaluate) result, i.e., the best value achieved by the scalarization of the objective value vector during the search,
 - `bestFs`, the vector of objective values corresponding to the solution obtaining `bestF`, is also provided (values are semicolon-separated),
 - `archiveSize` is the number of non-dominated solutions collected in the archive, and
 - the values of `lastImprovementFE` and `lastImprovementTimeMillis` may not be reliable anymore:

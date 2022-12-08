@@ -34,7 +34,11 @@ from moptipy.utils.help import help_screen
 from moptipy.utils.lang import EN
 from moptipy.utils.logger import SCOPE_SEPARATOR, sanitize_name
 from moptipy.utils.path import Path
-from moptipy.utils.strings import name_str_to_num, num_to_str
+from moptipy.utils.strings import (
+    beautify_float_str,
+    name_str_to_num,
+    num_to_str,
+)
 from moptipy.utils.types import type_error
 
 #: The letter mu
@@ -99,7 +103,20 @@ def ea_family(name: str) -> str:
                 return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
         elif (ll == 6) and (ss[-2] == "gap") and (ss[-1] == "swap2"):
             return f"{ss[1]}+{ss[2]}_ea_br"
-    raise ValueError(f"Invalid name '{name}'.")
+    raise ValueError(f"Invalid EA name '{name}'.")
+
+
+def sa_family(name: str) -> str:
+    """
+    Name the simulated annealing setup.
+
+    :param name: the full name
+    :returns: the short name of the family
+    """
+    if name.startswith("sa_") and name.endswith("_swap2"):
+        return f"sa_T\u2080_" \
+               f"{beautify_float_str(name_str_to_num(name.split('_')[2]))}"
+    raise ValueError(f"Invalid SA name '{name}'.")
 
 
 def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
@@ -137,7 +154,9 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                           ("rls_swap2", "rls"), ("rls_swapn", "rlsn"),
                           ("ea_([0-9]+)_([0-9]+)_swap2", "\\1+\\2_ea"),
                           ("ea_([0-9]+)_([0-9]+)_(0d[0-9]+)_gap_swap2",
-                           __eacr)]:
+                           __eacr),
+                          ("sa_exp([0-9]+)_([0-9])em([0-9])_swap2",
+                           "sa_\\1_\\2e-\\3")]:
         re: Pattern = _compile(pattern)
         found = False
         for s in names:
@@ -213,6 +232,16 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
             if n in used_names:
                 raise ValueError(f"Already got '{n}'.")
             namer[name] = n
+            names_new.insert(names_new.index(name), n)
+
+    # do sa families
+    for name in names:
+        sa_done: set[str] = set()
+        if name.startswith("sa_"):
+            n = sa_family(name)
+            if n in sa_done:
+                continue
+            sa_done.add(n)
             names_new.insert(names_new.index(name), n)
 
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
@@ -722,6 +751,27 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         algorithm_summary_statistics=stats,
         put_lower_bound=False,
         use_lang=False)
+
+    logger("now doing simulated annealing")
+
+    makespans_over_param(
+        end_results=end_results,
+        selector=lambda n: n.startswith("sa_") and n.endswith("_swap2") and (
+            "1em7" not in n),
+        x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[1][3:]),
+        name_base="sa_exp",
+        algo_getter=sa_family,
+        title="sa_T\u2080_\u03b5", x_label="T\u2080",
+        x_axis=AxisRanger(log_scale=True, log_base=2.0),
+        legend_pos="upper center",
+        title_x=0.8,
+        dest_dir=dest)
+    table(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
+    tests(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
+    makespans(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
+    gantt(end_results, "sa_exp16_1em6_swap2", dest, source)
+    progress(["sa_exp16_1em6_swap2", "rls_swap2"], dest, source)
+    gantt(end_results, "sa_exp16_1em6_swap2", dest, source, True, ["orb10"])
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 

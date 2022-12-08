@@ -11,18 +11,21 @@ The following benchmark problems are provided:
 1. :class:`~moptipy.examples.bitstrings.ising1d.Ising1d`, the one-dimensional
    Ising model, where the goal is that all bits should have the same value as
    their neighbors.
-2. The :class:`~moptipy.examples.bitstrings.leadingones.LeadingOnes` problem,
+2. The :class:`~moptipy.examples.bitstrings.jump.Jump` problem is equivalent
+   to :class:`~moptipy.examples.bitstrings.onemax.OneMax`, but has a deceptive
+   region right before the optimum.
+3. The :class:`~moptipy.examples.bitstrings.leadingones.LeadingOnes` problem,
    where the goal is to find a bit string with the maximum number of leading
    ones.
-3. The :class:`~moptipy.examples.bitstrings.onemax.OneMax` problem, where the
+4. The :class:`~moptipy.examples.bitstrings.onemax.OneMax` problem, where the
    goal is to find a bit string with the maximum number of ones.
-4. The :class:`~moptipy.examples.bitstrings.trap.Trap` problem, which is like
+5. The :class:`~moptipy.examples.bitstrings.trap.Trap` problem, which is like
    OneMax, but with the optimum and worst-possible solution swapped. This
    problem is therefore highly deceptive.
-5. The :class:`~moptipy.examples.bitstrings.w_model.WModel`, a benchmark
+6. The :class:`~moptipy.examples.bitstrings.w_model.WModel`, a benchmark
    problem with tunable epistasis, uniform neutrality, and ruggedness/
    deceptiveness.
-6. The :class:`~moptipy.examples.bitstrings.zeromax.ZeroMax` problem, where the
+7. The :class:`~moptipy.examples.bitstrings.zeromax.ZeroMax` problem, where the
    goal is to find a bit string with the maximum number of zeros. This is the
    opposite of the OneMax problem.
 """

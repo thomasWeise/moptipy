@@ -16,6 +16,7 @@ is a bit string of either all ones or all zeros.
    To The Ising Model: Easy And Hard Symmetrical Problems. *In Proceedings of
    the Genetic and Evolutionary Computation Conference (GECCO'02),* July 9-13,
    2002, New York, NY, USA, pages 626-633. Morgan Kaufmann.
+   http://gpbib.cs.ucl.ac.uk/gecco2002/GA013.pdf
 """
 
 import numba  # type: ignore

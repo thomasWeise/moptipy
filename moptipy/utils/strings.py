@@ -84,6 +84,55 @@ def name_str_to_num(s: str) -> int | float:
                            .replace(DECIMAL_DOT_REPLACEMENT, "."))
 
 
+#: the internal table of the unicode characters to beautfy float strings
+__BEAUTYFULL_FLOAT_TABLE: Final[dict[str, str]] = {
+    "0": "\u2070", "1": "\u00b9", "2": "\u00b2", "3": "\u00b3", "4": "\u2074",
+    "5": "\u2075", "6": "\u2076", "7": "\u2077", "8": "\u2078", "9": "\u2079",
+    "+": "\u207A", "-": "\u207b"
+}
+
+
+def beautify_float_str(s: str | float) -> str:
+    """
+    Beautify the string representation of a float.
+
+    This function beautifies the string representation of a float by using
+    unicode superscripts for exponents.
+
+    :param s: either a `float` or the string representation of a `float`
+    :return: the beautified string representation
+
+    >>> beautify_float_str('0.0')
+    '0.0'
+    >>> beautify_float_str('1e12')
+    '1\u00d710\u00b9\u00b2'
+    >>> beautify_float_str('1e-3')
+    '1\u00d710\u207b\u00b3'
+    >>> beautify_float_str('inf')
+    '\u221e'
+    >>> beautify_float_str('-inf')
+    '-\u221e'
+    >>> beautify_float_str('nan')
+    '\u2205'
+    """
+    if isinstance(s, float):
+        s = float_to_str(s)
+    if not isinstance(s, str):
+        raise type_error(s, "s", str)
+    s = s.strip().lower()
+    if s in ("+inf", "inf"):
+        return "\u221e"
+    if s == "-inf":
+        return "-\u221e"
+    if s == "nan":
+        return "\u2205"
+    eidx: int = s.find("e")
+    if eidx < 0:
+        return s
+    return f"{s[:eidx]}\u00d710" \
+           f"{''.join(__BEAUTYFULL_FLOAT_TABLE[ss] for ss in s[eidx + 1:])}"
+
+
 def bool_to_str(value: bool) -> str:
     """
     Convert a Boolean value to a string.

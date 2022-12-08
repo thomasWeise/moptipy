@@ -158,7 +158,7 @@ for mu_lambda in [4, 32]:
             mating=TournamentWithoutReplacement(2))))
 
 for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
-    for epsilon in [1e-5, 1e-6, 5e-6, 1e-7, 5e-7]:
+    for epsilon in [1e-7, 5e-7, 1e-6, 5e-6, 1e-5]:
         ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, t=t0, e=epsilon: SimulatedAnnealing(
