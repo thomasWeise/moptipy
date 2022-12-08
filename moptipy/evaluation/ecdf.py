@@ -1,4 +1,37 @@
-"""Approximate the ECDF to reach certain goals."""
+"""
+Approximate the ECDF to reach certain goals.
+
+The empirical cumulative distribution function (ECDF) for short illustrates
+the fraction of runs that have reached a certain goal over time. Let's say
+that you have performed 10 runs of a certain algorithm on a certain problem.
+As goal quality, you could define the globally optimal solution quality.
+For any point in time, the ECDF then shows how many of these runs have solved
+the problem to this goal, to optimality.
+Let's say the first run solves the problem after 100 FEs.
+Then the ECDF is 0 until 99 FEs and at 100 FEs, it becomes 1/10.
+The second fastest run solves the problem after 200 FEs.
+The ECDF thus stays 0.1 until 199 FEs and at 200 FEs, it jumps to 0.2.
+And so on.
+This means that the value of the ECDF is always between 0 and 1.
+
+1. Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. *Real-Parameter
+   Black-Box Optimization Benchmarking 2010: Experimental Setup.
+   Research Report RR-7215, INRIA. 2010. inria-00462481.
+   https://hal.inria.fr/inria-00462481/document/
+2. Dave Andrew Douglas Tompkins and Holger H. Hoos. UBCSAT: An Implementation
+   and Experimentation Environment for SLS Algorithms for SAT and MAX-SAT. In
+   *Revised Selected Papers from the Seventh International Conference on
+   Theory and Applications of Satisfiability Testing (SAT'04),* May 10-13,
+   2004, Vancouver, BC, Canada, pages 306-320. Lecture Notes in Computer
+   Science (LNCS), volume 3542. Berlin, Germany: Springer-Verlag GmbH.
+   ISBN: 3-540-27829-X. doi: https://doi.org/10.1007/11527695_24.
+3. Holger H. Hoos and Thomas Stützle. Evaluating Las Vegas Algorithms -
+   Pitfalls and Remedies. In Gregory F. Cooper and Serafín Moral, editors,
+   Proceedings of the 14th Conference on Uncertainty in Artificial
+   Intelligence (UAI'98), July 24-26, 1998, Madison, WI, USA, pages 238-245.
+   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.
+   ISBN: 1-55860-555-X.
+"""
 
 from dataclasses import dataclass
 from math import inf, isfinite
@@ -35,7 +68,7 @@ KEY_F_NAME: Final[str] = "fName"
 
 @dataclass(frozen=True, init=False, order=True)
 class Ecdf(MultiRun2DData):
-    """The ECDF."""
+    """The ECDF data."""
 
     #: The ECDF data function
     ecdf: np.ndarray
