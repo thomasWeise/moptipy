@@ -442,7 +442,7 @@ class _InnerLogParser(ExperimentParser):
 
             time, f = zip(*[[c.strip()
                              for c in aa(line.split(CSV_SEPARATOR))]
-                            for line in lines[1:]])
+                            for line in lines[1:]], strict=True)
             time = [int(t) for t in time]
             f = [str_to_intfloat(v) for v in f]
             if self.__only_improvements:
