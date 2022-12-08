@@ -163,7 +163,7 @@ class LogarithmicSchedule(TemperatureSchedule):
 # end logarithmic
         if not isinstance(epsilon, float):
             raise type_error(epsilon, "epsilon", float)
-        if (not isfinite(epsilon)) or (not (0.0 < epsilon < 1.0)):
+        if (not isfinite(epsilon)) or (epsilon <= 0.0):
             raise ValueError(
                 f"epsilon cannot be {epsilon}, must be in (0,1).")
 # start logarithmic

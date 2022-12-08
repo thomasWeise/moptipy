@@ -2,8 +2,8 @@
 
 from numpy.random import Generator, default_rng
 
+from moptipy.algorithms.modules.temperature_schedule import ExponentialSchedule
 from moptipy.algorithms.so.simulated_annealing import SimulatedAnnealing
-from moptipy.algorithms.so.temperature_schedule import ExponentialSchedule
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random

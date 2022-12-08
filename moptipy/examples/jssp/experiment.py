@@ -13,6 +13,7 @@ from moptipy.algorithms.modules.selections.tournament_with_repl import (
 from moptipy.algorithms.modules.selections.tournament_without_repl import (
     TournamentWithoutReplacement,
 )
+from moptipy.algorithms.modules.temperature_schedule import ExponentialSchedule
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
@@ -26,7 +27,6 @@ from moptipy.algorithms.so.hill_climber_with_restarts import (
 )
 from moptipy.algorithms.so.rls import RLS
 from moptipy.algorithms.so.simulated_annealing import SimulatedAnnealing
-from moptipy.algorithms.so.temperature_schedule import ExponentialSchedule
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.gantt_space import GanttSpace
