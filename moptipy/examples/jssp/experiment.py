@@ -25,6 +25,7 @@ from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import (
     HillClimberWithRestarts,
 )
+from moptipy.algorithms.so.ma import MA
 from moptipy.algorithms.so.rls import RLS
 from moptipy.algorithms.so.simulated_annealing import SimulatedAnnealing
 from moptipy.api.algorithm import Algorithm
@@ -33,6 +34,7 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
+from moptipy.operators.op0_forward import Op0Forward
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
@@ -164,6 +166,25 @@ for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
             lambda inst, pwr, t=t0, e=epsilon: SimulatedAnnealing(
                 Op0Shuffle(pwr), Op1Swap2(),
                 ExponentialSchedule(t, e))))
+
+for mu_lambda in [2 ** i for i in range(5, 6)]:
+    for ls_steps in [2 ** i for i in range(13, 15)]:
+        ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda, lss=ls_steps, t=ts:
+                MA(Op0Shuffle(pwr), Op2GeneralizedAlternatingPosition(pwr),
+                   SimulatedAnnealing(
+                       Op0Forward(), Op1Swap2(),
+                       ExponentialSchedule(16.0, round(
+                           1e7 * (1 - ((0.22 / 16.0)
+                                       ** (1.0 / (lss >> 1))))) / 1e7)),
+                   ml, ml, lss)))
+        ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, ml=mu_lambda, lss=ls_steps:
+                MA(Op0Shuffle(pwr), Op2GeneralizedAlternatingPosition(pwr),
+                   RLS(Op0Forward(), Op1Swap2()),
+                   ml, ml, lss)))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

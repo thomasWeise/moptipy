@@ -42,3 +42,8 @@ class Op0Forward(Op0):
         :return: "forward"
         """
         return "forward"
+
+    def initialize(self) -> None:
+        """Initialize this operator by stopping to forward."""
+        super().initialize()
+        self.stop_forwarding()

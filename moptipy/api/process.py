@@ -382,6 +382,14 @@ class Process(Space, Objective, AbstractContextManager):
         :param text: the text to log
         """
 
+    def initialize(self) -> None:
+        """
+        Raise an error because this method shall never be called.
+
+        :raises ValueError: always
+        """
+        raise ValueError("Never call the initialize() method of a Process!")
+
     def __enter__(self) -> "Process":
         """
         Begin a `with` statement.
