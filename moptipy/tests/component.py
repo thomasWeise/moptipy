@@ -18,6 +18,8 @@ def validate_component(component: Component) -> None:
     Check whether an object is a valid moptipy component.
 
     This test checks the conversion to string and the logging of parameters.
+    This method must be called before the other `validate_*` methods provided
+    in this package.
 
     :param component: the component to test
     :raises ValueError: if `component` is not a valid
@@ -125,3 +127,8 @@ def validate_component(component: Component) -> None:
         if key in done_keys:
             raise ValueError(f"key {key} appears twice!")
         done_keys.add(key)
+
+    if not (hasattr(component, "initialize")
+            and callable(getattr(component, "initialize"))):
+        raise ValueError("component must have method initialize.")
+    component.initialize()

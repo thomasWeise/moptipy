@@ -3,8 +3,61 @@ The base classes for implementing optimization algorithms.
 
 All optimization algorithms implemented based on the `moptipy` API inherit
 from :class:`~moptipy.api.algorithm.Algorithm`. If you implement a new
-algorithm, you can test with the pre-defined unit test routine
-:func:`~moptipy.tests.algorithm.validate_algorithm`.
+algorithm, you will want to override the following methods:
+
+1. :meth:`~moptipy.api.algorithm.Algorithm.solve` implements the algorithm
+   itself. It receives an instance of :class:`~moptipy.api.process.Process` as
+   parameter that allows for the creation and evaluation of candidate
+   solutions and that provides a random number generator. The optimization
+   algorithm then will sample solutions and pass them to
+   :meth:`~moptipy.api.process.Process.evaluate` to obtain their objective
+   value, striving sampling better and better solutions.
+2. The dunder method `__str__` should be overridden to return a short mnemonic
+   name of the algorithm.
+3. :meth:`~moptipy.api.component.Component.log_parameters_to` needs to be
+   overridden if the algorithm has any parameters. This methods then should
+   store the values of all the parameters to the logging context. It should
+   also invoke the :meth:`~moptipy.api.component.Component.log_parameters_to`
+   routines of all sub-components of the algorithm.
+4. :meth:`~moptipy.api.component.Component.initialize` needs to be overridden
+   to reset/initialize all internal data structures and to invoke all the
+   :meth:`~moptipy.api.component.Component.initialize` of all components (such
+   as search operators) of the algorithm.
+
+Notice that we already provide specialized algorithm sub-classes for several
+common scenarios, such as:
+
+1. :class:`~moptipy.api.algorithm.Algorithm0` for algorithms that have a
+   nullary search operator (:class:`~moptipy.api.operators.Op0`).
+2. :class:`~moptipy.api.algorithm.Algorithm1` for algorithms that have  a
+   nullary (:class:`~moptipy.api.operators.Op0`) and an unary
+   (:class:`~moptipy.api.operators.Op1`) search operator.
+3. :class:`~moptipy.api.algorithm.Algorithm2` for algorithms that have  a
+   nullary (:class:`~moptipy.api.operators.Op0`), an unary
+   (:class:`~moptipy.api.operators.Op1`), and a binary
+   (:class:`~moptipy.api.operators.Op2`) search operator.
+4. :class:`~moptipy.api.mo_algorithm.MOAlgorithm` for multi-objective
+   optimization problems.
+
+These classes automatically invoke the
+:meth:`~moptipy.api.component.Component.log_parameters_to` and
+:meth:`~moptipy.api.component.Component.initialize` routines of their
+operators.
+
+If you implement a new algorithm, you can and should test with the pre-defined
+unit test routine :func:`~moptipy.tests.algorithm.validate_algorithm`, or its
+specialized versions
+
+1. for bit-string based search spaces based on
+   :func:`~moptipy.tests.on_bitstrings.validate_algorithm_on_bitstrings`):
+   a. :func:`~moptipy.tests.on_bitstrings.validate_algorithm_on_onemax`,
+   b. :func:`~moptipy.tests.on_bitstrings.validate_algorithm_on_leadingones`
+2. for the JSSP based on
+   :func:`~moptipy.tests.on_jssp.validate_algorithm_on_1_jssp`:
+   a. :func:`~moptipy.tests.on_jssp.validate_algorithm_on_jssp`
+3. on real-valued vector search spaces based on
+   :func:`~moptipy.tests.on_vectors.validate_algorithm_on_vectors`):
+   a. :func:`~moptipy.tests.on_vectors.validate_algorithm_on_ackley`
 """
 from typing import Final
 
@@ -69,6 +122,11 @@ class Algorithm0(Algorithm):
         """
         return self.name
 
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.op0.initialize()
+
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log the parameters of the algorithm to a logger.
@@ -95,6 +153,11 @@ class Algorithm1(Algorithm0):
                          f"{name}{PART_SEPARATOR}{op1}", op0)
         #: The unary search operator.
         self.op1: Final[Op1] = check_op1(op1)
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.op1.initialize()
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -124,6 +187,11 @@ class Algorithm2(Algorithm1):
             f"{name}{PART_SEPARATOR}{op2}", op0, op1)
         #: The binary search operator.
         self.op2: Final[Op2] = check_op2(op2)
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.op2.initialize()
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

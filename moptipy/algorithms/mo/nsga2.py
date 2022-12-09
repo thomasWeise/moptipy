@@ -327,3 +327,7 @@ class NSGA2(Algorithm2, MOAlgorithm):
         super().log_parameters_to(logger)
         logger.key_value("pop_size", self.pop_size)
         logger.key_value("cr", self.cr)
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        Algorithm2.initialize(self)

@@ -342,8 +342,15 @@ class Execution:
                                      goal_f=goal_f)
         try:
             # noinspection PyProtectedMember
-            process._after_init()
-            algorithm.solve(process)
+            process._after_init()  # finalize the created process
+            objective.initialize()  # initialize the objective function
+            if encoding is not None:
+                encoding.initialize()   # initialize the encoding
+            solution_space.initialize()  # initialize the solution space
+            if search_space is not None:
+                search_space.initialize()  # initialize the search space
+            algorithm.initialize()  # initialize the algorithm
+            algorithm.solve(process)  # apply the algorithm
         except BaseException as be:
             # noinspection PyProtectedMember
             process._caught = be

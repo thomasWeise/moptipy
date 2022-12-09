@@ -11,7 +11,7 @@ from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.nputils import (
     KEY_NUMPY_TYPE,
     int_range_to_dtype,
-    val_numpy_type,
+    numpy_type_to_str,
 )
 from moptipy.utils.types import type_error
 
@@ -329,6 +329,6 @@ class GanttSpace(Space):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SHAPE, repr(self.shape))
-        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.dtype))
+        logger.key_value(KEY_NUMPY_TYPE, numpy_type_to_str(self.dtype))
         with logger.scope(SCOPE_INSTANCE) as kv:
             self.instance.log_parameters_to(kv)

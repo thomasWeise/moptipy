@@ -254,3 +254,10 @@ class GeneralEA(EA):
             self.survival.log_parameters_to(s)
         with logger.scope("mating") as m:
             self.mating.log_parameters_to(m)
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.survival.initialize()
+        self.mating.initialize()
+        self.fitness.initialize()

@@ -343,7 +343,7 @@ def is_all_finite(a: numpy.ndarray) -> bool:
 KEY_NUMPY_TYPE: Final[str] = "dtype"
 
 
-def val_numpy_type(dtype: numpy.dtype) -> str:
+def numpy_type_to_str(dtype: numpy.dtype) -> str:
     """
     Convert a numpy data type to a string.
 
@@ -351,9 +351,9 @@ def val_numpy_type(dtype: numpy.dtype) -> str:
     :returns: a string representation
 
     >>> import numpy as npx
-    >>> val_numpy_type(npx.dtype(int))
+    >>> numpy_type_to_str(npx.dtype(int))
     'l'
-    >>> val_numpy_type(npx.dtype(float))
+    >>> numpy_type_to_str(npx.dtype(float))
     'd'
     """
     return dtype.char
@@ -410,3 +410,18 @@ def array_to_str(data: numpy.ndarray) -> str:
     if k == "b":
         return "".join(bool_to_str(bool(d)) for d in data)
     raise ValueError(f"unsupported data kind '{k}' of type '{data.dtype}'.")
+
+
+@numba.njit(nogil=True)
+def fill_in_canonical_permutation(a: numpy.ndarray) -> None:
+    """
+    Fill the canonical permutation into an array.
+
+    >>> import numpy
+    >>> arr = numpy.empty(10, int)
+    >>> fill_in_canonical_permutation(arr)
+    >>> print(arr)
+    [0 1 2 3 4 5 6 7 8 9]
+    """
+    for i in range(len(a)):  # pylint: disable=C0200
+        a[i] = i

@@ -45,7 +45,7 @@ from moptipy.utils.nputils import (
     DEFAULT_UNSIGNED_INT,
     KEY_NUMPY_TYPE,
     int_range_to_dtype,
-    val_numpy_type,
+    numpy_type_to_str,
 )
 from moptipy.utils.types import type_error
 
@@ -258,6 +258,11 @@ class MOSOProblemBridge(MOProblem):
         self.f_create = lambda dd=dt: np.empty(1, dd)  # type: ignore
         self.f_dimension = lambda: 1  # type: ignore
 
+    def initialize(self) -> None:
+        """Initialize the MO-problem bridge."""
+        super().initialize()
+        self.__f.initialize()
+
     def f_evaluate(self, x, fs: np.ndarray) -> int | float:
         """
         Evaluate the candidate solution.
@@ -297,6 +302,6 @@ class MOSOProblemBridge(MOProblem):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, "1")
-        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.__dtype))
+        logger.key_value(KEY_NUMPY_TYPE, numpy_type_to_str(self.__dtype))
         with logger.scope(f"{SCOPE_OBJECTIVE_FUNCTION}{0}") as scope:
             self.__f.log_parameters_to(scope)

@@ -140,6 +140,11 @@ class _IntFFA1(FFA):
         super().log_parameters_to(logger)
         logger.key_value("ub", len(self.__h) - 1)
 
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.__h.fill(0)
+
 
 class _IntFFA2(FFA):
     """The internal FFA-based class."""
@@ -195,6 +200,11 @@ class _IntFFA2(FFA):
         logger.key_value("lb", self.__lb)
         logger.key_value("ub", len(self.__h) + self.__lb - 1)
 
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.__h.fill(0)
+
 
 class _DictFFA(FFA):
     """The internal FFA dict-based class."""
@@ -234,3 +244,8 @@ class _DictFFA(FFA):
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
             r.fitness = (h[r.f] * it_range) + max_it - r.it
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.__h.clear()

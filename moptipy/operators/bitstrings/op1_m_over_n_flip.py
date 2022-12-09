@@ -5,7 +5,10 @@ import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1
-from moptipy.utils.nputils import int_range_to_dtype
+from moptipy.utils.nputils import (
+    fill_in_canonical_permutation,
+    int_range_to_dtype,
+)
 from moptipy.utils.types import type_error
 
 
@@ -41,8 +44,13 @@ class Op1MoverNflip(Op1):
         #: is it OK to not flip any bit?
         self.__none_is_ok: Final[bool] = not at_least_1
         #: the internal permutation
-        self.__permutation: Final[np.ndarray] = np.array(
-            range(n), dtype=int_range_to_dtype(0, n - 1))
+        self.__permutation: Final[np.ndarray] = np.empty(
+            n, dtype=int_range_to_dtype(0, n - 1))
+
+    def initialize(self) -> None:
+        """Initialize this operator."""
+        super().initialize()
+        fill_in_canonical_permutation(self.__permutation)
 
     def op1(self, random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
         """

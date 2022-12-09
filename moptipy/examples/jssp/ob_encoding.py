@@ -10,7 +10,7 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import (
     KEY_NUMPY_TYPE,
     int_range_to_dtype,
-    val_numpy_type,
+    numpy_type_to_str,
 )
 from moptipy.utils.types import type_error
 
@@ -128,8 +128,8 @@ class OperationBasedEncoding(Encoding):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_NUMPY_TYPE_MACHINE_IDX,
-                         val_numpy_type(self.__machine_idx.dtype))
+                         numpy_type_to_str(self.__machine_idx.dtype))
         logger.key_value(KEY_NUMPY_TYPE_JOB_IDX,
-                         val_numpy_type(self.__job_idx.dtype))
+                         numpy_type_to_str(self.__job_idx.dtype))
         logger.key_value(KEY_NUMPY_TYPE_JOB_TIME,
-                         val_numpy_type(self.__job_time.dtype))
+                         numpy_type_to_str(self.__job_time.dtype))

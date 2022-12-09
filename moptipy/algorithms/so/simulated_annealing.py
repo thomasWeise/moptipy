@@ -106,3 +106,8 @@ class SimulatedAnnealing(Algorithm1):
         super().log_parameters_to(logger)
         with logger.scope("ts") as ts:
             self.schedule.log_parameters_to(ts)
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        super().initialize()
+        self.schedule.initialize()

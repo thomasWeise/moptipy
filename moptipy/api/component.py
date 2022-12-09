@@ -39,6 +39,15 @@ class Component:
             return s[i + 1:]
         return s
 
+    def initialize(self) -> None:
+        """
+        Initialize this component before a new run.
+
+        Before every run of the optimization algorithm, its `initialize`
+        method is called. The algorithm in turn must call all the `initialize`
+        methods of all of its components.
+        """
+
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
         Log all parameters of this component as key-value pairs.

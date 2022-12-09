@@ -3,9 +3,13 @@ The base classes for multi-objective optimization algorithms.
 
 A multi-objective optimization algorithm is an optimization algorithm that can
 optimize multiple, possibly conflicting, objective functions at once. All such
-algorithms inherit from :class:`~moptipy.api.mo_algorithm.MOAlgorithm`. If you
-implement a new multi-objective algorithm, you can test it via the pre-defined
-unit test routine :func:`~moptipy.tests.mo_algorithm.validate_mo_algorithm`.
+algorithms inherit from :class:`~moptipy.api.mo_algorithm.MOAlgorithm`. When
+developing or implementing new algorithms, you would still follow the concepts
+discussed in module :mod:`~moptipy.api.algorithm`.
+
+If you implement a new multi-objective algorithm, you can test it via the
+pre-defined unit test routine
+:func:`~moptipy.tests.mo_algorithm.validate_mo_algorithm`.
 """
 from typing import cast
 

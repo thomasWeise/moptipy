@@ -14,7 +14,7 @@ from moptipy.utils.math import try_int
 from moptipy.utils.nputils import (
     KEY_NUMPY_TYPE,
     dtype_for_data,
-    val_numpy_type,
+    numpy_type_to_str,
 )
 from moptipy.utils.types import type_error
 
@@ -222,6 +222,12 @@ class BasicMOProblem(MOProblem):
                 raise type_error(domination, "domination", call=True)
             self.f_dominates = domination  # type: ignore
 
+    def initialize(self) -> None:
+        """Initialize the multi-objective problem."""
+        super().initialize()
+        for ff in self._objectives:
+            ff.initialize()
+
     def f_dimension(self) -> int:
         """
         Obtain the number of objective functions.
@@ -298,7 +304,7 @@ class BasicMOProblem(MOProblem):
         """
         super().log_parameters_to(logger)
         logger.key_value(KEY_SPACE_NUM_VARS, self.__dimension)
-        logger.key_value(KEY_NUMPY_TYPE, val_numpy_type(self.__dtype))
+        logger.key_value(KEY_NUMPY_TYPE, numpy_type_to_str(self.__dtype))
         for i, o in enumerate(self._objectives):
             with logger.scope(f"{SCOPE_OBJECTIVE_FUNCTION}{i}") as scope:
                 o.log_parameters_to(scope)

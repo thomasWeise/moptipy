@@ -1,6 +1,6 @@
 """Functions that can be used to test algorithm implementations."""
 from math import inf, isfinite
-from typing import Any, Final
+from typing import Any, Callable, Final
 
 from moptipy.api.algorithm import (
     Algorithm,
@@ -18,6 +18,7 @@ from moptipy.tests.component import validate_component
 from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.objective import validate_objective
 from moptipy.tests.space import validate_space
+from moptipy.utils.nputils import rand_seed_generate
 from moptipy.utils.types import type_error
 
 
@@ -78,6 +79,7 @@ def validate_algorithm(algorithm: Algorithm,
     exp.set_max_fes(max_fes)
     exp.set_solution_space(solution_space)
     exp.set_objective(objective)
+    exp.set_rand_seed(rand_seed_generate())
     if search_space is not None:
         exp.set_search_space(search_space)
         exp.set_encoding(encoding)
@@ -103,124 +105,152 @@ def validate_algorithm(algorithm: Algorithm,
         goal = required_result
     exp.set_goal_f(goal)
 
-    with exp.execute() as process:
-        # re-raise any exception that was caught
-        if hasattr(process, "_caught"):
-            error = getattr(process, "_caught")
-            if error is not None:
-                raise error
-        # no exception? ok, let's check the data
-        if not process.has_best():
-            raise ValueError(f"The algorithm {algorithm} did not produce "
-                             f"any solution on {objective}.")
+    progress: Final[tuple[list[int | float], list[int | float]]] = \
+        [], []  # the progrss lists
+    evaluate: Final[Callable[[Any], int | float]] = objective.evaluate
 
-        if not process.should_terminate():
-            if uses_all_fes_if_goal_not_reached:
-                raise ValueError(f"The algorithm {algorithm} stopped before "
-                                 "hitting the termination criterion "
-                                 f"on {objective}.")
+    for index in range(2 if is_encoding_deterministic else 1):
 
-        consumed_fes: Final[int] = process.get_consumed_fes()
-        if not isinstance(consumed_fes, int):
-            raise type_error(consumed_fes, "consumed_fes", int)
-        if (consumed_fes <= 0) or (consumed_fes > max_fes):
-            raise ValueError(
-                f"Consumed FEs must be positive and <= {max_fes}, "
-                f"but is {consumed_fes} for {algorithm} on {objective}.")
+        if is_encoding_deterministic:
 
-        last_imp_fe: Final[int] = process.get_last_improvement_fe()
-        if not isinstance(last_imp_fe, int):
-            raise type_error(last_imp_fe, "last improvement FE", int)
-        if (last_imp_fe <= 0) or (last_imp_fe > consumed_fes):
-            raise ValueError("Last improvement FEs must be positive and "
-                             f"<= {consumed_fes}, but is {last_imp_fe} "
-                             f"for {algorithm} on {objective}.")
+            def __k(xy, ii=index, ev=evaluate, pp=progress) -> int | float:
+                rr = ev(xy)
+                pp[ii].append(rr)
+                return rr
 
-        consumed_time: Final[int] = process.get_consumed_time_millis()
-        if not isinstance(consumed_time, int):
-            raise type_error(consumed_time, "consumed time", int)
-        if consumed_time < 0:
-            raise ValueError(
-                f"Consumed time must be >= 0, but is {consumed_time} "
-                f"for {algorithm} on {objective}.")
+            objective.evaluate = __k  # type: ignore
 
-        last_imp_time: Final[int] = process.get_last_improvement_time_millis()
-        if not isinstance(last_imp_time, int):
-            raise type_error(last_imp_time, "last improvement time", int)
-        if (last_imp_time < 0) or (last_imp_time > consumed_time):
-            raise ValueError(
-                f"Consumed time must be >= 0 and <= {consumed_time}, but "
-                f"is {last_imp_time} for {algorithm} on {objective}.")
+        with exp.execute() as process:
+            # re-raise any exception that was caught
+            if hasattr(process, "_caught"):
+                error = getattr(process, "_caught")
+                if error is not None:
+                    raise error
+            # no exception? ok, let's check the data
+            if not process.has_best():
+                raise ValueError(f"The algorithm {algorithm} did not produce "
+                                 f"any solution on {objective}.")
 
-        if lb != process.lower_bound():
-            raise ValueError(
-                "Inconsistent lower bounds between process "
-                f"({process.lower_bound()}) and objective ({lb})"
-                f" for {algorithm} on {objective}.")
-        if ub != process.upper_bound():
-            raise ValueError(
-                "Inconsistent upper bounds between process "
-                f"({process.upper_bound()}) and objective ({ub}) "
-                f" for {algorithm} on {objective}.")
+            if not process.should_terminate():
+                if uses_all_fes_if_goal_not_reached:
+                    raise ValueError(f"The algorithm {algorithm} stopped "
+                                     f"before hitting the termination "
+                                     f"criterion on {objective}.")
 
-        res_f: Final[float | int] = process.get_best_f()
-        if not isfinite(res_f):
-            raise ValueError(f"Infinite objective value of result "
-                             f"for {algorithm} on {objective}.")
-        if (res_f < lb) or (res_f > ub):
-            raise ValueError(f"Objective value {res_f} outside of bounds "
-                             f"[{lb},{ub}] for {algorithm} on {objective}.")
-
-        if required_result is not None:
-            if res_f > required_result:
+            consumed_fes: int = process.get_consumed_fes()
+            if not isinstance(consumed_fes, int):
+                raise type_error(consumed_fes, "consumed_fes", int)
+            if (consumed_fes <= 0) or (consumed_fes > max_fes):
                 raise ValueError(
-                    f"Algorithm {algorithm} should find solution of quality "
-                    f"{required_result} on {objective}, but got one of "
-                    f"{res_f}.")
+                    f"Consumed FEs must be positive and <= {max_fes}, "
+                    f"but is {consumed_fes} for {algorithm} on {objective}.")
 
-        if res_f <= goal:
-            if last_imp_fe != consumed_fes:
-                raise ValueError(
-                    f"if result={res_f} is as good as goal={goal}, then "
-                    f"last_imp_fe={last_imp_fe} must equal"
-                    f" consumed_fe={consumed_fes} for {algorithm} on "
-                    f"{objective}.")
-            if (10_000 + (1.05 * last_imp_time)) < consumed_time:
-                raise ValueError(
-                    f"if result={res_f} is as good as goal={goal}, then "
-                    f"last_imp_time={last_imp_time} must not be much less"
-                    f" than consumed_time={consumed_time} for {algorithm} "
-                    f"on {objective}.")
-        else:
-            if uses_all_fes_if_goal_not_reached and (consumed_fes != max_fes):
-                raise ValueError(
-                    f"if result={res_f} is worse than goal={goal}, then "
-                    f"consumed_fes={consumed_fes} must equal "
-                    f"max_fes={max_fes} for {algorithm} on {objective}.")
+            last_imp_fe: int = process.get_last_improvement_fe()
+            if not isinstance(last_imp_fe, int):
+                raise type_error(last_imp_fe, "last improvement FE", int)
+            if (last_imp_fe <= 0) or (last_imp_fe > consumed_fes):
+                raise ValueError("Last improvement FEs must be positive and "
+                                 f"<= {consumed_fes}, but is {last_imp_fe} "
+                                 f"for {algorithm} on {objective}.")
 
-        y = solution_space.create()
-        process.get_copy_of_best_y(y)
-        solution_space.validate(y)
-        check_f = objective.evaluate(y)
-        if check_f != res_f:
-            raise ValueError(
-                f"Inconsistent objective value {res_f} from process compared "
-                f"to {check_f} from objective function for {algorithm} on "
-                f"{objective}.")
-
-        x: Any | None = None
-        if search_space is not None:
-            x = search_space.create()
-            process.get_copy_of_best_x(x)
-            search_space.validate(x)
-
-        if encoding is not None:
-            y2 = solution_space.create()
-            encoding.decode(x, y2)
-            solution_space.validate(y2)
-            if is_encoding_deterministic \
-                    and not solution_space.is_equal(y, y2):
+            consumed_time: int = process.get_consumed_time_millis()
+            if not isinstance(consumed_time, int):
+                raise type_error(consumed_time, "consumed time", int)
+            if consumed_time < 0:
                 raise ValueError(
-                    f"error when mapping point in search space {x} to "
-                    f"solution {y2}, because it should be {y} for "
-                    f"{algorithm} on {objective} under encoding {encoding}")
+                    f"Consumed time must be >= 0, but is {consumed_time} "
+                    f"for {algorithm} on {objective}.")
+
+            last_imp_time: int = \
+                process.get_last_improvement_time_millis()
+            if not isinstance(last_imp_time, int):
+                raise type_error(last_imp_time, "last improvement time", int)
+            if (last_imp_time < 0) or (last_imp_time > consumed_time):
+                raise ValueError(
+                    f"Consumed time must be >= 0 and <= {consumed_time}, but "
+                    f"is {last_imp_time} for {algorithm} on {objective}.")
+
+            if lb != process.lower_bound():
+                raise ValueError(
+                    "Inconsistent lower bounds between process "
+                    f"({process.lower_bound()}) and objective ({lb})"
+                    f" for {algorithm} on {objective}.")
+            if ub != process.upper_bound():
+                raise ValueError(
+                    "Inconsistent upper bounds between process "
+                    f"({process.upper_bound()}) and objective ({ub}) "
+                    f" for {algorithm} on {objective}.")
+
+            res_f: float | int = process.get_best_f()
+            if not isfinite(res_f):
+                raise ValueError(f"Infinite objective value of result "
+                                 f"for {algorithm} on {objective}.")
+            if (res_f < lb) or (res_f > ub):
+                raise ValueError(f"Objective value {res_f} outside of bounds "
+                                 f"[{lb},{ub}] for {algorithm} on "
+                                 f"{objective}.")
+
+            if required_result is not None:
+                if res_f > required_result:
+                    raise ValueError(
+                        f"Algorithm {algorithm} should find solution of "
+                        f"quality {required_result} on {objective}, but got "
+                        f"one of {res_f}.")
+
+            if res_f <= goal:
+                if last_imp_fe != consumed_fes:
+                    raise ValueError(
+                        f"if result={res_f} is as good as goal={goal}, then "
+                        f"last_imp_fe={last_imp_fe} must equal"
+                        f" consumed_fe={consumed_fes} for {algorithm} on "
+                        f"{objective}.")
+                if (10_000 + (1.05 * last_imp_time)) < consumed_time:
+                    raise ValueError(
+                        f"if result={res_f} is as good as goal={goal}, then "
+                        f"last_imp_time={last_imp_time} must not be much less"
+                        f" than consumed_time={consumed_time} for "
+                        f"{algorithm} on {objective}.")
+            else:
+                if uses_all_fes_if_goal_not_reached \
+                        and (consumed_fes != max_fes):
+                    raise ValueError(
+                        f"if result={res_f} is worse than goal={goal}, then "
+                        f"consumed_fes={consumed_fes} must equal "
+                        f"max_fes={max_fes} for {algorithm} on {objective}.")
+
+            y = solution_space.create()
+            process.get_copy_of_best_y(y)
+            solution_space.validate(y)
+            check_f = objective.evaluate(y)
+            if check_f != res_f:
+                raise ValueError(
+                    f"Inconsistent objective value {res_f} from process "
+                    f"compared to {check_f} from objective function for "
+                    f"{algorithm} on {objective}.")
+
+            x: Any | None = None
+            if search_space is not None:
+                x = search_space.create()
+                process.get_copy_of_best_x(x)
+                search_space.validate(x)
+
+            if encoding is not None:
+                y2 = solution_space.create()
+                encoding.decode(x, y2)
+                solution_space.validate(y2)
+                if is_encoding_deterministic \
+                        and not solution_space.is_equal(y, y2):
+                    raise ValueError(
+                        f"error when mapping point in search space {x} to "
+                        f"solution {y2}, because it should be {y} for "
+                        f"{algorithm} on {objective} under "
+                        f"encoding {encoding}")
+
+    objective.evaluate = evaluate  # type: ignore
+
+    if is_encoding_deterministic:
+        if progress[0] != progress[1]:
+            raise ValueError(f"when applying algorithm {algorithm} to "
+                             f"{objective} under encoding {encoding} twice "
+                             f"with the same seed did lead to different "
+                             f"runs!")

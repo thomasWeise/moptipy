@@ -62,3 +62,7 @@ class MORLS(Algorithm1, MOAlgorithm):
         :param op1: the unary search operator
         """
         Algorithm1.__init__(self, "morls", op0, op1)
+
+    def initialize(self) -> None:
+        """Initialize the algorithm."""
+        Algorithm1.initialize(self)
