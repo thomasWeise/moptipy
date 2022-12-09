@@ -2,7 +2,10 @@
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.modules.temperature_schedule import ExponentialSchedule
+from moptipy.algorithms.modules.temperature_schedule import (
+    ExponentialSchedule,
+    LogarithmicSchedule,
+)
 from moptipy.algorithms.so.simulated_annealing import SimulatedAnnealing
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.instance import Instance
@@ -28,8 +31,10 @@ def test_sa_on_jssp_random() -> None:
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
+        ts = ExponentialSchedule if random.integers(2) <= 0 \
+            else LogarithmicSchedule
         return SimulatedAnnealing(
-            Op0Shuffle(search_space), Op1Swap2(), ExponentialSchedule(
+            Op0Shuffle(search_space), Op1Swap2(), ts(
                 random.uniform(1, 1000), random.uniform(0.1, 0.9)))
     validate_algorithm_on_jssp(create)
 
@@ -41,10 +46,11 @@ def test_sa_on_onemax_random() -> None:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
+        ts = ExponentialSchedule if random.integers(2) <= 0 \
+            else LogarithmicSchedule
         return SimulatedAnnealing(
             Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
-            ExponentialSchedule(random.uniform(1, 1000),
-                                random.uniform(0.1, 0.9)))
+            ts(random.uniform(1, 1000), random.uniform(0.1, 0.9)))
     validate_algorithm_on_onemax(create)
 
 
@@ -55,8 +61,9 @@ def test_sa_on_leadingones() -> None:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
+        ts = ExponentialSchedule if random.integers(2) <= 0 \
+            else LogarithmicSchedule
         return SimulatedAnnealing(
             Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
-            ExponentialSchedule(random.uniform(1, 1000),
-                                random.uniform(0.1, 0.9)))
+            ts(random.uniform(1, 1000), random.uniform(0.1, 0.9)))
     validate_algorithm_on_leadingones(create)

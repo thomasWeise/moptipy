@@ -3,6 +3,31 @@ Approximate the expected running time to reach certain goals.
 
 The (empirically estimated) Expected Running Time (ERT) tries to give an
 impression of how long an algorithm needs to reach a certain solution quality.
+
+The ERT for a problem instance is estimated as the ratio of the sum of all FEs
+that all the runs consumed until they either have discovered a solution of a
+given goal quality or exhausted their budget, divided by the number of runs
+that discovered a solution of the goal quality. The ERT is the mean expect
+runtime under the assumption of independent restarts after failed runs, which
+then may either succeed (consuming the mean runtime of the successful runs) or
+fail again (with the observed failure probability, after consuming the
+available budget).
+
+The ERT itself can be considered as a function that associates the estimated
+runtime given above to all possible solution qualities that can be attained by
+an algorithm for a give problem. For qualities/goals that an algorithm did not
+attain in any run, the ERT becomes infinite.
+
+1. Kenneth V. Price. Differential Evolution vs. The Functions of the 2nd ICEO.
+   In Russ Eberhart, Peter Angeline, Thomas Back, Zbigniew Michalewicz, and
+   Xin Yao, editors, *IEEE International Conference on Evolutionary
+   Computation,* April 13-16, 1997, Indianapolis, IN, USA, pages 153-157.
+   IEEE Computational Intelligence Society. ISBN: 0-7803-3949-5.
+   doi: https://doi.org/10.1109/ICEC.1997.592287
+2. Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. *Real-Parameter
+   Black-Box Optimization Benchmarking 2010: Experimental Setup.*
+   Research Report RR-7215, INRIA. 2010. inria-00462481.
+   https://hal.inria.fr/inria-00462481/document/
 """
 
 from dataclasses import dataclass

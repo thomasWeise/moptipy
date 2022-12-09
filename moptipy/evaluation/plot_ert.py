@@ -1,4 +1,23 @@
-"""Plot a set of ERT objects into one figure."""
+"""
+Plot a set of ERT objects into one figure.
+
+The (empirically estimated) Expected Running Time (ERT, see
+:mod:`~moptipy.evaluation.ert`) is a function that tries to give an estimate
+how long a given algorithm setup will need (y-axis) to achieve given solution
+qualities (x-axis). It uses a set of runs of the algorithm on the problem to
+make this estimate under the assumption of independent restarts.
+
+1. Kenneth V. Price. Differential Evolution vs. The Functions of the 2nd ICEO.
+   In Russ Eberhart, Peter Angeline, Thomas Back, Zbigniew Michalewicz, and
+   Xin Yao, editors, *IEEE International Conference on Evolutionary
+   Computation,* April 13-16, 1997, Indianapolis, IN, USA, pages 153-157.
+   IEEE Computational Intelligence Society. ISBN: 0-7803-3949-5.
+   doi: https://doi.org/10.1109/ICEC.1997.592287
+2. Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. *Real-Parameter
+   Black-Box Optimization Benchmarking 2010: Experimental Setup.*
+   Research Report RR-7215, INRIA. 2010. inria-00462481.
+   https://hal.inria.fr/inria-00462481/document/
+"""
 from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np

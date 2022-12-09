@@ -1,4 +1,16 @@
-"""A temperature schedule as needed by simulated annealing."""
+"""
+A temperature schedule as needed by Simulated Annealing.
+
+The Simulated Annealing algorithm implemented in
+:mod:`~moptipy.algorithms.so.simulated_annealing` performs a local search that
+always accepts a non-worsening move, i.e., a solution which is not worse than
+the currently maintained one. However, it will also *sometimes* accept one
+that is worse. The probability of doing so depends on how much worse that
+solution is and on the current *temperature* of the algorithm. The higher the
+temperature, the higher the acceptance probability. The temperature changes
+over time according to the
+:class:`~moptipy.algorithms.modules.temperature_schedule.TemperatureSchedule`.
+"""
 
 from math import e, isfinite, log
 from typing import Final
@@ -18,13 +30,13 @@ class TemperatureSchedule(Component):
         """
         Initialize the temperature schedule.
 
-        :param t0: the starting temperature
+        :param t0: the starting temperature, must be > 0
         """
         super().__init__()
         if not isinstance(t0, float):
             raise type_error(t0, "t0", float)
-        if (not isfinite(t0)) or (t0 < 0.0):
-            raise ValueError(f"t0 cannot be {t0}.")
+        if (not isfinite(t0)) or (t0 <= 0.0):
+            raise ValueError(f"t0 must be >0, cannot be {t0}.")
 # start schedule
         #: the starting temperature
         self.t0: Final[float] = t0
@@ -70,8 +82,8 @@ class ExponentialSchedule(TemperatureSchedule):
         """
         Initialize the exponential temperature schedule.
 
-        :param t0: the starting temperature
-        :param epsilon: the epsilon parameter of the schedule
+        :param t0: the starting temperature, must be > 0
+        :param epsilon: the epsilon parameter of the schedule, in (0, 1)
         """
         super().__init__(t0)
 # end exponential
@@ -156,8 +168,8 @@ class LogarithmicSchedule(TemperatureSchedule):
         """
         Initialize the logarithmic temperature schedule.
 
-        :param t0: the starting temperature
-        :param epsilon: the epsilon parameter of the schedule
+        :param t0: the starting temperature, must be > 0
+        :param epsilon: the epsilon parameter of the schedule, is > 0
         """
         super().__init__(t0)
 # end logarithmic
@@ -165,7 +177,7 @@ class LogarithmicSchedule(TemperatureSchedule):
             raise type_error(epsilon, "epsilon", float)
         if (not isfinite(epsilon)) or (epsilon <= 0.0):
             raise ValueError(
-                f"epsilon cannot be {epsilon}, must be in (0,1).")
+                f"epsilon cannot be {epsilon}, must be > 0.")
 # start logarithmic
         #: the epsilon parameter of the logarithmic schedule
         self.epsilon: Final[float] = epsilon

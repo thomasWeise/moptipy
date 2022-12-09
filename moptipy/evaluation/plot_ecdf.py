@@ -1,4 +1,30 @@
-"""Plot a set of ECDF or ERT-ECDF objects into one figure."""
+"""
+Plot a set of ECDF or ERT-ECDF objects into one figure.
+
+The empirical cumulative distribution function (ECDF, see
+:mod:`~moptipy.evaluation.ecdf`) is a function that shows the fraction of runs
+that were successful in attaining a certain goal objective value over the
+time. The combination of ERT and ECDF is discussed in
+:mod:`~moptipy.evaluation.ertecdf`.
+
+1. Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. *Real-Parameter
+   Black-Box Optimization Benchmarking 2010: Experimental Setup.*
+   Research Report RR-7215, INRIA. 2010. inria-00462481.
+   https://hal.inria.fr/inria-00462481/document/
+2. Dave Andrew Douglas Tompkins and Holger H. Hoos. UBCSAT: An Implementation
+   and Experimentation Environment for SLS Algorithms for SAT and MAX-SAT. In
+   *Revised Selected Papers from the Seventh International Conference on
+   Theory and Applications of Satisfiability Testing (SAT'04),* May 10-13,
+   2004, Vancouver, BC, Canada, pages 306-320. Lecture Notes in Computer
+   Science (LNCS), volume 3542. Berlin, Germany: Springer-Verlag GmbH.
+   ISBN: 3-540-27829-X. doi: https://doi.org/10.1007/11527695_24.
+3. Holger H. Hoos and Thomas Stützle. Evaluating Las Vegas Algorithms -
+   Pitfalls and Remedies. In Gregory F. Cooper and Serafín Moral, editors,
+   *Proceedings of the 14th Conference on Uncertainty in Artificial
+   Intelligence (UAI'98)*, July 24-26, 1998, Madison, WI, USA, pages 238-245.
+   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.
+   ISBN: 1-55860-555-X.
+"""
 from math import inf, isfinite
 from typing import Any, Callable, Final, Iterable, cast
 
@@ -47,7 +73,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               algorithm_namer: Callable[[str], str] = lambda x: x,
               color_algorithms_as_fallback_group: bool = True) -> Axes:
     """
-    Plot a set of Ecdf functions into one chart.
+    Plot a set of ECDF functions into one chart.
 
     :param ecdfs: the iterable of ECDF functions
     :param figure: the figure to plot in
