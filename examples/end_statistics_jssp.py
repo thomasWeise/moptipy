@@ -9,7 +9,7 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
-# For a real experiment, you would put an existing directory path in `td`
+# For a real experiment, you would put an existing directory path into `td`
 # by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:

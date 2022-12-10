@@ -139,7 +139,7 @@ def make_random_sampling(problem: Instance) -> Execution:
 
 
 # We execute the whole experiment in a temp directory.
-# For a real experiment, you would put an existing directory path in `td`
+# For a real experiment, you would put an existing directory path into `td`
 # by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
 # and not use the `with` block.
 with TempDir.create() as td:  # create temporary directory `td`

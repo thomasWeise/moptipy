@@ -7,7 +7,11 @@ values. [1, 2]
 
 We apply several numerical optimization methods that are included from
 well-tested and established standard packages and wrapped into the `moptipy`
-API.
+API. If you want to see the exactly same example, but with logging of the
+progress of the algorithms enabled, check
+`continuous_optimization_with_logging.py`.
+If you want to look at the structured experiment execution API, you may want
+to read `experiment_2_algorithms_4_problems.py`.
 
 1. https://www.sfu.ca/%7Essurjano/rosen.html
 2. http://www-optima.amp.i.kyoto-u.ac.jp/member/student/hedar/Hedar_files\
