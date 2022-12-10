@@ -51,7 +51,11 @@ class MA(Algorithm0):
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?
                     return   # computational budget exhausted -> quit
-                f = evaluate(x)  # continue? ok, evaluate new solution
+                with for_fes(process, ls_fes) as s1:  # fe-limited proc
+                    with from_starting_point(s1, x, evaluate(x)) as s2:
+                        forward_ls_op_to(s2.get_copy_of_best_x)
+                        ls_solve(s2)  # apply local search modifying x
+                        f = s2.get_best_f()  # get quality of x
             lst[i] = Record(x, f)  # create and store record
 
         it: int = 0
