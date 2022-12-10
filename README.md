@@ -1947,6 +1947,7 @@ The end result comparison tables are implemented in the module [moptipy.evaluati
 Here we list the set of examples that are provided in the [moptipy](https://github.com/thomasWeise/moptipy) repository in the folder "[examples](https://github.com/thomasWeise/moptipy/tree/main/examples)".
 
 - [continuous_optimization.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization.html) applies a set of numerical/continuous optimization algorithms to a simple problem and prints their results.
+- [continuous_optimization_with_logging.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization_with_logging.html) is exactly the same example, but this time log files are created and their contents are printed for each run.
 - [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html) runs a small experiment on the OneMax problem and plots the [ECDF](#64-ecdf-plots).
 - [end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html) runs a small experiment with on the Job Shop Scheduling Problem (JSSP) and generates an [end results CSV file](#52-end-result-csv-files).
 - [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html) applies two algorithms to the JSSP and creates [plots of end results](#63-end-results-plot). 
