@@ -29,7 +29,7 @@ def __lbub(random: Generator) -> tuple[float, float]:
     while True:
         lb = inf
         ub = inf
-        while not isfinite(lb):
+        while (not isfinite(lb)) or (lb > 1e6) or (lb < 1e-14):
             lb = exp(20.0 * random.normal())
 
         i = random.integers(3)
@@ -38,7 +38,7 @@ def __lbub(random: Generator) -> tuple[float, float]:
         elif i == 11:
             lb = -lb
 
-        while not isfinite(ub):
+        while (not isfinite(ub)) or (ub > 1e6) or (ub < 1e-14):
             ub = exp(20.0 * random.normal())
         i = random.integers(3)
         if i == 0:

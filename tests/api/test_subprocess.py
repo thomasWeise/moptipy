@@ -39,11 +39,18 @@ class MyAlgorithm1(Algorithm2):
     """The dummy algorithm."""
 
     def __init__(self) -> None:
-        """Initalize."""
+        """Initialize."""
         super().__init__("dummy", Op0Random(), Op1Flip1(), Op2Uniform())
         self.ea = EA(self.op0, self.op1, self.op2, 10, 10, 0.3)
         self.fwd = Op0Forward()
         self.rls = RLS(self.fwd, self.op1)
+
+    def initialize(self) -> None:
+        """Initialize."""
+        super().initialize()
+        self.ea.initialize()
+        self.fwd.initialize()
+        self.rls.initialize()
 
     def solve(self, process: Process) -> None:
         """Apply an EA for 100 FEs, followed by RLS."""
@@ -201,6 +208,12 @@ class __RegisterForFEs(Algorithm):
         self.a = a
         self.b = b
         self.repeat = False
+
+    def initialize(self) -> None:
+        """Initialize."""
+        super().initialize()
+        self.a.initialize()
+        self.b.initialize()
 
     def solve(self, process: Process) -> None:
         """Solve."""

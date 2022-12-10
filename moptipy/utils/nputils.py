@@ -412,7 +412,7 @@ def array_to_str(data: numpy.ndarray) -> str:
     raise ValueError(f"unsupported data kind '{k}' of type '{data.dtype}'.")
 
 
-@numba.njit(nogil=True)
+@numba.njit
 def fill_in_canonical_permutation(a: numpy.ndarray) -> None:
     """
     Fill the canonical permutation into an array.
