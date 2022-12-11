@@ -7,6 +7,7 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.operators.op0_forward import Op0Forward
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
@@ -45,7 +46,7 @@ def test_ma_on_onemax_random() -> None:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         random: Generator = default_rng()
-        return MA(Op0Random(), Op2Uniform(), RLS(Op0Forward(), Op1Swap2()),
+        return MA(Op0Random(), Op2Uniform(), RLS(Op0Forward(), Op1Flip1()),
                   int(random.integers(2, 12)), int(random.integers(1, 12)),
                   int(random.integers(2, 32)))
 
