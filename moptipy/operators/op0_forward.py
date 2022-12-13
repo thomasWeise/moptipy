@@ -36,7 +36,7 @@ from moptipy.utils.types import type_error
 
 
 class Op0Forward(Op0):
-    """A nullary operator that forwards all calls to `op0` to a `Callable`"""
+    """A nullary operator that forwards all calls to `op0` to a `Callable`."""
 
     def __init__(self):
         """Initialize this operator."""
