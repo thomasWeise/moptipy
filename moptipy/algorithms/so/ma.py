@@ -46,6 +46,17 @@ of another one can be found in the documentation of
 :func:`~moptipy.api.subprocesses.from_starting_point`,
 :func:`~moptipy.api.subprocesses.for_fes`, and
 :class:`moptipy.operators.op0_forward.Op0Forward`.
+
+1. Pablo Moscato. *On Evolution, Search, Optimization, Genetic Algorithms and
+   Martial Arts: Towards Memetic Algorithms.* Caltech Concurrent Computation
+   Program Report C3P 826. 1989. Pasadena, CA, USA: California Institute of
+   Technology (Caltech), Caltech Concurrent Computation Program (C3P).
+   https://www.researchgate.net/publication/2354457
+2. William Eugene Hart, James E. Smith, and Natalio Krasnogor, editors.
+   *Recent Advances in Memetic Algorithms.* Studies in Fuzziness and Soft
+   Computing (STUDFUZZ), volume 166. 2005. Berlin/Heidelberg, Germany:
+   Springer. ISBN: 978-3-540-22904-9.
+   doi: https://doi.org/10.1007/3-540-32363-5
 """
 from typing import Callable, Final, cast
 

@@ -36,7 +36,7 @@ from moptipy.utils.types import type_error
 
 
 class Op0Forward(Op0):
-    """Get the forwarder function."""
+    """A nullary operator that forwards all calls to `op0` to a `Callable`"""
 
     def __init__(self):
         """Initialize this operator."""
@@ -44,7 +44,14 @@ class Op0Forward(Op0):
         self.__call: Callable[[Any], None] | None = None
 
     def op0(self, random: Generator, dest: np.ndarray) -> None:
-        """Forward the call."""
+        """
+        Forward the call.
+
+        :param random: ignored
+        :param dest: the destination data structure to be filled with the data
+            of the point in the search space by the internal `Callable` set by
+            :meth:`forward_to`.
+        """
         self.__call(dest)
 
     def forward_to(self, call: Callable[[Any], None]) -> None:
