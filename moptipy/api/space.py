@@ -70,6 +70,10 @@ class Space(Component):
         """
         Copy one instance of the data structure to another one.
 
+        Notice that the first parameter of this method is the destination,
+        which will be overwritten by copying the contents of the second
+        parameter over it.
+
         :param dest: the destination data structure,
             whose contents will be overwritten with those from `source`
         :param source: the source data structure, which remains
@@ -86,6 +90,17 @@ class Space(Component):
         of integers to a string, one could simply do
         `";".join([str(xx) for xx in x])`, which would convert it to a
         semicolon-separated list without any wasted space.
+
+        Notice that this method is used by the
+        :class:`~moptipy.utils.logger.Logger` when storing the final
+        optimization results in the log files in form of a
+        :class:`~moptipy.utils.logger.TextLogSection` created via
+        :meth:`~moptipy.utils.logger.Logger.text`. By implementing
+        :meth:from_str: and :meth:to_str: as exact inverse of each other, you
+        can thus ensure that you can always automatically load the results of
+        your optimization runs from the log files created via
+        :meth:`~moptipy.api.execution.Execution.set_log_file` of the
+        :class:`~moptipy.api.execution.Execution` class.
 
         :param x: the instance
         :return: the string representation of x

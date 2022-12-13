@@ -419,7 +419,7 @@ At the core of all optimization problems lies the objective function.
 All objective functions in [`moptipy`](https://thomasweise.github.io/moptipy) are instances of the class [Objective](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective).
 If you want to add a new optimization problem, you must derive a new subclass from this class. 
 
-There are two functions you must implement:
+There are two functions you must be implemented:
 
 - [`evaluate(x)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective.evaluate) receives a candidate solution `x` as input and must return either an `int` or a `float` rating its quality (smaller values are *better*) and
 - `__str__()` returns a string representation of the objective function and may be used in file names and folder structures (depending on how you execute your experiments).
@@ -459,11 +459,19 @@ These can then make use of the existing [spaces](https://thomasweise.github.io/m
 Let us here create an example algorithm implementation that does *not* use any of the pre-defined [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators).
 
 All optimization algorithms must be subclasses of the class [Algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm).
-Each of them must implement two methods:
+Each of them must implement two methods, as described in the [documentation](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.algorithm):
 
 - [`solve(process)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm.solve) receives an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process), which provides the operations to work with the search space, to evaluate solutions, the termination criterion, and the random number generator.
 - `__str__()` must return a short string representation identifying the algorithm and its setup.
   This string will be used in file and folder names and therefore must not contain spaces or otherwise dodgy characters.
+
+Additionally, you may need to implement the following methods if the algorithm has other components:
+
+- [`initialize()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.component.Component.initialize) initializes all sub-components of the algorithms and is called *before* each run.
+  The base class [`Component`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.component.Component), from which all elements of the optimization API are derived, already has this method.
+  If a new algorithm uses, for example, a [selection](https://thomasweise.github.io/moptipy/moptipy.algorithms.modules.html#module-moptipy.algorithms.modules.selection) algorithm, a [temperature schedule](https://thomasweise.github.io/moptipy/moptipy.algorithms.modules.html#module-moptipy.algorithms.modules.selection), or a [search operator](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators), it needs to invoke the `initialize()` methods of these components from its own `initialize()` method.
+- [`log_parameters_to(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.component.Component.log_parameters_to) is used to store all the configuration parameters of an algorithm to a [log section](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection).
+  If the algorithm has any sub-components, it must here invoke the `log_parameters_to(...)` method of these components.
 
 The instance `process` of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process) passed to the function [`solve`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.algorithm.Algorithm.solve) is a key element of our [`moptipy`](https://thomasweise.github.io/moptipy) API.
 If the algorithm needs a data structure to hold a point in the search space, it should invoke [`process.create()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space.create).

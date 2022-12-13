@@ -351,7 +351,24 @@ class LogSection(AbstractContextManager):
 
 
 class CsvLogSection(LogSection):
-    """A logger that is designed to output CSV data."""
+    """
+    A logger that is designed to output CSV data.
+
+    The coma-separated-values log is actually a semicolon-separated-values
+    log. This form of logging is used to store progress information or
+    time series data, as captured by the optimization
+    :class:`~moptipy.api.process.Process` and activated by, e.g., the methods
+    :meth:`~moptipy.api.execution.Execution.set_log_improvements` and
+    :meth:`~moptipy.api.execution.Execution.set_log_all_fes`. It will look
+    like this:
+
+    >>> with InMemoryLogger() as logger:
+    ...     with logger.csv("CSV", ["A", "B", "C"]) as csv:
+    ...         csv.row((1, 2, 3))
+    ...         csv.row([1.5, 2.0, 3.5])
+    ...     print(logger.get_log())
+    ['BEGIN_CSV', 'A;B;C', '1;2;3', '1.5;2;3.5', 'END_CSV']
+    """
 
     def __init__(self, title: str, logger: Logger, header: list[str]) -> None:
         """
@@ -403,7 +420,35 @@ class CsvLogSection(LogSection):
 
 
 class KeyValueLogSection(LogSection):
-    """A logger for key-value pairs."""
+    """
+    A logger for key-value pairs.
+
+    The key-values section `XXX` starts with the line `BEGIN_XXX` and ends
+    with the line `END_XXX`. On every line in between, there is a key-value
+    pair of the form `key: value`. Key-values sections support so-called
+    scopes. Key-values pairs belong to a scope `Y` if the key starts with `Y.`
+    followed by the actual key, e.g., `a.g: 5` denotes that the key `g` of
+    scope `a` has value `5`. Such scopes can be arbitrarily nested: The
+    key-value pair `x.y.z: 2` denotes a key `z` in the scope `y` nested within
+    scope `x` having the value `2`. This system of nested scopes allows you
+    to recursively invoke the method
+    :meth:`~moptipy.api.component.Component.log_parameters_to` without
+    worrying of key clashes. Just wrap the call to the `log_parameters_to`
+    method of a sub-component into a unique scope. At the same time, this
+    avoids the need of any more complex hierarchical data structures in our
+    log files.
+
+    >>> with InMemoryLogger() as logger:
+    ...     with logger.key_values("A") as kv:
+    ...         kv.key_value("x", 1)
+    ...         with kv.scope("b") as sc1:
+    ...             sc1.key_value("i", "j")
+    ...             with sc1.scope("c") as sc2:
+    ...                 sc2.key_value("l", 5)
+    ...         kv.key_value("y", True)
+    ...     print(logger.get_log())
+    ['BEGIN_A', 'x: 1', 'b.i: j', 'b.c.l: 5', 'y: T', 'END_A']
+    """
 
     def __init__(self, title: str | None,
                  logger: Logger, prefix: str, done) -> None:
@@ -433,6 +478,10 @@ class KeyValueLogSection(LogSection):
                   also_hex: bool = False) -> None:
         """
         Write a key-value pair.
+
+        Given key `A` and value `B`, the line `A: B` will be added to the log.
+        If `value` (`B`) happens to be a floating point number, the value will
+        also be stored in hexadecimal notation (:meth:`float.hex`).
 
         :param key: the key
         :param value: the value
@@ -482,7 +531,21 @@ class KeyValueLogSection(LogSection):
 
 
 class TextLogSection(LogSection):
-    """A logger for raw, unprocessed text."""
+    """
+    A logger for raw, unprocessed text.
+
+    Such a log section is used to capture the raw contents of the solutions
+    discovered by the optimization :class:`~moptipy.api.process.Process`. For
+    this purpose, our system will use the method
+    :meth:`~moptipy.api.space.Space.to_str` of the search and/or solution
+    :class:`~moptipy.api.space.Space`.
+
+    >>> with InMemoryLogger() as logger:
+    ...     with logger.text("T") as txt:
+    ...         txt.write("Hello World!")
+    ...     print(logger.get_log())
+    ['BEGIN_T', 'Hello World!', 'END_T']
+    """
 
     def __init__(self, title: str, logger: Logger) -> None:
         """
