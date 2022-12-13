@@ -169,7 +169,7 @@ for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
 
 for mu_lambda in [2 ** i for i in range(4, 7)]:
     for ls_steps in [2 ** i for i in range(12, 19)]:
-        for t0 in [2.0, 4.0]:
+        for t0 in [2.0, 4.0, 8.0]:
             ALGORITHMS.append(cast(
                 Callable[[Instance, Permutations], Algorithm],
                 lambda inst, pwr, ml=mu_lambda, lss=ls_steps, t=t0:

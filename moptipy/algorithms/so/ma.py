@@ -1,4 +1,52 @@
-"""A simple implementation of a (mu+lambda) Memetic Algorithm."""
+"""
+A simple implementation of a (mu+lambda) Memetic Algorithm.
+
+A memetic algorithm (:class:`~moptipy.algorithms.so.ma.MA`) works similar to a
+(mu+lambda) :class:`~moptipy.algorithms.so.ea.EA`, but it refines all results
+of the search operators with a local search
+:attr:`~moptipy.algorithms.so.ma.MA.ls` executed for
+:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations.
+It also only employs the nullary search operator (to create the initial random
+solutions) and the binary search operator (to combine two selected parental
+solutions).
+
+This Memetic Algorithm implementation begins by sampling
+:attr:`~moptipy.algorithms.so.ma.MA.mu`
+solutions using the nullary search operation
+:attr:`~moptipy.api.algorithm.Algorithm0.op0`. Each of these initial solutions
+is used as a starting point of a local search
+:attr:`~moptipy.algorithms.so.ma.MA.ls`, which is executed for
+:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations.
+In each iteration, it then uses the
+:attr:`~moptipy.algorithms.so.ma.MA.mu` existing solutions as input for
+the binary search operator :attr:`~moptipy.algorithms.so.ma.MA.op2` to create
+:attr:`~moptipy.algorithms.so.ma.MA.lambda_` new solutions, each of which is
+again used as a starting point of a local search
+:attr:`~moptipy.algorithms.so.ma.MA.ls` executed for
+:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations.
+The results of the local searches enter the population and in the next
+iteration, the :attr:`~moptipy.algorithms.so.ma.MA.mu` best solutions of the
+:attr:`~moptipy.algorithms.so.ma.MA.mu` +
+:attr:`~moptipy.algorithms.so.ma.MA.lambda_` ones in the population are
+retained.
+
+Due to the :class:`~moptipy.api.process.Process` and
+:mod:`~moptipy.api.subprocesses` API of `moptipy`, you can use almost arbitrary
+algorithms as local search :attr:`~moptipy.algorithms.so.ma.MA.ls`. The only
+requirement is that is a subclass of
+:class:`~moptipy.api.algorithm.Algorithm0` and uses
+it uses an instance of
+:class:`moptipy.operators.op0_forward.Op0Forward` as nullary search operator
+(:attr:`~moptipy.api.algorithm.Algorithm0.op0`).
+This allows the MA to set a solution as starting point for
+:attr:`~moptipy.algorithms.so.ma.MA.ls`.
+
+Further reading on how to realize using one algorithm as a sub-algorithm
+of another one can be found in the documentation of
+:func:`~moptipy.api.subprocesses.from_starting_point`,
+:func:`~moptipy.api.subprocesses.for_fes`, and
+:class:`moptipy.operators.op0_forward.Op0Forward`.
+"""
 from typing import Callable, Final, cast
 
 from numpy.random import Generator

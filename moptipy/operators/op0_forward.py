@@ -1,4 +1,31 @@
-"""A nullary operator forwarding to another function."""
+"""
+A nullary operator forwarding to another function.
+
+This is a nullary operator (an instance of
+:class:`~moptipy.api.operators.Op0`) whose method
+:meth:`~moptipy.api.operators.Op0.op0` forwards to another `Callable`.
+This other `Callable` can then return a solution that is created in some
+special way, or maybe even the current best solution of a search process.
+
+This operator has been designed to be used in conjunction with
+:func:`~moptipy.api.subprocesses.from_starting_point`, which is an
+optimization :class:`~moptipy.api.process.Process` where a starting point
+has been defined, i.e., where the methods
+:meth:`~moptipy.api.process.Process.get_copy_of_best_x` and
+:meth:`~moptipy.api.process.Process.get_best_f` return pre-defined values.
+By setting :meth:`~moptipy.operators.op0_forward.Op0Forward.forward_to` to
+:meth:`~moptipy.api.process.Process.get_copy_of_best_x`, this nullary operator
+will return the current-best solution of the optimization process, which, in
+this case, will be the pre-defined starting point.
+Any optimization algorithm (e.g., an instance of
+:class:`~moptipy.api.algorithm.Algorithm0`) using this nullary operator to get
+its initial solution will then begin the search at this pre-defined starting
+point. This allows using one algorithm as a sub-algorithm of another one.
+Wrapping :func:`~moptipy.api.subprocesses.from_starting_point` around the
+result of a call to :func:`~moptipy.api.subprocesses.for_fes` would allow to
+limit the number of objective function evaluations consumed by the
+sub-algorithm.
+"""
 from typing import Any, Callable
 
 import numpy as np
