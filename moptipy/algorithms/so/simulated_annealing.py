@@ -1,9 +1,27 @@
 """
 The simulated annealing algorithm with configurable temperature schedule.
 
-This algorithm is simular to :class:`~moptipy.algorithms.so.rls.RLS`, but it
-sometimes also accepts solutions that are worse than the current one.
-It was independently developed by several researchers [1-4].
+A basic randomized local search (:mod:`~moptipy.algorithms.so.rls`) maintains
+one interesting solution and derives one new solution from it using the
+unary search operator (:class:`~moptipy.api.operators.Op1`). The new solution
+replaces the current solution if it is not worse, i.e., better or equally
+good. Simulated Annealing is similar to the :mod:`~moptipy.algorithms.so.rls`,
+but it sometimes also accepts solutions that are worse than the current one.
+It does so with a probability that becomes smaller the worse the new solution
+is and also becomes smaller the smaller the current "temperature" is.
+
+Simulated Annealing applies a so-called temperature schedule (see
+:mod:`~moptipy.algorithms.modules.temperature_schedule`), which basically is
+function that relates the index of the algorithm iteration (i.e., the index
+of the current objective function evaluation) to a temperature. It therefore
+is a function accepting an integer value as input and returning a float
+temperature. This function is usually monotonously decreasing over time,
+meaning that the initial "temperature" is high and then becomes smaller. The
+algorithm therefore is more likely to accept worse solutions at its beginning,
+whereas it behaves basically like a :mod:`~moptipy.algorithms.so.rls` at the
+end of its computational budget (if configured correctly).
+
+Simulated Annealing was independently developed by several researchers [1-4].
 The idea is inspired by Metropolis' approximation of how annealing can be
 simulated [5].
 

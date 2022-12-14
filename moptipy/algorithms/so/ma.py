@@ -57,6 +57,10 @@ of another one can be found in the documentation of
    Computing (STUDFUZZ), volume 166. 2005. Berlin/Heidelberg, Germany:
    Springer. ISBN: 978-3-540-22904-9.
    doi: https://doi.org/10.1007/3-540-32363-5
+3. Ferrante Neri, Carlos Cotta, and Pablo Moscato. *Handbook of Memetic
+   Algorithms.* Volume 379 of Studies in Computational Intelligence (SCI).
+   2012. Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-642-23246-6
+   doi https://doi.org/10.1007/978-3-642-23247-3.
 """
 from typing import Callable, Final, cast
 

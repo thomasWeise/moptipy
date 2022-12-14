@@ -8,6 +8,10 @@ the selection decisions. The more often an objective value is encountered, the
 higher gets its encounter frequency. Therefore, local optima are slowly
 receiving worse and worse fitness.
 
+FFA is also implemented as a fitness assignment process
+(:mod:`~moptipy.algorithms.so.fitness`) in module
+:mod:`~moptipy.algorithms.so.fitnesses.ffa`.
+
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
    Assignment: Making Optimization Algorithms Invariant under Bijective
    Transformations of the Objective Function Value. *IEEE Transactions on
@@ -70,7 +74,10 @@ class FEA1plus1(Algorithm1):
 
     This algorithm implementation requires that objective values are
     integers and have lower and upper bounds that are not too far
-    away from each other.
+    away from each other. A more general version is available as a fitness
+    assignment process (:mod:`~moptipy.algorithms.so.fitness`) that can
+    be plugged into a general EA (:mod:`~moptipy.algorithms.so.general_ea`)
+    in module :mod:`~moptipy.algorithms.so.fitnesses.ffa`.
     """
 
     def __init__(self, op0: Op0, op1: Op1) -> None:
