@@ -52,13 +52,6 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
 
 
-# noinspection PyProtectedMember
-def _call_powell(func: Callable[[np.ndarray], int | float],
-                 x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
-    _minimize_powell(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
-                     maxiter=max_fes, maxfev=max_fes)
-
-
 class SciPyAlgorithmWrapper(Algorithm0):
     """
     A wrapper for the Sci-Py API.
@@ -133,6 +126,13 @@ class SciPyAlgorithmWrapper(Algorithm0):
         """
         super().log_parameters_to(logger)  # log algorithm/operator
         self.space.log_bounds(logger)  # log bounds
+
+
+# noinspection PyProtectedMember
+def _call_powell(func: Callable[[np.ndarray], int | float],
+                 x0: np.ndarray, max_fes: int, bounds: Bounds) -> None:
+    _minimize_powell(func, x0, bounds=bounds, xtol=0.0, ftol=0.0,
+                     maxiter=max_fes, maxfev=max_fes)
 
 
 class Powell(SciPyAlgorithmWrapper):

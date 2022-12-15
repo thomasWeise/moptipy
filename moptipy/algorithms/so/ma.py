@@ -38,8 +38,16 @@ requirement is that is a subclass of
 it uses an instance of
 :class:`moptipy.operators.op0_forward.Op0Forward` as nullary search operator
 (:attr:`~moptipy.api.algorithm.Algorithm0.op0`).
-This allows the MA to set a solution as starting point for
+This allows the MA to set a solution as starting point for the inner algorithm
 :attr:`~moptipy.algorithms.so.ma.MA.ls`.
+
+It should be noted that it is by no means required that the inner algorithm
+:attr:`~moptipy.algorithms.so.ma.MA.ls` needs to be a local search. Any
+algorithm that fulfills the above requirements could be used. For example, if
+we were conducting numerical optimization, it would be totally OK to plug an
+instance of the Sequential Least Squares Programming
+(:class:`~moptipy.algorithms.so.vector.scipy.SLSQP`) algorithm into the
+memetic algorithm&hellip;
 
 Further reading on how to realize using one algorithm as a sub-algorithm
 of another one can be found in the documentation of
@@ -52,15 +60,30 @@ of another one can be found in the documentation of
    Program Report C3P 826. 1989. Pasadena, CA, USA: California Institute of
    Technology (Caltech), Caltech Concurrent Computation Program (C3P).
    https://www.researchgate.net/publication/2354457
-2. William Eugene Hart, James E. Smith, and Natalio Krasnogor, editors.
+2. Carlos Cotta, Luke Mathieson, and Pablo Moscato. Memetic Algorithms. In
+   Rafael Martí, Panos M. Pardalos, and Mauricio G. C. Resende, editors,
+   *Handbook of Heuristics.* Part~III: Metaheuristics, pages 607-638. 2018.
+   Cham, Switzerland: Springer. ISBN: 978-3-319-07123-7.
+   doi: https://doi.org/10.1007/978-3-319-07153-4_29-1
+   https://www.researchgate.net/publication/315660932
+3. William Eugene Hart, James E. Smith, and Natalio Krasnogor, editors.
    *Recent Advances in Memetic Algorithms.* Studies in Fuzziness and Soft
    Computing (STUDFUZZ), volume 166. 2005. Berlin/Heidelberg, Germany:
    Springer. ISBN: 978-3-540-22904-9.
    doi: https://doi.org/10.1007/3-540-32363-5
-3. Ferrante Neri, Carlos Cotta, and Pablo Moscato. *Handbook of Memetic
+4. Ferrante Neri, Carlos Cotta, and Pablo Moscato. *Handbook of Memetic
    Algorithms.* Volume 379 of Studies in Computational Intelligence (SCI).
    2012. Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-642-23246-6
    doi https://doi.org/10.1007/978-3-642-23247-3.
+5. L. Darrell Whitley, V. Scott Gordon, and Keith E. Mathias. Lamarckian
+   Evolution, The Baldwin Effect and Function Optimization. In Yuval Davidor,
+   Hans-Paul Schwefel, and Reinhard Männer, editors, *Proceedings of the Third
+   Conference on Parallel Problem Solving from Nature; International
+   Conference on Evolutionary Computation (PPSN III),* October 9-14, 1994,
+   Jerusalem, Israel, pages 5-15. Volume 866/1994 of Lecture Notes in Computer
+   Science, Berlin, Germany: Springer-Verlag GmbH. ISBN 0387584846.
+   doi: https://doi.org/10.1007/3-540-58484-6_245.
+   https://www.researchgate.net/publication/2521727
 """
 from typing import Callable, Final, cast
 

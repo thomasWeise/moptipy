@@ -789,19 +789,19 @@ In other words, they try to minimize multiple [objective functions](https://thom
 
 1. [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
     - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
-    - The minimization version of the [Jump](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.jump.Jump) problem, which is equivalent OneMax, but has a deceptive region right before the optimum.
-    - The minimization version of the well-known [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.leadingones.LeadingOnes) problem, where the goal is to maximize the length of the trailing substring of all `True` bits.
-    - The minimization version of the well-known [OneMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.OneMax) problem, where the goal is to maximize the number of `True` bits in a string.
-    - The minimization version of the [Trap](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.trap.Trap) problem, which is equivalent of OneMax, but with the optimum and worst-possible solution swapped.
+    - The minimization version of the [Jump](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.jump) problem, which is equivalent OneMax, but has a deceptive region right before the optimum.
+    - The minimization version of the well-known [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones) problem, where the goal is to maximize the length of the trailing substring of all `True` bits.
+    - The minimization version of the well-known [OneMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem, where the goal is to maximize the number of `True` bits in a string.
+    - The minimization version of the [Trap](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.trap) problem, which is equivalent of OneMax, but with the optimum and worst-possible solution swapped.
       This problem is therefore highly deceptive.
-    - The [W-Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.WModel), a problem that exhibits tunable neutrality, epistasis, ruggedness, and deceptiveness.
-    - The minimization version of the well-known [ZeroMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.zeromax.ZeroMax) problem, which is the exact opposite of OneMax and has the goal to find the bit string of all `False` values.
+    - The [W-Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.w_model), a problem that exhibits tunable neutrality, epistasis, ruggedness, and deceptiveness.
+    - The minimization version of the well-known [ZeroMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.zeromax) problem, which is the exact opposite of OneMax and has the goal to find the bit string of all `False` values.
 2. [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) (with and without Repetitions):
     - The NP-hard Job Shop Scheduling Problem ([JSSP](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp)), where the goal is to find an assignment of jobs to machines with the minimum makespan.
       On <https://thomasweise.github.io/oa_data/>, we provide several zip archives with results obtained with [`moptipy`](https://thomasweise.github.io/moptipy) on the JSSP.
 3. [`n`-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace)
-   - [Ackley's Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#moptipy.examples.vectors.ackley.Ackley)
-   - [Sphere Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#moptipy.examples.vectors.sphere.Sphere)
+   - [Ackley's Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#module-moptipy.examples.vectors.ackley)
+   - [Sphere Function](https://thomasweise.github.io/moptipy/moptipy.examples.vectors.html#module-moptipy.examples.vectors.sphere)
 
 
 ## 5. Data Formats
