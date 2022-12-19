@@ -1,12 +1,25 @@
 """Print a help screen."""
 
+import argparse
 import os.path
 import sys
-from typing import Final, Iterable
+from typing import Final
 
-from moptipy.utils.console import logger
 from moptipy.utils.path import _canonicalize_path
 from moptipy.utils.types import type_error
+from moptipy.version import __version__
+
+#: The default argument parser for moptipy executables.
+DEFAULT_ARGUMENTS: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
+    epilog="\n\n\u00a9 2022 Thomas Weise,\n"
+           "GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007,\n"
+           "https://thomasweise.github.io/moptipy",
+    add_help=False,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+DEFAULT_ARGUMENTS.add_argument(
+    "--version", action="version", version=__version__)
+
 
 #: The python interpreter in long form.
 __INTERPRETER_LONG: Final[str] = _canonicalize_path(sys.executable)
@@ -37,27 +50,19 @@ __BASE_PATH: Final[str] = _canonicalize_path(os.path.dirname(
     os.path.dirname(os.path.dirname(_canonicalize_path(__file__))))) + os.sep
 
 
-def help_screen(title: str, file: str, text: str = "",
-                args: Iterable[tuple[str, str]
-                               | tuple[str, str, bool]] = ()) -> None:
+def get_prog(file: str) -> str:
     """
-    Print a help screen on the console.
+    Get the program as to be displayed by the help screen.
 
-    :param title: the program title
+    The result of this function applied to the `__file__` special
+    variable should be put into the `prog` argument of the constructor
+    of :class:`argparse.ArgumentParser`.
+
     :param file: the calling python script
-    :param text: the text explaining the program
-    :param args: the command line arguments, as sequence of tuples
-        `(title, description)` or `(title, description, optional)`
-    :return: nothing
+    :return: the program string
     """
-    if not isinstance(title, str):
-        raise type_error(title, "title", str)
     if not isinstance(file, str):
         raise type_error(file, "file", str)
-    if not isinstance(text, str):
-        raise type_error(text, "text", str)
-    if not isinstance(args, Iterable):
-        raise type_error(args, "args", Iterable)
 
     # get the module
     module: str = _canonicalize_path(file)
@@ -68,40 +73,5 @@ def help_screen(title: str, file: str, text: str = "",
     if module.startswith(__BASE_PATH):
         start += len(__BASE_PATH)
     module = module[start:end].replace(os.sep, ".")
-    mid: Final[str] = "' '"
-    sargs: Final[str] = " ".join(
-        f"[{t[0]}]" if (len(t) > 2) and t[2]  # type: ignore
-        else t[0] for t in args)
-    # prepare the text dump
-    cons: Final[list[str]] = [
-        title,
-        f"usage: {__INTERPRETER_SHORT} -m {module} {sargs}",
-        f" call: {__INTERPRETER_LONG} -m {module} '{mid.join(sys.argv[1:])}'"]
 
-    if len(text) > 0:
-        cons.append(text)
-
-    # iterate over the arguments
-    for arg in args:
-        if not isinstance(arg, tuple):
-            raise type_error(arg, "args[i]", tuple)
-        if not 1 < len(arg) < 4:
-            raise ValueError(
-                f"invalid argument tuple {arg}, should have length 2 or 3.")
-        if not isinstance(arg[0], str):
-            raise type_error(arg[0], "arg[0]", str)
-        if len(arg[0]) <= 0:
-            raise ValueError(f"invalid arg[0]: '{arg[0]}'")
-        if not isinstance(arg[1], str):
-            raise type_error(arg[1], "arg[1]", str)
-        if len(arg[0]) <= 0:
-            raise ValueError(f"invalid arg[1]: '{arg[1]}'")
-        s = f"- {arg[0]}: {arg[1]}"
-        if len(arg) > 2:
-            if not isinstance(arg[2], bool):  # type: ignore
-                raise type_error(arg[2],  # type: ignore
-                                 "arg[2]", bool)
-            if arg[2]:  # type: ignore
-                s = f"{s} [optional]"
-        cons.append(s)
-    logger("\n".join(cons))
+    return f"{__INTERPRETER_SHORT} -m {module}"

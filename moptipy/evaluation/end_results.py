@@ -1,6 +1,6 @@
 """Record for EndResult as well as parsing, serialization, and parsing."""
+import argparse
 import os.path
-import sys
 from dataclasses import dataclass
 from math import inf, isfinite
 from typing import Any, Callable, Final, Iterable
@@ -36,7 +36,7 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
-from moptipy.utils.help import help_screen
+from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
 from moptipy.utils.logger import CSV_SEPARATOR, parse_key_values
 from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.path import Path
@@ -573,15 +573,36 @@ class _InnerLogParser(ExperimentParser):
 
 # Run log files to end results if executed as script
 if __name__ == "__main__":
-    help_screen(
-        "build end results-CSV from log files", __file__,
-        "Convert log files obtained with moptipy to the end results "
-        "CSV format.",
-        [("source_dir", "the location of the moptipy data"),
-         ("dest_file", "the path to which we want to write the CSV file.")])
-    if len(sys.argv) != 3:
-        raise ValueError("two command line arguments expected")
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
+        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
+        description="Convert log files obtained with moptipy to the end "
+                    "results CSV format that can be post-processed or "
+                    "exported to other tools.",
+        epilog="This program recursively parses a folder hierarchy created by"
+               " the moptipy experiment execution facility. This folder "
+               "structure follows the scheme of algorithm/instance/log_file "
+               "and has one log file per run. As result of the parsing, one "
+               "CSV file (where columns are separated by ';') is created with"
+               " one row per log file. This row contains the end-of-run state"
+               " loaded from the log file. Whereas the log files may store "
+               "the complete progress of one run of one algorithm on one "
+               "problem instance as well as the algorithm configuration "
+               "parameters, instance features, system settings, and the final"
+               " results, the end results CSV file will only represent the "
+               "final result quality, when it was obtained, how long the runs"
+               " took, etc. This information is much denser and smaller and "
+               "suitable for importing into other tools such as Excel or for "
+               f"postprocessing.{DEFAULT_ARGUMENTS.epilog}",
+        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser.add_argument(
+        "source", nargs="?", default="./results",
+        help="the location of the experimental results, i.e., the root folder "
+             "under which to search for log files", type=Path.path)
+    parser.add_argument(
+        "dest", help="the path to the end results CSV file to be created",
+        type=Path.path, nargs="?", default="./evaluation/end_results.txt")
+    args: Final[argparse.Namespace] = parser.parse_args()
 
     end_results: Final[list[EndResult]] = []
-    EndResult.from_logs(sys.argv[1], end_results.append)
-    EndResult.to_csv(end_results, sys.argv[2])
+    EndResult.from_logs(args.source, end_results.append)
+    EndResult.to_csv(end_results, args.dest)

@@ -1,6 +1,6 @@
 """Run the moptipy example experiment."""
+import argparse
 import os.path as pp
-import sys
 from typing import Any, Callable, Final, Iterable, cast
 
 import moptipy.api.experiment as ex
@@ -42,8 +42,7 @@ from moptipy.operators.permutations.op2_gap import (
     Op2GeneralizedAlternatingPosition,
 )
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.console import logger
-from moptipy.utils.help import help_screen
+from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
@@ -167,9 +166,9 @@ for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
                 Op0Shuffle(pwr), Op1Swap2(),
                 ExponentialSchedule(t, e))))
 
-for mu_lambda in [2 ** i for i in range(4, 7)]:
-    for ls_steps in [2 ** i for i in range(12, 19)]:
-        for t0 in [2.0, 4.0, 8.0]:
+for mu_lambda in [2 ** i for i in range(3, 7)]:
+    for ls_steps in [2 ** i for i in range(11, 21)]:
+        for t0 in [2.0, 4.0]:
             ALGORITHMS.append(cast(
                 Callable[[Instance, Permutations], Algorithm],
                 lambda inst, pwr, ml=mu_lambda, lss=ls_steps, t=t0:
@@ -302,24 +301,17 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
 
 # Execute experiment if run as script
 if __name__ == "__main__":
-    help_screen(
-        "JSSP Experiment Executor", __file__,
-        "Run the JSSP experiment.",
-        [("results_dir",
-          "the directory where the results should be stored",
-          True),
-         ("n_threads",
-          "the number of threads to use for the experiment",
-          True)])
-    mkwargs: dict[str, Any] = {}
-    if len(sys.argv) > 1:
-        dest_dir: Final[Path] = Path.path(sys.argv[1])
-        dest_dir.ensure_dir_exists()
-        mkwargs["base_dir"] = dest_dir
-        logger(f"Set base_dir '{dest_dir}'.")
-        if len(sys.argv) > 2:
-            n_cpu = int(sys.argv[2])
-            mkwargs["n_threads"] = n_cpu
-            logger(f"Set n_threads to {n_cpu}.")
-
-    run_experiment(**mkwargs)  # invoke the experiment execution
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
+        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
+        description="Execute the JSSP example experiment.",
+        epilog="Execute an example experiment on the Job Shop Scheduling "
+               f"Problem (JSSP).{DEFAULT_ARGUMENTS.epilog}",
+        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser.add_argument(
+        "dest", help="the directory where the results should be stored",
+        type=Path.path, default="./results", nargs="?")
+    parser.add_argument(
+        "threads", help="the number of threads to use for the experiment",
+        type=int, default=ex.DEFAULT_N_THREADS, nargs="?")
+    args: Final[argparse.Namespace] = parser.parse_args()
+    run_experiment(base_dir=args.dest, n_threads=args.threads)

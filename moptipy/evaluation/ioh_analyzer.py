@@ -1,6 +1,6 @@
 """Convert moptipy data to IOHanalyzer data."""
 
-import sys
+import argparse
 from typing import Callable, Final
 
 import numpy as np
@@ -8,7 +8,7 @@ import numpy as np
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
-from moptipy.utils.help import help_screen
+from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error
@@ -200,13 +200,23 @@ def moptipy_to_ioh_analyzer(
 
 # Run conversion if executed as script
 if __name__ == "__main__":
-    help_screen(
-        "moptipy-to-IOHanalyzer data converter", __file__,
-        "Convert log files obtained with moptipy to the "  # nosem
-        "data format_str of the IOHprofiler (see "  # nosem
-        "https://iohprofiler.github.io/IOHanalyzer/data/).",  # nosem
-        [("source_dir", "the location of the moptipy data"),
-         ("dest_dir", "the place to write the IOHprofiler data")])
-    if len(sys.argv) != 3:
-        raise ValueError("two command line arguments expected")
-    moptipy_to_ioh_analyzer(sys.argv[1], sys.argv[2])
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
+        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
+        description="Convert experimental results from the moptipy to the "
+                    "IOHanalyzer format.",
+        epilog="The experiment execution API of moptipy creates an output "
+               "folder structure with clearly specified log files that can be"
+               " evaluated with our experimental data analysis API. The "
+               "IOHprofiler tool chain offers another format (specified in "
+               "https://iohprofiler.github.io/IOHanalyzer/data/). With this "
+               "tool here, you can convert from the moptipy to the "
+               f"IOHprofiler format.{DEFAULT_ARGUMENTS.epilog}",
+        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser.add_argument(
+        "source", help="the directory with moptipy log files", type=Path.path,
+        nargs="?", default="./results")
+    parser.add_argument(
+        "dest", help="the directory to write the IOHanalyzer data to",
+        type=Path.path, nargs="?", default="./IOHanalyzer")
+    args: Final[argparse.Namespace] = parser.parse_args()
+    moptipy_to_ioh_analyzer(args.source, args.dest)

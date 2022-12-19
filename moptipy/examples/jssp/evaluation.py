@@ -1,11 +1,11 @@
 """Evaluate the results of the example experiment."""
+import argparse
 import os.path as pp
-import sys
 from math import log2
 from re import Match, Pattern
 from re import compile as _compile
 from statistics import median
-from typing import Any, Callable, Final, Iterable, cast
+from typing import Callable, Final, Iterable, cast
 
 from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES
 from moptipy.evaluation.axis_ranger import AxisRanger
@@ -30,7 +30,7 @@ from moptipy.examples.jssp.plots import (
 )
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
-from moptipy.utils.help import help_screen
+from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
 from moptipy.utils.lang import EN
 from moptipy.utils.logger import SCOPE_SEPARATOR, sanitize_name
 from moptipy.utils.path import Path
@@ -778,23 +778,19 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
 
 # Evaluate experiment if run as script
 if __name__ == "__main__":
-    help_screen(
-        "JSSP Experiment Evaluator", __file__,
-        "Evaluate the results of the JSSP experiment.",
-        [("results_dir",
-          "the directory with the results of the JSSP experiment",
-          True),
-         ("dest_dir",
-          "the directory where the evaluation results should be stored",
-          True)])
-    mkwargs: dict[str, Any] = {}
-    if len(sys.argv) > 1:
-        results_dir_str: Final[str] = sys.argv[1]
-        mkwargs["results_dir"] = results_dir_str
-        logger(f"Set results_dir '{results_dir_str}'.")
-        if len(sys.argv) > 2:
-            dest_dir_str: Final[str] = sys.argv[2]
-            mkwargs["dest_dir"] = dest_dir_str
-            logger(f"Set dest_dir to '{dest_dir_str}'.")
-
-    evaluate_experiment(**mkwargs)  # invoke the experiment evaluation
+    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
+        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
+        description="Evaluate the results of the JSSP example experiment",
+        epilog="This experiment evaluates all the results of the JSSP example"
+               " experiment and creates the figures and tables of the "
+               "'Optimization Algorithms' book (see "
+               f"http://thomasweise.github.io/oa).{DEFAULT_ARGUMENTS.epilog}",
+        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser.add_argument(
+        "source", nargs="?", default="./results", type=Path.path,
+        help="the directory with the results of the JSSP experiment")
+    parser.add_argument(
+        "dest", type=Path.path, nargs="?", default="./evaluation/",
+        help="the directory to write the evaluation results to")
+    args: Final[argparse.Namespace] = parser.parse_args()
+    evaluate_experiment(results_dir=args.source, dest_dir=args.dest)

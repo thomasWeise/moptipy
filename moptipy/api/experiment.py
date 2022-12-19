@@ -151,7 +151,7 @@ __CPU_PHYSICAL_CORES: Final[int] = psutil.cpu_count(logical=False)
 __CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
     max(1, int(ceil(__CPU_LOGICAL_CORES / __CPU_PHYSICAL_CORES)))
 #: The default number of threads to be used
-__DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1)
+DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1)
 
 
 def __waiting_run_experiment(base_dir: Path,
@@ -183,7 +183,7 @@ def run_experiment(base_dir: str,
                    instances: Iterable[Callable[[], Any]],
                    setups: Iterable[Callable[[Any], Execution]],
                    n_runs: int | Iterable[int] = 11,
-                   n_threads: int = __DEFAULT_N_THREADS,
+                   n_threads: int = DEFAULT_N_THREADS,
                    perform_warmup: bool = True,
                    warmup_fes: int = 20,
                    perform_pre_warmup: bool = True,
