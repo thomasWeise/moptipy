@@ -21,22 +21,19 @@ DEFAULT_ARGUMENTS.add_argument(
     "--version", action="version", version=__version__)
 
 
-#: The python interpreter in long form.
-__INTERPRETER_LONG: Final[str] = _canonicalize_path(sys.executable)
-
-
 def __get_python_interpreter_short() -> str:
     """
     Get the python interpreter.
 
     :returns: the fully-qualified path
     """
-    bn = os.path.basename(__INTERPRETER_LONG)
+    inter: Final[str] = _canonicalize_path(sys.executable)
+    bn = os.path.basename(inter)
     if bn.startswith("python3."):
         bn2 = bn[:7]
-        interp2 = os.path.join(os.path.dirname(__INTERPRETER_LONG), bn2)
+        interp2 = os.path.join(os.path.dirname(inter), bn2)
         if os.path.exists(interp2) and os.path.isfile(interp2):
-            if _canonicalize_path(interp2) == __INTERPRETER_LONG:
+            if _canonicalize_path(interp2) == inter:
                 return bn2
     return bn
 

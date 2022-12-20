@@ -5,8 +5,8 @@ pytest >= 7.2.0
 # the installable pip package.
 setuptools >= 59.8.0
 testresources >= 2.0.1
-twine >= 4.0.1
-virtualenv >= 20.16.6
+twine >= 4.0.2
+virtualenv >= 20.17.1
 wheel >= 0.37.1
 
 # sphinx is needed for generating the documentation.
@@ -18,31 +18,31 @@ myst-parser >= 0.18.1
 # static code analysis tools
 autoflake >= 1.7.7
 bandit >= 1.7.4
-coverage >= 6.5.0
+coverage >= 7.0.0
 coverage-badge >= 1.1.0
 dlint >= 0.13.0
 dodgy >= 0.2.1
 flake8 >= 5.0.4
-flake8-bugbear >= 22.10.27
+flake8-bugbear >= 22.12.6
 flake8-eradicate >= 1.4.0
-mypy >= 0.990
+mypy >= 0.991
 pycodestyle >= 2.9.1
 pydocstyle >= 6.1.1
 pyflakes >= 2.5.0
-pylint >= 2.15.5
-pyroma >= 4.0
-ruff >= 0.0.169
-semgrep >= 0.121.1
+pylint >= 2.15.9
+pyroma >= 4.1
+ruff >= 0.0.188
+semgrep >= 1.2.1
 tryceratops >= 1.1.0
-unimport >= 0.12.2
+unimport >= 0.12.3
 vulture >= 2.6
 
 # yaml is used only in tests and examples and therefore not strictly needed.
 pyyaml >= 6.0
 
 # urllib3 and certifi are used to check the URLs in the README.md
-urllib3 >= 1.26.12
-certifi >= 2022.9.24
+urllib3 >= 1.26.13
+certifi >= 2022.12.7
 
 # needed to minify html output
 minify_html >= 0.10.3

@@ -5,13 +5,27 @@ For each slot in the destination, a tournament with
 :attr:`~moptipy.algorithms.modules.selections.\
 tournament_without_repl.TournamentWithoutReplacement.size`
 randomly chosen participating solutions is conducted. The solution with
-the best fitness wins and is copied to the destination. The tournaments are
-without replacement, following the algorithm by Goldberg, Korg, and Deb. This
-means that A solution can only take part in another tournament after all other
-solutions have joined one. In other words, we are drawing solutions without
-replacement. This means that if we have `m` solutions and want to select `n`
-from them by conducting tournaments of size `s`, each solution will take part
-in at least `floor(s*n / m)` tournaments and in at most `ceil(s*n / m)` ones.
+the best fitness wins and is copied to the destination.
+
+The tournaments are without replacement, following the algorithm by Goldberg,
+Korg, and Deb. This means that a solution can only take part in another
+tournament after all other solutions have joined one. In other words, we are
+drawing solutions without replacement. This means that if we have `m`
+solutions and want to select `n` from them by conducting tournaments of size
+`s`, each solution will take part in at least `floor(s*n / m)` tournaments and
+in at most `ceil(s*n / m)` ones.
+
+We implement this drawing of unique random indices as a partial Fisher-Yates
+shuffle. The indices used to choose the tournament contestants from are in an
+array forming a permutation. Initially, `unused=m` indices. Whenever we draw
+one new index from the permutation, we do so from a random position from
+`0..unused-1`, swap it to position `unused-1` and decrement `unused` by one.
+Once `unused` reaches `0`, we reset it to `m`. This is different from the
+originally proposed implementation of tournament selection without repetition
+in that it does not first permutate all the indices. It will be better in
+cases where only a few small tournaments are conducted, e.g., during mating
+selection. It will be slower when many large tournaments are conducted, e.g.,
+during survival selection.
 
 Tournament selection with replacement is implemented in
 :mod:`moptipy.algorithms.modules.selections.tournament_with_repl`.
@@ -45,17 +59,21 @@ Tournament selection with replacement is implemented in
    Eidgenössische Technische Hochschule (ETH) Zürich, Department of Electrical
    Engineering, Computer Engineering and Networks Laboratory (TIK), Zürich,
    Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps
+6. Sir Ronald Aylmer Fisher and Frank Yates. *Statistical Tables for
+   Biological, Agricultural and Medical Research.* Sixth Edition, March 1963.
+   London, UK: Oliver & Boyd. ISBN: 0-02-844720-4. https://digital.library.\
+adelaide.edu.au/dspace/bitstream/2440/10701/1/stat_tab.pdf
 """
 
 from math import inf
 from typing import Any, Callable, Final
 
-from numpy import array, empty, ndarray
+from numpy import empty, ndarray
 from numpy.random import Generator
 
 from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import DEFAULT_INT
+from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
 from moptipy.utils.types import type_error
 
 
@@ -97,19 +115,21 @@ class TournamentWithoutReplacement(Selection):
         m: Final[int] = len(source)  # number of elements to select from
         perm: ndarray = self.__perm  # get the base permutation
         if len(perm) != m:  # -book
-            self.__perm = perm = array(  # -book
-                range(m), DEFAULT_INT)  # -book
-        shuffle: Final[Callable[[ndarray], None]] = random.shuffle
-        pi: int = m  # the current permutation index
+            self.__perm = perm = empty(m, DEFAULT_INT)  # -book
+            fill_in_canonical_permutation(perm)  # -book
+        r0i = random.integers  # fast call to random int from 0..(i-1)
+        u: int = m  # the number u of available (unused) indices = m
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness, initial infinite
-            for __ in range(size):  # perform tournament
-                if pi >= m:  # if we have exhausted current randomness
-                    shuffle(perm)  # shuffle the permutation randomly
-                    pi = 0  # set index in permutation to 0
-                rec = source[perm[pi]]  # get contestant record
-                pi = pi + 1  # step the permutation index
+            for __ in range(size):  # perform one tournament
+                if u == 0:  # if we have used all indices in perm
+                    u = m  # then we again at the end
+                i = r0i(u)  # get random integer in 0..u-1
+                u = u - 1  # decrease number of unused indices
+                chosen = perm[i]  # get the index of the chosen element
+                perm[u], perm[i] = chosen, perm[u]  # swap to the end
+                rec = source[chosen]  # get contestant record
                 rec_fitness = rec.fitness  # get its fitness
                 if rec_fitness <= best_fitness:  # if better or equal...
                     best = rec  # ... rec becomes the new best record
@@ -124,6 +144,11 @@ class TournamentWithoutReplacement(Selection):
         :return: the name of the tournament selection algorithm
         """
         return f"tour{self.size}"
+
+    def initialize(self) -> None:
+        """Initialize this selection algorithm."""
+        super().initialize()
+        fill_in_canonical_permutation(self.__perm)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
