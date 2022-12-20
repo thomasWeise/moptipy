@@ -56,9 +56,9 @@ test: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "$(NOW): PATH is now '${PATH}'." &&\
 	echo "$(NOW): Running pytest tests." && \
-	coverage run --include="/moptipy/*" -m pytest --strict-config tests -o faulthandler_timeout=1800 --ignore=examples && \
+	coverage run --include="moptipy/*" -m pytest --strict-config tests -o faulthandler_timeout=1800 --ignore=examples && \
 	echo "$(NOW): Running pytest with doctests." && \
-	coverage run -a --include="/moptipy/*"  -m pytest --strict-config --doctest-modules -o faulthandler_timeout=720 --ignore=tests --ignore=examples && \
+	coverage run -a --include="moptipy/*"  -m pytest --strict-config --doctest-modules -o faulthandler_timeout=720 --ignore=tests --ignore=examples && \
 	echo "$(NOW): Finished running pytest tests."
 
 # Perform static code analysis.
@@ -139,7 +139,7 @@ create_documentation: static_analysis test
 	pygmentize -f html -l text -O full -O style=default -o docs/build/LICENSE.html LICENSE &&\
 	echo "$(NOW): Finished copying LICENSE, now creating coverage report." &&\
 	mkdir -p docs/build/tc &&\
-	coverage html -d docs/build/tc --include="/moptipy/*" &&\
+	coverage html -d docs/build/tc --include="moptipy/*" &&\
 	echo "$(NOW): Now creating coverage badge." &&\
 	coverage-badge -o docs/build/tc/badge.svg &&\
 	if [[ -f docs/build/tc/badge.svg ]];then \
