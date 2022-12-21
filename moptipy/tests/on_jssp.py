@@ -1,6 +1,6 @@
 """Perform tests on the Job Shop Scheduling Problem."""
 
-from typing import Callable, Final, Iterable, cast
+from typing import Any, Callable, Final, Iterable, cast
 
 from numpy.random import Generator, default_rng
 
@@ -64,7 +64,8 @@ def validate_algorithm_on_1_jssp(
         algorithm: Algorithm | Callable[
             [Instance, Permutations, Objective], Algorithm],
         instance: str | None = None, max_fes: int = 100,
-        required_result: int | None = None) -> None:
+        required_result: int | None = None,
+        post: Callable[[Algorithm, int], Any] | None = None) -> None:
     """
     Check the validity of a black-box algorithm on the JSSP.
 
@@ -72,10 +73,11 @@ def validate_algorithm_on_1_jssp(
     :param instance: the instance name, or `None` to randomly pick one
     :param max_fes: the maximum number of FEs
     :param required_result: the optional required result quality
+    :param post: a check to run after each execution of the algorithm,
+        receiving the algorithm and the number of consumed FEs as parameter
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
         raise type_error(algorithm, "algorithm", Algorithm, True)
-
     if instance is None:
         instance = str(default_rng().choice(Instance.list_resources()))
     if not isinstance(instance, str):
@@ -83,6 +85,9 @@ def validate_algorithm_on_1_jssp(
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
         raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
+    if post is not None:
+        if not callable(post):
+            raise type_error(post, "post", None, call=True)
 
     search_space = Permutations.with_repetitions(inst.jobs,
                                                  inst.machines)
@@ -108,19 +113,25 @@ def validate_algorithm_on_1_jssp(
                        search_space=search_space,
                        encoding=encoding,
                        max_fes=max_fes,
-                       required_result=goal)
+                       required_result=goal,
+                       post=post)
 
 
 def validate_algorithm_on_jssp(
         algorithm: Callable[[Instance, Permutations,
-                             Objective], Algorithm]) -> None:
+                             Objective], Algorithm],
+        max_fes: int = 100,
+        post: Callable[[Algorithm, int], Any] | None = None) -> None:
     """
     Validate an algorithm on a set of JSSP instances.
 
     :param algorithm: the algorithm factory
+    :param max_fes: the maximum FEs
+    :param post: a check to run after each execution of the algorithm,
+        receiving the algorithm and the number of consumed FEs as parameter
     """
     for i in jssp_instances_for_tests():
-        validate_algorithm_on_1_jssp(algorithm, i, 100)
+        validate_algorithm_on_1_jssp(algorithm, i, max_fes=max_fes, post=post)
 
 
 def validate_objective_on_1_jssp(

@@ -206,7 +206,9 @@ def validate_algorithm_on_bitstrings(
             [BitStrings, Objective], Algorithm],
         dimension: int = 5, max_fes: int = 100,
         required_result: int | Callable[
-            [int, int], int] | None = None) -> None:
+            [int, int], int] | None = None,
+        uses_all_fes_if_goal_not_reached: bool = True,
+        post: Callable[[Algorithm, int], Any] | None = None) -> None:
     """
     Check the validity of a black-box algorithm on a bit strings problem.
 
@@ -215,6 +217,10 @@ def validate_algorithm_on_bitstrings(
     :param dimension: the dimension of the problem
     :param max_fes: the maximum number of FEs
     :param required_result: the optional required result quality
+    :param uses_all_fes_if_goal_not_reached: will the algorithm use all FEs
+        unless it reaches the goal?
+    :param post: a check to run after each execution of the algorithm,
+        receiving the algorithm and the number of consumed FEs as parameter
     """
     if not (isinstance(algorithm, Algorithm) or callable(algorithm)):
         raise type_error(algorithm, "algorithm", Algorithm, True)
@@ -224,6 +230,9 @@ def validate_algorithm_on_bitstrings(
         raise type_error(dimension, "dimension", int)
     if dimension <= 0:
         raise ValueError(f"dimension must be > 0, but got {dimension}.")
+    if post is not None:
+        if not callable(post):
+            raise type_error(post, "post", None, call=True)
 
     if callable(objective):
         objective = objective(dimension)
@@ -243,20 +252,23 @@ def validate_algorithm_on_bitstrings(
     else:
         goal = required_result
 
-    validate_algorithm(algorithm=algorithm,
-                       solution_space=bs,
-                       objective=objective,
-                       max_fes=max_fes,
-                       required_result=goal)
+    validate_algorithm(
+        algorithm=algorithm, solution_space=bs, objective=objective,
+        max_fes=max_fes, required_result=goal,
+        uses_all_fes_if_goal_not_reached=uses_all_fes_if_goal_not_reached,
+        post=post)
 
 
 def validate_algorithm_on_onemax(
         algorithm: Algorithm | Callable[
-            [BitStrings, Objective], Algorithm]) -> None:
+            [BitStrings, Objective], Algorithm],
+        post: Callable[[Algorithm, int], Any] | None = None) -> None:
     """
     Check the validity of a black-box algorithm on OneMax.
 
     :param algorithm: the algorithm or algorithm factory
+    :param post: a check to run after each execution of the algorithm,
+        receiving the algorithm and the number of consumed FEs as parameter
     """
     max_fes: Final[int] = 100
     for i in dimensions_for_tests():
@@ -270,16 +282,20 @@ def validate_algorithm_on_onemax(
             algorithm=algorithm,
             dimension=i,
             max_fes=max_fes,
-            required_result=rr)
+            required_result=rr,
+            post=post)
 
 
 def validate_algorithm_on_leadingones(
         algorithm: Algorithm | Callable[
-            [BitStrings, Objective], Algorithm]) -> None:
+            [BitStrings, Objective], Algorithm],
+        post: Callable[[Algorithm, int], Any] | None = None) -> None:
     """
     Check the validity of a black-box algorithm on LeadingOnes.
 
     :param algorithm: the algorithm or algorithm factory
+    :param post: a check to run after each execution of the algorithm,
+        receiving the algorithm and the number of consumed FEs as parameter
     """
     max_fes: Final[int] = 100
     for i in dimensions_for_tests():
@@ -295,7 +311,8 @@ def validate_algorithm_on_leadingones(
             algorithm=algorithm,
             dimension=i,
             max_fes=int(1.25 * max_fes),
-            required_result=rr)
+            required_result=rr,
+            post=post)
 
 
 def validate_mo_algorithm_on_bitstrings(

@@ -30,7 +30,8 @@ def validate_algorithm(algorithm: Algorithm,
                        max_fes: int = 100,
                        required_result: int | float | None = None,
                        uses_all_fes_if_goal_not_reached: bool = True,
-                       is_encoding_deterministic: bool = True) \
+                       is_encoding_deterministic: bool = True,
+                       post: Callable[[Algorithm, int], Any] | None = None) \
         -> None:
     """
     Check whether an algorithm follows the moptipy API specification.
@@ -45,12 +46,17 @@ def validate_algorithm(algorithm: Algorithm,
     :param uses_all_fes_if_goal_not_reached: will the algorithm use all FEs
         unless it reaches the goal?
     :param is_encoding_deterministic: is the encoding deterministic?
+    :param post: a check to run after each execution of the algorithm,
+        receiving the algorithm and the number of consumed FEs as parameter
     :raises TypeError: if `algorithm` is not a
         :class:`~moptipy.api.algorithm.Algorithm` instance
     :raises ValueError: if `algorithm` does not behave like it should
     """
     if not isinstance(algorithm, Algorithm):
         raise type_error(algorithm, "algorithm", Algorithm)
+    if post is not None:
+        if not callable(post):
+            raise type_error(post, "post", None, call=True)
 
     check_algorithm(algorithm)
     if isinstance(algorithm, Algorithm0):
@@ -93,7 +99,6 @@ def validate_algorithm(algorithm: Algorithm,
         raise ValueError(f"objective upper bound cannot be {ub}"
                          f" for {algorithm} on objective {objective}.")
 
-    goal: int | float = lb
     if required_result is not None:
         if not (lb <= required_result <= ub):
             raise ValueError(f"required result must be in [{lb},{ub}], "
@@ -102,8 +107,6 @@ def validate_algorithm(algorithm: Algorithm,
         if (not isfinite(required_result)) and (required_result != -inf):
             raise ValueError(f"required_result must not be {required_result} "
                              f"for {algorithm} on {objective}.")
-        goal = required_result
-    exp.set_goal_f(goal)
 
     progress: Final[tuple[list[int | float], list[int | float]]] = \
         [], []  # the progrss lists
@@ -197,16 +200,16 @@ def validate_algorithm(algorithm: Algorithm,
                         f"quality {required_result} on {objective}, but got "
                         f"one of {res_f}.")
 
-            if res_f <= goal:
+            if res_f <= lb:
                 if last_imp_fe != consumed_fes:
                     raise ValueError(
-                        f"if result={res_f} is as good as goal={goal}, then "
+                        f"if result={res_f} is as good as lb={lb}, then "
                         f"last_imp_fe={last_imp_fe} must equal"
                         f" consumed_fe={consumed_fes} for {algorithm} on "
                         f"{objective}.")
                 if (10_000 + (1.05 * last_imp_time)) < consumed_time:
                     raise ValueError(
-                        f"if result={res_f} is as good as goal={goal}, then "
+                        f"if result={res_f} is as good as lb={lb}, then "
                         f"last_imp_time={last_imp_time} must not be much less"
                         f" than consumed_time={consumed_time} for "
                         f"{algorithm} on {objective}.")
@@ -214,7 +217,7 @@ def validate_algorithm(algorithm: Algorithm,
                 if uses_all_fes_if_goal_not_reached \
                         and (consumed_fes != max_fes):
                     raise ValueError(
-                        f"if result={res_f} is worse than goal={goal}, then "
+                        f"if result={res_f} is worse than lb={lb}, then "
                         f"consumed_fes={consumed_fes} must equal "
                         f"max_fes={max_fes} for {algorithm} on {objective}.")
 
@@ -245,6 +248,9 @@ def validate_algorithm(algorithm: Algorithm,
                         f"solution {y2}, because it should be {y} for "
                         f"{algorithm} on {objective} under "
                         f"encoding {encoding}")
+
+            if post is not None:
+                post(algorithm, consumed_fes)
 
     objective.evaluate = evaluate  # type: ignore
 

@@ -42,7 +42,11 @@ from numpy.random import Generator
 
 from moptipy.api.operators import Op2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.nputils import DEFAULT_BOOL, DEFAULT_INT
+from moptipy.utils.nputils import (
+    DEFAULT_BOOL,
+    DEFAULT_INT,
+    fill_in_canonical_permutation,
+)
 from moptipy.utils.types import type_error
 
 
@@ -117,11 +121,16 @@ class Op2OrderBased(Op2):
             raise ValueError(
                 f"dimension must be > 3, but got {space.dimension}.")
         #: the valid indices
-        self.__indices: Final[np.ndarray] = np.array(
-            range(space.dimension), DEFAULT_INT)
+        self.__indices: Final[np.ndarray] = np.empty(
+            space.dimension, DEFAULT_INT)
         #: the elements that are done in `x1`
         self.__x1_done: Final[np.ndarray] = np.ndarray(
             (space.dimension, ), DEFAULT_BOOL)
+
+    def initialize(self) -> None:
+        """Initialize this operator."""
+        super().initialize()
+        fill_in_canonical_permutation(self.__indices)
 
     def __str__(self) -> str:
         """

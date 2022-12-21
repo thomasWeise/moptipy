@@ -24,4 +24,5 @@ def test_single_random_sample_on_onemax() -> None:
             algorithm=create,
             dimension=i,
             max_fes=100000000,
-            required_result=i)
+            required_result=i,
+            uses_all_fes_if_goal_not_reached=False)

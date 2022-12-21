@@ -84,12 +84,34 @@ def name_str_to_num(s: str) -> int | float:
                            .replace(DECIMAL_DOT_REPLACEMENT, "."))
 
 
-#: the internal table of the unicode characters to beautfy float strings
-__BEAUTYFULL_FLOAT_TABLE: Final[dict[str, str]] = {
-    "0": "\u2070", "1": "\u00b9", "2": "\u00b2", "3": "\u00b3", "4": "\u2074",
-    "5": "\u2075", "6": "\u2076", "7": "\u2077", "8": "\u2078", "9": "\u2079",
-    "+": "\u207A", "-": "\u207b"
-}
+#: the internal table for converting normal characters to unicode superscripts
+__SUPERSCRIPT: Final = str.maketrans({
+    # numbers from 0 to 9
+    0x30: 0x2070, 0x31: 0x00b9, 0x32: 0x00b2, 0x33: 0x00b3, 0x34: 0x2074,
+    0x35: 0x2075, 0x36: 0x2076, 0x37: 0x2077, 0x38: 0x2078, 0x39: 0x2079,
+    # +/-/=/(/)
+    0x2b: 0x207A, 0x2d: 0x207b, 0x3d: 0x207c, 0x28: 0x207d, 0x29: 0x207e,
+    # lower case letters
+    0x61: 0x1d43, 0x62: 0x1d47, 0x63: 0x1d9c, 0x64: 0x1d48, 0x65: 0x1d49,
+    0x66: 0x1da0, 0x67: 0x1d4d, 0x6b: 0x1d4f, 0x6c: 0x1da9, 0x6d: 0x1d50,
+    0x6e: 0x207f, 0x6f: 0x1d52, 0x70: 0x1d56, 0x74: 0x1d57, 0x75: 0x1d58,
+    0x76: 0x1d5b, 0x7a: 0x1dbb
+})
+
+
+def superscript(s: str) -> str:
+    """
+    Transform a string into Unicode-based superscript.
+
+    :param s: the string
+    :returns: the string in superscript
+
+    >>> superscript("a0=4(e)")
+    '\u1d43\u2070\u207c\u2074\u207d\u1d49\u207e'
+    """
+    if not isinstance(s, str):
+        raise type_error(s, "s", str)
+    return s.translate(__SUPERSCRIPT)
 
 
 def beautify_float_str(s: str | float) -> str:
@@ -129,8 +151,7 @@ def beautify_float_str(s: str | float) -> str:
     eidx: int = s.find("e")
     if eidx < 0:
         return s
-    return f"{s[:eidx]}\u00d710" \
-           f"{''.join(__BEAUTYFULL_FLOAT_TABLE[ss] for ss in s[eidx + 1:])}"
+    return f"{s[:eidx]}\u00d710{s[eidx + 1:].translate(__SUPERSCRIPT)}"
 
 
 def bool_to_str(value: bool) -> str:
