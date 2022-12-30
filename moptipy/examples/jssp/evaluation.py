@@ -158,10 +158,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                           ("sa_exp([0-9]+)_([0-9])em([0-9])_swap2",
                            "sa_\\1_\\2e-\\3"),
                           ("ma_([0-9]+)_([0-9]+)_([0-9]+)_gap_rls_swap2",
-                           "\\1+\\2_ma_\\3_rls"),
-                          ("ma_([0-9]+)_([0-9]+)_([0-9]+)_gap_sa_exp([0-9]+)"
-                           "_[0-9dem]+_swap2",
-                           "\\1+\\2_ma_\\3_sa_\\4")]:
+                           "\\1+\\2_ma_\\3")]:
         re: Pattern = _compile(pattern)
         found = False
         for s in names:
@@ -240,13 +237,24 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
             names_new.insert(names_new.index(name), n)
 
     # do sa families
+    sa_done: set[str] = set()
     for name in names:
-        sa_done: set[str] = set()
         if name.startswith("sa_"):
             n = sa_family(name)
             if n in sa_done:
                 continue
             sa_done.add(n)
+            names_new.insert(names_new.index(name), n)
+
+    # do ma families
+    ma_done: set[str] = set()
+    for name in names:
+        if name.startswith("ma_"):
+            sss = name.split("_")
+            n = f"{sss[1]}+{sss[2]}_ma"
+            if n in ma_done:
+                continue
+            ma_done.add(n)
             names_new.insert(names_new.index(name), n)
 
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
@@ -776,7 +784,29 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     makespans(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
     gantt(end_results, "sa_exp16_1em6_swap2", dest, source)
     progress(["sa_exp16_1em6_swap2", "rls_swap2"], dest, source)
-    gantt(end_results, "sa_exp16_1em6_swap2", dest, source, True, ["orb10"])
+    gantt(end_results, "sa_exp16_1em6_swap2", dest, source, True, ["orb06"])
+
+    logger("now doing memetic algorithm")
+
+    table(end_results, ["ma_4_4_131072_gap_rls_swap2",
+                        "rls_swap2", "ea_4_4_swap2"], dest)
+
+    makespans_over_param(
+        end_results=end_results,
+        selector=lambda n: n.startswith("ma_"),
+        x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[3]),
+        name_base="ma_rls",
+        algo_getter=lambda n: f"{n.split('_')[1]}+{n.split('_')[2]}_ma",
+        title=f"{LETTER_M}+{LETTER_L}_ma", x_label="ls_steps",
+        x_axis=AxisRanger(log_scale=True, log_base=2.0),
+        legend_pos="lower left",
+        title_x=0.8,
+        y_label_location=0.7,
+        dest_dir=dest)
+
+    progress(["ma_4_4_131072_gap_rls_swap2", "rls_swap2", "ea_4_4_swap2",
+              "ma_64_64_8192_gap_rls_swap2", "ma_16_16_32768_gap_rls_swap2"],
+             dest, source)
 
     logger(f"Finished evaluation from '{source}' to '{dest}'.")
 
