@@ -21,10 +21,12 @@ import numpy as np
 from numpy import ndarray
 from scipy.optimize import Bounds  # type: ignore
 
+# isort: off
 # noinspection PyProtectedMember
 from scipy.optimize._differentialevolution import (  # type: ignore
     differential_evolution,  # type: ignore
 )
+# isort: on
 
 # noinspection PyProtectedMember
 from scipy.optimize._optimize import (  # type: ignore

@@ -2,7 +2,7 @@
 
 import codecs
 import os.path
-from io import TextIOBase, open
+from io import TextIOBase
 from re import MULTILINE
 from re import compile as _compile
 from typing import Final, Iterable, Pattern, cast
@@ -80,8 +80,7 @@ class Path(str):
 
         :param value: the string value
         """
-        ret = super().__new__(cls, _canonicalize_path(value))
-        return ret
+        return super().__new__(cls, _canonicalize_path(value))
 
     def enforce_file(self) -> None:
         """
@@ -189,7 +188,7 @@ class Path(str):
         :return: the file open for reading
         """
         return cast(TextIOBase, open(
-            self, mode="rt", encoding=_get_text_encoding(self),
+            self, encoding=_get_text_encoding(self),
             errors="strict"))
 
     def read_all_list(self) -> list[str]:
@@ -229,7 +228,7 @@ class Path(str):
         :return: the text io wrapper for writing
         """
         return cast(TextIOBase, open(
-            self, mode="wt", encoding="utf-8", errors="strict"))
+            self, mode="w", encoding="utf-8", errors="strict"))
 
     def write_all(self, contents: str | Iterable[str]) -> None:
         """

@@ -2,7 +2,7 @@
 from math import factorial
 from typing import Final, Iterable
 
-import numpy
+import numpy as np
 
 from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import KeyValueLogSection
@@ -119,8 +119,8 @@ class Permutations(IntSpace):  # +book
 
         # start book
         #: a numpy array of the right type with the base string
-        self.blueprint: Final[numpy.ndarray] = \
-            numpy.array(string, dtype=self.dtype)
+        self.blueprint: Final[np.ndarray] = \
+            np.array(string, dtype=self.dtype)
         # end book
 
         npoints: int = factorial(total)
@@ -178,7 +178,7 @@ class Permutations(IntSpace):  # +book
         logger.key_value(KEY_BASE_STRING,
                          array_to_str(self.blueprint))
 
-    def create(self) -> numpy.ndarray:  # +book
+    def create(self) -> np.ndarray:  # +book
         r"""
         Create a permutation equal to the base string.
 
@@ -193,7 +193,7 @@ class Permutations(IntSpace):  # +book
         """
         return self.blueprint.copy()  # Create copy of the blueprint. # +book
 
-    def validate(self, x: numpy.ndarray) -> None:
+    def validate(self, x: np.ndarray) -> None:
         """
         Validate a permutation of the base string.
 

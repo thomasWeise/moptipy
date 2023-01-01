@@ -1,5 +1,4 @@
 """Test the interaction with the file system and temp files."""
-from io import open
 from os.path import basename, dirname, exists, getsize, isdir, isfile, join
 
 from moptipy.utils.path import Path

@@ -30,7 +30,7 @@ from moptipy.examples.jssp.plots import (
 )
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
-from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
+from moptipy.utils.help import argparser
 from moptipy.utils.lang import EN
 from moptipy.utils.logger import SCOPE_SEPARATOR, sanitize_name
 from moptipy.utils.path import Path
@@ -813,14 +813,12 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
 
 # Evaluate experiment if run as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
-        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
-        description="Evaluate the results of the JSSP example experiment",
-        epilog="This experiment evaluates all the results of the JSSP example"
-               " experiment and creates the figures and tables of the "
-               "'Optimization Algorithms' book (see "
-               f"http://thomasweise.github.io/oa).{DEFAULT_ARGUMENTS.epilog}",
-        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser: Final[argparse.ArgumentParser] = argparser(
+        __file__, "Evaluate the results of the JSSP example experiment",
+        "This experiment evaluates all the results of the JSSP example"
+        " experiment and creates the figures and tables of the "
+        "'Optimization Algorithms' book (see "
+        "http://thomasweise.github.io/oa).")
     parser.add_argument(
         "source", nargs="?", default="./results", type=Path.path,
         help="the directory with the results of the JSSP experiment")

@@ -72,8 +72,8 @@ def test_mo_process_ss_log() -> None:
             assert 0 < process.get_best_f() \
                    <= (f0.upper_bound() ** 2) + (f1.upper_bound() ** 2) \
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
-            assert 0 < process.get_consumed_fes()
-            assert 0 < process.get_consumed_time_millis()
+            assert process.get_consumed_fes() > 0
+            assert process.get_consumed_time_millis() > 0
             archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
@@ -181,8 +181,8 @@ def test_process_ss_log_all() -> None:
             assert 0 < process.get_best_f() \
                    <= (f0.upper_bound() ** 2) + (f1.upper_bound() ** 2) \
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
-            assert 0 < process.get_consumed_fes()
-            assert 0 < process.get_consumed_time_millis()
+            assert process.get_consumed_fes() > 0
+            assert process.get_consumed_time_millis() > 0
             archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()

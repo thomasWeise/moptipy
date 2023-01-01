@@ -2,7 +2,7 @@
 
 from typing import Final
 
-import numpy
+import numpy as np
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.logger import KeyValueLogSection
@@ -49,7 +49,7 @@ class IntSpace(NPArraySpace):
         #: the upper bound, i.e., the maximum permitted value
         self.max_value: Final[int] = max_value
 
-    def create(self) -> numpy.ndarray:
+    def create(self) -> np.ndarray:
         """
         Create an integer vector filled with the minimal value.
 
@@ -63,11 +63,10 @@ class IntSpace(NPArraySpace):
         >>> print(v.dtype)
         int16
         """
-        return numpy.full(shape=self.dimension,
-                          fill_value=self.min_value,
-                          dtype=self.dtype)
+        return np.full(shape=self.dimension, fill_value=self.min_value,
+                       dtype=self.dtype)
 
-    def validate(self, x: numpy.ndarray) -> None:
+    def validate(self, x: np.ndarray) -> None:
         """
         Validate an integer string.
 

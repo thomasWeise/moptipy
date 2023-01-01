@@ -220,9 +220,6 @@ class _InnerLogParser(ExperimentParser):
 
     # States are OR combinations of the following:
     # --> 0 == initial and end state
-    #  1: SECTION_SETUP is done
-    #  2: SECTION_FINAL_STATE is done
-    #  4: SECTION_PROGRESS is done
     # --> 7 == all necessary data should have been collected
     #  8: SECTION_SETUP is in progress
     # 16: SECTION_FINAL_STATE is in progress

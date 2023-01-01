@@ -1,14 +1,12 @@
 """An implementation of a bit string based search space."""
 from typing import Final
 
-import numpy
+import numpy as np
 
 from moptipy.spaces.nparrayspace import NPArraySpace
+from moptipy.utils.nputils import DEFAULT_BOOL
 from moptipy.utils.strings import str_to_bool
 from moptipy.utils.types import type_error
-
-#: the internal type for but strings
-_DTYPE: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
 
 
 class BitStrings(NPArraySpace):
@@ -25,9 +23,9 @@ class BitStrings(NPArraySpace):
         :param dimension: The dimension of the search space,
             i.e., the number of decision variables.
         """
-        super().__init__(dimension, _DTYPE)
+        super().__init__(dimension, DEFAULT_BOOL)
 
-    def create(self) -> numpy.ndarray:
+    def create(self) -> np.ndarray:
         """
         Create a bit string filled with `False`.
 
@@ -41,9 +39,9 @@ class BitStrings(NPArraySpace):
         >>> print(v.dtype)
         bool
         """
-        return numpy.zeros(shape=self.dimension, dtype=_DTYPE)
+        return np.zeros(shape=self.dimension, dtype=DEFAULT_BOOL)
 
-    def from_str(self, text: str) -> numpy.ndarray:
+    def from_str(self, text: str) -> np.ndarray:
         """
         Convert a string to a bit string.
 
@@ -54,7 +52,7 @@ class BitStrings(NPArraySpace):
         """
         if not (isinstance(text, str)):
             raise type_error(text, "text", str)
-        x: Final[numpy.ndarray] = self.create()
+        x: Final[np.ndarray] = self.create()
         x[:] = [str_to_bool(t) for t in text]
         self.validate(x)
         return x

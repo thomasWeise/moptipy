@@ -5,7 +5,7 @@ import warnings
 from math import isfinite, sqrt
 from typing import Callable, Final, Iterable, Sequence, cast
 
-import matplotlib.pyplot  # type: ignore
+import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.backend_bases import RendererBase  # type: ignore
@@ -445,7 +445,7 @@ def save_figure(fig: Figure,
         files.append(dest_file)
 
     fig.clf(False)
-    matplotlib.pyplot.close(fig)
+    plt.close(fig)
     del fig
 
     if len(files) <= 0:

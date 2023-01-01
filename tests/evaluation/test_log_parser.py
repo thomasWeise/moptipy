@@ -23,15 +23,15 @@ class _TestParser(LogParser):
             assert title == "TEXT"
             self.__state = 2
             return True
-        elif self.__state == 3:
+        if self.__state == 3:
             assert title == "CSV"
             self.__state = 4
             return True
-        elif self.__state == 5:
+        if self.__state == 5:
             assert title == "SKIP1"
             self.__state = 6
             return False
-        elif self.__state == 6:
+        if self.__state == 6:
             assert title == "KV"
             self.__state = 7
             return True
@@ -42,11 +42,11 @@ class _TestParser(LogParser):
             assert lines == ["a", "b", "c"]
             self.__state = 3
             return True
-        elif self.__state == 4:
+        if self.__state == 4:
             assert len(lines) == 101
             self.__state = 5
             return True
-        elif self.__state == 7:
+        if self.__state == 7:
             assert lines == ["k: l", "m: n"]
             self.__state = 8
             return False

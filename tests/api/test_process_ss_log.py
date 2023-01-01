@@ -63,7 +63,7 @@ def test_process_ss_log_log() -> None:
             assert process.has_best()
             assert objective.lower_bound() <= process.get_best_f() \
                    <= objective.upper_bound()
-            assert 0 < process.get_consumed_fes()
+            assert process.get_consumed_fes() > 0
             assert process.get_max_time_millis() == 60000
             assert process.get_max_fes() is None
             x = search_space.create()
@@ -238,7 +238,7 @@ def test_process_ss_log_log_reg() -> None:
             assert process.has_best()
             assert objective.lower_bound() <= process.get_best_f() \
                    <= objective.upper_bound()
-            assert 0 < process.get_consumed_fes()
+            assert process.get_consumed_fes() > 0
             x = search_space.create()
             process.get_copy_of_best_x(x)
             search_space.validate(x)
@@ -308,7 +308,7 @@ def test_process_ss_log_log_all_reg() -> None:
             assert process.has_best()
             assert objective.lower_bound() <= process.get_best_f() \
                    <= objective.upper_bound()
-            assert 0 < process.get_consumed_fes()
+            assert process.get_consumed_fes() > 0
             x = search_space.create()
             process.get_copy_of_best_x(x)
             search_space.validate(x)

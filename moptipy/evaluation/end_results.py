@@ -36,7 +36,7 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import ExperimentParser
 from moptipy.utils.console import logger
-from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
+from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR, parse_key_values
 from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.path import Path
@@ -52,18 +52,18 @@ from moptipy.utils.strings import (
 from moptipy.utils.types import type_error
 
 #: The internal CSV header
-_HEADER = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
-          f"{KEY_INSTANCE}{CSV_SEPARATOR}" \
-          f"{KEY_RAND_SEED}{CSV_SEPARATOR}" \
-          f"{KEY_BEST_F}{CSV_SEPARATOR}" \
-          f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}" \
-          f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
-          f"{CSV_SEPARATOR}" \
-          f"{KEY_TOTAL_FES}{CSV_SEPARATOR}" \
-          f"{KEY_TOTAL_TIME_MILLIS}{CSV_SEPARATOR}" \
-          f"{KEY_GOAL_F}{CSV_SEPARATOR}" \
-          f"{KEY_MAX_FES}{CSV_SEPARATOR}" \
-          f"{KEY_MAX_TIME_MILLIS}\n"
+_HEADER: Final[str] = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
+                      f"{KEY_INSTANCE}{CSV_SEPARATOR}" \
+                      f"{KEY_RAND_SEED}{CSV_SEPARATOR}" \
+                      f"{KEY_BEST_F}{CSV_SEPARATOR}" \
+                      f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}" \
+                      f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
+                      f"{CSV_SEPARATOR}" \
+                      f"{KEY_TOTAL_FES}{CSV_SEPARATOR}" \
+                      f"{KEY_TOTAL_TIME_MILLIS}{CSV_SEPARATOR}" \
+                      f"{KEY_GOAL_F}{CSV_SEPARATOR}" \
+                      f"{KEY_MAX_FES}{CSV_SEPARATOR}" \
+                      f"{KEY_MAX_TIME_MILLIS}\n"
 
 
 def __get_goal_f(e: "EndResult") -> int | float:
@@ -573,27 +573,25 @@ class _InnerLogParser(ExperimentParser):
 
 # Run log files to end results if executed as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
-        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
-        description="Convert log files obtained with moptipy to the end "
-                    "results CSV format that can be post-processed or "
-                    "exported to other tools.",
-        epilog="This program recursively parses a folder hierarchy created by"
-               " the moptipy experiment execution facility. This folder "
-               "structure follows the scheme of algorithm/instance/log_file "
-               "and has one log file per run. As result of the parsing, one "
-               "CSV file (where columns are separated by ';') is created with"
-               " one row per log file. This row contains the end-of-run state"
-               " loaded from the log file. Whereas the log files may store "
-               "the complete progress of one run of one algorithm on one "
-               "problem instance as well as the algorithm configuration "
-               "parameters, instance features, system settings, and the final"
-               " results, the end results CSV file will only represent the "
-               "final result quality, when it was obtained, how long the runs"
-               " took, etc. This information is much denser and smaller and "
-               "suitable for importing into other tools such as Excel or for "
-               f"postprocessing.{DEFAULT_ARGUMENTS.epilog}",
-        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser: Final[argparse.ArgumentParser] = argparser(
+        __file__,
+        "Convert log files obtained with moptipy to the end results CSV "
+        "format that can be post-processed or exported to other tools.",
+        "This program recursively parses a folder hierarchy created by"
+        " the moptipy experiment execution facility. This folder "
+        "structure follows the scheme of algorithm/instance/log_file "
+        "and has one log file per run. As result of the parsing, one "
+        "CSV file (where columns are separated by ';') is created with"
+        " one row per log file. This row contains the end-of-run state"
+        " loaded from the log file. Whereas the log files may store "
+        "the complete progress of one run of one algorithm on one "
+        "problem instance as well as the algorithm configuration "
+        "parameters, instance features, system settings, and the final"
+        " results, the end results CSV file will only represent the "
+        "final result quality, when it was obtained, how long the runs"
+        " took, etc. This information is much denser and smaller and "
+        "suitable for importing into other tools such as Excel or for "
+        "postprocessing.")
     parser.add_argument(
         "source", nargs="?", default="./results",
         help="the location of the experimental results, i.e., the root folder "

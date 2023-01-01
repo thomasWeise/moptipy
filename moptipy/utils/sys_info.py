@@ -5,7 +5,7 @@ import platform
 import re
 import socket
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Final
 
 import psutil  # type: ignore
@@ -145,14 +145,15 @@ def __make_sys_info() -> str:
         if vs is None:
             vs = __get_mem_size_meminfo()
         if vs is None:
-            vs = psutil.virtual_memory().total
+            return psutil.virtual_memory().total
         return vs
 
     # log all information in memory to convert it to one constant string.
     with InMemoryLogger() as imr:
         with imr.key_values(logging.SECTION_SYS_INFO) as kv:
             with kv.scope(logging.SCOPE_SESSION) as k:
-                __v(k, logging.KEY_SESSION_START, datetime.now())
+                __v(k, logging.KEY_SESSION_START,
+                    datetime.now(tz=timezone.utc))
                 __v(k, logging.KEY_NODE_NAME, platform.node())
                 proc = psutil.Process()
                 __v(k, logging.KEY_PROCESS_ID, hex(proc.pid))

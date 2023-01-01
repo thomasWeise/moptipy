@@ -63,10 +63,10 @@ def test_mo_process_no_ss_log() -> None:
             assert str(process) == "MOLoggingProcessWithoutSearchSpace"
             assert process.has_best()
             assert 0 <= process.get_best_f() <= 6.6 * dim
-            assert 0 < process.get_consumed_fes()
+            assert process.get_consumed_fes() > 0
             assert process.get_max_time_millis() == 100
             assert process.get_max_fes() is None
-            assert 0 < process.get_consumed_time_millis()
+            assert process.get_consumed_time_millis() > 0
             archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
@@ -167,7 +167,7 @@ def test_mo_process_no_ss_log_all() -> None:
             assert 0 <= process.get_best_f() <= \
                    dim + dim * dim + dim * dim * dim + dim * dim * dim * dim
             assert 0 < process.get_consumed_fes() <= 128
-            assert 0 < process.get_consumed_time_millis()
+            assert process.get_consumed_time_millis() > 0
             archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()

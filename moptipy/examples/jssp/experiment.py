@@ -42,7 +42,7 @@ from moptipy.operators.permutations.op2_gap import (
     Op2GeneralizedAlternatingPosition,
 )
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
+from moptipy.utils.help import argparser
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
@@ -289,12 +289,10 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
 
 # Execute experiment if run as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
-        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
-        description="Execute the JSSP example experiment.",
-        epilog="Execute an example experiment on the Job Shop Scheduling "
-               f"Problem (JSSP).{DEFAULT_ARGUMENTS.epilog}",
-        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser: Final[argparse.ArgumentParser] = argparser(
+        __file__, "Execute the JSSP example experiment.",
+        "Execute an example experiment on the Job "
+        "Shop Scheduling Problem (JSSP).")
     parser.add_argument(
         "dest", help="the directory where the results should be stored",
         type=Path.path, default="./results", nargs="?")

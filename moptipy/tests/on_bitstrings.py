@@ -301,7 +301,7 @@ def validate_algorithm_on_leadingones(
     for i in dimensions_for_tests():
         rr: int
         if i < 3:
-            rr = 0
+            rr = 1
         elif max_fes > (10 * (i ** 1.5)):
             rr = i - 1
         else:

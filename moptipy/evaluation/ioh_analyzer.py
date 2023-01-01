@@ -8,7 +8,7 @@ import numpy as np
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.console import logger
-from moptipy.utils.help import DEFAULT_ARGUMENTS, get_prog
+from moptipy.utils.help import argparser
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error
@@ -105,7 +105,7 @@ def moptipy_to_ioh_analyzer(
 
     # this consumer collects all the data in a structured fashion
     def __consume(progress: Progress) -> None:
-        nonlocal data
+        nonlocal data  # noqa
         nonlocal inst_name_to_func_id
         nonlocal inst_name_to_dimension
         nonlocal inst_name_to_inst_id
@@ -200,18 +200,17 @@ def moptipy_to_ioh_analyzer(
 
 # Run conversion if executed as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
-        parents=[DEFAULT_ARGUMENTS], prog=get_prog(__file__),
-        description="Convert experimental results from the moptipy to the "
-                    "IOHanalyzer format.",
-        epilog="The experiment execution API of moptipy creates an output "
-               "folder structure with clearly specified log files that can be"
-               " evaluated with our experimental data analysis API. The "
-               "IOHprofiler tool chain offers another format (specified in "
-               "https://iohprofiler.github.io/IOHanalyzer/data/). With this "
-               "tool here, you can convert from the moptipy to the "
-               f"IOHprofiler format.{DEFAULT_ARGUMENTS.epilog}",
-        formatter_class=DEFAULT_ARGUMENTS.formatter_class)
+    parser: Final[argparse.ArgumentParser] = argparser(
+        __file__,
+        "Convert experimental results from the moptipy to the "
+        "IOHanalyzer format.",
+        "The experiment execution API of moptipy creates an output "
+        "folder structure with clearly specified log files that can be"
+        " evaluated with our experimental data analysis API. The "
+        "IOHprofiler tool chain offers another format (specified in "
+        "https://iohprofiler.github.io/IOHanalyzer/data/). With this "
+        "tool here, you can convert from the moptipy to the "
+        "IOHprofiler format.")
     parser.add_argument(
         "source", help="the directory with moptipy log files", type=Path.path,
         nargs="?", default="./results")

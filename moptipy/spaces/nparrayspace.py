@@ -1,7 +1,7 @@
 """The base class for spaces based on numpy arrays."""
 from typing import Final
 
-import numpy
+import numpy as np
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.space import Space
@@ -22,7 +22,7 @@ class NPArraySpace(Space):
     optimization and can be extended to host permutations.
     """
 
-    def __init__(self, dimension: int, dtype: numpy.dtype) -> None:
+    def __init__(self, dimension: int, dtype: np.dtype) -> None:
         """
         Create the numpy array-based search space.
 
@@ -36,30 +36,30 @@ class NPArraySpace(Space):
             raise ValueError("dimension must be in 1..1_000_000_000, "
                              f"but got {dimension}.")
 
-        if not isinstance(dtype, numpy.dtype):
-            raise type_error(dtype, "dtype", numpy.dtype)
+        if not isinstance(dtype, np.dtype):
+            raise type_error(dtype, "dtype", np.dtype)
         if (not isinstance(dtype.char, str)) or (len(dtype.char) != 1):
             raise ValueError(
                 f"dtype.char must be str of length 1, but is {dtype.char}")
 
         #: The basic data type of the vector space elements.
-        self.dtype: Final[numpy.dtype] = dtype
+        self.dtype: Final[np.dtype] = dtype
         #: The dimension, i.e., the number of elements of the vectors.
         self.dimension: Final[int] = dimension
         # the function forwards
-        self.copy = numpy.copyto  # type: ignore
-        self.is_equal = numpy.array_equal  # type: ignore
+        self.copy = np.copyto  # type: ignore
+        self.is_equal = np.array_equal  # type: ignore
         self.to_str = array_to_str  # type: ignore
 
-    def create(self) -> numpy.ndarray:
+    def create(self) -> np.ndarray:
         """
         Create a vector with all zeros.
 
         :return: the vector
         """
-        return numpy.zeros(shape=self.dimension, dtype=self.dtype)
+        return np.zeros(shape=self.dimension, dtype=self.dtype)
 
-    def from_str(self, text: str) -> numpy.ndarray:
+    def from_str(self, text: str) -> np.ndarray:
         """
         Convert a string to a vector.
 
@@ -70,11 +70,11 @@ class NPArraySpace(Space):
         """
         if not (isinstance(text, str)):
             raise type_error(text, "text", str)
-        x = numpy.fromstring(text, dtype=self.dtype, sep=CSV_SEPARATOR)
+        x = np.fromstring(text, dtype=self.dtype, sep=CSV_SEPARATOR)
         self.validate(x)
         return x
 
-    def validate(self, x: numpy.ndarray) -> None:
+    def validate(self, x: np.ndarray) -> None:
         """
         Validate a numpy nd-array.
 
@@ -83,8 +83,8 @@ class NPArraySpace(Space):
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """
-        if not isinstance(x, numpy.ndarray):
-            raise type_error(x, "x", numpy.ndarray)
+        if not isinstance(x, np.ndarray):
+            raise type_error(x, "x", np.ndarray)
         if x.dtype != self.dtype:
             raise ValueError(
                 f"x must be of type {self.dtype} but is of type {x.dtype}.")

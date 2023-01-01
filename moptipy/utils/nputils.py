@@ -4,7 +4,7 @@ from math import isfinite
 from typing import Final, cast
 
 import numba  # type: ignore
-import numpy
+import numpy as np
 from numpy.random import PCG64, Generator, default_rng
 
 from moptipy.utils.logger import CSV_SEPARATOR
@@ -18,40 +18,40 @@ from moptipy.utils.types import type_error
 #: If we have a range `[min..max]` of valid value, then we can look up this
 #: range and find the integer type with the smallest memory footprint to
 #: accommodate it. This is what :func:`int_range_to_dtype` does.
-__INTS_AND_RANGES: Final[tuple[tuple[numpy.dtype, int, int], ...]] = \
+__INTS_AND_RANGES: Final[tuple[tuple[np.dtype, int, int], ...]] = \
     tuple(sorted([
-        (dtx, int(numpy.iinfo(dtx).min), int(numpy.iinfo(dtx).max))
-        for dtx in cast(set[numpy.dtype], {numpy.dtype(bdt) for bdt in [
-            int, numpy.int8, numpy.int16, numpy.uint8, numpy.uint16,
-            numpy.int32, numpy.uint32, numpy.int64, numpy.uint64]})],
+        (dtx, int(np.iinfo(dtx).min), int(np.iinfo(dtx).max))
+        for dtx in cast(set[np.dtype], {np.dtype(bdt) for bdt in [
+            int, np.int8, np.int16, np.uint8, np.uint16,
+            np.int32, np.uint32, np.int64, np.uint64]})],
         key=lambda a: (a[2], a[1])))
 
 #: The numpy integer data types.
-INTS: Final[tuple[numpy.dtype, ...]] = tuple(a[0] for a in __INTS_AND_RANGES)
+INTS: Final[tuple[np.dtype, ...]] = tuple(a[0] for a in __INTS_AND_RANGES)
 
 #: A map associating all numpy integer types associated to tuples
 #: of their respective minimum and maximum value.
-__NP_INTS_MAP: Final[dict[numpy.dtype, tuple[int, int]]] = \
+__NP_INTS_MAP: Final[dict[np.dtype, tuple[int, int]]] = \
     {a[0]: (a[1], a[2]) for a in __INTS_AND_RANGES}
 
 #: The default integer type: the signed 64-bit integer.
-DEFAULT_INT: Final[numpy.dtype] = INTS[-2]
+DEFAULT_INT: Final[np.dtype] = INTS[-2]
 
 #: The default unsigned integer type: an unsigned 64-bit integer.
-DEFAULT_UNSIGNED_INT: Final[numpy.dtype] = INTS[-1]
+DEFAULT_UNSIGNED_INT: Final[np.dtype] = INTS[-1]
 
 #: The default boolean type.
-DEFAULT_BOOL: Final[numpy.dtype] = numpy.dtype(numpy.bool_)
+DEFAULT_BOOL: Final[np.dtype] = np.dtype(np.bool_)
 
 #: The default floating point type.
-DEFAULT_FLOAT: Final[numpy.dtype] = numpy.dtype(float)
+DEFAULT_FLOAT: Final[np.dtype] = np.dtype(float)
 
 #: The default numerical types.
-DEFAULT_NUMERICAL: Final[tuple[numpy.dtype, ...]] = tuple(
+DEFAULT_NUMERICAL: Final[tuple[np.dtype, ...]] = tuple(
     list(INTS) + [DEFAULT_FLOAT])
 
 
-def is_np_int(dtype: numpy.dtype) -> bool:
+def is_np_int(dtype: np.dtype) -> bool:
     """
     Check whether a :class:`numpy.dtype` is an integer type.
 
@@ -69,7 +69,7 @@ def is_np_int(dtype: numpy.dtype) -> bool:
     return dtype.kind in ("i", "u")
 
 
-def is_np_float(dtype: numpy.dtype) -> bool:
+def is_np_float(dtype: np.dtype) -> bool:
     """
     Check whether a :class:`numpy.dtype` is a floating point type.
 
@@ -87,7 +87,7 @@ def is_np_float(dtype: numpy.dtype) -> bool:
     return dtype.kind == "f"
 
 
-def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
+def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
     """
     Convert an integer range to an appropriate numpy data type.
 
@@ -149,7 +149,7 @@ def int_range_to_dtype(min_value: int, max_value: int) -> numpy.dtype:
 
 def dtype_for_data(always_int: bool,
                    lower_bound: int | float,
-                   upper_bound: int | float) -> numpy.dtype:
+                   upper_bound: int | float) -> np.dtype:
     """
     Obtain the most suitable numpy data type to represent the data.
 
@@ -182,7 +182,7 @@ def dtype_for_data(always_int: bool,
 
 
 @numba.jit(forceobj=True)
-def np_ints_max(shape, dtype: numpy.dtype = DEFAULT_INT) -> numpy.ndarray:
+def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
     """
     Create an integer array of the given length filled with the maximum value.
 
@@ -195,9 +195,8 @@ def np_ints_max(shape, dtype: numpy.dtype = DEFAULT_INT) -> numpy.ndarray:
     >>> print(np_ints_max(4, npx.dtype("uint8")))
     [255 255 255 255]
     """
-    return numpy.full(shape=shape,
-                      fill_value=__NP_INTS_MAP[dtype][1],
-                      dtype=dtype)
+    return np.full(shape=shape, fill_value=__NP_INTS_MAP[dtype][1],
+                   dtype=dtype)
 
 
 #: the default number of bytes for random seeds
@@ -317,7 +316,7 @@ def rand_seeds_from_str(string: str,
 
 
 @numba.njit(nogil=True)
-def is_all_finite(a: numpy.ndarray) -> bool:
+def is_all_finite(a: np.ndarray) -> bool:
     """
     Check if an array is all finite.
 
@@ -334,7 +333,7 @@ def is_all_finite(a: numpy.ndarray) -> bool:
     False
     """
     for x in a:
-        if not numpy.isfinite(x):
+        if not np.isfinite(x):
             return False
     return True
 
@@ -343,7 +342,7 @@ def is_all_finite(a: numpy.ndarray) -> bool:
 KEY_NUMPY_TYPE: Final[str] = "dtype"
 
 
-def numpy_type_to_str(dtype: numpy.dtype) -> str:
+def numpy_type_to_str(dtype: np.dtype) -> str:
     """
     Convert a numpy data type to a string.
 
@@ -368,16 +367,16 @@ def np_to_py_number(number) -> int | float:
     """
     if isinstance(number, (int, float)):
         return number
-    if isinstance(number, numpy.number):
-        if isinstance(number, numpy.integer):
+    if isinstance(number, np.number):
+        if isinstance(number, np.integer):
             return int(number)
-        if isinstance(number, numpy.floating):
+        if isinstance(number, np.floating):
             return float(number)
     raise type_error(number, "number",
-                     (int, float, numpy.integer, numpy.floating))
+                     (int, float, np.integer, np.floating))
 
 
-def array_to_str(data: numpy.ndarray) -> str:
+def array_to_str(data: np.ndarray) -> str:
     """
     Convert a numpy array to a string.
 
@@ -400,8 +399,8 @@ def array_to_str(data: numpy.ndarray) -> str:
     >>> array_to_str(npx.array([True, False, True]))
     'TFT'
     """
-    if not isinstance(data, numpy.ndarray):
-        raise type_error(data, "data", numpy.ndarray)
+    if not isinstance(data, np.ndarray):
+        raise type_error(data, "data", np.ndarray)
     k: Final[str] = data.dtype.kind
     if k in ("i", "u"):
         return CSV_SEPARATOR.join(str(d) for d in data)
@@ -413,7 +412,7 @@ def array_to_str(data: numpy.ndarray) -> str:
 
 
 @numba.njit(cache=True, inline="always")
-def fill_in_canonical_permutation(a: numpy.ndarray) -> None:
+def fill_in_canonical_permutation(a: np.ndarray) -> None:
     """
     Fill the canonical permutation into an array.
 

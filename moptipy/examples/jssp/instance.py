@@ -386,23 +386,24 @@ class Instance(Component, np.ndarray):
                         state = 2
                     else:
                         state = 4
-            elif state == 2:
+                continue
+            if state == 2:
                 if line.startswith("+++"):
                     state = 3
                     rows = []
                     continue
                 raise ValueError(f"Unexpected string '{line}'.")
-            elif state == 3:
+            if state == 3:
                 if line.startswith("+++"):
-                    return Instance.from_text(name=name,
-                                              rows=rows)
+                    return Instance.from_text(name=name, rows=rows)
                 rows.append(line)
-            elif state == 4:
+                continue
+            if state == 4:
                 if line.startswith("+++"):
                     state = 5
                     continue
                 raise ValueError(f"Unexpected string '{line}'.")
-            elif state == 5:
+            if state == 5:
                 if line.startswith("+++"):
                     state = 1
 

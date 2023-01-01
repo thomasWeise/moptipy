@@ -74,8 +74,7 @@ def _float_beautify(f: float) -> float:
     r2 = 0.001 * (vb - 1)
     l2 = len(str(r2))
     if l2 < l1:
-        r1 = r2
-
+        return r2
     return r1
 
 

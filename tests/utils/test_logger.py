@@ -1,6 +1,5 @@
 """Test the structured logger."""
 import csv
-from io import open
 from os.path import exists, isfile
 
 # noinspection PyPackageRequirements

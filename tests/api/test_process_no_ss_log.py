@@ -118,8 +118,8 @@ def test_process_no_ss_log_log_all() -> None:
             assert process.has_best()
             assert process.get_best_f() >= 0
             assert 0 <= process.get_best_f() <= dim
-            assert 0 < process.get_consumed_time_millis()
-            assert 0 < process.get_consumed_fes()
+            assert process.get_consumed_time_millis() > 0
+            assert process.get_consumed_fes() > 0
             x = space.create()
             process.get_copy_of_best_x(x)
             space.validate(x)

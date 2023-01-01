@@ -1138,7 +1138,7 @@ g.dtypeJobIdx: b
 g.dtypeJobTime: h
 END_SETUP
 BEGIN_SYS_INFO
-session.start: 2022-05-03 08:49:14.883057
+session.start: 2022-05-03 08:49:14.883057+00:00
 session.node: home
 session.procesId: 0xc4b9
 session.cpuAffinity: 0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15
@@ -1338,7 +1338,7 @@ ap.name: keepFarthest
 ap.class: moptipy.mo.archive.keep_farthest.KeepFarthest
 END_SETUP
 BEGIN_SYS_INFO
-session.start: 2022-08-11 05:27:04.202252
+session.start: 2022-08-11 05:27:04.202252+00:00
 session.node: home
 session.procesId: 0x90b8
 session.cpuAffinity: 0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15

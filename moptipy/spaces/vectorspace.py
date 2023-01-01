@@ -3,7 +3,7 @@
 from math import isfinite
 from typing import Callable, Final, Iterable, cast
 
-import numpy
+import numpy as np
 from numpy import clip
 
 from moptipy.spaces.nparrayspace import NPArraySpace
@@ -30,7 +30,7 @@ class VectorSpace(NPArraySpace):
     def __init__(self, dimension: int,
                  lower_bound: float | Iterable[float] = 0.0,
                  upper_bound: float | Iterable[float] = 1.0,
-                 dtype: numpy.dtype = DEFAULT_FLOAT) -> None:
+                 dtype: np.dtype = DEFAULT_FLOAT) -> None:
         """
         Create the vector-based search space.
 
@@ -53,10 +53,10 @@ class VectorSpace(NPArraySpace):
                 raise ValueError(
                     f"invalid lower bound {lower_bound}.")
             # if a single value is given, then we expand it a vector
-            lower_bound = numpy.full(dimension, lower_bound, dtype)
+            lower_bound = np.full(dimension, lower_bound, dtype)
         elif isinstance(lower_bound, Iterable):
             # lower bounds are given as vector or iterable
-            lb = numpy.array(lower_bound, dtype)
+            lb = np.array(lower_bound, dtype)
             if len(lb) != dimension:
                 raise ValueError(f"wrong length {lb} of lower "
                                  f"bound iterable {lower_bound}")
@@ -67,7 +67,7 @@ class VectorSpace(NPArraySpace):
             for index, item in enumerate(lb):
                 if first != item:
                     lower_bound_all_same = False
-                if not numpy.isfinite(item):
+                if not np.isfinite(item):
                     raise ValueError(f"{index}th lower bound={item}")
             lower_bound = lb
         else:
@@ -82,10 +82,10 @@ class VectorSpace(NPArraySpace):
                 raise ValueError(
                     f"invalid upper bound {upper_bound}.")
             # if a single value is given, then we expand it a vector
-            upper_bound = numpy.full(dimension, upper_bound, dtype)
+            upper_bound = np.full(dimension, upper_bound, dtype)
         elif isinstance(upper_bound, Iterable):
             # upper bounds are given as vector or iterable
-            lb = numpy.array(upper_bound, dtype)
+            lb = np.array(upper_bound, dtype)
             if len(lb) != dimension:
                 raise ValueError(f"wrong length {lb} of upper "
                                  f"bound iterable {upper_bound}")
@@ -96,7 +96,7 @@ class VectorSpace(NPArraySpace):
             for index, item in enumerate(lb):
                 if first != item:
                     upper_bound_all_same = False
-                if not numpy.isfinite(item):
+                if not np.isfinite(item):
                     raise ValueError(f"{index}th upper bound={item}")
             upper_bound = lb
         else:
@@ -110,16 +110,16 @@ class VectorSpace(NPArraySpace):
                                  f"upper_bound[{idx}]={upper_bound[idx]}")
 
         #: the lower bounds for all variables
-        self.lower_bound: Final[numpy.ndarray] = lower_bound
+        self.lower_bound: Final[np.ndarray] = lower_bound
         #: all dimensions have the same lower bound
         self.lower_bound_all_same: Final[bool] = lower_bound_all_same
         #: the upper bounds for all variables
-        self.upper_bound: Final[numpy.ndarray] = upper_bound
+        self.upper_bound: Final[np.ndarray] = upper_bound
         #: all dimensions have the same upper bound
         self.upper_bound_all_same: Final[bool] = upper_bound_all_same
 
-    def clipped(self, func: Callable[[numpy.ndarray], int | float]) \
-            -> Callable[[numpy.ndarray], int | float]:
+    def clipped(self, func: Callable[[np.ndarray], int | float]) \
+            -> Callable[[np.ndarray], int | float]:
         """
         Wrap a function ensuring that all vectors are clipped to the bounds.
 
@@ -129,11 +129,11 @@ class VectorSpace(NPArraySpace):
         :param func: the function to wrap
         :returns: the wrapped function
         """
-        return cast(Callable[[numpy.ndarray], int | float],
+        return cast(Callable[[np.ndarray], int | float],
                     lambda x, lb=self.lower_bound, ub=self.upper_bound,
                     ff=func: ff(clip(x, lb, ub, x)))
 
-    def validate(self, x: numpy.ndarray) -> None:
+    def validate(self, x: np.ndarray) -> None:
         """
         Validate a vector.
 
@@ -144,12 +144,12 @@ class VectorSpace(NPArraySpace):
         """
         super().validate(x)
 
-        mib: Final[numpy.ndarray] = self.lower_bound
-        mab: Final[numpy.ndarray] = self.upper_bound
+        mib: Final[np.ndarray] = self.lower_bound
+        mab: Final[np.ndarray] = self.upper_bound
         for index, item in enumerate(x):
             miv = mib[index]
             mav = mab[index]
-            if not numpy.isfinite(item):
+            if not np.isfinite(item):
                 raise ValueError(f"x[{index}]={item}, which is not finite")
             if not (miv <= item <= mav):
                 raise ValueError(

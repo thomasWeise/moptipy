@@ -234,8 +234,7 @@ class __RegisterForFEs(Algorithm):
         self.repeat = process.should_terminate()
         if self.repeat:
             return
-        else:
-            assert cf >= 50
+        assert cf >= 50
         nf = mf - cf
         with for_fes(process, nf) as sp2:
             assert str(sp2) == f"forFEs_{nf}_{process}"
