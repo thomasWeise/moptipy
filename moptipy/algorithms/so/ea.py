@@ -135,7 +135,7 @@ class EA(Algorithm2):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             lst[i] = Record(x, f)  # create and store record
 
-        it: int = 0
+        it: int = 0  # set iteration counter=0 (but immediately increment)
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step iteration counter
             for oi in range(mu, mu_plus_lambda):  # for all offspring
@@ -145,14 +145,14 @@ class EA(Algorithm2):
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
 
-                sx = lst[r0i(mu)].x  # pick a random source record
+                sx = lst[r0i(mu)].x  # pick a random source "x"
                 # end nobinary
                 # start binary
                 if r01() < br:  # apply binary operator at rate br
-                    sx2 = sx    # second source "x"
-                    while sx2 is sx:     # must be different from sx
-                        sx2 = lst[r0i(mu)].x  # get second record
-                    op2(random, x, sx, sx2)  # apply binary op
+                    sx2 = sx    # second source "x" initially=first sx
+                    while sx2 is sx:     # until different from sx...
+                        sx2 = lst[r0i(mu)].x  # ..get random second "x"
+                    op2(random, x, sx, sx2)  # apply binary operator
                     dest.f = evaluate(x)  # evaluate new point
                     continue  # below is "else" part with unary operat.
                 # end binary

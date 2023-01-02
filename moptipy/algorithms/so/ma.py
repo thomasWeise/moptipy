@@ -121,8 +121,8 @@ class MA(Algorithm0):
         op0: Final[Callable] = self.op0.op0  # the nullary operator
         op2: Final[Callable] = self.op2.op2  # the binary operator
         ls_fes: Final[int] = self.ls_fes  # the number of FEs per ls run
-        ls_solve: Final[Callable[[Process], None]] = self.ls.solve
-        forward_ls_op_to: Final[Callable] = cast(  # forward starting
+        ls_solve: Final[Callable[[Process], None]] = self.ls.solve  # +book
+        forward_ls_op0_to: Final[Callable] = cast(  # forward starting
             Op0Forward, self.ls.op0).forward_to  # point of ls to...
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(  # random integer
@@ -136,38 +136,39 @@ class MA(Algorithm0):
             if i < mu:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?
+                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
                 with for_fes(process, ls_fes) as s1:  # fe-limited proc
                     with from_starting_point(s1, x, evaluate(x)) as s2:
-                        forward_ls_op_to(s2.get_copy_of_best_x)
+                        forward_ls_op0_to(s2.get_copy_of_best_x)
                         ls_solve(s2)  # apply local search modifying x
                         f = s2.get_best_f()  # get quality of x
             lst[i] = Record(x, f)  # create and store record
 
-        it: int = 0
+        it: int = 0  # set iteration counter=0 (but immediately increment)
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it += 1  # step iteration counter
             for oi in range(mu, mu_plus_lambda):  # for all offspring
                 if should_terminate():  # only continue if we still...
+                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
                     return  # have sufficient budget ... otherwise quit
                 dest: Record = lst[oi]  # pick destination record
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
 
-                sx = lst[r0i(mu)].x  # pick a random source record
-                sx2 = sx    # second source "x"
-                while sx2 is sx:     # must be different from sx
-                    sx2 = lst[r0i(mu)].x  # get second record
-                op2(random, x, sx, sx2)  # apply binary op
+                sx = lst[r0i(mu)].x  # pick random first source "x"
+                sx2 = sx    # second source "x" initially=first sx
+                while sx2 is sx:     # until different from sx...
+                    sx2 = lst[r0i(mu)].x  # ..get random second "x"
+                op2(random, x, sx, sx2)  # apply binary operator
 
                 with for_fes(process, ls_fes) as s1:  # fe-limited proc
                     with from_starting_point(s1, x, evaluate(x)) as s2:
-                        forward_ls_op_to(s2.get_copy_of_best_x)
+                        forward_ls_op0_to(s2.get_copy_of_best_x)
                         ls_solve(s2)  # apply local search modifying x
                         dest.f = s2.get_best_f()  # get quality of x
             lst.sort()  # best records come first, ties broken by age
             # end book
-            cast(Op0Forward, self.ls.op0).stop_forwarding()  # clean up
 
     def __init__(self, op0: Op0,
                  op2: Op2, ls: Algorithm0,
