@@ -17,7 +17,7 @@ The following functions are included:
    does not need to be checked anymore. Instead, once the optimization must
    stop, it will throw an internal exception and catch it again. This makes it
    possible to pass :meth:`~moptipy.api.process.Process.evaluate` to
-   externally implemented algorithms that do not care about the moptipy api.
+   externally implemented algorithms that do not care about the `moptipy` API.
 
 The utility function :func:`get_remaining_fes` returns a number representing
 the remaining objective function evaluations of a given
@@ -504,6 +504,21 @@ class __WithoutShouldTerminateMO(MOProcess):
         return True
 
 
+def get_remaining_fes(process: Process) -> int:
+    """
+    Get a finite number representing the remaining FEs of a process.
+
+    :param process: the process
+    :returns: an integer representing the remaining FEs of the process. If
+        no FE limit is imposed by `process`, a very large number will be
+        returned.
+    """
+    mf: int | None = process.get_max_fes()  # get the number of available FEs
+    if mf is None:  # if a no FE limit is specified, then return a large value
+        return 9_223_372_036_854_775_807  # (2 ** 63) - 1
+    return mf - process.get_consumed_fes()  # else, subtract the consumed FEs
+
+
 def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
         -> None:
     """
@@ -540,6 +555,16 @@ def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
     Thus, we can now use algorithms that ignore our termination criteria and
     still force them to terminate when they should.
 
+    Some algorithms using this system are implemented in
+    :mod:`~moptipy.algorithms.so.vector.scipy` and
+    :mod:`~moptipy.algorithms.so.vector.pdfo`. These modules import external
+    algorithms from other libraries which, of course, know nothing about how
+    our `moptipy` works. They only accept the objective function and cannot
+    handle the beautiful
+    :meth:`~moptipy.api.process.Process.should_terminate`-based termination
+    criteria. By using :func:`without_should_terminate`, however, we can still
+    safely use them within `moptipy` compliant scenarios.
+
     :param algorithm: the algorithm
     :param process: the optimization process
     """
@@ -550,18 +575,3 @@ def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
             algorithm(proc)
     except _InternalTerminationError:
         pass  # the internal error is ignored
-
-
-def get_remaining_fes(process: Process) -> int:
-    """
-    Get a finite number representing the remaining FEs of a process.
-
-    :param process: the process
-    :returns: an integer representing the remaining FEs of the process. If
-        no FE limit is imposed by `process`, a very large number will be
-        returned.
-    """
-    mf: int | None = process.get_max_fes()  # get the number of available FEs
-    if mf is None:  # if a no FE limit is specified, then return a large value
-        return 9_223_372_036_854_775_807  # (2 ** 63) - 1
-    return mf - process.get_consumed_fes()  # else, subtract the consumed FEs

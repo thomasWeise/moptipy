@@ -45,7 +45,7 @@ search space and its quality.
 such a way that the termination criterion
 :meth:`~moptipy.api.process.Process.should_terminate`, which is suitable for
 invoking externally implemented optimization algorithms that do not know/care
-about the moptipy API.
+about the `moptipy` API.
 
 1. Mark S. Boddy and Thomas L. Dean. *Solving Time-Dependent Planning
    Problems.* Report CS-89-03, February 1989. Providence, RI, USA: Brown
