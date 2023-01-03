@@ -19,12 +19,33 @@ time, e.g., by the termination criterion,
 guess of the solution (:meth:`~moptipy.api.process.Process.get_copy_of_best_y`,
 :meth:`~moptipy.api.process.Process.get_best_f`).
 
-Finally, the process API also collects all the information about the
-optimization process, performs in-memory logging if wanted, and can write a
-standardized, text-based log file for each run of an algorithm in a clear
-folder structure. By storing information about the algorithm, the problem, and
-the system, as well as the random seed, this allows for self-documenting and
-replicable experiments.
+The process API also collects all the information about the optimization
+process, performs in-memory logging if wanted, and can write a standardized,
+text-based log file for each run of an algorithm in a clear folder structure.
+By storing information about the algorithm, the problem, and the system, as
+well as the random seed, this allows for self-documenting and replicable
+experiments.
+
+The class :class:`Process` is a base class from which all optimization
+processes are derived. It is for the standard single-objective optimization
+case. A multi-objective variant is given in module
+:mod:`~moptipy.api.mo_process` as class
+:class:`~moptipy.api.mo_process.MOProcess`.
+
+Furthermore, processes also lent themselves to "forking" off some of the
+computational budget of an algorithm to sub-algorithms. For this purpose, the
+module :mod:`~moptipy.api.subprocesses` provides specialized routines, such as
+:func:`~moptipy.api.subprocesses.for_fes` for creating sub-processes that
+forward all method calls to the original process but will perform at most a
+given number of objective function evaluations or
+:func:`~moptipy.api.subprocesses.from_starting_point`, which creates a
+sub-process that has the current-best solution pre-set to a given point in the
+search space and its quality.
+:func:`~moptipy.api.subprocesses.without_should_terminate` wraps a process in
+such a way that the termination criterion
+:meth:`~moptipy.api.process.Process.should_terminate`, which is suitable for
+invoking externally implemented optimization algorithms that do not know/care
+about the moptipy API.
 
 1. Mark S. Boddy and Thomas L. Dean. *Solving Time-Dependent Planning
    Problems.* Report CS-89-03, February 1989. Providence, RI, USA: Brown
@@ -93,10 +114,9 @@ class Process(Space, Objective, AbstractContextManager):
         finite. Smaller objective values are better, i.e., all objective
         functions are subject to minimization.
 
-        This method here is a wrapper that internally invokes the actual
-        :class:`~moptipy.api.objective.Objective` function, but it does more.
-
-        While it does use the
+        This method here is usually a wrapper that internally invokes the
+        actual :class:`~moptipy.api.objective.Objective` function, but it does
+        more: While it does use the
         :meth:`~moptipy.api.objective.Objective.evaluate` method of the
         objective function to compute the quality of a candidate solution,
         it also internally increments the counter for the objective function
@@ -122,7 +142,10 @@ class Process(Space, Objective, AbstractContextManager):
         become `True`.
 
         Finally, this method also performs all logging, e.g., of improving
-        moves, in memory if logging is activated.
+        moves, in memory if logging is activated. (See
+        :meth:`~moptipy.api.execution.Execution.set_log_file`,
+        :meth:`~moptipy.api.execution.Execution.set_log_improvements`, and
+        :meth:`~moptipy.api.execution.Execution.set_log_all_fes`.)
 
         In some cases, you may not need to invoke the original objective
         function via this wrapper to obtain the objective value of a solution.
@@ -358,7 +381,7 @@ class Process(Space, Objective, AbstractContextManager):
         lines, all the contents of the section are stored.
 
         This method here allows you to add a custom section to your log file.
-        This can happen in your the method
+        This can happen in your implementation of the method
         :meth:`~moptipy.api.algorithm.Algorithm.solve` of your algorithm.
         (Ideally at its end.)
 
@@ -367,8 +390,8 @@ class Process(Space, Objective, AbstractContextManager):
         Of course, the name of this section must not clash with any other
         section name. Neither the section name nor section body should contain
         strings like `BEGIN_` or `END_`, and such and such. You do not want to
-        mess up your log files. Of course you can add a section with a given
-        name at only once, because otherwise there would be a name clash.
+        mess up your log files. Ofcourse you can add a section with a given
+        name only once, because otherwise there would be a name clash.
         Anyway, if you add sections like this, they will be appended at the
         end of the log file. This way, you have all the standard log data and
         your additional information in one consistent file.

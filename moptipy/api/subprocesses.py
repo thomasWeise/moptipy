@@ -1,4 +1,29 @@
-"""Different ways to transform and slice processes."""
+"""
+Different ways to transform and slice processes.
+
+In this module, we provide some routines that can be used to slice of
+computational budgets of a given process for running algorithms.
+The following functions are included:
+
+1. :func:`for_fes` allows for creating a sub-process that forwards all method
+   calls to the original process but will perform at most a given number of
+   objective function evaluations.
+2. :func:`from_starting_point` creates a sub-process that has the current-best
+   solution pre-set to a given point in the search space and its quality. If
+   the best solution is improved upon, the provided point will be overwritten
+   in place.
+3. :func:`without_should_terminate` wraps a process in such a way that the
+   termination criterion :meth:`~moptipy.api.process.Process.should_terminate`
+   does not need to be checked anymore. Instead, once the optimization must
+   stop, it will throw an internal exception and catch it again. This makes it
+   possible to pass :meth:`~moptipy.api.process.Process.evaluate` to
+   externally implemented algorithms that do not care about the moptipy api.
+
+The utility function :func:`get_remaining_fes` returns a number representing
+the remaining objective function evaluations of a given
+:class:`~moptipy.api.process.Process`. If that process does not have an
+FE-based termination criterion, it will instead return a very big number.
+"""
 from typing import Any, Callable, Final, TypeVar
 
 import numpy as np
