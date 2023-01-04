@@ -18,6 +18,8 @@ from moptipy.algorithms.so.fitnesses.direct import Direct
 from moptipy.algorithms.so.fitnesses.ffa import FFA
 from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
+from moptipy.algorithms.so.ma import MA
+from moptipy.algorithms.so.marls import MARLS
 from moptipy.algorithms.so.record import Record
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.operators import Op0, Op1, Op2
@@ -25,6 +27,7 @@ from moptipy.api.process import Process
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
+from moptipy.operators.op0_forward import Op0Forward
 from moptipy.tests.on_bitstrings import verify_algorithms_equivalent
 
 
@@ -225,4 +228,23 @@ def test_general_ea_under_order_preserving_fitnesses_and_tournament() -> None:
             lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
                 op0, op1, op2, mx, lx, bx, fitness=Rank(),
                 survival=TournamentWithoutReplacement()),
+        ])
+
+
+def test_ma_with_rls_vs_marls() -> None:
+    """Test that MA+RLS is equivalent to MARLS."""
+    op0: Final[Op0] = Op0Random()
+    op1: Final[Op1] = Op1Flip1()
+    op2: Final[Op2] = Op2Uniform()
+    random: Final[Generator] = default_rng()
+    for _ in range(3):
+        mu: int = int(random.integers(2, 10))
+        lambda_: int = int(random.integers(1, 10))
+        ls_fes: int = int(random.integers(1, 16))
+
+        verify_algorithms_equivalent([
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MA(
+                op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MARLS(
+                op0, op1, op2, mx, lx, lsf),
         ])

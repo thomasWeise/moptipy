@@ -4,6 +4,43 @@ The Job Shop Scheduling Problem is a good example for optimization tasks.
 The JSSP is one of the most well-known combinatorial optimization tasks.
 Here we provide a set of benchmark instances and examples for solving this
 problem.
+
+The benchmark instances can be loaded from a package-internal resource by
+name using module :mod:`~moptipy.examples.jssp.instance`. Solutions to
+a JSSP instances are :class:`~moptipy.examples.jssp.gantt.Gantt` charts,
+i.e., diagrams which assign each operation of a job to a machine and time
+slot. The :class:`~moptipy.examples.jssp.gantt_space.GanttSpace` is a
+space operating on such charts and the
+:class:`~moptipy.examples.jssp.makespan.Makespan` is the typical objective
+function when solving JSSPs. Gantt charts can be encoded as permutations
+with repetitions using the :mod:`~moptipy.examples.jssp.ob_encoding`.
+
+1. Ronald Lewis Graham, Eugene Leighton Lawler, Jan Karel Lenstra, Alexander
+   Hendrik George Rinnooy Kan. Optimization and Approximation in Deterministic
+   Sequencing and Scheduling: A Survey. *Annals of Discrete Mathematics*
+   5:287-326, 1979. doi: https://doi.org/10.1016/S0167-5060(08)70356-X.
+   https://ir.cwi.nl/pub/18052/18052A.pdf.
+2. Eugene Leighton Lawler, Jan Karel Lenstra, Alexander Hendrik George Rinnooy
+   Kan, and David B. Shmoys. Sequencing and Scheduling: Algorithms and
+   Complexity. Chapter 9 in Stephen C. Graves, Alexander Hendrik George
+   Rinnooy Kan, and Paul H. Zipkin, editors, *Handbook of Operations Research
+   and Management Science,* volume IV: *Production Planning and Inventory,*
+   1993, pages 445-522. Amsterdam, The Netherlands: North-Holland Scientific
+   Publishers Ltd. doi: https://doi.org/10.1016/S0927-0507(05)80189-6.
+   http://alexandria.tue.nl/repository/books/339776.pdf.
+3. Eugene Leighton Lawler. Recent Results in the Theory of Machine Scheduling.
+   Chapter 8 in Achim Bachem, Bernhard Korte, and Martin Grötschel, editors,
+   *Math Programming: The State of the Art,* 1982, pages 202-234.
+   Bonn, Germany/New York, NY, USA: Springer-Verlag GmbH.
+   ISBN: 978-3-642-68876-8. doi: https://doi.org/10.1007/978-3-642-68874-4_9.
+4. Éric D. Taillard. Benchmarks for Basic Scheduling Problems. *European
+   Journal of Operational Research (EJOR)* 64(2):278-285, January 1993.
+   doi: https://doi.org/10.1016/0377-2217(93)90182-M.
+   http://mistic.heig-vd.ch/taillard/articles.dir/Taillard1993EJOR.pdf.
+5. Jacek Błażewicz, Wolfgang Domschke, and Erwin Pesch. The Job Shop
+   Scheduling Problem: Conventional and New Solution Techniques. *European
+   Journal of Operational Research (EJOR)* 93(1):1-33, August 1996.
+   doi: https://doi.org/10.1016/0377-2217(95)00362-2.
 """
 
 

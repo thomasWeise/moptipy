@@ -1,4 +1,34 @@
-"""An implementation of the operation-based encoding for JSSPs."""
+"""
+An implementation of the operation-based encoding for JSSPs.
+
+1. Mitsuo Gen, Yasuhiro Tsujimura, and Erika Kubota. Solving Job-Shop
+   Scheduling Problems by Genetic Algorithm. In *Humans, Information and
+   Technology: Proceedings of the 1994 IEEE International Conference on
+   Systems, Man and Cybernetics,* October 2-5, 1994, San Antonio, TX, USA,
+   volume 2. Piscataway, NJ, USA: IEEE. ISBN: 0-7803-2129-4.
+   doi: https://doi.org/10.1109/ICSMC.1994.400072.
+   http://read.pudn.com/downloads151/doc/658565/00400072.pdf.
+2. Christian Bierwirth. A Generalized Permutation Approach to Job Shop
+   Scheduling with Genetic Algorithms. *Operations-Research-Spektrum
+   (OR Spectrum)*, 17(2-3):87-92, June 1995.
+   doi: https://doi.org/10.1007/BF01719250.
+   https://www.researchgate.net/publication/240263036.
+3. Christian Bierwirth, Dirk C. Mattfeld, and Herbert Kopfer. On Permutation
+   Representations for Scheduling Problems. In Hans-Michael Voigt, Werner
+   Ebeling, Ingo Rechenberg, and Hans-Paul Schwefel, editors, *Proceedings of
+   the 4th International Conference on Parallel Problem Solving from Nature
+   (PPSN IV),* September 22-24, 1996, Berlin, Germany, pages 310-318.
+   Volume 1141/1996 of Lecture Notes in Computer Science (LNCS), Berlin,
+   Germany: Springer-Verlag GmbH. ISBN: 3-540-61723-X.
+   doi: https://doi.org/10.1007/3-540-61723-X_995.
+   https://www.researchgate.net/publication/2753293.
+4. Guoyong Shi, Hitoshi Iima, and Nobuo Sannomiya. New Encoding Scheme for
+   Solving Job Shop Problems by Genetic Algorithm. In *Proceedings of the 35th
+   IEEE Conference on Decision and Control (CDC'96),* December 11-13, 1996,
+   Kobe, Japan, volume 4, pages 4395-4400. Piscataway, NJ, USA: IEEE.
+   ISBN: 0-7803-3590-2. doi: https://doi.org/10.1109/CDC.1996.577484.
+   https://www.researchgate.net/publication/224238934.
+"""
 from typing import Final
 
 import numba  # type: ignore

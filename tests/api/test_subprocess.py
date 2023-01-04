@@ -91,7 +91,8 @@ class MyAlgorithm1(Algorithm2):
             with for_fes(z1, 100) as z:
                 assert get_remaining_fes(z) == 100
                 self.fwd.forward_to(z.get_copy_of_best_x)
-                assert str(z) == f"forFEs_100_fromStart_{process}"
+                assert str(z) == \
+                       f"forFEs_100_fromStart_{process}"
                 assert z.has_best()
                 assert z.get_best_f() == fnew
                 assert z.get_consumed_fes() == 0
@@ -112,7 +113,7 @@ class MyAlgorithm1(Algorithm2):
             assert process.evaluate(x1) == fnew2
 
 
-def test_from_start_for_fes() -> None:
+def test_from_start_for_fes_with_drift() -> None:
     """Slice off some FEs from a process to apply another process."""
     v = BitStrings(32)
     f = Ising1d(32)

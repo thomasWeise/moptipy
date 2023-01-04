@@ -157,7 +157,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                            __eacr),
                           ("sa_exp([0-9]+)_([0-9])em([0-9])_swap2",
                            "sa_\\1_\\2e-\\3"),
-                          ("ma_([0-9]+)_([0-9]+)_([0-9]+)_gap_rls_swap2",
+                          ("marls_([0-9]+)_([0-9]+)_([0-9]+)_gap_swap2",
                            "\\1+\\2_ma_\\3")]:
         re: Pattern = _compile(pattern)
         found = False

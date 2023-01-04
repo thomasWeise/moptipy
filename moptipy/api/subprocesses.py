@@ -44,7 +44,7 @@ class __ForFEs(Process):
         if not isinstance(owner, Process):
             raise type_error(owner, "owner", Process)
         #: the owning process
-        self._owner: Final[Process] = owner
+        self.__owner: Final[Process] = owner
         self.get_random = owner.get_random  # type: ignore
         a = owner.get_consumed_time_millis  # type: ignore
         self.get_consumed_time_millis = a  # type: ignore
@@ -109,13 +109,13 @@ class __ForFEs(Process):
 
     def get_last_improvement_fe(self) -> int:
         return max(1 if self.__fes_left < self.max_fes else 0,
-                   self._owner.get_last_improvement_fe() - self.__start_fe)
+                   self.__owner.get_last_improvement_fe() - self.__start_fe)
 
     def get_max_fes(self) -> int:
         return self.max_fes
 
     def __str__(self) -> str:
-        return f"forFEs_{self.max_fes}_{self._owner}"
+        return f"forFEs_{self.max_fes}_{self.__owner}"
 
 
 class __ForFEsMO(MOProcess):
@@ -126,7 +126,7 @@ class __ForFEsMO(MOProcess):
         if not isinstance(owner, MOProcess):
             raise type_error(owner, "owner", MOProcess)
         #: the owning process
-        self._owner: Final[MOProcess] = owner
+        self.__owner: Final[MOProcess] = owner
         self.get_random = owner.get_random  # type: ignore
         a = owner.get_consumed_time_millis  # type: ignore
         self.get_consumed_time_millis = a  # type: ignore
@@ -209,13 +209,13 @@ class __ForFEsMO(MOProcess):
 
     def get_last_improvement_fe(self) -> int:
         return max(1 if self.__fes_left < self.max_fes else 0,
-                   self._owner.get_last_improvement_fe() - self.__start_fe)
+                   self.__owner.get_last_improvement_fe() - self.__start_fe)
 
     def get_max_fes(self) -> int:
         return self.max_fes
 
     def __str__(self) -> str:
-        return f"forFEsMO_{self.max_fes}_{self._owner}"
+        return f"forFEsMO_{self.max_fes}_{self.__owner}"
 
 
 def for_fes(process: T, max_fes: int) -> T:
@@ -252,7 +252,7 @@ class __FromStartingPoint(Process):
         if not isinstance(owner, Process):
             raise type_error(owner, "owner", Process)
         #: the owning process
-        self._owner: Final[Process] = owner
+        self.__owner: Final[Process] = owner
         self.get_random = owner.get_random  # type: ignore
         a = owner.get_consumed_time_millis  # type: ignore
         self.get_consumed_time_millis = a  # type: ignore
@@ -310,10 +310,11 @@ class __FromStartingPoint(Process):
             self.__only_seed_used = False
         self.__fes = fe = self.__fes + 1
         f: Final[int | float] = self.__evaluate(x)
-        if f < self.__best_f:
-            self.__best_f = f
+        if f <= self.__best_f:
             self.copy(self.__best_x, x)
-            self.__last_improvement_fe = fe
+            if f < self.__best_f:
+                self.__best_f = f
+                self.__last_improvement_fe = fe
         return f
 
     def register(self, x, f: int | float) -> None:
@@ -324,9 +325,10 @@ class __FromStartingPoint(Process):
         self.__fes = fe = self.__fes + 1
         self.__register(x, f)
         if f < self.__best_f:
-            self.__best_f = f
             self.copy(self.__best_x, x)
-            self.__last_improvement_fe = fe
+            if f < self.__best_f:
+                self.__best_f = f
+                self.__last_improvement_fe = fe
 
     def get_consumed_fes(self) -> int:
         return max(1, self.__fes)
@@ -338,7 +340,7 @@ class __FromStartingPoint(Process):
         return self.__max_fes
 
     def __str__(self) -> str:
-        return f"fromStart_{self._owner}"
+        return f"fromStart_{self.__owner}"
 
 
 def from_starting_point(owner: Process, in_and_out_x: Any,
@@ -357,6 +359,14 @@ def from_starting_point(owner: Process, in_and_out_x: Any,
     the process as long as all points to be evaluated equal to the
     `in_and_out_x`. As soon as the first point different from `in_and_out_x`
     is evaluated, FE counting starts.
+
+    Equally-good solutions will also be accepted, i.e., stored into
+    `in_and_out_x`. This costs a little bit of runtime, but would normally be
+    the preferred behavior: On many problems, making neutral moves (i.e.,
+    drifting) will be beneficial over only accepting strict improvements. This
+    is why :mod:`~moptipy.algorithms.so.rls` outperforms the normal
+    :mod:`~moptipy.algorithms.so.hill_climber` on the
+    :mod:`~moptipy.examples.jssp`.
 
     :param owner: the owning process
     :param in_and_out_x: the input solution record, which will be
