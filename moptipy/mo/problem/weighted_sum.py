@@ -101,10 +101,10 @@ class BasicWeightedSum(BasicMOProblem):
         #: the internal weights dtype
         self.__weights_dtype: Final[np.dtype | None] = \
             cast(np.dtype | None, holder[1])
-        if self.__weights_dtype is not None:
-            if not isinstance(self.__weights_dtype, np.dtype):
-                raise type_error(
-                    self.__weights_dtype, "weights_dtype", np.dtype)
+        if (self.__weights_dtype is not None) \
+                and (not isinstance(self.__weights_dtype, np.dtype)):
+            raise type_error(
+                self.__weights_dtype, "weights_dtype", np.dtype)
 
     def __str__(self):
         """

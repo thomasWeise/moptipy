@@ -332,10 +332,7 @@ def is_all_finite(a: np.ndarray) -> bool:
     >>> print(is_all_finite(npx.array([1.1, npx.inf, 3])))
     False
     """
-    for x in a:
-        if not np.isfinite(x):
-            return False
-    return True
+    return all(np.isfinite(x) for x in a)
 
 
 #: the character identifying the numpy data type backing the space

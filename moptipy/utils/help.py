@@ -34,9 +34,9 @@ def __get_python_interpreter_short() -> str:
     if bn.startswith("python3."):
         bn2 = bn[:7]
         interp2 = os.path.join(os.path.dirname(inter), bn2)
-        if os.path.exists(interp2) and os.path.isfile(interp2):
-            if _canonicalize_path(interp2) == inter:
-                return bn2
+        if os.path.exists(interp2) and os.path.isfile(interp2) \
+                and (_canonicalize_path(interp2) == inter):
+            return bn2
     return bn
 
 

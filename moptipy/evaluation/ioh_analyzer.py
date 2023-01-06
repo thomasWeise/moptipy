@@ -1,6 +1,7 @@
 """Convert moptipy data to IOHanalyzer data."""
 
 import argparse
+import contextlib
 from typing import Callable, Final
 
 import numpy as np
@@ -23,12 +24,10 @@ def __prefix(s: str) -> str:
     """
     idx = s.rfind("_")
     if idx > 0:
-        try:
+        with contextlib.suppress(ValueError):
             i = int(s[idx + 1:])
             if i > 0:
                 return s[:idx].strip()
-        except ValueError:
-            pass  # ignore error
     return s
 
 
@@ -43,12 +42,10 @@ def __int_suffix(s: str) -> int:
     """
     idx = s.rfind("_")
     if idx > 0:
-        try:
+        with contextlib.suppress(ValueError):
             i = int(s[idx + 1:])
             if i > 0:
                 return i
-        except ValueError:
-            pass  # ignore error
     return 1
 
 

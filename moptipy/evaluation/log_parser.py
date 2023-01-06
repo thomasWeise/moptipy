@@ -349,20 +349,17 @@ class LogParser:
         for sub in listdir(folder):
             sub = Path.path(join(folder, sub))
             if isfile(sub):
-                if do_files:
-                    if not self.parse_file(sub):
-                        logger(f"will parse no more files in '{folder}'.")
-                        if not do_dirs:
-                            break
-                        do_files = False
-            elif isdir(sub):
-                if do_dirs:
-                    if not self.parse_dir(sub):
-                        logger("will parse no more sub-directories "
-                               f"of '{folder}'.")
-                        if not do_files:
-                            break
-                        do_dirs = False
+                if do_files and (not self.parse_file(sub)):
+                    logger(f"will parse no more files in '{folder}'.")
+                    if not do_dirs:
+                        break
+                    do_files = False
+            elif isdir(sub) and do_dirs and (not self.parse_dir(sub)):
+                logger("will parse no more sub-directories "
+                       f"of '{folder}'.")
+                if not do_files:
+                    break
+                do_dirs = False
 
         retval = self.end_dir(folder)
         if self.__print_dir_end:

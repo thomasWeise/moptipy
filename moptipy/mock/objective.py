@@ -80,9 +80,8 @@ class MockObjective(Objective):
                                  int if is_int else (int, float))
             if fmax > ub:
                 raise ValueError(f"fmax={fmax} < ub={ub}")
-        if (fmin is not None) and (fmax is not None):
-            if fmin >= fmax:
-                raise ValueError(f"fmin={fmin} >= fmax={fmax}")
+        if (fmin is not None) and (fmax is not None) and (fmin >= fmax):
+            raise ValueError(f"fmin={fmin} >= fmax={fmax}")
 
         values: list[int | float | None] = [lb, fmin]
         if fattractors is None:

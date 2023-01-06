@@ -155,11 +155,11 @@ class GeneralMA(MA):
                 if should_terminate():  # should we stop now?
                     cast(Op0Forward, self.ls.op0).stop_forwarding()
                     return   # computational budget exhausted -> quit
-                with for_fes(process, ls_fes) as s1:  # fe-limited proc
-                    with from_starting_point(s1, x, evaluate(x)) as s2:
-                        forward_ls_op0_to(s2.get_copy_of_best_x)
-                        ls_solve(s2)  # apply local search modifying x
-                        f = s2.get_best_f()  # get quality of x
+                with for_fes(process, ls_fes) as s1, \
+                        from_starting_point(s1, x, evaluate(x)) as s2:
+                    forward_ls_op0_to(s2.get_copy_of_best_x)
+                    ls_solve(s2)  # apply local search modifying x
+                    f = s2.get_best_f()  # get quality of x
             recs[i] = _Record(x, f, selected)  # create and store record
 
         mating_pool: Final[list] = recs[0:mu]  # the selection survivors
@@ -194,11 +194,11 @@ class GeneralMA(MA):
                 mating_selection(mating_pool, parents_append, 2, random)
 
                 op2(random, x, parents[0].x, parents[1].x)
-                with for_fes(process, ls_fes) as s1:  # fe-limited proc
-                    with from_starting_point(s1, x, evaluate(x)) as s2:
-                        forward_ls_op0_to(s2.get_copy_of_best_x)
-                        ls_solve(s2)  # apply local search modifying x
-                        dest.f = s2.get_best_f()  # get quality of x
+                with for_fes(process, ls_fes) as s1, \
+                        from_starting_point(s1, x, evaluate(x)) as s2:
+                    forward_ls_op0_to(s2.get_copy_of_best_x)
+                    ls_solve(s2)  # apply local search modifying x
+                    dest.f = s2.get_best_f()  # get quality of x
 
                 population_append(dest)  # store in population
 

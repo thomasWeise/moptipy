@@ -230,9 +230,8 @@ def validate_algorithm_on_bitstrings(
         raise type_error(dimension, "dimension", int)
     if dimension <= 0:
         raise ValueError(f"dimension must be > 0, but got {dimension}.")
-    if post is not None:
-        if not callable(post):
-            raise type_error(post, "post", None, call=True)
+    if (post is not None) and (not callable(post)):
+        raise type_error(post, "post", None, call=True)
 
     if callable(objective):
         objective = objective(dimension)
@@ -519,9 +518,8 @@ def validate_fitness_on_bitstrings(
     :param class_needed: the required class
     :param prepare_objective: prepare the objective function
     """
-    if not isinstance(fitness, Fitness):
-        if not callable(fitness):
-            raise type_error(fitness, "fitness", Fitness, call=True)
+    if (not isinstance(fitness, Fitness)) and (not callable(fitness)):
+        raise type_error(fitness, "fitness", Fitness, call=True)
     if not isinstance(class_needed, (str, type)):
         raise type_error(class_needed, "class_needed", (str, type))
     if not callable(prepare_objective):

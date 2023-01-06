@@ -48,9 +48,8 @@ def _random_name(namelen: int,
         if index <= 0:
             index += 1
         else:
-            if index == 2:
-                if random.integers(2) <= 0:
-                    continue
+            if (index == 2) and (random.integers(2) <= 0):
+                continue
             index = int((index + 1 + random.integers(2)) % len(namer))
             if n_done:
                 while index == 2:

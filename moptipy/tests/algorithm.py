@@ -54,9 +54,8 @@ def validate_algorithm(algorithm: Algorithm,
     """
     if not isinstance(algorithm, Algorithm):
         raise type_error(algorithm, "algorithm", Algorithm)
-    if post is not None:
-        if not callable(post):
-            raise type_error(post, "post", None, call=True)
+    if (post is not None) and (not callable(post)):
+        raise type_error(post, "post", None, call=True)
 
     check_algorithm(algorithm)
     if isinstance(algorithm, Algorithm0):
@@ -134,11 +133,11 @@ def validate_algorithm(algorithm: Algorithm,
                 raise ValueError(f"The algorithm {algorithm} did not produce "
                                  f"any solution on {objective}.")
 
-            if not process.should_terminate():
-                if uses_all_fes_if_goal_not_reached:
-                    raise ValueError(f"The algorithm {algorithm} stopped "
-                                     f"before hitting the termination "
-                                     f"criterion on {objective}.")
+            if (not process.should_terminate()) \
+                    and uses_all_fes_if_goal_not_reached:
+                raise ValueError(f"The algorithm {algorithm} stopped "
+                                 f"before hitting the termination "
+                                 f"criterion on {objective}.")
 
             consumed_fes: int = process.get_consumed_fes()
             if not isinstance(consumed_fes, int):
@@ -193,12 +192,11 @@ def validate_algorithm(algorithm: Algorithm,
                                  f"[{lb},{ub}] for {algorithm} on "
                                  f"{objective}.")
 
-            if required_result is not None:
-                if res_f > required_result:
-                    raise ValueError(
-                        f"Algorithm {algorithm} should find solution of "
-                        f"quality {required_result} on {objective}, but got "
-                        f"one of {res_f}.")
+            if (required_result is not None) and (res_f > required_result):
+                raise ValueError(
+                    f"Algorithm {algorithm} should find solution of "
+                    f"quality {required_result} on {objective}, but got "
+                    f"one of {res_f}.")
 
             if res_f <= lb:
                 if last_imp_fe != consumed_fes:
@@ -254,9 +252,8 @@ def validate_algorithm(algorithm: Algorithm,
 
     objective.evaluate = evaluate  # type: ignore
 
-    if is_encoding_deterministic:
-        if progress[0] != progress[1]:
-            raise ValueError(f"when applying algorithm {algorithm} to "
-                             f"{objective} under encoding {encoding} twice "
-                             f"with the same seed did lead to different "
-                             f"runs!")
+    if is_encoding_deterministic and (progress[0] != progress[1]):
+        raise ValueError(f"when applying algorithm {algorithm} to "
+                         f"{objective} under encoding {encoding} twice "
+                         f"with the same seed did lead to different "
+                         f"runs!")

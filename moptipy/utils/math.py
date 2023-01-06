@@ -1,5 +1,6 @@
 """Simple routines for handling numbers and numerical stuff."""
 
+import contextlib
 from math import exp, gcd, inf, isfinite, isqrt, log, log2, nextafter
 from typing import Final
 
@@ -263,7 +264,7 @@ def try_int_root(value: int, power: int,
 
     # OK, we got an approximate root of what remains of value.
     # Let's see if we can refine it.
-    try:
+    with contextlib.suppress(OverflowError):
         diff = abs((root ** power) - value)
         root2: int | float = __try_int(exp(log(value) / root))
         diff2: int | float = abs((root2 ** power) - value)
@@ -292,8 +293,5 @@ def try_int_root(value: int, power: int,
                 break
             diff = apd
             root = rup
-
-    except OverflowError:
-        pass
 
     return root_base * __try_int(root)

@@ -166,6 +166,5 @@ def test_create_file_or_truncate() -> None:
         with pytest.raises(ValueError):
             f.read_all_str()
 
-        with TempDir.create(directory=td) as td2:
-            with pytest.raises(ValueError):
-                td2.create_file_or_truncate()
+        with TempDir.create(directory=td) as td2, pytest.raises(ValueError):
+            td2.create_file_or_truncate()

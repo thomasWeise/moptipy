@@ -139,14 +139,13 @@ class MultiRunData:
             instance
         :param n: the total number of runs
         """
-        if algorithm is not None:
-            if algorithm != sanitize_name(algorithm):
-                raise ValueError(f"Invalid algorithm '{algorithm}'.")
+        if (algorithm is not None) and \
+                (algorithm != sanitize_name(algorithm)):
+            raise ValueError(f"Invalid algorithm '{algorithm}'.")
         object.__setattr__(self, "algorithm", algorithm)
 
-        if instance is not None:
-            if instance != sanitize_name(instance):
-                raise ValueError(f"Invalid instance '{instance}'.")
+        if (instance is not None) and (instance != sanitize_name(instance)):
+            raise ValueError(f"Invalid instance '{instance}'.")
         object.__setattr__(self, "instance", instance)
 
         if not isinstance(n, int):

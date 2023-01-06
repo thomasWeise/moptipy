@@ -79,11 +79,10 @@ class AxisRanger:
             chosen_max = float(chosen_max)
             if not isfinite(chosen_max):
                 raise ValueError(f"chosen_max cannot be {chosen_max}.")
-            if self.__chosen_min is not None:
-                if chosen_max <= self.__chosen_min:
-                    raise ValueError(
-                        f"If chosen_min is {self.__chosen_min}, then "
-                        f"chosen_max cannot be {chosen_max}.")
+            if (self.__chosen_min is not None) and \
+                    (chosen_max <= self.__chosen_min):
+                raise ValueError(f"If chosen_min is {self.__chosen_min}, then"
+                                 f" chosen_max cannot be {chosen_max}.")
 
         #: The pre-defined, chosen maximum axis value.
         self.__chosen_max: Final[float | None] = chosen_max
@@ -130,15 +129,14 @@ class AxisRanger:
         :param value: the data to register
         """
         if isfinite(value):
-            if self.__use_data_min:
-                if (value < self.__detected_min) and \
-                        ((value > 0.0) or (not self.log_scale)):
-                    self.__detected_min = value
-                    self.__has_detected_min = True
-            if self.__use_data_max:
-                if value > self.__detected_max:
-                    self.__detected_max = value
-                    self.__has_detected_max = True
+            if self.__use_data_min and (
+                    (value < self.__detected_min) and
+                    ((value > 0.0) or (not self.log_scale))):
+                self.__detected_min = value
+                self.__has_detected_min = True
+            if self.__use_data_max and (value > self.__detected_max):
+                self.__detected_max = value
+                self.__has_detected_max = True
 
     def apply(self, axes: Axes, which_axis: str) -> None:
         """

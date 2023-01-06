@@ -41,9 +41,8 @@ def test_vector_space_1() -> None:
     assert not space.is_equal(a, b)
 
     with TempFile.create() as path:
-        with FileLogger(path) as log:
-            with log.key_values("F") as kv:
-                space.log_parameters_to(kv)
+        with FileLogger(path) as log, log.key_values("F") as kv:
+            space.log_parameters_to(kv)
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: r12d",
@@ -101,9 +100,8 @@ def test_vector_space_2() -> None:
     assert not space.is_equal(a, b)
 
     with TempFile.create() as path:
-        with FileLogger(path) as log:
-            with log.key_values("F") as kv:
-                space.log_parameters_to(kv)
+        with FileLogger(path) as log, log.key_values("F") as kv:
+            space.log_parameters_to(kv)
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: r3d",
@@ -167,9 +165,8 @@ def test_vector_space_3() -> None:
     assert space.to_str(b) == "2;-0.9;-0.9"
 
     with TempFile.create() as path:
-        with FileLogger(path) as log:
-            with log.key_values("F") as kv:
-                space.log_parameters_to(kv)
+        with FileLogger(path) as log, log.key_values("F") as kv:
+            space.log_parameters_to(kv)
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: r3d",

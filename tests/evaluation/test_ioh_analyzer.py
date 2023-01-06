@@ -56,23 +56,21 @@ def algo_2(inst) -> Execution:
 
 def test_experiment_jssp_to_ioh() -> None:
     """Run a quick experiment and convert to IOH format."""
-    with TempDir.create() as results_dir:
-        with TempDir.create() as ioh_dir:
+    with TempDir.create() as results_dir, TempDir.create() as ioh_dir:
+        run_experiment(instances=instances,
+                       setups=[algo_1, algo_2],
+                       n_runs=4,
+                       base_dir=results_dir)
+        moptipy_to_ioh_analyzer(results_dir, ioh_dir)
 
-            run_experiment(instances=instances,
-                           setups=[algo_1, algo_2],
-                           n_runs=4,
-                           base_dir=results_dir)
-            moptipy_to_ioh_analyzer(results_dir, ioh_dir)
-
-            algo_names = ["1rs", "ea_5_1_swap2"]
-            for an in algo_names:
-                adir = ioh_dir.resolve_inside(an)
-                adir.enforce_dir()
-                for ins in inst_names:
-                    info = adir.resolve_inside(f"IOHprofiler_f{ins}.info")
-                    info.enforce_file()
-                    data = adir.resolve_inside(f"data_f{ins}")
-                    data.enforce_dir()
-                    file = data.resolve_inside(f"IOHprofiler_f{ins}_DIM1.dat")
-                    file.enforce_file()
+        algo_names = ["1rs", "ea_5_1_swap2"]
+        for an in algo_names:
+            adir = ioh_dir.resolve_inside(an)
+            adir.enforce_dir()
+            for ins in inst_names:
+                info = adir.resolve_inside(f"IOHprofiler_f{ins}.info")
+                info.enforce_file()
+                data = adir.resolve_inside(f"data_f{ins}")
+                data.enforce_dir()
+                file = data.resolve_inside(f"IOHprofiler_f{ins}_DIM1.dat")
+                file.enforce_file()

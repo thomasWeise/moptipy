@@ -345,16 +345,15 @@ def plot_end_results(
         axes.set_xticks([])
 
     # compute the x-label
-    if x_label is not None:
-        if not isinstance(x_label, str):
-            if not callable(x_label):
-                raise type_error(x_label, "x_label", str, True)
-            if (n_algorithms == 1) and (n_instances > 1):
-                x_label = algorithm_namer(algorithms[0])
-            elif (n_algorithms > 1) and (n_instances == 1):
-                x_label = instance_namer(instances[0])
-            else:
-                x_label = x_label("algorithm_on_instance")
+    if (x_label is not None) and (not isinstance(x_label, str)):
+        if not callable(x_label):
+            raise type_error(x_label, "x_label", str, True)
+        if (n_algorithms == 1) and (n_instances > 1):
+            x_label = algorithm_namer(algorithms[0])
+        elif (n_algorithms > 1) and (n_instances == 1):
+            x_label = instance_namer(instances[0])
+        else:
+            x_label = x_label("algorithm_on_instance")
 
     z_order += 1
     pu.label_axes(axes=axes,

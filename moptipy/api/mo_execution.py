@@ -68,11 +68,11 @@ class MOExecution(Execution):
         if size <= 0:
             raise ValueError(
                 f"archive max size must be positive, but is {size}.")
-        if self._archive_prune_limit is not None:
-            if size > self._archive_prune_limit:
-                raise ValueError(
-                    f"archive max size {size} must be <= than archive "
-                    f"prune limit {self._archive_prune_limit}")
+        if (self._archive_prune_limit is not None) and \
+                (size > self._archive_prune_limit):
+            raise ValueError(
+                f"archive max size {size} must be <= than archive "
+                f"prune limit {self._archive_prune_limit}")
         self._archive_max_size = size
         return self
 
@@ -91,11 +91,11 @@ class MOExecution(Execution):
         if limit <= 0:
             raise ValueError(
                 f"archive pruning limit must be positive, but is {limit}.")
-        if self._archive_max_size is not None:
-            if limit < self._archive_max_size:
-                raise ValueError(
-                    f"archive pruning limit {limit} must be >= than archive "
-                    f"maximum size {self._archive_max_size}")
+        if (self._archive_max_size is not None) and \
+                (limit < self._archive_max_size):
+            raise ValueError(
+                f"archive pruning limit {limit} must be >= than archive "
+                f"maximum size {self._archive_max_size}")
         self._archive_prune_limit = limit
         return self
 
@@ -284,9 +284,9 @@ class MOExecution(Execution):
         max_fes = check_max_fes(self._max_fes, True)
         goal_f = check_goal_f(self._goal_f, True)
         f_lb = objective.lower_bound()
-        if (f_lb is not None) and isfinite(f_lb):
-            if (goal_f is None) or (f_lb > goal_f):
-                goal_f = f_lb
+        if (f_lb is not None) and isfinite(f_lb) and \
+                ((goal_f is None) or (f_lb > goal_f)):
+            goal_f = f_lb
 
         log_all_fes = self._log_all_fes
         log_improvements = self._log_improvements or self._log_all_fes

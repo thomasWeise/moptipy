@@ -24,6 +24,7 @@ the remaining objective function evaluations of a given
 :class:`~moptipy.api.process.Process`. If that process does not have an
 FE-based termination criterion, it will instead return a very big number.
 """
+import contextlib
 from typing import Any, Callable, Final, TypeVar
 
 import numpy as np
@@ -578,10 +579,8 @@ def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
     :param algorithm: the algorithm
     :param process: the optimization process
     """
-    try:
-        with __WithoutShouldTerminateMO(process) \
-                if isinstance(process, MOProcess) \
-                else __WithoutShouldTerminate(process) as proc:
-            algorithm(proc)
-    except _InternalTerminationError:
-        pass  # the internal error is ignored
+    with contextlib.suppress(_InternalTerminationError), \
+            __WithoutShouldTerminateMO(process) \
+            if isinstance(process, MOProcess) \
+            else __WithoutShouldTerminate(process) as proc:
+        algorithm(proc)

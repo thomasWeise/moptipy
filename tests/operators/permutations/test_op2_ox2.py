@@ -12,9 +12,9 @@ def test_op2_sequence() -> None:
     """Test the binary sequence crossover operation."""
     cumm_size: int = 0
     for pwr in permutations_for_tests():
-        if pwr.dimension > 50:  # too big, takes too long
-            if (pwr.dimension > 100) or (cumm_size > 200):
-                continue
+        if (pwr.dimension > 50) and \
+                ((pwr.dimension > 100) or (cumm_size > 200)):
+            continue
         cumm_size += pwr.dimension
 
         validate_op2_on_1_permutations(

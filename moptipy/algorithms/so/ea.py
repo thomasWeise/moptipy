@@ -211,10 +211,9 @@ class EA(Algorithm2):
                     f"if op2 is Op2, br must be None or 0.0, but is {br}.")
         elif (br is not None) and (br == 0.0):
             op2 = Op2()
-        elif mu == 1:
-            if br is None:
-                br = 0.0
-                op2 = Op2()
+        elif (mu == 1) and (br is None):
+            br = 0.0
+            op2 = Op2()
 
         if br is None:
             br = 0.2

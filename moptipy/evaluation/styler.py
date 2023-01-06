@@ -50,10 +50,10 @@ class Styler:
             raise type_error(none_name, "none_name", str)
         if not isinstance(priority, (float, int)):
             raise type_error(priority, "priority", (int, float))
-        if name_sort_function is not None:
-            if not callable(name_sort_function):
-                raise type_error(name_sort_function, "name_sort_function",
-                                 type(None), call=True)
+        if (name_sort_function is not None) \
+                and (not callable(name_sort_function)):
+            raise type_error(name_sort_function, "name_sort_function",
+                             type(None), call=True)
 
         def __namer(key,
                     __namer: Callable[[Any], str] = namer,

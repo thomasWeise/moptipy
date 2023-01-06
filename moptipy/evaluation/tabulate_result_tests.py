@@ -379,21 +379,19 @@ def tabulate_result_tests(
     # write the table
     dest: Final[Path] = text_format_driver.filename(
         file_name, dir_name, use_lang)
-    with dest.open_for_write() as wd:
-        with Table(wd,
-                   ("l" if multi_header else "r")
-                   + ("c" * n_cols), text_format_driver) as table:
-            with table.header() as header:
-                for hl in head_lines:
-                    with header.row() as row:
-                        for cell in hl:
-                            row.cell(cell)
-            with table.section() as section:
-                section.cols(cols)
-            if summary_row is not None:
-                with table.section() as section:
-                    with section.row() as row:
-                        for s in summary_row:
-                            row.cell(s)
+    with dest.open_for_write() as wd, Table(
+            wd, ("l" if multi_header else "r") + ("c" * n_cols),
+            text_format_driver) as table:
+        with table.header() as header:
+            for hl in head_lines:
+                with header.row() as row:
+                    for cell in hl:
+                        row.cell(cell)
+        with table.section() as section:
+            section.cols(cols)
+        if summary_row is not None:
+            with table.section() as section, section.row() as row:
+                for s in summary_row:
+                    row.cell(s)
 
     return dest

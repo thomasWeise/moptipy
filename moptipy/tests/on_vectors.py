@@ -117,9 +117,8 @@ def validate_algorithm_on_vectors(
         raise type_error(objective, "objective", Objective, True)
     if not isinstance(dims, Iterable):
         raise type_error(dims, "dims", Iterable)
-    if post is not None:
-        if not callable(post):
-            raise type_error(post, "post", None, call=True)
+    if (post is not None) and (not callable(post)):
+        raise type_error(post, "post", None, call=True)
 
     for space in vectors_for_tests(dims):
         if callable(objective):

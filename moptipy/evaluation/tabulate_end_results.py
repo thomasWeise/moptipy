@@ -732,18 +732,18 @@ def tabulate_end_results(
     # write the table
     dest: Final[Path] = text_format_driver.filename(
         file_name, dir_name, use_lang)
-    with dest.open_for_write() as wd:
-        with Table(wd, col_def, text_format_driver) as table:
-            with table.header() as head:
-                head.full_row(algo_inst_cols)
-            for i in range(n_insts):
-                with table.section() as sec:
-                    sec.cols([col[i] for col in algo_inst_strs])
-            if algo_strs is not None:
-                with table.section() as sec:
-                    if algo_cols is not None:
-                        with sec.header() as head:
-                            head.full_row(algo_cols)
-                    sec.cols(algo_strs)
+    with dest.open_for_write() as wd, \
+            Table(wd, col_def, text_format_driver) as table:
+        with table.header() as head:
+            head.full_row(algo_inst_cols)
+        for i in range(n_insts):
+            with table.section() as sec:
+                sec.cols([col[i] for col in algo_inst_strs])
+        if algo_strs is not None:
+            with table.section() as sec:
+                if algo_cols is not None:
+                    with sec.header() as head:
+                        head.full_row(algo_cols)
+                sec.cols(algo_strs)
 
     return dest

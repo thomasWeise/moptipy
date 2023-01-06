@@ -276,9 +276,8 @@ class Statistics:
             n = n + 1
             e = try_int(e)
 
-            if can_int:  # can we do integers
-                if not isinstance(e, int):
-                    can_int = False
+            if can_int and (not isinstance(e, int)):
+                can_int = False
             if can_int:  # so far, we only encountered ints
                 zz = cast(int, e)
                 int_sum += zz  # so we can sum exactly
@@ -340,12 +339,12 @@ class Statistics:
         if mean_geom is not None:
             # Deal with errors that may have arisen due to
             # numerical imprecision.
-            if mean_geom < minimum:
-                if (mean_geom / _ULP) >= (minimum * _ULP):
-                    mean_geom = minimum
-            if mean_geom > maximum:
-                if (maximum / _ULP) >= (mean_geom * _ULP):
-                    mean_geom = maximum
+            if (mean_geom < minimum) \
+                    and ((mean_geom / _ULP) >= (minimum * _ULP)):
+                mean_geom = minimum
+            if (mean_geom > maximum) \
+                    and ((maximum / _ULP) >= (mean_geom * _ULP)):
+                mean_geom = maximum
 
         return Statistics(n=n,
                           minimum=minimum,

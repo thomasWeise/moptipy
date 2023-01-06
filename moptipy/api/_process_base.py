@@ -242,9 +242,8 @@ class _ProcessBase(Process):
         #: The current best objective value
         self._current_best_f: int | float = inf
         #: The log file, or `None` is needed
-        if log_file is not None:
-            if not isinstance(log_file, Path):
-                raise type_error(log_file, "log_file", Path)
+        if (log_file is not None) and (not isinstance(log_file, Path)):
+            raise type_error(log_file, "log_file", Path)
         self.__log_file: Final[Path | None] = log_file
         #: the method for copying y
         self._copy_y: Final[Callable] = solution_space.copy

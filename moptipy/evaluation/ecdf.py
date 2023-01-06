@@ -135,10 +135,9 @@ class Ecdf(MultiRun2DData):
         if not npu.is_all_finite(prb):
             raise ValueError(
                 f"All ECDF values must be finite, but encountered {prb}.")
-        if ll > 2:
-            if np.any(prb[1:-1] <= prb[:-2]):
-                raise ValueError("ECDF data must be strictly increasing,"
-                                 f"but encountered {prb}.")
+        if (ll > 2) and np.any(prb[1:-1] <= prb[:-2]):
+            raise ValueError("ECDF data must be strictly increasing,"
+                             f"but encountered {prb}.")
         if prb[0] < 0:
             raise ValueError(f"First ECDF element cannot be {prb[0]}.")
         if prb[ll - 1] > 1:

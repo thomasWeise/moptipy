@@ -31,9 +31,8 @@ def _check_log_file(log_file: str | None,
     :param none_is_ok: is `None` ok for log files?
     :return: the log file
     """
-    if log_file is None:
-        if none_is_ok:
-            return None
+    if (log_file is None) and none_is_ok:
+        return None
     return Path.path(log_file)
 
 
@@ -158,10 +157,9 @@ class Execution:
         :returns: this execution
         """
         max_fes = check_max_fes(max_fes)
-        if self._max_fes is not None:
-            if max_fes >= self._max_fes:
-                if not force_override:
-                    return self
+        if (self._max_fes is not None) and (max_fes >= self._max_fes) \
+                and (not force_override):
+            return self
         self._max_fes = max_fes
         return self
 
@@ -180,10 +178,10 @@ class Execution:
         :returns: this execution
         """
         max_time_millis = check_max_time_millis(max_time_millis)
-        if self._max_time_millis is not None:
-            if max_time_millis >= self._max_time_millis:
-                if not force_override:
-                    return self
+        if (self._max_time_millis is not None) \
+                and (max_time_millis >= self._max_time_millis) \
+                and (not force_override):
+            return self
         self._max_time_millis = max_time_millis
         return self
 
@@ -198,9 +196,8 @@ class Execution:
         :returns: this execution
         """
         goal_f = check_goal_f(goal_f)
-        if self._goal_f is not None:
-            if goal_f <= self._goal_f:
-                return self
+        if (self._goal_f is not None) and (goal_f <= self._goal_f):
+            return self
         self._goal_f = goal_f
         return self
 
@@ -276,9 +273,9 @@ class Execution:
         max_fes = check_max_fes(self._max_fes, True)
         goal_f = check_goal_f(self._goal_f, True)
         f_lb = objective.lower_bound()
-        if (f_lb is not None) and isfinite(f_lb):
-            if (goal_f is None) or (f_lb > goal_f):
-                goal_f = f_lb
+        if (f_lb is not None) and isfinite(f_lb) \
+                and ((goal_f is None) or (f_lb > goal_f)):
+            goal_f = f_lb
 
         log_all_fes = self._log_all_fes
         log_improvements = self._log_improvements or self._log_all_fes

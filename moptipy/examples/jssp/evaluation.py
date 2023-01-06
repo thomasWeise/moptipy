@@ -366,12 +366,10 @@ def get_end_results(
                  alg=None if algos is None else
                  algos.__contains__ if isinstance(algos, set)
                  else algos) -> bool:
-        if ins is not None:
-            if not ins(er.instance):
-                return False
-        if alg is not None:
-            if not alg(er.algorithm):
-                return False
+        if (ins is not None) and (not ins(er.instance)):
+            return False
+        if (alg is not None) and (not alg(er.algorithm)):
+            return False
         return True
 
     col: Final[list[EndResult]] = []

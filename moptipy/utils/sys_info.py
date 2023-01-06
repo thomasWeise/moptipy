@@ -1,4 +1,5 @@
 """A tool for writing a section with system information into log files."""
+import contextlib
 import importlib.metadata as ilm
 import os
 import platform
@@ -67,32 +68,28 @@ def __make_sys_info() -> str:
             return
         sec.key_value(key, value)
 
-    # noinspection PyBroadException
     def __get_processor_name() -> str | None:
         """
         Get the processor name.
 
         :returns: a string if there is any processor information
         """
-        try:
+        with contextlib.suppress(BaseException):
             if platform.system() == "Windows":
                 return platform.processor()
             if platform.system() == "Linux":
                 for line in Path.path("/proc/cpuinfo").read_all_list():
                     if "model name" in line:
                         return re.sub(".*model name.*:", "", line, 1).strip()
-        except BaseException:
-            pass
         return None
 
-    # noinspection PyBroadException
     def __get_mem_size_sysconf() -> int | None:
         """
         Get the memory size information from sysconf.
 
         :returns: an integer with the memory size if available
         """
-        try:
+        with contextlib.suppress(BaseException):
             k1 = "SC_PAGESIZE"
             if k1 not in os.sysconf_names:
                 k1 = "SC_PAGE_SIZE"
@@ -112,27 +109,21 @@ def __make_sys_info() -> str:
 
             if (v1 > 0) and (v2 > 0):
                 return v1 * v2
-
-        except BaseException:
-            pass
         return None
 
-    # noinspection PyBroadException
     def __get_mem_size_meminfo() -> int | None:
         """
         Get the memory size information from meminfo.
 
         :returns: an integer with the memory size if available
         """
-        try:
+        with contextlib.suppress(BaseException):
             meminfo = {i.split()[0].rstrip(":"): int(i.split()[1])
                        for i in Path.path("/proc/meminfo").read_all_list()}
             mem_kib = meminfo["MemTotal"]  # e.g. 3921852
             mem_kib = int(mem_kib)
             if mem_kib > 0:
                 return 1024 * mem_kib
-        except BaseException:
-            pass
         return None
 
     def __get_mem_size() -> int | None:

@@ -85,9 +85,8 @@ def validate_algorithm_on_1_jssp(
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
         raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
-    if post is not None:
-        if not callable(post):
-            raise type_error(post, "post", None, call=True)
+    if (post is not None) and (not callable(post)):
+        raise type_error(post, "post", None, call=True)
 
     search_space = Permutations.with_repetitions(inst.jobs,
                                                  inst.machines)

@@ -33,9 +33,8 @@ def test_bit_strings() -> None:
     assert not f.is_equal(a, b)
 
     with TempFile.create() as path:
-        with FileLogger(path) as log:
-            with log.key_values("F") as kv:
-                f.log_parameters_to(kv)
+        with FileLogger(path) as log, log.key_values("F") as kv:
+            f.log_parameters_to(kv)
         result = path.read_all_list()
     assert result == ["BEGIN_F",
                       "name: bits12",

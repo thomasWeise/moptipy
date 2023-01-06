@@ -403,9 +403,8 @@ class Instance(Component, np.ndarray):
                     state = 5
                     continue
                 raise ValueError(f"Unexpected string '{line}'.")
-            if state == 5:
-                if line.startswith("+++"):
-                    state = 1
+            if (state == 5) and (line.startswith("+++")):
+                state = 1
 
         raise ValueError(f"Could not find instance '{name}'.")
 

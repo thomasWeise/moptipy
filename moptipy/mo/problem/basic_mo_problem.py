@@ -98,14 +98,14 @@ class BasicMOProblem(MOProblem):
             calls.append(objective.evaluate)
             lb = objective.lower_bound()
             if isfinite(lb):
-                if not is_int:
-                    lb = try_int(lb)
                 if is_int:
                     if not isinstance(lb, int):
                         raise ValueError(
                             f"if is_always_integer() of objective {objective}"
                             " is True, then lower_bound() must be infinite or"
                             f" int, but is {lb}.")
+                else:
+                    lb = try_int(lb)
                 if lb < min_lower_bound:
                     min_lower_bound = lb
             else:
@@ -113,14 +113,14 @@ class BasicMOProblem(MOProblem):
             lower_bounds.append(lb)
             ub = objective.upper_bound()
             if isfinite(ub):
-                if not is_int:
-                    ub = try_int(ub)
                 if is_int:
                     if not isinstance(ub, int):
                         raise ValueError(
                             f"if is_always_integer() of objective {objective}"
                             " is True, then upper_bound() must be infinite "
                             f"or int, but is {ub}.")
+                else:
+                    ub = try_int(ub)
                 if ub > max_upper_bound:
                     max_upper_bound = ub
             else:

@@ -72,9 +72,8 @@ class _GanttParser(LogParser):
             we try to load it from the resources
         """
         super().__init__()
-        if instance is not None:
-            if not isinstance(instance, Instance):
-                raise type_error(instance, "instance", Instance)
+        if (instance is not None) and (not isinstance(instance, Instance)):
+            raise type_error(instance, "instance", Instance)
         #: the internal instance
         self.__instance: Instance | None = instance
         #: the internal section mode: 0=none, 1=setup, 2=y

@@ -301,11 +301,11 @@ class __MA(MA):
                 if should_terminate():  # should we stop now?
                     cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
-                with for_fes(process, ls_fes) as s1:  # fe-limited proc
-                    with from_starting_point(s1, x, evaluate(x)) as s2:
-                        forward_ls_op0_to(s2.get_copy_of_best_x)
-                        ls_solve(s2)  # apply local search modifying x
-                        f = s2.get_best_f()  # get quality of x
+                with for_fes(process, ls_fes) as s1,\
+                        from_starting_point(s1, x, evaluate(x)) as s2:
+                    forward_ls_op0_to(s2.get_copy_of_best_x)
+                    ls_solve(s2)  # apply local search modifying x
+                    f = s2.get_best_f()  # get quality of x
             lst[i] = Record(x, f)  # create and store record
 
         # fix sorting: DIFFERENCE to normal MA
@@ -327,11 +327,11 @@ class __MA(MA):
                 while sx2 is sx:     # until different from sx...
                     sx2 = lst[r0i(mu)].x  # ..get random second "x"
                 op2(random, x, sx, sx2)  # apply binary operator
-                with for_fes(process, ls_fes) as s1:  # fe-limited proc
-                    with from_starting_point(s1, x, evaluate(x)) as s2:
-                        forward_ls_op0_to(s2.get_copy_of_best_x)
-                        ls_solve(s2)  # apply local search modifying x
-                        dest.f = s2.get_best_f()  # get quality of x
+                with for_fes(process, ls_fes) as s1, \
+                        from_starting_point(s1, x, evaluate(x)) as s2:
+                    forward_ls_op0_to(s2.get_copy_of_best_x)
+                    ls_solve(s2)  # apply local search modifying x
+                    dest.f = s2.get_best_f()  # get quality of x
             lst.sort()  # best records come first, ties broken by age
 
 

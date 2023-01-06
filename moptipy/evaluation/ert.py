@@ -127,10 +127,9 @@ class Ert(MultiRun2DData):
             raise ValueError(
                 f"Ert x-axis must be all finite, but encountered {f}.")
         ll = f.size
-        if ll > 1:
-            if np.any(f[1:] <= f[:-1]):
-                raise ValueError("f data must be strictly increasing,"
-                                 f"but encountered {f}.")
+        if (ll > 1) and np.any(f[1:] <= f[:-1]):
+            raise ValueError("f data must be strictly increasing,"
+                             f"but encountered {f}.")
 
         t: Final[np.ndarray] = ert[:, 1]
         if np.isfinite(t[0]) or (np.isposinf(t[0])):
@@ -199,13 +198,12 @@ class Ert(MultiRun2DData):
             raise type_error(source, "source", Iterable)
 
         lower_bound: int | float = inf
-        if f_lower_bound is not None:
-            if not callable(f_lower_bound):
-                if not isfinite(f_lower_bound):
-                    raise ValueError("f_lower_bound must be finite "
-                                     f"but is {f_lower_bound}.")
-                lower_bound = f_lower_bound
-                f_lower_bound = None
+        if (f_lower_bound is not None) and (not callable(f_lower_bound)):
+            if not isfinite(f_lower_bound):
+                raise ValueError("f_lower_bound must be finite "
+                                 f"but is {f_lower_bound}.")
+            lower_bound = f_lower_bound
+            f_lower_bound = None
 
         algorithm: str | None = None
         instance: str | None = None
@@ -240,9 +238,9 @@ class Ert(MultiRun2DData):
             n += 1
             if use_default_lower_bounds and \
                     (progress.f_standard is not None) and \
-                    (progress.f_name == F_NAME_RAW):
-                if lower_bound > progress.f_standard:
-                    lower_bound = progress.f_standard
+                    (progress.f_name == F_NAME_RAW) and \
+                    (lower_bound > progress.f_standard):
+                lower_bound = progress.f_standard
             if f_lower_bound is not None:
                 lb = f_lower_bound(progress)
                 if not isinstance(lb, (int, float)):

@@ -454,9 +454,8 @@ class Rows(AbstractContextManager):
             raise type_error(cells, "cells", Iterable)
         with self.row() as row:
             for i, cell in enumerate(cells):
-                if cell is not None:
-                    if not isinstance(cell, str):
-                        raise type_error(cell, f"cell[{i}]", str)
+                if (cell is not None) and (not isinstance(cell, str)):
+                    raise type_error(cell, f"cell[{i}]", str)
                 row.cell(cell)
 
     def cols(self, cols: list[list[str | None]]) -> None:

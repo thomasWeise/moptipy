@@ -263,10 +263,9 @@ def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
         extremes.clear()
         for groups in extreme_groups:
             for group in groups:
-                if sol[group[0]] == group[1]:
-                    if group[0] not in extremes:
-                        extremes.add(group[0])
-                        break
+                if (sol[group[0]] == group[1]) and (group[0] not in extremes):
+                    extremes.add(group[0])
+                    break
         return len(extremes), int(np.sum(done > 0)), done.min(), \
             -done.max(), -np.std(done)
 

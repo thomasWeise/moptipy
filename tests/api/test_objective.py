@@ -35,9 +35,8 @@ def test_logged_args() -> None:
     validate_objective(f, None, None)
 
     with TempFile.create() as path:
-        with FileLogger(path) as log:
-            with log.key_values("F") as kv:
-                f.log_parameters_to(kv)
+        with FileLogger(path) as log, log.key_values("F") as kv:
+            f.log_parameters_to(kv)
         result = path.read_all_list()
 
     assert result == [
