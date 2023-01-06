@@ -183,4 +183,4 @@ SECTION_RESULT_X: Final[str] = "RESULT_X"
 # noinspection PyDefaultArgument
 # pylint: disable=[C3002]
 _ALL_SECTIONS: Final[set[str]] = (lambda g=globals(): {  # type: ignore # noqa
-    g[k] for k in g.keys() if k.startswith("SECTION_")})()  # type: ignore
+    g[k] for k in g if k.startswith("SECTION_")})()  # type: ignore
