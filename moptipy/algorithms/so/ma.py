@@ -117,7 +117,7 @@ class MA(Algorithm0):
 
         :param process: the black-box process object
         """
-        # Omitted for brevity: store function references in variables
+        # initialization of some variables omitted in book for brevity
         # end book
         mu: Final[int] = self.mu  # mu: number of best solutions kept
         mu_plus_lambda: Final[int] = mu + self.lambda_  # size
@@ -177,7 +177,7 @@ class MA(Algorithm0):
 
     def __init__(self, op0: Op0,
                  op2: Op2, ls: Algorithm0,
-                 mu: int = 32, lambda_: int = 32,
+                 mu: int = 2, lambda_: int = 1,
                  ls_fes: int = 1000,
                  name: str = "ma") -> None:
         """

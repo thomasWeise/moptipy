@@ -1,4 +1,17 @@
-"""Test several algorithm equivalences."""
+"""
+Test several algorithm equivalences.
+
+Sometimes, a general algorithm can be configured to be equivalent to a
+specialized algorithm. For example, if we use our basic (mu+lambda) EA
+(see module :mod:`~moptipy.algorithms.so.ea`) and set both `mu=lambda=1`, then
+it should behave exactly like the randomized local search (see module
+:mod:`~moptipy.algorithms.so.rls`). With "exactly" I mean that, if it is
+started with the same random seed, it should perform exactly the same search
+steps, and arrive at the exactly same solution. In this file, we test several
+such algorithm equivalences. It makes sense to check them as one way to make
+sure that a more complex or general algorithm is not implemented incorrectly,
+does not behave differently from its special case, the simpler algorithm.
+"""
 
 from typing import Callable, Final, cast
 
@@ -18,12 +31,14 @@ from moptipy.algorithms.so.fitnesses.direct import Direct
 from moptipy.algorithms.so.fitnesses.ffa import FFA
 from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
+from moptipy.algorithms.so.general_ma import GeneralMA
 from moptipy.algorithms.so.ma import MA
 from moptipy.algorithms.so.marls import MARLS
 from moptipy.algorithms.so.record import Record
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
+from moptipy.api.subprocesses import for_fes, from_starting_point
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
@@ -108,7 +123,7 @@ class __EAC(EA):
                 f = evaluate(x)  # continue? ok, evaluate new solution
             lst[i] = Record(x, f)  # create and store record
 
-        # fix sorting
+        # fix sorting: DIFFERENCE to normal EA
         lst[0:mu] = sorted(lst[0:mu], key=lambda r: (r.f, -r.it))
 
         it: int = 0
@@ -121,7 +136,7 @@ class __EAC(EA):
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
 
-                # This is the difference to the normal EA:
+                # This is the second difference to the normal EA:
                 # We _FIRST_ decide whether to do the binary operation and
                 # _AFTERWARDS_ pick the first random parent...
                 do_binary: bool = r01() < br
@@ -247,4 +262,93 @@ def test_ma_with_rls_vs_marls() -> None:
                 op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
             lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MARLS(
                 op0, op1, op2, mx, lx, lsf),
+        ])
+
+
+class __MA(MA):
+    """An MA is a population-based algorithm using binary operators."""
+
+    def solve(self, process: Process) -> None:
+        """
+        Apply the MA to an optimization problem.
+
+        :param process: the black-box process object
+        """
+        # initialization of some variables omitted in book for brevity
+        # end book
+        mu: Final[int] = self.mu  # mu: number of best solutions kept
+        mu_plus_lambda: Final[int] = mu + self.lambda_  # size
+        random: Final[Generator] = process.get_random()  # random gen
+        create: Final[Callable] = process.create  # create x container
+        evaluate: Final[Callable] = process.evaluate  # the objective
+        op0: Final[Callable] = self.op0.op0  # the nullary operator
+        op2: Final[Callable] = self.op2.op2  # the binary operator
+        ls_fes: Final[int] = self.ls_fes  # the number of FEs per ls run
+        ls_solve: Final[Callable[[Process], None]] = self.ls.solve  # +book
+        forward_ls_op0_to: Final[Callable] = cast(  # forward starting
+            Op0Forward, self.ls.op0).forward_to  # point of ls to...
+        should_terminate: Final[Callable] = process.should_terminate
+        r0i: Final[Callable[[int], int]] = cast(  # random integers
+            Callable[[int], int], random.integers)
+        # start book
+        # create list of mu random+ls records and lambda empty records
+        lst: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
+        f: int | float = 0  # variable to hold objective values
+        for i in range(mu_plus_lambda):  # fill list of size mu+lambda
+            x = create()  # by creating point in search space
+            if i < mu:  # only the first mu records are initialized by
+                op0(random, x)  # applying nullary operator = randomize
+                if should_terminate():  # should we stop now?
+                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
+                    return   # computational budget exhausted -> quit
+                with for_fes(process, ls_fes) as s1:  # fe-limited proc
+                    with from_starting_point(s1, x, evaluate(x)) as s2:
+                        forward_ls_op0_to(s2.get_copy_of_best_x)
+                        ls_solve(s2)  # apply local search modifying x
+                        f = s2.get_best_f()  # get quality of x
+            lst[i] = Record(x, f)  # create and store record
+
+        # fix sorting: DIFFERENCE to normal MA
+        lst[0:mu] = sorted(lst[0:mu], key=lambda r: (r.f, -r.it))
+
+        it: int = 0  # set iteration counter=0 (but immediately increment)
+        while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
+            it += 1  # step iteration counter
+            for oi in range(mu, mu_plus_lambda):  # for all offspring
+                if should_terminate():  # should we stop now?
+                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
+                    return   # computational budget exhausted -> quit
+                dest: Record = lst[oi]  # pick destination record
+                x = dest.x  # the destination "x" value
+                dest.it = it  # remember iteration of solution creation
+
+                sx = lst[r0i(mu)].x  # pick random first source "x"
+                sx2 = sx    # second source "x" initially=first sx
+                while sx2 is sx:     # until different from sx...
+                    sx2 = lst[r0i(mu)].x  # ..get random second "x"
+                op2(random, x, sx, sx2)  # apply binary operator
+                with for_fes(process, ls_fes) as s1:  # fe-limited proc
+                    with from_starting_point(s1, x, evaluate(x)) as s2:
+                        forward_ls_op0_to(s2.get_copy_of_best_x)
+                        ls_solve(s2)  # apply local search modifying x
+                        dest.f = s2.get_best_f()  # get quality of x
+            lst.sort()  # best records come first, ties broken by age
+
+
+def test_general_ma_equals_ma() -> None:
+    """Ensure that the MAs with and without fitness are identical."""
+    op0: Final[Op0] = Op0Random()
+    op1: Final[Op1] = Op1Flip1()
+    op2: Final[Op2] = Op2Uniform()
+    random: Final[Generator] = default_rng()
+    for _ in range(3):
+        mu: int = int(random.integers(2, 10))
+        lambda_: int = int(random.integers(1, 10))
+        ls_fes: int = int(random.integers(1, 16))
+
+        verify_algorithms_equivalent([
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: __MA(
+                op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: GeneralMA(
+                op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf)
         ])

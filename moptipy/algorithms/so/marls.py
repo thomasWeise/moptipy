@@ -80,7 +80,7 @@ class MARLS(Algorithm2):
         """
         mu: Final[int] = self.mu  # mu: number of best solutions kept
         mu_plus_lambda: Final[int] = mu + self.lambda_  # size
-        # Omitted for brevity: store function references in variables
+        # initialization of some variables omitted in book for brevity
         # end book
         random: Final[Generator] = process.get_random()  # random gen
         create: Final[Callable] = process.create  # create x container
