@@ -130,8 +130,8 @@ class AxisRanger:
         """
         if isfinite(value):
             if self.__use_data_min and (
-                    (value < self.__detected_min) and
-                    ((value > 0.0) or (not self.log_scale))):
+                    (value < self.__detected_min)
+                    and ((value > 0.0) or (not self.log_scale))):
                 self.__detected_min = value
                 self.__has_detected_min = True
             if self.__use_data_max and (value > self.__detected_max):

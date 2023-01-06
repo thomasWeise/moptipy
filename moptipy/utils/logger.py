@@ -495,8 +495,8 @@ class KeyValueLogSection(LogSection):
         the_hex = None
         if isinstance(value, float):
             txt = float_to_str(value)
-            if isfinite(value) and (also_hex or
-                                    (("e" in txt) or ("." in txt))):
+            if isfinite(value) and (also_hex
+                                    or (("e" in txt) or ("." in txt))):
                 the_hex = float.hex(value)
         elif isinstance(value, bool):
             txt = bool_to_str(value)
