@@ -714,7 +714,7 @@ The following algorithms are completely black-box and work for both single- and 
 Here we list optimization algorithms that optimize a *single* [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.objective.Objective).
 
 
-##### 4.1.1.1. Single-Objective Optimization with Continuous Search Space
+##### 4.1.1.1. Single-Objective Optimization with Arbitrary Search Spaces
 
 The first set of algorithms is general, i.e., can work with arbitrary [search spaces](#42-implemented-search-spaces-and-operators).
 
