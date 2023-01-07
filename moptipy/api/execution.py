@@ -205,6 +205,13 @@ class Execution:
         """
         Set the log file to write to.
 
+        If a path to a log file is provided, the contents of this file will be
+        filled based on the structure documented at
+        https://thomasweise.github.io/moptipy/#log-file-sections, which
+        includes the algorithm parameters, the instance features, the
+        system settings, the final solution, the corresponding point in the
+        search space, etc.
+
         This method can be called arbitrarily often.
 
         :param log_file: the log file
@@ -217,6 +224,10 @@ class Execution:
         """
         Set whether improvements should be logged.
 
+        If improvements are logged, then the `PROGRESS` section will be added
+        to the log files, as documented at
+        https://thomasweise.github.io/moptipy/#the-section-progress.
+
         :param log_improvements: if improvements should be logged?
         :returns: this execution
         """
@@ -227,7 +238,11 @@ class Execution:
 
     def set_log_all_fes(self, log_all_fes: bool = True) -> "Execution":
         """
-        Set whether all FEs should be logged.
+        Set whether all objective function evaluations (FEs) should be logged.
+
+        If all FEs  are logged, then the `PROGRESS` section will be added to
+        the log files, as documented at
+        https://thomasweise.github.io/moptipy/#the-section-progress.
 
         :param log_all_fes: if all FEs should be logged?
         :returns: this execution
@@ -255,6 +270,12 @@ class Execution:
         objective value of this final best solution (via
         :meth:`~moptipy.api.process.Process.get_best_f`), and other
         information.
+
+        If a log file path was supplied to :meth:`~set_log_file`, then the
+        information gathered from the optimization process will be written to
+        the file *after*  the `with` blog using the process is left. See
+        https://thomasweise.github.io/moptipy/#log-file-sections for a
+        documentation of the log file structure and sections.
 
         :return: the process *after* the run, i.e., in the state where it can
             be queried for the result

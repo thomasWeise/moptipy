@@ -8,6 +8,11 @@ runs are collected, and where multiprocessing is used to parallelize the
 experiment execution.
 Experiments are replicable, as random seeds are automatically generated based
 on problem instance names in a replicable fashion.
+
+The log files are structured according to the documentation in
+https://thomasweise.github.io/moptipy/#file-names-and-folder-structure
+and their contents follow the specification given in
+https://thomasweise.github.io/moptipy/#log-file-sections.
 """
 import copy
 import gc
