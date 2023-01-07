@@ -19,10 +19,10 @@ KEY_UPPER_BOUND: Final[str] = "ub"
 
 class VectorSpace(NPArraySpace):
     """
-    A vector space where each element is a n-dimensional real vector.
+    A vector space where each element is an n-dimensional real vector.
 
     Such spaces are useful for continuous optimization. The vectors are
-    implemented as one-dimensional `numpy.ndarray`s of length `n`.
+    implemented as one-dimensional :class:`numpy.ndarray` of length `n`.
     A vector space is constraint by a box which defines the minimum and
     maximum permitted value for each of its `n` elements.
     """

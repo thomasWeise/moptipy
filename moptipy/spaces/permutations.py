@@ -18,7 +18,7 @@ KEY_REPETITIONS: Final[str] = "repetitions"
 
 class Permutations(IntSpace):  # +book
     """
-    A space of permutations of a base string.
+    A space of permutations of a base string stored as :class:`numpy.ndarray`.
 
     This class includes standard permutations of the form 0, 1, 2, ..., n-1,
     but also permutations with repetitions.

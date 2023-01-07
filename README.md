@@ -761,7 +761,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
 
 - [Multi-Objective Random Local Search](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.morls.MORLS) (MORLS) works exactly as [RLS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS), but it accepts a solution if it is not dominated by the current solution.
  This is *not* a good algorithm.
-- The [Fast Elitist Non-Dominated Sorting Genetic Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2) (NSGA-II) is maybe the most popular multi-objective evolutionary algorithm.
+- The Fast Elitist Non-Dominated Sorting Genetic Algorithm ([NSGA-II]()) is maybe the most popular multi-objective evolutionary algorithm.
 
 
 ### 4.2. Implemented Search Spaces and Operators

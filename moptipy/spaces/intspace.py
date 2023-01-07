@@ -21,7 +21,8 @@ class IntSpace(NPArraySpace):
     A space where each element is a one-dimensional numpy integer array.
 
     Such spaces can serve as basis for implementing combinatorial
-    optimization and can be extended to host permutations.
+    optimization and can be extended to host permutations. Their elements are
+    instances of :class:`numpy.ndarray`.
     """
 
     def __init__(self, dimension: int,

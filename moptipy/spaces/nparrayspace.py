@@ -16,7 +16,7 @@ from moptipy.utils.types import type_error
 
 class NPArraySpace(Space):
     """
-    A space where each element is a one-dimensional numpy array.
+    A space where each element is a one-dimensional :class:`numpy.ndarray`.
 
     Such spaces can serve as basis for implementing combinatorial
     optimization and can be extended to host permutations.

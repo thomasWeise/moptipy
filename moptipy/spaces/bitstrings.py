@@ -11,7 +11,7 @@ from moptipy.utils.types import type_error
 
 class BitStrings(NPArraySpace):
     """
-    A space where each element is a bit string.
+    A space where each element is a bit string (:class:`numpy.ndarray`).
 
     With such a space, discrete optimization can be realized.
     """

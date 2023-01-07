@@ -2,14 +2,24 @@
 The Job Shop Scheduling Problem is a good example for optimization tasks.
 
 The JSSP is one of the most well-known combinatorial optimization tasks.
-Here we provide a set of benchmark instances and examples for solving this
-problem.
+Here we provide the well-known and often-used set of benchmark instances
+(:mod:`~moptipy.examples.jssp.instance`) for this problem. Moreover, we
+also run a fully-fledged example experiment applying many metaheuristics
+to eight selected JSSP instances in module
+:mod:`~moptipy.examples.jssp.experiment` and evaluate the data gathered from
+this experiment in :mod:`~moptipy.examples.jssp.evaluation`. Be aware that
+actually executing this experiment will take a very long time. However, you
+can also find the complete experiment, every single algorithm used, and all
+conclusions drawn with in-depth discussions in our online book "Optimization
+Algorithms" at https://thomasweise.github.io/oa.
 
-The benchmark instances can be loaded from a package-internal resource by
-name using module :mod:`~moptipy.examples.jssp.instance`. Solutions to
-a JSSP instances are :class:`~moptipy.examples.jssp.gantt.Gantt` charts,
-i.e., diagrams which assign each operation of a job to a machine and time
-slot. The :class:`~moptipy.examples.jssp.gantt_space.GanttSpace` is a
+Anyway, here you have many JSSP benchmark instances, a useful search space,
+and the common objective function. You can use them for your own research, if
+you want: The JSSP benchmark instances can be loaded from a package-internal
+resource by name using module :mod:`~moptipy.examples.jssp.instance`.
+Solutions to a JSSP instances are :class:`~moptipy.examples.jssp.gantt.Gantt`
+charts, i.e., diagrams which assign each operation of a job to a machine and
+time slot. The :class:`~moptipy.examples.jssp.gantt_space.GanttSpace` is a
 space operating on such charts and the
 :class:`~moptipy.examples.jssp.makespan.Makespan` is the typical objective
 function when solving JSSPs. Gantt charts can be encoded as permutations
@@ -41,6 +51,9 @@ with repetitions using the :mod:`~moptipy.examples.jssp.ob_encoding`.
    Scheduling Problem: Conventional and New Solution Techniques. *European
    Journal of Operational Research (EJOR)* 93(1):1-33, August 1996.
    doi: https://doi.org/10.1016/0377-2217(95)00362-2.
+6. Thomas Weise. *Optimization Algorithms.* 2021-2023. Hefei, Anhui, China:
+   Institute of Applied Optimization, School of Artificial Intelligence and
+   Big Data, Hefei University. https://thomasweise.github.io/oa
 """
 
 
