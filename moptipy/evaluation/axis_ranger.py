@@ -287,17 +287,12 @@ class AxisRanger:
             else:
                 __log = log_scale
 
-            if chosen_min is None:
-                __min = 1 if __log else 0
-            else:
-                __min = chosen_min
+            __min = (1 if __log else 0) if chosen_min is None else chosen_min
 
             if use_data_max is not None:
                 __data_max = use_data_max
-            if use_data_min is not None:
-                __data_min = use_data_min
-            else:
-                __data_min = False
+
+            __data_min = False if use_data_min is None else use_data_min
 
             if chosen_max is not None:
                 __max = chosen_max
@@ -318,10 +313,8 @@ class AxisRanger:
 
             if use_data_max is not None:
                 __data_max = use_data_max
-            if use_data_min is not None:
-                __data_min = use_data_min
-            else:
-                __data_min = False
+
+            __data_min = False if use_data_min is None else use_data_min
 
             return AxisRanger(__min, chosen_max, __data_min, __data_max,
                               __log, log_base if __log else None)

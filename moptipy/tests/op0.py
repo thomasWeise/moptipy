@@ -1,6 +1,6 @@
 """Functions that can be used to test nullary search operators."""
 from math import isqrt
-from typing import Any, Callable
+from typing import Any, Callable, Final
 
 from numpy.random import Generator, default_rng
 
@@ -78,11 +78,9 @@ def validate_op0(op0: Op0,
                              f"empty string, namely '{strstr}'.")
         seen.add(strstr)
 
-    expected: int
-    if callable(min_unique_samples):
-        expected = min_unique_samples(number_of_samples, search_space)
-    else:
-        expected = min_unique_samples
+    expected: Final[int] = \
+        min_unique_samples(number_of_samples, search_space) \
+        if callable(min_unique_samples) else min_unique_samples
     if not isinstance(expected, int):
         raise type_error(expected, "expected", int)
     if expected > number_of_samples:

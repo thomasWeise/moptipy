@@ -284,10 +284,7 @@ class EndStatistics(MultiRunData):
                     f"but is {type(ert_time_millis)}.")
         else:  # goal_f is not None
             if isinstance(goal_f, float):
-                if goal_f <= (-inf):
-                    goal_f = None
-                else:
-                    goal_f = try_int(goal_f)
+                goal_f = None if goal_f <= (-inf) else try_int(goal_f)
             elif not isinstance(goal_f, (int, Statistics)):
                 raise type_error(goal_f, "goal_f", (int, Statistics))
 
@@ -1113,33 +1110,25 @@ class EndStatistics(MultiRunData):
                             idx += 1
 
                         if has_success_fes:
-                            if n_success > 0:
-                                success_fes = Statistics.from_csv(
-                                    n_success, row[idx:(idx + CSV_COLS)])
-                            else:
-                                success_fes = None
+                            success_fes = Statistics.from_csv(
+                                n_success, row[idx:(idx + CSV_COLS)]) \
+                                if n_success > 0 else None
                             idx += CSV_COLS
 
                         if has_success_time:
-                            if n_success > 0:
-                                success_time = Statistics.from_csv(
-                                    n_success, row[idx:(idx + CSV_COLS)])
-                            else:
-                                success_time = None
+                            success_time = Statistics.from_csv(
+                                n_success, row[idx:(idx + CSV_COLS)]) \
+                                if n_success > 0 else None
                             idx += CSV_COLS
 
                         if has_ert_fes:
-                            if n_success > 0:
-                                ert_fes = str_to_intfloat(row[idx])
-                            else:
-                                ert_fes = inf
+                            ert_fes = str_to_intfloat(row[idx]) \
+                                if n_success > 0 else inf
                             idx += 1
 
                         if has_ert_time:
-                            if n_success > 0:
-                                ert_time = str_to_intfloat(row[idx])
-                            else:
-                                ert_time = inf
+                            ert_time = str_to_intfloat(row[idx]) \
+                                if n_success > 0 else inf
                             idx += 1
 
                         if has_max_fes == 1:

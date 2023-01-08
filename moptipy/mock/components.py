@@ -252,10 +252,9 @@ class Instance:
                 if trials > 1000:
                     trials = 0
                     limit *= 2
-                if random.integers(4) <= 0:
-                    v = int(random.uniform(1, limit)) / limit
-                else:
-                    v = int(random.normal(loc=0.5, scale=0.25) * limit) / limit
+                v = (int(random.uniform(1, limit)) / limit) \
+                    if random.integers(4) <= 0 else \
+                    (int(random.normal(loc=0.5, scale=0.25) * limit) / limit)
             if v not in not_allowed:
                 hardnesses.append(v)
                 not_allowed.add(v)
@@ -270,10 +269,9 @@ class Instance:
                 if trials > 1000:
                     trials = 0
                     limit *= 2
-                if random.integers(4) <= 0:
-                    v = int(random.uniform(1, limit)) / limit
-                else:
-                    v = int(random.normal(loc=0.5, scale=0.2) * limit) / limit
+                v = (int(random.uniform(1, limit)) / limit) \
+                    if random.integers(4) <= 0 else \
+                    (int(random.normal(loc=0.5, scale=0.2) * limit) / limit)
             if v not in not_allowed:
                 jitters.append(v)
                 not_allowed.add(v)
@@ -288,10 +286,9 @@ class Instance:
                 if trials > 1000:
                     trials = 0
                     limit *= 2
-                if random.integers(4) <= 0:
-                    v = int(random.uniform(1, limit)) / limit
-                else:
-                    v = int(random.normal(loc=0.5, scale=0.2) * limit) / limit
+                v = (int(random.uniform(1, limit)) / limit) \
+                    if random.integers(4) <= 0 else \
+                    (int(random.normal(loc=0.5, scale=0.2) * limit) / limit)
             if v not in not_allowed:
                 scales.append(v)
                 not_allowed.add(v)
@@ -520,11 +517,9 @@ class Algorithm:
                 if trials > 1000:
                     trials = 0
                     limit *= 2
-                if random.integers(4) <= 0:
-                    v = int(random.uniform(1, limit)) / limit
-                else:
-                    v = int(random.normal(loc=0.5,
-                                          scale=0.25) * limit) / limit
+                v = (int(random.uniform(1, limit)) / limit) \
+                    if random.integers(4) <= 0 else \
+                    (int(random.normal(loc=0.5, scale=0.25) * limit) / limit)
             if v not in not_allowed:
                 strengths.append(v)
                 not_allowed.add(v)
@@ -538,11 +533,9 @@ class Algorithm:
                 if trials > 1000:
                     trials = 0
                     limit *= 2
-                if random.integers(4) <= 0:
-                    v = int(random.uniform(1, limit)) / limit
-                else:
-                    v = int(random.normal(loc=0.5,
-                                          scale=0.2) * limit) / limit
+                v = (int(random.uniform(1, limit)) / limit) \
+                    if random.integers(4) <= 0 else \
+                    (int(random.normal(loc=0.5, scale=0.2) * limit) / limit)
             if v not in not_allowed:
                 jitters.append(v)
                 not_allowed.add(v)
@@ -556,11 +549,9 @@ class Algorithm:
                 if trials > 1000:
                     trials = 0
                     limit *= 2
-                if random.integers(4) <= 0:
-                    v = int(random.uniform(1, limit)) / limit
-                else:
-                    v = int(random.normal(loc=0.5,
-                                          scale=0.2) * limit) / limit
+                v = (int(random.uniform(1, limit)) / limit) \
+                    if random.integers(4) <= 0 else \
+                    (int(random.normal(loc=0.5, scale=0.2) * limit) / limit)
             if v not in not_allowed:
                 complexities.append(v)
                 not_allowed.add(v)
@@ -661,30 +652,27 @@ class BasePerformance:
         perf: float = -1
         granularity: Final[int] = 2000
         while (perf <= 0) or (perf >= 1):
-            if random.integers(20) <= 0:
-                perf = random.uniform(low=0, high=1)
-            else:
-                perf = random.normal(
+            perf = random.uniform(low=0, high=1) \
+                if random.integers(20) <= 0 else \
+                random.normal(
                     loc=0.5 * (instance.hardness + algorithm.strength),
                     scale=0.2 * (instance.jitter + algorithm.jitter))
             perf = int(perf * granularity) / granularity
 
         jit: float = -1
         while (jit <= 0) or (jit >= 1):
-            if random.integers(15) <= 0:
-                jit = random.uniform(low=0, high=1)
-            else:
-                jit = random.normal(
+            jit = random.uniform(low=0, high=1) \
+                if random.integers(15) <= 0 else \
+                random.normal(
                     loc=0.5 * (instance.jitter + algorithm.jitter),
                     scale=0.2 * (instance.jitter + algorithm.jitter))
             jit = int(jit * granularity) / granularity
 
         speed: float = -1
         while (speed <= 0) or (speed >= 1):
-            if random.integers(20) <= 0:
-                speed = random.uniform(low=0, high=1)
-            else:
-                speed = random.normal(
+            speed = random.uniform(low=0, high=1) \
+                if random.integers(20) <= 0 else \
+                random.normal(
                     loc=0.5 * (instance.scale + algorithm.complexity),
                     scale=0.2 * (instance.scale + algorithm.complexity))
             speed = int(speed * granularity) / granularity

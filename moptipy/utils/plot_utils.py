@@ -416,10 +416,8 @@ def save_figure(fig: Figure,
         raise type_error(formats, "formats", Iterable)
 
     size = fig.get_size_inches()
-    if size[0] >= size[1]:
-        orientation = "landscape"
-    else:
-        orientation = "portrait"
+    orientation: Final[str] = \
+        "landscape" if size[0] >= size[1] else "portrait"
 
     # set minimal margins to the axes to avoid wasting space
     for ax in fig.axes:

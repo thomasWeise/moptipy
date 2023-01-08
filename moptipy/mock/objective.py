@@ -134,11 +134,7 @@ class MockObjective(Objective):
             seed = hash(x.tobytes())
         elif isinstance(x, list):
             seed = hash(str(x))
-
-        if seed is None:
-            random = self.__random
-        else:
-            random = default_rng(abs(seed))
+        random = self.__random if seed is None else default_rng(abs(seed))
 
         return sample_from_attractors(random, self.fattractors,
                                       self.is_int, self.lb, self.ub)

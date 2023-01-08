@@ -137,10 +137,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
         b = int(a)
         c = log2(1.0 - br)
         d = int(c)
-        if abs(c - d) < abs(a - b):
-            q = f"(1-2^{d})"
-        else:
-            q = f"2^{b}"
+        q = f"(1-2^{d})" if abs(c - d) < abs(a - b) else f"2^{b}"
         q2 = num_to_str(br)
         if len(q2) <= (len(q) + 1):
             q = q2

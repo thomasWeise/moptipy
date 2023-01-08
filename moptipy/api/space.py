@@ -106,15 +106,6 @@ class Space(Component):
         :return: the string representation of x
         """
 
-    def is_equal(self, x1, x2) -> bool:  # +book
-        """
-        Check if the contents of two instances of the data structure are equal.
-
-        :param x1: the first instance
-        :param x2: the second instance
-        :return: `True` if the contents are equal, `False` otherwise
-        """
-
     def from_str(self, text: str) -> Any:  # +book
         """
         Transform a string `text` to one element of the space.
@@ -126,6 +117,15 @@ class Space(Component):
 
         :param text: the input string
         :return: the element in the space corresponding to `text`
+        """
+
+    def is_equal(self, x1, x2) -> bool:  # +book
+        """
+        Check if the contents of two instances of the data structure are equal.
+
+        :param x1: the first instance
+        :param x2: the second instance
+        :return: `True` if the contents are equal, `False` otherwise
         """
 
     def validate(self, x) -> None:  # +book

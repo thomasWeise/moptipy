@@ -260,10 +260,7 @@ def sort_key(obj: PerRunData | MultiRunData) -> \
     >>> print(sort_key(p3) >= sort_key(p1))
     False
     """
-    if hasattr(obj, "goal_f"):
-        goal_f = getattr(obj, "goal_f")
-    else:
-        goal_f = None
+    goal_f = getattr(obj, "goal_f") if hasattr(obj, "goal_f") else None
     if goal_f is None:
         goal_f = inf
 

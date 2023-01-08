@@ -203,13 +203,11 @@ def validate_mo_algorithm_on_1_jssp(
     solution_space = GanttSpace(inst)
     encoding = OperationBasedEncoding(inst)
 
-    weights: list[int | float]
-    if random.integers(2) <= 0:
-        weights = [float(random.uniform(0.01, 10)),
-                   float(random.uniform(0.01, 10))]
-    else:
-        weights = [1 + int(random.integers(1 << random.integers(40))),
-                   1 + int(random.integers(1 << random.integers(40)))]
+    weights: Final[list[int | float]] = [float(random.uniform(0.01, 10)),
+                                         float(random.uniform(0.01, 10))] \
+        if random.integers(2) <= 0 else \
+        [1 + int(random.integers(1 << random.integers(40))),
+         1 + int(random.integers(1 << random.integers(40)))]
     problem: Final[MOProblem] = WeightedSum(
         [Makespan(inst), Worktime(inst)], weights)
 

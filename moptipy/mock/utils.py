@@ -91,10 +91,8 @@ def _before_int(upper_bound: int | float,
         upper_bound = 10000
     elif not isfinite(upper_bound):
         return None
-    if upper_bound > 0:
-        lov = min(int(0.6 * upper_bound), upper_bound - 22)
-    else:
-        lov = max(int(upper_bound / 0.6), upper_bound - 22)
+    lov = min(int(0.6 * upper_bound), upper_bound - 22) \
+        if upper_bound > 0 else max(int(upper_bound / 0.6), upper_bound - 22)
     lo: Final[int] = _lb_int(max(lov, -9223372036854775806))
     up: Final[int] = _ub_int(upper_bound)
     if lo >= up:
@@ -121,10 +119,8 @@ def _before_float(upper_bound: int | float,
     ulp = 1E16 * (upper_bound - nextafter(upper_bound, -inf)) \
         if (upper_bound < 0) else 1E-8 if upper_bound <= 0 \
         else 1E16 * (nextafter(upper_bound, inf) - upper_bound)
-    if upper_bound > 0.0:
-        lo = min(upper_bound * 0.6, upper_bound - ulp)
-    else:
-        lo = min(upper_bound / 0.6, upper_bound - ulp)
+    lo = min(upper_bound * 0.6, upper_bound - ulp) \
+        if upper_bound > 0.0 else min(upper_bound / 0.6, upper_bound - ulp)
     if (not isfinite(lo)) or (lo >= upper_bound):
         return None
     res = float(random.uniform(lo, upper_bound))
@@ -150,10 +146,8 @@ def _after_int(lower_bound: int | float,
         lower_bound = -10000
     elif not isfinite(lower_bound):
         return None
-    if lower_bound > 0:
-        uv = max(int(lower_bound / 0.6), lower_bound + 22)
-    else:
-        uv = max(int(lower_bound * 0.6), lower_bound + 22)
+    uv = max(int(lower_bound / 0.6), lower_bound + 22) \
+        if lower_bound > 0 else max(int(lower_bound * 0.6), lower_bound + 22)
     ub: Final[int] = _ub_int(min(uv, 9223372036854775806))
     lb: Final[int] = _lb_int(lower_bound)
     if lb >= ub:
@@ -180,10 +174,8 @@ def _after_float(lower_bound: int | float,
     ulp = 1E16 * (lower_bound - nextafter(lower_bound, -inf)) \
         if (lower_bound < 0) else 1E-8 if lower_bound <= 0 \
         else 1E16 * (nextafter(lower_bound, inf) - lower_bound)
-    if lower_bound > 0.0:
-        hi = max(lower_bound / 0.6, lower_bound + ulp)
-    else:
-        hi = max(lower_bound * 0.6, lower_bound + ulp)
+    hi = max(lower_bound / 0.6, lower_bound + ulp) \
+        if lower_bound > 0.0 else max(lower_bound * 0.6, lower_bound + ulp)
     if (not isfinite(hi)) or (hi <= lower_bound):
         return None
     res = float(random.uniform(lower_bound, hi))
@@ -464,10 +456,7 @@ def sample_from_attractors(random: Generator,
         sample = random.normal(chosen, sd)
         if not isfinite(sample):
             continue
-        if is_int:
-            sample = int(sample)
-        else:
-            sample = float(sample)
+        sample = int(sample) if is_int else float(sample)
         if lb <= sample <= ub:
             return sample
 

@@ -91,10 +91,9 @@ def __apply_fun(x_unique: np.ndarray,
     dest_len = len(dest_y) - 1
     changes_len = len(changes)
     if changes_len < 2:  # strange corner case: all values are the same
-        if dest_len <= 1:  # is there only 1 value?
-            indexes = np.array([0])  # use only that value
-        else:  # otherwise, use first and last value
-            indexes = np.array([0, dest_len])
+        # if there is only one value, use only that value
+        # otherwise, use first and last value
+        indexes = np.array([0]) if dest_len <= 1 else np.array([0, dest_len])
     elif changes[-1] != dest_len:  # always put last point
         indexes = np.concatenate((np.array([0]), changes,
                                   np.array([dest_len])))
@@ -103,10 +102,8 @@ def __apply_fun(x_unique: np.ndarray,
     return np.column_stack((x_unique[indexes], dest_y[indexes]))
 
 
-def _apply_fun(x_unique: np.ndarray,
-               x_raw: list[np.ndarray],
-               y_raw: list[np.ndarray],
-               stat_func: Callable) -> np.ndarray:
+def _apply_fun(x_unique: np.ndarray, x_raw: list[np.ndarray],
+               y_raw: list[np.ndarray], stat_func: Callable) -> np.ndarray:
     """
     Compute a time-depending statistic.
 

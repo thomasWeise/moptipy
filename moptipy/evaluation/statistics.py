@@ -315,10 +315,9 @@ class Statistics:
                 i_n = n // i_gcd
 
                 var: int | float  # the container for the variance
-                if i_n == 1:
-                    var = try_int_div(int_sum_sqr - int_sum2, n - 1)
-                else:  # variance is float
-                    var = (int_sum_sqr - (int_sum2 / i_n)) / (n - 1)
+                var = try_int_div(int_sum_sqr - int_sum2, n - 1) \
+                    if i_n == 1 else \
+                    ((int_sum_sqr - (int_sum2 / i_n)) / (n - 1))
 
                 stddev = try_int(sqrt(var))
 

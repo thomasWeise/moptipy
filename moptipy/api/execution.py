@@ -312,52 +312,47 @@ class Execution:
         else:
             log_file.create_file_or_truncate()
 
-        process: _ProcessBase
-        if search_space is None:
-            if log_improvements or log_all_fes:
-                process = _ProcessNoSSLog(solution_space=solution_space,
-                                          objective=objective,
-                                          algorithm=algorithm,
-                                          log_file=log_file,
-                                          rand_seed=rand_seed,
-                                          max_fes=max_fes,
-                                          max_time_millis=max_time_millis,
-                                          goal_f=goal_f,
-                                          log_all_fes=log_all_fes)
-            else:
-                process = _ProcessNoSS(solution_space=solution_space,
-                                       objective=objective,
-                                       algorithm=algorithm,
-                                       log_file=log_file,
-                                       rand_seed=rand_seed,
-                                       max_fes=max_fes,
-                                       max_time_millis=max_time_millis,
-                                       goal_f=goal_f)
-        else:
-            if log_improvements or log_all_fes:
-                process = _ProcessSSLog(
-                    solution_space=solution_space,
-                    objective=objective,
-                    algorithm=algorithm,
-                    search_space=search_space,
-                    encoding=encoding,
-                    log_file=log_file,
-                    rand_seed=rand_seed,
-                    max_fes=max_fes,
-                    max_time_millis=max_time_millis,
-                    goal_f=goal_f,
-                    log_all_fes=log_all_fes)
-            else:
-                process = _ProcessSS(solution_space=solution_space,
-                                     objective=objective,
-                                     algorithm=algorithm,
-                                     search_space=search_space,
-                                     encoding=encoding,
-                                     log_file=log_file,
-                                     rand_seed=rand_seed,
-                                     max_fes=max_fes,
-                                     max_time_millis=max_time_millis,
-                                     goal_f=goal_f)
+        process: Final[_ProcessBase] = \
+            (_ProcessNoSSLog(solution_space=solution_space,
+                             objective=objective,
+                             algorithm=algorithm,
+                             log_file=log_file,
+                             rand_seed=rand_seed,
+                             max_fes=max_fes,
+                             max_time_millis=max_time_millis,
+                             goal_f=goal_f,
+                             log_all_fes=log_all_fes)
+             if log_improvements or log_all_fes else
+             _ProcessNoSS(solution_space=solution_space,
+                          objective=objective,
+                          algorithm=algorithm,
+                          log_file=log_file,
+                          rand_seed=rand_seed,
+                          max_fes=max_fes,
+                          max_time_millis=max_time_millis,
+                          goal_f=goal_f)) if search_space is None else \
+            (_ProcessSSLog(solution_space=solution_space,
+                           objective=objective,
+                           algorithm=algorithm,
+                           search_space=search_space,
+                           encoding=encoding,
+                           log_file=log_file,
+                           rand_seed=rand_seed,
+                           max_fes=max_fes,
+                           max_time_millis=max_time_millis,
+                           goal_f=goal_f,
+                           log_all_fes=log_all_fes)
+             if log_improvements or log_all_fes else
+             _ProcessSS(solution_space=solution_space,
+                        objective=objective,
+                        algorithm=algorithm,
+                        search_space=search_space,
+                        encoding=encoding,
+                        log_file=log_file,
+                        rand_seed=rand_seed,
+                        max_fes=max_fes,
+                        max_time_millis=max_time_millis,
+                        goal_f=goal_f))
         try:
             # noinspection PyProtectedMember
             process._after_init()  # finalize the created process

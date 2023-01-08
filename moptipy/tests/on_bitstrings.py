@@ -245,11 +245,8 @@ def validate_algorithm_on_bitstrings(
         raise type_error(algorithm, "result of callable 'algorithm'",
                          Algorithm)
 
-    goal: int | None
-    if callable(required_result):
-        goal = required_result(max_fes, dimension)
-    else:
-        goal = required_result
+    goal: Final[int | None] = required_result(max_fes, dimension) \
+        if callable(required_result) else required_result
 
     validate_algorithm(
         algorithm=algorithm, solution_space=bs, objective=objective,
@@ -271,11 +268,7 @@ def validate_algorithm_on_onemax(
     """
     max_fes: Final[int] = 100
     for i in dimensions_for_tests():
-        rr: int
-        if i < 3:
-            rr = 1
-        else:
-            rr = 1 + max(1, i // 2, i - int(max_fes ** 0.5))
+        rr: int = 1 if i < 3 else (1 + max(1, i // 2, i - int(max_fes ** 0.5)))
         validate_algorithm_on_bitstrings(
             objective=OneMax,
             algorithm=algorithm,
@@ -366,13 +359,11 @@ def validate_mo_algorithm_on_2_bitstring_problems(
     max_fes: Final[int] = 100
     random: Final[Generator] = default_rng()
     for i in dimensions_for_tests():
-        weights: list[int | float]
-        if random.integers(2) <= 0:
-            weights = [float(random.uniform(0.01, 10)),
-                       float(random.uniform(0.01, 10))]
-        else:
-            weights = [1 + int(random.integers(1 << random.integers(40))),
-                       1 + int(random.integers(1 << random.integers(40)))]
+        weights: list[int | float] = [float(random.uniform(0.01, 10)),
+                                      float(random.uniform(0.01, 10))] \
+            if random.integers(2) <= 0 else \
+            [1 + int(random.integers(1 << random.integers(40))),
+             1 + int(random.integers(1 << random.integers(40)))]
         validate_mo_algorithm_on_bitstrings(
             problem=WeightedSum([OneMax(i), ZeroMax(i)], weights),
             algorithm=algorithm,
@@ -391,15 +382,13 @@ def validate_mo_algorithm_on_3_bitstring_problems(
     max_fes: Final[int] = 100
     random: Final[Generator] = default_rng()
     for i in dimensions_for_tests():
-        weights: list[int | float]
-        if random.integers(2) <= 0:
-            weights = [float(random.uniform(0.01, 10)),
-                       float(random.uniform(0.01, 10)),
-                       float(random.uniform(0.01, 10))]
-        else:
-            weights = [1 + int(random.integers(1 << random.integers(40))),
-                       1 + int(random.integers(1 << random.integers(40))),
-                       1 + int(random.integers(1 << random.integers(40)))]
+        weights: list[int | float] = [float(random.uniform(0.01, 10)),
+                                      float(random.uniform(0.01, 10)),
+                                      float(random.uniform(0.01, 10))] \
+            if random.integers(2) <= 0 else \
+            [1 + int(random.integers(1 << random.integers(40))),
+             1 + int(random.integers(1 << random.integers(40))),
+             1 + int(random.integers(1 << random.integers(40)))]
         validate_mo_algorithm_on_bitstrings(
             problem=WeightedSum([OneMax(i), ZeroMax(i), Ising1d(i)],
                                 weights),

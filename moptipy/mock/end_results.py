@@ -76,10 +76,7 @@ def end_result(performance: BasePerformance, seed: int,
         if trials >= 10000:
             total_fes = int(min(limit_fes, 10000.0))
     else:
-        if max_fes:
-            total_fes = max_fes
-        else:
-            total_fes = 1_000_000
+        total_fes = max_fes if max_fes else 1_000_000
         total_time = -1
         trials = 0
         while ((total_time <= 10) or (total_time > limit_time)) \
@@ -125,10 +122,9 @@ def end_result(performance: BasePerformance, seed: int,
         uni: float = -1
         while (uni <= 0) or (uni >= 1):
             uni = abs(random.normal(loc=0, scale=jitter))
-        if random.uniform(low=0, high=1) < qual:
-            best_f = int(round(base - uni * (base - jit_start)))
-        else:
-            best_f = int(round(base + uni * (jit_end - base)))
+        best_f = int(round(base - uni * (base - jit_start))) \
+            if random.uniform(low=0, high=1) < qual else \
+            int(round(base + uni * (jit_end - base)))
 
     # Finally, we need to compute the time we have used.
     fact: float = -1

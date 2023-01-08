@@ -83,15 +83,11 @@ def default_column_namer(col: str) -> str:
     elif stat == KEY_MEDIAN:
         stat = "med"
     elif stat == KEY_MINIMUM:
-        if key in (F_NAME_RAW, F_NAME_SCALED):
-            stat = Lang.translate("best")
-        else:
-            stat = "min"
+        stat = Lang.translate("best") \
+            if key in (F_NAME_RAW, F_NAME_SCALED) else "min"
     elif stat == KEY_MAXIMUM:
-        if key in (F_NAME_RAW, F_NAME_SCALED):
-            stat = Lang.translate("worst")
-        else:
-            stat = "max"
+        stat = Lang.translate("worst") \
+            if key in (F_NAME_RAW, F_NAME_SCALED) else "max"
     else:
         raise ValueError(f"unknown statistic '{stat}' for '{col}'.")
 

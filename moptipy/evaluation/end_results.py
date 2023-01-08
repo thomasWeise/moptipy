@@ -248,10 +248,7 @@ class EndResult(PerRunData):
         object.__setattr__(self, "total_time_millis", total_time_millis)
 
         if goal_f is not None:
-            if goal_f <= -inf:
-                goal_f = None
-            else:
-                goal_f = try_int(goal_f)
+            goal_f = None if goal_f <= -inf else try_int(goal_f)
         object.__setattr__(self, "goal_f", goal_f)
 
         if max_fes is not None:

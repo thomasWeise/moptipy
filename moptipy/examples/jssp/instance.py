@@ -1,17 +1,84 @@
 """
-Here we provide a representation for JSSP instances.
+A representation and collection of Job Shop Scheduling Problem instances.
 
-Our problem instances are actually extensions of
-:class:`~numpy.ndarray`. They present the basic instance data as a
-matrix, where each row corresponds to a job. Each row has twice the
-number of machines elements. In an alternating fashion, we store the
-machines that the job needs to go to as well as the time that it needs
-on the machines, one by one.
-Additionally, the instance name, the number of machines, and the number
-of jobs are provided as attributes (although the latter two can easily
-be inferred from the shape of the matrix).
-Nevertheless, this memory layout and encapsulation as numpy array are
-the most efficient way to store the data I could come up with.
+The Job Shop Scheduling Problem (JSSP) is one of the classical NP-hard
+problems from operations research. Here we provide a class (:class:`Instance`)
+to represent and load their data as well as a collection of common JSSP
+instances from literature.
+
+Our problem instances are actually extensions of :class:`numpy.ndarray`. They
+present the basic instance data as a matrix, where each row corresponds to a
+job. Each row has twice the number of machines elements. In an alternating
+fashion, we store the machines that the job needs to go to as well as the time
+that it needs on the machines, one by one. Additionally, the instance name,
+the number of machines, and the number of jobs are provided as attributes
+(although the latter two can easily be inferred from the shape of the matrix).
+Nevertheless, this memory layout and encapsulation as :class:`~numpy.ndarray`
+are the most efficient way to store the data I could come up with.
+
+You can directly load the most common JSSP instances using
+:meth:`~Instance.from_resource` by providing their mnemonic name. With
+:meth:`~Instance.list_resources`, you can obtain a list of string mnemonic
+names of all JSSP instances available as resource.
+
+This collection of common instances stems from the repositories [1-5], each of
+which containing some or all of them. The instances themselves were originally
+published by different researchers in literature [6-14].
+
+1. John Edward Beasley. OR-Library: Distributing Test Problems by Electronic
+   Mail. *The Journal of the Operational Research Society (JORS).*
+   41:1069-1072. November 1990. doi: https://doi.org/10.1057/jors.1990.166
+2. Jelke Jeroen van Hoorn. *Job Shop Instances and Solutions.* 2015.
+   http://jobshop.jjvh.nl
+3. Jelke Jeroen van Hoorn. The Current State of Bounds on Benchmark Instances
+   of the Job-Shop Scheduling Problem. *Journal of Scheduling.* 21(1):127-128.
+   February 2018. doi: https://doi.org/10.1007/s10951-017-0547-8
+4. Oleg V. Shylo. *Job Shop Scheduling (Personal Homepage).* August 2019.
+   Knoxville, TN, USA. http://optimizizer.com/jobshop.php
+5. Thomas Weise. *jsspInstancesAndResults: Results, Data, and Instances of the
+   Job Shop Scheduling Problem.* Hefei, Anhui, China: Institute of Applied
+   Optimization, School of Computer Science and Artificial Intelligence, Hefei
+   University. 2019. http://github.com/thomasWeise/jsspInstancesAndResults.
+   A GitHub repository with the common benchmark instances for the Job Shop
+   Scheduling Problem as well as results from the literature, both in form of
+   CSV files and R program code to access them.
+6. Henry Fisher and Gerald L. Thompson. Probabilistic Learning Combinations of
+   Local Job-Shop Scheduling Rules. Chapter 3.2 of John F. Muth and
+   Gerald L. Thompson, editors, *Industrial Scheduling,* pages 225-251. 1963.
+   Englewood Cliffs, NJ, USA: Prentice-Hall.
+7. Joseph Adams, Egon Balas, and Daniel Zawack. The Shifting Bottleneck
+   Procedure for Job Shop Scheduling. *Management Science.* 34(3):391-401.
+   1988. doi: https://doi.org/10.1287/mnsc.34.3.391
+8. David Lee Applegate and William John Cook. A Computational Study of the
+   Job-Shop Scheduling Problem. *ORSA Journal on Computing* 3(2):149-156.
+   May 1991. doi: https://doi.org/10.1287/ijoc.3.2.149. The JSSP instances
+   used were generated in Bonn, Germany in 1986.
+9. Robert H. Storer, S. David Wu, and Renzo Vaccari. New Search Spaces for
+   Sequencing Problems with Application to Job Shop Scheduling. *Management
+   Science.* 38(10):1495-1509. 1992.
+   doi: https://doi.org/10.1287/mnsc.38.10.1495
+10. Takeshi Yamada and Ryohei Nakano. A Genetic Algorithm Applicable to
+    Large-Scale Job-Shop Instances. In Reinhard Männer and Bernard
+    Manderick, editors, *Proceedings of Parallel Problem Solving from Nature 2
+    (PPSN II),* September 28-30, 1992, Brussels, Belgium, pages 281-290.
+    Amsterdam, The Netherlands: Elsevier.
+    https://www.researchgate.net/publication/220701684
+11. Stephen R. Lawrence. *Resource Constrained Project Scheduling: An
+    Experimental Investigation of Heuristic Scheduling Techniques
+    (Supplement).* 1984. Pittsburgh, PA, USA: Graduate School of Industrial
+    Administration (GSIA), Carnegie-Mellon University.
+12. Ebru Demirkol, Sanjay V. Mehta, and Reha Uzsoy. Benchmarks for Shop
+    Scheduling Problems. *European Journal of Operational Research (EJOR).*
+    109(1):137-141. August 1998.
+    doi: https://doi.org/10.1016/S0377-2217(97)00019-2
+13. Éric D. Taillard. Benchmarks for Basic Scheduling Problems. *European
+    Journal of Operational Research (EJOR).* 64(2):278-285. January 1993.
+    doi: https://doi.org/10.1016/0377-2217(93)90182-M.
+    http://mistic.heig-vd.ch/taillard/articles.dir/Taillard1993EJOR.pdf
+14. André Henning. *Praktische Job-Shop Scheduling-Probleme.* Jena, Thüringen,
+    Germany: Friedrich-Schiller-Universität Jena, Fakultät für Mathematik und
+    Informatik. August 2022. https://www.db-thueringen.de/servlets/MCRFileNo\
+deServlet/dbt_derivate_00001373/Dissertation.pdf
 """
 from importlib import resources  # nosem
 from typing import Final
@@ -382,10 +449,7 @@ class Instance(Component, np.ndarray):
             if state == 1:
                 if line.startswith("instance "):
                     inst = line[9:].strip()
-                    if inst == name:
-                        state = 2
-                    else:
-                        state = 4
+                    state = 2 if inst == name else 4
                 continue
             if state == 2:
                 if line.startswith("+++"):

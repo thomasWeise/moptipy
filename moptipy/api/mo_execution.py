@@ -316,28 +316,21 @@ class MOExecution(Execution):
             else (1 if dim == 1 else (size * 4))
         algorithm: Final[Algorithm] = check_algorithm(self._algorithm)
 
-        process: _MOProcessNoSS
-        if search_space is None:
-            if log_improvements or log_all_fes:
-                process = _MOProcessNoSSLog(
-                    solution_space, objective, algorithm, pruner, size, limit,
-                    log_file, rand_seed, max_fes, max_time_millis, goal_f,
-                    log_all_fes)
-            else:
-                process = _MOProcessNoSS(
-                    solution_space, objective, algorithm, pruner, size, limit,
-                    log_file, rand_seed, max_fes, max_time_millis, goal_f)
-        else:
-            if log_improvements or log_all_fes:
-                process = _MOProcessSSLog(
-                    solution_space, objective, algorithm, pruner, size, limit,
-                    log_file, search_space, encoding, rand_seed, max_fes,
-                    max_time_millis, goal_f, log_all_fes)
-            else:
-                process = _MOProcessSS(
-                    solution_space, objective, algorithm, pruner, size, limit,
-                    log_file, search_space, encoding, rand_seed, max_fes,
-                    max_time_millis, goal_f)
+        process: Final[_MOProcessNoSS] = (_MOProcessNoSSLog(
+            solution_space, objective, algorithm, pruner, size, limit,
+            log_file, rand_seed, max_fes, max_time_millis, goal_f,
+            log_all_fes) if log_improvements or log_all_fes else
+            _MOProcessNoSS(solution_space, objective, algorithm, pruner,
+                           size, limit, log_file, rand_seed, max_fes,
+                           max_time_millis, goal_f)) \
+            if search_space is None else (_MOProcessSSLog(
+                solution_space, objective, algorithm, pruner, size, limit,
+                log_file, search_space, encoding, rand_seed, max_fes,
+                max_time_millis, goal_f,
+                log_all_fes) if log_improvements or log_all_fes else
+            _MOProcessSS(solution_space, objective, algorithm, pruner, size,
+                         limit, log_file, search_space, encoding, rand_seed,
+                         max_fes, max_time_millis, goal_f))
 
         try:
             # noinspection PyProtectedMember
