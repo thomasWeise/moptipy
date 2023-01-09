@@ -45,24 +45,25 @@
 
 ## 1. Introduction
 
-This will be a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10.
-The framework, [algorithm implementations](#41-implemented-algorithms), and the library design is intended to accompany the university course book [Optimization Algorithms](https://thomasweise.github.io/oa/) which I am currently working on.
-They are all structured from an educational and learning perspective, but still with performance, ease-of-use, and generality in mind.
+`moptipy` is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10.
+The framework, [algorithm implementations](#41-implemented-algorithms), and the library design is accompanied by the book [Optimization Algorithms](https://thomasweise.github.io/oa/).
+The library is structured with performance, ease-of-use, and generality in mind, but also based on an educational and research perspective.
+It is therefore (hopefully) suitable for practical industrial applications, scientific research, and for students who are just entering the field of metaheuristic optimization.
 
 Metaheuristic optimization algorithms are methods for solving hard problems.
-`moptipy` provides an API, several algorithm implementations, as well as experiment execution and evaluation facilities for metaheuristics.
+`moptipy` provides an [API](https://thomasweise.github.io/moptipy/moptipy.api.html), several [algorithm implementations](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms), as well as [experiment execution](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) and [evaluation](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation) facilities for metaheuristics.
 
 A metaheuristic algorithm can be a black-box method, which can solve problems without deeper knowledge about their nature.
-Such a black-box algorithm only requires methods to create and modify points in the search space and to evaluate their quality.
+Such a black-box algorithm only requires methods to [create](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op0) and [modify](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op1) points in the [search space](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space) and to [evaluate their quality](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
 With these operations, it will try to step-by-step discover better points.
 Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
-Such algorithms allow us to plug in almost arbitrary search operators, search spaces, and objective functions.
+Such algorithms allow us to plug in almost arbitrary [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators), [search spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space), and [objective functions](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
 But it is also possible to develop algorithms that are tailored to specified problems.
 For example, one could either design the search operators and the optimization algorithm as a unit.
 Then, the algorithm could change its way to sample new points based on the information it gathers.
 Or one could design an algorithm for a specific search space, say, the [`n`-dimensional real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace), which could then make use of the special features of this space, such as arithmetics and geometric relationships of the points within it.
 Or one could design an algorithm for a specific problem, making use of specific features of the objective function.
-Finally, there are multi-objective optimization problems where multiple, potentially conflicting, criteria need to be optimized at once.
+Finally, there are [multi-objective optimization problems](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.mo_problem) where multiple, potentially conflicting, criteria need to be optimized at once.
 
 Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
@@ -91,7 +92,7 @@ If you want to install the latest source code version from GitHub (which may not
 
 ```shell
 git clone ssh://git@github.com/thomasWeise/moptipy
-git install moptipy
+pip install moptipy
 ```
 
 This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.

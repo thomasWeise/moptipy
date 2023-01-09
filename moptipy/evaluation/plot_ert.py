@@ -1,5 +1,5 @@
 """
-Plot a set of ERT objects into one figure.
+Plot a set of :class:`~moptipy.evaluation.ert.ERT` objects into one figure.
 
 The (empirically estimated) Expected Running Time (ERT, see
 :mod:`~moptipy.evaluation.ert`) is a function that tries to give an estimate
