@@ -29,4 +29,4 @@ with TempDir.create() as td:
         end_results,  # the list of end results to store
         td.resolve_inside("end_results.txt"))  # path to the file to generate
     print(er_csv.read_all_str())  # read generated file as string and print it
-# When leaving "while", the temp dir will be deleted
+# When leaving "while", the temp directory will be deleted

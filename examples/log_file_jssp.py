@@ -34,4 +34,4 @@ with TempDir.create() as td:  # create temp directory
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
     print(file.read_all_str())  # read file into string and print contents
 
-# When leaving "while", the temp dir will be deleted
+# When leaving "while", the temp directory will be deleted

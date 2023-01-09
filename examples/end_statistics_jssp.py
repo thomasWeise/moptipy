@@ -33,4 +33,4 @@ with TempDir.create() as td:
     es_csv = EndStatistics.to_csv(  # store the statistics to a CSV file
         end_stats, td.resolve_inside("end_stats.txt"))
     print(es_csv.read_all_str())  # read and print the file
-# When leaving "while", the temp dir will be deleted
+# When leaving "while", the temp directory will be deleted

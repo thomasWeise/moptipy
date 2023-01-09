@@ -1,5 +1,5 @@
 """
-Approximate the :class:`~moptipy.evaluation.ecdf.ECDF` to reach certain goals.
+Approximate the :class:`~moptipy.evaluation.ecdf.Ecdf` to reach certain goals.
 
 The empirical cumulative distribution function (ECDF) for short illustrates
 the fraction of runs that have reached a certain goal over time. Let's say

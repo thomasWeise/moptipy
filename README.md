@@ -1083,7 +1083,7 @@ with TempDir.create() as td:  # create temp directory
     print(td.resolve_inside(  # so we know algorithm, instance, and seed
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
           .read_all_str())  # read file into string (which then gets printed)
-# When leaving "while", the temp dir will be deleted
+# When leaving "while", the temp directory will be deleted
 ```
 
 The example log file printed by the above code will then look something like this:
@@ -1504,7 +1504,7 @@ with TempDir.create() as td:
         end_results,  # the list of end results to store
         td.resolve_inside("end_results.txt"))  # path to the file to generate
     print(er_csv.read_all_str())  # read generated file as string and print it
-# When leaving "while", the temp dir will be deleted
+# When leaving "while", the temp directory will be deleted
 ```
 
 This will yield something like the following output:
@@ -1631,7 +1631,7 @@ with TempDir.create() as td:
     es_csv = EndStatistics.to_csv(  # store the statistics to a CSV file
         end_stats, td.resolve_inside("end_stats.txt"))
     print(es_csv.read_all_str())  # read and print the file
-# When leaving "while", the temp dir will be deleted
+# When leaving "while", the temp directory will be deleted
 ```
 
 We will get something like the following output:
