@@ -109,7 +109,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # all of them in the web browser.
     files = save_figure(fig=fig,  # store fig to a file
                         file_name="ertecdf_over_log_fes",  # base name
-                        dir_name=td,  # store graphic in temp dir
+                        dir_name=td,  # store graphic in temporary directory
                         formats=("svg", "png", "pdf"))  # file types
     del fig  # dispose figure
 
@@ -121,7 +121,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # This time, we save the image only as svg.
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="ertecdf_over_fes",  # base name
-                             dir_name=td,  # store graphic in temp dir
+                             dir_name=td,  # store graphic in temp directory
                              formats="svg"))  # file type: this time only svg
     del fig  # dispose figure
 

@@ -27,7 +27,7 @@ def test_all_examples_from_readme_md() -> None:
     wd: Final[str] = os.getcwd()  # get current working directory
     # We run all the example codes in a temporary directory.
     with TempDir.create() as td:  # create temporary working directory
-        logger(f"using temp dir '{td}'.")
+        logger(f"using temp directory '{td}'.")
         os.chdir(td)  # set it as working directory
         while True:
             # First, find the starting mark.

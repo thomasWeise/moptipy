@@ -110,7 +110,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # Save the image only as svg and png.
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="ert_over_onemax_n",  # base name
-                             dir_name=td,  # store graphic in temp dir
+                             dir_name=td,  # store graphic in temp directory
                              formats="svg"))  # file types: only svg
     del fig  # dispose figure
 

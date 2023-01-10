@@ -136,7 +136,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # browser.
     files = save_figure(fig=fig,  # store fig to a file
                         file_name="end_results_scaled",  # base name
-                        dir_name=td,  # store graphic in temp dir
+                        dir_name=td,  # store graphic in temporary directory
                         formats="svg")  # file type = svg
     del fig  # dispose figure
 
@@ -146,7 +146,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     plot_end_results(end_results=data, figure=fig, dimension="plainF")
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="end_results",  # base name
-                             dir_name=td,  # store graphic in temp dir
+                             dir_name=td,  # store graphic in temp directory
                              formats="svg"))  # file type = svg
     del fig  # dispose figure
 
@@ -156,7 +156,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                      dimension="lastImprovementFE")
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="last_improv_fe",  # base name
-                             dir_name=td,  # store graphic in temp dir
+                             dir_name=td,  # store graphic in temp directory
                              formats="svg"))  # file type = svg
     del fig  # dispose figure
 

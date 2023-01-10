@@ -214,7 +214,7 @@ install: create_distribution
 test_tools: install
 	echo "$(NOW): Testing all tools." &&\
 	export tempDir=`mktemp -d` &&\
-	echo "$(NOW): Using temp dir '$$tempDir'." &&\
+	echo "$(NOW): Using temporary directory '$$tempDir'." &&\
 	cd "$$tempDir" &&\
 	echo "$(NOW): Downloading dataset from https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz." &&\
 	(curl -s -o "jssp_hc_swap2.tar.xz" "https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz" || wget "https://thomasweise.github.io/oa_data/jssp/jssp_hc_swap2.tar.xz")&&\

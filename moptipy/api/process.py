@@ -272,11 +272,13 @@ class Process(Space, Objective, AbstractContextManager):
         """
         Get a copy of the current best point in the search space.
 
-        This always corresponds to the best-so-far solution, i.e., the
-        best solution that you have passed to :meth:`evaluate` or
-        :meth:`register` so far. It is *NOT* the best possible objective
-        value for the optimization problem. It is the best solution that
-        the process has seen *so far*, the current best solution.
+        This always corresponds to the point in the search space encoding the
+        best-so-far solution, i.e., the best point in the search space that
+        you have passed to :meth:`evaluate` or :meth:`register` so far.
+        It is *NOT* the best global optimum for the optimization problem. It
+        corresponds to the best solution that the process has seen *so far*,
+        the current best solution.
+
         Even if the optimization algorithm using this process does not
         preserve this solution in special variable and has already lost it
         again, this method will still return it. The optimization process
@@ -290,6 +292,9 @@ class Process(Space, Objective, AbstractContextManager):
         You should only call this method if you are either sure that you
         have invoked :meth:`evaluate` before :meth:`register` of if you called
         :meth:`has_best` before and it returned `True`.
+
+        For understanding the relationship between the search space and the
+        solution space, see module :mod:`~moptipy.api.encoding`.
 
         :param x: the destination data structure to be overwritten
 
@@ -305,9 +310,9 @@ class Process(Space, Objective, AbstractContextManager):
 
         This always corresponds to the best-so-far solution, i.e., the
         best solution that you have passed to :meth:`evaluate` or
-        :meth:`register` so far. It is *NOT* the best possible objective
-        value for the optimization problem. It is the best solution that
-        the process has seen *so far*, the current best solution.
+        :meth:`register` so far. It is *NOT* the global optimum for the
+        optimization problem. It is the best solution that the process has
+        seen *so far*, the current best solution.
 
         You should only call this method if you are either sure that you
         have invoked meth:`evaluate` before :meth:`register` of if you called

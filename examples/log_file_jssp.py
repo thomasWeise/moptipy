@@ -9,7 +9,7 @@ chart that was the result of the experiment from the log file and print it,
 too - just for fun.
 """
 from moptipy.algorithms.so.rls import RLS  # the algorithm we use
-from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
+from moptipy.examples.jssp.experiment import run_experiment  # the runner
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # temp directory tool
@@ -22,7 +22,7 @@ with TempDir.create() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.
     # As example domain, we use the job shop scheduling problem (JSSP).
     run_experiment(
-        base_dir=td,  # working directory = temp dir
+        base_dir=td,  # working directory = temporary directory
         algorithms=[  # the set of algorithms to use: we use only 1
             # an algorithm is created via a lambda
             lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],

@@ -18,7 +18,7 @@ def test_examples_in_examples_directory() -> None:
 
     wd: Final[str] = os.getcwd()  # get current working directory
     with TempDir.create() as td:  # create temporary working directory
-        logger(f"using temp dir '{td}'.")
+        logger(f"using temp directory '{td}'.")
         os.chdir(td)  # set it as working directory
         files: list[str] = os.listdir(examples_dir)
         logger(f"got {len(files)} potential files")

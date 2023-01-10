@@ -1059,7 +1059,7 @@ This code is also available in file [examples/log_file_jssp.py](https://thomaswe
 
 ```python
 from moptipy.algorithms.so.rls import RLS  # the algorithm we use
-from moptipy.examples.jssp.experiment import run_experiment  # the JSSP runner
+from moptipy.examples.jssp.experiment import run_experiment  # the runner
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 from moptipy.utils.temp import TempDir  # temp directory tool
@@ -1072,7 +1072,7 @@ with TempDir.create() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.
     # As example domain, we use the job shop scheduling problem (JSSP).
     run_experiment(
-        base_dir=td,  # working directory = temp dir
+        base_dir=td,  # working directory = temporary directory
         algorithms=[  # the set of algorithms to use: we use only 1
             # an algorithm is created via a lambda
             lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],
@@ -1183,7 +1183,9 @@ END_RESULT_X
 
 #### 5.1.4. Example Log File for Multi-Objective Optimization
 
-You can execute the following Python code to obtain an example log file.
+You can execute the following Python code to obtain an example log file for [multi-objective optimization](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.mo_problem).
+Under `moptipy`, every multi-objective problem also specifies a default scalarization, making it and its log files compatible with single-objective optimization.
+The optimization algorithms can, however, perform Pareto optimization, which is fully respected and whose archive of non-dominated solutions are stored in the log files.
 This code is also available in file [examples/mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits.html):
 
 ```python

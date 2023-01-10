@@ -154,7 +154,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # browser.
     files = save_figure(fig=fig,  # store fig to a file
                         file_name="progress_single_runs_f_over_log_fes",
-                        dir_name=td,  # store graphic in temp dir
+                        dir_name=td,  # store graphic in temporary directory
                         formats="svg")  # file type = svg
     del fig  # dispose figure
 
@@ -170,7 +170,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     files.extend(save_figure(
         fig=fig,  # plot into figure fig
         file_name="progress_single_runs_f_over_log_fes_onemax",
-        dir_name=td,  # store file in temp dir
+        dir_name=td,  # store file in temporary directory
         formats="svg"))  # again as svg
     del fig  # dispose fig
 
