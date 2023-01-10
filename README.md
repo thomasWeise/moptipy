@@ -45,7 +45,7 @@
 
 ## 1. Introduction
 
-`moptipy` is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10.
+[`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10.
 The framework, [algorithm implementations](#41-implemented-algorithms), and the library design is accompanied by the book [Optimization Algorithms](https://thomasweise.github.io/oa/).
 The library is structured with performance, ease-of-use, and generality in mind, but also based on an educational and research perspective.
 It is therefore (hopefully) suitable for practical industrial applications, scientific research, and for students who are just entering the field of metaheuristic optimization.
@@ -65,11 +65,12 @@ Or one could design an algorithm for a specific search space, say, the [`n`-dime
 Or one could design an algorithm for a specific problem, making use of specific features of the objective function.
 Finally, there are [multi-objective optimization problems](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.mo_problem) where multiple, potentially conflicting, criteria need to be optimized at once.
 
-Within our `moptipy` framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
+Within our [`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
 What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
 The `moptipy` API now supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
+You can also take a look at our [`moptipy` flyer](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf).
 
 
 ## 2. Installation

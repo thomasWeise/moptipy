@@ -62,11 +62,6 @@ def __check(url: str, valid_urls: dict[str, str | None],
         return
     if url.startswith("mailto:"):
         return
-    # start temporary fix for offline liacs server
-    # this will be removed later
-    if url.startswith("https://iohanalyzer.liacs.nl"):
-        return
-    # end temporary fix for offline liacs server
     if not url.startswith("http"):
         raise ValueError(f"invalid url '{url}'")
 
