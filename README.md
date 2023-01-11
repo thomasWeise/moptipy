@@ -2114,7 +2114,7 @@ In other words, if you have the complete code of a `moptipy` compliant experimen
 
 Experiments can be parallelized based on *runs*, where one run is the application of one algorithm to one problem instance.
 While each run is still executed sequentially, multiple runs can be executed in parallel.
-For executing experiments, the method [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) from module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) is used.
+For executing experiments, the method [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) from module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) is used, as explained in [Section 3.2](#32-how-to-run-a-series-of-experiments).
 
 It creates the log file and folder structure discussed in [Section 5.1.1.](#511-file-names-and-folder-structure) in a replicable way.
 This means that if you run the method twice, it would create exactly the same experiment with exactly the same file and folder names.
