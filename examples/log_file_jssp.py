@@ -27,8 +27,7 @@ with TempDir.create() as td:  # create temp directory
             # an algorithm is created via a lambda
             lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],
         instances=("demo",),  # use the demo JSSP instance
-        n_runs=1,  # perform exactly one run
-        n_threads=1)  # use exactly one thread
+        n_runs=1)  # perform exactly one run
     # The random seed is automatically generated based on the instance name.
     file = td.resolve_inside(  # so we know algorithm, instance, and seed
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")

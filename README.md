@@ -37,6 +37,7 @@
 - [More Features](#8-more-features)
   - [Unit Tests and Static Analysis](#81-unit-tests-and-static-analysis)
   - [Reproducibility](#82-reproducibility)
+  - [Parallel and Distributed Experiments](#83-parallel-and-distributed-experiments)
 - [Uselful Links and References](#9-useful-links-and-references)
 - [Works using moptipy](#10-works-using-moptipy)
 - [License](#11-license)
@@ -255,16 +256,22 @@ The only things that need to be left blank are the log file path and random seed
 You will basically provide a sequence of [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)s, i.e., functions or [lambda](https://docs.python.org/3/reference/expressions.html#lambda)s, each of which will return one "instance."
 Additionally, you provide a sequence of callables (functions or lambdas), each of which receiving one "instance" as input and should return an almost fully configured [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution).
 You also provide the number of runs to be executed per "setup" * "instance" combination and a base directory path identifying the directory where one log file should be written for each run.
-Additionally, you can specify the number of parallel processes to use, unless you want the system to automatically decide this.
+
+`moptipy` also supports [parallel and distributed experiments](#83-parallel-and-distributed-experiments). 
+Under Linux, you can specify the number `n_threads` of parallel processes to use, unless you want the system to automatically decide this.
 (*Parallelization currently only works under Linux.*
 If you have Windows or Mac, you can just start the program several times independently in parallel to achieve a similar effect.)
+This is discussed [here](#83-parallel-and-distributed-experiments).
+
 All of this is passed to the function [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) in module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment).
 
 This function will do all the work and generate a [folder structure](#511-file-names-and-folder-structure) of log files.
 It will spawn the right number of processes, use your functions to generate "instances" and "setups," and execute them.
 It will also [automatically determine](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str) the random seed for each run.
-The seed sequence is determined from the instance name using a [deterministic procedure](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str).
-This means that the random seed sequence per instance will be the same for algorithm setups, which means that different algorithms would still start with the same solutions if they sample the first solution in the same way.
+The seed sequence is determined from the instance name using a [deterministic procedure](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str) and therefore [reproducible](#82-reproducibility).
+The random seed sequence per instance will be the same for all algorithm setups.
+This means that different algorithms would still start with the same solutions if they sample the first solution in the same way.
+
 The system will even do "warmup" runs, i.e., very short dummy runs with the algorithms that are just used to make sure that the interpreter has seen all code before actually doing the experiments.
 This avoids situations where the first actual run is slower than the others due to additional interpreter action, i.e., it reduces the bias of time measurements.
 
@@ -2103,6 +2110,30 @@ It also means that if you run the same experiment program twice, the same random
 In other words, if you have the complete code of a `moptipy` compliant experiment, it should (re)produce the exactly same runs with the exactly same results.
 
 
+### 8.3. Parallel and Distributed Experiments
+
+Experiments can be parallelized based on *runs*, where one run is the application of one algorithm to one problem instance.
+While each run is still executed sequentially, multiple runs can be executed in parallel.
+For executing experiments, the method [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) from module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) is used.
+
+It creates the log file and folder structure discussed in [Section 5.1.1.](#511-file-names-and-folder-structure) in a replicable way.
+This means that if you run the method twice, it would create exactly the same experiment with exactly the same file and folder names.
+Since the file and folder structure is repeatable, `run_experiment` will simply skip all runs that are associated with log files which already exist.
+Before doing a run, the system will create the corresponding (empty) log file.
+This means that you could launch the experiment program twice in parallel.
+Each process would then do about half of the runs, because it will skip the runs for which the log files have been created by the other process.
+(It also means that if your experiment crashes, you can simply delete all zero-sized files and start again to continue it.)
+
+Under Linux, [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) supports the parameter `n_threads`.
+Here you can set the number of processes to launch.
+It will take on a reasonable system-dependent default values based on your CPU and automatically parallelize the runs.
+On all other operating systems, `n_threads=1` by default.
+There, you can simply start the program running the experiment multiple times.
+
+You can achieve distributed experiment executing by simply [sharing the folder](https://www.technewstoday.com/how-to-share-a-folder-or-file-over-a-network) for the log files between the machines.
+If you use a shared root folder for experiments and launch the same experiment on multiple machines, they will automatically distribute the work load amongst each other using this very (and therefore very robust) simple system.
+
+
 ## 9. Useful Links and References
 
 ### 9.1. Links regarding the `moptipy` project
@@ -2161,10 +2192,11 @@ Here we provide a list of other Python software packages that can be used for so
 
 ## 11. License
 
+[`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
+
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#12-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
-
-[`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
+If a license with special conditions is required for a project, this can be discussed with the copyright holder.
 
 Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
 

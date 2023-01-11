@@ -148,8 +148,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                    setups=[make_rls,  # provide RLS run creator
                            make_hill_climber,  # provide hill climber
                            make_random_sampling],  # provide random sampling
-                   n_runs=7,  # we will execute 31 runs per setup
-                   n_threads=1)  # we use only a single thread here
+                   n_runs=7)  # we will execute 31 runs per setup
     # Once we arrived here, the experiment with 3*3*7=63 runs has completed.
 
     data = []  # we will load the data into this list

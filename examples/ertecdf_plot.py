@@ -79,8 +79,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_rls],  # provide RLS run creator
-                   n_runs=21,  # we will execute 21 runs per setup
-                   n_threads=1)  # we use only a single thread here
+                   n_runs=21)  # we will execute 21 runs per setup
     # Once we arrived here, the experiment with 11*21 = 231 runs has completed.
 
     data = []  # we will load the data into this list

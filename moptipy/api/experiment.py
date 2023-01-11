@@ -18,6 +18,7 @@ import copy
 import gc
 import multiprocessing as mp
 import os.path
+import platform
 from contextlib import AbstractContextManager, nullcontext
 from math import ceil
 from typing import Any, Callable, Final, Iterable, Sequence, cast
@@ -155,8 +156,12 @@ __CPU_PHYSICAL_CORES: Final[int] = psutil.cpu_count(logical=False)
 #: the logical cores per physical core
 __CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
     max(1, int(ceil(__CPU_LOGICAL_CORES / __CPU_PHYSICAL_CORES)))
-#: The default number of threads to be used
-DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1)
+#: The default number of threads to be used.
+#: This will be the number of physical cores - 1 under Linux.
+#: In other words, it will be different on different machines!
+#: It is 1 under all other operating systems.
+DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1) \
+    if "Linux" in platform.system() else 1
 
 
 def __waiting_run_experiment(base_dir: Path,
@@ -219,7 +224,12 @@ def run_experiment(base_dir: str,
         :class:`moptipy.api.execution.Execution` as output
     :param n_runs: the number of runs per algorithm-instance combination
     :param n_threads: the number of parallel threads of execution to use.
-        By default, we will use the number of physical cores - 1 processes.
+        This parameter only works under Linux! It should be set to 1 under all
+        other operating systems. Under Linux, by default, we will use the
+        number of physical cores - 1 processes.
+        The default value for `n_threads` is computed in
+        :py:const:`~moptipy.api.experiment.DEFAULT_N_THREADS`, which will be
+        different for different machines(!).
         We will try to distribute the threads over different logical and
         physical cores to minimize their interactions. If n_threads is less
         or equal the number of physical cores, then multiple logical cores
