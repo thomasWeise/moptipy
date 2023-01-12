@@ -120,7 +120,8 @@ def test_process_noss_log() -> None:
             assert all(x == BEST_F)
         assert isfile(path)
         assert getsize(path) > 10
-        result = open(path).read().splitlines()
+        with open(path) as file:
+            result = file.read().splitlines()
         assert len(result) > 5
 
 
@@ -145,7 +146,8 @@ def test_process_noss_timed_log() -> None:
             assert all(x == lll)
         assert isfile(path)
         assert getsize(path) > 10
-        result = open(path).read().splitlines()
+        with open(path) as file:
+            result = file.read().splitlines()
         assert len(result) > 5
 
 

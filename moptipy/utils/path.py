@@ -187,7 +187,7 @@ class Path(str):
 
         :return: the file open for reading
         """
-        return cast(TextIOBase, open(
+        return cast(TextIOBase, open(  # noqa
             self, encoding=_get_text_encoding(self),
             errors="strict"))
 
@@ -227,7 +227,7 @@ class Path(str):
 
         :return: the text io wrapper for writing
         """
-        return cast(TextIOBase, open(
+        return cast(TextIOBase, open(  # noqa
             self, mode="w", encoding="utf-8", errors="strict"))
 
     def write_all(self, contents: str | Iterable[str]) -> None:
