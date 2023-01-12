@@ -62,14 +62,14 @@ They allow us to plug in almost arbitrary [search operators](https://thomasweise
 But it is also possible to develop algorithms that are tailored to specified problems.
 For example, one could either design the search operators and the optimization algorithm as a unit.
 Then, the algorithm could change its way to sample new points based on the information it gathers.
-Or one could design an algorithm for a specific search space, say, the [`n`-dimensional real numbers](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html), which could then make use of the special features of this space, such as arithmetics and geometric relationships of the points within it.
+Or one could design an algorithm for a specific search space, say, the [`n`-dimensional real numbers](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html), which could then make use of the special features of this space, such as arithmetic and geometric relationships of the points within it.
 Or one could design an algorithm for a specific problem, making use of specific features of the objective function.
 Finally, there are [multi-objective optimization problems](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.mo_problem) where multiple, potentially conflicting, criteria need to be optimized at once.
 
 Within our [`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) framework, you can implement algorithms of all of these types under a unified [API](https://thomasweise.github.io/moptipy/moptipy.api.html).
 Our package already provides a growing set of [algorithms](#41-implemented-algorithms) and adaptations to different [search spaces](#42-implemented-search-spaces-and-operators) as well as a set of well-known [optimization problems](#43-implemented-problems).
-What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can gather detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
-The `moptipy` API now supports both single-objective and multi-objective optimization.
+What `moptipy` *also* offers is an [experiment execution facility](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) that can collect detailed [log information](#5-data-formats) and [evaluate](#6-evaluating-experiments) the gathered results in a [*reproducible* fashion](#82-reproducibility).
+The `moptipy` API supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 You can also take a look at our [`moptipy` flyer](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf).
 

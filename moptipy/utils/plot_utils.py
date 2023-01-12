@@ -6,6 +6,7 @@ from math import isfinite, sqrt
 from typing import Callable, Final, Iterable, Sequence, cast
 
 import matplotlib.pyplot as plt  # type: ignore
+from matplotlib import rcParams  # type: ignore
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.backend_bases import RendererBase  # type: ignore
@@ -17,7 +18,15 @@ from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
 from moptipy.utils.types import type_error, type_name_of
 
-#: the golden ratio
+# Ensure that matplotlib uses Type 1 fonts.
+# Some scientific conferences, such as GECCO organized by ACM, require this.
+# In the language utilities :meth:`~mopitpy.utils.lang.Lang.font`, we do
+# return acceptable fonts anyway, but it may be better to set this here
+# explicitly to avoid any problem.
+rcParams["pdf.fonttype"] = 42
+rcParams["ps.fonttype"] = 42
+
+#: The golden ratio constant with value 1.618033988749895.
 __GOLDEN_RATIO: Final[float] = 0.5 + (0.5 * sqrt(5))
 
 
