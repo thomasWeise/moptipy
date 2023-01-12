@@ -46,8 +46,8 @@
 
 ## 1. Introduction
 
-[`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10.
-The framework, [algorithm implementations](#41-implemented-algorithms), and the library design is accompanied by the book [Optimization Algorithms](https://thomasweise.github.io/oa/).
+[`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10 that also offers an environment for replicable experiments.
+The framework, [algorithm implementations](#41-implemented-algorithms), and the library design are accompanied by the book [Optimization Algorithms](https://thomasweise.github.io/oa/).
 The library is structured with performance, ease-of-use, and generality in mind, but also based on an educational and research perspective.
 It is therefore (hopefully) suitable for practical industrial applications, scientific research, and for students who are just entering the field of metaheuristic optimization.
 
@@ -56,13 +56,13 @@ Metaheuristic optimization algorithms are methods for solving hard problems.
 
 A metaheuristic algorithm can be a black-box method, which can solve problems without deeper knowledge about their nature.
 Such a black-box algorithm only requires methods to [create](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op0) and [modify](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op1) points in the [search space](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space) and to [evaluate their quality](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
-With these operations, it will try to step-by-step discover better points.
+With these operations, it will try to discover better solutions step-by-step.
 Black-box metaheuristics are very general and can be adapted to almost any optimization problem.
-Such algorithms allow us to plug in almost arbitrary [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators), [search spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space), and [objective functions](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
+They allow us to plug in almost arbitrary [search operators](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.operators), [search spaces](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space), and [objective functions](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
 But it is also possible to develop algorithms that are tailored to specified problems.
 For example, one could either design the search operators and the optimization algorithm as a unit.
 Then, the algorithm could change its way to sample new points based on the information it gathers.
-Or one could design an algorithm for a specific search space, say, the [`n`-dimensional real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace), which could then make use of the special features of this space, such as arithmetics and geometric relationships of the points within it.
+Or one could design an algorithm for a specific search space, say, the [`n`-dimensional real numbers](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html), which could then make use of the special features of this space, such as arithmetics and geometric relationships of the points within it.
 Or one could design an algorithm for a specific problem, making use of specific features of the objective function.
 Finally, there are [multi-objective optimization problems](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.mo_problem) where multiple, potentially conflicting, criteria need to be optimized at once.
 
@@ -2196,7 +2196,7 @@ Here we provide a list of other Python software packages that can be used for so
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#12-contact)).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
-If a license with special conditions is required for a project, this can be discussed with the copyright holder.
+Terms for a special-purpose licenses can be discussed if need be, see [contact below](#12-contact).
 
 Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
 
