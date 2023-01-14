@@ -1,3 +1,24 @@
+#
+# Dependencies Required to Use `moptipy`
+#
+# In this file we list all the libraries that are required to use `moptipy`.
+# You must install them before using `moptipy`.
+# If you install `moptipy` via pip, i.e., do `pip install moptipy`, then this
+# is done automatically for you. Otherwise, you could do
+# `pip install --no-input --timeout 360 --retries 100 -r requirements.txt`
+# with a text file `requirements.txt` that has the exact same contents as this
+# file here.
+#
+# `moptipy` is available at https://thomasweise.github.io/moptipy.
+# This file is available at https://github.com/thomasWeise/moptipy.
+#
+# Below, we list each required library and specify the reason why it is
+# needed. Notice that these libraries may, in turn, depend on other libraries.
+# We cannot maintain a full list of these recursive dependencies.
+# Here we only list the top-level dependencies that are actually used by
+# `moptipy` directly.
+#
+
 # We will need numpy for several reasons:
 #  - it provides the random number generators
 #  - it provides efficient arrays as backends of vector-based search spaces
@@ -6,19 +27,22 @@ numpy >= 1.23.5
 # numba provides JIT compilers useful making vector/numpy operations efficient
 numba >= 0.56.4
 
-# matplotlib is used to create plots in the evaluation procedures
-matplotlib >= 3.6.2
+# matplotlib is used to create plots in the evaluation procedures.
+matplotlib >= 3.6.3
 
-# getting information about the system configuration to enrich the log files
+# psutil is used for getting information about the system configuration which
+# is stored in the log files (see moptipy.utils.sys_info.py).
 psutil >= 5.9.4
 
-# we need this to obtain some clusters of JSSP instances for our experiments
+# scikit-learn is used to obtain some clusters of JSSP instances for our
+# experiments.
 scikit-learn >= 1.2.0
 
-# we need scipy for statistical tests *and* for importing some of the wrapped
-# numerical optimization methods
-scipy >= 1.9.3
+# scipy provides statistical tests *and* numerical optimization methods that
+# we wrap into our API.
+scipy >= 1.10.0
 
-# some numerical optimization methods:
-cmaes >= 0.9.0  # for, well, CMA-ES
+# These are packages that provide more numerical optimization methods that we
+# wrap into our API as well.
+cmaes >= 0.9.1  # for, well, CMA-ES
 pdfo >= 1.2  # for BOBYQA

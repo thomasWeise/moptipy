@@ -132,11 +132,14 @@ create_documentation: static_analysis test
 			echo "$(NOW): Empty module '$$f'?"; \
 		else \
 			echo "$(NOW): Now pygmentizing example '$$f'." &&\
-			{ pygmentize -f html -l python -O full -O style=default -o docs/build/"$${f%.py}.html" "$$f" || exit 1; };\
+			{ pygmentize -f html -l python3 -O full -O style=default -o docs/build/"$${f%.py}.html" "$$f" || exit 1; };\
 		fi \
 	done &&\
-	echo "$(NOW): Finished pygmentizing all examples, now copying LICENSE." &&\
+	echo "$(NOW): Finished pygmentizing all examples, now copying LICENSE and other files." &&\
 	pygmentize -f html -l text -O full -O style=default -o docs/build/LICENSE.html LICENSE &&\
+	pygmentize -f html -l text -O full -O style=default -o docs/build/requirements.html requirements.txt &&\
+	pygmentize -f html -l text -O full -O style=default -o docs/build/requirements-dev.html requirements-dev.txt &&\
+	pygmentize -f html -l make -O full -O style=default -o docs/build/Makefile.html Makefile &&\
 	echo "$(NOW): Finished copying LICENSE, now creating coverage report." &&\
 	mkdir -p docs/build/tc &&\
 	coverage html -d docs/build/tc --include="moptipy/*" &&\
@@ -156,12 +159,9 @@ create_documentation: static_analysis test
 	find -type f -name "*.html" -not -path "./tc/*" -exec python3 -c "print('{}');import minify_html;f=open('{}','r');s=f.read();f.close();s=minify_html.minify(s,do_not_minify_doctype=True,ensure_spec_compliant_unquoted_attribute_values=True,keep_html_and_head_opening_tags=False,minify_css=True,minify_js=True,remove_bangs=True,remove_processing_instructions=True);f=open('{}','w');f.write(s);f.close()" \; &&\
 	cd "../../" &&\
 	echo "$(NOW): Done creating coverage data. Now creating .nojekyll files." &&\
-	touch "docs/build/.nojekyll" &&\
-	touch "docs/build/.doctrees/.nojekyll" &&\
-	touch "docs/build/_modules/.nojekyll" &&\
-	touch "docs/build/_static/.nojekyll" &&\
-	touch "docs/build/tc/.nojekyll" &&\
-	touch "docs/build/examples/.nojekyll" &&\
+	cd "docs/build/" &&\
+	find -type d -exec touch "{}/.nojekyll" \;
+	cd "../../" &&\
 	echo "$(NOW): Done creating the documentation."
 
 # Create different distribution formats, also to check if there is any error.

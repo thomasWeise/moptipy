@@ -19,10 +19,8 @@ from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.fitnesses.direct import Direct
-from moptipy.algorithms.so.fitnesses.ffa import FFA
 from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
-from moptipy.algorithms.so.general_ma import GeneralMA
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.hill_climber_with_restarts import (
     HillClimberWithRestarts,
@@ -170,7 +168,7 @@ for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
                 ExponentialSchedule(t, e))))
 
 for mu_lambda in [2, 8]:
-    for ls_steps in [2 ** i for i in range(12, 19)]:
+    for ls_steps in [2 ** i for i in range(1, 20)]:
         ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, ml=mu_lambda, lss=ls_steps:
@@ -188,14 +186,6 @@ for mu_lambda in [2, 8]:
                            1e7 * (1 - ((0.22 / 16.0) ** (
                                1.0 / (0.8 * lss))))) / 1e7)),
                    ml, ml, lss)))
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, lss=ls_steps:
-                GeneralMA(Op0Shuffle(pwr),
-                          Op2GeneralizedAlternatingPosition(pwr),
-                          RLS(Op0Forward(), Op1Swap2()),
-                          ml, ml, lss,
-                          fitness=FFA(Makespan(inst)))))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

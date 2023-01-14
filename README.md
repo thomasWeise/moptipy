@@ -2164,6 +2164,7 @@ Here we provide a list of other Python software packages that can be used for so
 - [`deap`](https://github.com/DEAP/deap) is a novel evolutionary computation framework for rapid prototyping and testing of ideas by Félix-Antoine Fortin, François-Michel De Rainville, Marc-André Gardner, Marc Parizeau, and Christian Gagné.
   It offers a rich set of evolutionary computation-based metaheuristics and a straightforward API.
   You can find it on GitHub at <https://github.com/DEAP/deap>.
+- [`inspyred`](https://pypi.org/project/inspyred) and [`ecspy`](https://pypi.org/project/ecspy/) are open source packages for nature-inspired optimization by Aaron Garrett.
 - The library "Powell's Derivative-Free Optimization solvers" ([`pdfo`](https://www.pdfo.net)) provides an implementation of the "Bound Optimization BY Quadratic Approximation" algorithm, or BOBYQA for short, for solving continuous optimization problems. 
   The library is dedicated to the late Professor M. J. D. Powell FRS (1936—2015), maintained by Tom M. Ragonneau and Zaikun Zhang, and available at <https://github.com/pdfo/pdfo> and <https://www.pdfo.net>.
   We wrap its `BOBYQA` implementation into our `moptipy` API in module [`algorithms.so.vector.pdfo`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo).

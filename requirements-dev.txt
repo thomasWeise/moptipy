@@ -1,24 +1,72 @@
-# We need pytest to run the tests.
+#
+# Dependencies Required to Develop `moptipy`
+#
+# In this file we list all the libraries that are required to develop
+# `moptipy` code. This means that you want to run the complete `make` process,
+# including all the unit tests, the static analysis, and building the
+# documentation. Notice that none of this is necessary if you just want to use
+# `moptipy` or even just want to implement an algorithm or problem for your
+# own purposes. Only if you want to do all the checks and the whole build
+# process, maybe because you want to submit code to the `moptipy` project,
+# then you need all of these dependencies. For only using `moptipy`, it is
+# sufficient to load the dependencies specified in `requirements.txt`.
+# Nevertheless, I think even then it may still be a good idea to use the full
+# `make` process, because the static analysis and unit tests are, indeed,
+# useful. They enforce a uniform coding style, help you to find bugs, and kind
+# of push you to use best practices. I personally learned a lot from the
+# static analysis and the unit tests indeed revealed errors.
+#
+# For developing or contributing to `moptipy`, you should install the
+# dependencies below. You can do this via
+# `pip install --no-input --timeout 360 --retries 100 -r requirements-dev.txt`
+# with a text file `requirements-dev.txt` that has the exact same contents as
+# this file here.
+#
+# `moptipy` is available at https://thomasweise.github.io/moptipy.
+# This file is available at https://github.com/thomasWeise/moptipy.
+#
+# Below, we list each library required for development and specify the reason
+# why it is needed. Notice that these libraries may, in turn, depend on other
+# libraries. We cannot maintain a full list of these recursive dependencies.
+# Here we only list the top-level dependencies that are actually used in the
+# `moptipy` build process.
+#
+
+# We need pytest to run the unit tests.
+# Unit tests test components of our package, e.g., functions or objects, and
+# compare their behavior with the expected behaviors in some test cases.
+# This helps spotting errors where code behaves differently from the
+# expectation. Of course, unit tests cannot guarantee that there are no
+# errors. But they can at least check whether our code behaves as it should in
+# some usual or border cases. Also, they can help us find out if changes in
+# the code lead to changes in (tested/expected) behavior.
 pytest >= 7.2.0
 
-# setuptools, testresources, twine and wheel are needed for generating
-# the installable pip package.
-setuptools >= 59.8.0
+# setuptools, testresources, twine, virtualenv, and wheel are needed for
+# generating the installable pip package.
+setuptools >= 65.6.3
 testresources >= 2.0.1
 twine >= 4.0.2
 virtualenv >= 20.17.1
 wheel >= 0.37.1
 
-# sphinx is needed for generating the documentation.
+# sphinx is needed for generating the documentation. Together with its
+# modules, it parses the documentation root file as well as the code and
+# generates the html files with the documentation. It therefore uses the
+# docstrings and the type hints.
 sphinx >= 5.3.0
-sphinx-autodoc-typehints >= 1.19.5
+sphinx-autodoc-typehints >= 1.20.1
 # myst-parser is needed for including README.md into the documentation
 myst-parser >= 0.18.1
 
-# static code analysis tools
-autoflake >= 1.7.7
+# We use a set of different static code analysis tools. They check the code
+# for errors in typing, for violations of conventions, for potential security
+# issues, for possible bugs, for unnecessary code or imports, and for other
+# things that can be improved. If all checks of all of these tools pass, then
+# we probably have good quality code.
+autoflake >= 1.7.8
 bandit >= 1.7.4
-coverage >= 7.0.0
+coverage >= 7.0.5
 coverage-badge >= 1.1.0
 dlint >= 0.13.0
 dodgy >= 0.2.1
@@ -27,22 +75,26 @@ flake8-bugbear >= 22.12.6
 flake8-eradicate >= 1.4.0
 mypy >= 0.991
 pycodestyle >= 2.9.1
-pydocstyle >= 6.1.1
+pydocstyle >= 6.2.3
 pyflakes >= 2.5.0
-pylint >= 2.15.9
+pylint >= 2.15.10
 pyroma >= 4.1
-ruff >= 0.0.219
+ruff >= 0.0.220
 semgrep >= 1.2.1
 tryceratops >= 1.1.0
 unimport >= 0.12.3
-vulture >= 2.6
+vulture >= 2.7
 
-# yaml is used only in tests and examples and therefore not strictly needed.
+# yaml is used only in tests and examples.
 pyyaml >= 6.0
 
 # urllib3 and certifi are used to check the URLs in the README.md
-urllib3 >= 1.26.13
+# As part of the build process, we check all the URLs in the README.md file
+# whether they can still be reached.
+urllib3 >= 1.26.14
 certifi >= 2022.12.7
 
-# needed to minify html output
-minify_html >= 0.10.3
+# minify_html is needed to minify html output. Our documentation is fairly
+# large. We apply this tool to try to reduce the file size of the
+# documentation, by, e.g., removing useless white space.
+minify_html >= 0.10.7
