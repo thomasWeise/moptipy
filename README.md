@@ -2196,7 +2196,7 @@ Here we provide a list of other Python software packages that can be used for so
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
 
 The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#12-contact)).
-The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://github.com/thomasWeise/moptipy/blob/main/LICENSE).
+The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://thomasweise.github.io/moptipy/LICENSE.html).
 Terms for a special-purpose licenses can be discussed if need be, see [contact below](#12-contact).
 
 Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
