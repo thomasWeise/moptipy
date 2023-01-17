@@ -140,7 +140,7 @@ It is used internally by the `moptipy` system to automatically maintain copies o
 If the search and solution spaces are different, then you can also set a search [space](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.space.Space) via [`ex.set_search_space(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_search_space) and an [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) via [`ex.set_encoding(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_encoding).
 This is not necessary if the algorithm works directly on the solutions (as in our example below).
 
-Each application of an optimization algorithm to a problem instance will also be provided with a random number generator and it *must* only use this random number generator for randomization and no other sources of randomness.
+Each application of an [optimization algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.algorithm) to a problem instance will also be provided with a [random number generator](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_random) and it *must* only use this random number generator for randomization and no other sources of randomness.
 You can set the seed for this random number generator via [`ex.set_rand_seed(...)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_rand_seed).
 If you create two identical executions and set the same seeds for both of them, the algorithms will make the same random decisions and hence should return the same results.
 
@@ -154,6 +154,10 @@ If you specify a log file, the system will automatically gather system informati
 Via [`ex.set_log_improvements(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), you can instruct the system to also collect the progress of the algorithm in terms of improving moves by default.
 In the rare case that you want to log every single move that the algorithm makes, you could call [`ex.set_log_all_fes(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes).
 All the collected data will be stored in a [text file](#51-log-files) *after* the algorithm has completed and you have left the process scope (see below). 
+
+<a href="https://thomasweise.github.io/moptipy/_static/process_architecture.svg">
+<img alt="The process architecture of the moptipy framework." src="https://thomasweise.github.io/moptipy/_static/process_architecture.svg" style="width:50%;max-width:60%;min-width:30%;float:left;padding-right:2em;padding-top:0.5em;padding-bottom:0.5em" />
+</a>
 
 Anyway, after you have completed building the execution, you can run the process you have configured via `ex.execute()`.
 This method returns an instance of [`Process`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.process).
