@@ -77,13 +77,13 @@ You can also take a look at our [`moptipy` flyer](https://thomasweise.github.io/
 ## 2. Installation
 
 In order to use this package and to, e.g., run the example codes, you need to first install it using [`pip`](https://pypi.org/project/pip/) or some other tool that can install packages from [PyPi](https://pypi.org).
-You then can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy/) using [`pip`](https://pypi.org/project/pip/) by doing
+You can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy/) using [`pip`](https://pypi.org/project/pip/) by doing
 
 ```shell
 pip install moptipy
 ```
 
-This will install the latest official release of our package.
+This will install the latest official release of our package as well as [all dependencies](https://thomasweise.github.io/moptipy/requirements.html).
 If you want to install the latest source code version from GitHub (which may not yet be officially released), you can do
 
 ```shell
@@ -98,9 +98,14 @@ pip install moptipy
 ```
 
 This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.
-You can also clone the repository and then run a `make` build, which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
+
+You can also clone the repository and then run a [`make` build](https://thomasweise.github.io/moptipy/Makefile.html), which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
 This will work only on Linux, though.
+It also installs the [dependencies for building](https://thomasweise.github.io/moptipy/requirements-dev.html), which include, e.g., those for [unit testing and static analysis](#81-unit-tests-and-static-analysis).
 If this build completes successful, you can be sure that [`moptipy`](https://thomasweise.github.io/moptipy) will work properly on your machine.
+
+All dependencies for using and running `moptipy` are listed at [here](https://thomasweise.github.io/moptipy/requirements.html).
+The additional dependencies for a [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html), including unit tests, static analysis, and the generation of documentation are listed [here](https://thomasweise.github.io/moptipy/requirements-dev.html).
 
 
 ## 3. How-Tos
@@ -2083,6 +2088,11 @@ Improving code quality can *never* come later.
 We *always* must maintain high coding and documentation standards from the very beginning.
 While `moptipy` may still be far from achieving these goals, at least we try to get there.
 
+Anyway, you can find our [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html) running all the tests, doing all the static analyses, creating the documentation, and creating and packaging the distribution files [here](https://thomasweise.github.io/moptipy/Makefile.html).
+Besides the [basic `moptipy` dependencies](https://thomasweise.github.io/moptipy/requirements-dev.html), it requires [a set of additional dependencies](https://thomasweise.github.io/moptipy/requirements-dev.html).
+These are all automatically installed during the build procedure.
+The build only works under Linux.
+
 
 ### 8.2. Reproducibility
 
@@ -2156,7 +2166,8 @@ If you use a shared root folder for experiments and launch the same experiment o
 
 ### 9.3. Other Python Libraries of Optimization Algorithms
 
-Here we provide a list of other Python software packages that can be used for solving optimization problems (in alphabetical order).
+Here we provide a very incomplete list of other Python software packages that can be used for solving optimization problems (in alphabetical order).
+A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io) can be found [here](https://ktafakkori.github.io/optimization-packages-in-python-list/).
 
 - [`cmaes`](https://github.com/CyberAgent/cmaes) provides implementations of Covariance Matrix Adaptation Evolution Strategies for solving continuous optimization problems.
   It is maintained by Masashi Shibata and Masahiro Nomura and available at <https://pypi.org/project/cmaes/> and <https://github.com/CyberAgent/cmaes>.
@@ -2165,6 +2176,7 @@ Here we provide a list of other Python software packages that can be used for so
   It offers a rich set of evolutionary computation-based metaheuristics and a straightforward API.
   You can find it on GitHub at <https://github.com/DEAP/deap>.
 - [`inspyred`](https://pypi.org/project/inspyred) and [`ecspy`](https://pypi.org/project/ecspy/) are open source packages for nature-inspired optimization by Aaron Garrett.
+- [`nevergrad`](https://facebookresearch.github.io/nevergrad/) by Facebook Research offers gradient free optimization and implements a variety of numerical optimization methods and many benchmark problems.
 - The library "Powell's Derivative-Free Optimization solvers" ([`pdfo`](https://www.pdfo.net)) provides an implementation of the "Bound Optimization BY Quadratic Approximation" algorithm, or BOBYQA for short, for solving continuous optimization problems. 
   The library is dedicated to the late Professor M. J. D. Powell FRS (1936—2015), maintained by Tom M. Ragonneau and Zaikun Zhang, and available at <https://github.com/pdfo/pdfo> and <https://www.pdfo.net>.
   We wrap its `BOBYQA` implementation into our `moptipy` API in module [`algorithms.so.vector.pdfo`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo).
@@ -2195,7 +2207,7 @@ Here we provide a list of other Python software packages that can be used for so
 
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
 
-The copyright holder of this package is Prof. Dr. Thomas Weise (see [Contact](#12-contact)).
+Prof. Dr. Thomas Weise (see [Contact](#12-contact)) holds the copyright of this package, except for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
 The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://thomasweise.github.io/moptipy/LICENSE.html).
 Terms for a special-purpose licenses can be discussed if need be, see [contact below](#12-contact).
 
