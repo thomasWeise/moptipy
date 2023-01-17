@@ -32,9 +32,9 @@ def _canonicalize_path(path: str) -> str:
         raise type_error(path, "canonicalized path", str)
     if len(path) <= 0:
         raise ValueError("Canonicalization must yield non-empty string, "
-                         f"but returned '{path}'.")
+                         f"but returned {path!r}.")
     if path in [".", ".."]:
-        raise ValueError(f"Canonicalization cannot yield '{path}'.")
+        raise ValueError(f"Canonicalization cannot yield {path!r}.")
     return path
 
 
@@ -89,7 +89,7 @@ class Path(str):
         :raises ValueError:  if `path` does not reference an existing file
         """
         if not self.is_file():
-            raise ValueError(f"Path '{self}' does not identify a file.")
+            raise ValueError(f"Path {self!r} does not identify a file.")
 
     def is_file(self) -> bool:
         """
@@ -107,7 +107,7 @@ class Path(str):
         :raises ValueError:  if `path` does not reference an existing directory
         """
         if not os.path.isdir(self):
-            raise ValueError(f"Path '{self}' does not identify a directory.")
+            raise ValueError(f"Path {self!r} does not identify a directory.")
 
     def contains(self, other: str) -> bool:
         """
@@ -129,7 +129,7 @@ class Path(str):
         """
         self.enforce_dir()
         if not self.contains(other):
-            raise ValueError(f"Path '{self}' does not contain '{other}'.")
+            raise ValueError(f"Path {self!r} does not contain {other!r}.")
 
     def resolve_inside(self, relative_path: str) -> "Path":
         """
@@ -164,7 +164,7 @@ class Path(str):
             if isinstance(err, ValueError):
                 raise
             raise ValueError(
-                f"Error when trying to create file '{self}'.") from err
+                f"Error when trying to create file {self!r}.") from err
         self.enforce_file()
         return existed
 
@@ -178,7 +178,7 @@ class Path(str):
             if isinstance(err, ValueError):
                 raise
             raise ValueError(
-                f"Error when trying to create directory '{self}'.") from err
+                f"Error when trying to create directory {self!r}.") from err
         self.enforce_dir()
 
     def open_for_read(self) -> TextIOBase:
@@ -201,9 +201,9 @@ class Path(str):
         with self.open_for_read() as reader:
             ret = reader.readlines()
         if not isinstance(ret, list):
-            raise type_error(ret, f"return value of reading '{self}'", list)
+            raise type_error(ret, f"return value of reading {self!r}", list)
         if len(ret) <= 0:
-            raise ValueError(f"File '{self}' contains no text.")
+            raise ValueError(f"File {self!r} contains no text.")
         return [s.rstrip() for s in ret]
 
     def read_all_str(self) -> str:
@@ -216,9 +216,9 @@ class Path(str):
         with self.open_for_read() as reader:
             ret = reader.read()
         if not isinstance(ret, str):
-            raise type_error(ret, f"return value of reading '{self}'", str)
+            raise type_error(ret, f"return value of reading {self!r}", str)
         if len(ret) <= 0:
-            raise ValueError(f"File '{self}' contains no text.")
+            raise ValueError(f"File {self!r} contains no text.")
         return ret
 
     def open_for_write(self) -> TextIOBase:
@@ -263,10 +263,10 @@ class Path(str):
             os.close(os.open(self, os.O_CREAT | os.O_TRUNC))
         except FileExistsError as err:
             raise ValueError(
-                f"File '{self}' could not be truncated.") from err
+                f"File {self!r} could not be truncated.") from err
         except Exception as err:
             raise ValueError(
-                f"Error when trying to create  file '{self}'.") from err
+                f"Error when trying to create  file {self!r}.") from err
         return self.enforce_file()
 
     @staticmethod

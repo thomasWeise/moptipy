@@ -80,20 +80,20 @@ def validate_space(
     if len(strstr) <= 0:
         raise ValueError(
             "space.to_str(x) must not produce empty strings, "
-            f"but we got '{strstr}'.")
+            f"but we got {strstr!r}.")
     if strstr.strip() != strstr:
         raise ValueError(
             "space.to_str(x) must not include leading or trailing spaces,"
-            f" but we go '{strstr}'.")
+            f" but we go {strstr!r}.")
     if SECTION_START in strstr:
         raise ValueError(f"space.to_str() must not include "
-                         f"'{SECTION_START}', but is '{strstr}'.")
+                         f"{SECTION_START!r}, but is {strstr!r}.")
     if SECTION_END in strstr:
         raise ValueError(f"space.to_str() must not include "
-                         f"'{SECTION_END}', but is '{strstr}'.")
+                         f"{SECTION_END!r}, but is {strstr!r}.")
     if COMMENT_CHAR in strstr:
         raise ValueError(f"space.to_str() must not include "
-                         f"'{COMMENT_CHAR}', but is '{strstr}'.")
+                         f"{COMMENT_CHAR!r}, but is {strstr!r}.")
 
     if not (hasattr(space, "from_str")
             and callable(getattr(space, "from_str"))):

@@ -190,11 +190,11 @@ class TextFormatDriver:
         if not isinstance(dir_name, str):
             raise type_error(dir_name, "dir_name", str)
         if len(dir_name) <= 0:
-            raise ValueError(f"invalid dir_name: '{dir_name}'.")
+            raise ValueError(f"invalid dir_name: {dir_name!r}.")
         if not isinstance(file_name, str):
             raise type_error(file_name, "file_name", str)
         if len(file_name) <= 0:
-            raise ValueError(f"invalid file_name: '{file_name}'.")
+            raise ValueError(f"invalid file_name: {file_name!r}.")
         if not isinstance(use_lang, bool):
             raise type_error(use_lang, "use_lang", bool)
         out_dir = Path.directory(dir_name)
@@ -202,7 +202,7 @@ class TextFormatDriver:
         if not isinstance(suffix, str):
             raise type_error(suffix, "result of str(table driver)", str)
         if len(suffix) <= 0:
-            raise ValueError(f"invalid driver suffix: '{suffix}'")
+            raise ValueError(f"invalid driver suffix: {suffix!r}")
         if use_lang:
             file_name = Lang.current().filename(file_name)
         file: Final[Path] = out_dir.resolve_inside(f"{file_name}.{suffix}")

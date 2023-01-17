@@ -27,7 +27,7 @@ def float_to_str(x: float) -> str:
         return "0"
     s = repr(x).replace("e-0", "e-")
     if isnan(x):
-        raise ValueError(f"'{s}' not permitted.")
+        raise ValueError(f"{str(s)!r} not permitted.")
     if s.endswith(".0"):
         return s[:-2]
     return s
@@ -190,7 +190,7 @@ def str_to_bool(value: str) -> bool:
         return True
     if value == "F":
         return False
-    raise ValueError(f"Expected 'T' or 'F', but got '{value}'.")
+    raise ValueError(f"Expected 'T' or 'F', but got {str(value)!r}.")
 
 
 def num_to_str(value: int | float) -> str:
@@ -384,7 +384,7 @@ def sanitize_name(name: str) -> str:
 
     if len(name) <= 0:
         raise ValueError(
-            f"Sanitized name must not become empty, but '{orig_name}' does.")
+            f"Sanitized name must not become empty, but {orig_name!r} does.")
 
     return name
 

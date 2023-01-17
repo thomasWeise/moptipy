@@ -142,7 +142,7 @@ def plot_end_statistics_over_param(
     if not isinstance(y_dim, str):
         raise type_error(y_dim, "y_dim", str)
     if len(y_dim) <= 0:
-        raise ValueError(f"invalid y-dimension '{y_dim}'")
+        raise ValueError(f"invalid y-dimension {y_dim!r}")
     if not callable(instance_getter):
         raise type_error(instance_getter, "instance_getter", call=True)
     if not callable(algorithm_getter):
@@ -264,7 +264,7 @@ def plot_end_statistics_over_param(
             _dataset[_inst] = __dataset = {}
         if x_value in __dataset:
             raise ValueError(
-                f"combination x={x_value}, algo='{_algo}', inst='{_inst}' "
+                f"combination x={x_value}, algo={_algo!r}, inst={_inst!r} "
                 f"already known as value {__dataset[x_value]}, cannot assign "
                 f"value {y_value}.")
         __dataset[x_value] = y_value
@@ -318,8 +318,8 @@ def plot_end_statistics_over_param(
         _dataset = dataset[algo]
         for inst in instances.keys:
             if inst not in _dataset:
-                raise ValueError(f"instance '{inst}' not in dataset"
-                                 f" for algorithm '{algo}'.")
+                raise ValueError(f"instance {inst!r} not in dataset"
+                                 f" for algorithm {algo!r}.")
             __dataset = _dataset[inst]
             style = pd.create_line_style()
             style["x"] = x_vals = sorted(__dataset.keys())

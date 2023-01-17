@@ -135,9 +135,9 @@ class LogParser:
             :meth:`~moptipy.evaluation.log_parser.LogParser.start_section`.
         """
         if not title:
-            raise ValueError(f"Title cannot be empty, but is '{title}'.")
+            raise ValueError(f"Title cannot be empty, but is {title!r}.")
         if title.startswith(logging.ERROR_SECTION_PREFIX):
-            raise ValueError(f"Encountered error section '{title}'.")
+            raise ValueError(f"Encountered error section {title!r}.")
         return False
 
     # noinspection PyUnusedLocal
@@ -218,14 +218,14 @@ class LogParser:
         try:
             retval = self.start_file(file)
         except BaseException as be:
-            raise ValueError(f"Error when starting file '{file}'") from be
+            raise ValueError(f"Error when starting file {file!r}") from be
 
         if retval:
             if self.__print_file_start:
-                logger(f"parsing file '{file}'.")
+                logger(f"parsing file {file!r}.")
         else:
             if self.__print_file_start:
-                logger(f"skipping file '{file}'.")
+                logger(f"skipping file {file!r}.")
             return True
 
         lines: list[str] = []
@@ -248,10 +248,10 @@ class LogParser:
                         buffer = handle.readlines(128)
                     except BaseException as be:
                         raise ValueError(
-                            f"Error when reading lines from file '{file}' "
-                            f"while in section '{section}'."
+                            f"Error when reading lines from file {file!r} "
+                            f"while in section {section!r}."
                             if state == 1 else
-                            f"Error when reading lines from file '{file}'.") \
+                            f"Error when reading lines from file {file!r}.") \
                             from be
                     if (buffer is None) or (len(buffer) <= 0):
                         break
@@ -274,12 +274,12 @@ class LogParser:
                 if state in (0, 2):
                     if not cur.startswith(sect_start):
                         ValueError("Line should start with "
-                                   f"'{sect_start}' but is "
-                                   f"'{orig_cur}' in file '{file}'.")
+                                   f"{sect_start!r} but is "
+                                   f"{orig_cur!r} in file {file!r}.")
                     section = cur[len(sect_start):]
                     if len(section) <= 0:
                         ValueError("Section title cannot be empty in "
-                                   f"'{file}', but encountered '{orig_cur}'.")
+                                   f"{file!r}, but encountered {orig_cur!r}.")
                     state = 1
                     sec_end = sect_end + section
                     wants_section = self.start_section(section)
@@ -292,7 +292,7 @@ class LogParser:
                             except BaseException as be:
                                 raise ValueError(
                                     "Error when processing section "
-                                    f"'{section}' in file '{file}'.") from be
+                                    f"{section!r} in file {file!r}.") from be
                             lines.clear()
                             if not do_next:
                                 break
@@ -300,18 +300,18 @@ class LogParser:
                         lines.append(cur)
 
         if state == 0:
-            raise ValueError(f"Log file '{file}' contains no section.")
+            raise ValueError(f"Log file {file!r} contains no section.")
         if state == 1:
-            raise ValueError(f"Log file '{file}' ended before"
-                             f"encountering '{sec_end}'.")
+            raise ValueError(f"Log file {file!r} ended before"
+                             f"encountering {sec_end!r}.")
 
         try:
             retval = self.end_file()
         except BaseException as be:
             raise ValueError("Error when ending section parsing "
-                             f"of file '{file}'.") from be
+                             f"of file {file!r}.") from be
         if self.__print_file_end:
-            logger(f"finished parsing file '{file}'.")
+            logger(f"finished parsing file {file!r}.")
         return retval
 
     def parse_dir(self, path: str) -> bool:
@@ -331,7 +331,7 @@ class LogParser:
             if self.__depth == 0:
                 if self.__print_begin_end:
                     logger("beginning recursive parsing of "
-                           f"directory '{folder}'.")
+                           f"directory {folder!r}.")
             else:
                 raise ValueError(
                     f"Depth must be >= 0, but is {self.__depth}??")
@@ -339,10 +339,10 @@ class LogParser:
 
         if not self.start_dir(folder):
             if self.__print_dir_start:
-                logger(f"skipping directory '{folder}'.")
+                logger(f"skipping directory {folder!r}.")
             return True
         if self.__print_dir_start:
-            logger(f"entering directory '{folder}'.")
+            logger(f"entering directory {folder!r}.")
 
         do_files = True
         do_dirs = True
@@ -350,27 +350,27 @@ class LogParser:
             sub = Path.path(join(folder, sub))
             if isfile(sub):
                 if do_files and (not self.parse_file(sub)):
-                    logger(f"will parse no more files in '{folder}'.")
+                    logger(f"will parse no more files in {folder!r}.")
                     if not do_dirs:
                         break
                     do_files = False
             elif isdir(sub) and do_dirs and (not self.parse_dir(sub)):
                 logger("will parse no more sub-directories "
-                       f"of '{folder}'.")
+                       f"of {folder!r}.")
                 if not do_files:
                     break
                 do_dirs = False
 
         retval = self.end_dir(folder)
         if self.__print_dir_end:
-            logger(f"finished parsing directory '{folder}'.")
+            logger(f"finished parsing directory {folder!r}.")
 
         self.__depth -= 1
         if self.__depth <= 0:
             if self.__depth == 0:
                 if self.__print_begin_end:
                     logger(f"finished recursive parsing of "
-                           f"directory '{folder}'.")
+                           f"directory {folder!r}.")
             else:
                 raise ValueError(
                     f"Depth must be >= 0, but is {self.__depth}??")
@@ -439,7 +439,7 @@ class ExperimentParser(LogParser):
         base = basename(path)
         if not base.startswith(start):
             raise ValueError(
-                f"File name of '{path}' should start with '{start}'.")
+                f"File name of {path!r} should start with {start!r}.")
         self.rand_seed = rand_seed_check(int(
             base[len(start):(-len(logging.FILE_SUFFIX))], base=16))
 

@@ -639,7 +639,7 @@ class EndStatistics(MultiRunData):
         :return: the path to the generated CSV file
         """
         path: Final[Path] = Path.path(file)
-        logger(f"Writing end result statistics to CSV file '{path}'.")
+        logger(f"Writing end result statistics to CSV file {path!r}.")
         Path.path(os.path.dirname(path)).ensure_dir_exists()
 
         has_algorithm: bool = False  # 1
@@ -857,7 +857,7 @@ class EndStatistics(MultiRunData):
                         wrt(EMPTY_CSV_ROW)
                 out.write("\n")
 
-        logger(f"Done writing end result statistics to CSV file '{path}'.")
+        logger(f"Done writing end result statistics to CSV file {path!r}.")
         path.enforce_file()
         return path
 
@@ -873,19 +873,19 @@ class EndStatistics(MultiRunData):
             the `append` method of a :class:`list`
         """
         path: Final[Path] = Path.file(file)
-        logger(f"Begin reading end result statistics from CSV file '{path}'.")
+        logger(f"Begin reading end result statistics from CSV file {path!r}.")
 
         sep: Final[str] = CSV_SEPARATOR
         with path.open_for_read() as rd:
             headerrow: Final[list[str]] = rd.readlines(1)
             if (headerrow is None) or (len(headerrow) <= 0):
-                raise ValueError(f"No line in file '{file}'.")
+                raise ValueError(f"No line in file {file!r}.")
             headerstr: Final[str] = headerrow[0].strip()
             header: Final[list[str]] = [ss.strip()
                                         for ss in headerstr.split(sep)]
             if len(header) <= 3:
                 raise ValueError(
-                    f"Invalid header '{headerstr}' in file '{file}'.")
+                    f"Invalid header {headerstr!r} in file {file!r}.")
 
             idx = 0
             has_algorithm: bool
@@ -906,8 +906,8 @@ class EndStatistics(MultiRunData):
 
             if header[idx] != KEY_N:
                 raise ValueError(
-                    f"Expected to find {KEY_N} at index {idx} "
-                    f"in header '{headerstr}' of file '{path}'.")
+                    f"Expected to find {KEY_N!r} at index {idx} "
+                    f"in header {headerstr!r} of file {path!r}.")
             idx += 1
 
             for key in [log.KEY_BEST_F, log.KEY_LAST_IMPROVEMENT_FE,
@@ -917,7 +917,7 @@ class EndStatistics(MultiRunData):
                     raise ValueError(
                         f"Expected to find '{key}.*' keys from index "
                         f"{idx} on in header "
-                        f"'{headerstr}' of file '{path}', expected "
+                        f"{headerstr!r} of file {path!r}, expected "
                         f"{csv(key)} but got {header[idx:(idx + CSV_COLS)]}.")
                 idx += CSV_COLS
 
@@ -940,7 +940,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{log.KEY_GOAL_F}.*' keys from "
                             f"index {idx} on in header "
-                            f"'{headerstr}' of file '{path}'.")
+                            f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -953,7 +953,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{KEY_BEST_F_SCALED}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{path}'.")
+                            f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -972,7 +972,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{KEY_SUCCESS_FES}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{path}'.")
+                            f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -985,7 +985,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{KEY_SUCCESS_TIME_MILLIS}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{path}'.")
+                            f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -1014,7 +1014,7 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{log.KEY_MAX_FES}.*' keys"
                             f" from index {idx} on in header "
-                            f"'{headerstr}' of file '{path}'.")
+                            f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
 
                 if idx >= len(header):
@@ -1029,15 +1029,15 @@ class EndStatistics(MultiRunData):
                         raise ValueError(
                             f"Expected to find '{log.KEY_MAX_TIME_MILLIS}.*' "
                             f"keys from index {idx} on in header "
-                            f"'{headerstr}' of file '{path}'.")
+                            f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
 
                 break
 
             if len(header) > idx:
                 raise ValueError(
-                    f"Unexpected item '{header[idx]}' in header "
-                    f"'{header}' of file '{path}'.")
+                    f"Unexpected item {header[idx]!r} in header "
+                    f"{header!r} of file {path!r}.")
 
             while True:
                 lines = rd.readlines(100)
@@ -1149,11 +1149,11 @@ class EndStatistics(MultiRunData):
 
                     except BaseException as be:
                         raise ValueError(
-                            f"Invalid row '{line}' in file '{path}'.") from be
+                            f"Invalid row {line!r} in file {path!r}.") from be
 
                     if len(row) != idx:
                         raise ValueError("Invalid number of columns in row "
-                                         f"'{line}' in file '{path}'.")
+                                         f"{line!r} in file {path!r}.")
                     consumer(EndStatistics(
                         algo, inst, n, best_f, last_improv_fe,
                         last_improv_time, total_fes, total_time, goal_f,
@@ -1161,7 +1161,7 @@ class EndStatistics(MultiRunData):
                         ert_fes, ert_time, max_fes, max_time))
 
         logger("Finished reading end result statistics from CSV "
-               f"file '{path}'.")
+               f"file {path!r}.")
 
     @staticmethod
     def getter(dimension: str) -> Callable[["EndStatistics"],
@@ -1180,18 +1180,18 @@ class EndStatistics(MultiRunData):
 
         ssi: int = dimension.find(SCOPE_SEPARATOR)
         if ssi <= 0:
-            raise ValueError(f"unknown dimension '{dimension}'.")
+            raise ValueError(f"unknown dimension {dimension!r}.")
         scope: str = dimension[:ssi]
         dim: str = dimension[ssi + 1:]
         if (len(scope) <= 0) or (len(dim) <= 0):
             raise ValueError(
-                f"invalid dimension '{dimension}', has "
-                f"scope '{scope}' and sub-dimension '{dim}'")
+                f"invalid dimension {dimension!r}, has "
+                f"scope {scope!r} and sub-dimension {dim!r}")
 
         if scope not in _GETTERS_1:
             raise ValueError(
-                f"invalid dimension '{dimension}', has "
-                f"unknown scope '{scope}' and sub-dimension '{dim}'")
+                f"invalid dimension {dimension!r}, has "
+                f"unknown scope {scope!r} and sub-dimension {dim!r}")
 
         l1 = _GETTERS_1[scope]
 
@@ -1258,10 +1258,10 @@ if __name__ == "__main__":
     src_path: Final[Path] = args.source
     end_results: Final[list[EndResult]] = []
     if src_path.is_file():
-        logger(f"'{src_path}' identifies file, load as end-results csv")
+        logger(f"{src_path!r} identifies file, load as end-results csv")
         EndResult.from_csv(src_path, end_results.append)
     else:
-        logger(f"'{src_path}' identifies directory, load it as log files")
+        logger(f"{src_path!r} identifies directory, load it as log files")
         EndResult.from_logs(src_path, end_results.append)
 
     end_stats: Final[list[EndStatistics]] = []

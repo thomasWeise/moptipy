@@ -60,7 +60,7 @@ class Styler:
                     __none_name: str = none_name) -> str:
             rv = __none_name if key is None else __namer(key)
             if not isinstance(rv, str):
-                raise type_error(rv, f"name for key '{key}'", str)
+                raise type_error(rv, f"name for key {key!r}", str)
             rv = rv.strip()
             if len(rv) <= 0:
                 raise ValueError(

@@ -36,8 +36,8 @@ def check_time_unit(time_unit: str) -> str:
     if time_unit in (TIME_UNIT_FES, TIME_UNIT_MILLIS):
         return time_unit
     raise ValueError(
-        f"Invalid time unit '{time_unit}', only {TIME_UNIT_FES} "
-        f"and {TIME_UNIT_MILLIS} are permitted.")
+        f"Invalid time unit {time_unit!r}, only {TIME_UNIT_FES!r} "
+        f"and {TIME_UNIT_MILLIS!r} are permitted.")
 
 
 def check_f_name(f_name: str) -> str:
@@ -52,7 +52,7 @@ def check_f_name(f_name: str) -> str:
     if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
         return f_name
     raise ValueError(
-        f"Invalid f name '{f_name}', only {F_NAME_RAW}, "
+        f"Invalid f name {f_name!r}, only {F_NAME_RAW}, "
         f"{F_NAME_SCALED}, and {F_NAME_NORMALIZED} are permitted.")
 
 
@@ -90,13 +90,13 @@ class PerRunData:
         if not isinstance(algorithm, str):
             raise type_error(algorithm, "algorithm", str)
         if algorithm != sanitize_name(algorithm):
-            raise ValueError(f"Invalid algorithm name '{algorithm}'.")
+            raise ValueError(f"Invalid algorithm name {algorithm!r}.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if not isinstance(instance, str):
             raise type_error(instance, "instance", str)
         if instance != sanitize_name(instance):
-            raise ValueError(f"Invalid instance name '{instance}'.")
+            raise ValueError(f"Invalid instance name {instance!r}.")
         object.__setattr__(self, "instance", instance)
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
 
@@ -141,11 +141,11 @@ class MultiRunData:
         """
         if (algorithm is not None) and \
                 (algorithm != sanitize_name(algorithm)):
-            raise ValueError(f"Invalid algorithm '{algorithm}'.")
+            raise ValueError(f"Invalid algorithm {algorithm!r}.")
         object.__setattr__(self, "algorithm", algorithm)
 
         if (instance is not None) and (instance != sanitize_name(instance)):
-            raise ValueError(f"Invalid instance '{instance}'.")
+            raise ValueError(f"Invalid instance {instance!r}.")
         object.__setattr__(self, "instance", instance)
 
         if not isinstance(n, int):

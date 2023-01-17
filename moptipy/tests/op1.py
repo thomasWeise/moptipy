@@ -88,7 +88,7 @@ def validate_op1(op1: Op1,
         strstr = search_space.to_str(x2)
         if (not isinstance(strstr, str)) or (len(strstr) <= 0):
             raise ValueError("to_str produces either no string or "
-                             f"empty string, namely '{strstr}'.")
+                             f"empty string, namely {strstr!r}.")
         seen.add(strstr)
 
     expected: Final[int] = \

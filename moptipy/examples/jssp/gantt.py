@@ -109,7 +109,7 @@ class _GanttParser(LogParser):
                     self.__instance = Instance.from_resource(
                         line[len(key):].strip())
             if self.__instance is None:
-                raise ValueError(f"Did not find instance key '{key}' "
+                raise ValueError(f"Did not find instance key {key!r} "
                                  f"in section {SECTION_SETUP}!")
         elif self.__sec_mode == 2:
             self.__gantt_str = " ".join(lines).strip()

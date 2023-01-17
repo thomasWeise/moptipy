@@ -155,17 +155,17 @@ with TempDir.create() as td:  # create temporary directory `td`
     EndResult.from_logs(td, data.append)  # load all end results
 
     file = tabulate_end_results(data, dir_name=td)  # create the table
-    print(f"\nnow presenting markdown data from file '{file}'.\n")
+    print(f"\nnow presenting markdown data from file {file!r}.\n")
     print(file.read_all_str())  # print the result
 
     file = tabulate_end_results(data, dir_name=td,
                                 text_format_driver=LaTeX.instance)
-    print(f"\nnow presenting LaTeX data from file '{file}'.\n")
+    print(f"\nnow presenting LaTeX data from file {file!r}.\n")
     print(file.read_all_str())  # print the result
 
     file = tabulate_end_results(data, dir_name=td,
                                 text_format_driver=HTML.instance)
-    print(f"\nnow presenting HTML data from file '{file}'.\n")
+    print(f"\nnow presenting HTML data from file {file!r}.\n")
     print(file.read_all_str())  # print the result
 
 # The temp directory is deleted as soon as we leave the `with` block.

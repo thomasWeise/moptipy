@@ -40,7 +40,7 @@ class Lang:
 
         font = font.strip()
         if not font:
-            raise ValueError(f"The font cannot be '{font}'.")
+            raise ValueError(f"The font cannot be {font!r}.")
         #: the font name
         self.__font: Final[str] = font
 
@@ -61,13 +61,13 @@ class Lang:
         # register the language
         dc: Final[dict[str, Lang]] = Lang.__get_langs()
         if self.__name in dc:
-            raise ValueError(f"Language '{self.__name}' already registered.")
+            raise ValueError(f"Language {self.__name!r} already registered.")
         if is_default:
             for lang in dc.values():
                 if lang.__is_default:
                     raise ValueError(
-                        f"Language '{self.__name}' cannot be default "
-                        f"language, '{lang.__name}' already is!")
+                        f"Language {self.__name!r} cannot be default "
+                        f"language, {lang.__name!r} already is!")
         dc[self.__name] = self
 
         if is_default:
@@ -84,16 +84,16 @@ class Lang:
         for ko, v in data.items():
             k = sanitize_name(ko)
             if k != ko:
-                raise ValueError(f"key '{ko}' is different from "
-                                 f"its sanitized version '{k}'.")
+                raise ValueError(f"key {ko!r} is different from "
+                                 f"its sanitized version {k!r}.")
             if (k in self.__dict) and (self.__dict[k] != v):
                 raise ValueError(
-                    f"Key '{k}' appears twice, already assigned to "
-                    f"'{self.__dict[k]}', cannot assign to '{v}'.")
+                    f"Key {k!r} appears twice, already assigned to "
+                    f"{self.__dict[k]!r}, cannot assign to {v!r}.")
             if not isinstance(v, str):
-                raise type_error(v, f"value for key '{k}'", str)
+                raise type_error(v, f"value for key {k!r}", str)
             if not v:
-                raise ValueError(f"Value for key '{k}' cannot be '{v}'.")
+                raise ValueError(f"Value for key {k!r} cannot be {v!r}.")
             self.__dict[k] = v
 
     def filename(self, base: str) -> str:
@@ -148,7 +148,7 @@ class Lang:
             raise type_error(item, "item", str)
         fstr = self.__dict[item]
         # pylint: disable=W0123 # noqa: DUO104
-        return eval(f'f"""{fstr}"""',  # nosec # nosemgrep # noqa: DUO104
+        return eval(f'f"""{fstr}"""',  # nosec # nosemgrep # noqa: DUO104,B028
                     {"__builtins__": None},  # nosec # nosemgrep # noqa:DUO104
                     kwargs).strip()  # nosec # nosemgrep # noqa: DUO104
 
@@ -225,7 +225,7 @@ class Lang:
         lang: Lang | None = Lang.__get_langs().get(name, None)
         if lang:
             return lang
-        raise ValueError(f"Unknown language '{name}'.")
+        raise ValueError(f"Unknown language {name!r}.")
 
     @staticmethod
     def current() -> "Lang":

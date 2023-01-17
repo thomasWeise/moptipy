@@ -323,7 +323,7 @@ class EndResult(PerRunData):
             raise type_error(dimension, "dimension", str)
         if dimension in _GETTERS:
             return _GETTERS[dimension]
-        raise ValueError(f"unknown dimension '{dimension}', "
+        raise ValueError(f"unknown dimension {dimension!r}, "
                          f"should be one of {sorted(_GETTERS.keys())}.")
 
     @staticmethod
@@ -354,7 +354,7 @@ class EndResult(PerRunData):
         :return: the path of the file that was written
         """
         path: Final[Path] = Path.path(file)
-        logger(f"Writing end results to CSV file '{path}'.")
+        logger(f"Writing end results to CSV file {path!r}.")
         Path.path(os.path.dirname(path)).ensure_dir_exists()
 
         with path.open_for_write() as out:
@@ -373,7 +373,7 @@ class EndResult(PerRunData):
                     f"{intnone_to_str(e.max_fes)}{CSV_SEPARATOR}"
                     f"{intnone_to_str(e.max_time_millis)}\n")
 
-        logger(f"Done writing end results to CSV file '{path}'.")
+        logger(f"Done writing end results to CSV file {path!r}.")
         return path
 
     @staticmethod
@@ -391,15 +391,15 @@ class EndResult(PerRunData):
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
         path: Final[Path] = Path.file(file)
-        logger(f"Now reading CSV file '{path}'.")
+        logger(f"Now reading CSV file {path!r}.")
 
         with path.open_for_read() as rd:
             header = rd.readlines(1)
             if (header is None) or (len(header) <= 0):
-                raise ValueError(f"No line in file '{file}'.")
+                raise ValueError(f"No line in file {file!r}.")
             if _HEADER != header[0]:
                 raise ValueError(
-                    f"Header '{header[0]}' in '{path}' should be {_HEADER}.")
+                    f"Header {header[0]!r} in {path!r} should be {_HEADER!r}.")
 
             while True:
                 lines = rd.readlines(100)
@@ -422,7 +422,7 @@ class EndResult(PerRunData):
                     if filterer(er):
                         consumer(er)
 
-        logger(f"Done reading CSV file '{path}'.")
+        logger(f"Done reading CSV file {path!r}.")
 
 
 class _InnerLogParser(ExperimentParser):

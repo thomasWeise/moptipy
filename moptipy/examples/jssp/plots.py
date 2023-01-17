@@ -282,21 +282,21 @@ def plot_progresses(results_dir: str,
         Progress.from_logs(spath.resolve_inside(algorithm), progresses.append,
                            time_unit=time_unit, f_name=F_NAME_RAW)
     if len(progresses) <= 0:
-        raise ValueError(f"did not find log files in dir '{results_dir}'.")
+        raise ValueError(f"did not find log files in dir {results_dir!r}.")
 
     stat_runs: Final[list[Progress | StatRun]] = []
     StatRun.from_progress(progresses, STAT_MEAN_ARITH,
                           stat_runs.append, False, False)
     if len(stat_runs) <= 0:
         raise ValueError(
-            f"failed to compile stat runs from dir '{results_dir}'.")
+            f"failed to compile stat runs from dir {results_dir!r}.")
     if include_runs:
         stat_runs.extend(progresses)
     del progresses
     instances: Final[list[str]] = sorted({sr.instance for sr in stat_runs},
                                          key=instance_sort_key)
     if len(instances) <= 0:
-        raise ValueError(f"no instances in dir '{results_dir}'.")
+        raise ValueError(f"no instances in dir {results_dir!r}.")
     algos: Final[list[str]] = sorted({sr.algorithm for sr in stat_runs},
                                      key=algorithm_sort_key)
     if len(set(algorithms).difference(algos)) > 0:
@@ -334,7 +334,7 @@ def plot_progresses(results_dir: str,
                                       file_name=lang.filename(name_base),
                                       dir_name=dest_dir))
 
-    logger(f"finished plotting chart '{name_base}'.")
+    logger(f"finished plotting chart {name_base!r}.")
     return results
 
 
@@ -413,7 +413,7 @@ def plot_end_makespans_over_param(
     if not isinstance(title_x, float):
         raise type_error(title_x, "title_x", float)
 
-    logger(f"now plotting end statistics over parameter '{title}'.")
+    logger(f"now plotting end statistics over parameter {title!r}.")
 
     end_stats: Final[list[EndStatistics]] = []
     if plot_single_instances:
@@ -447,5 +447,5 @@ def plot_end_makespans_over_param(
                                      file_name=lang.filename(name_base),
                                      dir_name=dest_dir))
 
-    logger(f"done plotting end statistics over parameter '{title}'.")
+    logger(f"done plotting end statistics over parameter {title!r}.")
     return result

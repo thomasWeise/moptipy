@@ -95,15 +95,15 @@ def argparser(file: str, description: str,
     if not isinstance(file, str):
         raise type_error(file, "file", str)
     if len(file) <= 3:
-        raise ValueError(f"invalid file='{file}'.")
+        raise ValueError(f"invalid file={file!r}.")
     if not isinstance(description, str):
         raise type_error(description, "description", str)
     if len(description) <= 12:
-        raise ValueError(f"invalid description='{description}'.")
+        raise ValueError(f"invalid description={description!r}.")
     if not isinstance(epilog, str):
         raise type_error(epilog, "epilog", str)
     if len(epilog) <= 10:
-        raise ValueError(f"invalid epilog='{epilog}'.")
+        raise ValueError(f"invalid epilog={epilog!r}.")
     return argparse.ArgumentParser(
         parents=[__DEFAULT_ARGUMENTS], prog=__get_prog(file),
         description=description.strip(),

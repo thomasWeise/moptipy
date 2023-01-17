@@ -419,26 +419,26 @@ class _ProcessBase(Process):
         if (len(t) != len(title)) or (len(t) <= 0) or (" " in t) \
                 or ("\n" in t) or ("\t" in t):
             raise ValueError("section title must not be empty or contain "
-                             f"white space, but '{title}' is/does.")
+                             f"white space, but {title!r} is/does.")
         if (t in _ALL_SECTIONS) or (SECTION_START in t) or (SECTION_END in t):
-            raise ValueError(f"title '{t}' is a reserved section title")
+            raise ValueError(f"title {t!r} is a reserved section title")
         if t.upper() != t:
             raise ValueError("section titles must be in upper case,"
-                             f"but yours is '{t}' (vs. '{t.upper()}'.")
+                             f"but yours is {t!r} (vs. {t.upper()!r}.")
         for ch in t:  # check all character codes in t
             code: int = ord(ch)  # we will only permit A-Z, 0-9, and _
             if not ((65 <= code <= 90) or (48 <= code <= 57) or (code == 95)):
                 raise ValueError(
-                    f"'{ch}' forbidden in section title, but got '{t}'.")
+                    f"{ch!r} forbidden in section title, but got {t!r}.")
         if not isinstance(text, str):
             raise type_error(text, "text", str)
         if (SECTION_START in text) or (SECTION_END in text):
             raise ValueError(
-                f"text of section '{t}' must not contain '{SECTION_START}' or"
-                f" '{SECTION_END}' but is '{text}'")
+                f"text of section {t!r} must not contain {SECTION_START!r} or"
+                f" {SECTION_END!r} but is {text!r}")
         if self.__sections is not None:
             if title in self.__sections:
-                raise ValueError(f"section '{title}' already logged.")
+                raise ValueError(f"section {title!r} already logged.")
             self.__sections[title] = text.strip()
 
     def _log_best(self, kv: KeyValueLogSection) -> None:

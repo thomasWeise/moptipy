@@ -57,13 +57,13 @@ def __check(url: str, valid_urls: dict[str, str | None],
     :param http: the pool manager
     """
     if (url != url.strip()) or (len(url) < 3):
-        raise ValueError(f"invalid url '{url}'")
+        raise ValueError(f"invalid url {url!r}")
     if url in valid_urls:
         return
     if url.startswith("mailto:"):
         return
     if not url.startswith("http"):
-        raise ValueError(f"invalid url '{url}'")
+        raise ValueError(f"invalid url {url!r}")
 
     base_url: str = url
     selector: str | None = None
@@ -73,25 +73,25 @@ def __check(url: str, valid_urls: dict[str, str | None],
         base_url = url[:i]
         needs_body = __needs_body(base_url)
         if not needs_body:
-            raise ValueError(f"invalid url: '{url}'")
+            raise ValueError(f"invalid url: {url!r}")
 
         selector = url[i + 1:]
         if (len(selector) <= 0) or (len(base_url) <= 0) \
                 or len(selector.strip()) != len(selector) \
                 or (len(base_url.strip()) != len(base_url)):
-            raise ValueError(f"invalid url: '{url}'")
+            raise ValueError(f"invalid url: {url!r}")
 
         if base_url in valid_urls:
             body = valid_urls[base_url]
             if body is None:
                 raise ValueError(
-                    f"no body for '{url}' with base '{base_url}'??")
+                    f"no body for {url!r} with base {base_url!r}??")
             for qt in ("", "'", '"'):
                 if f"id={qt}{selector}{qt}" in body:
                     return
             raise ValueError(
-                f"did not find id='{selector}' of '{url}' in body "
-                f"of '{base_url}': '{body}'")
+                f"did not find id={selector!r} of {url!r} in body "
+                f"of {base_url!r}: {body!r}")
     else:
         needs_body = __needs_body(base_url)
 
@@ -116,23 +116,23 @@ def __check(url: str, valid_urls: dict[str, str | None],
         if url.startswith("http://github.com") \
                 or url.startswith("https://github.com"):
             return
-        raise ValueError(f"invalid url '{url}'.") from be
+        raise ValueError(f"invalid url {url!r}.") from be
 
-    logger(f"checked url '{url}' got code {code} for method '{method}' and "
+    logger(f"checked url {url!r} got code {code} for method {method!r} and "
            f"{0 if body is None else len(body)} chars.")
     if code != 200:
-        raise ValueError(f"url '{url}' returns code {code}.")
+        raise ValueError(f"url {url!r} returns code {code}.")
 
     if selector is not None:
         for qt in ("", "'", '"'):
             if f"id={qt}{selector}{qt}" in body:
                 return
         raise ValueError(
-            f"did not find id='{selector}' of '{url}' in body "
-            f"of '{base_url}': '{body}'")
+            f"did not find id={selector!r} of {url!r} in body "
+            f"of {base_url!r}: {body!r}")
 
     if needs_body and (body is None):
-        raise ValueError(f"huh? body for '{url}' / '{base_url}' is None?")
+        raise ValueError(f"huh? body for {url!r} / {base_url!r} is None?")
 
     valid_urls[base_url] = body
     if url != base_url:
@@ -144,11 +144,11 @@ def test_all_links_in_readme_md() -> None:
     # First, we load the README.md file as a single string
     base_dir = Path.directory(os.path.join(os.path.dirname(__file__), "../"))
     readme = Path.file(base_dir.resolve_inside("README.md"))
-    logger(f"testing all links from README.md file '{readme}'.")
+    logger(f"testing all links from README.md file {readme!r}.")
     text = readme.read_all_str()
     logger(f"got {len(text)} characters.")
     if len(text) <= 0:
-        raise ValueError(f"README.md file at '{readme}' is empty?")
+        raise ValueError(f"README.md file at {readme!r} is empty?")
     del readme
 
     # remove all code blocks
@@ -194,7 +194,7 @@ def test_all_links_in_readme_md() -> None:
         rid = replace_all("--", "-", rid).lower()
         if (len(rid) <= 2) or ((rid[0] not in "123456789")
                                and (start > 0)) or ("-" not in rid):
-            raise __ve(f"invalid id '{rid}'", text, i)
+            raise __ve(f"invalid id {rid!r}", text, i)
         valid_urls[f"#{rid}"] = None
         start = k
 

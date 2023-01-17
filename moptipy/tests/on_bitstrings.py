@@ -534,7 +534,7 @@ def validate_fitness_on_bitstrings(
                 name = type_name_of(ff)
                 if name != class_needed:
                     raise TypeError(f"fitness assignment process should be "
-                                    f"'{class_needed}', but is '{name}'.")
+                                    f"{class_needed!r}, but is {name!r}.")
             elif not isinstance(ff, class_needed):
                 raise type_error(ff, f"fitness({f2})", class_needed)
         else:

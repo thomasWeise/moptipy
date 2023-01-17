@@ -86,7 +86,7 @@ def validate_encoding(encoding: Encoding,
             raise ValueError("Encoding must be deterministic and decode "
                              "identical points to same result.")
         if s1 != s2:
-            raise ValueError(f"to_str(y1)='{s1}' but to_str(y2)='{s2}'!")
+            raise ValueError(f"to_str(y1)={s1!r} but to_str(y2)={s2!r}!")
 
     x2 = search_space.create()
     if x2 is None:
@@ -114,4 +114,4 @@ def validate_encoding(encoding: Encoding,
             raise ValueError("Encoding must be deterministic and decode "
                              "equal points to same result.")
         if s1 != s2:
-            raise ValueError(f"to_str(y1)='{s1}' but to_str(y2)='{s2}'!")
+            raise ValueError(f"to_str(y1)={s1!r} but to_str(y2)={s2!r}!")

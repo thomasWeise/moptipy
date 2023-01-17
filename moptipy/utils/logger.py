@@ -84,10 +84,10 @@ class Logger(AbstractContextManager):
         :raises ValueError: an error with the message and some context
         information
         """
-        raise ValueError(f"{message} in logger '{self.__log_name}'."
+        raise ValueError(f"{message} in logger {self.__log_name!r}."
                          if self.__section is None else
-                         f"{message} in section '{self.__section}' "
-                         f"of logger '{self.__log_name}'.")
+                         f"{message} in section {self.__section!r} "
+                         f"of logger {self.__log_name!r}.")
 
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """
@@ -112,20 +112,20 @@ class Logger(AbstractContextManager):
         :param title: the section title
         """
         if self._stream is None:
-            self._error(f"Cannot open section '{title}' "
+            self._error(f"Cannot open section {title!r} "
                         "because logger already closed")
 
         if self.__section is not None:
-            self._error(f"Cannot open section '{title}' because "
+            self._error(f"Cannot open section {title!r} because "
                         "another one is open")
 
         new_title = title.strip().upper()
         if new_title != title:
-            self._error(f"Cannot open section '{title}' because "
+            self._error(f"Cannot open section {title!r} because "
                         "title is invalid")
 
         if not self.__sections(title):
-            self._error(f"Section '{title}' already done")
+            self._error(f"Section {title!r} already done")
 
         self._stream.write(f"{SECTION_START}{title}\n")
         self.__closer = f"{SECTION_END}{title}\n"
@@ -139,7 +139,7 @@ class Logger(AbstractContextManager):
         :param title: the section title
         """
         if (self.__section is None) or (self.__section != title):
-            self._error(f"Cannot open section '{title}' since it is not open")
+            self._error(f"Cannot open section {title!r} since it is not open")
         printer = self.__closer
         if not self.__starts_new_line:
             printer = "\n" + printer
@@ -176,7 +176,7 @@ class Logger(AbstractContextManager):
             return
 
         if self.__closer in text:
-            self._error(f"String '{self.__closer}' "
+            self._error(f"String {self.__closer!r} "
                         "must not be contained in output")
 
         text = text.replace("#", "")  # omit all # characters
@@ -472,7 +472,7 @@ class KeyValueLogSection(LogSection):
             self.__done = done
             if not done(prefix):
                 # noinspection PyProtectedMember
-                logger._error("Prefix '{prefix}' already done")
+                logger._error(f"Prefix {prefix!r} already done")
 
     def key_value(self, key: str, value,
                   also_hex: bool = False) -> None:
@@ -490,7 +490,7 @@ class KeyValueLogSection(LogSection):
         key = self._prefix + sanitize_name(key)
         if not self.__done(key):
             # noinspection PyProtectedMember
-            self._logger._error("Key '{key}' already used")
+            self._logger._error(f"Key {key!r} already used")
 
         the_hex = None
         if isinstance(value, float):
@@ -590,14 +590,14 @@ def parse_key_values(lines: Iterable[str]) -> dict[str, str]:
         splt = line.split(KEY_VALUE_SEPARATOR)
         if len(splt) != 2:
             raise ValueError(
-                f"Two strings separated by '{KEY_VALUE_SEPARATOR}' "
-                f"expected, but encountered {len(splt)} in '{line}'.")
+                f"Two strings separated by {KEY_VALUE_SEPARATOR!r} "
+                f"expected, but encountered {len(splt)} in {line!r}.")
         key = splt[0].strip()
         if len(key) <= 0:
-            raise ValueError(f"Empty key encountered in '{line}'.")
+            raise ValueError(f"Empty key encountered in {line!r}.")
         value = splt[1].strip()
         if len(value) <= 0:
-            raise ValueError(f"Empty value encountered in '{line}'.")
+            raise ValueError(f"Empty value encountered in {line!r}.")
         dct[key] = value
 
     return dct

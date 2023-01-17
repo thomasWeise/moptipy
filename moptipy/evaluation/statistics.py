@@ -434,5 +434,5 @@ class Statistics:
             raise type_error(dimension, "dimension", str)
         if dimension in _GETTERS:
             return _GETTERS[dimension]
-        raise ValueError(f"unknown dimension '{dimension}', "
+        raise ValueError(f"unknown dimension {dimension!r}, "
                          f"should be one of {sorted(_GETTERS.keys())}.")

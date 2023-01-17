@@ -38,27 +38,27 @@ def validate_component(component: Component) -> None:
         raise type_error(name, "str(component)", str)
     if len(name) <= 0:
         raise ValueError("str(component) must return a non-empty string, "
-                         f"but returns a '{name}'.")
+                         f"but returns a {name!r}.")
     if name.strip() != name:
         raise ValueError("str(component) must return a string without "
                          "leading or trailing white space, "
-                         f"but returns a '{name}'.")
+                         f"but returns a {name!r}.")
 
     clean_name = sanitize_name(name)
     if clean_name != name:
         raise ValueError(
             "str(component) must return a string which does not "
-            f"change when being sanitized, but returned '{name}',"
-            f" which becomes '{clean_name}'.")
+            f"change when being sanitized, but returned {name!r},"
+            f" which becomes {clean_name!r}.")
     name = str(component)
     if clean_name != name:
         raise ValueError("str(component) must always return the same value, "
-                         f"but returns a '{name}' and '{clean_name}.")
+                         f"but returns a {name!r} and {clean_name!r}.")
 
     name = repr(component)
     if name != clean_name:
         raise ValueError("repr(component) must equal str(component), but "
-                         f"got '{clean_name}' vs. '{name}'.")
+                         f"got {clean_name!r} vs. {name!r}.")
 
     # test the logging of parameter values
     if not (hasattr(component, "log_parameters_to")
@@ -92,13 +92,13 @@ def validate_component(component: Component) -> None:
     idx += 1
     if not line.startswith(keystr):
         raise ValueError(
-            f"First log line must begin with '{keystr}', but starts"
-            f" with '{line}'.")
+            f"First log line must begin with {keystr!r}, but starts"
+            f" with {line!r}.")
     rest = line[len(keystr):]
     if rest != name:
         raise ValueError(
-            f"value of key '{keystr}' should equal "
-            f"'{name}' but is '{rest}'.")
+            f"value of key {keystr!r} should equal "
+            f"{name!r} but is {rest!r}.")
 
     key = logging.KEY_CLASS
     keystr = f"{key}{kvs}"
@@ -107,14 +107,14 @@ def validate_component(component: Component) -> None:
     idx += 1
     if not line.startswith(keystr):
         raise ValueError(
-            f"Second log line must begin with '{keystr}', but "
-            f"starts with '{line}'.")
+            f"Second log line must begin with {keystr!r}, but "
+            f"starts with {line!r}.")
     rest = line[len(keystr):]
     want = type_name_of(component)
     if rest != want:
         raise ValueError(
-            f"value of key '{keystr}' should equal "
-            f"'{want}' but is '{rest}'.")
+            f"value of key {keystr!r} should equal "
+            f"{want!r} but is {rest!r}.")
 
     for line in lines[idx:]:
         i = line.index(kvs)
@@ -122,10 +122,10 @@ def validate_component(component: Component) -> None:
         b = line[i + len(kvs)].strip()
         if (len(key) <= 0) or (len(b) <= 0):
             raise ValueError(
-                f"Invalid key-value pair '{line}' - "
-                f"splits to '{key}{kvs}{b}'!")
+                f"Invalid key-value pair {line!r} - "
+                f"splits to {(key + kvs + b)!r}!")
         if key in done_keys:
-            raise ValueError(f"key {key} appears twice!")
+            raise ValueError(f"key {key!r} appears twice!")
         done_keys.add(key)
 
     if not (hasattr(component, "initialize")

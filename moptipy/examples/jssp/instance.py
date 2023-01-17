@@ -175,7 +175,7 @@ def compute_makespan_lower_bound(machines: int,
                     f"Machine {machine} occurs more than once.")  # -lb
             usedmachines[i] = True  # mark machine as used  # -lb
             if time < 0:  # time can _never_ be negative -> error  # -lb
-                raise ValueError(f"Invalid time '{time}'.")  # -lb
+                raise ValueError(f"Invalid time {str(time)!r}'.")  # -lb
             machinetimes[machine] += time  # add up operation times
             machine_start_idle[machine] = min(  # update with...
                 machine_start_idle[machine], jobtime)  # ...job time
@@ -253,55 +253,55 @@ class Instance(Component, np.ndarray):
         """
         use_name: Final[str] = sanitize_name(name)
         if name != use_name:
-            raise ValueError(f"Name '{name}' is not a valid name.")
+            raise ValueError(f"Name {name!r} is not a valid name.")
 
         if (not isinstance(machines, int)) or (machines < 1):
             raise ValueError("There must be at least one machine, "
-                             f"but '{machines}' were specified in "
-                             f"instance '{name}'.")
+                             f"but {str(machines)!r} were specified in "
+                             f"instance {name!r}.")
         if not isinstance(jobs, int) or (jobs < 1):
             raise ValueError("There must be at least one job, "
-                             f"but '{jobs}' were specified in "
-                             f"instance '{name}'.")
+                             f"but {str(jobs)!r} were specified in "
+                             f"instance {name!r}.")
         if not isinstance(matrix, np.ndarray):
             raise type_error(matrix, "matrix", np.ndarray)
 
         use_shape: tuple[int, int, int] = (jobs, machines, 2)
         if matrix.shape[0] != jobs:
             raise ValueError(
-                f"Invalid shape '{matrix.shape}' of matrix: must have "
+                f"Invalid shape {str(matrix.shape)!r} of matrix: must have "
                 f"jobs={jobs} rows, but has {matrix.shape[0]} in "
-                f"instance '{name}'.")
+                f"instance {name!r}.")
         if len(matrix.shape) == 3:
             if matrix.shape[1] != machines:
                 raise ValueError(
-                    f"Invalid shape '{matrix.shape}' of matrix: must have "
-                    f"2*machines={machines} columns, but has "
-                    f"{matrix.shape[1]} in instance '{name}'.")
+                    f"Invalid shape {str(matrix.shape)!r} of matrix: "
+                    f"must have 2*machines={machines} columns, but has "
+                    f"{matrix.shape[1]} in instance {name!r}.")
             if matrix.shape[2] != 2:
                 raise ValueError(
-                    f"Invalid shape '{matrix.shape}' of matrix: must have "
-                    f"2 cells per row/column tuple, but has "
-                    f"{matrix.shape[2]} in instance '{name}'.")
+                    f"Invalid shape {str(matrix.shape)!r} of matrix: must "
+                    f"have 2 cells per row/column tuple, but has "
+                    f"{matrix.shape[2]} in instance {name!r}.")
         elif len(matrix.shape) == 2:
             if matrix.shape[1] != 2 * machines:
                 raise ValueError(
-                    f"Invalid shape '{matrix.shape}' of matrix: must have "
-                    f"2*machines={2 * machines} columns, but has "
-                    f"{matrix.shape[1]} in instance '{name}'.")
+                    f"Invalid shape {str(matrix.shape)!r} of matrix: must "
+                    f"have 2*machines={2 * machines} columns, but has "
+                    f"{matrix.shape[1]} in instance {name!r}.")
             matrix = matrix.reshape(use_shape)
         else:
             raise ValueError(
                 "JSSP instance data matrix must have two or three"
                 f"dimensions, but has {len(matrix.shape)} in instance "
-                f"'{name}'.")
+                f"{name!r}.")
         if matrix.shape != use_shape:
             raise ValueError(
                 f"matrix.shape is {matrix.shape}, not {use_shape}?")
         if not npu.is_np_int(matrix.dtype):
             raise ValueError(
                 "Matrix must have an integer type, but is of type "
-                f"'{matrix.dtype}' in instance '{name}'.")
+                f"{str(matrix.dtype)!r} in instance {name!r}.")
         # ... some computations ...
         ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
         ms_upper_bound = int(matrix[:, :, 1].sum())  # sum of all job times
@@ -319,17 +319,17 @@ class Instance(Component, np.ndarray):
             if makespan_lower_bound <= 0:
                 raise ValueError("If specified, makespan_lower_bound must be "
                                  f"positive, but is {makespan_lower_bound} "
-                                 f"in instance '{name}'.")
+                                 f"in instance {name!r}.")
             if makespan_lower_bound < ms_lower_bound:
                 raise ValueError(
                     "If specified, makespan_lower_bound must be >= "
                     f"{ms_lower_bound}, but is {makespan_lower_bound} in "
-                    f"instance '{name}'.")
+                    f"instance {name!r}.")
             if makespan_lower_bound > ms_upper_bound:
                 raise ValueError(
                     "If specified, makespan_lower_bound must be <= "
                     f"{ms_upper_bound}, but is {makespan_lower_bound} in "
-                    f"instance '{name}'.")
+                    f"instance {name!r}.")
         obj: Final[Instance] = super().__new__(
             Instance, use_shape, int_range_to_dtype(
                 min_value=0, max_value=int(matrix.max())))
@@ -391,7 +391,7 @@ class Instance(Component, np.ndarray):
                                 for row in rows[2:]])
         if not np.issubdtype(matrix.dtype, np.integer):
             raise ValueError("Error when converting array to matrix, "
-                             f"got type '{matrix.dtype}'.")
+                             f"got type {str(matrix.dtype)!r}.")
 
         min_value = int(matrix.min())
         if min_value < 0:
@@ -456,7 +456,7 @@ class Instance(Component, np.ndarray):
                     state = 3
                     rows = []
                     continue
-                raise ValueError(f"Unexpected string '{line}'.")
+                raise ValueError(f"Unexpected string {line!r}.")
             if state == 3:
                 if line.startswith("+++"):
                     return Instance.from_text(name=name, rows=rows)
@@ -466,11 +466,11 @@ class Instance(Component, np.ndarray):
                 if line.startswith("+++"):
                     state = 5
                     continue
-                raise ValueError(f"Unexpected string '{line}'.")
+                raise ValueError(f"Unexpected string {line!r}.")
             if (state == 5) and (line.startswith("+++")):
                 state = 1
 
-        raise ValueError(f"Could not find instance '{name}'.")
+        raise ValueError(f"Could not find instance {name!r}.")
 
     @staticmethod
     def from_resource(name: str) -> "Instance":
@@ -530,7 +530,7 @@ def check_instance(inst: Instance) -> Instance:
         raise type_error(inst.name, "inst.name", str)
     if (len(inst.name) <= 0) \
             or (inst.name != sanitize_name(inst.name)):
-        raise ValueError(f"invalid instance name '{inst.name}'")
+        raise ValueError(f"invalid instance name {inst.name!r}")
     if inst.machines <= 0:
         raise ValueError(f"inst.machines must be > 0, but is {inst.machines}"
                          f" for instance {inst.name}")

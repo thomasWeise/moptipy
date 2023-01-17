@@ -408,7 +408,8 @@ def array_to_str(data: np.ndarray) -> str:
         return CSV_SEPARATOR.join(num_to_str(float(d)) for d in data)
     if k == "b":
         return "".join(bool_to_str(bool(d)) for d in data)
-    raise ValueError(f"unsupported data kind '{k}' of type '{data.dtype}'.")
+    raise ValueError(
+        f"unsupported data kind {k!r} of type {str(data.dtype)!r}.")
 
 
 @numba.njit(cache=True, inline="always")

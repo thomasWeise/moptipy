@@ -138,7 +138,7 @@ def __run_single_test(
                     raise ValueError(f"record {a} appears at "
                                      f"indexes {ii} and {j}!")
             if a.x != tag:
-                raise ValueError(f"a.x={a.x}!='{tag}'")
+                raise ValueError(f"a.x={a.x}!={tag!r}")
             if not isinstance(a.fs, np.ndarray):
                 raise type_error(a.fs, "a.fs", np.ndarray)
             if not use_collapse:

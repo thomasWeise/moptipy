@@ -339,7 +339,7 @@ class AxisRanger:
                 __min = 0
             __max = 1
         else:
-            raise ValueError(f"Axis type '{name}' is unknown.")
+            raise ValueError(f"Axis type {name!r} is unknown.")
 
         if chosen_min is not None:
             __min = chosen_min

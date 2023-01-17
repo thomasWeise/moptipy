@@ -413,7 +413,7 @@ class NumberRenderer:
                              "float format from float_format_getter", str)
         if (len(float_format) <= 0) or ("{" not in float_format) \
                 or ("}" not in float_format) or (":" not in float_format):
-            raise ValueError(f"invalid float format '{float_format}'.")
+            raise ValueError(f"invalid float format {float_format!r}.")
 
         def __render_float(value: int | float, ir=__toint,
                            ff=float_format) -> FormattedStr:

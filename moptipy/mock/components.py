@@ -144,7 +144,7 @@ class Instance:
         if not isinstance(name, str):
             raise type_error(name, "name", str)
         if name != sanitize_name(name):
-            raise ValueError(f"Invalid name '{name}'.")
+            raise ValueError(f"Invalid name {name!r}.")
         object.__setattr__(self, "name", name)
 
         if not isinstance(hardness, float):
@@ -404,7 +404,7 @@ class Algorithm:
         if not isinstance(name, str):
             raise type_error(name, "name", str)
         if name != sanitize_name(name):
-            raise ValueError(f"Invalid name '{name}'.")
+            raise ValueError(f"Invalid name {name!r}.")
         object.__setattr__(self, "name", name)
 
         if not isinstance(strength, float):

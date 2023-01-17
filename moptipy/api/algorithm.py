@@ -109,7 +109,7 @@ class Algorithm0(Algorithm):
         if not isinstance(name, str):
             raise type_error(name, "name", str)
         if len(name) <= 0:
-            raise ValueError(f"Algorithm name cannot be '{name}'.")
+            raise ValueError(f"Algorithm name cannot be {name!r}.")
         #: the name of this optimization algorithm, which is also the return
         #: value of `__str__()`
         self.name: Final[str] = name

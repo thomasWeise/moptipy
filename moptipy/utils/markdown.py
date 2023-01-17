@@ -63,7 +63,7 @@ class Markdown(TextFormatDriver):
             elif c == "r":
                 stream.write("|--:")
             else:
-                raise ValueError(f"Invalid col '{c}' in '{cols}'.")
+                raise ValueError(f"Invalid col {c!r} in {cols!r}.")
         stream.write("|\n")
 
     def begin_table_row(self, stream: TextIOBase, cols: str,
@@ -116,10 +116,10 @@ class Markdown(TextFormatDriver):
         elif mode == SPECIAL:
             s: Final[str] = str(text)
             if s not in SPECIAL_CHARS:
-                raise ValueError(f"invalid special character: '{s}'")
+                raise ValueError(f"invalid special character: {s!r}")
             stream.write(SPECIAL_CHARS[s])
         else:
-            raise ValueError(f"invalid mode {mode} for text '{text}'.")
+            raise ValueError(f"invalid mode {mode} for text {text!r}.")
 
         if code:
             stream.write("`")

@@ -33,17 +33,17 @@ def str_to_palette(palette: str) \
             end_new: int = palette.find(ch, start)
             if start < end_new < end:
                 end = end_new
-        color = palette[start:end].strip()
+        color: str = palette[start:end].strip()
         if color.startswith("#"):
             color = color[1:].strip()
         if len(color) > 0:
             if len(color) != 6:
-                raise ValueError(f"invalid color: '{color}' in '{palette}'")
+                raise ValueError(f"invalid color: {color!r} in {palette!r}")
             result.append((int(color[0:2], 16) / 255,
                            int(color[2:4], 16) / 255,
                            int(color[4:6], 16) / 255, ))
     if len(result) <= 0:
-        raise ValueError(f"empty colors: '{palette}'")
+        raise ValueError(f"empty colors: {palette!r}")
     return tuple(result)
 
 

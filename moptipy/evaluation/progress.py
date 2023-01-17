@@ -189,7 +189,7 @@ class Progress(PerRunData):
         :return: the fully resolved file name
         """
         path: Final[Path] = Path.path(file)
-        logger(f"Writing progress object to CSV file '{path}'.")
+        logger(f"Writing progress object to CSV file {path!r}.")
 
         with path.open_for_write() as out:
             sep: Final[str] = CSV_SEPARATOR
@@ -209,7 +209,7 @@ class Progress(PerRunData):
             for i, t in enumerate(self.time):
                 out.write(f"{t}{sep}{num_to_str(self.f[i])}\n")
 
-        logger(f"Done writing progress object to CSV file '{path}'.")
+        logger(f"Done writing progress object to CSV file {path!r}.")
 
         path.enforce_file()
         return path
@@ -412,7 +412,7 @@ class _InnerLogParser(ExperimentParser):
             n_cols = len(columns)
             if n_cols < 3:
                 raise ValueError("There must be at least three columns, "
-                                 f"but found {n_cols} in '{lines[0]}'.")
+                                 f"but found {n_cols} in {lines[0]!r}.")
 
             time_col_name: str = logging.PROGRESS_TIME_MILLIS if \
                 self.__time_unit == TIME_UNIT_MILLIS else logging.PROGRESS_FES

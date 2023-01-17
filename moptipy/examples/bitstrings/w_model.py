@@ -480,7 +480,7 @@ class WModel(BitStringProblem):
             if not isinstance(name, str):
                 raise type_error(name, "name", str)
             if (len(name) <= 0) or (sanitize_name(name) != name):
-                raise ValueError(f"invalid name: '{name}'")
+                raise ValueError(f"invalid name: {name!r}")
         #: the name of this w-model instance
         self.name: Final[str] = name
 

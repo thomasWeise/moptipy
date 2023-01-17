@@ -12,11 +12,11 @@ def test_all_examples_from_readme_md() -> None:
     # First, we load the README.md file as a single string
     base_dir = Path.directory(os.path.join(os.path.dirname(__file__), "../"))
     readme = Path.file(base_dir.resolve_inside("README.md"))
-    logger(f"executing all examples from README.md file '{readme}'.")
+    logger(f"executing all examples from README.md file {readme!r}.")
     text = readme.read_all_str()
     logger(f"got {len(text)} characters.")
     if len(text) <= 0:
-        raise ValueError(f"README.md file at '{readme}' is empty?")
+        raise ValueError(f"README.md file at {readme!r} is empty?")
     del readme
 
     i2: int = -1
@@ -27,7 +27,7 @@ def test_all_examples_from_readme_md() -> None:
     wd: Final[str] = os.getcwd()  # get current working directory
     # We run all the example codes in a temporary directory.
     with TempDir.create() as td:  # create temporary working directory
-        logger(f"using temp directory '{td}'.")
+        logger(f"using temp directory {td!r}.")
         os.chdir(td)  # set it as working directory
         while True:
             # First, find the starting mark.

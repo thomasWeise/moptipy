@@ -414,11 +414,11 @@ def save_figure(fig: Figure,
     if not isinstance(file_name, str):
         raise type_error(file_name, "file_name", str)
     if len(file_name) <= 0:
-        raise ValueError(f"Invalid filename '{file_name}'.")
+        raise ValueError(f"Invalid filename {file_name!r}.")
     if not isinstance(dir_name, str):
         raise type_error(dir_name, "dir_name", str)
     if len(dir_name) <= 0:
-        raise ValueError(f"Invalid dirname '{dir_name}'.")
+        raise ValueError(f"Invalid dirname {dir_name!r}.")
     if isinstance(formats, str):
         formats = [formats]
     if not isinstance(formats, Iterable):

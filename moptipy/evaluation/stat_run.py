@@ -437,7 +437,7 @@ class StatRun(MultiRun2DData):
             if not isinstance(name, str):
                 raise type_error(name, "statistic name", str)
             if name not in _FUNC_MAP:
-                raise ValueError(f"Unknown statistic name '{name}'.")
+                raise ValueError(f"Unknown statistic name {name!r}.")
             consumer(StatRun(algorithm, instance, n, time_unit, f_name, name,
                              _apply_fun(x_unique, time, f, _FUNC_MAP[name])))
             count += 1

@@ -154,7 +154,7 @@ class Ert(MultiRun2DData):
         :return: the fully resolved file name
         """
         path: Final[Path] = Path.path(file)
-        logger(f"Writing ERT to CSV file '{path}'.")
+        logger(f"Writing ERT to CSV file {path!r}.")
 
         with path.open_for_write() as out:
             sep: Final[str] = CSV_SEPARATOR
@@ -174,7 +174,7 @@ class Ert(MultiRun2DData):
                 out.write(
                     f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
 
-        logger(f"Done writing ERT to CSV file '{path}'.")
+        logger(f"Done writing ERT to CSV file {path!r}.")
 
         path.enforce_file()
         return path

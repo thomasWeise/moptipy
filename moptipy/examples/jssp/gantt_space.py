@@ -291,12 +291,12 @@ class GanttSpace(Space):
             raise ValueError(
                 f"Makespan {maxtime} computed, which is smaller than the "
                 f"lower bound {inst.makespan_lower_bound} of the JSSP "
-                f"instance '{inst}'.")
+                f"instance {str(inst)!r}'.")
         if maxtime > inst.makespan_upper_bound:
             raise ValueError(
                 f"Makespan {maxtime} computed, which is larger than the "
                 f"upper bound {inst.makespan_upper_bound} of the JSSP "
-                f"instance '{inst}'.")
+                f"instance {str(inst)!r}.")
 
     def n_points(self) -> int:
         """

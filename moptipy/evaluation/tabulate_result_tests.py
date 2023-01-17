@@ -258,7 +258,7 @@ def tabulate_result_tests(
     for algo in algorithms:
         if len(data_dict[algo]) != n_insts:
             raise ValueError(
-                f"algorithm '{algo}' has only data for {len(data_dict[algo])}"
+                f"algorithm {algo!r} has only data for {len(data_dict[algo])}"
                 f" instances, but should have for {n_insts}.")
 
     # compute the bonferroni correction

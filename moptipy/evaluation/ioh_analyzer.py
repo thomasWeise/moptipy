@@ -77,15 +77,15 @@ def moptipy_to_ioh_analyzer(
     source: Final[Path] = Path.directory(results_dir)
     dest: Final[Path] = Path.path(dest_dir)
     dest.ensure_dir_exists()
-    logger(f"converting the moptipy log files in '{source}' to "
-           f"IOHprofiler data in '{dest}'. First we load the data.")
+    logger(f"converting the moptipy log files in {source!r} to "
+           f"IOHprofiler data in {dest!r}. First we load the data.")
 
     if (f_standard is not None) and (not isinstance(f_standard, dict)):
         raise type_error(f_standard, "f_standard", dict)
     if not isinstance(suite, str):
         raise type_error(suite, "suite", str)
     if (len(suite) <= 0) or (" " in suite):
-        raise ValueError(f"invalid suite name '{suite}'")
+        raise ValueError(f"invalid suite name {suite!r}")
     if not callable(inst_name_to_func_id):
         raise type_error(
             inst_name_to_func_id, "inst_name_to_func_id", call=True)
@@ -116,7 +116,7 @@ def moptipy_to_ioh_analyzer(
         if not isinstance(_func_id, str):
             raise type_error(_func_id, "function id", str)
         if (len(_func_id) <= 0) or ("_" in _func_id):
-            raise ValueError(f"invalid function id '{_func_id}'.")
+            raise ValueError(f"invalid function id {_func_id!r}.")
         _func: dict[int, list[tuple[int, np.ndarray, np.ndarray]]]
         if _func_id in _algo:
             _func = _algo[_func_id]
@@ -156,13 +156,13 @@ def moptipy_to_ioh_analyzer(
         algo_dir: Path = dest.resolve_inside(algo_name)
         algo_dir.ensure_dir_exists()
         logger(f"writing output for {len(algo)} functions of "
-               f"algorithm '{algo_name}'.")
+               f"algorithm {algo_name!r}.")
         for func_id in sorted(algo.keys()):
             func_dir: Path = algo_dir.resolve_inside(f"data_f{func_id}")
             func_dir.ensure_dir_exists()
             func = algo[func_id]
-            logger(f"writing output for algorithm '{algo_name}' and "
-                   f"function '{func_id}', got {len(func)} dimensions.")
+            logger(f"writing output for algorithm {algo_name!r} and "
+                   f"function {func_id!r}, got {len(func)} dimensions.")
 
             func_name = f"IOHprofiler_f{func_id}"
             with algo_dir.resolve_inside(
@@ -170,8 +170,8 @@ def moptipy_to_ioh_analyzer(
                 for dimi in sorted(func.keys()):
                     dim_path = func_dir.resolve_inside(
                         f"{func_name}_DIM{dimi}.dat")
-                    info.write(f"suite = '{suite}', funcId = '{func_id}', "
-                               f"DIM = {dimi}, algId = '{algo_name}'\n")
+                    info.write(f"suite = {suite!r}, funcId = {func_id!r}, "
+                               f"DIM = {dimi}, algId = {algo_name!r}\n")
                     info.write("%\n")
                     info.write(dim_path[len(algo_dir) + 1:])
                     with dim_path.open_for_write() as dat:

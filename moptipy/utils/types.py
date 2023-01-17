@@ -104,4 +104,4 @@ def type_error(obj: Any, name: str,
     if obj is None:
         return TypeError(f"{name} should be {exp} but is None.")
     return TypeError(f"{name} should be {exp} but is "
-                     f"{type_name_of(obj)}, namely '{obj}'.")
+                     f"{type_name_of(obj)}, namely {str(obj)!r}.")

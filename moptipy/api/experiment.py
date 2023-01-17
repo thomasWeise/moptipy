@@ -135,7 +135,7 @@ def __run_experiment(base_dir: Path,
                         cpy.set_log_improvements(False)
                         cpy.set_log_all_fes(False)
                         logger(
-                            f"{wss} for '{filename}'.", thread_id, stdio_lock)
+                            f"{wss} for {filename!r}.", thread_id, stdio_lock)
                         with cpy.execute():
                             pass
                         del cpy

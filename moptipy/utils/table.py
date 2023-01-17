@@ -53,7 +53,7 @@ class Table(AbstractContextManager):
         if len(cols) <= 0:
             raise ValueError(
                 "cols must not be empty to just composed of white space, "
-                f"but is '{cols}'.")
+                f"but is {cols!r}.")
         for c in cols:
             if c not in ("c", "l", "r"):
                 raise ValueError("each col must be c, l, or r, but "

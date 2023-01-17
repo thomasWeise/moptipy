@@ -103,7 +103,7 @@ def ea_family(name: str) -> str:
                 return f"{LETTER_M}+{ratio}{LETTER_M}_ea"
         elif (ll == 6) and (ss[-2] == "gap") and (ss[-1] == "swap2"):
             return f"{ss[1]}+{ss[2]}_ea_br"
-    raise ValueError(f"Invalid EA name '{name}'.")
+    raise ValueError(f"Invalid EA name {name!r}.")
 
 
 def sa_family(name: str) -> str:
@@ -116,7 +116,7 @@ def sa_family(name: str) -> str:
     if name.startswith("sa_") and name.endswith("_swap2"):
         return f"sa_T\u2080_" \
                f"{beautify_float_str(name_str_to_num(name.split('_')[2]))}"
-    raise ValueError(f"Invalid SA name '{name}'.")
+    raise ValueError(f"Invalid SA name {name!r}.")
 
 
 def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
@@ -163,7 +163,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
             if m is not None:
                 ns = re.sub(cast(str | Callable[[Match], str], repl), s)
                 if (ns is None) or (len(ns) <= 0):
-                    raise ValueError(f"'{s}' -> '{ns}'?")
+                    raise ValueError(f"{s!r} -> {ns!r}?")
                 if ns == s:
                     continue
                 found = True
@@ -171,13 +171,13 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                 if os is not None:
                     if os == ns:
                         continue
-                    raise ValueError(f"'{s}' -> '{ns}', '{os}'?")
+                    raise ValueError(f"{s!r} -> {ns!r}, {os!r}?")
                 if ns in used_names:
-                    raise ValueError(f"Already got '{ns}'.")
+                    raise ValueError(f"Already got {ns!r}.")
                 namer[s] = ns
                 names_new.insert(names_new.index(s), ns)
         if not found:
-            raise ValueError(f"did not find '{pattern}'.")
+            raise ValueError(f"did not find {pattern!r}.")
 
     # fix the basic EA families
     ea1p1: Final[int] = names_new.index("ea_1_1_swap2")
@@ -194,7 +194,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                 continue
             if fam not in ea_families:
                 if fam in used_names:
-                    raise ValueError(f"duplicated ea family '{fam}'.")
+                    raise ValueError(f"duplicated ea family {fam!r}.")
                 used_names.add(fam)
                 ea_families[fam] = names_new.index(n)
             else:
@@ -222,14 +222,14 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
             elif "_32_32" in n:
                 n = "ea32" + n.replace("_32_32", "")
             else:
-                raise ValueError(f"invalid general EA: '{name}'.")
+                raise ValueError(f"invalid general EA: {name!r}.")
             os = namer.get(name, None)
             if os is not None:
                 if os == n:
                     continue
-                raise ValueError(f"'{name}' -> '{n}', '{os}'?")
+                raise ValueError(f"{name!r} -> {n!r}, {os!r}?")
             if n in used_names:
-                raise ValueError(f"Already got '{n}'.")
+                raise ValueError(f"Already got {n!r}.")
             namer[name] = n
             names_new.insert(names_new.index(name), n)
 
@@ -325,19 +325,19 @@ def compute_end_results(results_dir: str,
     results: Final[list[EndResult]] = []
 
     source: Final[Path] = Path.directory(results_dir)
-    logger(f"loading end results from path '{source}'.")
+    logger(f"loading end results from path {source!r}.")
     EndResult.from_logs(source, results.append)
     if not results:
-        raise ValueError(f"Could not find any logs in '{source}'.")
+        raise ValueError(f"Could not find any logs in {source!r}.")
     results.sort()
-    logger(f"found {len(results)} log files in path '{source}', storing "
-           f"them in file '{results_file}'.")
+    logger(f"found {len(results)} log files in path {source!r}, storing "
+           f"them in file {results_file!r}.")
     rf: Path = EndResult.to_csv(results, results_file)
     if rf != results_file:
         raise ValueError(
-            f"results file should be {results_file}, but is {rf}.")
+            f"results file should be {results_file!r}, but is {rf!r}.")
     results_file.enforce_file()
-    logger(f"finished writing file '{results_file}'.")
+    logger(f"finished writing file {results_file!r}.")
     return results_file
 
 
@@ -402,9 +402,9 @@ def compute_end_statistics(end_results_file: str,
 
     sf: Path = EndStatistics.to_csv(stats, stats_file)
     if sf != stats_file:
-        raise ValueError(f"stats file should be {stats_file} but is {sf}")
+        raise ValueError(f"stats file should be {stats_file!r} but is {sf!r}")
     stats_file.enforce_file()
-    logger(f"finished writing file '{stats_file}'.")
+    logger(f"finished writing file {stats_file!r}.")
     return stats_file
 
 
@@ -434,7 +434,7 @@ def table(end_results: Path, algos: list[str], dest: Path,
                         lst[idx] = swap
                         break
             if not found:
-                raise ValueError(f"did not find '{old}' in {lst}.")
+                raise ValueError(f"did not find {old!r} in {str(lst)!r}.")
 
     tabulate_end_results(
         end_results=get_end_results(end_results, algos=set(algos)),
@@ -608,7 +608,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     dest: Final[Path] = Path.path(dest_dir if dest_dir else
                                   pp.join(source, "..", "evaluation"))
     dest.ensure_dir_exists()
-    logger(f"Beginning evaluation from '{source}' to '{dest}'.")
+    logger(f"Beginning evaluation from {source!r} to {dest!r}.")
 
     end_results: Final[Path] = compute_end_results(source, dest)
     if not end_results:
@@ -803,7 +803,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
               "ma_64_64_8192_gap_rls_swap2", "ma_16_16_32768_gap_rls_swap2"],
              dest, source)
 
-    logger(f"Finished evaluation from '{source}' to '{dest}'.")
+    logger(f"Finished evaluation from {source!r} to {dest!r}.")
 
 
 # Evaluate experiment if run as script

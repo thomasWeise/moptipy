@@ -167,8 +167,8 @@ for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
                 Op0Shuffle(pwr), Op1Swap2(),
                 ExponentialSchedule(t, e))))
 
-for mu_lambda in [2, 8]:
-    for ls_steps in [2 ** i for i in range(1, 20)]:
+for mu_lambda in [2, 8, 32]:
+    for ls_steps in [2 ** i for i in range(0, 21)]:
         ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, ml=mu_lambda, lss=ls_steps:

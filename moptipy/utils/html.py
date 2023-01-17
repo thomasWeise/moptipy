@@ -73,7 +73,7 @@ class HTML(TextFormatDriver):
         if row_index <= 0 <= section_index:
             style = f"{style};border-top:{_BORDER}"
         cell: str = "th" if (cell_mode == MODE_TABLE_HEADER) else "td"
-        stream.write(f'<{cell} style="{style}">')
+        stream.write(f'<{cell} style="{style}">')  # noqa: B028
 
     def end_table_cell(self, stream: TextIOBase, cols: str,
                        section_index: int, row_index: int,
@@ -94,7 +94,7 @@ class HTML(TextFormatDriver):
         if code:
             styles += "font-family:monospace;"
         if len(styles) > 0:
-            stream.write(f'<span style="{styles[0:-1]}">')
+            stream.write(f'<span style="{styles[0:-1]}">')  # noqa: B028
 
         if mode == TEXT:
             stream.write(text)
@@ -115,10 +115,10 @@ class HTML(TextFormatDriver):
         elif mode == SPECIAL:
             s: Final[str] = str(text)
             if s not in SPECIAL_CHARS:
-                raise ValueError(f"invalid special character: '{s}'")
+                raise ValueError(f"invalid special character: {s!r}")
             stream.write(SPECIAL_CHARS[s])
         else:
-            raise ValueError(f"invalid mode {mode} for text '{text}'.")
+            raise ValueError(f"invalid mode {mode} for text {text!r}.")
 
         if len(styles) > 0:
             stream.write("</span>")

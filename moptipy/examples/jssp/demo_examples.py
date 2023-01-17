@@ -223,12 +223,12 @@ def makespan_lower_bound_table(
 
     # get the data with the lower bounds information
     url: Final[str] = "https://github.com/thomasWeise/jsspInstancesAndResults"
-    logger(f"now loading data from '{url}'.")
+    logger(f"now loading data from {url!r}.")
     with rq.urlopen(url) as f:  # nosec
         data: str = f.read().decode(UTF8).strip()
     if not data:
         raise ValueError(f"Could not load data form {url}.")
-    logger(f"finished loading data from '{url}'.")
+    logger(f"finished loading data from {url!r}.")
     start = data.find("<table>")
     if start <= 0:
         raise ValueError(f"Could not find <table> in {data}.")
@@ -264,7 +264,7 @@ def makespan_lower_bound_table(
             if start <= 0:
                 start = data.find(f'<td align="right">{instn}</td>')
                 if start <= 0:
-                    raise ValueError(f"Could not find instance {instn}.")
+                    raise ValueError(f"Could not find instance {instn!r}.")
                 prefix = ""
                 suffix = "</td>"
                 solved_to_optimality = True
@@ -274,32 +274,32 @@ def makespan_lower_bound_table(
             end = data.find("</tr>", start)
             if end <= start:
                 raise ValueError(
-                    f"Could not find end of instance {instn}.")
+                    f"Could not find end of instance {instn!r}.")
             sel = data[start:end].strip()
-            logger(f"located instance text '{sel}' for {instn}.")
+            logger(f"located instance text {sel!r} for {instn!r}.")
             prefix = f'<td align="right">{inst.jobs}</td>\n<td align="' \
                      f'right">{inst.machines}</td>\n<td align="right">' \
                      f"{prefix}"
             pi = sel.find(prefix)
             if pi <= 0:
                 raise ValueError(
-                    f"Could not find prefix for instance {instn}.")
+                    f"Could not find prefix for instance {instn!r}.")
             sel = sel[(pi + len(prefix)):]
             si = sel.find(suffix)
             if si <= 0:
                 raise ValueError(
-                    f"Could not find suffix for instance {instn}.")
+                    f"Could not find suffix for instance {instn!r}.")
             lbx = int(sel[0:si])
             npt = '<td align="center"><a href="#'
             npi = sel.find(npt, si)
             if npi < si:
                 raise ValueError(
-                    f"Could not find source start for instance {instn}.")
+                    f"Could not find source start for instance {instn!r}.")
             sel = sel[npi + len(npt):]
             end = sel.find('"')
             if end <= 0:
                 raise ValueError(
-                    f"Could not find source end for instance {instn}.")
+                    f"Could not find source end for instance {instn!r}.")
             srcname = sel[:end].strip()
             logger(f"Source name is {srcname}.")
 
@@ -307,21 +307,21 @@ def makespan_lower_bound_table(
                              f"{srcname}</dt><dd>")
             if fsrc <= 0:
                 raise ValueError(
-                    f"Could not find source mark for instance {instn}.")
+                    f"Could not find source mark for instance {instn!r}.")
             fsrce = data.find("</dd>", fsrc)
             if fsrce <= fsrc:
                 raise ValueError(
-                    f"Could not find end mark for instance {instn}.")
+                    f"Could not find end mark for instance {instn!r}.")
             sel = data[fsrc:fsrce].strip()
             nm = sel.rfind("</a>")
             if nm <= 0:
                 raise ValueError(
-                    f"Could not find link end for instance {instn}"
+                    f"Could not find link end for instance {instn!r}"
                     f" and source name {srcname}.")
             fm = sel.rfind(">", 0, nm)
             if fm >= nm:
                 raise ValueError(
-                    f"Could not find label mark for instance {instn}"
+                    f"Could not find label mark for instance {instn!r}"
                     f" and source name {srcname}.")
             src = f"[@{sel[(fm + 1):nm].strip()}]"
 
@@ -343,7 +343,7 @@ def makespan_lower_bound_table(
     out_file = out_dir.resolve_inside(lang.filename(filename) + ".md")
     out_file.write_all(text)
     out_file.enforce_file()
-    logger(f"finished writing output results to file '{out_file}'.")
+    logger(f"finished writing output results to file {out_file!r}.")
     return out_file
 
 
@@ -351,8 +351,8 @@ def makespan_lower_bound_table(
 if __name__ == "__main__":
     dest_dir: Final[Path] = Path.path(sys.argv[1])
     dest_dir.ensure_dir_exists()
-    logger(f"We will print the JSSP examples into dir '{dest_dir}'.")
+    logger(f"We will print the JSSP examples into dir {dest_dir!r}.")
     makespan_lower_bound_table(dest_dir)
     demo_gantt_chart(dest_dir, True)
     demo_gantt_chart(dest_dir, False)
-    logger(f"Finished printing the JSSP examples into dir '{dest_dir}'.")
+    logger(f"Finished printing the JSSP examples into dir {dest_dir!r}.")

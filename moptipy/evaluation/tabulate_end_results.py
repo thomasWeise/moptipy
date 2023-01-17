@@ -63,10 +63,10 @@ def default_column_namer(col: str) -> str:
 
     if SCOPE_SEPARATOR not in col:
         raise ValueError(
-            f"statistic '{col}' should contain '{SCOPE_SEPARATOR}'.")
+            f"statistic {col!r} should contain {SCOPE_SEPARATOR!r}.")
     key, stat = col.split(SCOPE_SEPARATOR)
     if (len(key) <= 0) or (len(stat) <= 0):
-        raise ValueError(f"invalid statistic '{col}'.")
+        raise ValueError(f"invalid statistic {col!r}.")
 
     if key == KEY_BEST_F_SCALED:
         key = F_NAME_SCALED
@@ -89,7 +89,7 @@ def default_column_namer(col: str) -> str:
         stat = Lang.translate("worst") \
             if key in (F_NAME_RAW, F_NAME_SCALED) else "max"
     else:
-        raise ValueError(f"unknown statistic '{stat}' for '{col}'.")
+        raise ValueError(f"unknown statistic {stat!r} for {col!r}.")
 
     if key == F_NAME_RAW:
         return stat
@@ -104,7 +104,7 @@ def default_column_namer(col: str) -> str:
     elif key == KEY_TOTAL_TIME_MILLIS:
         key = "T"
     else:
-        raise ValueError(f"unknown key '{key}'.")
+        raise ValueError(f"unknown key {key!r}.")
     return f"{stat}({key})"
 
 
@@ -144,10 +144,10 @@ def command_column_namer(
 
     if SCOPE_SEPARATOR not in col:
         raise ValueError(
-            f"statistic '{col}' should contain '{SCOPE_SEPARATOR}'.")
+            f"statistic {col!r} should contain {SCOPE_SEPARATOR!r}.")
     key, stat = col.split(SCOPE_SEPARATOR)
     if (len(key) <= 0) or (len(stat) <= 0):
-        raise ValueError(f"invalid statistic '{col}'.")
+        raise ValueError(f"invalid statistic {col!r}.")
 
     if key == KEY_BEST_F_SCALED:
         key = F_NAME_SCALED
@@ -168,7 +168,7 @@ def command_column_namer(
     elif stat == KEY_MAXIMUM:
         stat = "max"
     else:
-        raise ValueError(f"unknown statistic '{stat}' for '{col}'.")
+        raise ValueError(f"unknown statistic {stat!r} for {col!r}.")
 
     if key == F_NAME_RAW:
         key = "BestF"
@@ -183,7 +183,7 @@ def command_column_namer(
     elif key == KEY_TOTAL_TIME_MILLIS:
         key = "TotalMS"
     else:
-        raise ValueError(f"unknown key '{key}'.")
+        raise ValueError(f"unknown key {key!r}.")
     return f"$\\{stat}{key}$" if put_dollars else f"\\{stat}{key}"
 
 
@@ -261,10 +261,10 @@ def default_column_best(col: str) ->\
 
     if SCOPE_SEPARATOR not in col:
         raise ValueError(
-            f"statistic '{col}' should contain '{SCOPE_SEPARATOR}'.")
+            f"statistic {col!r} should contain {SCOPE_SEPARATOR!r}.")
     key, stat = col.split(SCOPE_SEPARATOR)
     if (len(key) <= 0) or (len(stat) <= 0):
-        raise ValueError(f"invalid statistic '{col}'.")
+        raise ValueError(f"invalid statistic {col!r}.")
 
     if stat == "sd":
         return __finite_min
@@ -301,10 +301,10 @@ def default_number_renderer(col: str) -> NumberRenderer:
                    __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
         if SCOPE_SEPARATOR not in col:
             raise ValueError(
-                f"statistic '{col}' should contain '{SCOPE_SEPARATOR}'.")
+                f"statistic {col!r} should contain {SCOPE_SEPARATOR!r}.")
         key, stat = col.split(SCOPE_SEPARATOR)
         if (len(key) <= 0) or (len(stat) <= 0):
-            raise ValueError(f"invalid statistic '{col}'.")
+            raise ValueError(f"invalid statistic {col!r}.")
         if key in (KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
                    KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS):
             return __TIME_NUMBER_RENDERER
@@ -327,7 +327,7 @@ def __getter(s: str) -> Callable[[EndStatistics], int | float | None]:
         if res is None:
             return None
         if not isinstance(res, (int, float)):
-            raise type_error(res, f"result of getter '{n}' for statistic {e}",
+            raise type_error(res, f"result of getter {n!r} for statistic {e}",
                              (int, float))
         return res
     return __fixed
@@ -503,7 +503,7 @@ def tabulate_end_results(
     def __col_renderer(col: str, __fwd=col_renderer) -> NumberRenderer:
         res = __fwd(col)
         if not isinstance(res, NumberRenderer):
-            raise type_error(res, f"col_renderer('{col}')", NumberRenderer)
+            raise type_error(res, f"col_renderer({col!r})", NumberRenderer)
         return res
 
     # get the getters
@@ -556,7 +556,7 @@ def tabulate_end_results(
     for ina in insts:
         if len(algo_inst_dict[ina]) != n_algos:
             raise ValueError(
-                f"expected {n_algos} entries for instance '{ina}', but "
+                f"expected {n_algos} entries for instance {ina!r}, but "
                 f"got only {len(algo_inst_dict[ina])}, namely "
                 f"{algo_inst_dict[ina].keys()} instead of {algos}.")
 
@@ -569,7 +569,7 @@ def tabulate_end_results(
                            for d in algo_inst_dict[inst].values()})
             if len(bounds) != 1:
                 raise ValueError(f"inconsistent lower bounds {bounds} for "
-                                 f"instance '{inst}'.")
+                                 f"instance {inst!r}.")
             lb.append(bounds[0])
         lower_bounds = cast(list[str], __col_renderer(
             __KEY_LOWER_BOUND).render(lb))

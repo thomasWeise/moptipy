@@ -47,7 +47,7 @@ class TempDir(Path, AbstractContextManager):
     def __enter__(self) -> "TempDir":
         """Nothing, just exists for `with`."""
         if not self.__is_open:
-            raise ValueError(f"Temporary directory '{self}' already closed.")
+            raise ValueError(f"Temporary directory {self!r} already closed.")
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> bool:
@@ -123,7 +123,7 @@ class TempFile(Path, AbstractContextManager):
     def __enter__(self) -> "TempFile":
         """Nothing, just exists for `with`."""
         if not self.__is_open:
-            raise ValueError(f"Temporary file '{self}' already deleted.")
+            raise ValueError(f"Temporary file {self!r} already deleted.")
         return self
 
     def __exit__(self, exception_type, exception_value, traceback) -> bool:
