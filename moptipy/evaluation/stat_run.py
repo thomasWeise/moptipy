@@ -315,7 +315,7 @@ _FUNC_MAP: Final[dict[str, Callable]] = {
     STAT_Q10: __stat_quantile_10,
     STAT_Q90: __stat_quantile_90,
     STAT_Q159: __stat_quantile_159,
-    STAT_Q841: __stat_quantile_841
+    STAT_Q841: __stat_quantile_841,
 }
 
 

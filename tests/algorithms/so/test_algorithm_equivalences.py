@@ -350,5 +350,5 @@ def test_general_ma_equals_ma() -> None:
             lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: __MA(
                 op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
             lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: GeneralMA(
-                op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf)
+                op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
         ])

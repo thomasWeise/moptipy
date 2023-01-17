@@ -72,7 +72,7 @@ def validate_op0_on_1_permutations(
         "op0": op0(search_space) if callable(op0) else op0,
         "search_space": search_space,
         "make_search_space_element_valid":
-            make_permutation_valid(search_space)
+            make_permutation_valid(search_space),
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -118,7 +118,7 @@ def validate_op1_on_1_permutations(
         "op1": op1(search_space) if callable(op1) else op1,
         "search_space": search_space,
         "make_search_space_element_valid":
-            make_permutation_valid(search_space)
+            make_permutation_valid(search_space),
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -164,7 +164,7 @@ def validate_op2_on_1_permutations(
         "op2": op2(search_space) if callable(op2) else op2,
         "search_space": search_space,
         "make_search_space_element_valid":
-            make_permutation_valid(search_space)
+            make_permutation_valid(search_space),
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples

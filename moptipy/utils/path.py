@@ -44,7 +44,7 @@ UTF8: Final[str] = "utf-8-sig"
 #: The list of possible text encodings
 __ENCODINGS: Final[tuple[tuple[tuple[bytes, ...], str], ...]] = \
     (((codecs.BOM_UTF8,), UTF8),
-     ((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE,), "utf-32"),
+     ((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE), "utf-32"),
      ((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE), "utf-16"))
 
 

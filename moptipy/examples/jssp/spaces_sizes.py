@@ -69,7 +69,7 @@ __PRE_COMPUTED: tuple[tuple[int, int, int,
     (6, 2, 108828, ((0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0))),
     (7, 2, 3771792, ((0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0))),
     (8, 2, 156073536,
-     ((0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0), (1, 0)))
+     ((0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0), (1, 0))),
 )
 
 
@@ -100,7 +100,7 @@ def gantt_min_feasible(jobs: int, machines: int) \
     if jobs <= 2:
         return machines + 1, (
             tuple(list(range(machines - 2, -1, -1)) + [machines - 1]),
-            tuple([machines - 1] + list(range(machines - 1))), )
+            tuple([machines - 1] + list(range(machines - 1))))
 
     for tup in __PRE_COMPUTED:
         if (tup[0] == jobs) and (tup[1] == machines):

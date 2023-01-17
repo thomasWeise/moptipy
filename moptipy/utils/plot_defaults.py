@@ -41,7 +41,7 @@ def str_to_palette(palette: str) \
                 raise ValueError(f"invalid color: {color!r} in {palette!r}")
             result.append((int(color[0:2], 16) / 255,
                            int(color[2:4], 16) / 255,
-                           int(color[4:6], 16) / 255, ))
+                           int(color[4:6], 16) / 255))
     if len(result) <= 0:
         raise ValueError(f"empty colors: {palette!r}")
     return tuple(result)
@@ -238,7 +238,7 @@ __FIXED_LINE_DASHES: \
      (0.0, (1.0, 10.0)),  # loosely dotted
      (0.0, (5.0, 10.0)),  # loosely dashed
      (0.0, (3.0, 10.0, 1.0, 10.0)),  # loosely dashdotted
-     (0.0, (3.0, 10.0, 1.0, 10.0, 1.0, 10.0)), )  # loosely dashdotdotted
+     (0.0, (3.0, 10.0, 1.0, 10.0, 1.0, 10.0)))  # loosely dashdotdotted
 
 
 def distinct_line_dashes(n: int) -> \
@@ -340,7 +340,7 @@ __BASE_LINE_STYLE: Final[dict[str, object]] = {
     "linestyle": LINE_DASH_SOLID,
     "linewidth": 1.0,
     "solid_capstyle": "round",
-    "solid_joinstyle": "round"
+    "solid_joinstyle": "round",
 }
 
 

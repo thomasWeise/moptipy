@@ -86,7 +86,7 @@ class TournamentWithReplacement(Selection):
         m: Final[int] = len(source)  # number of elements to select from
         ri: Final[Callable[[int], int]] = \
             cast(Callable[[int], int],  # -book
-                 random.integers  # fast call to random.integers function
+                 random.integers,  # fast call to random.integers function
                  )  # -book
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor

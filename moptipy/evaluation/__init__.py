@@ -56,7 +56,7 @@ def __lang_setup() -> None:
         ss.KEY_MAXIMUM: "max",
         ss.KEY_MINIMUM: "min",
         ss.KEY_MEAN_ARITH: "mean",
-        es.KEY_N_SUCCESS: "#successes"
+        es.KEY_N_SUCCESS: "#successes",
     })
 
     DE.extend({
@@ -95,7 +95,7 @@ def __lang_setup() -> None:
         ss.KEY_MAXIMUM: "max",
         ss.KEY_MINIMUM: "min",
         ss.KEY_MEAN_ARITH: "mean",
-        es.KEY_N_SUCCESS: "#erfolgreich"
+        es.KEY_N_SUCCESS: "#erfolgreich",
     })
 
     ZH.extend({
@@ -134,7 +134,7 @@ def __lang_setup() -> None:
         ss.KEY_MAXIMUM: "最大限度",
         ss.KEY_MINIMUM: "最低限度",
         ss.KEY_MEAN_ARITH: "算术平均值",
-        es.KEY_N_SUCCESS: "成功执行算法的次数"
+        es.KEY_N_SUCCESS: "成功执行算法的次数",
     })
 
 

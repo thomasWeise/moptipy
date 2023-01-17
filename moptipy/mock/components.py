@@ -148,7 +148,7 @@ class Instance:
         object.__setattr__(self, "name", name)
 
         if not isinstance(hardness, float):
-            raise type_error(hardness, "hardness", float,)
+            raise type_error(hardness, "hardness", float)
         if (not isfinite(hardness)) or (hardness <= 0) or (hardness >= 1):
             raise ValueError(
                 f"hardness must be in (0, 1), but is {hardness}.")

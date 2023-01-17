@@ -309,7 +309,7 @@ def run_experiment(base_dir: str,
     if len(experiments) <= 0:
         raise ValueError("No experiments found?")
 
-    n_runs = [n_runs, ] if isinstance(n_runs, int) else list(n_runs)
+    n_runs = [n_runs] if isinstance(n_runs, int) else list(n_runs)
     last = 0
     for run in n_runs:
         if not isinstance(run, int):

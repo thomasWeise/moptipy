@@ -17,7 +17,7 @@ __DEFAULT_ARGUMENTS: Final[argparse.ArgumentParser] = argparse.ArgumentParser(
            "https://thomasweise.github.io/moptipy, "
            "tweise@hfuu.edu.cn,\u00a0tweise@ustc.edu.cn",
     add_help=False,
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 __DEFAULT_ARGUMENTS.add_argument(
     "--version", action="version", version=__version__)

@@ -30,7 +30,7 @@ def __ve(msg: str, text: str, idx: int) -> ValueError:
 #: the headers
 __HEADER: Final[dict[str, str]] = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64;"
-                  " rv:106.0) Gecko/20100101 Firefox/106.0"
+                  " rv:106.0) Gecko/20100101 Firefox/106.0",
 }
 
 

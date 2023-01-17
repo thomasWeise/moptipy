@@ -25,7 +25,7 @@ SPECIAL_CHARS: Final[dict[str, str]] = {
     "-inf": r"$-\infty$",
     "nan": r"$\emptyset$",
     "\u03b1": r"$\alpha$",
-    "\u2014": "---"
+    "\u2014": "---",
 }
 
 

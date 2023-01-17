@@ -202,7 +202,7 @@ def validate_op0_on_1_vectors(
         "op0": op0(search_space) if callable(op0) else op0,
         "search_space": search_space,
         "make_search_space_element_valid":
-            make_vector_valid(search_space)
+            make_vector_valid(search_space),
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples

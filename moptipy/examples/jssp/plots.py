@@ -201,7 +201,7 @@ def plot_stat_gantt_charts(
 
             args: dict[str, Any] = {
                 "gantt": stat_runs[start],
-                "figure": plot
+                "figure": plot,
             }
             if statistic is min:
                 args["markers"] = None

@@ -50,7 +50,7 @@ _GETTERS: Final[dict[str, Callable[["Statistics"],
     KEY_MEAN_ARITH: lambda s: s.mean_arith,
     KEY_MEAN_GEOM: lambda s: s.mean_geom,
     KEY_MAXIMUM: lambda s: s.maximum,
-    KEY_STDDEV: lambda s: s.stddev
+    KEY_STDDEV: lambda s: s.stddev,
 }
 
 

@@ -83,7 +83,7 @@ def validate_op0_on_1_bitstrings(
     args: dict[str, Any] = {
         "op0": op0(search_space) if callable(op0) else op0,
         "search_space": search_space,
-        "make_search_space_element_valid": random_bit_string
+        "make_search_space_element_valid": random_bit_string,
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -128,7 +128,7 @@ def validate_op1_on_1_bitstrings(
     args: dict[str, Any] = {
         "op1": op1(search_space) if callable(op1) else op1,
         "search_space": search_space,
-        "make_search_space_element_valid": random_bit_string
+        "make_search_space_element_valid": random_bit_string,
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples
@@ -173,7 +173,7 @@ def validate_op2_on_1_bitstrings(
     args: dict[str, Any] = {
         "op2": op2(search_space) if callable(op2) else op2,
         "search_space": search_space,
-        "make_search_space_element_valid": random_bit_string
+        "make_search_space_element_valid": random_bit_string,
     }
     if number_of_samples is not None:
         args["number_of_samples"] = number_of_samples

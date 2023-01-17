@@ -83,7 +83,7 @@ with TempDir.create() as td:  # create temporary directory `td`
         instances=problems,  # define the problem instances
         setups=[lambda p: rls(p, Op1Flip1()),  # RLS + flip 1 bit
                 lambda p: rls(p, Op1MoverNflip(p.n, 1)),  # flip bits at p=1/n
-                lambda p: rls(p, Op1MoverNflip(p.n, 2))  # flip bits at p=2/n
+                lambda p: rls(p, Op1MoverNflip(p.n, 2)),  # flip bits at p=2/n
                 ], n_runs=21)  # conduct 21 independent runs per setup
 
     # load all the end results

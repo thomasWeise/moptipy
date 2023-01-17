@@ -70,7 +70,7 @@ def __lang_setup() -> None:
                             "jobs \u00D7 {gantt.instance.machines} machines)",
         "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "machine",
-        "makespan": "makespan"
+        "makespan": "makespan",
     })
     # the German language strings
     DE.extend({
@@ -81,7 +81,7 @@ def __lang_setup() -> None:
                             "Jobs \u00D7 {gantt.instance.machines} Maschinen)",
         "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "Maschine",
-        "makespan": "Makespan"
+        "makespan": "Makespan",
     })
     # the Chinese language strings
     ZH.extend({
@@ -92,7 +92,7 @@ def __lang_setup() -> None:
                             "\u00D7{gantt.instance.machines}台机器) ",
         "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "机器",
-        "makespan": "最大完工时间"
+        "makespan": "最大完工时间",
     })
 
 
