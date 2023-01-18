@@ -101,7 +101,9 @@ def type_error(obj: Any, name: str,
     if call:
         exp = f"{exp} or a callable" if exp else "a callable"
 
-    if obj is None:
-        return TypeError(f"{name} should be {exp} but is None.")
-    return TypeError(f"{name} should be {exp} but is "
-                     f"{type_name_of(obj)}, namely {str(obj)!r}.")
+    message: Final[str] = f"{name} should be {exp} but is None." \
+        if obj is None else \
+        f"{name} should be {exp} but is {type_name_of(obj)}, " \
+        f"namely {str(obj)!r}."
+
+    return TypeError(message)
