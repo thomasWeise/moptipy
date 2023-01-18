@@ -146,9 +146,9 @@ class Lang:
         """
         if not isinstance(item, str):
             raise type_error(item, "item", str)
-        fstr = self.__dict[item]
+        fstr: str = self.__dict[item]
         # pylint: disable=W0123 # noqa: DUO104
-        return eval(f'f"""{fstr}"""',  # nosec # nosemgrep # noqa: DUO104,B028
+        return eval(f"f{fstr!r}",  # nosec # nosemgrep # noqa: DUO104,B028
                     {"__builtins__": None},  # nosec # nosemgrep # noqa:DUO104
                     kwargs).strip()  # nosec # nosemgrep # noqa: DUO104
 
