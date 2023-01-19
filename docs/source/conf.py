@@ -45,6 +45,7 @@ for line in old_lines:
     if skip:  # we skip everything until the introduction section
         if line.lstrip().startswith("## 1. Introduction"):
             skip = False
+            new_lines.append(line[1:])
         elif line.startswith("[![") and can_add_anyway:
             needs_newline = True
             new_lines.append(line)
