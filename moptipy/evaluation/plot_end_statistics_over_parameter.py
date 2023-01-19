@@ -350,6 +350,9 @@ def plot_end_statistics_over_param(
         axes.step(where="post", **line)
     del plot_list
 
+    # make sure that we can see the maximum of the parameters
+    x_axis.pad_detected_range(pad_max=True)
+
     x_axis.apply(axes, "x")
     y_axis.apply(axes, "y")
 

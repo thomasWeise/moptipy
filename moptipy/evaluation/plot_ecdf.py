@@ -257,7 +257,6 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
 
     # first we collect all progress object
     max_time: int | float = -inf
-    min_time: int | float = inf
     max_ecdf: int | float = -inf
     max_ecdf_is_at_max_time: bool = False
     for ee in source:
@@ -289,8 +288,6 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                         or (ft >= max_time)
             elif ft > max_time:
                 max_ecdf_is_at_max_time = False
-            if y[0] < min_time:
-                min_time = y[0]
             if ft > max_time:
                 max_time = ft
     del source
@@ -300,7 +297,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     # If the maximum of any ECDF is located directly at the end of the
     # x-axis, we need to slightly extend the axis to make it visible.
     if max_ecdf_is_at_max_time:
-        x_axis.register_value(max_time + (3 * (max_time - min_time)) / 100)
+        x_axis.pad_detected_range(pad_max=True)
 
     # set up the graphics area
     axes: Final[Axes] = pu.get_axes(figure)

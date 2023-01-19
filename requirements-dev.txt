@@ -55,7 +55,7 @@ wheel >= 0.37.1
 # generates the html files with the documentation. It therefore uses the
 # docstrings and the type hints.
 sphinx >= 5.3.0
-sphinx-autodoc-typehints >= 1.20.1
+sphinx-autodoc-typehints >= 1.20.1, < 1.21.4
 # myst-parser is needed for including README.md into the documentation
 myst-parser >= 0.18.1
 

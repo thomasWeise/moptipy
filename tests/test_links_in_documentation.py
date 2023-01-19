@@ -1,4 +1,4 @@
-"""Test all the links in the project's README.md file."""
+"""Test all the links in the project's *.md files."""
 import os.path
 from time import sleep
 from typing import Final
@@ -139,16 +139,20 @@ def __check(url: str, valid_urls: dict[str, str | None],
         valid_urls[url] = None
 
 
-def test_all_links_in_readme_md() -> None:
-    """Test all the links in the README.md file."""
-    # First, we load the README.md file as a single string
+def check_links_in_file(file: str) -> None:
+    """
+    Test all the links in the README.md file.
+
+    :param file: the file to check
+    """
+    # First, we load the file as a single string
     base_dir = Path.directory(os.path.join(os.path.dirname(__file__), "../"))
-    readme = Path.file(base_dir.resolve_inside("README.md"))
-    logger(f"testing all links from README.md file {readme!r}.")
+    readme = Path.file(base_dir.resolve_inside(file))
+    logger(f"testing all links from the {file!r} file {readme!r}.")
     text = readme.read_all_str()
     logger(f"got {len(text)} characters.")
     if len(text) <= 0:
-        raise ValueError(f"README.md file at {readme!r} is empty?")
+        raise ValueError(f"{file!r} file at {readme!r} is empty?")
     del readme
 
     # remove all code blocks
@@ -354,4 +358,14 @@ def test_all_links_in_readme_md() -> None:
         lines.append(text[start:i])
         start = j
 
-    logger("finished testing all links from README.md.")
+    logger(f"finished testing all links from {file!r}.")
+
+
+def test_all_links_in_readme_md() -> None:
+    """Test all the links in the README.md file."""
+    check_links_in_file("README.md")
+
+
+def test_all_links_in_contributing_md() -> None:
+    """Test all the links in the CONTRIBUTING.md file."""
+    check_links_in_file("CONTRIBUTING.md")

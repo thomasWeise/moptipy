@@ -138,6 +138,98 @@ class AxisRanger:
                 self.__detected_max = value
                 self.__has_detected_max = True
 
+    def pad_detected_range(self, pad_min: bool = False,
+                           pad_max: bool = False) -> None:
+        """
+        Add some padding to the current detected range.
+
+        This function increases the current detected or chosen maximum value
+        and/or decreases the current detected minimum by a small amount. This
+        can be useful when we want to plot stuff that otherwise would become
+        invisible because it would be directly located at the boundary of a
+        plot.
+
+        This function works by computing a slightly smaller/larger value than
+        the current detected minimum/maximum and then passing it to
+        :meth:`register_value`. It can only work if the end(s) chosen for
+        padding are in "detect" mode and the other end is either in "detect"
+        or "chosen" mode.
+
+        This method should be called *only* once and *only* after all data has
+        been registered (via :meth:`register_value` :meth:`register_array`)
+        and before calling :meth:`apply`.
+
+        :param pad_min: should we pad the minimum?
+        :param pad_max: should we pad the maximum?
+
+        :raises ValueError: if this axis ranger is not configured to use a
+            detected minimum/maximum or does not have a detected
+            minimum/maximum or any other invalid situation occurs
+        """
+        if not isinstance(pad_min, bool):
+            raise type_error(pad_min, "pad_min", bool)
+        if not isinstance(pad_max, bool):
+            raise type_error(pad_max, "pad_max", bool)
+        if not (pad_min or pad_max):
+            return
+
+        max_value: float
+        min_value: float
+        if self.__use_data_min:
+            if not self.__has_detected_min:
+                raise ValueError("No minimum detected so far.")
+            min_value = self.__detected_min
+        else:
+            if pad_min:
+                raise ValueError("Can only pad minimum if use_data_min.")
+            if self.__chosen_min is None:
+                raise ValueError("Chosen min is None!")
+            min_value = self.__chosen_min
+
+        if self.__use_data_max:
+            if not self.__has_detected_max:
+                raise ValueError("No maximum detected so far.")
+            max_value = self.__detected_max
+        else:
+            if pad_max:
+                raise ValueError("Can only pad maximum if use_data_max.")
+            if self.__chosen_max is None:
+                raise ValueError("Chosen max is None!")
+            max_value = self.__chosen_max
+
+        if min_value >= max_value:
+            raise ValueError(
+                f"minimum={min_value} while maximum={max_value}.")
+
+        new_max: float
+        if pad_max:
+            if max_value >= inf:
+                return
+            new_max = max_value + (3.0 * (max_value - min_value)) / 100.0
+            if not isfinite(new_max) or (new_max <= max_value):
+                raise ValueError(f"invalid padded max={new_max} at min="
+                                 f"{min_value} and max={max_value}.")
+            self.register_value(new_max)
+        else:
+            new_max = max_value
+
+        new_min: float
+        if pad_min:
+            if min_value <= -inf:
+                return
+            new_min = min_value - (3.0 * (max_value - min_value)) / 100.0
+            if self.log_scale and (new_min <= 0.0 < min_value):
+                new_min = 0.5 * min_value
+            if not isfinite(new_min) or (new_min >= min_value):
+                raise ValueError(f"invalid padded min={new_min} at min="
+                                 f"{min_value} and max={max_value}.")
+            self.register_value(new_min)
+        else:
+            new_min = min_value
+
+        if new_min > new_max:
+            raise ValueError(f"new_min={new_min}, new_max={new_max}??")
+
     def apply(self, axes: Axes, which_axis: str) -> None:
         """
         Apply this axis ranger to the given axis.
@@ -217,7 +309,7 @@ class AxisRanger:
         data_max: float = 0.0
         if self.__chosen_max is not None:
             data_max = self.__chosen_max
-        elif self.__detected_max is not None:
+        elif self.__has_detected_max:
             data_max = self.__detected_max
         return min(1e100, max(1e70, 1e5 * data_max))
 
@@ -231,7 +323,7 @@ class AxisRanger:
         data_min: float = 1e-100
         if self.__chosen_min is not None:
             data_min = self.__chosen_min
-        elif self.__detected_min is not None:
+        elif self.__has_detected_min:
             data_min = self.__detected_min
         return max(1e-100, min(1e-70, 1e-5 * data_min))
 

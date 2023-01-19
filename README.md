@@ -2210,13 +2210,15 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 
 ## 11. License
 
-[`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing metaheuristic optimization algorithms that also allows you to conduct and evaluate experiments.
-
-Prof. Dr. Thomas Weise (see [Contact](#12-contact)) holds the copyright of this package, except for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
-The package is licensed under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://thomasweise.github.io/moptipy/LICENSE.html).
-Terms for a special-purpose licenses can be discussed if need be, see [contact below](#12-contact).
+[`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing, using, and experimenting with metaheuristic optimization algorithms.
+Our project is developed for scientific, educational, and industrial applications.
 
 Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
+
+Dr. Thomas Weise (see [Contact](#12-contact)) holds the copyright of this package *except* for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
+
+`moptipy` is provided to the public as open source software under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://thomasweise.github.io/moptipy/LICENSE.html).
+Terms for other licenses, e.g., for specific industrial applications, can be negotiated with Dr. Thomas Weise (who can be reached via the [contact information](#12-contact) below).
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
