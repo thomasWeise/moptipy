@@ -903,7 +903,7 @@ There are three types of sections:
 - *[Semicolon-separated values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.CsvLogSection)* can hold a series of data values, where each row is divided into multiple values and the values are separated by `;`.
   We use ';', as both '.' and ',' might be misinterpreted as decimal or fractional separaters under different locales, whereas ';', to the best of our knowledge, is rarely used for such purposes.
   We will still call such sections "CSV" sections (comma-separated-values), though, as most people know what CSV is and the structure basically is exactly that, except that we use ';' instead of ','.
-- *[Key-values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection)* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2.2#mapping).
+- *[Key-values](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection)* sections represent, well, values for keys in form of a mapping compatible with [YAML](https://yaml.org/spec/1.2.2/#mapping).
   In other words, each line contains a key, followed by `: `, followed by the value.
   The keys can be hierarchically structured in scopes, for example `a.b` and `a.c` indicate two keys `b` and `c` that belong to scope `a`.
   This allows representing complex data such as [configuration parameters](#5123-the-section-setup) in a rather straight-forward, easy-to-parse canonical way.
@@ -980,7 +980,7 @@ In case that multi-objective optimization is performed, please note the followin
 
 ##### 5.1.2.3 The Section `SETUP`
 
-In this [YAML](https://yaml.org/spec/1.2.2#mapping)-compatible key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
+In this [YAML](https://yaml.org/spec/1.2.2/#mapping)-compatible key-value section, we log information about the configuration of the optimization algorithm as well as the parameters of the problem instance solved.
 There are at least the following keys:
 
 - [process](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process) wrapper parameters (scope `p`):
@@ -1811,7 +1811,7 @@ This way, we will get a diagram similar to the one below:
 <img alt="Example for an ERT plot of RLS and Random Walk on OneMax with 12 bits." src="https://thomasweise.github.io/moptipy/_static/log_ert_over_f.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/).
+The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/).
 The ERT plots are implemented in the module [moptipy.evaluation.plot_ert](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ert).
 
 
@@ -2081,8 +2081,11 @@ We therefore also run a variety of such tools on our code base, including (in al
 - [`unimport`](https://pypi.org/project/unimport/), for checking against unused import statements
 - [`vulture`](https://pypi.org/project/vulture/), for finding dead code
 
-Using these tools increases the build time.
-However, combined with thorough unit testing, it should help to prevent bugs, to improve readability, maintainability, and usability of the code.
+On git pushes, GitHub also automatically runs [CodeQL](https://codeql.github.com/) to check for common vulnerabilities and coding errors.
+We also turned on GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/configuring-private-vulnerability-reporting-for-a-repository) and the Dependabot [vulnerability](https://docs.github.com/en/code-security/dependabot/dependabot-alerts/configuring-dependabot-alerts) and [security](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/configuring-dependabot-security-updates) alerts.
+
+Using all of these tools increases the build time.
+However, combined with thorough unit testing and documentation, it should help to prevent bugs, to improve readability, maintainability, and usability of the code.
 It does not matter whether we are doing research or try to solve practical problems in the industry &mdash; we should always strive to make good software with high code quality.
 
 Often, researchers in particular think that hacking something together that works is enough, that documentation is unimportant, that code style best practices can be ignored, and so on.
@@ -2197,14 +2200,14 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
    It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the [IOHanalyzer](https://iohanalyzer.liacs.nl/), which allows you to use this software to analyze your optimization results as well.
    You can then upload the data to the online [IOHanalyzer service](https://iohanalyzer.liacs.nl/) and evaluate it. 
 2. A nice discussion of experimentation with (numerical) optimization methods is:
-   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/document/). Research Report RR-7215, INRIA. 2010. inria-00462481
+   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
 
 ## 10. Works using `moptipy`
 
 1. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
    This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
-2. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org/))*, December 4-7, 2022, Singapore.
+2. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore.
    This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.fitnesses.ffa)) on the Traveling Salesperson Problem.
 
 

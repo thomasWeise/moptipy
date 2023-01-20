@@ -1,5 +1,6 @@
 """Test all the links in the project's *.md files."""
 import os.path
+from random import choice
 from time import sleep
 from typing import Final
 
@@ -8,6 +9,9 @@ import certifi
 
 # noinspection PyPackageRequirements
 import urllib3
+
+# noinspection PyPackageRequirements
+from urllib3.util.url import Url, parse_url
 
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
@@ -27,30 +31,51 @@ def __ve(msg: str, text: str, idx: int) -> ValueError:
     return ValueError(f"{msg}: '...{piece}...'")
 
 
-#: the headers
-__HEADER: Final[dict[str, str]] = {
-    "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64;"
-                  " rv:106.0) Gecko/20100101 Firefox/106.0",
-}
+#: The headers to use for the HTTP requests.
+#: It seems that some websites may throttle requests.
+#: Maybe by using different headers, we can escape this.
+__HEADERS: Final[tuple[dict[str, str], ...]] = tuple([
+    {"User-Agent": ua} for ua in [
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101"
+        " Firefox/106.0",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like "
+        "Gecko) Chrome/109.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, "
+        "like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.55",
+        "Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 "
+        "Version/12.16.2",
+        "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) "
+        "like Gecko",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.75.14"
+        " (KHTML, like Gecko) Version/7.0.3 Safari/7046A194A",
+        "Mozilla/5.0 (PLAYSTATION 3; 3.55)",
+    ]])
 
 
 def __needs_body(base_url: str) -> bool:
     """
     Check whether we need the body of the given url.
 
+    If the complete body of the document needs to be downloaded, this function
+    returns `True`. This is the case, for example, if we are talking about
+    html documents. In this case, we need to (later) scan for internal
+    references, i.e., for stuff like `id="..."` attributes. However, if the
+    url does not point to an HTML document, maybe a PDF, then we do not need
+    the whole body and return `False`. In the latter case, it is sufficient to
+    do a `HEAD` HTTP request, in the former case we need a full `GET`.
+
     :param base_url: the url string
     :returns: `True` if the body is needed, `False` otherwise
     """
-    if base_url.endswith(".html") or base_url.endswith(".htm"):
-        return True
-    return base_url.startswith("https://yaml.org/spec/")
+    return base_url.endswith(".html") or base_url.endswith(".htm") \
+        or base_url.endswith("/")
 
 
 def __check(url: str, valid_urls: dict[str, str | None],
             http: urllib3.PoolManager = urllib3.PoolManager(
                 cert_reqs="CERT_REQUIRED", ca_certs=certifi.where())) -> None:
     """
-    Check if a url exists.
+    Check if an url can be reached.
 
     :param url: str
     :param valid_urls: the set of valid urls
@@ -99,22 +124,44 @@ def __check(url: str, valid_urls: dict[str, str | None],
     body: str | None
     method = "GET" if needs_body else "HEAD"
     try:
-        try:
-            response = http.request(
-                method, base_url, timeout=10, redirect=True,
-                retries=5, headers=__HEADER)
-        except BaseException as be:
-            logger(str(be))
-            sleep(2.0)
-            response = http.request(
-                method, base_url, timeout=30, redirect=True,
-                retries=5, headers=__HEADER)
+        error: BaseException | None
+        response = None
+
+# Sometimes, access to the URLs on GitHub fails.
+# I think they probably throttle access from here.
+# Therefore, we first do a request with 5s timeout and 0 retries.
+# If that fails, we wait 2 seconds and try with timeout 8 and 5 retries.
+# If that fails, we wait for 20s, then try with timeout 30 and 10 retries.
+# If that fails too, we assume that the URL is really incorrect, which rarely
+# should be the case (justifying the many retries).
+        for sltrt in [(0, 0, 5), (2, 5, 8), (20, 10, 30)]:
+            sleep_time, retries, timeout = sltrt
+            sleep(sleep_time)
+            header: dict[str, str] = choice(__HEADERS)
+            try:
+                response = http.request(
+                    method, base_url, timeout=timeout, redirect=True,
+                    retries=retries, headers=header)
+                error = None
+                break
+            except BaseException as be:
+                logger(f"sleep={sleep_time}, retries={retries}, "
+                       f"timeout={timeout}, error={str(be)!r}, and "
+                       f"header={header!r}.")
+                error = be
+        if error is not None:
+            raise error  # noqa
+        if response is None:
+            raise ValueError(f"no response from url={base_url!r}?")  # noqa
         code = response.status
         body = response.data.decode("utf-8") if needs_body else None
     except BaseException as be:
         # sometimes, I cannot reach github from here...
-        if url.startswith("http://github.com") \
-                or url.startswith("https://github.com"):
+        parsed: Final[Url] = parse_url(url)
+        host: Final[str | None] = parsed.hostname
+        if host is None:
+            raise ValueError(f"url {url!r} has None as host??") from be
+        if host == "github.com":
             return
         raise ValueError(f"invalid url {url!r}.") from be
 

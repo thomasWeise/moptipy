@@ -47,8 +47,7 @@ DEFAULT_BOOL: Final[np.dtype] = np.dtype(np.bool_)
 DEFAULT_FLOAT: Final[np.dtype] = np.dtype(float)
 
 #: The default numerical types.
-DEFAULT_NUMERICAL: Final[tuple[np.dtype, ...]] = tuple(
-    list(INTS) + [DEFAULT_FLOAT])
+DEFAULT_NUMERICAL: Final[tuple[np.dtype, ...]] = (*list(INTS), DEFAULT_FLOAT)
 
 
 def is_np_int(dtype: np.dtype) -> bool:
@@ -200,11 +199,11 @@ def np_ints_max(shape, dtype: np.dtype = DEFAULT_INT) -> np.ndarray:
 
 
 #: the default number of bytes for random seeds
-__SEED_BYTES: Final = 8
+__SEED_BYTES: Final[int] = 8
 #: the minimum acceptable random seed
-__MIN_RAND_SEED: Final = 0
+__MIN_RAND_SEED: Final[int] = 0
 #: the maximum acceptable random seed
-__MAX_RAND_SEED: Final = int((1 << (__SEED_BYTES * 8)) - 1)
+__MAX_RAND_SEED: Final[int] = int((1 << (__SEED_BYTES * 8)) - 1)
 
 
 def rand_seed_generate(random: Generator = default_rng()) -> int:
@@ -256,7 +255,7 @@ def rand_seeds_from_str(string: str,
     Reproducibly generate `n_seeds` unique random seeds from a `string`.
 
     This function will produce a sorted sequence of `n_seeds`random seeds,
-    each of which being an unsigned 64 bit integer, from the string passed in.
+    each of which being an unsigned 64-bit integer, from the string passed in.
     The same string will always yield the same sequence reproducibly.
     Running the function twice with different values of `n_seeds` will result
     in the two sets of random seeds, where the larger one (for the larger
