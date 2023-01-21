@@ -204,9 +204,17 @@ def run_experiment(base_dir: str,
     This function will automatically run an experiment, i.e., apply a set
     `setups` of algorithm setups to a set `instances` of problem instances for
     `n_runs` each. It will collect log files and store them into an
-    appropriate folder structure under the path `base_dir`. It will use
-    `n_threads` separate processes to parallelize the whole experiment (if you
-    do not specify `n_threads`, it will be chosen automatically).
+    appropriate folder structure under the path `base_dir`. It will
+    automatically draw random seeds for all algorithm runs using
+    :func:`moptipy.utils.nputils.rand_seeds_from_str` based on the names of
+    the problem instances to solve. This yields replicable experiments, i.e.,
+    running the experiment program twice will yield exactly the same runs in
+    exactly the same file structure (give and take clock-time dependent
+    issues, which obviously cannot be controlled in a deterministic fashion).
+
+    This function will use `n_threads` separate processes to parallelize the
+    whole experiment (if you do not specify `n_threads`, it will be chosen
+    automatically).
 
     Note for Windows users: The parallelization will not work under Windows.
     However, you can achieve *almost* the same effect and performance as for

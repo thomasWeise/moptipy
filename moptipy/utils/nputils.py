@@ -208,7 +208,11 @@ __MAX_RAND_SEED: Final[int] = int((1 << (__SEED_BYTES * 8)) - 1)
 
 def rand_seed_generate(random: Generator = default_rng()) -> int:
     """
-    Generate a random seed.
+    Draw a (pseudo-random) random seed.
+
+    This method either uses a provided random number generator `random` or a
+    default generator. It draws 8 bytes from this generator and converts them
+    to an unsigned (64 bit) integer big-endian style.
 
     :param random: the random number generator to be used to generate the seed
     :return: the random seed
@@ -249,21 +253,55 @@ def rand_generator(seed: int) -> Generator:
     return default_rng(rand_seed_check(seed))
 
 
-def rand_seeds_from_str(string: str,
-                        n_seeds: int) -> list[int]:
+def rand_seeds_from_str(string: str, n_seeds: int) -> list[int]:
     """
     Reproducibly generate `n_seeds` unique random seeds from a `string`.
 
-    This function will produce a sorted sequence of `n_seeds`random seeds,
+    This function will produce a sorted sequence of `n_seeds` random seeds,
     each of which being an unsigned 64-bit integer, from the string passed in.
     The same string will always yield the same sequence reproducibly.
     Running the function twice with different values of `n_seeds` will result
     in the two sets of random seeds, where the larger one (for the larger
     value of `n_seeds`) contains all elements of the smaller one.
 
+    This works as follows: First, we encode the string to an array of bytes
+    using the UTF-8 encoding (`string.encode("utf8")`). Then, we compute the
+    SHA-512 digest of this byte array (using `hashlib.sha512`).
+    From this digest, we then use two chunks of 32 bytes (256 bit) to seed two
+    :class:`~numpy.random.PCG64` random number generators. We then
+    alternatingly draw seeds from these two generators using
+    :func:`rand_seed_generate` until we have `n_seeds` unique values.
+
+    This procedure is used in :func:`moptipy.api.experiment.run_experiment` to
+    draw the random seeds for the algorithm runs to be performed. As `string`
+    input, that method uses the string representation of the problem instance.
+    This guarantees that all algorithms start with the same seeds on the same
+    problems. It also guarantees that an experiment is repeatable, i.e., will
+    use the same seeds when executed twice. Finally, it ensures that
+    cherry-picking is impossible, as all seeds are fairly pseudo-random.
+
+    1. Penny Pritzker and Willie E. May, editors, *Secure Hash Standard
+       (SHS),* Federal Information Processing Standards Publication FIPS PUB
+       180-4, Gaithersburg, MD, USA: National Institute of Standards and
+       Technology, Information Technology Laboratory, August 2015.
+       doi: https://dx.doi.org/10.6028/NIST.FIPS.180-4
+       https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+    2. Unicode Consortium, editors, *The Unicode(R) Standard, Version
+       15.0 - Core Specification,* Mountain View, CA, USA: Unicode, Inc.,
+       September 2022, ISBN:978-1-936213-32-0,
+       https://www.unicode.org/versions/Unicode15.0.0/
+    3. NumPy Community, Permuted Congruential Generator (64-bit, PCG64), in
+       *NumPy Reference, Release 1.23.0,* June 2022, Austin, TX, USA:
+       NumFOCUS, Inc., https://numpy.org/doc/1.23/numpy-ref.pdf
+    4. Melissa E. O'Neill: *PCG: A Family of Simple Fast Space-Efficient
+       Statistically Good Algorithms for Random Number Generation,* Report
+       HMC-CS-2014-0905, September 5, 2014, Claremont, CA, USA: Harvey Mudd
+       College, Computer Science Department.
+       https://www.cs.hmc.edu/tr/hmc-cs-2014-0905.pdf
+
     :param string: the string
     :param n_seeds: the number of seeds
-    :return: a tuple of random seeds
+    :return: a list of random seeds
     :raises TypeError: if the parameters do not follow the type contract
     :raises ValueError: if the parameter values are invalid
 
@@ -296,7 +334,7 @@ def rand_seeds_from_str(string: str,
     seed2 = int.from_bytes(seeds[32:64], byteorder="big", signed=False)
     del seeds
 
-    # seed two PCG64 generators, each of which should use two 128 bit
+    # seed two PCG64 generators, each of which should use two 256 bit
     # numbers as seed
     g1 = Generator(PCG64(seed1))
     g2 = Generator(PCG64(seed2))
