@@ -14,7 +14,7 @@ from moptipy.utils.types import type_error
 
 class Op1MoverNflip(Op1):
     """
-    This unary search operation flips each bit with probability of `m/n`.
+    A unary search operation that flips each bit with probability of `m/n`.
 
     For bit strings of length `n`, draw the number `z` of bits to flip from a
     binomial distribution with `p=m/n`. If `at_least_1` is set to `True`, then

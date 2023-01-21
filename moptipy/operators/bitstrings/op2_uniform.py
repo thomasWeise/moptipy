@@ -39,7 +39,7 @@ def _op2_uniform(random: Generator, dest: np.ndarray, x0: np.ndarray,
 
 class Op2Uniform(Op2):
     """
-    This binary search operation copies each bit from either source.
+    A binary search operation that copies each bit from either source.
 
     For each index `i` in the destination array `dest`, uniform
     crossover copies the value from the first source string `x0`with

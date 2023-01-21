@@ -58,7 +58,7 @@ from moptipy.api.operators import Op1
 # start book
 class Op1SwapN(Op1):
     """
-    This unary search operation swaps several (different) elements.
+    A unary search operation that swaps several (different) elements.
 
     It is similar to `swap2`, but instead may perform a random number
     of swaps. After each swap, it decides with probability 0.5 whether

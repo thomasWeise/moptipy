@@ -56,7 +56,7 @@ from moptipy.api.operators import Op1
 # start book
 class Op1Swap2(Op1):
     """
-    This unary search operation swaps two (different) elements.
+    A unary search operation that swaps two (different) elements.
 
     In other words, it performs exactly one swap on a permutation.
     It spans a neighborhood of a rather limited size but is easy
