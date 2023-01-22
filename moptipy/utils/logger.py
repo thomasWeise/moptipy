@@ -1,4 +1,34 @@
-"""Classes for writing structured log files."""
+"""
+Classes for writing structured log files.
+
+A :class:`~Logger` offers functionality to write structured, text-based log
+files that can hold a variety of information. It is implemented in two
+flavors, :class:`~FileLogger`, which writes data to a file, and
+:class:`~InMemoryLogger`, which writes data to a buffer in memory (which is
+mainly useful for testing).
+
+A :class:`~Logger` can produce output in three formats:
+
+- :meth:`~Logger.csv` creates a section of semicolon-separated-values data
+  (:class:`~CsvLogSection`), which we call `csv` because it structured
+  basically exactly as the well-known comma-separated-values data, just
+  using semicolons.
+- :meth:`~Logger.key_values` creates a key-values section
+  (:class:`~KeyValueLogSection`) in YAML format. The specialty of this
+  section is that it permits hierarchically structuring of data by spawning
+  out sub-sections that are signified by a key prefix via
+  :meth:`~KeyValueLogSection.scope`.
+- :meth:`~Logger.text` creates a raw text section (:class:`~TextLogSection`),
+  into which raw text can be written.
+
+The beginning and ending of section named `XXX` are `BEGIN_XXX` and `END_XXX`.
+
+This class is used by the :class:`~moptipy.api.execution.Execution` and
+experiment-running facility (:func:`~moptipy.api.experiment.run_experiment`)
+to produce log files complying with
+https://thomasweise.github.io/moptipy/#log-files.
+Such log files can be parsed via :mod:`~moptipy.evaluation.log_parser`.
+"""
 
 from contextlib import AbstractContextManager
 from io import StringIO, TextIOBase

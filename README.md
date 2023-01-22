@@ -842,7 +842,7 @@ The files and folders in this archive will then exactly comply to the structure 
 
 ### 5.1. Log Files
 
-The philosophy of our log files are:
+The philosophy of our log files is:
 
 1. One log file per algorithm run.
    We always store each run of an algorithm into a single, separate file.
@@ -1689,7 +1689,7 @@ The format is otherwise similar to the End Results CSV format.
 #### 6.1.2 Export to IOHanalyzer
 
 We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data/).
-This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.ioh_analyzer.moptipy_to_ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#511-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
+This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#511-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
 You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/) that you can either install locally or use online at <https://iohanalyzer.liacs.nl/>.
 In the latter case, you first need to zip-compress your data before uploading it.
 

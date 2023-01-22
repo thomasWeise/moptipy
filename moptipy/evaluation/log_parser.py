@@ -1,4 +1,25 @@
-"""A section consumer can load the sections from a log file."""
+"""
+Parsers for structured log data produced by the `moptipy` experiment API.
+
+The `moptipy` :class:`~moptipy.api.execution.Execution` and experiment-running
+facility (:func:`~moptipy.api.experiment.run_experiment`) uses the class
+:class:`~moptipy.utils.logger.Logger` from module :mod:`~moptipy.utils.logger`
+to produce log files complying with
+https://thomasweise.github.io/moptipy/#log-files.
+
+Here we provide a skeleton for parsing such log files in form of the class
+:class:`~LogParser`. It works similar to SAX-XML parsing in that the data
+is read is from files and methods that consume the data are invoked. By
+overwriting these methods, we can do useful things with the data.
+
+For example in module :mod:`~moptipy.evaluation.end_results`, the method
+:meth:`~moptipy.evaluation.end_results.EndResult.from_logs` can load
+:class:`~moptipy.evaluation.end_results.EndResult` records from the logs
+and the method :meth:`~moptipy.evaluation.progress.Progress.from_logs` in
+module :mod:`~moptipy.evaluation.progress` reads the whole
+:class:`~moptipy.evaluation.progress.Progress` that the algorithms make
+over time.
+"""
 
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, join
