@@ -1,4 +1,23 @@
-"""Provides statistical comparison tables."""
+r"""
+Provides :func:`tabulate_result_tests` creating statistical comparison tables.
+
+The function :func:`tabulate_result_tests` can compare two or more algorithms
+on multiple problem instances by using the Mann-Whitney U test [1-3] with the
+Bonferroni correction [4].
+
+1. Daniel F. Bauer. Constructing Confidence Sets Using Rank Statistics.
+   In *Journal of the American Statistical Association.* 67(339):687-690.
+   September 1972. doi: https://doi.org/10.1080/01621459.1972.10481279.
+2. Sidney Siegel and N. John Castellan Jr. *Nonparametric Statistics for The
+   Behavioral Sciences.* 1988 In the Humanities/Social Sciences/Languages
+   series. New York, NY, USA: McGraw-Hill. ISBN: 0-07-057357-3.
+3. Myles Hollander and Douglas Alan Wolfe. *Nonparametric Statistical
+   Methods.* 1973. New York, NY, USA: John Wiley and Sons Ltd.
+   ISBN: 047140635X.
+4. Olive Jean Dunn. Multiple Comparisons Among Means. In *Journal of the
+   American Statistical Association.* 56(293):52-64. March 1961.
+   doi: https://doi.org/10.1080/01621459.1961.10482090.
+"""
 
 from math import isfinite
 from statistics import mean, median
@@ -261,7 +280,7 @@ def tabulate_result_tests(
                 f"algorithm {algo!r} has only data for {len(data_dict[algo])}"
                 f" instances, but should have for {n_insts}.")
 
-    # compute the bonferroni correction
+    # compute the Bonferroni correction
     n_cols: Final[int] = ((n_algos - 1) * n_algos) // 2
     n_pairs: Final[int] = n_insts * n_cols
     alpha_prime: Final[float] = alpha / n_pairs

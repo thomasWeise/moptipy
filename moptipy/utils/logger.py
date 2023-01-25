@@ -374,7 +374,17 @@ class LogSection(AbstractContextManager):
         """
         Write a comment line.
 
+        A comment starts with `#` and is followed by text.
+
         :param comment: the comment to write
+
+        >>> from moptipy.utils.logger import InMemoryLogger
+        >>> with InMemoryLogger() as l:
+        ...     with l.text("A") as tx:
+        ...         tx.write("aaaaaa")
+        ...         tx.comment("hello")
+        ...     print(l.get_log())
+        ['BEGIN_A', 'aaaaaa# hello', 'END_A']
         """
         # noinspection PyProtectedMember
         self._logger._comment(comment)
@@ -549,6 +559,37 @@ class KeyValueLogSection(LogSection):
     def scope(self, prefix: str) -> "KeyValueLogSection":
         """
         Create a new scope for key prefixes.
+
+        :class:`KeyValueLogSection` only allows you to store flat key-value
+        pairs where each key must be unique. However, what do we do if we
+        have two components of an algorithm that have parameters with the
+        same name (key)?
+        We can hierarchically nest :class:`KeyValueLogSection` sections via
+        prefix scopes. The idea is as follows: If one component has
+        sub-components, instead of invoking their
+        :meth:`~moptipy.api.component.Component.log_parameters_to` methods
+        directly, which could lead to key-clashes, it will create a
+        :meth:`scope` for each one and then pass these scopes to their
+        :meth:`~moptipy.api.component.Component.log_parameters_to`.
+        Each scope basically appends a prefix and a "." to the keys.
+        If the prefixes are unique, this ensures that all prefix+"."+keys are
+        unique, too.
+
+        >>> from moptipy.utils.logger import InMemoryLogger
+        >>> with InMemoryLogger() as l:
+        ...     with l.key_values("A") as kv:
+        ...         kv.key_value("x", "y")
+        ...         with kv.scope("b") as sc1:
+        ...             sc1.key_value("x", "y")
+        ...             with sc1.scope("c") as sc2:
+        ...                 sc2.key_value("x", "y")
+        ...         with kv.scope("d") as sc3:
+        ...             sc3.key_value("x", "y")
+        ...             with sc3.scope("c") as sc4:
+        ...                sc4.key_value("x", "y")
+        ...     print(l.get_log())
+        ['BEGIN_A', 'x: y', 'b.x: y', 'b.c.x: y', 'd.x: y', 'd.c.x: y', \
+'END_A']
 
         :param prefix: the key prefix
         :return: the new logger

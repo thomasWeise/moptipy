@@ -34,6 +34,9 @@ class Op0(Component):
         Apply the nullary search operator to fill object `dest`.
 
         Afterwards `dest` will hold a valid point in the search space.
+        Often, this would be a point uniformly randomly sampled from the
+        search space, but it could also be the result of a heuristic or
+        even a specific solution.
 
         :param random: the random number generator
         :param dest: the destination data structure
@@ -46,8 +49,8 @@ def check_op0(op0: Op0) -> Op0:
     """
     Check whether an object is a valid instance of :class:`Op0`.
 
-    :param op0: the op0 object
-    :return: the object
+    :param op0:  the (supposed) instance of :class:`Op0`
+    :return: the object `op0`
     :raises TypeError: if `op0` is not an instance of :class:`Op0`
     """
     if not isinstance(op0, Op0):
@@ -61,7 +64,7 @@ class Op1(Component):
 
     def op1(self, random: Generator, dest, x) -> None:
         """
-        Turn `dest` into a modified copy of `x`.
+        Fill `dest` with a modified copy of `x`.
 
         :param random: the random number generator
         :param dest: the destination data structure
@@ -75,7 +78,7 @@ def check_op1(op1: Op1) -> Op1:
     """
     Check whether an object is a valid instance of :class:`Op1`.
 
-    :param op1: the op1 object
+    :param op1: the (supposed) instance of :class:`Op1`
     :return: the object
     :raises TypeError: if `op1` is not an instance of :class:`Op1`
     """
@@ -105,8 +108,8 @@ def check_op2(op2: Op2) -> Op2:
     """
     Check whether an object is a valid instance of :class:`Op2`.
 
-    :param op2: the op2 object
-    :return: the object
+    :param op2: the (supposed) instance of :class:`Op2`
+    :return: the object `op2`
     :raises TypeError: if `op2` is not an instance of :class:`Op2`
     """
     if not isinstance(op2, Op2):
