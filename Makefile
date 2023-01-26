@@ -154,6 +154,11 @@ create_documentation: static_analysis test
 	rm -f docs/build/tc/.gitignore &&\
 	echo "$(NOW): Deleting useless _sources." &&\
 	rm -rf docs/build/_sources &&\
+	echo "$(NOW): Now rendering additional files." &&\
+	export PART_A='<!DOCTYPE html><html><title>' &&\
+	export PART_B='</title><link href=_static/bizstyle.css rel=stylesheet><body style="background-image:none"><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><section>' &&\
+	export PART_C='</section></div></div></div></div></body></html>' &&\
+	echo "$$PART_A Contributing to moptipy $$PART_B $(shell (python3 -m markdown -o html ./CONTRIBUTING.md)) $$PART_C" > docs/build/CONTRIBUTING.html &&\
 	echo "$(NOW): Now minifying all html files." &&\
 	cd "docs/build/" &&\
 	find -type f -name "*.html" -not -path "./tc/*" -exec python3 -c "print('{}');import minify_html;f=open('{}','r');s=f.read();f.close();s=minify_html.minify(s,do_not_minify_doctype=True,ensure_spec_compliant_unquoted_attribute_values=True,keep_html_and_head_opening_tags=False,minify_css=True,minify_js=True,remove_bangs=True,remove_processing_instructions=True);f=open('{}','w');f.write(s);f.close()" \; &&\
