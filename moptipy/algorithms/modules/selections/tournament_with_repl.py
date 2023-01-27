@@ -41,7 +41,7 @@ Tournament selection without replacement is implemented in
 """
 
 from math import inf
-from typing import Any, Callable, Final, cast
+from typing import Any, Callable, Final
 
 from numpy.random import Generator
 
@@ -52,12 +52,12 @@ from moptipy.utils.types import type_error
 
 # start book
 class TournamentWithReplacement(Selection):
-    """Tournament selection with replacement in the tournament."""
+    """Tournament selection with replacement in the tournaments."""
 
 # end book
     def __init__(self, size: int = 2) -> None:
         """
-        Create the tournament selection without replacement method.
+        Create the tournament selection with replacement method.
 
         :param size: the size of the tournaments
         """
@@ -84,10 +84,7 @@ class TournamentWithReplacement(Selection):
         """
         size: Final[int] = self.size  # the tournament size
         m: Final[int] = len(source)  # number of elements to select from
-        ri: Final[Callable[[int], int]] = \
-            cast(Callable[[int], int],  # -book
-                 random.integers,  # fast call to random.integers function
-                 )  # -book
+        ri: Final[Callable] = random.integers  # fast call to random.integers
         for _ in range(n):  # conduct n tournaments
             best: FitnessRecord | None = None  # best competitor
             best_fitness: int | float = inf  # best fitness, initial infinite
