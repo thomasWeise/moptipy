@@ -2230,6 +2230,8 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 
+Please visit the [contributions guidelines](https://thomasweise.github.io/moptipy/CONTRIBUTING.html) for `moptipy` if you would like to contribute to our package.
+
 
 ## 12. Contact
 

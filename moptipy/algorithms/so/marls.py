@@ -94,10 +94,10 @@ class MARLS(Algorithm2):
             Callable[[int], int], random.integers)
         copy: Final[Callable[[Any, Any], None]] = process.copy
 
-        # start book
         # create list of mu random+ls records and lambda empty records
+        # start book
         lst: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
-        f: int | float = 0  # variable to hold objective values
+        f: int | float = 0  # variable to hold objective values  # -book
         tmp = create()  # the temporary record
         for i in range(mu_plus_lambda):  # fill list of size mu+lambda
             x = create()  # by creating point in search space
@@ -125,9 +125,7 @@ class MARLS(Algorithm2):
                 dest: Record = lst[oi]  # pick destination record
                 x = dest.x  # the destination "x" value
                 dest.it = it  # remember iteration of solution creation
-
-                sx = lst[r0i(mu)].x  # pick a random source "x"
-                sx2 = sx  # second source "x" initially=first sx
+                sx2 = sx = lst[r0i(mu)].x  # pick a random source "x"
                 while sx2 is sx:  # until different from sx...
                     sx2 = lst[r0i(mu)].x  # ..get random second "x"
                 op2(random, x, sx, sx2)  # apply binary operator
