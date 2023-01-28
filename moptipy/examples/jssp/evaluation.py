@@ -119,6 +119,18 @@ def sa_family(name: str) -> str:
     raise ValueError(f"Invalid SA name {name!r}.")
 
 
+def ma_family(name: str) -> str:
+    """
+    Compute the Memetic Algorithm family without the ls steps.
+
+    :param name: the algorithm name
+    :returns: the short name of the family
+    """
+    ss: Final[list[str]] = name.split("_")
+    s = "rls" if name.startswith("marls") else "sa"
+    return f"{ss[1]}+{ss[2]}_ma{s}"
+
+
 def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     """
     Create the algorithm sort keys and name decode.
@@ -143,6 +155,31 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
             q = q2
         return f"{mtch.group(1)}+{mtch.group(2)}_ea_{q}"
 
+    def __sa(mtch: Match) -> str:
+        """Transform the SA name."""
+        if mtch.group(0) == "sa_exp16_1em6_swap2":
+            return "sa"
+        return f"sa_{mtch.group(1)}_{mtch.group(2)}e-{mtch.group(3)}"
+
+    def __ma(mtch: Match, suffix: str) -> str:
+        """Transform the MA name."""
+        if mtch.group(0) == "ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2":
+            return "2_masa_20"
+        if mtch.group(0) == "marls_8_8_16_gap_swap2":
+            return "8_marls_4"
+        ls = name_str_to_num(mtch.group(3))
+        if not 0 < ls < 1_000_000_000:
+            raise ValueError(f"{mtch} has invalid ls={ls}.")
+        e2 = int(log2(ls))
+        if ls != (2 ** e2):
+            raise ValueError(
+                f"{mtch} has invalid ls={ls} since {e2}=log2({ls}).")
+        e2s = f"2^{e2}"
+        lss = str(ls)
+        if len(lss) <= len(e2s):
+            e2s = lss
+        return f"{mtch.group(1)}+{mtch.group(2)}_ma{suffix}_{e2s}"
+
     # fix some names using regular expressions
     namer: dict[str, str] = {}
     used_names: set[str] = set(names)
@@ -153,9 +190,11 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                           ("ea_([0-9]+)_([0-9]+)_(0d[0-9]+)_gap_swap2",
                            __eacr),
                           ("sa_exp([0-9]+)_([0-9])em([0-9])_swap2",
-                           "sa_\\1_\\2e-\\3"),
+                           __sa),
                           ("marls_([0-9]+)_([0-9]+)_([0-9]+)_gap_swap2",
-                           "\\1+\\2_ma_\\3")]:
+                           lambda mm: __ma(mm, "rls")),
+                          ("ma_([0-9]+)_([0-9]+)_([0-9]+)_gap_sa_exp.*",
+                           lambda mm: __ma(mm, "sa"))]:
         re: Pattern = _compile(pattern)
         found = False
         for s in names:
@@ -246,9 +285,8 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     # do ma families
     ma_done: set[str] = set()
     for name in names:
-        if name.startswith("ma_"):
-            sss = name.split("_")
-            n = f"{sss[1]}+{sss[2]}_ma"
+        if name.startswith("ma_") or name.startswith("marls_"):
+            n = ma_family(name)
             if n in ma_done:
                 continue
             ma_done.add(n)
@@ -745,7 +783,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     selected.append("ea_32_32_0d125_gap_swap2")
     table(end_results, selected, dest, swap_stats=[(lims, totfes)])
 
-    logger("now preparing to do simulated annealing")
+    logger("now preparing to evaluate simulated annealing")
     EN.set_current()
     stats = ["bestF.sd", "lastImprovementFE.med", "totalFEs.med"]
     tabulate_end_results(
@@ -760,8 +798,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         put_lower_bound=False,
         use_lang=False)
 
-    logger("now doing simulated annealing")
-
+    logger("now evaluating simulated annealing")
     makespans_over_param(
         end_results=end_results,
         selector=lambda n: n.startswith("sa_") and n.endswith("_swap2") and (
@@ -776,32 +813,35 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         dest_dir=dest)
     table(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
     tests(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
-    makespans(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
+    makespans(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest, 0.72)
     gantt(end_results, "sa_exp16_1em6_swap2", dest, source)
-    progress(["sa_exp16_1em6_swap2", "rls_swap2"], dest, source)
+    progress(["sa_exp16_1em6_swap2", "sa_exp16_1em7_swap2",
+              "sa_exp16_1em5_swap2", "rls_swap2"], dest, source)
     gantt(end_results, "sa_exp16_1em6_swap2", dest, source, True, ["orb06"])
 
-    logger("now doing memetic algorithm")
-
-    table(end_results, ["ma_4_4_131072_gap_rls_swap2",
-                        "rls_swap2", "ea_4_4_swap2"], dest)
-
+    logger("now evaluating memetic algorithm")
+    table(end_results, ["ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2",
+                        "marls_8_8_16_gap_swap2",
+                        "sa_exp16_1em6_swap2"], dest,
+          swap_stats=[(lims, totfes)])
     makespans_over_param(
         end_results=end_results,
-        selector=lambda n: n.startswith("ma_"),
+        selector=lambda n: n.startswith("ma"),
         x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[3]),
-        name_base="ma_rls",
-        algo_getter=lambda n: f"{n.split('_')[1]}+{n.split('_')[2]}_ma",
-        title=f"{LETTER_M}+{LETTER_L}_ma", x_label="ls_fes",
+        name_base="ma_",
+        algo_getter=ma_family,
+        title=f"{LETTER_M}+{LETTER_L}_ma{{rls|sa}}", x_label="ls_fes",
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
-        legend_pos="lower left",
+        legend_pos="lower center",
         title_x=0.8,
-        y_label_location=0.7,
+        y_label_location=0.1,
         dest_dir=dest)
-
-    progress(["ma_4_4_131072_gap_rls_swap2", "rls_swap2", "ea_4_4_swap2",
-              "ma_64_64_8192_gap_rls_swap2", "ma_16_16_32768_gap_rls_swap2"],
-             dest, source)
+    progress(["marls_8_8_16_gap_swap2",
+              "ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2",
+              "sa_exp16_1em6_swap2", "ea_2_2_swap2",
+              "ea_8_8_swap2"], dest, source)
+    makespans(end_results, ["ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2",
+                            "sa_exp16_1em6_swap2"], dest, 0.72)
 
     logger(f"Finished evaluation from {source!r} to {dest!r}.")
 
