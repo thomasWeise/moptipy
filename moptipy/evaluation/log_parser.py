@@ -294,13 +294,14 @@ class LogParser:
 
                 if state in (0, 2):
                     if not cur.startswith(sect_start):
-                        ValueError("Line should start with "
-                                   f"{sect_start!r} but is "
-                                   f"{orig_cur!r} in file {file!r}.")
+                        raise ValueError("Line should start with "
+                                         f"{sect_start!r} but is "
+                                         f"{orig_cur!r} in file {file!r}.")
                     section = cur[len(sect_start):]
                     if len(section) <= 0:
-                        ValueError("Section title cannot be empty in "
-                                   f"{file!r}, but encountered {orig_cur!r}.")
+                        raise ValueError(
+                            "Section title cannot be empty in "
+                            f"{file!r}, but encountered {orig_cur!r}.")
                     state = 1
                     sec_end = sect_end + section
                     wants_section = self.start_section(section)

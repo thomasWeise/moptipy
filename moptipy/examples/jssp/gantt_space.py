@@ -54,8 +54,7 @@ class GanttSpace(Space):
         :param instance: the JSSP instance
         """
         if not isinstance(instance, Instance):
-            ValueError("Must provide valid JSSP instance, "
-                       f"but passed in a {type(instance)}.")
+            raise type_error(instance, "instance", Instance)
         #: The JSSP Instance to which the Gantt record apply.
         self.instance: Final[Instance] = instance  # +book
         #: The shape for the Gantt chart arrays.
