@@ -53,8 +53,8 @@ So I divide the operator into two steps:
 First, the function :func:`find_move` tries to find a move for a given `m`
 in a random fashion. This function tries to find the sequence of indices for a
 cyclic swap where each element is different from both its successor and
-predecessor. It iteratively builds such index sequences iteratively. This may
-fail: as in the example above, for some values of `m` it might just not be
+predecessor. It builds such index sequences iteratively. This may fail:
+as in the example above, for some values of `m` it might just not be
 possible to construct a suitable sequence, either because there is none or
 because building it randomly has too low of a chance of success. Hence, the
 function tries to build at most `max_trials` sequences. Whenever building a
@@ -72,10 +72,10 @@ However, cyclic changes are not the only possible moves of length `m`. For
 example, if we have the permutation blueprint `[0, 1, 2, 3, 4]`, a move of
 length 4 could be to exchange `0` with `1` and to swap `2` with `3`.
 :func:`find_move` cannot find this move, but it could find a cyclic swap of
-`0` to `1`, `1 ` to `2`, `2` to `3` and `3` to `1`. So it could find the
+`0` to `1`, `1` to `2`, `2` to `3`, and `3` to `1`. So it could find the
 right indices for such a move, just restricted to the cyclic swapping. So
 what :func:`apply_move` tries to do is to permute the indices discovered by
-`func:`find_move` randomly and check whether this would still yield a feasible
+:func:`find_move` randomly and check whether this would still yield a feasible
 move changing exactly `m` locations. Any shuffling of the elements at the
 selected position which avoids putting the original values into the original
 positions would do. Sometimes, most such shuffles work out, e.g., if we work
@@ -86,9 +86,13 @@ attempts to find a shuffle that works out. If it finds one, then it applies
 it as move. If it does not find one and the trials are exhausted, it randomly
 choses whether to apply the cyclic move as a cycle to the left or as a cycle
 to the right. Either way, it will change exactly `m` positions of the
-permutation, as prescribed by the move.
+permutation, as prescribed by the move. Cycling one step in either direction
+will always work, since each element is different from both its predecessor
+and successor. (Cycling more than one step (but less than `m`) could
+potentially fail in permutations with repetitions, because there is no
+guarantee that any element is different from its successor's successor.)
 
-Now the overall operator just plugs these two functions together. It only adds
+Now the overall operator just plugs these two functions together. It also adds
 one slight improvement: If we demand to change a number `q` of locations for
 the first time and :func:`find_move` fails to find a move of length `q` but
 instead offers one of length `p<q`, then the operator remembers this. The next
