@@ -60,6 +60,15 @@ def validate_component(component: Component) -> None:
         raise ValueError("repr(component) must equal str(component), but "
                          f"got {clean_name!r} vs. {name!r}.")
 
+    if not (hasattr(component, "initialize")
+            and callable(getattr(component, "initialize"))):
+        raise ValueError("component must have method initialize.")
+    component.initialize()
+
+    if name != str(component):
+        raise ValueError(f"name changed to {str(component)!r} "
+                         f"from {name!r} after initialize!")
+
     # test the logging of parameter values
     if not (hasattr(component, "log_parameters_to")
             and callable(getattr(component, "log_parameters_to"))):
@@ -127,8 +136,3 @@ def validate_component(component: Component) -> None:
         if key in done_keys:
             raise ValueError(f"key {key!r} appears twice!")
         done_keys.add(key)
-
-    if not (hasattr(component, "initialize")
-            and callable(getattr(component, "initialize"))):
-        raise ValueError("component must have method initialize.")
-    component.initialize()

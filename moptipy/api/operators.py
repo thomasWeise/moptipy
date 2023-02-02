@@ -19,6 +19,7 @@ inherit from class :class:`~moptipy.api.operators.Op2`. The pre-defined unit
 test routine :func:`~moptipy.tests.op2.validate_op2` can and should be used to
 test all the binary operators that are implemented.
 """
+
 from numpy.random import Generator
 
 from moptipy.api.component import Component
@@ -115,3 +116,49 @@ def check_op2(op2: Op2) -> Op2:
     if not isinstance(op2, Op2):
         raise type_error(op2, "op2", Op2)
     return op2
+
+
+# start op1WithStepSize
+class Op1WithStepSize(Op1):
+    """A unary search operator with a step size."""
+
+    def op1(self, random: Generator, dest, x, step_size: float = 0.0) -> None:
+        """
+        Copy `x` to `dest` but apply a modification with a given `step_size`.
+
+        This operator is similar to :meth:`Op1.op1` in that it stores a
+        modified copy of `x` into `dest`. The difference is that you can also
+        specify how much that copy should be different: The parameter
+        `step_size` can take on any value in the interval `[0.0, 1.0]`,
+        including the two boundary values. A `step_size` of `0.0` indicates
+        the smallest possible move (for which `dest` will still be different
+        from `x`) and `step_size=1.0` will lead to the largest possible move.
+
+        Every implementation of :class:`Op1WithStepSize` must specify a
+        reasonable default value for this parameter ensure compatibility with
+        :meth:`Op1.op1`. In this base class, we set the default to `0.0`.
+
+        Finally, if a `step_size` value is passed in which is outside the
+        interval `[0, 1]`, the behavior of this method is undefined. It may
+        throw an exception or not. It may also enter an infinite loop.
+
+        :param random: the random number generator
+        :param dest: the destination data structure
+        :param x: the source point in the search space
+        :param step_size: the step size parameter for the unary operator
+        """
+        raise ValueError("Method not implemented!")
+# end op1WithStepSize
+
+
+def check_op1_with_step_size(op1: Op1WithStepSize) -> Op1WithStepSize:
+    """
+    Check whether an object is a valid instance of :class:`Op1WithStepSize`.
+
+    :param op1: the (supposed) instance of :class:`Op1WithStepSize`
+    :return: the object `op1`
+    :raises TypeError: if `op1` is not an instance of :class:`Op1WithStepSize`
+    """
+    if not isinstance(op1, Op1WithStepSize):
+        raise type_error(op1, "op1", Op1WithStepSize)
+    return op1

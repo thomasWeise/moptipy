@@ -1,5 +1,6 @@
 """Test the Sub-Process API."""
-from typing import Callable, Final
+from collections.abc import Callable
+from typing import Final
 
 from numpy.random import Generator, default_rng
 

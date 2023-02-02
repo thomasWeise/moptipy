@@ -13,7 +13,8 @@ sure that a more complex or general algorithm is not implemented incorrectly,
 does not behave differently from its special case, the simpler algorithm.
 """
 
-from typing import Callable, Final, cast
+from collections.abc import Callable
+from typing import Final, cast
 
 from numpy.random import Generator, default_rng
 

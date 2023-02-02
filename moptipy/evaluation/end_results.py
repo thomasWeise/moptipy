@@ -397,7 +397,7 @@ class EndResult(PerRunData):
             header = rd.readlines(1)
             if (header is None) or (len(header) <= 0):
                 raise ValueError(f"No line in file {file!r}.")
-            if _HEADER != header[0]:
+            if header[0] != _HEADER:
                 raise ValueError(
                     f"Header {header[0]!r} in {path!r} should be {_HEADER!r}.")
 

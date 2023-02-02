@@ -10,14 +10,24 @@ from moptipy.tests.component import validate_component
 from moptipy.utils.types import type_error
 
 
+def default_min_unique_samples(samples: int, space: Space) -> int:
+    """
+    Compute the default number of minimum unique samples.
+
+    :param samples: the number of samples
+    :param space: the space
+    :returns: the number of samples
+    """
+    return max(1, min(samples // 2, isqrt(space.n_points())))
+
+
 def validate_op1(op1: Op1,
                  search_space: Space = None,
                  make_search_space_element_valid:
                  Callable[[Generator, Any], Any] | None = lambda _, x: x,
                  number_of_samples: int = 100,
                  min_unique_samples: int | Callable[[int, Space], int]
-                 = lambda samples, space:
-                 max(1, min(samples // 2, isqrt(space.n_points())))) -> None:
+                 = default_min_unique_samples) -> None:
     """
     Check whether an object is a valid moptipy unary operator.
 

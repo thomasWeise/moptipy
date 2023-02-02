@@ -7,8 +7,11 @@ texts, and number formats.
 
 from typing import Callable, Final, Iterable
 
-import matplotlib  # type: ignore
-import matplotlib.font_manager  # type: ignore
+from matplotlib import rc  # type: ignore
+from matplotlib.font_manager import (  # type: ignore
+    FontProperties,
+    findSystemFonts,
+)
 
 from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import type_error
@@ -249,7 +252,7 @@ class Lang:
     def set_current(self) -> None:
         """Mark this language as the current one."""
         setattr(Lang.__get_langs, "__current", self)
-        matplotlib.rc("font", family=self.font())
+        rc("font", family=self.font())
 
     @staticmethod
     def all_langs() -> Iterable["Lang"]:
@@ -343,6 +346,10 @@ def __get_font(choices: list[str]) -> str:
     :returns: the installed name of the font, or the value of `choices[0]`
         if no font was found
     """
+    if not isinstance(choices, list):
+        raise type_error(choices, "choices", list)
+    if len(choices) <= 0:
+        raise ValueError("no font choices are provided!")
     attr: Final[str] = "fonts_list"
     func: Final = globals()["__get_font"]
 
@@ -350,14 +357,16 @@ def __get_font(choices: list[str]) -> str:
     font_list: list[str]
     if not hasattr(func, attr):
         font_list = []
-        for fname in matplotlib.font_manager.findSystemFonts():
+        for fname in findSystemFonts():
             try:
-                font_name = matplotlib.font_manager.FontProperties(
+                font_name = FontProperties(
                     fname=fname).get_name().strip()
                 if font_name.encode("ascii", "ignore").decode() == font_name:
                     font_list.append(font_name)
             except BaseException:
                 continue
+        if len(font_list) <= 0:
+            raise ValueError("Did not find any font.")
         setattr(func, attr, font_list)
     else:
         font_list = getattr(func, attr)

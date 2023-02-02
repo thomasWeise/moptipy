@@ -1,6 +1,6 @@
 """An implementation of a search space for permutations of a base string."""
 from math import factorial
-from typing import Final, Iterable
+from typing import Counter, Final, Iterable
 
 import numpy as np
 
@@ -95,13 +95,13 @@ class Permutations(IntSpace):  # +book
                 f"base string must not be empty, but is {base_string}.")
 
         # get data ranges
-        self.__shape: Final[dict[int, int]] = {}
+        self.__shape: Final[Counter[int]] = Counter[int]()
         minimum: int = string[0]
         maximum: int = string[0]
         for i in string:
             if not isinstance(i, int):
                 raise type_error(i, "element of base_string", int)
-            self.__shape[i] = self.__shape.get(i, 0) + 1
+            self.__shape[i] += 1
             if i < minimum:
                 minimum = i
             if i > maximum:
@@ -203,9 +203,9 @@ class Permutations(IntSpace):  # +book
             element is not finite.
         """
         super().validate(x)
-        counts: dict[int, int] = {}
+        counts: Counter[int] = Counter[int]()
         for xx in x:
-            counts[xx] = counts.get(xx, 0) + 1
+            counts[xx] += 1
 
         if counts != self.__shape:
             for key in sorted(set(counts.keys()).union(
@@ -214,7 +214,7 @@ class Permutations(IntSpace):  # +book
                 found = counts.get(key, 0)
                 if found != exp:
                     raise ValueError(
-                        f"expected to find {key} exactly {exp} times "
+                        f"Expected to find {key} exactly {exp} times "
                         f"but found it {found} times.")
 
     def n_points(self) -> int:
