@@ -1,4 +1,13 @@
-"""An implementation of a search space for permutations of a base string."""
+"""
+An implementation of a search space for permutations of a base string.
+
+The base string can be a string where each element occurs exactly once,
+e.g., `[0, 1, 2, 3]` or `[0, 7, 2, 5]`. It could also be a string where
+some or all elements occur multiple times, e.g., a permutation with
+repetition, such as `[0, 7, 7, 4, 5, 3, 3, 3]` or `[0, 0, 1, 1, 2, 2]`.
+Search operators working on elements of this space are given in module
+:mod:`moptipy.operators.permutations`.
+"""
 from math import factorial
 from typing import Counter, Final, Iterable
 

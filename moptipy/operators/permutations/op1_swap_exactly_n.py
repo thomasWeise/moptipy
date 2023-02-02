@@ -439,7 +439,7 @@ def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
 # can also be some other form of move, maybe swapping a few pairs of elements.
 # We try to find this out in this loop by testing `max_trials` random
 # permutations of the original subsequence.
-    orig: np.ndarray = x[move]   # Get the original subsequence from x.
+    orig: np.ndarray = dest[move]   # Get the original subsequence.
     perm: np.ndarray = orig.copy()
     for _ in range(max_trials):  # Try to permute it.
         shuffle(perm)  # Shuffle the permutation
@@ -576,7 +576,7 @@ class Op1SwapExactlyN(Op1WithStepSize):
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
-        Log the parameters of this space to the given logger.
+        Log the parameters of this operator to the given logger.
 
         :param logger: the logger for the parameters
         """
@@ -595,6 +595,6 @@ class Op1SwapExactlyN(Op1WithStepSize):
                for i, e in enumerate(kvs)]
         kvs = [e for i, e in enumerate(kvs) if
                (i <= 0) or (i >= lk) or (e != -1) or (kvs[i - 1] != -1)]
-        logger.key_value("move", CSV_SEPARATOR.join(
+        logger.key_value("moves", CSV_SEPARATOR.join(
             "-" if k < 0 else str(k) for k in kvs).replace(
             f"{CSV_SEPARATOR}-{CSV_SEPARATOR}", "-"))

@@ -13,6 +13,19 @@ generate a new, similar point as output. They inherit from class
 :func:`~moptipy.tests.op1.validate_op1` can and should be used to test all the
 unary operators that are implemented.
 
+The basic unary operators :class:`~moptipy.api.operators.Op1` have no
+parameter telling them how much of the input point to change. They may do a
+hard-coded number of modifications (as, e.g.,
+:class:`~moptipy.operators.permutations.op1_swap2.Op1Swap2` does) or may
+apply a random number of modifications (like
+:class:`~moptipy.operators.permutations.op1_swapn.Op1SwapN`). There is a
+sub-class of unary operators named
+:class:`~moptipy.api.operators.Op1WithStepSize` where a parameter `step_size`
+with a value from the closed interval `[0.0, 1.0]` can be supplied. If
+`step_size=0.0`, such an operator should perform the smallest possible
+modification and for `step_size=1.0`, it should perform the largest possible
+modification.
+
 Binary search operators accept two points in the search space as input and
 generate a new point that should be similar to both inputs as output. They
 inherit from class :class:`~moptipy.api.operators.Op2`. The pre-defined unit
