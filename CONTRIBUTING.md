@@ -11,7 +11,7 @@ One of the pillars of our project is extensive documentation, the implementation
 Our [make build](https://thomasweise.github.io/moptipy/Makefile.html) requires the code to pass the checks of more than [20 tools](https://thomasweise.github.io/moptipy/index.html#unit-tests-and-static-analysis).
 This may make it complicated to submit code contributions via git pull requests.
 
-The prefered way to contribute to this project therefore is by opening [issues](https://github.com/thomasWeise/moptipy/issues).
+The preferred way to contribute to this project therefore is by opening [issues](https://github.com/thomasWeise/moptipy/issues).
 
 If you nevertheless submit a git pull or otherwise code-based contribution, then it should ideally pass all these checks.
 In other words, the [make build](https://thomasweise.github.io/moptipy/Makefile.html) requires the code to pass the checks of more than [20 tools](https://thomasweise.github.io/moptipy/index.html#unit-tests-and-static-analysis) should succeed on your local system.
@@ -25,6 +25,8 @@ We will, however, definitely try our best.
 
 We believe that, in the long run, having very clearly documented code that follows best practices and is thoroughly tested wherever possible will benefit the value of our project.
 The downside is that it takes a lot of resources, time, and nit-picking energy.
+
+If your contribution concerns the *security* of `moptipy`, please consider our [security policy](https://thomasweise.github.io/moptipy/SECURITY.html).
 
 
 ## 2. License

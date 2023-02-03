@@ -2232,6 +2232,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 
 Please visit the [contributions guidelines](https://thomasweise.github.io/moptipy/CONTRIBUTING.html) for `moptipy` if you would like to contribute to our package.
+If you have any concerns regarding security, please visit our [security policy](https://thomasweise.github.io/moptipy/SECURITY.html).
 
 
 ## 12. Contact
