@@ -85,6 +85,13 @@ class Process(Space, Objective, AbstractContextManager):
         """
         Obtain the random number generator.
 
+        The optimization algorithm and all of its components must only use
+        this random number generator for all their non-deterministic
+        decisions. In order to guarantee reproducible runs, there must not be
+        any other source of randomness. This generator can be seeded in the
+        :meth:`~moptipy.api.execution.Execution.set_rand_seed` method of the
+        :class:`~moptipy.api.execution.Execution` builder object.
+
         :return: the random number generator
         """
 
@@ -98,7 +105,20 @@ class Process(Space, Objective, AbstractContextManager):
         is hit or if anyone calls :meth:`terminate`, which happens also
         at the end of a `with` statement.
 
-        :return: True if the process should terminate, False if not
+        Generally, the termination criterion is configured by the methods
+        :meth:`~moptipy.api.execution.Execution.set_max_fes`,
+        :meth:`~moptipy.api.execution.Execution.set_max_time_millis`, and
+        :meth:`~moptipy.api.execution.Execution.set_goal_f` of the
+        :class:`~moptipy.api.execution.Execution` builder. Furthermore, if
+        the objective function has a finite
+        :meth:`~moptipy.api.objective.Objective.lower_bound`, then this lower
+        bound is also used as goal objective value if no goal objective value
+        is specified via :meth:`~moptipy.api.execution.Execution.set_goal_f`.
+        :meth:`should_terminate` then returns `True` as soon as any one of the
+        configured criteria is met, i.e., the process terminates when the
+        earliest one of the criteria is met.
+
+        :return: `True` if the process should terminate, `False` if not
         """
 
     def evaluate(self, x) -> float | int:  # +book

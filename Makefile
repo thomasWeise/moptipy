@@ -112,7 +112,7 @@ static_analysis: init
 
 # We use sphinx to generate the documentation.
 # This automatically checks the docstrings and such and such.
-create_documentation: #static_analysis test
+create_documentation: static_analysis test
 	echo "$(NOW): The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "$(NOW): PATH is now '${PATH}'." &&\
