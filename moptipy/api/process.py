@@ -386,7 +386,7 @@ class Process(Space, Objective, AbstractContextManager):
         statement, but can also be called by the algorithm when it is
         finished and is also invoked automatically when a termination
         criterion is hit.
-        After the first time this method is invoked, :meth:should_terminate`
+        After the first time this method is invoked, :meth:`should_terminate`
         becomes `True`.
         """
 
@@ -464,11 +464,15 @@ def check_max_fes(max_fes: int | None,
     """
     Check the maximum FEs.
 
+    This is a small utility method that validates whether a maximum for the
+    objective function evaluations (FEs) is valid.
+
     :param max_fes: the maximum FEs
-    :param none_is_ok: is None ok?
-    :return: the maximum fes, or None
-    :raises TypeError: if max_fes is None or not an int
-    :raises ValueError: if max_fes is invalid
+    :param none_is_ok: is `None` ok?
+    :return: the maximum fes, or `None`
+    :raises TypeError: if `max_fes` is `None` (and `None` is not allowed) or
+        not an `int`
+    :raises ValueError: if `max_fes` is invalid
     """
     if not isinstance(max_fes, int):
         if none_is_ok and (max_fes is None):
@@ -484,11 +488,15 @@ def check_max_time_millis(max_time_millis: int | None,
     """
     Check the maximum time in milliseconds.
 
+    This is a small utility method that validates whether a maximum for the
+    milliseconds that can be used as runtime limit is valid.
+
     :param max_time_millis: the maximum time in milliseconds
     :param none_is_ok: is None ok?
-    :return: the maximum time in millseconds, or None
-    :raises TypeError: if max_time_millis is None or not an int
-    :raises ValueError: if max_time_millis is invalid
+    :return: the maximum time in millseconds, or `None`
+    :raises TypeError: if `max_time_millis` is `None` (and `None` is not
+        allowed) or not an `int`
+    :raises ValueError: if `max_time_millis` is invalid
     """
     if not isinstance(max_time_millis, int):
         if none_is_ok and (max_time_millis is None):
@@ -505,11 +513,15 @@ def check_goal_f(goal_f: int | float | None,
     """
     Check the goal objective value.
 
+    This is a small utility method that validates whether a goal objective
+    value is valid.
+
     :param goal_f: the goal objective value
-    :param none_is_ok: is None ok?
-    :return: the goal objective value, or None
-    :raises TypeError: if goal_f is None or neither an int nor a float
-    :raises ValueError: if goal_f is invalid
+    :param none_is_ok: is `None` ok?
+    :return: the goal objective value, or `None`
+    :raises TypeError: if `goal_f` is `None` (and `None` is not allowed) or
+        neither an `int` nor a `float`
+    :raises ValueError: if `goal_f` is invalid
     """
     if not (isinstance(goal_f, (int, float))):
         if none_is_ok and (goal_f is None):
