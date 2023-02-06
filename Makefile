@@ -159,10 +159,10 @@ create_documentation: static_analysis test
 	export PART_B='</title><link href=_static/bizstyle.css rel=stylesheet><body style="background-image:none"><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><section>' &&\
 	export PART_C='</section></div></div></div></div></body></html>' &&\
 	export BASE_URL='https\:\/\/thomasweise\.github\.io\/moptipy\/' &&\
-	echo "$$PART_A Contributing to moptipy $$PART_B $(shell (python3 -m markdown -o html ./CONTRIBUTING.md)) $$PART_C" > ./docs/build/CONTRIBUTING.html &&\
+	echo "$${PART_A}Contributing to moptipy$${PART_B}$(shell (python3 -m markdown -o html ./CONTRIBUTING.md))$$PART_C" > ./docs/build/CONTRIBUTING.html &&\
 	sed -i "s/\"$$BASE_URL/\".\//g" ./docs/build/CONTRIBUTING.html &&\
 	sed -i "s/=$$BASE_URL/=.\//g" ./docs/build/CONTRIBUTING.html &&\
-	echo "$$PART_A Security Policy of moptipy $$PART_B $(shell (python3 -m markdown -o html ./SECURITY.md)) $$PART_C" > ./docs/build/SECURITY.html &&\
+	echo "$${PART_A}Security Policy of moptipy$${PART_B}$(shell (python3 -m markdown -o html ./SECURITY.md))$$PART_C" > ./docs/build/SECURITY.html &&\
 	sed -i "s/\"$$BASE_URL/\".\//g" ./docs/build/SECURITY.html &&\
 	sed -i "s/=$$BASE_URL/=.\//g" ./docs/build/SECURITY.html &&\
 	echo "$(NOW): Now minifying all html files." &&\

@@ -55,7 +55,7 @@ wheel >= 0.37.1
 # generates the html files with the documentation. It therefore uses the
 # docstrings and the type hints.
 sphinx >= 5.3.0
-sphinx-autodoc-typehints >= 1.20.1, < 1.21.4
+sphinx-autodoc-typehints >= 1.21.3, < 1.21.4
 # myst-parser is needed for including README.md into the documentation
 myst-parser >= 0.18.1
 
@@ -66,22 +66,22 @@ myst-parser >= 0.18.1
 # we probably have good quality code.
 autoflake >= 1.7.8
 bandit >= 1.7.4
-coverage >= 7.0.5
+coverage >= 7.1.0
 coverage-badge >= 1.1.0
 dlint >= 0.13.0
 dodgy >= 0.2.1
 flake8 >= 5.0.4
-flake8-bugbear >= 22.12.6
+flake8-bugbear >= 23.1.20
 flake8-eradicate >= 1.4.0
 flake8-use-fstring >= 1.4
 mypy >= 0.991
 pycodestyle >= 2.9.1
 pydocstyle >= 6.2.3
 pyflakes >= 2.5.0
-pylint >= 2.15.10
+pylint >= 2.16.1
 pyroma >= 4.1
-ruff >= 0.0.240
-semgrep >= 1.2.1
+ruff >= 0.0.241
+semgrep >= 1.9.0
 tryceratops >= 1.1.0
 unimport >= 0.12.3
 vulture >= 2.7
@@ -98,7 +98,7 @@ certifi >= 2022.12.7
 # minify_html is needed to minify html output. Our documentation is fairly
 # large. We apply this tool to try to reduce the file size of the
 # documentation, by, e.g., removing useless white space.
-minify_html >= 0.10.7
+minify_html >= 0.10.8
 
 # for converting the additional markdown files to HTML
 markdown >= 3.4.1

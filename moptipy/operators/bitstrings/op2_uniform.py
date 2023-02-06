@@ -29,7 +29,7 @@ def _op2_uniform(random: Generator, dest: np.ndarray, x0: np.ndarray,
     Perform the uniform operator as plain old function.
 
     :param random: the random number generator
-    :param dest: the array to receive the result
+    :param dest: the destination array to receive the new point
     :param x0: the first source array
     :param x1: the second source array
     """

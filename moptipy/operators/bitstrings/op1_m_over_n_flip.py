@@ -63,7 +63,7 @@ class Op1MoverNflip(Op1):
 
         :param self: the self pointer
         :param random: the random number generator
-        :param dest: the array to be shuffled
+        :param dest: the destination array to receive the new point
         :param x: the existing point in the search space
         """
         np.copyto(dest, x)  # copy source to destination

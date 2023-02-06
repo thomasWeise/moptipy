@@ -147,6 +147,24 @@ class Op1WithStepSize(Op1):
         the smallest possible move (for which `dest` will still be different
         from `x`) and `step_size=1.0` will lead to the largest possible move.
 
+        The `step_size` may be interpreted differently by different operators:
+        Some may interpret it as an exact requirement and enforce steps of the
+        exact specified size, see, for example module
+        :mod:`~moptipy.operators.bitstrings.op1_flip_m`. Others might
+        interpret it stochastically as an expectation. Yet others may
+        interpret it as a goal step width and try to realize it in a best
+        effort kind of way, but may also do smaller or larger steps if the
+        best effort fails, see for example module
+        :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`.
+        What all operators should, however, have in common is that at
+        `step_size=0.0`, they should try to perform a smallest possible change
+        and at `step_size=1.0`, they should try to perform a largest possible
+        change. For all values in between, step sizes should grow with rising
+        `step_size`. This should allow algorithms that know nothing about the
+        nature of the search space or the operator's moves to still tune
+        between small and large moves based on a policy which makes sense in a
+        black-box setting.
+
         Every implementation of :class:`Op1WithStepSize` must specify a
         reasonable default value for this parameter ensure compatibility with
         :meth:`Op1.op1`. In this base class, we set the default to `0.0`.
