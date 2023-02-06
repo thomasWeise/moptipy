@@ -38,17 +38,41 @@ class Op1FlipM(Op1WithStepSize):
         """
         Copy `x` into `dest` and flip exactly `m` bits.
 
+        Here, `step_size = (bits-to-flip - 1) / (n - 1)`, meaning that
+        `step_size=0.0` will flip exactly `1` bit and `step_size=1.0` will
+        flip all `n` bits.
+
         :param self: the self pointer
         :param random: the random number generator
         :param dest: the destination array to receive the new point
         :param x: the existing point in the search space
         :param step_size: the number of bits to flip
+
+        >>> op1 = Op1FlipM()
+        >>> from numpy.random import default_rng as drg
+        >>> rand = drg()
+        >>> import numpy as npx
+        >>> src = npx.zeros(10, bool)
+        >>> dst = npx.zeros(10, bool)
+        >>> for i in range(1, 11):
+        ...   op1.op1(rand, dst, src, (i - 1.0) / (len(src) - 1))
+        ...   print(sum(dst != src))
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+        8
+        9
+        10
         """
         np.copyto(dest, x)  # copy source to destination
         n: Final[int] = len(dest)  # get the number of bits
-        flips: Final[np.ndarray] = random.choice(  # choose the m bits to flip
+        flips: Final[np.ndarray] = random.choice(  # choose the bits
             n, 1 + int(0.5 + (step_size * (n - 1))), False)
-        dest[flips] = ~dest[flips]  # flip the selected bits
+        dest[flips] ^= True  # flip the selected bits via xor
 
     def __str__(self) -> str:
         """

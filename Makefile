@@ -46,7 +46,10 @@ init: clean
 	pip install --no-input --timeout 360 --retries 100 -r requirements.txt && ## nosem \
 	echo "$(NOW): Finished installing required packages from requirements.txt, now installing packages required for development from requirements-dev.txt." && \
 	pip install --no-input --timeout 360 --retries 100 -r requirements-dev.txt && ## nosem \
-	echo "$(NOW): Finished installing requirements from requirements-dev.txt."
+	echo "$(NOW): Finished installing requirements from requirements-dev.txt, now printing all installed packages." &&\
+	pip freeze &&\
+	echo "$(NOW): Finished printing all installed packages."
+
 
 # Run the unit tests.
 test: init
