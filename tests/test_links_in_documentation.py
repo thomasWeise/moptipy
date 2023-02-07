@@ -67,8 +67,7 @@ def __needs_body(base_url: str) -> bool:
     :param base_url: the url string
     :returns: `True` if the body is needed, `False` otherwise
     """
-    return base_url.endswith(".html") or base_url.endswith(".htm") \
-        or base_url.endswith("/")
+    return base_url.endswith((".html", ".htm", "/"))
 
 
 def __check(url: str, valid_urls: dict[str, str | None],

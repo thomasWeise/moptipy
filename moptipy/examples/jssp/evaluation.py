@@ -285,7 +285,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     # do ma families
     ma_done: set[str] = set()
     for name in names:
-        if name.startswith("ma_") or name.startswith("marls_"):
+        if name.startswith(("ma_", "marls_")):
             n = ma_family(name)
             if n in ma_done:
                 continue
