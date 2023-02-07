@@ -36,7 +36,7 @@ psutil >= 5.9.4
 
 # scikit-learn is used to obtain some clusters of JSSP instances for our
 # experiments.
-scikit-learn >= 1.2.0
+scikit-learn >= 1.2.1
 
 # scipy provides statistical tests *and* numerical optimization methods that
 # we wrap into our API.
