@@ -19,6 +19,27 @@ def type_name(tpe: type) -> str:
     >>> from typing import Callable
     >>> type_name(Callable)
     'typing.Callable'
+    >>> from typing import Callable as Ca
+    >>> type_name(Ca)
+    'typing.Callable'
+    >>> from typing import Callable as Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    >>> type_name(Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+    'typing.Callable'
+    >>> import typing as ttttttttttttttttttttttttttttttttttttttttttt
+    >>> type_name(ttttttttttttttttttttttttttttttttttttttttttt.Callable)
+    'typing.Callable'
+    >>> import numpy.random
+    >>> type_name(numpy.random.Generator)
+    'numpy.random._generator.Generator'
+    >>> import numpy.random as npr
+    >>> type_name(npr.Generator)
+    'numpy.random._generator.Generator'
+    >>> from numpy.random import Generator as Ge
+    >>> type_name(Ge)
+    'numpy.random._generator.Generator'
+    >>> import numpy as npx
+    >>> type_name(npx.random.Generator)
+    'numpy.random._generator.Generator'
     """
     c1: str = str(tpe)
     if c1.startswith("<class '"):
