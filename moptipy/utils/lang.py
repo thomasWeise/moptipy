@@ -14,7 +14,7 @@ from matplotlib.font_manager import (  # type: ignore
 )
 
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class Lang:
@@ -36,8 +36,6 @@ class Lang:
         self.__name: Final[str] = sanitize_name(name)
         if not isinstance(font, str):
             raise type_error(font, "font", str)
-        if not isinstance(decimal_stepwidth, int):
-            raise type_error(decimal_stepwidth, "decimal_stepwidth", int)
         if not isinstance(is_default, bool):
             raise type_error(is_default, "is_default", bool)
 
@@ -46,12 +44,9 @@ class Lang:
             raise ValueError(f"The font cannot be {font!r}.")
         #: the font name
         self.__font: Final[str] = font
-
-        if decimal_stepwidth <= 1:
-            raise ValueError(f"The decimal stepwidth must be > 1, but "
-                             f"is {decimal_stepwidth}.")
         #: the decimal step width
-        self.__decimal_stepwidth: Final[int] = decimal_stepwidth
+        self.__decimal_stepwidth: Final[int] = check_int_range(
+            decimal_stepwidth, "decimal_stepwidth", 1, 10)
 
         #: the dictionary with the translation data
         self.__dict: Final[dict[str, str]] = {}

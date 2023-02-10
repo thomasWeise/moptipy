@@ -84,7 +84,7 @@ class FFA(Fitness):
 
     def __str__(self):
         """
-        Get the name (`"ffa"`) of this fitness assignment process.
+        Get the name (`"ffa"`) of the FFA fitness assignment process.
 
         :return: the name of this process: `ffa`
         retval "ffa": always

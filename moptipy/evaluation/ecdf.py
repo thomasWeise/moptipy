@@ -58,7 +58,7 @@ from moptipy.utils.logger import (
 )
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The number of instances.
 KEY_N_INSTS: Final[str] = f"{KEY_N}Insts"
@@ -100,13 +100,8 @@ class Ecdf(MultiRun2DData):
         :param numpy.ndarray ecdf: the ert-ecdf matrix
         """
         super().__init__(algorithm, None, n, time_unit, f_name)
-
-        if not isinstance(n_insts, int):
-            raise type_error(n_insts, "n_insts", int)
-        if (n_insts < 1) or (n_insts > self.n):
-            raise ValueError("n_insts must be > 0 and < n_runs "
-                             f"({self.n}), but got {n_insts}.")
-        object.__setattr__(self, "n_insts", n_insts)
+        object.__setattr__(
+            self, "n_insts", check_int_range(n_insts, "n_insts", 1, self.n))
 
         if goal_f is not None:
             if not isinstance(goal_f, (int, float)):

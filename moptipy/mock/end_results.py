@@ -15,7 +15,7 @@ from moptipy.mock.components import (
 )
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def end_result(performance: BasePerformance, seed: int,
@@ -36,18 +36,11 @@ def end_result(performance: BasePerformance, seed: int,
     limit_time: int | float = inf
     limit_fes: int | float = inf
     if max_time_millis is not None:
-        if not isinstance(max_time_millis, int):
-            raise type_error(max_time_millis, "max_time_millis", int)
-        if max_time_millis <= 10:
-            raise ValueError(
-                f"max_time_millis must be > 10, but is {max_time_millis}.")
-        limit_time = max_time_millis
+        limit_time = check_int_range(
+            max_time_millis, "max_time_millis", 11, 1_000_000_000_000_000)
     if max_fes is not None:
-        if not isinstance(max_fes, int):
-            raise type_error(max_fes, "max_fes", int)
-        if max_fes <= 10:
-            raise ValueError(f"max_fes must be > 10, but is {max_fes}.")
-        limit_fes = max_fes
+        limit_fes = check_int_range(
+            max_fes, "max_fes", 11, 1_000_000_000_000_000)
 
     # The random number generator is determined by the seed.
     random: Final[Generator] = rand_generator(seed)
@@ -228,18 +221,12 @@ class EndResults:
         object.__setattr__(self, "_EndResults__results_for_inst", pi)
 
         if max_fes is not None:
-            if not isinstance(max_fes, int):
-                raise type_error(max_fes, "max_fes", int)
-            if max_fes <= 0:
-                raise ValueError(f"max_fes must be > 0, but are {max_fes}.")
+            check_int_range(max_fes, "max_fes", 1, 1_000_000_000_000)
         object.__setattr__(self, "max_fes", max_fes)
 
         if max_time_millis is not None:
-            if not isinstance(max_time_millis, int):
-                raise type_error(max_time_millis, "max_time_millis", int)
-            if max_time_millis <= 0:
-                raise ValueError("max_time_millis must be > 0, "
-                                 f"but are {max_time_millis}.")
+            check_int_range(
+                max_time_millis, "max_time_millis", 1, 1_000_000_000_000_000)
         object.__setattr__(self, "max_time_millis", max_time_millis)
 
     @staticmethod
@@ -263,17 +250,11 @@ class EndResults:
             f"{len(experiment.per_instance_seeds[0])} runs per setup.")
 
         if max_fes is not None:
-            if not isinstance(max_fes, int):
-                raise type_error(max_fes, "max_fes", int)
-            if max_fes <= 0:
-                raise ValueError(f"max_fes must be > 0, but are {max_fes}.")
+            check_int_range(max_fes, "max_fes", 1, 1_000_000_000_000)
 
         if max_time_millis is not None:
-            if not isinstance(max_time_millis, int):
-                raise type_error(max_time_millis, "max_time_millis", int)
-            if max_time_millis <= 0:
-                raise ValueError("max_time_millis must be > 0, "
-                                 f"but are {max_time_millis}.")
+            check_int_range(
+                max_time_millis, "max_time_millis", 1, 1_000_000_000_000_000)
         results: list[EndResult] = []
         for per in experiment.applications:
             for seed in experiment.seeds_for_instance(per.instance):

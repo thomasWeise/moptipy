@@ -26,7 +26,7 @@ from moptipy.api.process import (
 from moptipy.api.space import Space, check_space
 from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.utils.nputils import rand_seed_check
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range
 
 
 class MOExecution(Execution):
@@ -63,11 +63,7 @@ class MOExecution(Execution):
         :param size: the maximum archive size
         :returns: this execution
         """
-        if not isinstance(size, int):
-            raise type_error(size, "size", int)
-        if size <= 0:
-            raise ValueError(
-                f"archive max size must be positive, but is {size}.")
+        check_int_range(size, "maximum archive size")
         if (self._archive_prune_limit is not None) and \
                 (size > self._archive_prune_limit):
             raise ValueError(
@@ -86,11 +82,7 @@ class MOExecution(Execution):
         :param limit: the archive pruning limit
         :returns: this execution
         """
-        if not isinstance(limit, int):
-            raise type_error(limit, "limit", int)
-        if limit <= 0:
-            raise ValueError(
-                f"archive pruning limit must be positive, but is {limit}.")
+        check_int_range(limit, "limit", 1)
         if (self._archive_max_size is not None) and \
                 (limit < self._archive_max_size):
             raise ValueError(

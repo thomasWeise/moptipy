@@ -45,7 +45,7 @@ from moptipy.operators.permutations.op2_gap import (
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.help import argparser
 from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
@@ -218,20 +218,11 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
         raise type_error(algorithms, "algorithms", Iterable)
     if not isinstance(instances, Iterable):
         raise type_error(instances, "instances", Iterable)
-    if not isinstance(n_runs, int):
-        raise type_error(n_runs, "n_runs", int)
-    if n_runs <= 0:
-        raise ValueError(f"n_runs must be positive, but is {n_runs}.")
+    check_int_range(n_runs, "n_runs", 1, 10_000_000)
     if max_time is not None:
-        if not isinstance(max_time, int):
-            raise type_error(max_time, "max_time", int)
-        if max_time <= 0:
-            raise ValueError(f"max_time must be positive, but is {max_time}.")
+        check_int_range(max_time, "max_time", 1, 100_000_000_000)
     if max_fes is not None:
-        if not isinstance(max_fes, int):
-            raise type_error(max_fes, "max_fes", int)
-        if max_time <= 0:
-            raise ValueError(f"max_fes must be positive, but is {max_fes}.")
+        check_int_range(max_fes, "max_fes", 1, 1_000_000_000_000)
     if (max_fes is None) and (max_time is None):
         raise ValueError("Either max_fes or max_time must be provided.")
 

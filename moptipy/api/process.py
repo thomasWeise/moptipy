@@ -59,7 +59,7 @@ from numpy.random import Generator
 
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 # start book
@@ -474,13 +474,11 @@ def check_max_fes(max_fes: int | None,
         not an `int`
     :raises ValueError: if `max_fes` is invalid
     """
-    if not isinstance(max_fes, int):
-        if none_is_ok and (max_fes is None):
+    if max_fes is None:
+        if none_is_ok:
             return None
         raise type_error(max_fes, "max_fes", int)
-    if max_fes <= 0:
-        raise ValueError(f"Maximum FEs must be positive, but are {max_fes}.")
-    return max_fes
+    return check_int_range(max_fes, "max_fes", 1, 1_000_000_000_000_000)
 
 
 def check_max_time_millis(max_time_millis: int | None,
@@ -493,19 +491,17 @@ def check_max_time_millis(max_time_millis: int | None,
 
     :param max_time_millis: the maximum time in milliseconds
     :param none_is_ok: is None ok?
-    :return: the maximum time in millseconds, or `None`
+    :return: the maximum time in milliseconds, or `None`
     :raises TypeError: if `max_time_millis` is `None` (and `None` is not
         allowed) or not an `int`
     :raises ValueError: if `max_time_millis` is invalid
     """
-    if not isinstance(max_time_millis, int):
-        if none_is_ok and (max_time_millis is None):
+    if max_time_millis is None:
+        if none_is_ok:
             return None
         raise type_error(max_time_millis, "max_time_millis", int)
-    if max_time_millis <= 0:
-        raise ValueError("Maximum time in milliseconds must be positive, "
-                         f"but is {max_time_millis}.")
-    return max_time_millis
+    return check_int_range(
+        max_time_millis, "max_time_millis", 1, 100_000_000_000)
 
 
 def check_goal_f(goal_f: int | float | None,

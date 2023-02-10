@@ -791,19 +791,20 @@ In other words, they try to minimize multiple [objective functions](https://thom
   - Nullary Operators:
     - [random initialization](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op0_random.Op0Random) fills the string with random bits
   - Unary Operators:
-    - [flip 1](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_flip1.Op1Flip1) flips one single bit
-    - [flip m/n](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1) flips each bit independently with probability `m/n`
+    - [flip 1](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_flip1.Op1Flip1) flips one single bit.
+    - [flip m/n](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1) flips each bit independently with probability `m/n`.
+    - [flip m](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#module-moptipy.operators.bitstrings.op1_flip_m) is an operator with step width where the exact number of bits to flip can be determined.
   - Binary Operators:
-    - [uniform crossover](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op2_uniform.Op2Uniform) randomly chooses, for each bit, from which of the two source strings it will be copied
+    - [uniform crossover](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op2_uniform.Op2Uniform) randomly chooses, for each bit, from which of the two source strings it will be copied.
 - [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) with and without Repetitions are represented as numpy arrays of integers.
   A permutation of the values "1,2,3", for example, is an arrangement containing these values in any order.
 - In `moptipy`, the space `Permutation` is defined over any arrangement of a given base string. For example, if a base string is "1,2,2,3", then any arrangement containing one "1", two "2"s, and one "3" is then an element of this space.
   This allows us to represent both normal permutations as well as those with repetitions.
   - Nullary Operators:
-    - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations
+    - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations.
   - Unary Operators:
-    - [swap 2](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2) swaps exactly two (different) values
-    - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps
+    - [swap 2](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2) swaps exactly two (different) values.
+    - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps.
     - [swap_exactly_n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swap_exactly_n) is a unary operator with step size that will change/swap exactly a given number of elements for permutations where each element occurs once and which will try to swap that many in permutations with repetitions (where it might not be possible to swap exactly the required number of elements). 
   - Binary Operators:
     - [generalized alternating position crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_gap.Op2GeneralizedAlternatingPosition) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
@@ -2162,7 +2163,9 @@ If you use a shared root folder for experiments and launch the same experiment o
 - Our project can be found on GitHub at <https://github.com/thomasWeise/moptipy/>
 - The documentation of our project is available at <https://thomasweise.github.io/moptipy/>.
 - Our project can be found on PyPi at <https://pypi.org/project/moptipy/>
-- Our project can be found on Libraries.io at <https://libraries.io/pypi/moptipy>, however, there the wrong version is shown as current version, for some reason.
+- Our project can be found on Libraries.io at <https://libraries.io/pypi/moptipy>, however, this page usually does not show the most recent version.
+- Or project can be found on openbase at <https://openbase.com/python/moptipy>, however, this page usually does not show the most recent version.
+- Our project can be found on snyk.io at <https://snyk.io/advisor/python/moptipy>, however, this page usually does not show the most recent version. 
 - An example data set of experimental results obtained with `moptipy` can be found at <https://thomasweise.github.io/oa_data/>. 
 
 

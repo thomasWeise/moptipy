@@ -6,7 +6,7 @@ from typing import Callable, Final, Iterable, cast
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang
 from moptipy.utils.math import try_int
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def default_get_int_renderer() -> Callable[[int], str]:
@@ -79,10 +79,7 @@ def default_get_float_format(
             and (min_finite <= max_finite)):
         raise ValueError("invalid min_finite, max_finite pair "
                          f"{min_finite}, {max_finite}.")
-    if not isinstance(max_frac_len, int):
-        raise type_error(max_frac_len, "frac_len", int)
-    if not (0 <= max_frac_len < 100):
-        raise ValueError(f"invalid frac_len {max_frac_len}.")
+    check_int_range(max_frac_len, "max_frac_len", 0, 100)
     if not isinstance(int_to_float_threshold, (int, float)):
         raise type_error(
             int_to_float_threshold, "int_to_float_threshold", (int, float))

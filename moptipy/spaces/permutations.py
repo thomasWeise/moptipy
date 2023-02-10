@@ -17,7 +17,7 @@ from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import array_to_str
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: the base string to be permuted
 KEY_BASE_STRING: Final[str] = "baseString"
@@ -282,11 +282,7 @@ class Permutations(IntSpace):  # +book
         :param n: the range of the values
         :returns: the permutations space
         """
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if n <= 1:
-            raise ValueError(f"n must be >1, but is {n}.")
-        return Permutations(range(n))
+        return Permutations(range(check_int_range(n, "n", 2, 100_000_000)))
 
     @staticmethod  # +book
     def with_repetitions(n: int, repetitions: int) -> "Permutations":  # +book
@@ -297,15 +293,8 @@ class Permutations(IntSpace):  # +book
         :param repetitions: how often each value occurs
         :returns: the permutations space
         """
-        if not isinstance(repetitions, int):
-            raise type_error(repetitions, "repetitions", int)
-        if repetitions < 1:
-            raise ValueError(f"repetitions must be >0, but is {repetitions}.")
+        check_int_range(repetitions, "repetitions", 1, 1_000_000)
         if repetitions <= 1:
             return Permutations.standard(n)
-
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if n <= 1:
-            raise ValueError(f"n must be >1, but is {n}.")
+        check_int_range(n, "n", 1, 100_000_000)
         return Permutations(list(range(n)) * repetitions)  # +book

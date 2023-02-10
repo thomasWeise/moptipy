@@ -48,7 +48,7 @@ class Direct(Fitness):
 
     def __str__(self):
         """
-        Get the name of this direct fitness assignment.
+        Get the name of the direct fitness assignment.
 
         :return: the name of this fitness assignment strategy
         :retval "direct": always

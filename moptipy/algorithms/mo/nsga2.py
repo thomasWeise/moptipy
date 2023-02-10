@@ -42,7 +42,7 @@ from moptipy.api.mo_process import MOProcess
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import num_to_str_for_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class _NSGA2Record(MORecord):
@@ -203,12 +203,8 @@ class NSGA2(Algorithm2, MOAlgorithm):
         """
         super().__init__(
             f"nsga2_{pop_size}_{num_to_str_for_name(cr)}", op0, op1, op2)
-        if not isinstance(pop_size, int):
-            raise type_error(pop_size, "pop_size", int)
-        if pop_size < 3:
-            raise ValueError(f"pop_size={pop_size} < 3.")
         #: the population size
-        self.pop_size: Final[int] = pop_size
+        self.pop_size: Final[int] = check_int_range(pop_size, "pop_size", 3)
         if not isinstance(cr, float):
             raise type_error(cr, "cr", float)
         if not 0 < cr < 1:

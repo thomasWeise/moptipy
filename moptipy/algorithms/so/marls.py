@@ -58,7 +58,7 @@ from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 # start book
@@ -172,27 +172,14 @@ class MARLS(Algorithm2):
 
         super().__init__(f"{name}{PART_SEPARATOR}{mu}{PART_SEPARATOR}"
                          f"{lambda_}{PART_SEPARATOR}{ls_fes}", op0, op1, op2)
-        if not isinstance(mu, int):
-            raise type_error(mu, "mu", int)
-        if not (1 < mu <= 1_000_000):
-            raise ValueError(f"invalid mu={mu}, must be in 2..1_000_000.")
-        if not isinstance(lambda_, int):
-            raise type_error(lambda_, "lambda", int)
-        if not (0 < lambda_ <= 1_000_000):
-            raise ValueError(
-                f"invalid lambda={lambda_}, must be in 1..1_000_000.")
-        if not isinstance(ls_fes, int):
-            raise type_error(ls_fes, "ls_fes", int)
-        if not (0 < ls_fes <= 100_000_000):
-            raise ValueError(
-                f"invalid ls_fes={ls_fes}, must be in 1..100_000_000.")
-
         #: the number of records to survive in each generation
-        self.mu: Final[int] = mu
+        self.mu: Final[int] = check_int_range(mu, "mu", 1, 1_000_000)
         #: the number of offsprings per generation
-        self.lambda_: Final[int] = lambda_
+        self.lambda_: Final[int] = check_int_range(
+            lambda_, "lambda", 1, 1_000_000)
         #: the number of FEs per local search run
-        self.ls_fes: Final[int] = ls_fes
+        self.ls_fes: Final[int] = check_int_range(
+            ls_fes, "ls_fes", 1, 100_000_000)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

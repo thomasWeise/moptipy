@@ -13,7 +13,7 @@ from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.utils.nputils import DEFAULT_FLOAT
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The dimensions for tests
 DIMENSIONS_FOR_TESTS: Final[tuple[int, ...]] = (1, 2, 3, 4, 5, 10)
@@ -67,11 +67,8 @@ def vectors_for_tests(dims: Iterable[int] = DIMENSIONS_FOR_TESTS) \
 
     random: Final[Generator] = default_rng()
     spaces: Final[list[VectorSpace]] = []
-    for idx, dim in enumerate(dims):
-        if not isinstance(dim, int):
-            raise type_error(dim, f"dims[{idx}]", int)
-        if dim <= 0:
-            raise ValueError(f"dims[{idx}]={dim}")
+    for _idx, dim in enumerate(dims):
+        check_int_range(dim, "dimension", 0, 1_000_000)
 
         # allocate bounds arrays
         lbv: np.ndarray = np.empty(dim, DEFAULT_FLOAT)

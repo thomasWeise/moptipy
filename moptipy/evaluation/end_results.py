@@ -49,7 +49,7 @@ from moptipy.utils.strings import (
     str_to_intfloatnone,
     str_to_intnone,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The internal CSV header
 _HEADER: Final[str] = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
@@ -213,55 +213,34 @@ class EndResult(PerRunData):
         """
         super().__init__(algorithm, instance, rand_seed)
         object.__setattr__(self, "best_f", try_int(best_f))
-
-        if not isinstance(last_improvement_fe, int):
-            raise type_error(last_improvement_fe, "last_improvement_fe", int)
-        if last_improvement_fe <= 0:
-            raise ValueError("last_improvement_fe must be > 0, "
-                             f"but is {last_improvement_fe}.")
-        object.__setattr__(self, "last_improvement_fe", last_improvement_fe)
-
-        if not isinstance(last_improvement_time_millis, int):
-            raise type_error(last_improvement_time_millis,
-                             "last_improvement_time_millis", int)
-        if last_improvement_fe < 0:
-            raise ValueError("last_improvement_time_millis must be >= 0, "
-                             f"but is {last_improvement_time_millis}.")
-        object.__setattr__(self, "last_improvement_time_millis",
-                           last_improvement_time_millis)
-
-        if not isinstance(total_fes, int):
-            raise type_error(total_fes, "total_fes", int)
-        if last_improvement_fe > total_fes:
-            raise ValueError("last_improvement_fe must be <= total_fes, "
-                             f"but is {last_improvement_fe} vs. "
-                             f"{total_fes}.")
-        object.__setattr__(self, "total_fes", total_fes)
-
-        if not isinstance(total_time_millis, int):
-            raise type_error(total_time_millis,
-                             "total_time_millis", int)
-        if last_improvement_time_millis > total_time_millis:
-            raise ValueError("last_improvement_fe must be <= total_fes, "
-                             f"but is {last_improvement_time_millis} vs. "
-                             f"{total_time_millis}.")
-        object.__setattr__(self, "total_time_millis", total_time_millis)
+        object.__setattr__(
+            self, "last_improvement_fe", check_int_range(
+                last_improvement_fe, "last_improvement_fe",
+                1, 1_000_000_000_000_000))
+        object.__setattr__(
+            self, "last_improvement_time_millis", check_int_range(
+                last_improvement_time_millis, "last_improvement_time_millis",
+                0, 100_000_000_000))
+        object.__setattr__(
+            self, "total_fes", check_int_range(
+                total_fes, "total_fes", last_improvement_fe,
+                1_000_000_000_000_000))
+        object.__setattr__(
+            self, "total_time_millis", check_int_range(
+                total_time_millis, "total_time_millis",
+                last_improvement_time_millis, 100_000_000_000))
 
         if goal_f is not None:
             goal_f = None if goal_f <= -inf else try_int(goal_f)
         object.__setattr__(self, "goal_f", goal_f)
 
         if max_fes is not None:
-            if not isinstance(max_fes, int):
-                raise type_error(max_fes, "max_fes", int)
-            if max_fes < total_fes:
-                raise ValueError(f"max_fes ({max_fes}) must be >= total_fes "
-                                 f"({total_fes}), but are not.")
+            check_int_range(max_fes, "max_fes", total_fes, 1_000_000_000_000)
         object.__setattr__(self, "max_fes", max_fes)
 
         if max_time_millis is not None:
-            if not isinstance(max_time_millis, int):
-                raise type_error(max_time_millis, "max_time_millis", int)
+            check_int_range(
+                max_time_millis, "max_time_millis", 1, 100_000_000_000)
             _check_max_time_millis(max_time_millis,
                                    total_fes,
                                    total_time_millis)

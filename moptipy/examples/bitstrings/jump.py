@@ -28,7 +28,7 @@ import numpy as np
 
 from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range
 
 
 @numba.njit(nogil=True, cache=True)
@@ -74,13 +74,8 @@ class Jump(BitStringProblem):
         :param k: the jump length
         """
         super().__init__(n)
-        if not isinstance(k, int):
-            raise type_error(k, "k", int)
-        if not (1 < k < (n >> 1)):
-            raise ValueError(
-                f"invalid k={k}, must be in 2...{n >> 1} for n={n}.")
         #: the jump width
-        self.k: Final[int] = k
+        self.k: Final[int] = check_int_range(k, "k", 2, (n >> 1) - 1)
 
     def __str__(self) -> str:
         """

@@ -34,7 +34,7 @@ from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection, Logger
 from moptipy.utils.nputils import array_to_str, np_to_py_number
 from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class _MOProcessNoSS(MOProcess, _ProcessBase):
@@ -96,18 +96,12 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         #: the fast call to the pruning routine
         self._prune: Final[Callable[[list[MORecord], int, int], None]] \
             = pruner.prune
-        if not isinstance(archive_max_size, int):
-            raise TypeError(archive_max_size, "archive_max_size", int)
-        if not isinstance(archive_prune_limit, int):
-            raise TypeError(archive_prune_limit, "archive_prune_limit", int)
-        if not (0 < archive_max_size <= archive_prune_limit):
-            raise ValueError(
-                f"invalid archive_max_size={archive_max_size} and "
-                f"archive_prune_limit={archive_prune_limit} combination")
-        #: the maximum archive size
-        self._archive_max_size: Final[int] = archive_max_size
         #: the archive prune limit
-        self._archive_prune_limit: Final[int] = archive_prune_limit
+        self._archive_prune_limit: Final[int] = check_int_range(
+            archive_prune_limit, "archive_prune_limit")
+        #: the maximum archive size
+        self._archive_max_size: Final[int] = check_int_range(
+            archive_max_size, "archive_max_size", 1, archive_prune_limit)
         #: the current archive size
         self._archive_size: int = 0
         #: the internal archive (pre-allocated to the prune limit)

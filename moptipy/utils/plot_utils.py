@@ -16,7 +16,7 @@ from matplotlib.figure import Figure, SubplotBase  # type: ignore
 import moptipy.utils.plot_defaults as pd
 from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
-from moptipy.utils.types import type_error, type_name_of
+from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 # Ensure that matplotlib uses Type 1 fonts.
 # Some scientific conferences, such as GECCO organized by ACM, require this.
@@ -184,37 +184,12 @@ def create_figure_with_subplots(
         and their overall index
     """
     # First, we do a lot of sanity checks
-    if not isinstance(items, int):
-        raise type_error(items, "items", int)
-    if items < 1:
-        raise ValueError(f"items must be positive, but is {items}.")
-    if not isinstance(max_items_per_plot, int):
-        raise type_error(max_items_per_plot, "max_items_per_plot", int)
-    if max_items_per_plot < 1:
-        raise ValueError(f"max_items_per_plot must be positive, "
-                         f"but is {max_items_per_plot}.")
-    if not isinstance(max_rows, int):
-        raise type_error(max_rows, "max_rows", int)
-    if max_rows < 1:
-        raise ValueError(f"max_rows must be positive, but is {max_rows}.")
-    if not isinstance(min_rows, int):
-        raise type_error(min_rows, "min_rows", int)
-    if min_rows < 1:
-        raise ValueError(f"min_rows must be positive, but is {min_rows}.")
-    if min_rows > max_rows:
-        raise ValueError(
-            f"min_rows ({min_rows}) must be <= max_rows ({max_rows}).")
-    if not isinstance(max_cols, int):
-        raise type_error(max_cols, "max_cols", int)
-    if max_cols < 1:
-        raise ValueError(f"max_cols must be positive, but is {max_cols}.")
-    if not isinstance(min_cols, int):
-        raise type_error(min_cols, "min_cols", int)
-    if min_cols < 1:
-        raise ValueError(f"min_cols must be positive, but is {min_cols}.")
-    if min_cols > max_cols:
-        raise ValueError(
-            f"min_cols ({min_cols}) must be <= max_cols ({max_cols}).")
+    check_int_range(items, "items", 1, 1_000_000)
+    check_int_range(max_items_per_plot, "max_items_per_plot", 1, 1_000_000)
+    check_int_range(max_rows, "max_rows", 1, 100)
+    check_int_range(min_rows, "min_rows", 1, max_rows)
+    check_int_range(max_cols, "max_cols", 1, 100)
+    check_int_range(min_cols, "min_cols", 1, max_cols)
     if (max_cols * max_rows * max_items_per_plot) < items:
         raise ValueError(
             f"Cannot distribute {items} items into at most {max_rows} rows "

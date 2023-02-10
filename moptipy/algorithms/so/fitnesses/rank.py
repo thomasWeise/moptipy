@@ -2,7 +2,21 @@
 A fitness representing the rank of a solution based on its quality.
 
 First, all solutions are sorted based on their objective values. Then, they
-receive their rank, i.e., index in the sorted list, as fitness.
+receive their rank, i.e., index+1 in the sorted list, as fitness. If two
+elements have the same objective value, they also receive the same rank.
+This rank will be the index+1 of the first element.
+
+>>> # The first value in FRecord(x, y) is the solution, which is not matter
+>>> # here. The second value is the objective value used for ranking.
+>>> l = [FRecord(1, 10), FRecord(2, 3), FRecord(3, 3), FRecord(4, 2)]
+>>> from numpy.random import default_rng
+>>> Rank().assign_fitness(l, default_rng())
+>>> for z in l:
+...     print(f"x={z.x}, fitness={z.fitness}")
+x=4, fitness=1
+x=2, fitness=2
+x=3, fitness=2
+x=1, fitness=4
 
 Together with fitness proportionate selection (:class:`~moptipy.algorithms.\
 modules.selections.fitness_proportionate_sus.FitnessProportionateSUS`), it
@@ -35,7 +49,7 @@ class Rank(Fitness):
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
-        Assign the rank fitness.
+        Assign the rank as fitness.
 
         :param p: the list of records
         :param random: ignored
@@ -76,7 +90,7 @@ class Rank(Fitness):
 
     def __str__(self):
         """
-        Get the name of this default fitness assignment.
+        Get the name of this rank-based fitness assignment.
 
         :return: the name of this fitness assignment strategy
         :retval "rank": always

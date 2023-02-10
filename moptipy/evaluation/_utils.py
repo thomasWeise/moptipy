@@ -20,8 +20,8 @@ _FULL_KEY_RAND_SEED: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_RAND_SEED}"
 
 
 def _check_max_time_millis(max_time_millis: int | float,
-                           total_fes: int,
-                           total_time_millis: int) -> None:
+                           total_fes: int | float,
+                           total_time_millis: int | float) -> None:
     """
     Check whether a max-time-millis value is permissible.
 
@@ -45,7 +45,6 @@ def _check_max_time_millis(max_time_millis: int | float,
     """
     if total_fes == 1:
         return
-
     div: Final[float] = (total_fes - 2) if total_fes > 1 else 1
     permitted_limit: Final[float] = \
         60_000 + ((1 + (1.1 * (max_time_millis / div))) * total_fes)

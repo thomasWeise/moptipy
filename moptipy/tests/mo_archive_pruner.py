@@ -13,7 +13,7 @@ from moptipy.api.mo_problem import MOProblem
 from moptipy.mock.mo_problem import MockMOProblem
 from moptipy.tests.component import validate_component
 from moptipy.utils.nputils import DEFAULT_NUMERICAL
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def __run_single_test(
@@ -41,14 +41,8 @@ def __run_single_test(
     check_mo_archive_pruner(pruner)
     validate_component(pruner)
 
-    alen = int(random.integers(2, 10))
-    if not isinstance(alen, int):
-        raise type_error(alen, "alen", int)
-    amax = int(random.integers(1, alen + 1))
-    if not isinstance(amax, int):
-        raise type_error(amax, "amax", int)
-    if not (0 < amax <= alen <= 10):
-        raise ValueError(f"invalid amax={amax} and alen={alen}.")
+    alen = check_int_range(int(random.integers(2, 10)), "alen", 2, 9)
+    amax = check_int_range(int(random.integers(1, alen + 1)), "amax", 1, alen)
 
     dim_mode = [False]
     if dim > 1:

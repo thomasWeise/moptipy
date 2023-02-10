@@ -5,7 +5,7 @@ import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib import colors  # type: ignore
 
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The internal color black.
 COLOR_BLACK: Final[tuple[float, float, float]] = (0.0, 0.0, 0.0)
@@ -190,10 +190,7 @@ def distinct_colors(n: int) -> tuple[tuple[float, float, float], ...]:
     :param n: the number of colors required
     :return: a tuple of colors
     """
-    if not isinstance(n, int):
-        raise type_error(n, "n", int)
-    if not (0 < n < 1000):
-        raise ValueError(f"Invalid n={n}.")
+    check_int_range(n, "n", 1, 1000)
 
     # First, let us see if we can cover the range with hand-picked colors.
     for k in __FIXED_COLORS:
@@ -249,11 +246,7 @@ def distinct_line_dashes(n: int) -> \
     :param n: the number of styles
     :return: the styles
     """
-    if not isinstance(n, int):
-        raise type_error(n, "n", int)
-    if not (0 < n < len(__FIXED_LINE_DASHES)):
-        raise ValueError(f"Invalid n={n} for line dash number, must be "
-                         f"in 1..{len(__FIXED_LINE_DASHES)}.")
+    check_int_range(n, "n", 1, len(__FIXED_LINE_DASHES) - 1)
     if n == __FIXED_LINE_DASHES:
         return __FIXED_LINE_DASHES
     return tuple(__FIXED_LINE_DASHES[0:n])
@@ -270,12 +263,9 @@ def distinct_markers(n: int) -> tuple[str, ...]:
     :param n: the number of markers
     :return: the markers
     """
-    if not isinstance(n, int):
-        raise type_error(n, "n", int)
-    if not (0 < n < len(__FIXED_MARKERS)):
-        raise ValueError(f"Invalid n={n} for line dash number, must be "
-                         f"in 1..{len(__FIXED_MARKERS)}.")
-    if n == __FIXED_MARKERS:
+    lfm: Final[int] = len(__FIXED_MARKERS)
+    check_int_range(n, "n", 1, lfm)
+    if n == lfm:
         return __FIXED_MARKERS
     return tuple(__FIXED_MARKERS[0:n])
 
@@ -292,10 +282,7 @@ def importance_to_line_width(importance: int) -> float:
     :param importance: a value between -9 and 9
     :return: the line width
     """
-    if not isinstance(importance, int):
-        raise type_error(importance, "importance", int)
-    if not (-10 < importance < 10):
-        raise ValueError(f"Invalid importance={importance}.")
+    check_int_range(importance, "importance", -9, 9)
     if importance >= 0:
         return 2.0 * (0.5 + importance)
     if importance == -1:
@@ -317,10 +304,7 @@ def importance_to_alpha(importance: int) -> float:
     :param importance: a value between -9 and 9
     :return: the alpha
     """
-    if not isinstance(importance, int):
-        raise type_error(importance, "importance", int)
-    if not (-10 < importance < 10):
-        raise ValueError(f"Invalid importance={importance}.")
+    check_int_range(importance, "importance", -9, 9)
     if importance >= 0:
         return 1.0
     if importance == -1:
@@ -363,10 +347,7 @@ def importance_to_font_size(importance: float) -> float:
     :param importance: the importance value
     :return: the font size
     """
-    if not isinstance(importance, int):
-        raise type_error(importance, "importance", int)
-    if not (-10 < importance < 10):
-        raise ValueError(f"Invalid importance={importance}.")
+    check_int_range(importance, "importance", -9, 9)
     if importance < 0:
         return 7.5
     if importance <= 0:

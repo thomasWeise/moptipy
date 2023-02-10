@@ -7,7 +7,7 @@ from numpy.random import Generator, default_rng
 from moptipy.api.operators import Op2, check_op2
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_op2(op2: Op2,
@@ -49,14 +49,8 @@ def validate_op2(op2: Op2,
         raise ValueError(
             "either provide both of search_space and "
             "make_search_space_element_valid or none.")
-    if not isinstance(number_of_samples, int):
-        raise type_error(number_of_samples, "number_of_samples", int)
-    if not (1 <= number_of_samples <= 1_000_000):
-        raise ValueError("number_of_samples must be in 1..1_000_000, "
-                         f"but is {number_of_samples}.")
-
+    check_int_range(number_of_samples, "number_of_samples", 1, 1_000_000)
     random = default_rng()
-
     x1 = search_space.create()
     if x1 is None:
         raise ValueError("Space must not return None.")
@@ -112,18 +106,10 @@ def validate_op2(op2: Op2,
                              f"empty string, namely {strstr!r}.")
         seen.add(strstr)
 
-    expected: Final[int] = \
-        min_unique_samples(number_of_samples, search_space) \
-        if callable(min_unique_samples) else min_unique_samples
-    if not isinstance(expected, int):
-        raise type_error(expected, "expected", int)
-    if expected > number_of_samples:
-        raise ValueError(
-            f"number of expected unique samples {expected} cannot be larger "
-            f"than total number of samples {number_of_samples}.")
-    if expected <= 0:
-        raise ValueError(f"expected number of unique values must be positive,"
-                         f" but is {expected}.")
+    expected: Final[int] = check_int_range(min_unique_samples(
+        number_of_samples, search_space) if callable(
+        min_unique_samples) else min_unique_samples,
+        "expected", 1, number_of_samples)
     if len(seen) < expected:
         raise ValueError(
             f"It is expected that at least {expected} different elements "

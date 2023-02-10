@@ -11,7 +11,7 @@ from moptipy.utils.text_format import (
     MODE_TABLE_HEADER,
     TextFormatDriver,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class Table(AbstractContextManager):
@@ -405,13 +405,9 @@ class Rows(AbstractContextManager):
             raise type_error(owner, "owner", Table)
         #: the owner
         self._owner: Final[Table] = owner
-        if not isinstance(mode, int):
-            raise type_error(mode, "mode", int)
-        if not (MODE_NORMAL <= mode <= MODE_SECTION_HEADER):
-            raise ValueError(f"wrong mode: {mode}, must be in "
-                             f"{MODE_NORMAL}..{MODE_SECTION_HEADER}")
         #: the rows mode
-        self._mode: Final[int] = mode
+        self._mode: Final[int] = check_int_range(
+            mode, "mode", MODE_NORMAL, MODE_SECTION_HEADER)
 
     def __enter__(self):  # noqa
         """
@@ -513,13 +509,9 @@ class Row(AbstractContextManager):
         """
         if not isinstance(owner, Table):
             raise type_error(owner, "owner", Table)
-        if not isinstance(mode, int):
-            raise type_error(mode, "mode", int)
-        if not (MODE_NORMAL <= mode <= MODE_SECTION_HEADER):
-            raise ValueError(f"wrong mode: {mode}, must be in "
-                             f"{MODE_NORMAL}..{MODE_SECTION_HEADER}")
         #: the rows mode
-        self._mode: Final[int] = mode
+        self._mode: Final[int] = check_int_range(
+            mode, "mode", MODE_NORMAL, MODE_SECTION_HEADER)
         #: the owner
         self.__owner: Final[Table] = owner
 

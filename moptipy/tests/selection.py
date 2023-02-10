@@ -11,7 +11,7 @@ from moptipy.algorithms.modules.selection import (
     check_selection,
 )
 from moptipy.tests.component import validate_component
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class _FRecord(FitnessRecord):
@@ -75,19 +75,10 @@ def validate_selection(selection: Selection,
 
     if not isinstance(without_replacement, bool):
         raise type_error(without_replacement, "without_replacement", bool)
-    if not isinstance(lower_source_size_limit, int):
-        raise type_error(lower_source_size_limit,
-                         "lower_source_size_limit", int)
-    if not 0 <= lower_source_size_limit < 1000:
-        raise ValueError(f"lower_source_size_limit={lower_source_size_limit}")
-    if not isinstance(upper_source_size_limit, int):
-        raise type_error(upper_source_size_limit,
-                         "upper_source_size_limit", int)
-    if upper_source_size_limit < lower_source_size_limit:
-        raise ValueError(
-            f"upper_source_size_limit={upper_source_size_limit} while "
-            f"lower_source_size_limit={lower_source_size_limit}")
-
+    check_int_range(lower_source_size_limit, "lower_source_size_limit",
+                    0, 1000)
+    check_int_range(upper_source_size_limit, "upper_source_size_limit",
+                    lower_source_size_limit, 1_000_000)
     random: Final[Generator] = default_rng()
     source: Final[list[FitnessRecord]] = []
     copy: Final[dict[int, list]] = {}

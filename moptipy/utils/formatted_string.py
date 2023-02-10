@@ -3,7 +3,7 @@
 from math import inf, isnan, nan
 from typing import Final
 
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: the formatted string represents normal text
 TEXT: Final[int] = 0
@@ -77,10 +77,7 @@ class FormattedStr(str):
             raise type_error(italic, "italic", bool)
         if not isinstance(code, bool):
             raise type_error(code, "code", bool)
-        if not isinstance(mode, int):
-            raise type_error(mode, "mode", int)
-        if (mode < TEXT) or (mode > SPECIAL):
-            raise ValueError(f"invalid number mode: {mode}")
+        check_int_range(mode, "mode", TEXT, SPECIAL)
         if bold or italic or code or (mode != TEXT):
             ret = super().__new__(cls, value)
             ret.bold = bold

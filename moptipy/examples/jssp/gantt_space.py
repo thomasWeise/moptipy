@@ -1,4 +1,4 @@
-"""Here we implement a space implementation for `Gantt` charts."""
+"""Here we provide a :class:`~moptipy.api.Space` of `Gantt` charts."""
 from math import factorial
 from typing import Final
 
@@ -13,7 +13,7 @@ from moptipy.utils.nputils import (
     int_range_to_dtype,
     numpy_type_to_str,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: the array shape
 KEY_SHAPE: Final[str] = "shape"
@@ -30,16 +30,8 @@ def gantt_space_size(jobs: int, machines: int) -> int:
     >>> print(gantt_space_size(8, 5))
     106562062388507443200000
     """
-    if not isinstance(jobs, int):
-        raise type_error(jobs, "number of jobs", int)
-    if jobs <= 0:
-        raise ValueError(f"Number of jobs must be > 0, but is {jobs}.")
-    if not isinstance(machines, int):
-        raise type_error(machines, "number of machines", int)
-    if machines <= 0:
-        raise ValueError(
-            f"Number of machines must be > 0, but is {machines}.")
-    return factorial(jobs) ** machines
+    return factorial(check_int_range(jobs, "jobs", 1, 1_000_000)) **\
+        check_int_range(machines, "machines", 1, 1_000_000)
 
 
 # start book

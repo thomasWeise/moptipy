@@ -6,7 +6,7 @@ from typing import Final
 
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The key for the total number of runs.
 KEY_N: Final[str] = "n"
@@ -147,12 +147,7 @@ class MultiRunData:
         if (instance is not None) and (instance != sanitize_name(instance)):
             raise ValueError(f"Invalid instance {instance!r}.")
         object.__setattr__(self, "instance", instance)
-
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if n <= 0:
-            raise ValueError(f"n must be > 0, but is {n}.")
-        object.__setattr__(self, "n", n)
+        object.__setattr__(self, "n", check_int_range(n, "n", 1))
 
 
 @dataclass(frozen=True, init=False, order=True)

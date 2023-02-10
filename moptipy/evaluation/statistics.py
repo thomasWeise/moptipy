@@ -17,7 +17,7 @@ from moptipy.utils.strings import (
     str_to_intfloat,
     str_to_intfloatnone,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(DBL_INT_LIMIT_P))
@@ -88,10 +88,7 @@ class Statistics:
         :param maximum: the maximum
         :param stddev: the standard deviation (`0` is also used for undefined)
         """
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if n <= 0:
-            raise ValueError(f"n must be >= 1, but is {n}.")
+        check_int_range(n, "n", 1)
 
         # check minimum
         if not isinstance(minimum, (int, float)):

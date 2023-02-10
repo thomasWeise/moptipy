@@ -9,7 +9,7 @@ from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.api.space import Space
 from moptipy.tests.objective import validate_objective
 from moptipy.utils.nputils import is_np_float, is_np_int
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_mo_problem(
@@ -45,14 +45,9 @@ def validate_mo_problem(
                        lower_bound_threshold, upper_bound_threshold,
                        must_be_equal_to)
 
-    dim: Final[int] = mo_problem.f_dimension()
-    if not isinstance(dim, int):
-        raise type_error(dim, "f_dimension()", int)
-    if dim < 1:
-        raise ValueError(f"f_dimension()=={dim} is wrong, must be >= 1")
-
+    dim: Final[int] = check_int_range(mo_problem.f_dimension(),
+                                      "f_dimension()", 1, 100_000)
     all_int: Final[bool] = mo_problem.is_always_integer()
-
     fses: Final[tuple[np.ndarray, np.ndarray]] = \
         mo_problem.f_create(), mo_problem.f_create()
 

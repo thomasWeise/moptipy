@@ -58,7 +58,7 @@ from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR, num_to_str_for_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def _int_0(_: int) -> int:
@@ -223,15 +223,12 @@ class EA(Algorithm2):
             name = f"{name}{PART_SEPARATOR}{num_to_str_for_name(br)}"
         super().__init__(name, op0, op1, op2)
 
-        if not isinstance(mu, int):
-            raise type_error(mu, "mu", int)
-        if not (0 < mu <= 1_000_000):
-            raise ValueError(f"invalid mu={mu}, must be in 1..1_000_000.")
-        if not isinstance(lambda_, int):
-            raise type_error(lambda_, "lambda", int)
-        if not (0 < lambda_ <= 1_000_000):
-            raise ValueError(
-                f"invalid lambda={lambda_}, must be in 1..1_000_000.")
+        #: the number of records to survive in each generation
+        self.mu: Final[int] = check_int_range(mu, "mu", 1, 1_000_000)
+        #: the number of offsprings per generation
+        self.lambda_: Final[int] = check_int_range(
+            lambda_, "lambda", 1, 1_000_000)
+
         if not isinstance(br, float):
             raise type_error(br, "br", float)
         if not (isfinite(br) and (0.0 <= br <= 1.0)):
@@ -239,10 +236,6 @@ class EA(Algorithm2):
         if (br > 0.0) and (mu <= 1):
             raise ValueError(
                 f"if br (={br}) > 0, then mu (={mu}) must be > 1.")
-        #: the number of records to survive in each generation
-        self.mu: Final[int] = mu
-        #: the number of offsprings per generation
-        self.lambda_: Final[int] = lambda_
         #: the rate at which the binary operator is applied
         self.br: Final[float] = br
 

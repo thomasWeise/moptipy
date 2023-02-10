@@ -10,7 +10,7 @@ from numpy.linalg import norm
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.utils.nputils import DEFAULT_FLOAT, is_np_int
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class KeepFarthest(MOArchivePruner):
@@ -42,11 +42,8 @@ class KeepFarthest(MOArchivePruner):
         super().__init__()
 
         check_mo_problem(problem)
-        dimension: Final[int] = problem.f_dimension()
-        if not isinstance(dimension, int):
-            raise type_error(dimension, "problem.f_dimension()", int)
-        if dimension <= 0:
-            raise ValueError(f"dimension={dimension} is not allowed")
+        dimension: Final[int] = check_int_range(
+            problem.f_dimension(), "dimension", 1, 1_000)
         if keep_best_of_dimension is None:
             keep_best_of_dimension = range(dimension)
         if not isinstance(keep_best_of_dimension, Iterable):

@@ -25,7 +25,7 @@ from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range
 
 
 # start book
@@ -88,16 +88,11 @@ class HillClimberWithRestarts(Algorithm1):
         """
         super().__init__(
             f"hcr_{max_moves_without_improvement}", op0, op1)
-        if not isinstance(max_moves_without_improvement, int):
-            raise type_error(max_moves_without_improvement,
-                             "max_moves_without_improvement", int)
-        if max_moves_without_improvement <= 0:
-            raise ValueError(
-                "max_moves_without_improvement must be positive, but"
-                f" is {max_moves_without_improvement}.")
         #: the maximum moves without improvement
         self.max_moves_without_improvement: Final[int] = \
-            max_moves_without_improvement
+            check_int_range(
+                max_moves_without_improvement,
+                "max_moves_without_improvement", 1, 1_000_000_000_000)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

@@ -51,7 +51,7 @@ from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def __prefix(s: str) -> str:
@@ -161,16 +161,10 @@ def moptipy_to_ioh_analyzer(
             _func = _algo[_func_id]
         else:
             _algo[_func_id] = _func = {}
-        _dim: Final[int] = inst_name_to_dimension(progress.instance)
-        if not isinstance(_dim, int):
-            raise type_error(_dim, "dim", int)
-        if _dim <= 0:
-            raise ValueError(f"invalid dimension: {_dim}.")
-        _iid: Final[int] = inst_name_to_inst_id(progress.instance)
-        if not isinstance(_iid, int):
-            raise type_error(_iid, "instance id", int)
-        if _iid <= 0:
-            raise ValueError(f"invalid instance id: {_iid}.")
+        _dim: Final[int] = check_int_range(
+            inst_name_to_dimension(progress.instance), "dimension", 1)
+        _iid: Final[int] = check_int_range(
+            inst_name_to_inst_id(progress.instance), "instance id", 1)
         _res: Final[tuple[int, np.ndarray, np.ndarray]] = \
             (_iid, progress.time, progress.f)
         if _dim in _func:

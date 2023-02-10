@@ -7,7 +7,7 @@ from numpy.random import default_rng
 
 from moptipy.mo.problem.weighted_sum import WeightedSum
 from moptipy.mock.objective import MockObjective
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class MockMOProblem(WeightedSum):
@@ -32,8 +32,7 @@ class MockMOProblem(WeightedSum):
         :param dtype: the optional dtype
         :returns: the mock multi-objective problem
         """
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
+        check_int_range(n, "n", 1, 1_000)
         if not isinstance(dtype, np.dtype):
             raise type_error(dtype, "dtype", np.dtype)
 

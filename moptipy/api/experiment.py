@@ -34,7 +34,7 @@ from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.path import Path
 from moptipy.utils.strings import sanitize_name, sanitize_names
 from moptipy.utils.sys_info import refresh_sys_info
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def __run_experiment(base_dir: Path,
@@ -281,19 +281,9 @@ def run_experiment(base_dir: str,
         raise type_error(perform_warmup, "perform_warmup", bool)
     if not isinstance(perform_pre_warmup, bool):
         raise type_error(perform_pre_warmup, "perform_pre_warmup", bool)
-    if not isinstance(warmup_fes, int):
-        raise type_error(warmup_fes, "warmup_fes", int)
-    if warmup_fes <= 0:
-        raise ValueError(f"warmup_fes must > 0, but is {warmup_fes}.")
-    if not isinstance(pre_warmup_fes, int):
-        raise type_error(pre_warmup_fes, "pre_warmup_fes", int)
-    if pre_warmup_fes <= 0:
-        raise ValueError(f"warmup_fes must > 0, but is {pre_warmup_fes}.")
-    if not isinstance(n_threads, int):
-        raise type_error(n_threads, "n_threads", int)
-    if n_threads <= 0:
-        raise ValueError(f"n_threads must be positive, but is {n_threads}.")
-
+    check_int_range(warmup_fes, "warmup_fes", 1, 1_000_000)
+    check_int_range(pre_warmup_fes, "pre_warmup_fes", 1, 1_000_000)
+    check_int_range(n_threads, "n_threads", 1, 16384)
     instances = list(instances)
     if len(instances) <= 0:
         raise ValueError("Instance enumeration is empty.")
@@ -320,13 +310,7 @@ def run_experiment(base_dir: str,
     n_runs = [n_runs] if isinstance(n_runs, int) else list(n_runs)
     last = 0
     for run in n_runs:
-        if not isinstance(run, int):
-            raise type_error(run, "n_runs", int)
-        if run <= last:
-            raise ValueError(
-                "n_runs sequence must be strictly increasing and "
-                f"positive, we cannot have {run} follow {last}.")
-        last = run
+        last = check_int_range(run, "n_runs", last + 1)
 
     cache: Final[Callable[[str], bool]] = is_new()
     use_dir: Final[Path] = Path.path(base_dir)

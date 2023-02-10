@@ -26,7 +26,7 @@ from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str, sanitize_name, str_to_intfloat
-from moptipy.utils.types import type_error, type_name_of
+from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
@@ -181,79 +181,49 @@ class EndStatistics(MultiRunData):
         if not isinstance(last_improvement_fe, Statistics):
             raise type_error(last_improvement_fe, "last_improvement_fe",
                              Statistics)
-        if last_improvement_fe.minimum <= 0:
-            raise ValueError("No last_improvement_fe can be <= 0, but "
-                             f"encountered {last_improvement_fe.minimum}.")
-        if not isinstance(last_improvement_fe.minimum, int):
-            raise type_error(last_improvement_fe.minimum,
-                             "minimum last_improvement_fe", int)
-        if not isinstance(last_improvement_fe.maximum, int):
-            raise type_error(last_improvement_fe.maximum,
-                             "maximum last_improvement_fe", int)
+        check_int_range(
+            last_improvement_fe.minimum, "last_improvement_fe.minimum",
+            1, 1_000_000_000_000_000)
+        check_int_range(
+            last_improvement_fe.maximum, "last_improvement_fe.maximum",
+            last_improvement_fe.minimum, 1_000_000_000_000_000)
         object.__setattr__(self, "last_improvement_fe", last_improvement_fe)
 
         if not isinstance(last_improvement_time_millis, Statistics):
             raise type_error(last_improvement_time_millis,
                              "last_improvement_time_millis", Statistics)
+        check_int_range(
+            last_improvement_time_millis.minimum,
+            "last_improvement_time_millis.minimum",
+            1, 100_000_000_000)
+        check_int_range(
+            last_improvement_time_millis.maximum,
+            "last_improvement_time_millis.maximum",
+            last_improvement_time_millis.minimum, 100_000_000_000)
         object.__setattr__(self, "last_improvement_time_millis",
                            last_improvement_time_millis)
-        if last_improvement_time_millis.minimum < 0:
-            raise ValueError(
-                "No last_improvement_time_millis can be < 0, but encountered "
-                f"{last_improvement_time_millis.minimum}.")
-        if not isinstance(last_improvement_time_millis.minimum, int):
-            raise type_error(last_improvement_time_millis.minimum,
-                             "minimum last_improvement_time_millis", int)
-        if not isinstance(last_improvement_time_millis.maximum, int):
-            raise type_error(last_improvement_time_millis.maximum,
-                             "maximum last_improvement_time_millis", int)
-
         if not isinstance(total_fes, Statistics):
             raise type_error(total_fes, "total_fes", Statistics)
-        total_fes_min: Final[int | float] = total_fes.minimum
-        total_fes_max: Final[int | float] = total_fes.maximum
-        if total_fes_min <= 0:
-            raise ValueError("No total_fes can be <= 0, but "
-                             f"encountered {total_fes_min}.")
-        if not isinstance(total_fes_min, int):
-            raise type_error(total_fes_min, "minimum total_fes", int)
-        if not isinstance(total_fes_max, int):
-            raise type_error(total_fes_max, "maximum total_fes", int)
-        if total_fes_min < last_improvement_fe.minimum:
-            raise ValueError(
-                f"Minimum total_fes ({total_fes_min}) cannot be"
-                "less than minimum last_improvement_fe "
-                f"({last_improvement_fe.minimum}).")
-        if total_fes_max < last_improvement_fe.maximum:
-            raise ValueError(
-                f"Maximum total_fes ({total_fes_max}) cannot be"
-                "less than maximum last_improvement_fe "
-                f"({last_improvement_fe.maximum}).")
+        check_int_range(
+            total_fes.minimum, "total_fes.minimum",
+            last_improvement_fe.minimum, 1_000_000_000_000_000)
+        check_int_range(
+            total_fes.maximum, "total_fes.maximum",
+            max(total_fes.minimum, last_improvement_fe.maximum),
+            1_000_000_000_000_000)
         object.__setattr__(self, "total_fes", total_fes)
 
         if not isinstance(total_time_millis, Statistics):
             raise type_error(total_time_millis, "total_time_millis",
                              Statistics)
-        total_time_min: Final[int | float] = total_time_millis.minimum
-        total_time_max: Final[int | float] = total_time_millis.maximum
-
-        if total_time_min < 0:
-            raise ValueError("No total_time_millis can be < 0, but "
-                             f"encountered {total_time_min}.")
-        if not isinstance(total_time_min, int):
-            raise type_error(total_time_min, "minimum total_time_millis", int)
-        if not isinstance(total_time_max, int):
-            raise type_error(total_time_max, "maximum total_time_millis", int)
-        if total_time_min < last_improvement_time_millis.minimum:
-            raise ValueError(
-                f"Minimum total_time_millis ({total_time_min}) "
-                "cannot be less than minimum last_improvement_time_millis "
-                f"({last_improvement_time_millis.minimum}).")
-        if total_time_max < last_improvement_time_millis.maximum:
-            raise ValueError(
-                f"Maximum total_time_millis ({total_time_max}) "
-                "cannot be less than maximum last_improvement_time_millis "
-                f"({last_improvement_time_millis.maximum}).")
+        check_int_range(
+            total_time_millis.minimum, "total_time_millis.minimum",
+            last_improvement_time_millis.minimum, 100_000_000_000)
+        check_int_range(
+            total_time_millis.maximum, "total_time_millis.maximum",
+            max(total_time_millis.minimum,
+                last_improvement_time_millis.maximum),
+            100_000_000_000)
         object.__setattr__(self, "total_time_millis", total_time_millis)
 
         if goal_f is None:
@@ -305,12 +275,7 @@ class EndStatistics(MultiRunData):
                         "best_f_scaled cannot be negative, but encountered "
                         f"{best_f_scaled.minimum}.")
 
-            if not isinstance(n_success, int):
-                raise type_error(n_success, "n_success", int)
-            if n_success < 0:
-                raise ValueError(
-                    f"n_success must be positive, but is {n_success}.")
-
+            check_int_range(n_success, "n_success")
             if not isinstance(ert_fes, (int, float)):
                 raise type_error(ert_fes, "ert_fes", (int, float))
             if not isinstance(ert_time_millis, (int, float)):
@@ -322,46 +287,26 @@ class EndStatistics(MultiRunData):
                     raise type_error(success_fes,
                                      "if n_success>0, then success_fes",
                                      Statistics)
-                if not isinstance(success_fes.minimum, int):
-                    raise type_error(success_fes.minimum,
-                                     "success_fes.minimum", int)
-                if not isinstance(success_fes.maximum, int):
-                    raise type_error(success_fes.maximum,
-                                     "success_fes.maximum", int)
-                if success_fes.minimum < last_improvement_fe.minimum:
-                    raise ValueError(
-                        "success_fes.minimum must be >= "
-                        f"{last_improvement_fe.minimum}, but is "
-                        f"{success_fes.minimum}.")
-                if success_fes.maximum > last_improvement_fe.maximum:
-                    raise ValueError(
-                        "success_fes.maximum must be <= "
-                        f"{last_improvement_fe.maximum}, but is "
-                        f"{success_fes.maximum}.")
+                check_int_range(
+                    success_fes.minimum, "success_fes.minimum",
+                    last_improvement_fe.minimum, 1_000_000_000_000_000)
+                check_int_range(
+                    success_fes.maximum, "success_fes.maximum",
+                    success_fes.minimum, last_improvement_fe.maximum)
                 if not isinstance(success_time_millis, Statistics):
                     raise type_error(
                         success_time_millis,
                         "if n_success>0, then success_time_millis",
                         Statistics)
-                if not isinstance(success_time_millis.minimum, int):
-                    raise type_error(success_time_millis.minimum,
-                                     "success_time_millis.minimum", int)
-                if not isinstance(success_time_millis.maximum, int):
-                    raise type_error(success_time_millis.maximum,
-                                     "success_time_millis.maximum", int)
-                if success_time_millis.minimum < \
-                        last_improvement_time_millis.minimum:
-                    raise ValueError(
-                        "success_time_millis.minimum must be >= "
-                        f"{last_improvement_time_millis.minimum}, but is "
-                        f"{success_time_millis.minimum}.")
-                if success_time_millis.maximum > \
-                        last_improvement_time_millis.maximum:
-                    raise ValueError(
-                        "success_time_millis.maximum must be <= "
-                        f"{last_improvement_time_millis.maximum}, but is "
-                        f"{success_time_millis.maximum}.")
-
+                check_int_range(
+                    success_time_millis.minimum,
+                    "success_time_millis.minimum",
+                    last_improvement_time_millis.minimum, 100_000_000_000)
+                check_int_range(
+                    success_time_millis.maximum,
+                    "success_time_millis.maximum",
+                    success_time_millis.minimum,
+                    last_improvement_time_millis.maximum)
                 ert_fes = try_int(ert_fes)
                 if ert_fes < success_fes.minimum:
                     raise ValueError(
@@ -412,17 +357,17 @@ class EndStatistics(MultiRunData):
         object.__setattr__(self, "ert_time_millis", ert_time_millis)
 
         if isinstance(max_fes, int):
-            if max_fes < total_fes_max:
-                raise ValueError(
-                    f"max_fes must be >= {total_fes_max}, but is {max_fes}.")
+            if max_fes < total_fes.maximum:
+                raise ValueError(f"max_fes must be >= "
+                                 f"{total_fes.maximum}, but is {max_fes}.")
         elif isinstance(max_fes, Statistics):
-            if max_fes.minimum < total_fes_min:
+            if max_fes.minimum < total_fes.minimum:
                 raise ValueError(
-                    f"max_fes.minimum must be >= {total_fes_min},"
+                    f"max_fes.minimum must be >= {total_fes.minimum},"
                     f" but is {max_fes.minimum}.")
-            if max_fes.maximum < total_fes_max:
+            if max_fes.maximum < total_fes.maximum:
                 raise ValueError(
-                    f"max_fes.maximum must be >= {total_fes_max},"
+                    f"max_fes.maximum must be >= {total_fes.maximum},"
                     f" but is {max_fes.maximum}.")
         elif max_fes is not None:
             raise type_error(max_fes, "max_fes", (int, Statistics, None))
@@ -430,15 +375,15 @@ class EndStatistics(MultiRunData):
 
         if isinstance(max_time_millis, int):
             _check_max_time_millis(max_time_millis,
-                                   total_fes_min,
-                                   total_time_max)
+                                   total_fes.minimum,
+                                   total_time_millis.maximum)
         elif isinstance(max_time_millis, Statistics):
             _check_max_time_millis(max_time_millis.minimum,
-                                   total_fes_min,
-                                   total_time_min)
+                                   total_fes.minimum,
+                                   total_time_millis.minimum)
             _check_max_time_millis(max_time_millis.maximum,
-                                   total_fes_min,
-                                   total_time_max)
+                                   total_fes.minimum,
+                                   total_time_millis.maximum)
         elif max_time_millis is not None:
             raise type_error(max_time_millis, "max_time_millis",
                              (int, Statistics, None))

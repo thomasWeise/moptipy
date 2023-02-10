@@ -5,7 +5,7 @@ from typing import Final
 from moptipy.api.objective import Objective
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range
 
 
 class BitStringProblem(Objective):
@@ -25,10 +25,8 @@ class BitStringProblem(Objective):
         :param n: the dimension of the problem
         """
         super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
         #: the length of the bit strings
-        self.n: Final[int] = n
+        self.n: Final[int] = check_int_range(n, "n", 1)
 
     def lower_bound(self) -> int:
         """

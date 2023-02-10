@@ -90,7 +90,7 @@ from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: the recommended scope under which instance data should be stored
 SCOPE_INSTANCE: Final = "inst"
@@ -255,14 +255,8 @@ class Instance(Component, np.ndarray):
         if name != use_name:
             raise ValueError(f"Name {name!r} is not a valid name.")
 
-        if (not isinstance(machines, int)) or (machines < 1):
-            raise ValueError("There must be at least one machine, "
-                             f"but {str(machines)!r} were specified in "
-                             f"instance {name!r}.")
-        if not isinstance(jobs, int) or (jobs < 1):
-            raise ValueError("There must be at least one job, "
-                             f"but {str(jobs)!r} were specified in "
-                             f"instance {name!r}.")
+        check_int_range(machines, "machines", 1, 1_000_000)
+        check_int_range(jobs, "jobs", 1, 1_000_000)
         if not isinstance(matrix, np.ndarray):
             raise type_error(matrix, "matrix", np.ndarray)
 
@@ -312,24 +306,9 @@ class Instance(Component, np.ndarray):
         if makespan_lower_bound is None:
             makespan_lower_bound = ms_lower_bound
         else:
-            if not isinstance(makespan_lower_bound, int):
-                raise type_error(makespan_lower_bound,
-                                 f"makespan lower bound of instance {name}",
-                                 int)
-            if makespan_lower_bound <= 0:
-                raise ValueError("If specified, makespan_lower_bound must be "
-                                 f"positive, but is {makespan_lower_bound} "
-                                 f"in instance {name!r}.")
-            if makespan_lower_bound < ms_lower_bound:
-                raise ValueError(
-                    "If specified, makespan_lower_bound must be >= "
-                    f"{ms_lower_bound}, but is {makespan_lower_bound} in "
-                    f"instance {name!r}.")
-            if makespan_lower_bound > ms_upper_bound:
-                raise ValueError(
-                    "If specified, makespan_lower_bound must be <= "
-                    f"{ms_upper_bound}, but is {makespan_lower_bound} in "
-                    f"instance {name!r}.")
+            check_int_range(
+                makespan_lower_bound, "makespan lower bound",
+                max(0, ms_lower_bound), ms_upper_bound)
         obj: Final[Instance] = super().__new__(
             Instance, use_shape, int_range_to_dtype(
                 min_value=0, max_value=int(matrix.max())))
@@ -524,35 +503,19 @@ def check_instance(inst: Instance) -> Instance:
         raise type_error(inst, "instance", Instance)
     if not isinstance(inst, np.ndarray):
         raise type_error(inst, "instance", np.ndarray)
-    if not isinstance(inst.machines, int):
-        raise type_error(inst.machines, "inst.machines", int)
+    check_int_range(inst.machines, "inst.machines", 1, 1_000_000)
+    check_int_range(inst.jobs, "inst.jobs", 1, 1_000_000)
     if not isinstance(inst.name, str):
         raise type_error(inst.name, "inst.name", str)
     if (len(inst.name) <= 0) \
             or (inst.name != sanitize_name(inst.name)):
         raise ValueError(f"invalid instance name {inst.name!r}")
-    if inst.machines <= 0:
-        raise ValueError(f"inst.machines must be > 0, but is {inst.machines}"
-                         f" for instance {inst.name}")
-    if not isinstance(inst.jobs, int):
-        raise type_error(inst.jobs, "inst.jobs", int)
-    if inst.machines <= 0:
-        raise ValueError(f"inst.jobs must be > 0, but is {inst.jobs}"
-                         f" for instance {inst.name}.")
-    if not isinstance(inst.makespan_lower_bound, int):
-        raise type_error(inst.makespan_lower_bound,
-                         f"inst.makespan_lower_bound of {inst.name}", int)
-    if inst.makespan_lower_bound <= 0:
-        raise ValueError("inst.makespan_lower_bound must be > 0,"
-                         f" but is {inst.makespan_lower_bound}"
-                         f" for instance {inst.name}.")
-    if not isinstance(inst.makespan_upper_bound, int):
-        raise type_error(inst.makespan_upper_bound,
-                         f"inst.makespan_upper_bound of {inst.name}", int)
-    if inst.makespan_upper_bound <= 0:
-        raise ValueError("inst.makespan_upper_bound must be > 0,"
-                         f" but is {inst.makespan_upper_bound}"
-                         f" for instance {inst.name}.")
+    check_int_range(
+        inst.makespan_lower_bound, "inst.makespan_lower_bound",
+        1, 1_000_000_000_000)
+    check_int_range(
+        inst.makespan_upper_bound, "inst.makespan_upper_bound",
+        inst.makespan_lower_bound, 1_000_000_000_000)
     if len(inst.shape) != 3:
         raise ValueError(f"inst must be 3d-array, but has shape {inst.shape}"
                          f" for instance {inst.name}.")

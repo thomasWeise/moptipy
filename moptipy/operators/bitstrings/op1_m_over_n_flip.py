@@ -9,7 +9,7 @@ from moptipy.utils.nputils import (
     fill_in_canonical_permutation,
     int_range_to_dtype,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class Op1MoverNflip(Op1):
@@ -31,14 +31,9 @@ class Op1MoverNflip(Op1):
         :param at_least_1: should at least one bit be flipped?
         """
         super().__init__()
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if not isinstance(m, int):
-            raise type_error(m, "m", int)
-        if not (0 < m <= n):
-            raise ValueError(f"m must be in 1..{n}, but is {m}.")
+        check_int_range(n, "n", 1)
         #: the value of m in p=m/n
-        self.__m: Final[int] = m
+        self.__m: Final[int] = check_int_range(m, "m", 1, n)
         if not isinstance(at_least_1, bool):
             raise type_error(at_least_1, "at_least_1", bool)
         #: is it OK to not flip any bit?

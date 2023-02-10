@@ -107,3 +107,120 @@ def type_error(obj: Any, name: str,
         f"namely {str(obj)!r}."
 
     return TypeError(message)
+
+
+def check_int_range(val: Any, name: str | None = None,
+                    min_value: int | float = 0,
+                    max_value: int | float = 1_000_000_000) -> int:
+    """
+    Check whether a value `val` is an integer in a given range.
+
+    Via type annotation, this method actually accepts a value `val` of any
+    type as input. However, if `val` is not an instance of `int`, it will
+    throw an error. Also, if `val` is not in the prescribed range, it will
+    throw an error, too. By default, the range is `0...1_000_000_000`.
+
+    I noticed that often, we think that  only want to check a lower limit
+    for `val`, e.g., that a number of threads or a population size should be
+    `val > 0`. However, in such cases, there also always a reasonable upper
+    limits. We never actually want an EA to have a population larger than,
+    say, 1_000_000_000. That would make no sense. So indeed, whenever we have
+    a lower limit for a parameter, we also should have an upper limit
+    resulting from physical constraints. 1_000_000_000 is a reasonably sane
+    upper limit in many situations. If we need smaller or larger limits, we
+    can of course specify them.
+
+    :param val: the value to check
+    :param name: the name of the value, or `None`
+    :param min_value: the minimum permitted value
+    :param max_value: the maximum permitted value
+    :returns: `val` if everything is OK
+    :raises TypeError: if `val` is not an `int`
+    :raises ValueError: if `val` is an `int` but outside the prescribed range
+
+    >>> try:
+    ...   print(check_int_range(12, min_value=7, max_value=13))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    12
+
+    >>> try:
+    ...   print(check_int_range(123, min_value=7, max_value=13))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    ...   print(err.__class__)
+    Value=123 is invalid, must be in 7..13.
+    <class 'ValueError'>
+
+    >>> try:
+    ...   print(check_int_range(5.0, name="ThisIsFloat"))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    ...   print(err.__class__)
+    ThisIsFloat should be an instance of int but is float, namely '5.0'.
+    <class 'TypeError'>
+    """
+    if not isinstance(val, int):
+        raise type_error(val, "value" if name is None else name, int)
+    if min_value <= val <= max_value:
+        return val
+    raise ValueError(f"{'Value' if name is None else name}={val!r} is "
+                     f"invalid, must be in {min_value}..{max_value}.")
+
+
+def check_to_int_range(val: Any, name: str | None = None,
+                       min_value: int | float = 0,
+                       max_value: int | float = 1_000_000_000) -> int:
+    """
+    Check whether a value `val` can be converted an integer in a given range.
+
+    :param val: the value to convert via :func:`int` and then to check
+    :param name: the name of the value, or `None`
+    :param min_value: the minimum permitted value
+    :param max_value: the maximum permitted value
+    :returns: `val` if everything is OK
+    :raises TypeError: if `val` is `None`
+    :raises ValueError: if `val` is not `None` but can either not be converted
+       to an `int` or to an `int` outside the prescribed range
+
+    >>> try:
+    ...   print(check_to_int_range(12))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    12
+
+    >>> try:
+    ...   print(check_to_int_range(12.0))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    12
+
+    >>> try:
+    ...   print(check_to_int_range("12"))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    12
+
+    >>> try:
+    ...   print(check_to_int_range("A"))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    ...   print(err.__class__)
+    Cannot convert value='A' to int, let alone in range 0..1000000000.
+    <class 'ValueError'>
+
+    >>> try:
+    ...   print(check_to_int_range(None))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    ...   print(err.__class__)
+    Cannot convert value=None to int, let alone in range 0..1000000000.
+    <class 'TypeError'>
+    """
+    try:
+        conv = int(val)
+    except (ValueError, TypeError) as err:
+        raise (ValueError if isinstance(err, ValueError) else TypeError)(
+            f"Cannot convert {'value' if name is None else name}={val!r} "
+            f"to int, let alone in range {min_value}..{max_value}.") from err
+    return check_int_range(conv, name, min_value, max_value)

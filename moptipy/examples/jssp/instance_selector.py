@@ -24,7 +24,7 @@ from moptipy.utils.nputils import (
     rand_generator,
     rand_seeds_from_str,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def __can_solve_instance(inst: Instance, seed: int,
@@ -474,10 +474,7 @@ def propose_instances(n: int,
         iterable of instances.
     :return: a tuple with the instance names
     """
-    if not (isinstance(n, int)):
-        raise type_error(n, "n", int)
-    if n <= 1:
-        raise ValueError(f"n must be > 1, but is {n}.")
+    check_int_range(n, "n", 1, 1000)
     if not callable(get_instances):
         raise type_error(get_instances, "get_instances", call=True)
     instances = list(get_instances())

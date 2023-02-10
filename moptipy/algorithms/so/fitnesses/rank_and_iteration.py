@@ -80,7 +80,7 @@ class RankAndIteration(Fitness):
 
     def __str__(self):
         """
-        Get the name of this default fitness assignment.
+        Get the name of this fitness assignment.
 
         :return: the name of this fitness assignment strategy
         :retval "rankAndIt": always

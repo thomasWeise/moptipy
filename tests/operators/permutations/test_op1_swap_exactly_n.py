@@ -15,7 +15,7 @@ from moptipy.tests.on_permutations import (
     permutations_for_tests,
     validate_op1_with_step_size_on_permutations,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def test_operator_components() -> None:
@@ -25,13 +25,9 @@ def test_operator_components() -> None:
     pp = random.permutation
     permute = random.permutation
     for perm in permutations_for_tests(lambda p: p.dimension < 50):
-        mc = get_max_changes(perm.blueprint)
-        if not isinstance(mc, int):
-            raise type_error(mc, f"get_max_changes({perm})", int)
-        n = perm.n()
-        if not (n <= mc <= perm.dimension):
-            raise ValueError(f"invalid get_max_changes={mc}, must be "
-                             f"in {n}..{perm.dimension}.")
+        n = check_int_range(perm.n(), "perm.dimension", 1, 1_000_000)
+        mc = check_int_range(get_max_changes(perm.blueprint),
+                             "get_max_changes", max(n, 2), perm.dimension)
         is_plain_perm: bool = perm.dimension == perm.n()
         if is_plain_perm and (mc != perm.dimension):
             raise ValueError(

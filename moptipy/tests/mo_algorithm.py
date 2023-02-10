@@ -23,7 +23,7 @@ from moptipy.tests.component import validate_component
 from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.mo_problem import validate_mo_problem
 from moptipy.tests.space import validate_space
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_mo_algorithm(
@@ -68,11 +68,7 @@ def validate_mo_algorithm(
                           is_encoding_deterministic)
         validate_space(search_space, None)
 
-    if not isinstance(max_fes, int):
-        raise type_error(max_fes, "max_fes", int)
-    if max_fes <= 0:
-        raise ValueError(f"max_fes must be > 0, but is {max_fes}.")
-
+    check_int_range(max_fes, "max_fes", 1, 1_000_000_000)
     lb: Final[int | float] = problem.lower_bound()
     if (not isfinite(lb)) and (lb != -inf):
         raise ValueError(f"objective lower bound cannot be {lb}.")
@@ -123,36 +119,17 @@ def validate_mo_algorithm(
         if not process.should_terminate():
             raise ValueError("The algorithm stopped before hitting the "
                              "termination criterion.")
-
-        consumed_fes: Final[int] = process.get_consumed_fes()
-        if not isinstance(consumed_fes, int):
-            raise type_error(consumed_fes, "consumed_fes", int)
-        if (consumed_fes <= 0) or (consumed_fes > max_fes):
-            raise ValueError(
-                f"Consumed FEs must be positive and <= {max_fes}, "
-                f"but is {consumed_fes}.")
-
-        last_imp_fe: Final[int] = process.get_last_improvement_fe()
-        if not isinstance(last_imp_fe, int):
-            raise type_error(last_imp_fe, "last improvement FE", int)
-        if (last_imp_fe <= 0) or (last_imp_fe > consumed_fes):
-            raise ValueError("Last improvement FEs must be positive and "
-                             f"<= {consumed_fes}, but is {last_imp_fe}.")
-
-        consumed_time: Final[int] = process.get_consumed_time_millis()
-        if not isinstance(consumed_time, int):
-            raise type_error(consumed_time, "consumed time", int)
-        if consumed_time < 0:
-            raise ValueError(
-                f"Consumed time must be >= 0, but is {consumed_time}.")
-
-        last_imp_time: Final[int] = process.get_last_improvement_time_millis()
-        if not isinstance(last_imp_time, int):
-            raise type_error(last_imp_time, "last improvement time", int)
-        if (last_imp_time < 0) or (last_imp_time > consumed_time):
-            raise ValueError(
-                f"Consumed time must be >= 0 and <= {consumed_time}, but "
-                f"is {last_imp_time}.")
+        consumed_fes: int = check_int_range(
+            process.get_consumed_fes(), "consumed_fes", 1, max_fes)
+        check_int_range(
+            process.get_last_improvement_fe(),
+            "last_improvement_fe", 1, consumed_fes)
+        consumed_time: int = check_int_range(
+            process.get_consumed_time_millis(), "consumed_time",
+            0, 100_0000_000)
+        check_int_range(
+            process.get_last_improvement_time_millis(),
+            "last_improvement_time", 0, consumed_time)
 
         if lb != process.lower_bound():
             raise ValueError(

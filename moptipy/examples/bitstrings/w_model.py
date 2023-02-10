@@ -28,12 +28,12 @@ algorithm benchmarking. These instances are provided via
    Frank Neumann, Martin Pelikan, Jordan B. Pollack, Kumara Sastry,
    Kenneth Owen Stanley, Adrian Stoica, El-Ghazali, and Ingo Wegener, editors,
    *Proceedings of the 10th Annual Conference on Genetic and Evolutionary
-   Computation Conference (GECCO'08)*, pages 795-802, July 12-16, 2008,
-   Atlanta, GA, USA. ISBN: 978-1-60558-130-9, New York, NY, USA: ACM Press.
+   Computation (GECCO'08)*, pages 795-802, July 12-16, 2008, Atlanta, GA, USA.
+   ISBN: 978-1-60558-130-9, New York, NY, USA: ACM Press.
    doi: https://doi.org/10.1145/1389095.1389252
-4. Carola Doerr and Furong Ye and Naama Horesh and Hao Wang and Ofer M. Shir
-   and Thomas Bäck. Benchmarking Discrete Optimization Heuristics with
-   IOHprofiler. Applied Soft Computing 88:106027, March 2020,
+4. Carola Doerr, Furong Ye, Naama Horesh, Hao Wang, Ofer M. Shir, Thomas Bäck.
+   Benchmarking Discrete Optimization Heuristics with IOHprofiler. *Applied
+   Soft Computing* 88:106027, March 2020,
    doi: https://doi.org/10.1016/j.asoc.2019.106027.
 """
 
@@ -48,7 +48,7 @@ from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_BOOL
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 @numba.njit(nogil=True, cache=True, inline="always")
@@ -423,45 +423,23 @@ class WModel(BitStringProblem):
         :param name: the (optional) special name of this instance
         """
         super().__init__(nopt * m)
-        if not isinstance(nopt, int):
-            raise type_error(nopt, "nopt", int)
-        if nopt < 3:
-            raise ValueError(f"invalid nopt={nopt}, must be >= 2")
-
-        if not isinstance(m, int):
-            raise type_error(m, "m", int)
-        if m <= 0:
-            raise ValueError(f"invalid m={m}")
-
-        if not isinstance(nu, int):
-            raise type_error(nu, "nu", int)
-        if not (2 <= nu <= nopt):
-            raise ValueError(f"invalid nu={nu}, must be in "
-                             f"0..nopt, with nopt={nopt}")
-
-        max_gamma: Final[int] = w_model_max_gamma(nopt)
-        if not isinstance(gamma, int):
-            raise type_error(gamma, "gamma", int)
-        if not (0 <= gamma <= max_gamma):
-            raise ValueError(f"invalid gamma={gamma}, must be in 0.."
-                             f"{max_gamma} for nopt={nopt}")
-
         #: the length of the optimal string
-        self.nopt: Final[int] = nopt
+        self.nopt: Final[int] = check_int_range(nopt, "nopt", 2)
         #: the neutrality parameter
-        self.m: Final[int] = m
+        self.m: Final[int] = check_int_range(m, "m", 1)
         #: the internal buffer for de-neutralization
         self.__m_out: Final[np.ndarray | None] = None if m < 2 \
             else np.empty(nopt, DEFAULT_BOOL)
         #: the epistasis parameter
-        self.nu: Final[int] = nu
+        self.nu: Final[int] = check_int_range(nu, "nu", 2, nopt)
         #: the normalized epistasis parameter
         self.nu1: Final[float] = (nu - 2) / (nopt - 2)
         #: the internal buffer for de-epistazation
         self.__nu_out: Final[np.ndarray | None] = None if nu <= 2 \
             else np.empty(nopt, DEFAULT_BOOL)
+        max_gamma: Final[int] = w_model_max_gamma(nopt)
         #: the ruggedness parameter
-        self.gamma: Final[int] = gamma
+        self.gamma: Final[int] = check_int_range(gamma, "gamma", 0, max_gamma)
         #: the normalized ruggedness parameter
         self.gamma1: Final[float] = gamma / max_gamma
         #: the translated gamma parameter

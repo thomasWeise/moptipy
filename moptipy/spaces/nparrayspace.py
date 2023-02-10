@@ -11,7 +11,7 @@ from moptipy.utils.nputils import (
     array_to_str,
     numpy_type_to_str,
 )
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 class NPArraySpace(Space):
@@ -30,22 +30,16 @@ class NPArraySpace(Space):
             i.e., the number of decision variables.
         :param dtype: the data type
         """
-        if not isinstance(dimension, int):
-            raise type_error(dimension, "dimension", int)
-        if (dimension < 1) or (dimension > 1_000_000_000):
-            raise ValueError("dimension must be in 1..1_000_000_000, "
-                             f"but got {dimension}.")
-
         if not isinstance(dtype, np.dtype):
             raise type_error(dtype, "dtype", np.dtype)
         if (not isinstance(dtype.char, str)) or (len(dtype.char) != 1):
             raise ValueError(
                 f"dtype.char must be str of length 1, but is {dtype.char}")
-
         #: The basic data type of the vector space elements.
         self.dtype: Final[np.dtype] = dtype
         #: The dimension, i.e., the number of elements of the vectors.
-        self.dimension: Final[int] = dimension
+        self.dimension: Final[int] = check_int_range(
+            dimension, "dimension", 1, 100_000_000)
         # the function forwards
         self.copy = np.copyto  # type: ignore
         self.is_equal = np.array_equal  # type: ignore

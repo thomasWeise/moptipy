@@ -104,7 +104,7 @@ from moptipy.api.subprocesses import for_fes, from_starting_point
 from moptipy.operators.op0_forward import Op0Forward
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 # start book
@@ -194,31 +194,18 @@ class MA(Algorithm0):
         super().__init__(f"{name}{PART_SEPARATOR}{mu}{PART_SEPARATOR}"
                          f"{lambda_}{PART_SEPARATOR}{ls_fes}{PART_SEPARATOR}"
                          f"{op2}{PART_SEPARATOR}{ls}", op0)
-        if not isinstance(mu, int):
-            raise type_error(mu, "mu", int)
-        if not (1 < mu <= 1_000_000):
-            raise ValueError(f"invalid mu={mu}, must be in 2..1_000_000.")
-        if not isinstance(lambda_, int):
-            raise type_error(lambda_, "lambda", int)
-        if not (0 < lambda_ <= 1_000_000):
-            raise ValueError(
-                f"invalid lambda={lambda_}, must be in 1..1_000_000.")
-        if not isinstance(ls_fes, int):
-            raise type_error(ls_fes, "ls_fes", int)
-        if not (0 < ls_fes <= 100_000_000):
-            raise ValueError(
-                f"invalid ls_fes={ls_fes}, must be in 1..100_000_000.")
         if not isinstance(ls, Algorithm0):
             raise type_error(ls, "ls", Algorithm0)
         if not isinstance(ls.op0, Op0Forward):
             raise type_error(ls.op0, "ls.op0", Op0Forward)
-
         #: the number of records to survive in each generation
-        self.mu: Final[int] = mu
+        self.mu: Final[int] = check_int_range(mu, "mu", 1, 1_000_000)
         #: the number of offsprings per generation
-        self.lambda_: Final[int] = lambda_
+        self.lambda_: Final[int] = check_int_range(
+            lambda_, "lambda", 1, 1_000_000)
         #: the number of FEs per local search run
-        self.ls_fes: Final[int] = ls_fes
+        self.ls_fes: Final[int] = check_int_range(
+            ls_fes, "ls_fes", 1, 100_000_000)
         #: The binary search operator.
         self.op2: Final[Op2] = check_op2(op2)
         #: the local search algorithm

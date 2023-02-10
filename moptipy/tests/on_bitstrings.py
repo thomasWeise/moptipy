@@ -26,7 +26,7 @@ from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
 from moptipy.tests.op2 import validate_op2
 from moptipy.utils.nputils import array_to_str
-from moptipy.utils.types import type_error, type_name_of
+from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 
 def dimensions_for_tests() -> Iterable[int]:
@@ -226,10 +226,7 @@ def validate_algorithm_on_bitstrings(
         raise type_error(algorithm, "algorithm", Algorithm, True)
     if not (isinstance(objective, Objective) or callable(objective)):
         raise type_error(objective, "objective", Objective, True)
-    if not isinstance(dimension, int):
-        raise type_error(dimension, "dimension", int)
-    if dimension <= 0:
-        raise ValueError(f"dimension must be > 0, but got {dimension}.")
+    check_int_range(dimension, "dimension", 1, 1_000_000)
     if (post is not None) and (not callable(post)):
         raise type_error(post, "post", None, call=True)
 
@@ -325,10 +322,7 @@ def validate_mo_algorithm_on_bitstrings(
         raise type_error(algorithm, "algorithm", MOAlgorithm, True)
     if not (isinstance(problem, MOProblem) or callable(problem)):
         raise type_error(problem, "problem", MOProblem, True)
-    if not isinstance(dimension, int):
-        raise type_error(dimension, "dimension", int)
-    if dimension <= 0:
-        raise ValueError(f"dimension must be > 0, but got {dimension}.")
+    check_int_range(dimension, "dimension", 1, 1_000_000)
 
     if callable(problem):
         problem = problem(dimension)

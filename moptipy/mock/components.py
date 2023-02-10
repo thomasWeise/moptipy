@@ -9,7 +9,7 @@ from numpy.random import Generator
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator, rand_seeds_from_str
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def fixed_random_generator() -> Generator:
@@ -32,10 +32,7 @@ def _random_name(namelen: int,
     :param random: a random number generator
     :returns: a name of the length
     """
-    if not isinstance(namelen, int):
-        raise type_error(namelen, "namelen", int)
-    if namelen <= 0:
-        raise ValueError(f"namelen must be > 0, but is {namelen}.")
+    check_int_range(namelen, "namelen", 1, 1_000)
     namer: Final[tuple[str, str, str]] = ("bcdfghjklmnpqrstvwxyz", "aeiou",
                                           "0123456789")
     name = ["x"] * namelen
@@ -167,20 +164,10 @@ class Instance:
             raise ValueError(
                 f"scale must be in (0, 1), but is {scale}.")
         object.__setattr__(self, "scale", scale)
-
-        if not isinstance(best, int):
-            raise type_error(best, "best", int)
-        if (best <= 0) or (best >= 1_000_000_000):
-            raise ValueError(
-                f"best must be in 1...999999999, but is {best}.")
-        object.__setattr__(self, "best", best)
-
-        if not isinstance(worst, int):
-            raise type_error(worst, "worst", int)
-        if (worst <= (best + 7)) or (worst >= 1_000_000_000):
-            raise ValueError(
-                f"worst must be in {best + 8}...999999999, but is {worst}.")
-        object.__setattr__(self, "worst", worst)
+        object.__setattr__(self, "best", check_int_range(
+            best, "best", 1, 1_000_000_000))
+        object.__setattr__(self, "worst", check_int_range(
+            worst, "worst", best + 8, 1_000_000_000))
 
         if not isinstance(attractors, tuple):
             raise type_error(attractors, "attractors", tuple)
@@ -195,11 +182,7 @@ class Instance:
                 f"attractors[-1] must be {worst}, but is {attractors[-1]}")
         prev = -1
         for att in attractors:
-            if not isinstance(att, int):
-                raise type_error(att, "each attractor", int)
-            if (att < best) or (att > worst) or (att <= prev):
-                raise ValueError(f"{att} not permitted after {prev} "
-                                 f"for best={best} and worst={worst}.")
+            check_int_range(att, "each attractor", max(best, prev + 1), worst)
             prev = att
         object.__setattr__(self, "attractors", attractors)
 
@@ -216,11 +199,7 @@ class Instance:
         :param forbidden: the forbidden names and hardnesses
         :returns: a tuple of instances
         """
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if n <= 0:
-            raise ValueError(f"n must be > 0, but is {n}.")
-        logger(f"now creating {n} instances.")
+        check_int_range(n, "n", 1, 1_000_000)
 
         not_allowed: Final[set[str | float]] = \
             _make_not_allowed(forbidden)
@@ -442,10 +421,7 @@ class Algorithm:
         :param forbidden: the forbidden names and strengths and so on
         :returns: a tuple of algorithms
         """
-        if not isinstance(n, int):
-            raise type_error(n, "n", int)
-        if n <= 0:
-            raise ValueError(f"n must be > 0, but is {n}.")
+        check_int_range(n, "n", 1)
         logger(f"now creating {n} algorithms.")
 
         not_allowed: Final[set[str | float]] = \
@@ -697,10 +673,7 @@ def get_run_seeds(instance: Instance, n_runs: int) -> tuple[int, ...]:
     """
     if not isinstance(instance, Instance):
         raise type_error(instance, "instance", Instance)
-    if not isinstance(n_runs, int):
-        raise type_error(n_runs, "n_runs", int)
-    if n_runs <= 0:
-        raise ValueError(f"n_runs must be > 0, but is {n_runs}.")
+    check_int_range(n_runs, "n_runs", 1, 1_000_000)
     res: Final[tuple[int, ...]] = tuple(sorted(rand_seeds_from_str(
         string=instance.name, n_seeds=n_runs)))
     logger(f"finished creating {n_runs} seeds for instance {instance.name}.")
@@ -864,21 +837,9 @@ class Experiment:
         :param n_runs: the number of per-instance runs
         :param random: the random number generator to use
         """
-        if not isinstance(n_instances, int):
-            raise type_error(n_instances, "n_instances", int)
-        if n_instances <= 0:
-            raise ValueError(
-                f"n_instances must be > 0, but is {n_instances}.")
-        if not isinstance(n_algorithms, int):
-            raise type_error(n_algorithms, "n_algorithms", int)
-        if n_algorithms <= 0:
-            raise ValueError(
-                f"n_algorithms must be > 0, but is {n_algorithms}.")
-        if not isinstance(n_runs, int):
-            raise type_error(n_runs, "n_runs", int)
-        if n_algorithms <= 0:
-            raise ValueError(
-                f"n_runs must be > 0, but is {n_runs}.")
+        check_int_range(n_instances, "n_instances", 1, 1_000_000)
+        check_int_range(n_algorithms, "n_algorithms", 1, 1_000_000)
+        check_int_range(n_runs, "n_runs", 1, 1_000_000)
         logger(f"now creating mock experiment with {n_algorithms} algorithms "
                f"on {n_instances} instances for {n_runs} runs.")
 

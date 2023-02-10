@@ -9,7 +9,7 @@ from numpy.random import PCG64, Generator, default_rng
 
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.strings import bool_to_str, num_to_str
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 #: All the numpy integer types and their ranges in increasing order of size.
 #: The tuple contains alternating signed and unsigned types. It starts with
@@ -235,12 +235,8 @@ def rand_seed_check(rand_seed: int) -> int:
     :raises TypeError: if the random seed is not an `int`
     :raises ValueError: if the random seed is not valid
     """
-    if not isinstance(rand_seed, int):
-        raise type_error(rand_seed, "rand_seed", int)
-    if (rand_seed < __MIN_RAND_SEED) or (rand_seed > __MAX_RAND_SEED):
-        raise ValueError(f"rand_seed must be in {__MIN_RAND_SEED}.."
-                         f"{__MAX_RAND_SEED}, but is {rand_seed}.")
-    return rand_seed
+    return check_int_range(rand_seed, "rand_seed",
+                           __MIN_RAND_SEED, __MAX_RAND_SEED)
 
 
 def rand_generator(seed: int) -> Generator:

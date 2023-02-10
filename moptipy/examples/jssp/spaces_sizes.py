@@ -39,7 +39,7 @@ from moptipy.examples.jssp.gantt_space import gantt_space_size
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.lang import Lang
 from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range
 
 
 def permutations_with_repetitions_space_size(n: int, m: int) -> int:
@@ -83,15 +83,8 @@ def gantt_min_feasible(jobs: int, machines: int) \
     :return: the minimum number of feasible solutions for any instance
         of the given configuration and one example of such an instance
     """
-    if not isinstance(jobs, int):
-        raise type_error(jobs, "number of jobs", int)
-    if (jobs <= 0) or (jobs > 127):
-        raise ValueError(f"Number of jobs must be in 1..127, but is {jobs}.")
-    if not isinstance(machines, int):
-        raise type_error(machines, "number of machines", int)
-    if (machines <= 0) or (machines > 127):
-        raise ValueError(
-            f"Number of machines must be n 1..127, but is {machines}.")
+    check_int_range(jobs, "jobs", 1, 127)
+    check_int_range(machines, "machines", 1, 127)
 
     if machines <= 1:
         return factorial(jobs), (tuple([0] * jobs), )

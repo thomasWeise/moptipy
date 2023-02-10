@@ -108,7 +108,7 @@ from moptipy.api.operators import Op1WithStepSize
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range, type_error
 
 
 def get_max_changes(blueprint: Iterable[int]) -> int:
@@ -493,30 +493,19 @@ class Op1SwapExactlyN(Op1WithStepSize):
 # easily do perm.dimension changes. If the permutation is with
 # repetitions, then it might be fewer, so we need to check.
         is_pure_perm: Final[bool] = perm.n() == perm.dimension
-        changes: Final[int] = perm.dimension if is_pure_perm \
-            else get_max_changes(perm.blueprint)
-        if changes <= 1:
-            raise ValueError(
-                f"Only {changes} changes are possible with permutation {perm}"
-                f", but we need to be able to make at least 2.")
         #: the maximum number of possible changes
-        self.max_changes: Final[int] = changes
-        if not isinstance(max_move_trials, int):
-            raise type_error(max_move_trials, "max_move_trials", int)
-        if max_move_trials < 1:
-            raise ValueError(
-                f"max_move_trials={max_move_trials}, but must be >= 1")
-        if not isinstance(max_apply_trials, int):
-            raise type_error(max_apply_trials, "max_apply_trials", int)
-        if max_apply_trials < 1:
-            raise ValueError(
-                f"max_apply_trials={max_apply_trials}, but must be >= 1")
+        self.max_changes: Final[int] = check_int_range(
+            perm.dimension if is_pure_perm
+            else get_max_changes(perm.blueprint),
+            "max_changes", 2, 100_000_000)
         #: the maximum number of attempts to find a move with the exact step
         #: size
-        self.max_move_trials: Final[int] = max_move_trials
+        self.max_move_trials: Final[int] =\
+            check_int_range(max_move_trials, "max_move_trials", 1)
         #: the maximum number of attempts to apply a random permutation of the
         #: move before giving up and applying it as cyclic swap
-        self.max_apply_trials: Final[int] = max_apply_trials
+        self.max_apply_trials: Final[int] =\
+            check_int_range(max_apply_trials, "max_apply_trials", 1)
         #: the set of chosen indices
         self.__indices: Final[np.ndarray] = np.empty(
             perm.dimension, DEFAULT_INT)

@@ -47,7 +47,7 @@ from numpy.random import Generator
 
 from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
+from moptipy.utils.types import check_int_range
 
 
 # start book
@@ -62,12 +62,8 @@ class TournamentWithReplacement(Selection):
         :param size: the size of the tournaments
         """
         super().__init__()
-        if not isinstance(size, int):
-            raise type_error(size, "size", int)
-        if size < 1:
-            raise ValueError(f"Tournament size must be > 1, but is {size}.")
         #: the tournament size
-        self.size: Final[int] = size
+        self.size: Final[int] = check_int_range(size, "tournament size", 1)
 
 # start book
     def select(self, source: list[FitnessRecord],
