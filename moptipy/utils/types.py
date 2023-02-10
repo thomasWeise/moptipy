@@ -174,7 +174,7 @@ def check_to_int_range(val: Any, name: str | None = None,
     """
     Check whether a value `val` can be converted an integer in a given range.
 
-    :param val: the value to convert via :func:`int` and then to check
+    :param val: the value to convert via `int(...)` and then to check
     :param name: the name of the value, or `None`
     :param min_value: the minimum permitted value
     :param max_value: the maximum permitted value

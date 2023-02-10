@@ -1,4 +1,4 @@
-"""Here we provide a :class:`~moptipy.api.Space` of `Gantt` charts."""
+"""Here we provide a :class:`~moptipy.api.space.Space` of `Gantt` charts."""
 from math import factorial
 from typing import Final
 
