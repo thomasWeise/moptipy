@@ -47,6 +47,17 @@ def type_name_of(obj) -> str:
     >>> from numpy.random import default_rng
     >>> type_name_of(default_rng())
     'numpy.random._generator.Generator'
+    >>> type_name_of(None)
+    'None'
+    >>> type_name_of(int)
+    'type'
+    >>> type_name_of(print)
+    'builtin_function_or_method'
+    >>> import numpy as npx
+    >>> type_name_of(npx)
+    'module'
+    >>> type_name_of(npx.ndarray)
+    'numpy.type'
     """
     if obj is None:
         return "None"
@@ -219,8 +230,8 @@ def check_to_int_range(val: Any, name: str | None = None,
     """
     try:
         conv = int(val)
-    except (ValueError, TypeError) as err:
-        raise (ValueError if isinstance(err, ValueError) else TypeError)(
+    except (ValueError, TypeError) as errx:
+        raise (ValueError if isinstance(errx, ValueError) else TypeError)(
             f"Cannot convert {'value' if name is None else name}={val!r} "
-            f"to int, let alone in range {min_value}..{max_value}.") from err
+            f"to int, let alone in range {min_value}..{max_value}.") from errx
     return check_int_range(conv, name, min_value, max_value)
