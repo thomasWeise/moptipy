@@ -16,6 +16,9 @@ def type_name(tpe: type) -> str:
     >>> from moptipy.utils.path import Path
     >>> type_name(Path)
     'moptipy.utils.path.Path'
+    >>> from typing import Callable
+    >>> type_name(Callable)
+    'typing.Callable'
     """
     c1: str = str(tpe)
     if c1.startswith("<class '"):
@@ -58,6 +61,12 @@ def type_name_of(obj) -> str:
     'module'
     >>> type_name_of(npx.ndarray)
     'numpy.type'
+    >>> from typing import Callable
+    >>> type_name_of(Callable)
+    'typing._CallableType'
+    >>> from math import sin
+    >>> type_name_of(sin)
+    'math.builtin_function_or_method'
     """
     if obj is None:
         return "None"
