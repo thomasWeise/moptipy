@@ -408,7 +408,7 @@ def __optimize_scales(scale_choices: list[list[tuple[int, int]]],
             x_total_best.clear()
             x_total_best.extend(x_cur_best)
             logger(f"Improved to {x_total_best} at quality {f_total_best}.")
-        for __ in range(int(opt_sum ** 2.35)):
+        for _ in range(int(opt_sum ** 2.35)):
             idx, choicen = opt_idx[random.integers(len(opt_idx))]
             old = x_cur[idx]
             while old == x_cur[idx]:

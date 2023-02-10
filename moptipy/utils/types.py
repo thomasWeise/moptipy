@@ -46,15 +46,6 @@ def type_name(tpe: type) -> str:
         c1 = c1[8:-2]
     if c1 == "NoneType":
         return "None"
-
-    if hasattr(tpe, "__qualname__"):
-        c2: str = tpe.__qualname__
-        if hasattr(tpe, "__module__"):
-            module = tpe.__module__
-            if (module is not None) and (module != "builtins"):
-                c2 = f"{module}.{c2}"
-        if len(c2) > len(c1):
-            return c2
     return c1
 
 
@@ -95,7 +86,6 @@ def type_name_of(obj) -> str:
     if hasattr(obj, "__class__"):
         cls: Final[type] = obj.__class__
         c2: str = type_name(cls)
-
         if hasattr(cls, "__qualname__"):
             c3: str = cls.__qualname__
             if hasattr(obj, "__module__"):
@@ -104,7 +94,6 @@ def type_name_of(obj) -> str:
                     c3 = f"{module}.{c3}"
             if len(c3) > len(c2):
                 c2 = c3
-
         if len(c2) > len(c1):
             return c2
     return c1
