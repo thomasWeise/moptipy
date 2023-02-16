@@ -4,7 +4,7 @@ from typing import Any, Callable, Final, Iterable, cast
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
-from matplotlib.figure import Figure, SubplotBase  # type: ignore
+from matplotlib.figure import Figure  # type: ignore
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
@@ -48,7 +48,7 @@ def __make_y_axis(y_dim: str) -> AxisRanger:
 
 def plot_end_statistics_over_param(
         data: Iterable[EndStatistics],
-        figure: SubplotBase | Figure,
+        figure: Axes | Figure,
         x_getter: Callable[[EndStatistics], int | float],
         y_dim: str = f"{F_NAME_SCALED}{SCOPE_SEPARATOR}{KEY_MEAN_GEOM}",
         algorithm_getter: Callable[[EndStatistics], str | None] =
@@ -135,8 +135,8 @@ def plot_end_statistics_over_param(
     # some incorrect results.
     if not isinstance(data, Iterable):
         raise type_error(data, "data", Iterable)
-    if not isinstance(figure, (SubplotBase, Figure)):
-        raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not isinstance(figure, (Axes, Figure)):
+        raise type_error(figure, "figure", (Axes, Figure))
     if not callable(x_getter):
         raise type_error(x_getter, "x_getter", call=True)
     if not isinstance(y_dim, str):

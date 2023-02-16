@@ -1,7 +1,7 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
 from math import isfinite
-from typing import Final, cast
+from typing import Any, Final, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -218,14 +218,32 @@ def rand_seed_generate(random: Generator = default_rng()) -> int:
     :return: the random seed
     :raises TypeError: if `random` is specified but is not an instance of
         `Generator`
+
+    >>> from numpy.random import default_rng as drg
+    >>> rand_seed_generate(default_rng(100))
+    10991970318022328789
+    >>> rand_seed_generate(default_rng(100))
+    10991970318022328789
+    >>> rand_seed_generate(default_rng(10991970318022328789))
+    11139051376468819756
+    >>> rand_seed_generate(default_rng(10991970318022328789))
+    11139051376468819756
+    >>> rand_seed_generate(default_rng(11139051376468819756))
+    16592984639586750386
+    >>> rand_seed_generate(default_rng(11139051376468819756))
+    16592984639586750386
+    >>> rand_seed_generate(default_rng(16592984639586750386))
+    12064014979695949294
+    >>> rand_seed_generate(default_rng(16592984639586750386))
+    12064014979695949294
     """
     if not isinstance(random, Generator):
         raise type_error(random, "random", Generator)
-    return int.from_bytes(random.bytes(__SEED_BYTES),
-                          byteorder="big", signed=False)
+    return rand_seed_check(int.from_bytes(
+        random.bytes(__SEED_BYTES), byteorder="big", signed=False))
 
 
-def rand_seed_check(rand_seed: int) -> int:
+def rand_seed_check(rand_seed: Any) -> int:
     """
     Make sure that a random seed is valid.
 
@@ -234,6 +252,29 @@ def rand_seed_check(rand_seed: int) -> int:
 
     :raises TypeError: if the random seed is not an `int`
     :raises ValueError: if the random seed is not valid
+
+    >>> rand_seed_check(1)
+    1
+    >>> rand_seed_check(0)
+    0
+    >>> try:
+    ...     rand_seed_check(-1)
+    ... except ValueError as ve:
+    ...     print(ve)
+    rand_seed=-1 is invalid, must be in 0..18446744073709551615.
+    >>> rand_seed_check(18446744073709551615)
+    18446744073709551615
+    >>> try:
+    ...     rand_seed_check(18446744073709551616)
+    ... except ValueError as ve:
+    ...     print(ve)
+    rand_seed=18446744073709551616 is invalid, must be in 0..\
+18446744073709551615.
+    >>> try:
+    ...     rand_seed_check(1.2)
+    ... except TypeError as te:
+    ...     print(te)
+    rand_seed should be an instance of int but is float, namely '1.2'.
     """
     return check_int_range(rand_seed, "rand_seed",
                            __MIN_RAND_SEED, __MAX_RAND_SEED)

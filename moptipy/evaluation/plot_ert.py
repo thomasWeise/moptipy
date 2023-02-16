@@ -23,7 +23,7 @@ from typing import Any, Callable, Final, Iterable, cast
 import numpy as np
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
-from matplotlib.figure import Figure, SubplotBase  # type: ignore
+from matplotlib.figure import Figure  # type: ignore
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
@@ -36,7 +36,7 @@ from moptipy.utils.types import type_error
 
 
 def plot_ert(erts: Iterable[Ert],
-             figure: SubplotBase | Figure,
+             figure: Axes | Figure,
              x_axis: AxisRanger | Callable[[str], AxisRanger]
              = AxisRanger.for_axis,
              y_axis: AxisRanger | Callable[[str], AxisRanger]
@@ -97,8 +97,8 @@ def plot_ert(erts: Iterable[Ert],
     # some incorrect results.
     if not isinstance(erts, Iterable):
         raise type_error(erts, "erts", Iterable)
-    if not isinstance(figure, (SubplotBase, Figure)):
-        raise type_error(figure, "figure", (SubplotBase, Figure))
+    if not isinstance(figure, (Axes, Figure)):
+        raise type_error(figure, "figure", (Axes, Figure))
     if not isinstance(legend, bool):
         raise type_error(legend, "legend", bool)
     if not callable(distinct_colors_func):

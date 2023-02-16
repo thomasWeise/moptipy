@@ -160,6 +160,11 @@ def check_int_range(val: Any, name: str | None = None,
     upper limit in many situations. If we need smaller or larger limits, we
     can of course specify them.
 
+    Notice that there is one strange border case: In Python, `bool` is a
+    subtype of `int`, where `True` has value `1` and `False` has value `0`.
+    See <https://docs.python.org/3/library/functions.html#bool>.
+    We therefore treat `bool` values indeed as instances of `int`.
+
     :param val: the value to check
     :param name: the name of the value, or `None`
     :param min_value: the minimum permitted value
@@ -189,6 +194,23 @@ def check_int_range(val: Any, name: str | None = None,
     ...   print(err.__class__)
     ThisIsFloat should be an instance of int but is float, namely '5.0'.
     <class 'TypeError'>
+
+    The behavior in the border case of `bool` instances actually also being
+    instances of `int`:
+
+    >>> check_int_range(True, "true", 0, 2)
+    True
+
+    >>> check_int_range(False, "false", 0, 2)
+    False
+
+    >>> try:
+    ...   print(check_int_range(True, min_value=7, max_value=13))
+    ... except (ValueError, TypeError) as err:
+    ...   print(err)
+    ...   print(err.__class__)
+    Value=True is invalid, must be in 7..13.
+    <class 'ValueError'>
     """
     if not isinstance(val, int):
         raise type_error(val, "value" if name is None else name, int)

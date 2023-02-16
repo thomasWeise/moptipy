@@ -80,7 +80,12 @@ def validate_algorithm(algorithm: Algorithm,
     exp.set_max_fes(max_fes)
     exp.set_solution_space(solution_space)
     exp.set_objective(objective)
-    exp.set_rand_seed(rand_seed_generate())
+    seed: Final[int] = rand_seed_generate()
+    if not isinstance(seed, int):
+        raise type_error(seed, "seed", int)
+    if not (0 <= seed <= 18446744073709551615):
+        raise ValueError(f"invalid seed={seed}.")
+    exp.set_rand_seed(seed)
     if search_space is not None:
         exp.set_search_space(search_space)
         exp.set_encoding(encoding)
@@ -127,13 +132,14 @@ def validate_algorithm(algorithm: Algorithm,
             # no exception? ok, let's check the data
             if not process.has_best():
                 raise ValueError(f"The algorithm {algorithm} did not produce "
-                                 f"any solution on {objective}.")
+                                 f"any solution on {objective} and "
+                                 f"seed {seed}.")
 
             if (not process.should_terminate()) \
                     and uses_all_fes_if_goal_not_reached:
                 raise ValueError(f"The algorithm {algorithm} stopped "
                                  f"before hitting the termination "
-                                 f"criterion on {objective}.")
+                                 f"criterion on {objective} and seed {seed}.")
 
             consumed_fes: int = check_int_range(
                 process.get_consumed_fes(), "consumed_fes", 1, max_fes)
@@ -150,12 +156,12 @@ def validate_algorithm(algorithm: Algorithm,
                 raise ValueError(
                     "Inconsistent lower bounds between process "
                     f"({process.lower_bound()}) and objective ({lb})"
-                    f" for {algorithm} on {objective}.")
+                    f" for {algorithm} on {objective} and seed {seed}.")
             if ub != process.upper_bound():
                 raise ValueError(
                     "Inconsistent upper bounds between process "
                     f"({process.upper_bound()}) and objective ({ub}) "
-                    f" for {algorithm} on {objective}.")
+                    f" for {algorithm} on {objective} and seed {seed}.")
 
             res_f: float | int = process.get_best_f()
             if not isfinite(res_f):
@@ -164,13 +170,13 @@ def validate_algorithm(algorithm: Algorithm,
             if (res_f < lb) or (res_f > ub):
                 raise ValueError(f"Objective value {res_f} outside of bounds "
                                  f"[{lb},{ub}] for {algorithm} on "
-                                 f"{objective}.")
+                                 f"{objective} and seed {seed}.")
 
             if (required_result is not None) and (res_f > required_result):
                 raise ValueError(
                     f"Algorithm {algorithm} should find solution of "
                     f"quality {required_result} on {objective}, but got "
-                    f"one of {res_f}.")
+                    f"one of {res_f} and seed {seed}.")
 
             if res_f <= lb:
                 if last_imp_fe != consumed_fes:
@@ -178,20 +184,21 @@ def validate_algorithm(algorithm: Algorithm,
                         f"if result={res_f} is as good as lb={lb}, then "
                         f"last_imp_fe={last_imp_fe} must equal"
                         f" consumed_fe={consumed_fes} for {algorithm} on "
-                        f"{objective}.")
+                        f"{objective} and seed {seed}.")
                 if (10_000 + (1.05 * last_imp_time)) < consumed_time:
                     raise ValueError(
                         f"if result={res_f} is as good as lb={lb}, then "
                         f"last_imp_time={last_imp_time} must not be much less"
                         f" than consumed_time={consumed_time} for "
-                        f"{algorithm} on {objective}.")
+                        f"{algorithm} on {objective} and seed {seed}.")
             else:
                 if uses_all_fes_if_goal_not_reached \
                         and (consumed_fes != max_fes):
                     raise ValueError(
                         f"if result={res_f} is worse than lb={lb}, then "
                         f"consumed_fes={consumed_fes} must equal "
-                        f"max_fes={max_fes} for {algorithm} on {objective}.")
+                        f"max_fes={max_fes} for {algorithm} on {objective}"
+                        f" and seed {seed}.")
 
             y = solution_space.create()
             process.get_copy_of_best_y(y)
@@ -201,7 +208,7 @@ def validate_algorithm(algorithm: Algorithm,
                 raise ValueError(
                     f"Inconsistent objective value {res_f} from process "
                     f"compared to {check_f} from objective function for "
-                    f"{algorithm} on {objective}.")
+                    f"{algorithm} on {objective} and seed {seed}.")
 
             x: Any | None = None
             if search_space is not None:
@@ -219,7 +226,7 @@ def validate_algorithm(algorithm: Algorithm,
                         f"error when mapping point in search space {x} to "
                         f"solution {y2}, because it should be {y} for "
                         f"{algorithm} on {objective} under "
-                        f"encoding {encoding}")
+                        f"encoding {encoding} and seed {seed}")
 
             if post is not None:
                 post(algorithm, consumed_fes)
@@ -229,5 +236,5 @@ def validate_algorithm(algorithm: Algorithm,
     if is_encoding_deterministic and (progress[0] != progress[1]):
         raise ValueError(f"when applying algorithm {algorithm} to "
                          f"{objective} under encoding {encoding} twice "
-                         f"with the same seed did lead to different "
+                         f"with the same seed {seed} did lead to different "
                          f"runs!")

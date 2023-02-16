@@ -1,6 +1,7 @@
 """Test the plot utilities."""
 
-from matplotlib.figure import Figure, SubplotBase  # type: ignore
+from matplotlib.axes import Axes  # type: ignore
+from matplotlib.figure import Figure  # type: ignore
 
 import moptipy.utils.plot_utils as pu
 from moptipy.utils.temp import TempDir
@@ -37,7 +38,7 @@ def test_create_multi_figure() -> None:
     ids: set[int] = set()
     data: set[int] = set()
     for fig, first, last, x, y, idx in inner:
-        assert isinstance(fig, SubplotBase)
+        assert isinstance(fig, Axes)
         assert isinstance(first, int)
         assert isinstance(last, int)
         for idsx in range(first, last):

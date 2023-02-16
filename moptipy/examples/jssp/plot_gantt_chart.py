@@ -3,7 +3,7 @@ from typing import Callable, Final, Iterable
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
-from matplotlib.figure import Figure, SubplotBase  # type: ignore
+from matplotlib.figure import Figure  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
 from matplotlib.patches import Rectangle  # type: ignore
 from matplotlib.text import Text  # type: ignore
@@ -49,7 +49,7 @@ __MIDDLE_MARK: Final[tuple[float, float, float]] = pd.COLOR_BLACK
 
 def plot_gantt_chart(
         gantt: Gantt | str,
-        figure: SubplotBase | Figure,
+        figure: Axes | Figure,
         markers: Iterable[tuple[str, int | float] | Callable[
             [Gantt], tuple[str, int | float]]] | None = (marker_lb,),
         x_axis: AxisRanger | Callable[[Gantt], AxisRanger] =

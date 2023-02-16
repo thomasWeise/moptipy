@@ -11,7 +11,7 @@ from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.backend_bases import RendererBase  # type: ignore
 from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
-from matplotlib.figure import Figure, SubplotBase  # type: ignore
+from matplotlib.figure import Figure  # type: ignore
 
 import moptipy.utils.plot_defaults as pd
 from moptipy.utils.lang import Lang
@@ -161,7 +161,7 @@ def create_figure_with_subplots(
         max_height: float | int | None = 9,
         dpi: float | int | None = 384.0,
         **kwargs) \
-        -> tuple[Figure, tuple[tuple[SubplotBase | Figure,
+        -> tuple[Figure, tuple[tuple[Axes | Figure,
                                      int, int, int, int, int], ...]]:
     """
     Divide a figure into nrows*ncols sub-plots.
@@ -352,7 +352,7 @@ def create_figure_with_subplots(
         return figure, ((figure, 0, items, 0, 0, 0), )
 
     # if there are multiple plots, we need to generate them
-    allfigs: list[tuple[SubplotBase | Figure,
+    allfigs: list[tuple[Axes | Figure,
                         int, int, int, int, int]] = []
     index: int = 0
     chunk_start: int = 0
@@ -566,7 +566,7 @@ def label_axes(axes: Axes,
                 axes.set_ylabel(y_label, fontsize=font_size)
 
 
-def get_axes(figure: Axes | SubplotBase | Figure) -> Axes:
+def get_axes(figure: Axes | Axes | Figure) -> Axes:
     """
     Obtain the axes from a figure or axes object.
 
@@ -599,14 +599,14 @@ def get_axes(figure: Axes | SubplotBase | Figure) -> Axes:
         f"Cannot get Axes of object of type {type_name_of(figure)}.")
 
 
-def get_renderer(figure: SubplotBase | Axes | Figure) -> RendererBase:
+def get_renderer(figure: Axes | Figure) -> RendererBase:
     """
     Get a renderer that can be used for determining figure element sizes.
 
     :param figure: the figure element
     :return: the renderer
     """
-    if isinstance(figure, (Axes, SubplotBase)):
+    if isinstance(figure, Axes):
         figure = figure.figure
     if not isinstance(figure, Figure):
         raise type_error(figure, "figure", Figure)

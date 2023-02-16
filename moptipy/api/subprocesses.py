@@ -516,10 +516,36 @@ def get_remaining_fes(process: Process) -> int:
     """
     Get a finite number representing the remaining FEs of a process.
 
+    If the process has the maximum objective function evaluations (FEs) set
+    (see :meth:`~moptipy.api.process.Process.get_max_fes`), then this method
+    returns the maximum FEs minus the consumed FEs (see
+    :meth:`~moptipy.api.process.Process.get_consumed_fes`).
+    Otherwise, i.e., if :meth:`~moptipy.api.process.Process.get_max_fes`
+    returns `None`, this function returns a very large number, namely
+    `9223372036854775807`, i.e., `(2 ** 63) - 1`. This number is so high that
+    it will always be impossible to consume it in terms of FEs. But it is
+    also finite in any case. When trying to slice of budgets or computing
+    things based on the remaining budget, this makes it unnecessary for us to
+    deal with special cases.
+
     :param process: the process
     :returns: an integer representing the remaining FEs of the process. If
         no FE limit is imposed by `process`, a very large number will be
         returned.
+
+    >>> from moptipy.api.process import Process as Proc
+    >>> class X(Proc):
+    ...     def get_max_fes(self):
+    ...         return None
+    ...     def get_consumed_fes(self):
+    ...         return 123
+    >>> get_remaining_fes(X())
+    9223372036854775807
+    >>> class Y(X):
+    ...     def get_max_fes(self):
+    ...         return 456
+    >>> get_remaining_fes(Y())
+    333
     """
     mf: int | None = process.get_max_fes()  # get the number of available FEs
     if mf is None:  # if a no FE limit is specified, then return a large value
