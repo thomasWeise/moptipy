@@ -130,7 +130,7 @@ def validate_selection(selection: Selection,
             if len(dest) != dest_size:
                 raise ValueError(
                     f"expected {selection} to select {dest_size} elements "
-                    f"from {source_size}, but got {len(dest)} instead")
+                    f"out of {source_size}, but got {len(dest)} instead")
             if len(source) != source_size:
                 raise ValueError(
                     f"selection {selection} changed length {source_size} "

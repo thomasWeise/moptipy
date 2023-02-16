@@ -10,6 +10,9 @@ from moptipy.operators.permutations.op1_swap_exactly_n import (
     find_move,
     get_max_changes,
 )
+from moptipy.operators.tools import (
+    inv_exponential_step_size,
+)
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.on_permutations import (
     permutations_for_tests,
@@ -99,7 +102,8 @@ def test_op1_swapxn() -> None:
             return 1.0
         if ss <= 2:
             return 0.0
-        return (ss - 2) / (get_max_changes(perm.blueprint) - 2)
+        return inv_exponential_step_size(
+            ss, 2, get_max_changes(perm.blueprint))
 
     def _get_step_sizes(p: Permutations,
                         ri=default_rng().integers) -> Iterable[float]:
@@ -110,7 +114,7 @@ def test_op1_swapxn() -> None:
                 res.add(int(ri(3, maxss)))
             else:
                 res.add(3)
-            return list({(j - 2) / (maxss - 2) for j in res
+            return list({inv_exponential_step_size(j, 2, maxss) for j in res
                          if 2 <= j <= maxss})
         return [1.0]
 

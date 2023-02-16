@@ -6,9 +6,9 @@ This is a unary operator with step size, i.e., an instance of
 a parameter `step_size` when it is applied, which is from the closed range
 `[0.0, 1.0]`. If `step_size=0`, then exactly 1 bit will be flipped. If
 `step_size=1`, then all bits will be flipped. For all values of
-`0<step_size<1`, we compute the number `m` of bits to be flipped as
-`m = 1 + int(0.5 + step_size * (len(x) - 1))`, where `len(x)` is the length
-of the bit strings.
+`0<step_size<1`, we use the function
+:func:`~moptipy.operators.tools.exponential_step_size` to extrapolate the
+number of bits to flip.
 
 Unary operators like this are often used in (1+1)-EAs or even in
 state-of-the-art EAs such as the Self-Adjusting (1+(lambda,lambda)) GA.
@@ -28,6 +28,7 @@ import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1WithStepSize
+from moptipy.operators.tools import exponential_step_size
 
 
 class Op1FlipM(Op1WithStepSize):
@@ -38,9 +39,9 @@ class Op1FlipM(Op1WithStepSize):
         """
         Copy `x` into `dest` and flip exactly `m` bits.
 
-        Here, `step_size = (bits-to-flip - 1) / (n - 1)`, meaning that
-        `step_size=0.0` will flip exactly `1` bit and `step_size=1.0` will
-        flip all `n` bits.
+        `step_size=0.0` will flip exactly `1` bit, `step_size=1.0` will flip
+        all `n` bits. All other values are extrapolated by function
+        :func:`~moptipy.operators.tools.exponential_step_size`.
 
         :param self: the self pointer
         :param random: the random number generator
@@ -54,8 +55,8 @@ class Op1FlipM(Op1WithStepSize):
         >>> import numpy as npx
         >>> src = npx.zeros(10, bool)
         >>> dst = npx.zeros(10, bool)
-        >>> for i in range(1, 11):
-        ...   op1.op1(rand, dst, src, (i - 1.0) / (len(src) - 1))
+        >>> for ss in [0.0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0]:
+        ...   op1.op1(rand, dst, src, ss)
         ...   print(sum(dst != src))
         1
         2
@@ -71,7 +72,7 @@ class Op1FlipM(Op1WithStepSize):
         np.copyto(dest, x)  # copy source to destination
         n: Final[int] = len(dest)  # get the number of bits
         flips: Final[np.ndarray] = random.choice(  # choose the bits
-            n, 1 + int(0.5 + (step_size * (n - 1))), False)
+            n, exponential_step_size(step_size, 1, n), False)
         dest[flips] ^= True  # flip the selected bits via xor
 
     def __str__(self) -> str:

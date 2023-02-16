@@ -9,12 +9,18 @@ Let's say we have a "normal" permutation where each element occurs once.
 The permutation has length `n`, let's say that its
 :attr:`~moptipy.spaces.permutations.Permutations.blueprint` is
 `[0, 1, 2, 3, 4, ..., n-1]`. Then, with one application of the operator, we
-can change no less than two elements (`step_size=0`) and no more than `n`
-(`step_size=1`). Clearly we cannot change only one element, because what
+can change no less than two elements (`step_size=0.0`) and no more than `n`
+(`step_size=1.0`). Clearly we cannot change only one element, because what
 different value could we put there? We would violate the "permutation nature."
 We can also not change more than `n` elements, obviously.
 
-What our operator does is then it computes `m = 2 + step_size * (n - 2)`.
+What our operator does is then it computes `m` by using
+:func:`~moptipy.operators.tools.exponential_step_size`.
+This ensures that `m=2` for `step_size=0.0` and `m` is maximal for
+`step_size=1.0`. In between the two, it extrapolates exponentially. This means
+that small values of `step_size` will lead to few swap moves, regardless of
+the length of the permutation and many swaps are performed only for
+`step_size` values close to `1`.
 Then it will pick `m` random indices and permute the elements at them such
 that none remains at its current position.
 That is rather easy to do.
@@ -105,6 +111,7 @@ import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1WithStepSize
+from moptipy.operators.tools import exponential_step_size
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
@@ -485,7 +492,6 @@ class Op1SwapExactlyN(Op1WithStepSize):
             move via a random permutation
         """
         super().__init__()
-
         if not isinstance(perm, Permutations):
             raise type_error(perm, "perm", Permutations)
 
@@ -538,8 +544,8 @@ class Op1SwapExactlyN(Op1WithStepSize):
 # setup of other variables and fast calls
         ri: Final[Callable[[int, int], int]] = random.integers  # fast call!
 # compute the real step size based on the maximum changes
-        use_step_size: int = 2 + int(0.5 + (
-            step_size * (self.max_changes - 2)))
+        use_step_size: int = exponential_step_size(
+            step_size, 2, self.max_changes)
 # look up in move map: Do we already know whether this step size works or can
 # it be replaced with a similar smaller one?
         move_map: Final[dict[int, int]] = self.__move_map

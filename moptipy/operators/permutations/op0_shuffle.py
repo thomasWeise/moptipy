@@ -30,8 +30,7 @@ class Op0Shuffle(Op0):
 
         :param space: the search space
         """
-        if not space:  # -book
-            raise ValueError("space must not be None.")  # -book
+        super().__init__()  # -book
         if not isinstance(space, Permutations):  # -book
             raise type_error(space, "space", Permutations)  # -book
         #: the internal blueprint for filling permutations
