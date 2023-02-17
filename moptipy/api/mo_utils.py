@@ -4,7 +4,7 @@ import numba  # type: ignore
 import numpy as np
 
 
-@numba.njit(nogil=True, cache=True)
+@numba.njit(cache=True)
 def dominates(a: np.ndarray, b: np.ndarray) -> int:
     """
     Check if one objective vector dominates or is dominated by another one.
@@ -44,7 +44,7 @@ def dominates(a: np.ndarray, b: np.ndarray) -> int:
     return 2 if res == 0 else res
 
 
-@numba.njit(nogil=True, cache=True)
+@numba.njit(cache=True)
 def lexicographic(a: np.ndarray, b: np.ndarray) -> int:
     """
     Compare two arrays lexicographically.

@@ -10,6 +10,12 @@ solution is and on the current *temperature* of the algorithm. The higher the
 temperature, the higher the acceptance probability. The temperature changes
 over time according to the
 :class:`~moptipy.algorithms.modules.temperature_schedule.TemperatureSchedule`.
+
+The temperature schedule receives an iteration index `tau` as input and
+returns the current temperature via :meth:`~moptipy.algorithms.modules.\
+temperature_schedule.TemperatureSchedule.temperature`. Notice that `tau` is
+zero-based for simplicity reason, meanings that the first objective function
+evaluation is at index `0`.
 """
 
 from math import e, isfinite, log
@@ -45,7 +51,7 @@ class TemperatureSchedule(Component):
         """
         Compute the temperature at iteration `tau`.
 
-        :param tau: the iteration index, starting with 0 at the first
+        :param tau: the iteration index, starting with `0` at the first
             comparison of two solutions, at which point the starting
             temperature :attr:`~TemperatureSchedule.t0` should be returned
         :returns: the temperature
@@ -76,7 +82,23 @@ class TemperatureSchedule(Component):
 
 # start exponential
 class ExponentialSchedule(TemperatureSchedule):
-    """The exponential temperature schedule."""
+    """
+    The exponential temperature schedule.
+
+    The current temperature is computed as `t0 * (1 - epsilon) ** tau`.
+
+    >>> ex = ExponentialSchedule(10.0, 0.05)
+    >>> print(f"{ex.t0} - {ex.epsilon}")
+    10.0 - 0.05
+    >>> ex.temperature(0)
+    10.0
+    >>> ex.temperature(1)
+    9.5
+    >>> ex.temperature(2)
+    9.025
+    >>> ex.temperature(1_000_000_000_000_000_000)
+    0.0
+    """
 
     def __init__(self, t0: float, epsilon: float) -> None:
         """
@@ -108,7 +130,7 @@ class ExponentialSchedule(TemperatureSchedule):
         """
         Compute the temperature at iteration `tau`.
 
-        :param tau: the iteration index, starting with 0 at the first
+        :param tau: the iteration index, starting with `0` at the first
             comparison of two solutions, at which point the starting
             temperature :attr:`~TemperatureSchedule.t0` should be returned
         :returns: the temperature
@@ -162,7 +184,21 @@ class ExponentialSchedule(TemperatureSchedule):
 
 # start logarithmic
 class LogarithmicSchedule(TemperatureSchedule):
-    """The logarithmic temperature schedule."""
+    """
+    The logarithmic temperature schedule.
+
+    The temperature is computed as `t0 / log(e + (tau * epsilon))`.
+
+    >>> lg = LogarithmicSchedule(10.0, 0.1)
+    >>> print(f"{lg.t0} - {lg.epsilon}")
+    10.0 - 0.1
+    >>> lg.temperature(0)
+    10.0
+    >>> lg.temperature(1)
+    9.651322627630812
+    >>> lg.temperature(1_000_000_000_000_000_000_000_000_000_000_000_000_000)
+    0.11428802155348732
+    """
 
     def __init__(self, t0: float, epsilon: float) -> None:
         """
@@ -186,7 +222,7 @@ class LogarithmicSchedule(TemperatureSchedule):
         """
         Compute the temperature at iteration `tau`.
 
-        :param tau: the iteration index, starting with 0 at the first
+        :param tau: the iteration index, starting with `0` at the first
             comparison of two solutions, at which point the starting
             temperature :attr:`~TemperatureSchedule.t0` should be returned
         :returns: the temperature

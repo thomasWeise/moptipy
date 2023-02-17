@@ -11,6 +11,7 @@ from moptipy.algorithms.modules.selection import (
     check_selection,
 )
 from moptipy.tests.component import validate_component
+from moptipy.utils.nputils import rand_seed_generate
 from moptipy.utils.types import check_int_range, type_error
 
 
@@ -81,8 +82,10 @@ def validate_selection(selection: Selection,
                     lower_source_size_limit, 1_000_000)
     random: Final[Generator] = default_rng()
     source: Final[list[FitnessRecord]] = []
+    source_2: Final[list[FitnessRecord]] = []
     copy: Final[dict[int, list]] = {}
     dest: Final[list[FitnessRecord]] = []
+    dest_2: Final[list[FitnessRecord]] = []
     tag: int = 0
 
     for source_size in __join([range(1, 10), [16, 32, 50, 101],
@@ -98,8 +101,10 @@ def validate_selection(selection: Selection,
                 lower_limit=1):
 
             source.clear()
+            source_2.clear()
             copy.clear()
             dest.clear()
+            dest_2.clear()
 
             # choose the fitness function
             fit_choice = random.integers(3)
@@ -123,19 +128,38 @@ def validate_selection(selection: Selection,
                 r2.fitness = r1.fitness
                 source.append(r1)
                 copy[r2.tag] = [r2, 0, False]
+                r2 = _FRecord(tag)
+                r2.fitness = r1.fitness
+                source_2.append(r2)
 
             # perform the selection
-            selection.select(source, dest.append, dest_size, random)
+            seed = rand_seed_generate(random)
+            selection.initialize()
+            selection.select(source, dest.append, dest_size,
+                             default_rng(seed))
+            selection.initialize()
+            selection.select(source_2, dest_2.append, dest_size,
+                             default_rng(seed))
 
             if len(dest) != dest_size:
                 raise ValueError(
                     f"expected {selection} to select {dest_size} elements "
                     f"out of {source_size}, but got {len(dest)} instead")
+            if len(dest_2) != dest_size:
+                raise ValueError(
+                    f"inconsistent selection: expected {selection} to select"
+                    f" {dest_size} elements out of {source_size}, which "
+                    f"worked the first time, but got {len(dest_2)} instead")
             if len(source) != source_size:
                 raise ValueError(
                     f"selection {selection} changed length {source_size} "
                     f"of source list to {len(source)}")
-            for ele in dest:
+            if len(source_2) != source_size:
+                raise ValueError(
+                    f"inconsistent selection: selection {selection} changed "
+                    f"length {source_size} of second source list to "
+                    f"{len(source_2)}")
+            for ii, ele in enumerate(dest):
                 if not isinstance(ele, _FRecord):
                     raise type_error(ele, "element in dest", _FRecord)
                 if ele.tag not in copy:
@@ -153,6 +177,15 @@ def validate_selection(selection: Selection,
                     raise ValueError(
                         f"{selection} is without replacement, but selected "
                         f"element with tag {ele.tag} at least twice!")
+                ele2 = dest_2[ii]
+                if not isinstance(ele2, _FRecord):
+                    raise type_error(ele2, "element in dest2", _FRecord)
+                if (ele2.tag is not ele.tag) or \
+                        (ele2.fitness is not ele.fitness):
+                    raise ValueError(f"inconsistent selection: found {ele2} "
+                                     f"at index {ii} but expected {ele} from "
+                                     f"first application of {selection}.")
+
             for ele in source:
                 if not isinstance(ele, _FRecord):
                     raise type_error(ele, "element in source", _FRecord)

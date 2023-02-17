@@ -6,6 +6,7 @@ import numpy as np
 
 from moptipy.api.component import Component
 from moptipy.api.mo_utils import lexicographic
+from moptipy.utils.nputils import array_to_str
 from moptipy.utils.types import type_error
 
 
@@ -15,6 +16,24 @@ class MORecord:
 
     The default sorting order of multi-objective records is lexicographic
     based on the objective value vector.
+
+    >>> import numpy as npx
+    >>> mr1 = MORecord("xxx", npx.array([1, 2, 3], int))
+    >>> print(mr1.x)
+    xxx
+    >>> print(mr1.fs)
+    [1 2 3]
+    >>> print(mr1)
+    fs=1;2;3, x=xxx
+    >>> mr2 = MORecord("yyy", npx.array([1, 2, 1], int))
+    >>> print(mr2.x)
+    yyy
+    >>> print(mr2.fs)
+    [1 2 1]
+    >>> mr1 < mr2
+    False
+    >>> mr2 < mr1
+    True
     """
 
     def __init__(self, x: Any, fs: np.ndarray) -> None:
@@ -39,19 +58,19 @@ class MORecord:
 
         :param other: the other record
 
-        >>> import numpy as np
-        >>> r1 = MORecord("a", np.array([1, 1, 1]))
-        >>> r2 = MORecord("b", np.array([1, 1, 1]))
+        >>> import numpy as npx
+        >>> r1 = MORecord("a", npx.array([1, 1, 1]))
+        >>> r2 = MORecord("b", npx.array([1, 1, 1]))
         >>> r1 < r2
         False
         >>> r2 < r1
         False
-        >>> r2 = MORecord("b", np.array([1, 1, 2]))
+        >>> r2 = MORecord("b", npx.array([1, 1, 2]))
         >>> r1 < r2
         True
         >>> r2 < r1
         False
-        >>> r1 = MORecord("a", np.array([2, 1, 1]))
+        >>> r1 = MORecord("a", npx.array([2, 1, 1]))
         >>> r1 < r2
         False
         >>> r2 < r1
@@ -65,12 +84,12 @@ class MORecord:
 
         :returns: the string representation of this record
 
-        >>> import numpy as np
-        >>> r = MORecord(4, np.array([1, 2, 3]))
+        >>> import numpy as npx
+        >>> r = MORecord(4, npx.array([1, 2, 3]))
         >>> print(r)
         fs=1;2;3, x=4
         """
-        return f"fs={';'.join([str(a) for a in self.fs])}, x={self.x}"
+        return f"fs={array_to_str(self.fs)}, x={self.x}"
 
 
 class MOArchivePruner(Component):
@@ -110,7 +129,7 @@ class MOArchivePruner(Component):
         return "fifo"
 
 
-def check_mo_archive_pruner(pruner: MOArchivePruner) -> MOArchivePruner:
+def check_mo_archive_pruner(pruner: Any) -> MOArchivePruner:
     """
     Check whether an object is a valid instance of :class:`MOArchivePruner`.
 

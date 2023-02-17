@@ -2,6 +2,7 @@
 from math import inf, isfinite
 from typing import Any, Final
 
+import numpy as np
 from numpy import array_equal
 from numpy.random import Generator, default_rng
 
@@ -23,6 +24,7 @@ from moptipy.tests.component import validate_component
 from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.mo_problem import validate_mo_problem
 from moptipy.tests.space import validate_space
+from moptipy.utils.nputils import rand_seed_generate
 from moptipy.utils.types import check_int_range, type_error
 
 
@@ -106,72 +108,135 @@ def validate_mo_algorithm(
             pruner = MOArchivePruner()
         exp.set_archive_pruner(pruner)
 
-    with exp.execute() as process:
-        # re-raise any exception that was caught
-        if hasattr(process, "_caught"):
-            error = getattr(process, "_caught")
-            if error is not None:
-                raise error
-        # no exception? ok, let's check the data
-        if not process.has_best():
-            raise ValueError("The algorithm did not produce any solution.")
+    seed: Final[int] = rand_seed_generate(random)
+    exp.set_rand_seed(seed)
 
-        if not process.should_terminate():
-            raise ValueError("The algorithm stopped before hitting the "
-                             "termination criterion.")
-        consumed_fes: int = check_int_range(
-            process.get_consumed_fes(), "consumed_fes", 1, max_fes)
-        check_int_range(
-            process.get_last_improvement_fe(),
-            "last_improvement_fe", 1, consumed_fes)
-        consumed_time: int = check_int_range(
-            process.get_consumed_time_millis(), "consumed_time",
-            0, 100_0000_000)
-        check_int_range(
-            process.get_last_improvement_time_millis(),
-            "last_improvement_time", 0, consumed_time)
+    l_consumed_fes: int = -1
+    l_last_improvement_fe: int = -1
+    l_res_f: int | float = inf
+    l_y: Any = None
+    l_fs: np.ndarray | None = None
+    l_x: Any = None
+    for is_check in [False, True]:
+        with exp.execute() as process:
+            # re-raise any exception that was caught
+            if hasattr(process, "_caught"):
+                error = getattr(process, "_caught")
+                if error is not None:
+                    raise error
+            # no exception? ok, let's check the data
+            if not process.has_best():
+                raise ValueError(
+                    "The algorithm did not produce any solution.")
 
-        if lb != process.lower_bound():
-            raise ValueError(
-                "Inconsistent lower bounds between process "
-                f"({process.lower_bound()}) and scalarized objective ({lb}).")
-        if ub != process.upper_bound():
-            raise ValueError(
-                "Inconsistent upper bounds between process "
-                f"({process.upper_bound()}) and scalarized objective ({ub}).")
+            if not process.should_terminate():
+                raise ValueError(
+                    "The algorithm stopped before hitting the "
+                    "termination criterion.")
+            consumed_fes: int = check_int_range(
+                process.get_consumed_fes(), "consumed_fes", 1, max_fes)
+            if is_check:
+                if consumed_fes != l_consumed_fes:
+                    raise ValueError(
+                        f"consumed FEs changed from {l_consumed_fes} to "
+                        f"{consumed_fes} in second run for seed {seed}")
+            else:
+                l_consumed_fes = consumed_fes
+            last_improvement_fe = process.get_last_improvement_fe()
+            check_int_range(last_improvement_fe, "last_improvement_fe",
+                            1, consumed_fes)
+            if is_check:
+                if last_improvement_fe != l_last_improvement_fe:
+                    raise ValueError(
+                        "last improvement FEs changed from "
+                        f"{l_last_improvement_fe} to {last_improvement_fe} in"
+                        f" second run for seed {seed}")
+            else:
+                l_last_improvement_fe = last_improvement_fe
 
-        res_f: Final[float | int] = process.get_best_f()
-        if not isfinite(res_f):
-            raise ValueError("Infinite scalarized objective value of result.")
-        if (res_f < lb) or (res_f > ub):
-            raise ValueError(
-                f"Objective value {res_f} outside of bounds [{lb},{ub}].")
+            consumed_time: int = check_int_range(
+                process.get_consumed_time_millis(), "consumed_time",
+                0, 100_0000_000)
+            check_int_range(
+                process.get_last_improvement_time_millis(),
+                "last_improvement_time", 0, consumed_time)
 
-        y = solution_space.create()
-        process.get_copy_of_best_y(y)
-        solution_space.validate(y)
-        fs1 = problem.f_create()
-        fs2 = problem.f_create()
-        process.get_copy_of_best_y(y)
-        check_f = problem.f_evaluate(y, fs1)
-        if check_f != res_f:
-            raise ValueError(
-                f"Inconsistent objective value {res_f} from process compared "
-                f"to {check_f} from objective function.")
-        process.get_copy_of_best_fs(fs2)
-        if not array_equal(fs1, fs2):
-            raise ValueError(
-                f"Inconsistent objective vectors {fs1} and {fs2}.")
+            if lb != process.lower_bound():
+                raise ValueError(
+                    "Inconsistent lower bounds between process "
+                    f"({process.lower_bound()}) and scalarized "
+                    f"objective ({lb}).")
+            if ub != process.upper_bound():
+                raise ValueError(
+                    "Inconsistent upper bounds between process "
+                    f"({process.upper_bound()}) and scalarized "
+                    f"objective ({ub}).")
 
-        x: Any | None = None
-        if search_space is not None:
-            x = search_space.create()
-            process.get_copy_of_best_x(x)
-            search_space.validate(x)
+            res_f: float | int = process.get_best_f()
+            if not isfinite(res_f):
+                raise ValueError(
+                    "Infinite scalarized objective value of result.")
+            if (res_f < lb) or (res_f > ub):
+                raise ValueError(
+                    f"Objective value {res_f} outside of bounds [{lb},{ub}].")
+            if is_check:
+                if res_f != l_res_f:
+                    raise ValueError(
+                        f"result f changed from {l_res_f} to {res_f} in"
+                        f" second run for seed {seed}")
+            else:
+                l_res_f = res_f
 
-        if encoding is not None:
-            y2 = solution_space.create()
-            encoding.decode(x, y2)
-            solution_space.validate(y2)
-            if is_encoding_deterministic:
-                solution_space.is_equal(y, y2)
+            y = solution_space.create()
+            process.get_copy_of_best_y(y)
+            solution_space.validate(y)
+            fs1 = problem.f_create()
+            fs2 = problem.f_create()
+            process.get_copy_of_best_y(y)
+            check_f = problem.f_evaluate(y, fs1)
+            if check_f != res_f:
+                raise ValueError(
+                    f"Inconsistent objective value {res_f} from process "
+                    f"compared to {check_f} from objective function.")
+            process.get_copy_of_best_fs(fs2)
+            if not array_equal(fs1, fs2):
+                raise ValueError(
+                    f"Inconsistent objective vectors {fs1} and {fs2}.")
+
+            if is_check:
+                if not solution_space.is_equal(y, l_y):
+                    raise ValueError(f"solution changed from {l_y} to {y} in "
+                                     f"the second run of seed {seed}")
+                if res_f != l_res_f:
+                    raise ValueError(
+                        f"result f changed from {l_res_f} to {res_f} in the "
+                        f"second run of seed {seed}")
+                if not np.array_equal(fs1, l_fs):
+                    raise ValueError(
+                        f"result fs changed from {l_fs} to {fs1} in the "
+                        f"second run of seed {seed}")
+            else:
+                l_y = y
+                l_fs = fs1
+                l_res_f = res_f
+
+            x: Any | None = None
+            if search_space is not None:
+                x = search_space.create()
+                process.get_copy_of_best_x(x)
+                search_space.validate(x)
+
+                if is_check:
+                    if not search_space.is_equal(x, l_x):
+                        raise ValueError(
+                            f"result x changed from {l_x} to {x} in the "
+                            f"second run of seed {seed}")
+                else:
+                    l_x = x
+
+            if encoding is not None:
+                y2 = solution_space.create()
+                encoding.decode(x, y2)
+                solution_space.validate(y2)
+                if is_encoding_deterministic:
+                    solution_space.is_equal(y, y2)

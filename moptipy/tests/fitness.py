@@ -11,6 +11,7 @@ from moptipy.api.objective import Objective
 from moptipy.api.operators import Op0
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
+from moptipy.utils.nputils import rand_seed_generate
 from moptipy.utils.types import type_error
 
 
@@ -42,6 +43,7 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
     random: Final[Generator] = default_rng()
     pop1: Final[list[_FRecord]] = []
     pop2: Final[list[_FRecord]] = []
+    pop3: Final[list[_FRecord]] = []
     for i in range(int(1 + random.integers(48))):
         fr: _FRecord = _FRecord(space.create(), i)
         op0.op0(random, fr.x)
@@ -54,9 +56,12 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
         fr2.f = fr.f
         fr2.it = fr.it
         pop2.append(fr2)
+        fr2 = _FRecord(fr.x, fr.z)
+        fr2.f = fr.f
+        fr2.it = fr.it
+        pop3.append(fr2)
 
     for k in range(6):
-
         if k >= 3:
             # make all records identical
             fr0 = pop1[0]
@@ -71,13 +76,23 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
                 fr.it = fr0.it
                 fr.fitness = fr0.fitness
                 pop2[i] = fr
+                fr = _FRecord(fr0.x, i)
+                fr.f = fr0.f
+                fr.it = fr0.it
+                fr.fitness = fr0.fitness
+                pop3[i] = fr
         if k in (2, 4):
             for fr in pop1:
                 if random.integers(2) <= 0:
                     fr.fitness = inf if random.integers(2) <= 0 else -inf
 
-        fitness.assign_fitness(cast(list[FRecord], pop1), random)
+        seed: int = rand_seed_generate()
+        fitness.initialize()
+        fitness.assign_fitness(cast(list[FRecord], pop1), default_rng(seed))
+        fitness.initialize()
+        fitness.assign_fitness(cast(list[FRecord], pop3), default_rng(seed))
         pop1.sort(key=lambda r: r.z)
+        pop3.sort(key=lambda r: r.z)
 
         for i, fr in enumerate(pop1):
             if not isinstance(fr, _FRecord):
@@ -96,3 +111,10 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
             if not isfinite(fr.fitness):
                 raise ValueError(
                     f"rec.fitness should be finite, but is {fr.fitness}")
+            fr2 = pop3[i]
+            if (fr2.fitness != fr.fitness) or (fr2.f is not fr.f) or \
+                    (fr2.it is not fr.it) or (fr2.x is not fr.x):
+                raise ValueError(f"inconsistency detected when repeating "
+                                 f"fitness assignment: {str(fr2)!r} != "
+                                 f"{str(fr)!r} at index {i} of population "
+                                 f"of length {len(pop1)}.")

@@ -62,6 +62,9 @@ def validate_mo_problem(
     elif not is_np_int(exp_dtype):
         raise ValueError(f"f_dtype() cannot be {exp_dtype}")
 
+    if fses[0] is fses[1]:
+        raise ValueError("f_create returns same array!")
+
     shape: Final[tuple[int]] = (dim, )
     for fs in fses:
         if not isinstance(fs, np.ndarray):

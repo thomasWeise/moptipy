@@ -49,8 +49,9 @@ def __run_single_test(
         dim_mode.append(True)
 
     for use_collapse in dim_mode:
-        archive: list[MORecord] = []
-        archivec: list[MORecord] = []
+        archive_1: list[MORecord] = []
+        archive_2: list[MORecord] = []
+        archive_3: list[MORecord] = []
 
         collapse_dim: int = -1
         if use_collapse:
@@ -76,73 +77,85 @@ def __run_single_test(
                 if not isinstance(rec, MORecord):
                     raise type_error(rec, "rec", MORecord)
                 needed = False
-                for z in archive:
+                for z in archive_1:
                     fs2 = z.fs
                     if np.array_equal(fs, fs2):
                         needed = True
                         break
             if (rec is None) or (fs is None):
                 raise ValueError("huh?")
-            archive.append(rec)
+            archive_1.append(rec)
             rec2 = MORecord(tag, fs.copy())
             if (rec.x != rec2.x) \
                     or (not np.array_equal(rec2.fs, rec.fs)):
                 raise ValueError(f"{rec} != {rec2}")
-            archivec.append(rec2)
+            archive_2.append(rec2)
+            rec2 = MORecord(tag, fs.copy())
+            archive_3.append(rec2)
 
         # done creating archive and copy of archive
 
-        if not isinstance(archive, list):
-            raise type_error(archive, "archive", list)
-        if not isinstance(archivec, list):
-            raise type_error(archivec, "archivec", list)
+        if not isinstance(archive_1, list):
+            raise type_error(archive_1, "archive_1", list)
+        if not isinstance(archive_2, list):
+            raise type_error(archive_2, "archive_2", list)
+        if not isinstance(archive_3, list):
+            raise type_error(archive_3, "archive_3", list)
 
-        thelen: int = len(archive)
+        thelen: int = len(archive_1)
         if not isinstance(thelen, int):
             raise type_error(thelen, "len(archive)", int)
         if thelen != alen:
             raise ValueError(
-                f"{alen} != len(archive)={len(archive)}?")
+                f"{alen} != len(archive_1)={len(archive_1)}?")
 
         if use_collapse:
-            collapse_value = archive[random.integers(alen)].fs[
+            collapse_value = archive_1[random.integers(alen)].fs[
                 collapse_dim]
-            for rec in archive:
+            for rec in archive_1:
                 rec.fs[collapse_dim] = collapse_value
-            for rec in archivec:
+            for rec in archive_2:
+                rec.fs[collapse_dim] = collapse_value
+            for rec in archive_3:
                 rec.fs[collapse_dim] = collapse_value
 
         # perform the pruning
-        pruner.prune(archive, amax, len(archive))
+        pruner.prune(archive_1, amax, len(archive_1))
+        pruner.prune(archive_3, amax, len(archive_3))
 
-        thelen = len(archive)
+        thelen = len(archive_1)
         if not isinstance(thelen, int):
-            raise type_error(thelen, "len(archive)", int)
+            raise type_error(thelen, "len(archive_1)", int)
         if thelen != alen:
             raise ValueError(
                 f"pruning messed up archive len: {alen} != "
-                f"len(archive)={len(archive)}?")
+                f"len(archive)={len(archive_1)}?")
 
         # make sure that no element was deleted or added
-        for ii, a in enumerate(archive):
+        for ii, a in enumerate(archive_1):
             if not isinstance(a, MORecord):
                 raise type_error(a, f"archive[{ii}]", MORecord)
             for j in range(ii):
-                if archive[j] is a:
+                if archive_1[j] is a:
                     raise ValueError(f"record {a} appears at "
                                      f"indexes {ii} and {j}!")
             if a.x != tag:
                 raise ValueError(f"a.x={a.x}!={tag!r}")
             if not isinstance(a.fs, np.ndarray):
                 raise type_error(a.fs, "a.fs", np.ndarray)
+            b = archive_3[ii]
+            if (a.x != b.x) or (not np.array_equal(a.fs, b.fs)):
+                raise ValueError(
+                    f"archive pruning not deterministic, archive_1[{ii}]={a}"
+                    f" but archive_2[{ii}]={b}.")
             if not use_collapse:
-                for idx, b in enumerate(archivec):
+                for idx, b in enumerate(archive_2):
                     if np.array_equal(a.fs, b.fs):
                         if a.x != b.x:
                             raise ValueError(
                                 f"a.fs={a.fs}==b.fs, but "
                                 f"a.x={a.x}!=b.x={b.x}")
-                        del archivec[idx]
+                        del archive_2[idx]
                         break
     return True
 
