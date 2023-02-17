@@ -25,6 +25,34 @@ class VectorSpace(NPArraySpace):
     implemented as one-dimensional :class:`numpy.ndarray` of length `n`.
     A vector space is constraint by a box which defines the minimum and
     maximum permitted value for each of its `n` elements.
+
+    >>> s = VectorSpace(3)
+    >>> print(s.dimension)
+    3
+    >>> print(s.dtype)
+    float64
+    >>> print(s.lower_bound)
+    [0. 0. 0.]
+    >>> print(s.upper_bound)
+    [1. 1. 1.]
+    >>> print(s.lower_bound_all_same)
+    True
+    >>> print(s.upper_bound_all_same)
+    True
+    >>> s = VectorSpace(2, -1.0, 5.0)
+    >>> print(s.lower_bound)
+    [-1. -1.]
+    >>> print(s.upper_bound)
+    [5. 5.]
+    >>> s = VectorSpace(2, [-1.0, -2.0], 5.0)
+    >>> print(s.lower_bound)
+    [-1. -2.]
+    >>> print(s.upper_bound)
+    [5. 5.]
+    >>> print(s.lower_bound_all_same)
+    False
+    >>> print(s.upper_bound_all_same)
+    True
     """
 
     def __init__(self, dimension: int,

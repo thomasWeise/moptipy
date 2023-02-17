@@ -20,6 +20,19 @@ class NPArraySpace(Space):
 
     Such spaces can serve as basis for implementing combinatorial
     optimization and can be extended to host permutations.
+
+    >>> import numpy as npx
+    >>> s = NPArraySpace(9, npx.dtype(int))
+    >>> print(s.dimension)
+    9
+    >>> print(s.dtype)
+    int64
+    >>> print(s.create())
+    [0 0 0 0 0 0 0 0 0]
+    >>> print(s.to_str(s.create()))
+    0;0;0;0;0;0;0;0;0
+    >>> print(s.from_str(s.to_str(s.create())))
+    [0 0 0 0 0 0 0 0 0]
     """
 
     def __init__(self, dimension: int, dtype: np.dtype) -> None:

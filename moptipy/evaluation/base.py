@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from math import inf
-from typing import Final
+from typing import Any, Final
 
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name
@@ -24,12 +24,27 @@ F_NAME_SCALED: Final[str] = "scaledF"
 F_NAME_NORMALIZED: Final[str] = "normalizedF"
 
 
-def check_time_unit(time_unit: str) -> str:
+def check_time_unit(time_unit: Any) -> str:
     """
     Check that the time unit is OK.
 
     :param time_unit: the time unit
     :return: the time unit string
+
+    >>> check_time_unit("FEs")
+    'FEs'
+    >>> check_time_unit("ms")
+    'ms'
+    >>> try:
+    ...     check_time_unit(1)
+    ... except TypeError as te:
+    ...     print(te)
+    time_unit should be an instance of str but is int, namely '1'.
+    >>> try:
+    ...     check_time_unit("blabedibla")
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid time unit 'blabedibla', only 'FEs' and 'ms' are permitted.
     """
     if not isinstance(time_unit, str):
         raise type_error(time_unit, "time_unit", str)
@@ -40,20 +55,38 @@ def check_time_unit(time_unit: str) -> str:
         f"and {TIME_UNIT_MILLIS!r} are permitted.")
 
 
-def check_f_name(f_name: str) -> str:
+def check_f_name(f_name: Any) -> str:
     """
     Check whether an objective value name is valid.
 
     :param f_name: the name of the objective function dimension
     :return: the name of the objective function dimension
+
+    >>> check_f_name("plainF")
+    'plainF'
+    >>> check_f_name("scaledF")
+    'scaledF'
+    >>> check_f_name("normalizedF")
+    'normalizedF'
+    >>> try:
+    ...     check_f_name(1.0)
+    ... except TypeError as te:
+    ...     print(te)
+    f_name should be an instance of str but is float, namely '1.0'.
+    >>> try:
+    ...     check_f_name("oops")
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid f name 'oops', only 'plainF', 'scaledF', and 'normalizedF' \
+are permitted.
     """
     if not isinstance(f_name, str):
         raise type_error(f_name, "f_name", str)
     if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
         return f_name
     raise ValueError(
-        f"Invalid f name {f_name!r}, only {F_NAME_RAW}, "
-        f"{F_NAME_SCALED}, and {F_NAME_NORMALIZED} are permitted.")
+        f"Invalid f name {f_name!r}, only {F_NAME_RAW!r}, "
+        f"{F_NAME_SCALED!r}, and {F_NAME_NORMALIZED!r} are permitted.")
 
 
 @dataclass(frozen=True, init=False, order=True)
@@ -126,10 +159,7 @@ class MultiRunData:
     #: The number of runs over which the statistic information is computed.
     n: int
 
-    def __init__(self,
-                 algorithm: str | None,
-                 instance: str | None,
-                 n: int):
+    def __init__(self, algorithm: str | None, instance: str | None, n: int):
         """
         Create the dataset of an experiment-setup combination.
 
@@ -173,12 +203,8 @@ class MultiRun2DData(MultiRunData):
     #: the name of the objective value axis.
     f_name: str
 
-    def __init__(self,
-                 algorithm: str | None,
-                 instance: str | None,
-                 n: int,
-                 time_unit: str,
-                 f_name: str):
+    def __init__(self, algorithm: str | None, instance: str | None, n: int,
+                 time_unit: str, f_name: str):
         """
         Create multi-run data based on one time and one objective dimension.
 
@@ -191,7 +217,6 @@ class MultiRun2DData(MultiRunData):
         :param f_name: the objective dimension name
         """
         super().__init__(algorithm, instance, n)
-
         object.__setattr__(self, "time_unit", check_time_unit(time_unit))
         object.__setattr__(self, "f_name", check_f_name(f_name))
 

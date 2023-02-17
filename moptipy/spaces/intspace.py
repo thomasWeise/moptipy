@@ -23,6 +23,22 @@ class IntSpace(NPArraySpace):
     Such spaces can serve as basis for implementing combinatorial
     optimization and can be extended to host permutations. Their elements are
     instances of :class:`numpy.ndarray`.
+
+    >>> s = IntSpace(5, -4, 99)
+    >>> print(s.dimension)
+    5
+    >>> print(s.min_value)
+    -4
+    >>> print(s.max_value)
+    99
+    >>> print(s.dtype)
+    int8
+    >>> s = IntSpace(5, 2, 200)
+    >>> print(s.dtype)
+    uint8
+    >>> s = IntSpace(5, 2, 202340)
+    >>> print(s.dtype)
+    int32
     """
 
     def __init__(self, dimension: int,

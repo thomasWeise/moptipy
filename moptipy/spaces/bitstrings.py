@@ -14,6 +14,18 @@ class BitStrings(NPArraySpace):
     A space where each element is a bit string (:class:`numpy.ndarray`).
 
     With such a space, discrete optimization can be realized.
+
+    >>> s = BitStrings(5)
+    >>> print(s.dimension)
+    5
+    >>> print(s.dtype)
+    bool
+    >>> print(s.create())
+    [False False False False False]
+    >>> print(s.to_str(s.create()))
+    FFFFF
+    >>> print(s.from_str(s.to_str(s.create())))
+    [False False False False False]
     """
 
     def __init__(self, dimension: int) -> None:
