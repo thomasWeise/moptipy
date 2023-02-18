@@ -1272,56 +1272,59 @@ The example log file printed by the above code will then look something like thi
 ```text
 BEGIN_PROGRESS
 fes;timeMS;f;f0;f1
-1;151;36;6;15
-6;153;37;9;14
-7;153;37;5;16
-8;153;36;10;13
-11;153;36;8;14
-17;153;34;6;14
-22;154;35;9;13
-23;154;32;10;11
-30;154;36;4;16
-33;154;33;5;14
-35;154;35;3;16
-37;154;34;8;13
-42;155;31;11;10
-45;155;32;4;14
-49;155;33;7;13
-62;156;32;6;13
-69;156;34;2;16
-74;157;30;10;10
-79;157;31;3;14
-88;158;29;9;10
-90;158;30;2;14
-93;158;26;10;8
-95;158;31;5;13
-101;158;28;8;10
-110;159;25;9;8
-120;159;28;6;11
-124;160;21;11;5
-131;160;33;1;16
-145;161;30;4;13
-147;161;32;0;16
-148;161;24;10;7
-153;161;27;5;11
-169;162;31;1;15
-179;163;28;4;12
-206;164;29;3;13
-210;164;22;10;6
-231;165;27;7;10
-251;167;26;6;10
-267;167;25;7;9
-270;167;24;8;8
-288;168;20;12;4
+1;1;36;6;15
+6;1;37;9;14
+7;1;37;5;16
+8;1;36;10;13
+13;2;36;8;14
+14;2;35;3;16
+19;2;35;7;14
+21;2;35;5;15
+22;2;35;9;13
+27;3;34;6;14
+31;3;34;8;13
+33;3;32;10;11
+42;4;33;7;13
+46;4;34;2;16
+50;4;27;11;8
+57;5;31;9;11
+64;6;32;6;13
+67;6;33;3;15
+72;6;31;5;13
+75;6;33;1;16
+77;6;32;8;12
+78;7;32;4;14
+79;7;24;12;6
+82;7;23;11;6
+84;7;32;0;16
+88;7;30;8;11
+91;8;30;4;13
+93;8;31;3;14
+101;9;30;10;10
+112;9;26;10;8
+114;10;32;2;15
+118;10;24;10;7
+126;10;29;7;11
+131;11;22;10;6
+133;11;28;8;10
+139;11;31;1;15
+147;12;23;9;7
+161;13;28;6;11
+181;15;26;8;9
+187;15;29;5;12
+191;15;30;2;14
+244;19;21;11;5
+260;20;27;5;11
+293;23;25;7;9
 END_PROGRESS
 BEGIN_STATE
 totalFEs: 300
-totalTimeMillis: 169
-bestF: 20
-lastImprovementFE: 288
-lastImprovementTimeMillis: 168
-bestFs: 12;4
-archiveSize: 12
+totalTimeMillis: 23
+bestF: 21
+lastImprovementFE: 293
+lastImprovementTimeMillis: 23
+bestFs: 11;5
+archiveSize: 9
 END_STATE
 BEGIN_SETUP
 p.name: MOLoggingProcessWithoutSearchSpace
@@ -1361,42 +1364,58 @@ f.f0.name: zeromax_16
 f.f0.class: moptipy.examples.bitstrings.zeromax.ZeroMax
 f.f0.lowerBound: 0
 f.f0.upperBound: 16
+f.f0.n: 16
 f.f1.name: leadingones_16
 f.f1.class: moptipy.examples.bitstrings.leadingones.LeadingOnes
 f.f1.lowerBound: 0
 f.f1.upperBound: 16
+f.f1.n: 16
 f.weights: 1;2
 f.weightsDtype: b
 ap.name: keepFarthest
 ap.class: moptipy.mo.archive.keep_farthest.KeepFarthest
 END_SETUP
 BEGIN_SYS_INFO
-session.start: 2022-08-11 05:27:04.202252+00:00
+session.start: 2023-02-18 07:28:08.247748+00:00
 session.node: home
-session.procesId: 0x90b8
+session.procesId: 0x2d20b
 session.cpuAffinity: 0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15
-session.ipAddress: 192.168.1.107
-version.moptipy: 0.9.2
-version.numpy: 1.22.4
-version.numba: 0.56.0
-version.matplotlib: 3.5.2
-version.psutil: 5.9.1
-version.scikitlearn: 1.1.1
+session.ipAddress: 192.168.1.109
+version.moptipy: 0.9.53
+version.contourpy: 1.0.6
+version.cycler: 0.11.0
+version.fonttools: 4.38.0
+version.joblib: 1.2.0
+version.kiwisolver: 1.4.4
+version.llvmlite: 0.39.1
+version.matplotlib: 3.7.0
+version.numba: 0.56.4
+version.numpy: 1.23.5
+version.packaging: 21.3
+version.pdfo: 1.2
+version.Pillow: 9.4.0
+version.psutil: 5.9.4
+version.pyparsing: 3.0.9
+version.pythondateutil: 2.8.2
+version.scikitlearn: 1.2.1
+version.scipy: 1.10.0
+version.six: 1.16.0
+version.threadpoolctl: 3.1.0
 hardware.machine: x86_64
 hardware.nPhysicalCpus: 8
 hardware.nLogicalCpus: 16
 hardware.cpuMhz: (2200MHz..3700MHz)*16
 hardware.byteOrder: little
 hardware.cpu: AMD Ryzen 7 2700X Eight-Core Processor
-hardware.memSize: 33606373376
-python.version: 3.10.4 (main, Jun 29 2022, 12:14:53) [GCC 11.2.0]
+hardware.memSize: 16717656064
+python.version: 3.10.6 (main, Nov 14 2022, 16:10:14) [GCC 11.3.0]
 python.implementation: CPython
 os.name: Linux
-os.release: 5.15.0-43-generic
-os.version: 46-Ubuntu SMP Tue Jul 12 10:30:17 UTC 2022
+os.release: 5.19.0-32-generic
+os.version: 33~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Jan 30 17:03:34 UTC 2
 END_SYS_INFO
 BEGIN_RESULT_Y
-TTTTTTTTTTTTFFFF
+TTTTTTTTTTTFFFFF
 END_RESULT_Y
 BEGIN_ARCHIVE_0_Y
 FFFFFFFFFFFFFFFF
@@ -1408,46 +1427,34 @@ BEGIN_ARCHIVE_2_Y
 TTFFFFFFFFFFFFFF
 END_ARCHIVE_2_Y
 BEGIN_ARCHIVE_3_Y
-TTTFFFFFFFFFFFFF
+TTTFFFFFFFFFFFFT
 END_ARCHIVE_3_Y
 BEGIN_ARCHIVE_4_Y
-TTTTFFFFFFFFFFFF
+TTTTTFFFFFFFFFFF
 END_ARCHIVE_4_Y
 BEGIN_ARCHIVE_5_Y
-TTTTTFFFFFFFFFFF
+TTTTTTTFFFFFFFFF
 END_ARCHIVE_5_Y
 BEGIN_ARCHIVE_6_Y
-TTTTTTFFFFFFFFFF
+TTTTTTTTTFFFFFFF
 END_ARCHIVE_6_Y
 BEGIN_ARCHIVE_7_Y
-TTTTTTTFFFFFFFFF
+TTTTTTTTTTFFFFFF
 END_ARCHIVE_7_Y
 BEGIN_ARCHIVE_8_Y
-TTTTTTTTFFFFFFFF
-END_ARCHIVE_8_Y
-BEGIN_ARCHIVE_9_Y
-TTTTTTTTTTFFFFFF
-END_ARCHIVE_9_Y
-BEGIN_ARCHIVE_10_Y
 TTTTTTTTTTTFFFFF
-END_ARCHIVE_10_Y
-BEGIN_ARCHIVE_11_Y
-TTTTTTTTTTTTFFFF
-END_ARCHIVE_11_Y
+END_ARCHIVE_8_Y
 BEGIN_ARCHIVE_QUALITIES
 f;f0;f1
 32;0;16
 31;1;15
 30;2;14
-29;3;13
-28;4;12
+30;4;13
 27;5;11
-26;6;10
 25;7;9
-24;8;8
+23;9;7
 22;10;6
 21;11;5
-20;12;4
 END_ARCHIVE_QUALITIES
 ```
 
