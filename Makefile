@@ -61,7 +61,7 @@ test: init
 	echo "$(NOW): Running pytest tests." && \
 	coverage run --include="moptipy/*" -m pytest --strict-config tests -o faulthandler_timeout=1800 --ignore=examples && \
 	echo "$(NOW): Running pytest with doctests." && \
-	coverage run -a --include="moptipy/*"  -m pytest --strict-config --doctest-modules -o faulthandler_timeout=720 --ignore=tests --ignore=examples && \
+	coverage run -a --include="moptipy/*" -m pytest --strict-config --doctest-modules -o faulthandler_timeout=720 --ignore=tests --ignore=examples && \
 	echo "$(NOW): Finished running pytest tests."
 
 # Perform static code analysis.

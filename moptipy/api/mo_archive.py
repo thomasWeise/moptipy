@@ -137,7 +137,22 @@ def check_mo_archive_pruner(pruner: Any) -> MOArchivePruner:
     :return: the object
     :raises TypeError: if `pruner` is not an instance of
         :class:`MOArchivePruner`
+
+    >>> check_mo_archive_pruner(MOArchivePruner())
+    fifo
+    >>> try:
+    ...     check_mo_archive_pruner('A')
+    ... except TypeError as te:
+    ...     print(te)
+    pruner should be an instance of moptipy.api.mo_archive.\
+MOArchivePruner but is str, namely 'A'.
+    >>> try:
+    ...     check_mo_archive_pruner(None)
+    ... except TypeError as te:
+    ...     print(te)
+    pruner should be an instance of moptipy.api.mo_archive.\
+MOArchivePruner but is None.
     """
-    if not isinstance(pruner, MOArchivePruner):
-        raise type_error(pruner, "pruner", MOArchivePruner)
-    return pruner
+    if isinstance(pruner, MOArchivePruner):
+        return pruner
+    raise type_error(pruner, "pruner", MOArchivePruner)

@@ -9,6 +9,7 @@ implement a new objective function, you can test it via the pre-defined unit
 test routine :func:`~moptipy.tests.objective.validate_objective`.
 """
 from math import inf, isfinite
+from typing import Any
 
 from moptipy.api import logging
 from moptipy.api.component import Component
@@ -88,7 +89,7 @@ class Objective(Component):
             logger.key_value(logging.KEY_F_UPPER_BOUND, b)
 
 
-def check_objective(objective: Objective) -> Objective:
+def check_objective(objective: Any) -> Objective:
     """
     Check whether an object is a valid instance of :class:`Objective`.
 
@@ -96,7 +97,22 @@ def check_objective(objective: Objective) -> Objective:
     :return: the objective
     :raises TypeError: if `objective` is not an instance of
         :class:`Objective`
+
+    >>> check_objective(Objective())
+    Objective
+    >>> try:
+    ...     check_objective('A')
+    ... except TypeError as te:
+    ...     print(te)
+    objective function should be an instance of moptipy.api.objective.\
+Objective but is str, namely 'A'.
+    >>> try:
+    ...     check_objective(None)
+    ... except TypeError as te:
+    ...     print(te)
+    objective function should be an instance of moptipy.api.objective.\
+Objective but is None.
     """
-    if not isinstance(objective, Objective):
-        raise type_error(objective, "objective function", Objective)
-    return objective
+    if isinstance(objective, Objective):
+        return objective
+    raise type_error(objective, "objective function", Objective)

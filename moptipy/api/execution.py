@@ -1,6 +1,6 @@
 """The algorithm execution API."""
 from math import isfinite
-from typing import Final
+from typing import Any, Final
 
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
@@ -22,14 +22,37 @@ from moptipy.utils.path import Path
 from moptipy.utils.types import type_error
 
 
-def _check_log_file(log_file: str | None,
-                    none_is_ok: bool = True) -> Path | None:
+def _check_log_file(log_file: Any, none_is_ok: bool = True) -> Path | None:
     """
     Check a log file.
 
     :param log_file: the log file
     :param none_is_ok: is `None` ok for log files?
     :return: the log file
+
+    >>> print(_check_log_file("/a/b.txt"))
+    /a/b.txt
+    >>> print(_check_log_file("/a/b.txt", False))
+    /a/b.txt
+    >>> print(_check_log_file("/a/b.txt", True))
+    /a/b.txt
+    >>> from moptipy.utils.path import Path as Pth
+    >>> print(_check_log_file(Pth.path("/a/b.txt"), False))
+    /a/b.txt
+    >>> print(_check_log_file(None))
+    None
+    >>> print(_check_log_file(None, True))
+    None
+    >>> try:
+    ...     _check_log_file(1)  # noqa  # type: ignore
+    ... except TypeError as te:
+    ...     print(te)
+    path should be an instance of str but is int, namely '1'.
+    >>> try:
+    ...     _check_log_file(None, False)
+    ... except TypeError as te:
+    ...     print(te)
+    path should be an instance of str but is None.
     """
     if (log_file is None) and none_is_ok:
         return None

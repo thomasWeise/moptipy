@@ -10,7 +10,7 @@ It supports having multiple objective functions.
 It also provides a single core objective value, which is the scalarized
 result of several objective values.
 """
-from typing import Any
+from typing import Any, Callable, Iterable
 
 import numpy as np
 
@@ -56,6 +56,10 @@ class MOProcess(MOProblem, Process):
         solutions preserved in the archive will then become available via
         :meth:`get_archive` to the code starting the optimization procedure.
 
+        If you have a sequence of :class:`~moptipy.api.mo_archive.MORecord`
+        instances that you want to flush into the archive, you can use the
+        convenience method :meth:`~check_in_all` for that purpose.
+
         :param x: the point in the search space
         :param fs: the vector of objective values
         :param prune_if_necessary: should we prune the archive if it becomes
@@ -63,6 +67,21 @@ class MOProcess(MOProblem, Process):
         :returns: `True` if the solution was non-dominated and has actually
             entered the archive, `False` if it has not entered the archive
         """
+
+    def check_in_all(self, recs: Iterable[MORecord],
+                     prune_if_necessary: bool = False) -> None:
+        """
+        Check in all the elements of an `Iterable` of `MORecord` instances.
+
+        This is a convenience wrapper around :meth:`~check_in`.
+
+        :param recs: an iterable sequence of solution + quality vector records
+        :param prune_if_necessary: should we prune the archive if it becomes
+            too large? `False` means that the archive may grow unbounded
+        """
+        sci: Callable[[Any, np.ndarray, bool], bool] = self.check_in
+        for r in recs:
+            sci(r.x, r.fs, prune_if_necessary)
 
     def get_copy_of_best_fs(self, fs: np.ndarray) -> None:
         """

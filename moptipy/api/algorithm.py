@@ -59,7 +59,7 @@ specialized versions
    :func:`~moptipy.tests.on_vectors.validate_algorithm_on_vectors`):
    a. :func:`~moptipy.tests.on_vectors.validate_algorithm_on_ackley`
 """
-from typing import Final
+from typing import Any, Final
 
 from moptipy.api.component import Component
 from moptipy.api.logging import SCOPE_OP0, SCOPE_OP1, SCOPE_OP2
@@ -204,14 +204,29 @@ class Algorithm2(Algorithm1):
             self.op2.log_parameters_to(sc)
 
 
-def check_algorithm(algorithm: Algorithm) -> Algorithm:
+def check_algorithm(algorithm: Any) -> Algorithm:
     """
     Check whether an object is a valid instance of :class:`Algorithm`.
 
     :param algorithm: the algorithm object
     :return: the object
     :raises TypeError: if `algorithm` is not an instance of :class:`Algorithm`
+
+    >>> check_algorithm(Algorithm())
+    Algorithm
+    >>> try:
+    ...     check_algorithm('A')
+    ... except TypeError as te:
+    ...     print(te)
+    algorithm should be an instance of moptipy.api.algorithm.\
+Algorithm but is str, namely 'A'.
+    >>> try:
+    ...     check_algorithm(None)
+    ... except TypeError as te:
+    ...     print(te)
+    algorithm should be an instance of moptipy.api.algorithm.\
+Algorithm but is None.
     """
-    if not isinstance(algorithm, Algorithm):
-        raise type_error(algorithm, "algorithm", Algorithm)
-    return algorithm
+    if isinstance(algorithm, Algorithm):
+        return algorithm
+    raise type_error(algorithm, "algorithm", Algorithm)

@@ -15,7 +15,7 @@ collapsed dimensions. In other words, if all elements have the same value of
 one objective function, none of them would receive infinite crowding distance
 for this objective. This also makes sense because in this case, sorting would
 be rather random.
-
+We also start by generating the 2*:attr:`NSGA2.pop_size` random solutions.
 When selecting parents, we apply tournament selection with replacement.
 
 1. Kalyanmoy Deb, Samir Agrawal, Amrit Pratap, and T. Meyarivan. A Fast
@@ -239,29 +239,42 @@ class NSGA2(Algorithm2, MOAlgorithm):
         pop: list[_NSGA2Record] = []
 
         # create the population
-        for _ in range(pop_size):
+        for _ in range(pop_size_2):
             if should_terminate():
+                process.check_in_all(pop)  # check in population
                 return
             rec: _NSGA2Record = _NSGA2Record(create_x(), create_f())
             op0(random, rec.x)
             evaluate(rec.x, rec.fs)
             pop.append(rec)
-        _non_dominated_sorting(pop, pop_size, domination)
 
-        # create offspring records (initially empty)
-        for _ in range(pop_size):
-            pop.append(_NSGA2Record(create_x(), create_f()))
-
-        leave: bool = False
         while True:  # the main loop
+            # Perform non-dominated sorting and get at least pop_size
+            # elements in different fronts.
+            # "start" marks the begin of the last front that was created.
+            # "end" marks the total number of elements sorted.
+            # It holds that "start < pop_size <= end".
+            end = _non_dominated_sorting(pop, pop_size, domination)
+            # We only perform the crowding distance computation on the first
+            # "end" elements in the population.
+            # We take this slice of the population (or the whole population if
+            # all elements are non-domination) and compute the crowding
+            # distance.
+            candidates = pop[:end] if end < pop_size_2 else pop
+            _crowding_distances(candidates)
+            # Careful: crowding distance computation will shuffle the list
+            # candidates, because it sorts based on dimensions. Therefore, we
+            # need to re-sort the whole slice.
+            candidates.sort()
+            if candidates is not pop:  # write back if need be
+                pop[:end] = candidates
 
             # fill offspring population
             for ofs_idx in range(pop_size, pop_size_2):
                 # check if we should leave before evaluation
                 if should_terminate():
-                    leave = True  # oh, we need to quit
-                    break  # break inner loop
-
+                    process.check_in_all(pop)
+                    return  # quit
                 ofs: _NSGA2Record = pop[ofs_idx]  # offspring to overwrite
                 # binary tournament with replacement for first parent
                 p1: _NSGA2Record = pop[ri(pop_size)]
@@ -285,34 +298,6 @@ class NSGA2(Algorithm2, MOAlgorithm):
                     # got two parents, now do crossover
                     op2(random, ofs.x, p1.x, p2.x)
                 evaluate(ofs.x, ofs.fs)  # otherwise: evaluate
-
-            if leave:  # should we leave?
-                break  # yes! break main loop
-
-            # Perform non-dominated sorting and get at least pop_size
-            # elements in different fronts.
-            # "start" marks the begin of the last front that was created.
-            # "end" marks the total number of elements sorted.
-            # It holds that "start < pop_size <= end".
-            end = _non_dominated_sorting(pop, pop_size, domination)
-            # We only perform the crowding distance computation on the first
-            # "end" elements in the population.
-            # We take this slice of the population (or the whole population if
-            # all elements are non-domination) and compute the crowding
-            # distance.
-            candidates = pop[:end] if end < pop_size_2 else pop
-            _crowding_distances(candidates)
-            # Careful: crowding distance computation will shuffle the list
-            # candidates, because it sorts based on dimensions. Therefore, we
-            # need to re-sort the whole slice.
-            candidates.sort()
-            if candidates is not pop:  # write back if need be
-                pop[:end] = candidates
-
-        # At the end we flush population to the process archive.
-        for rec in pop:
-            if rec.front != -1:
-                process.check_in(rec.x, rec.fs)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

@@ -11,7 +11,7 @@ and scalable benchmark function for continuous optimization.
 """
 
 import numba  # type: ignore
-from numpy import cos, e, exp, mean, ndarray, pi, sqrt
+from numpy import cos, exp, mean, ndarray, sqrt
 
 from moptipy.api.objective import Objective
 
@@ -25,6 +25,10 @@ def ackley(x: ndarray) -> float:
     :return: the result of Ackley's function
 
     >>> from numpy import array
+    >>> print(ackley(array([0.0, 0.0, 0.0])))
+    0.0
+    >>> ackley(array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    0.0
     >>> print(abs(ackley(array([0.0, 0.0, 0.0]))) < 1e-15)
     True
     >>> print(ackley(array([2.0, 2.0])))
@@ -32,8 +36,10 @@ def ackley(x: ndarray) -> float:
     >>> print(ackley(array([-3.0, 2.0])))
     7.9889108105187
     """
-    res = 20.0 + e + (-20.0 * exp(-0.2 * sqrt(
-        mean(x ** 2)))) - exp(mean(cos(2.0 * pi * x)))
+    # 22.718281828459045 equals 20.0 + e
+    # 6.283185307179586 equals 2.0 * pi
+    res = 22.718281828459045 + (-20.0 * exp(-0.2 * sqrt(
+        mean(x ** 2)))) - exp(mean(cos(6.283185307179586 * x)))
     return 0.0 if res <= 0.0 else float(res)
 
 

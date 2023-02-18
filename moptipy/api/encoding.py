@@ -22,6 +22,7 @@ If you implement a new such encoding, you may want to test it using the
 pre-defined unit test routine
 :func:`~moptipy.tests.encoding.validate_encoding`.
 """
+from typing import Any
 
 from moptipy.api.component import Component
 from moptipy.utils.types import type_error
@@ -45,8 +46,7 @@ class Encoding(Component):
     # end book
 
 
-def check_encoding(encoding: Encoding | None,
-                   none_is_ok: bool = True) -> Encoding | None:
+def check_encoding(encoding: Any, none_is_ok: bool = True) -> Encoding | None:
     """
     Check whether an object is a valid instance of :class:`Encoding`.
 
@@ -54,9 +54,44 @@ def check_encoding(encoding: Encoding | None,
     :param none_is_ok: is it ok if `None` is passed in?
     :return: the object
     :raises TypeError: if `encoding` is not an instance of :class:`Encoding`
+
+    >>> check_encoding(Encoding())
+    Encoding
+    >>> check_encoding(Encoding(), True)
+    Encoding
+    >>> check_encoding(Encoding(), False)
+    Encoding
+    >>> try:
+    ...     check_encoding('A')
+    ... except TypeError as te:
+    ...     print(te)
+    encoding should be an instance of moptipy.api.encoding.\
+Encoding but is str, namely 'A'.
+    >>> try:
+    ...     check_encoding('A', True)
+    ... except TypeError as te:
+    ...     print(te)
+    encoding should be an instance of moptipy.api.encoding.\
+Encoding but is str, namely 'A'.
+    >>> try:
+    ...     check_encoding('A', False)
+    ... except TypeError as te:
+    ...     print(te)
+    encoding should be an instance of moptipy.api.encoding.\
+Encoding but is str, namely 'A'.
+    >>> print(check_encoding(None))
+    None
+    >>> print(check_encoding(None, True))
+    None
+    >>> try:
+    ...     check_encoding(None, False)
+    ... except TypeError as te:
+    ...     print(te)
+    encoding should be an instance of moptipy.api.encoding.\
+Encoding but is None.
     """
-    if not isinstance(encoding, Encoding):
-        if none_is_ok and (encoding is None):
-            return None
-        raise type_error(encoding, "encoding", Encoding)
-    return encoding
+    if isinstance(encoding, Encoding):
+        return encoding
+    if none_is_ok and (encoding is None):
+        return None
+    raise type_error(encoding, "encoding", Encoding)

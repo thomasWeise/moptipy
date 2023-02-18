@@ -139,5 +139,15 @@ def inv_exponential_step_size(int_val: int,
     0.5123088678224029
     >>> exponential_step_size(0.5123088678224029, 6, 673)
     33
+    >>> inv_exponential_step_size(3, 3, 3)
+    1.0
+    >>> inv_exponential_step_size(3, 3, 10)
+    0.0
+    >>> inv_exponential_step_size(10, 3, 10)
+    1.0
     """
+    if int_val >= max_steps:
+        return 1.0
+    if int_val <= min_steps:
+        return 0.0
     return log(int_val - min_steps + 1) / log(max_steps - min_steps + 1)

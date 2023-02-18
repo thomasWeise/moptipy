@@ -31,7 +31,7 @@ Basically, a multi-objective problem provides three essential components:
    (:class:`~moptipy.mo.problem.weighted_sum.WeightedSum`) may be the method
    of choice for scalarization.
 """
-from typing import Final
+from typing import Any, Final
 
 import numpy as np
 
@@ -205,11 +205,15 @@ class MOProblem(Objective):
         return self.f_evaluate(x, self.f_create())
 
     def __str__(self) -> str:
-        """Get the string representation of this scalarization."""
+        """
+        Get the string representation of this multi-objective problem.
+
+        :returns: the string representation of this multi-objective problem
+        """
         return "moProblem"
 
 
-def check_mo_problem(mo_problem: MOProblem) -> MOProblem:
+def check_mo_problem(mo_problem: Any) -> MOProblem:
     """
     Check whether an object is a valid instance of :class:`MOProblem`.
 
@@ -217,12 +221,26 @@ def check_mo_problem(mo_problem: MOProblem) -> MOProblem:
     :return: the mo-problem
     :raises TypeError: if `mo_problem` is not an instance of
         :class:`MOProblem`
+
+    >>> check_mo_problem(MOProblem())
+    moProblem
+    >>> try:
+    ...     check_mo_problem(1)
+    ... except TypeError as te:
+    ...     print(te)
+    multi-objective optimziation problem should be an instance of moptipy.\
+api.mo_problem.MOProblem but is int, namely '1'.
+    >>> try:
+    ...     check_mo_problem(None)
+    ... except TypeError as te:
+    ...     print(te)
+    multi-objective optimziation problem should be an instance of moptipy.\
+api.mo_problem.MOProblem but is None.
     """
-    check_objective(mo_problem)
-    if not isinstance(mo_problem, MOProblem):
-        raise type_error(mo_problem,
-                         "multi-objective optimziation problem", MOProblem)
-    return mo_problem
+    if isinstance(mo_problem, MOProblem):
+        return mo_problem
+    raise type_error(mo_problem,
+                     "multi-objective optimziation problem", MOProblem)
 
 
 class MOSOProblemBridge(MOProblem):

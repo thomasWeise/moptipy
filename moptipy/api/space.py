@@ -155,8 +155,7 @@ class Space(Component):
         return 2
 
 
-def check_space(space: Space | None,
-                none_is_ok: bool = False) -> Space | None:
+def check_space(space: Any, none_is_ok: bool = False) -> Space | None:
     """
     Check whether an object is a valid instance of :class:`Space`.
 
@@ -165,9 +164,49 @@ def check_space(space: Space | None,
     :return: the object
     :raises TypeError: if `space` is not an instance of
         :class:`~moptipy.api.space.Space`
+
+    >>> check_space(Space())
+    Space
+    >>> check_space(Space(), True)
+    Space
+    >>> check_space(Space(), False)
+    Space
+    >>> try:
+    ...     check_space('A')
+    ... except TypeError as te:
+    ...     print(te)
+    space should be an instance of moptipy.api.space.\
+Space but is str, namely 'A'.
+    >>> try:
+    ...     check_space('A', True)
+    ... except TypeError as te:
+    ...     print(te)
+    space should be an instance of moptipy.api.space.\
+Space but is str, namely 'A'.
+    >>> try:
+    ...     check_space('A', False)
+    ... except TypeError as te:
+    ...     print(te)
+    space should be an instance of moptipy.api.space.\
+Space but is str, namely 'A'.
+    >>>
+    >>> try:
+    ...     check_space(None)
+    ... except TypeError as te:
+    ...     print(te)
+    space should be an instance of moptipy.api.space.\
+Space but is None.
+    >>> print(check_space(None, True))
+    None
+    >>> try:
+    ...     check_space(None, False)
+    ... except TypeError as te:
+    ...     print(te)
+    space should be an instance of moptipy.api.space.\
+Space but is None.
     """
-    if not isinstance(space, Space):
-        if none_is_ok and (space is None):
-            return None
-        raise type_error(space, "space", Space)
-    return space
+    if isinstance(space, Space):
+        return space
+    if none_is_ok and (space is None):
+        return None
+    raise type_error(space, "space", Space)

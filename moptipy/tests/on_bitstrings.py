@@ -11,7 +11,7 @@ from moptipy.api.execution import Execution
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.objective import Objective
-from moptipy.api.operators import Op0, Op1, Op2
+from moptipy.api.operators import Op0, Op1, Op1WithStepSize, Op2
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
@@ -24,6 +24,7 @@ from moptipy.tests.fitness import validate_fitness
 from moptipy.tests.mo_algorithm import validate_mo_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
+from moptipy.tests.op1_with_step_size import validate_op1_with_step_size
 from moptipy.tests.op2 import validate_op2
 from moptipy.utils.nputils import array_to_str
 from moptipy.utils.types import check_int_range, type_error, type_name_of
@@ -153,6 +154,67 @@ def validate_op1_on_bitstrings(
     for bst in bitstrings_for_tests():
         validate_op1_on_1_bitstrings(op1, bst,
                                      number_of_samples, min_unique_samples)
+
+
+def validate_op1_with_step_size_on_1_bitstrings(
+        op1: Op1WithStepSize | Callable[[BitStrings], Op1WithStepSize],
+        search_space: BitStrings,
+        number_of_samples: int | None = None,
+        min_unique_samples: int | Callable[[
+            int, BitStrings], int] | None = None,
+        step_sizes: Iterable[float] | Callable[
+            [BitStrings], Iterable[float]] = (),
+        get_step_size: Callable[[
+            BitStrings, np.ndarray, np.ndarray,
+        ], float | None] | None = None) -> None:
+    """
+    Validate the step-sized unary operator on one `BitStrings` instance.
+
+    :param op1: the operator or operator factory
+    :param search_space: the search space
+    :param number_of_samples: the optional number of samples
+    :param min_unique_samples: the optional unique samples
+    :param step_sizes: the step sizes to test
+    :param get_step_size: try to get the step size from two space elements
+    """
+    args: dict[str, Any] = {
+        "op1": op1(search_space) if callable(op1) else op1,
+        "search_space": search_space,
+        "make_search_space_element_valid": random_bit_string,
+        "step_sizes": step_sizes(search_space) if callable(step_sizes)
+        else step_sizes,
+        "get_step_size": get_step_size,
+    }
+    if number_of_samples is not None:
+        args["number_of_samples"] = number_of_samples
+    if min_unique_samples is not None:
+        args["min_unique_samples"] = min_unique_samples
+    validate_op1_with_step_size(**args)
+
+
+def validate_op1_with_step_size_on_bitstrings(
+        op1: Op1WithStepSize | Callable[[BitStrings], Op1WithStepSize],
+        number_of_samples: int | None = None,
+        min_unique_samples: int | Callable[[
+            int, BitStrings], int] | None = None,
+        step_sizes: Iterable[float] | Callable[
+            [BitStrings], Iterable[float]] = (),
+        get_step_size: Callable[[
+            BitStrings, np.ndarray, np.ndarray,
+        ], float | None] | None = None) -> None:
+    """
+    Validate the unary operator on several `BitStrings` instances.
+
+    :param op1: the operator or operator factory
+    :param number_of_samples: the optional number of samples
+    :param min_unique_samples: the optional unique samples
+    :param step_sizes: the step sizes to test
+    :param get_step_size: try to get the step size from two space elements
+    """
+    for bs in bitstrings_for_tests():
+        validate_op1_with_step_size_on_1_bitstrings(
+            op1, bs, number_of_samples, min_unique_samples, step_sizes,
+            get_step_size)
 
 
 def validate_op2_on_1_bitstrings(

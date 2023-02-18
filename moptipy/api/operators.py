@@ -32,6 +32,7 @@ inherit from class :class:`~moptipy.api.operators.Op2`. The pre-defined unit
 test routine :func:`~moptipy.tests.op2.validate_op2` can and should be used to
 test all the binary operators that are implemented.
 """
+from typing import Any
 
 from numpy.random import Generator
 
@@ -59,17 +60,31 @@ class Op0(Component):
 # end op0
 
 
-def check_op0(op0: Op0) -> Op0:
+def check_op0(op0: Any) -> Op0:
     """
     Check whether an object is a valid instance of :class:`Op0`.
 
-    :param op0:  the (supposed) instance of :class:`Op0`
+    :param op0: the (supposed) instance of :class:`Op0`
     :return: the object `op0`
     :raises TypeError: if `op0` is not an instance of :class:`Op0`
+
+    >>> check_op0(Op0())
+    Op0
+    >>> try:
+    ...     check_op0('A')
+    ... except TypeError as te:
+    ...     print(te)
+    op0 should be an instance of moptipy.api.operators.Op0 but is \
+str, namely 'A'.
+    >>> try:
+    ...     check_op0(None)
+    ... except TypeError as te:
+    ...     print(te)
+    op0 should be an instance of moptipy.api.operators.Op0 but is None.
     """
-    if not isinstance(op0, Op0):
-        raise type_error(op0, "op0", Op0)
-    return op0
+    if isinstance(op0, Op0):
+        return op0
+    raise type_error(op0, "op0", Op0)
 
 
 # start op1
@@ -88,17 +103,31 @@ class Op1(Component):
 # end op1
 
 
-def check_op1(op1: Op1) -> Op1:
+def check_op1(op1: Any) -> Op1:
     """
     Check whether an object is a valid instance of :class:`Op1`.
 
     :param op1: the (supposed) instance of :class:`Op1`
     :return: the object
     :raises TypeError: if `op1` is not an instance of :class:`Op1`
+
+    >>> check_op1(Op1())
+    Op1
+    >>> try:
+    ...     check_op1('A')
+    ... except TypeError as te:
+    ...     print(te)
+    op1 should be an instance of moptipy.api.operators.Op1 but is str, \
+namely 'A'.
+    >>> try:
+    ...     check_op1(None)
+    ... except TypeError as te:
+    ...     print(te)
+    op1 should be an instance of moptipy.api.operators.Op1 but is None.
     """
-    if not isinstance(op1, Op1):
-        raise type_error(op1, "op1", Op1)
-    return op1
+    if isinstance(op1, Op1):
+        return op1
+    raise type_error(op1, "op1", Op1)
 
 
 # start op2
@@ -118,17 +147,31 @@ class Op2(Component):
 # end op2
 
 
-def check_op2(op2: Op2) -> Op2:
+def check_op2(op2: Any) -> Op2:
     """
     Check whether an object is a valid instance of :class:`Op2`.
 
     :param op2: the (supposed) instance of :class:`Op2`
     :return: the object `op2`
     :raises TypeError: if `op2` is not an instance of :class:`Op2`
+
+    >>> check_op2(Op2())
+    Op2
+    >>> try:
+    ...     check_op2('A')
+    ... except TypeError as te:
+    ...     print(te)
+    op2 should be an instance of moptipy.api.operators.Op2 but is str, \
+namely 'A'.
+    >>> try:
+    ...     check_op2(None)
+    ... except TypeError as te:
+    ...     print(te)
+    op2 should be an instance of moptipy.api.operators.Op2 but is None.
     """
-    if not isinstance(op2, Op2):
-        raise type_error(op2, "op2", Op2)
-    return op2
+    if isinstance(op2, Op2):
+        return op2
+    raise type_error(op2, "op2", Op2)
 
 
 # start op1WithStepSize
@@ -182,14 +225,35 @@ class Op1WithStepSize(Op1):
 # end op1WithStepSize
 
 
-def check_op1_with_step_size(op1: Op1WithStepSize) -> Op1WithStepSize:
+def check_op1_with_step_size(op1: Any) -> Op1WithStepSize:
     """
     Check whether an object is a valid instance of :class:`Op1WithStepSize`.
 
     :param op1: the (supposed) instance of :class:`Op1WithStepSize`
     :return: the object `op1`
     :raises TypeError: if `op1` is not an instance of :class:`Op1WithStepSize`
+
+    >>> check_op1_with_step_size(Op1WithStepSize())
+    Op1WithStepSize
+    >>> try:
+    ...     check_op1_with_step_size('A')
+    ... except TypeError as te:
+    ...     print(te)
+    op1 should be an instance of moptipy.api.operators.Op1WithStepSize \
+but is str, namely 'A'.
+    >>> try:
+    ...     check_op1_with_step_size(Op1())
+    ... except TypeError as te:
+    ...     print(te)
+    op1 should be an instance of moptipy.api.operators.Op1WithStepSize \
+but is moptipy.api.operators.Op1, namely 'Op1'.
+    >>> try:
+    ...     check_op1_with_step_size(None)
+    ... except TypeError as te:
+    ...     print(te)
+    op1 should be an instance of moptipy.api.operators.Op1WithStepSize \
+but is None.
     """
-    if not isinstance(op1, Op1WithStepSize):
-        raise type_error(op1, "op1", Op1WithStepSize)
-    return op1
+    if isinstance(op1, Op1WithStepSize):
+        return op1
+    raise type_error(op1, "op1", Op1WithStepSize)

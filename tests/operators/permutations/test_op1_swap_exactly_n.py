@@ -91,19 +91,12 @@ def test_op1_swapxn() -> None:
     def _min_unique(samples, pwrx) -> int:
         return max(1, min(samples, pwrx.n()) // 2)
 
-    def _get_step_size(perm, a, b) -> float | None:
+    def _get_step_size(perm, a: np.ndarray, b: np.ndarray) -> float | None:
         if perm.n() != perm.dimension:
             return None
-        ss: int = 0
-        for i, aa in enumerate(a):
-            if aa != b[i]:
-                ss += 1
-        if ss >= perm.dimension:
-            return 1.0
-        if ss <= 2:
-            return 0.0
-        return inv_exponential_step_size(
-            ss, 2, get_max_changes(perm.blueprint))
+        return inv_exponential_step_size(check_int_range(
+            int(sum(a != b)), "sum(a!=b)", 2, perm.dimension),
+            2, get_max_changes(perm.blueprint))
 
     def _get_step_sizes(p: Permutations,
                         ri=default_rng().integers) -> Iterable[float]:
