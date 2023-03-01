@@ -19,7 +19,7 @@ def test_bit_strings() -> None:
     assert isinstance(a, np.ndarray)
     assert len(a) == 12
     assert a.dtype == np.dtype(np.bool_)
-    assert all([not b for b in a])
+    assert all(not b for b in a)
 
     for i in range(len(a)):
         a[i] = (i & 1) == 0

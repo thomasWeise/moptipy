@@ -340,7 +340,7 @@ class NumberRenderer:
         longest_fraction: int = -1
         da: int | float
 
-        for i, d in enumerate(data):
+        for idx, d in enumerate(data):
             if d is None:
                 continue
             all_is_none = False
@@ -357,7 +357,7 @@ class NumberRenderer:
                         <= int_to_float_threshold):
                     d2 = float(d2)
             if d2 is not d:
-                data[i] = d2
+                data[idx] = d2
 
             if isfinite(d2):
                 if not isinstance(d2, int):

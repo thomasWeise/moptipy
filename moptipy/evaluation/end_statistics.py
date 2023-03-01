@@ -463,27 +463,25 @@ class EndStatistics(MultiRunData):
                 n_success = None
                 success_fes = None
                 success_times = None
-            else:
-                if goal_f is not None:
-                    if n > 1:
-                        goal_f_same = goal_f_same and (goal_f[-1] == er.goal_f)
-                    goal_f.append(er.goal_f)
+            elif goal_f is not None:
+                if n > 1:
+                    goal_f_same = goal_f_same and (goal_f[-1] == er.goal_f)
+                goal_f.append(er.goal_f)
 
-                    if er.goal_f <= 0:
-                        best_f_scaled = None
-                    else:
-                        if best_f_scaled is not None:
-                            best_f_scaled.append(er.best_f / er.goal_f)
+                if er.goal_f <= 0:
+                    best_f_scaled = None
+                elif best_f_scaled is not None:
+                    best_f_scaled.append(er.best_f / er.goal_f)
 
-                    if er.best_f <= er.goal_f:
-                        n_success += 1
-                        success_fes.append(er.last_improvement_fe)
-                        success_times.append(er.last_improvement_time_millis)
-                        fes += er.last_improvement_fe
-                        time += er.last_improvement_time_millis
-                    else:
-                        fes += er.total_fes
-                        time += er.total_time_millis
+                if er.best_f <= er.goal_f:
+                    n_success += 1
+                    success_fes.append(er.last_improvement_fe)
+                    success_times.append(er.last_improvement_time_millis)
+                    fes += er.last_improvement_fe
+                    time += er.last_improvement_time_millis
+                else:
+                    fes += er.total_fes
+                    time += er.total_time_millis
         if n <= 0:
             raise ValueError("There must be at least one end result record.")
 

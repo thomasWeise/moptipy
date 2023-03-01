@@ -191,14 +191,13 @@ def validate_algorithm(algorithm: Algorithm,
                         f"last_imp_time={last_imp_time} must not be much less"
                         f" than consumed_time={consumed_time} for "
                         f"{algorithm} on {objective} and seed {seed}.")
-            else:
-                if uses_all_fes_if_goal_not_reached \
-                        and (consumed_fes != max_fes):
-                    raise ValueError(
-                        f"if result={res_f} is worse than lb={lb}, then "
-                        f"consumed_fes={consumed_fes} must equal "
-                        f"max_fes={max_fes} for {algorithm} on {objective}"
-                        f" and seed {seed}.")
+            elif uses_all_fes_if_goal_not_reached \
+                    and (consumed_fes != max_fes):
+                raise ValueError(
+                    f"if result={res_f} is worse than lb={lb}, then "
+                    f"consumed_fes={consumed_fes} must equal "
+                    f"max_fes={max_fes} for {algorithm} on {objective}"
+                    f" and seed {seed}.")
 
             y = solution_space.create()
             process.get_copy_of_best_y(y)

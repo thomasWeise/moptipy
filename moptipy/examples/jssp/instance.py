@@ -417,8 +417,8 @@ class Instance(Component, np.ndarray):
         """
         state = 0
         rows: list[str] | None = None
-        for line in stream:
-            line = str(line).strip()
+        for linestr in stream:
+            line = str(linestr).strip()
             if len(line) <= 0:
                 continue
             if state == 0:

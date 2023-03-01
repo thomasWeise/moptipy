@@ -330,12 +330,12 @@ def makespan_lower_bound_table(
                 raise ValueError(f"Lbx {lbx} cannot be larger than lb {lb}.")
             if not solved_to_optimality:
                 src = "[@eq:jsspLowerBound]"
-        instn = f"`{instn}`"
+        instname = f"`{instn}`"
         if not solved_to_optimality:
-            instn = f"**{instn}**"
+            instname = f"**{instname}**"
 
         text.append(
-            f"|{instn}|{inst.machines}|{inst.jobs}|{lb}|{lbx}|{src}|")
+            f"|{instname}|{inst.machines}|{inst.jobs}|{lb}|{lbx}|{src}|")
 
     # write the result
     out_dir = Path.path(dirname)

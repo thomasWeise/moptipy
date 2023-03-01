@@ -117,9 +117,8 @@ def plot_gantt_chart(
     if markers is not None:
         if not isinstance(markers, Iterable):
             raise type_error(markers, "markers", Iterable)
-        for marker in markers:
-            if callable(marker):
-                marker = marker(gantt)
+        for usemarker in markers:
+            marker = usemarker(gantt) if callable(usemarker) else usemarker
             if not marker:
                 continue
             if isinstance(marker, tuple):

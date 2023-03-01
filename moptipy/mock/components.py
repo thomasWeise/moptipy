@@ -337,9 +337,8 @@ class Instance:
                         break
                 if ok:
                     attdone.add(a)
-                else:
-                    if (trials % 1000) <= 0:
-                        min_dist = max(5, 0.5 * min_dist)
+                elif (trials % 1000) <= 0:
+                    min_dist = max(5, 0.5 * min_dist)
 
             result.append(Instance(
                 name=names.pop(random.integers(i)),

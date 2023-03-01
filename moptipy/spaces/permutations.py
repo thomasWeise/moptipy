@@ -267,11 +267,10 @@ class Permutations(IntSpace):  # +book
                     if min_is_0:
                         return f"perm{different}"
                     return sanitize_name(f"perm{minimum}to{maximum}")
-            else:  # repetitions != 1
-                if all_values:
-                    if min_is_0:
-                        return f"perm{different}w{reps}r"
-                    return sanitize_name(f"perm{minimum}to{maximum}w{reps}r")
+            elif all_values:  # repetitions != 1
+                if min_is_0:
+                    return f"perm{different}w{reps}r"
+                return sanitize_name(f"perm{minimum}to{maximum}w{reps}r")
         return "permOfString"
 
     @staticmethod

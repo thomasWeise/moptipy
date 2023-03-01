@@ -506,7 +506,8 @@ def make_gantt_space_size_table(
                  min_size, name))
 
     inst_scales.sort()
-    for i, a in enumerate(inst_scales):
+    for i, ua in enumerate(inst_scales):
+        a = ua
         for j in range(i, len(inst_scales)):
             b = inst_scales[j]
             if (a[-1] and b[-1]) and (a[-3] > b[-3]):
@@ -568,7 +569,8 @@ def make_search_space_size_table(
                      jobs, machines), ""))
 
     inst_scales.sort()
-    for i, a in enumerate(inst_scales):
+    for i, ua in enumerate(inst_scales):
+        a = ua
         for j in range(i, len(inst_scales)):
             b = inst_scales[j]
             if (a[-1] and b[-1]) and (a[-2] > b[-2]):

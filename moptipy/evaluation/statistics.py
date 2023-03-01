@@ -269,9 +269,9 @@ class Statistics:
         int_sum_sqr: int = 0  # the sum of squares (for stddev)
         n: int = 0  # the number of items
 
-        for e in source:  # iterate over all data
+        for ev in source:  # iterate over all data
             n = n + 1
-            e = try_int(e)
+            e = try_int(ev)
 
             if can_int and (not isinstance(e, int)):
                 can_int = False

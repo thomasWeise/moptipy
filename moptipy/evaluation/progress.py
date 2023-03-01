@@ -95,10 +95,9 @@ class Progress(PerRunData):
                 if np.any(time[1:] <= time[:-1]):
                     raise ValueError("time data must be strictly increasing,"
                                      f"but encountered {time}.")
-            else:
-                if np.any(time[1:] < time[:-1]):
-                    raise ValueError("time data must be monotonously"
-                                     f"increasing, but encountered {time}.")
+            elif np.any(time[1:] < time[:-1]):
+                raise ValueError("time data must be monotonously"
+                                 f"increasing, but encountered {time}.")
 
         object.__setattr__(self, "time", time)
         object.__setattr__(self, "time_unit", check_time_unit(time_unit))

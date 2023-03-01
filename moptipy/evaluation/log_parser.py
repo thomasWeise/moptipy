@@ -368,8 +368,8 @@ class LogParser:
 
         do_files = True
         do_dirs = True
-        for sub in listdir(folder):
-            sub = Path.path(join(folder, sub))
+        for subpath in listdir(folder):
+            sub = Path.path(join(folder, subpath))
             if isfile(sub):
                 if do_files and (not self.parse_file(sub)):
                     logger(f"will parse no more files in {folder!r}.")

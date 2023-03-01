@@ -44,7 +44,8 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
     pop1: Final[list[_FRecord]] = []
     pop2: Final[list[_FRecord]] = []
     pop3: Final[list[_FRecord]] = []
-    for i in range(int(1 + random.integers(48))):
+    ps: Final[int] = int(1 + random.integers(48))
+    for i in range(ps):
         fr: _FRecord = _FRecord(space.create(), i)
         op0.op0(random, fr.x)
         fr.f = objective.evaluate(fr.x)
@@ -65,7 +66,7 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
         if k >= 3:
             # make all records identical
             fr0 = pop1[0]
-            for i, fr in enumerate(pop1):
+            for i in range(ps):
                 fr = _FRecord(fr0.x, i)
                 fr.f = fr0.f
                 fr.it = fr0.it

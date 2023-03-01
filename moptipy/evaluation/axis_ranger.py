@@ -293,11 +293,10 @@ class AxisRanger:
                         axes.semilogx()
                     else:
                         axes.semilogx(base=self.__log_base)
+                elif self.__log_base is None:
+                    axes.semilogy()
                 else:
-                    if self.__log_base is None:
-                        axes.semilogy()
-                    else:
-                        axes.semilogy(base=self.__log_base)
+                    axes.semilogy(base=self.__log_base)
 
     def get_pinf_replacement(self) -> float:
         """
