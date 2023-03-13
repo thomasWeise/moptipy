@@ -318,14 +318,14 @@ def _prioritize(
     weight: int = 1
     for i in range(n - 1, 0, -1):
         lb: int | float = lower_bounds[i]
-        if not isinstance(lb, (int, float)):
+        if not isinstance(lb, int | float):
             raise type_error(lb, f"lower_bound[{i}]", (int, float))
         if not isfinite(lb):
             raise ValueError(f"lower_bound[{i}]={lb}, but must be finite")
         if not isinstance(lb, int):
             raise type_error(lb, f"finite lower_bound[{i}]", int)
         ub: int | float = upper_bounds[i]
-        if not isinstance(ub, (int, float)):
+        if not isinstance(ub, int | float):
             raise type_error(ub, f"upper_bound[{i}]", (int, float))
         if not isfinite(ub):
             raise ValueError(f"upper_bound[{i}]={ub}, but must be finite")

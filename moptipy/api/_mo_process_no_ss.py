@@ -241,7 +241,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         if not np.array_equal(tfs, rec.fs):
             raise ValueError(
                 f"expected {rec.fs} but got {tfs} when re-evaluating {rec}")
-        if not isinstance(f, (int, float)):
+        if not isinstance(f, int | float):
             raise type_error(f, "scalarized objective value", (int, float))
         if not isfinite(f):
             raise ValueError(f"scalarized objective value {f} is not finite")

@@ -565,7 +565,7 @@ def validate_fitness_on_bitstrings(
     """
     if (not isinstance(fitness, Fitness)) and (not callable(fitness)):
         raise type_error(fitness, "fitness", Fitness, call=True)
-    if not isinstance(class_needed, (str, type)):
+    if not isinstance(class_needed, str | type):
         raise type_error(class_needed, "class_needed", (str, type))
     if not callable(prepare_objective):
         raise type_error(prepare_objective, "prepare_objective", call=True)

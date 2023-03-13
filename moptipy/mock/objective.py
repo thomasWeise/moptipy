@@ -53,11 +53,11 @@ class MockObjective(Objective):
         self.name: Final[str] = \
             f"mock{hex(random.integers(1, 100_000_000))[2:]}"
 
-        if not isinstance(lb, (int, float)):
+        if not isinstance(lb, int | float):
             raise type_error(lb, "lb", (int, float))
         if isfinite(lb) and is_int and not isinstance(lb, int):
             raise type_error(lb, f"finite lb @ is_int={is_int}", int)
-        if not isinstance(ub, (int, float)):
+        if not isinstance(ub, int | float):
             raise type_error(ub, "ub", (int, float))
         if isfinite(ub) and is_int and not isinstance(ub, int):
             raise type_error(ub, f"finite lb @ is_int={is_int}", int)

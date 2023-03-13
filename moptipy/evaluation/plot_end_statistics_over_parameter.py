@@ -135,7 +135,7 @@ def plot_end_statistics_over_param(
     # some incorrect results.
     if not isinstance(data, Iterable):
         raise type_error(data, "data", Iterable)
-    if not isinstance(figure, (Axes, Figure)):
+    if not isinstance(figure, Axes | Figure):
         raise type_error(figure, "figure", (Axes, Figure))
     if not callable(x_getter):
         raise type_error(x_getter, "x_getter", call=True)
@@ -243,7 +243,7 @@ def plot_end_statistics_over_param(
         if not isinstance(endstat, EndStatistics):
             raise type_error(endstat, "element in data", EndStatistics)
         x_value = x_getter(endstat)
-        if not isinstance(x_value, (int, float)):
+        if not isinstance(x_value, int | float):
             raise type_error(x_value, "x-value", (int, float))
         _algo = algorithm_getter(endstat)
         if not ((_algo is None) or isinstance(_algo, str)):
@@ -252,7 +252,7 @@ def plot_end_statistics_over_param(
         if not ((_inst is None) or isinstance(_inst, str)):
             raise type_error(_algo, "instance name", None, call=True)
         y_value = y_getter(endstat)
-        if not isinstance(y_value, (int, float)):
+        if not isinstance(y_value, int | float):
             raise type_error(y_value, "y-value", (int, float))
         if _algo in dataset:
             _dataset = dataset[_algo]

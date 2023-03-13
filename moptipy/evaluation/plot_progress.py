@@ -99,7 +99,7 @@ def plot_progress(
     # some incorrect results.
     if not isinstance(progresses, Iterable):
         raise type_error(progresses, "progresses", Iterable)
-    if not isinstance(figure, (Axes, Figure)):
+    if not isinstance(figure, Axes | Figure):
         raise type_error(figure, "figure", (Axes, Figure))
     if not isinstance(legend, bool):
         raise type_error(legend, "legend", bool)

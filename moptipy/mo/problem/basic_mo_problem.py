@@ -185,7 +185,7 @@ class BasicMOProblem(MOProblem):
         if isfinite(min_lower_bound):
             temp = np.array(lower_bounds, dtype=self.__dtype)
             lb = self._scalarize(temp)
-            if not isinstance(lb, (int, float)):
+            if not isinstance(lb, int | float):
                 raise type_error(lb, "computed lower bound", (int, float))
             if (not isfinite(lb)) and (lb > -inf):
                 raise ValueError("non-finite computed lower bound "
@@ -198,7 +198,7 @@ class BasicMOProblem(MOProblem):
         if isfinite(max_upper_bound):
             temp = np.array(upper_bounds, dtype=self.__dtype)
             ub = self._scalarize(temp)
-            if not isinstance(ub, (int, float)):
+            if not isinstance(ub, int | float):
                 raise type_error(ub, "computed upper bound", (int, float))
             if (not isfinite(ub)) and (ub < inf):
                 raise ValueError("non-finite computed upper bound "

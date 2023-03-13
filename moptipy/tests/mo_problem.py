@@ -101,7 +101,7 @@ def validate_mo_problem(
                          f"f_create() twice: {fs1.dtype}, {fs2.dtype}")
 
     lower: Final[int | float] = mo_problem.lower_bound()
-    if not (isinstance(lower, (int, float))):
+    if not (isinstance(lower, int | float)):
         raise type_error(lower, "lower_bound()", (int, float))
     if (not isfinite(lower)) and (not (lower <= (-inf))):
         raise ValueError(
@@ -111,7 +111,7 @@ def validate_mo_problem(
                          f"{lower_bound_threshold}, but is {lower}.")
 
     upper: Final[int | float] = mo_problem.upper_bound()
-    if not (isinstance(upper, (int, float))):
+    if not (isinstance(upper, int | float)):
         raise type_error(upper, "upper_bound()", (int, float))
     if (not isfinite(upper)) and (not (upper >= inf)):
         raise ValueError(
@@ -162,7 +162,7 @@ def validate_mo_problem(
         raise ValueError(f"f_dominates(x, x) must be 2, but is {fdr}")
 
     for res in reses:
-        if not isinstance(res, (int, float)):
+        if not isinstance(res, int | float):
             raise type_error(res, "f_evaluate(x)", (int, float))
         if not isfinite(res):
             raise ValueError(

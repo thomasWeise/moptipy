@@ -65,7 +65,7 @@ def __append_not_allowed(forbidden,
     """
     if not forbidden:
         return
-    if isinstance(forbidden, (str, int, float)):
+    if isinstance(forbidden, str | int | float):
         dest.add(forbidden)
     elif isinstance(forbidden, Instance):
         dest.add(forbidden.name)

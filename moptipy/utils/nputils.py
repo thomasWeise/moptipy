@@ -160,9 +160,9 @@ def dtype_for_data(always_int: bool,
     """
     if not isinstance(always_int, bool):
         raise type_error(always_int, "always_int", bool)
-    if not isinstance(lower_bound, (int, float)):
+    if not isinstance(lower_bound, int | float):
         raise type_error(lower_bound, "lower_bound", (int, float))
-    if not isinstance(upper_bound, (int, float)):
+    if not isinstance(upper_bound, int | float):
         raise type_error(upper_bound, "upper_bound", (int, float))
     if always_int:
         if isfinite(lower_bound):
@@ -439,7 +439,7 @@ def np_to_py_number(number) -> int | float:
     :param number: the numpy number
     :returns: an integer or float representing the number
     """
-    if isinstance(number, (int, float)):
+    if isinstance(number, int | float):
         return number
     if isinstance(number, np.number):
         if isinstance(number, np.integer):

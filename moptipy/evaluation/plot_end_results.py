@@ -93,7 +93,7 @@ def plot_end_results(
     # some incorrect results.
     if not isinstance(end_results, Iterable):
         raise type_error(end_results, "end_results", Iterable)
-    if not isinstance(figure, (Axes, Figure)):
+    if not isinstance(figure, Axes | Figure):
         raise type_error(figure, "figure", (Axes, Figure))
     if not isinstance(dimension, str):
         raise type_error(dimension, "dimension", str)
@@ -167,7 +167,7 @@ def plot_end_results(
             inst_algo_data = per_inst_data[res.algorithm]
 
         value: int | float = getter(res)
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int | float):
             raise type_error(value, "value", (int, float))
         inst_algo_data.append(value)
         y_axis.register_value(value)

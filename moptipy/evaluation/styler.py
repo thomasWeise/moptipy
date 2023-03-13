@@ -48,7 +48,7 @@ class Styler:
             raise type_error(namer, "namer function", call=True)
         if not isinstance(none_name, str):
             raise type_error(none_name, "none_name", str)
-        if not isinstance(priority, (float, int)):
+        if not isinstance(priority, float | int):
             raise type_error(priority, "priority", (int, float))
         if (name_sort_function is not None) \
                 and (not callable(name_sort_function)):

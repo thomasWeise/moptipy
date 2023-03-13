@@ -71,16 +71,16 @@ def default_get_float_format(
     >>> default_get_float_format(-1, 1, 4, 1e-3)
     '{:.3f}'
     """
-    if not isinstance(min_finite, (int, float)):
+    if not isinstance(min_finite, int | float):
         raise type_error(min_finite, "min_finite", (int, float))
-    if not isinstance(max_finite, (int, float)):
+    if not isinstance(max_finite, int | float):
         raise type_error(max_finite, "max_finite", (int, float))
     if not (isfinite(min_finite) and isfinite(max_finite)
             and (min_finite <= max_finite)):
         raise ValueError("invalid min_finite, max_finite pair "
                          f"{min_finite}, {max_finite}.")
     check_int_range(max_frac_len, "max_frac_len", 0, 100)
-    if not isinstance(int_to_float_threshold, (int, float)):
+    if not isinstance(int_to_float_threshold, int | float):
         raise type_error(
             int_to_float_threshold, "int_to_float_threshold", (int, float))
     if (int_to_float_threshold <= 0) or not (
@@ -88,7 +88,7 @@ def default_get_float_format(
             or (int_to_float_threshold >= inf)):
         raise ValueError(
             f"invalid int_to_float_threshold={int_to_float_threshold}.")
-    if not isinstance(min_non_zero_abs, (int, float)):
+    if not isinstance(min_non_zero_abs, int | float):
         raise type_error(min_non_zero_abs, "min_non_zero_abs", (int, float))
     if min_non_zero_abs <= 0:
         raise ValueError(f"invalid min_non_zero_abs={min_non_zero_abs}")
@@ -158,7 +158,7 @@ class NumberRenderer:
         """
         super().__init__()
         while True:
-            if not isinstance(int_to_float_threshold, (int, float)):
+            if not isinstance(int_to_float_threshold, int | float):
                 raise type_error(int_to_float_threshold,
                                  "int_to_float_threshold", (int, float))
             if (int_to_float_threshold <= 0) or not (
@@ -308,7 +308,7 @@ class NumberRenderer:
         >>> ff.render([-0.2, 1e-6, 0.9])
         ['-2.000e-1', '1.000e-6', '9.000e-1']
         """
-        if (source is None) or isinstance(source, (int, float)):
+        if (source is None) or isinstance(source, int | float):
             source = [source]
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)

@@ -326,7 +326,7 @@ def __getter(s: str) -> Callable[[EndStatistics], int | float | None]:
         res = g(e)
         if res is None:
             return None
-        if not isinstance(res, (int, float)):
+        if not isinstance(res, int | float):
             raise type_error(res, f"result of getter {n!r} for statistic {e}",
                              (int, float))
         return res

@@ -243,7 +243,7 @@ class Ert(MultiRun2DData):
                 lower_bound = progress.f_standard
             if f_lower_bound is not None:
                 lb = f_lower_bound(progress)
-                if not isinstance(lb, (int, float)):
+                if not isinstance(lb, int | float):
                     raise type_error(lb, "computed lower bound", (int, float))
                 if not isfinite(lb):
                     raise ValueError(f"Invalid computed lower bound {lb}.")

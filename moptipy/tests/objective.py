@@ -44,7 +44,7 @@ def validate_objective(
             and callable(getattr(objective, "lower_bound"))):
         raise ValueError("objective must have method lower_bound.")
     lower: Final[int | float] = objective.lower_bound()
-    if not (isinstance(lower, (int, float))):
+    if not (isinstance(lower, int | float)):
         raise type_error(lower, "lower_bound()", (int, float))
     if (not isfinite(lower)) and (not (lower <= (-inf))):
         raise ValueError(
@@ -57,7 +57,7 @@ def validate_objective(
             and callable(getattr(objective, "upper_bound"))):
         raise ValueError("objective must have method upper_bound.")
     upper: Final[int | float] = objective.upper_bound()
-    if not (isinstance(upper, (int, float))):
+    if not (isinstance(upper, int | float)):
         raise type_error(upper, "upper_bound()", (int, float))
     if (not isfinite(upper)) and (not (upper >= inf)):
         raise ValueError(
@@ -110,7 +110,7 @@ def validate_objective(
             and callable(getattr(objective, "evaluate"))):
         raise ValueError("objective must have method evaluate.")
     res = objective.evaluate(x)
-    if not (isinstance(res, (int, float))):
+    if not (isinstance(res, int | float)):
         raise type_error(res, f"evaluate(x) of {x}", (int, float))
 
     if (res < lower) or (res > upper):
@@ -128,7 +128,7 @@ def validate_objective(
             raise ValueError(f"expected to get {exp}, but got {res}.")
 
     res2 = objective.evaluate(x)
-    if not (isinstance(res2, (int, float))):
+    if not (isinstance(res2, int | float)):
         raise type_error(res2, f"evaluate(x) of {x}", (int, float))
 
     if (res2 < lower) or (res2 > upper):

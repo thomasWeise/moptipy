@@ -48,11 +48,11 @@ _GETTERS_0: Final[dict[str, Callable[["EndStatistics"],
     KEY_ERT_FES: lambda s: s.ert_fes,
     KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis,
     log.KEY_GOAL_F: lambda s: s.goal_f if isinstance(s.goal_f,
-                                                     (int, float)) else None,
+                                                     int | float) else None,
     log.KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis
-    if isinstance(s.max_time_millis, (int, float)) else None,
+    if isinstance(s.max_time_millis, int | float) else None,
     log.KEY_MAX_FES: lambda s: s.max_fes
-    if isinstance(s.max_fes, (int, float)) else None,
+    if isinstance(s.max_fes, int | float) else None,
 }
 
 #: the internal getters that access end statistics
@@ -255,7 +255,7 @@ class EndStatistics(MultiRunData):
         else:  # goal_f is not None
             if isinstance(goal_f, float):
                 goal_f = None if goal_f <= (-inf) else try_int(goal_f)
-            elif not isinstance(goal_f, (int, Statistics)):
+            elif not isinstance(goal_f, int | Statistics):
                 raise type_error(goal_f, "goal_f", (int, Statistics))
 
             if best_f_scaled is not None:
@@ -276,9 +276,9 @@ class EndStatistics(MultiRunData):
                         f"{best_f_scaled.minimum}.")
 
             check_int_range(n_success, "n_success")
-            if not isinstance(ert_fes, (int, float)):
+            if not isinstance(ert_fes, int | float):
                 raise type_error(ert_fes, "ert_fes", (int, float))
-            if not isinstance(ert_time_millis, (int, float)):
+            if not isinstance(ert_time_millis, int | float):
                 raise type_error(ert_time_millis, "ert_time_millis",
                                  (int, float))
 
@@ -740,7 +740,7 @@ class EndStatistics(MultiRunData):
                     wrt(sep)
                     if isinstance(er.goal_f, Statistics):
                         wrt(er.goal_f.to_csv())
-                    elif isinstance(er.goal_f, (int, float)):
+                    elif isinstance(er.goal_f, int | float):
                         wrt(csv(er.goal_f))
                     else:
                         wrt(EMPTY_CSV_ROW)
@@ -782,7 +782,7 @@ class EndStatistics(MultiRunData):
                     wrt(sep)
                     if isinstance(er.max_fes, Statistics):
                         wrt(er.max_fes.to_csv())
-                    elif isinstance(er.max_fes, (int, float)):
+                    elif isinstance(er.max_fes, int | float):
                         wrt(csv(er.max_fes))
                     else:
                         wrt(EMPTY_CSV_ROW)
@@ -794,7 +794,7 @@ class EndStatistics(MultiRunData):
                     wrt(sep)
                     if isinstance(er.max_time_millis, Statistics):
                         wrt(er.max_time_millis.to_csv())
-                    elif isinstance(er.max_time_millis, (int, float)):
+                    elif isinstance(er.max_time_millis, int | float):
                         wrt(csv(er.max_time_millis))
                     else:
                         wrt(EMPTY_CSV_ROW)
@@ -1146,7 +1146,7 @@ class EndStatistics(MultiRunData):
                 a: Final[Statistics] = ll1(s)
                 if a is None:
                     return None
-                if isinstance(a, (int, float)):
+                if isinstance(a, int | float):
                     return a  # max, min, med, mean = a
                 return ll2(a)  # apply statistics getter
             return __inner_sat
@@ -1155,7 +1155,7 @@ class EndStatistics(MultiRunData):
             a: Final[Statistics] = ll1(s)
             if a is None:
                 return None
-            if isinstance(a, (int, float)):
+            if isinstance(a, int | float):
                 return 0  # sd of a single number = 0
             return a.stddev
         return __inner_sd

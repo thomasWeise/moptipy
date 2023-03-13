@@ -60,7 +60,7 @@ class AxisRanger:
                 raise ValueError(f"log_base must be > 1, but is {log_base}.")
 
         if chosen_min is not None:
-            if not isinstance(chosen_min, (float, int)):
+            if not isinstance(chosen_min, float | int):
                 raise type_error(chosen_min, "chosen_min", (int, float))
             chosen_min = float(chosen_min)
             if not isfinite(chosen_min):
@@ -74,7 +74,7 @@ class AxisRanger:
         self.__chosen_min: Final[float | None] = chosen_min
 
         if chosen_max is not None:
-            if not isinstance(chosen_max, (float, int)):
+            if not isinstance(chosen_max, float | int):
                 raise type_error(chosen_max, "chosen_max", (int, float))
             chosen_max = float(chosen_max)
             if not isfinite(chosen_max):

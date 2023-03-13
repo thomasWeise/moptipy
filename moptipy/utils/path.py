@@ -237,7 +237,7 @@ class Path(str):
         :param contents: the contents to write
         """
         self.ensure_file_exists()
-        if not isinstance(contents, (str, Iterable)):
+        if not isinstance(contents, str | Iterable):
             raise type_error(contents, "contents", (str, Iterable))
         all_text = contents if isinstance(contents, str) \
             else "\n".join(contents)

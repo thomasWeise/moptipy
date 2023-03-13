@@ -163,7 +163,7 @@ class FormattedStr(str):
         >>> FormattedStr.number(123e3).mode
         1
         """
-        if not isinstance(number, (int, str)):
+        if not isinstance(number, int | str):
             if isinstance(number, float):
                 if isnan(number):
                     return _NAN

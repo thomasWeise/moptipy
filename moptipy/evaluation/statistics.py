@@ -91,13 +91,13 @@ class Statistics:
         check_int_range(n, "n", 1)
 
         # check minimum
-        if not isinstance(minimum, (int, float)):
+        if not isinstance(minimum, int | float):
             raise type_error(minimum, "minimum", (int, float))
         if isinstance(minimum, float) and (not isfinite(minimum)):
             raise ValueError(f"minimum must be finite, but is {minimum}.")
 
         # check median
-        if not isinstance(median, (int, float)):
+        if not isinstance(median, int | float):
             raise type_error(median, "median", (int, float))
         if isinstance(median, float) and (not isfinite(median)):
             raise ValueError(f"med must be finite, but is {median}.")
@@ -110,7 +110,7 @@ class Statistics:
                 f"median ({median}) must be >= minimum ({minimum}) if n>1.")
 
         # check maximum
-        if not isinstance(maximum, (int, float)):
+        if not isinstance(maximum, int | float):
             raise type_error(maximum, "maximum", (int, float))
         if isinstance(maximum, float) and (not isfinite(maximum)):
             raise ValueError(f"maximum must be finite, but is {maximum}.")
@@ -123,7 +123,7 @@ class Statistics:
                 f"maximum ({maximum}) must be >= med ({median}) if n>1.")
 
         # check arithmetic mean
-        if not isinstance(mean_arith, (int, float)):
+        if not isinstance(mean_arith, int | float):
             raise type_error(mean_arith, "mean_arith", (int, float))
         if isinstance(mean_arith, float) and (not isfinite(mean_arith)):
             raise ValueError(
@@ -153,7 +153,7 @@ class Statistics:
                 raise ValueError(
                     f"If minimum ({minimum}) <= 0, then mean_geom is "
                     f"undefined, but it is {mean_geom}.")
-            if not isinstance(mean_geom, (int, float)):
+            if not isinstance(mean_geom, int | float):
                 raise type_error(mean_geom, "mean_geom", (int, float))
             if isinstance(mean_geom, float) and (not isfinite(mean_geom)):
                 raise ValueError(
@@ -177,7 +177,7 @@ class Statistics:
                         f"mean_arith ({mean_arith}) if n>1 and "
                         f"minimum ({minimum}) < maximum ({maximum}).")
 
-        if not isinstance(stddev, (int, float)):
+        if not isinstance(stddev, int | float):
             raise type_error(stddev, "stddev", (int, float))
         if isinstance(stddev, float) and (not isfinite(stddev)):
             raise ValueError(f"stddev must be finite, but is {stddev}.")

@@ -247,7 +247,7 @@ def tabulate_result_tests(
         if not isinstance(end_result, EndResult):
             raise type_error(end_result, f"end_results[{i}]", EndResult)
         value = value_getter(end_result)
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int | float):
             raise type_error(
                 value, f"value_getter({end_result}", (int, float))
         if not isfinite(value):

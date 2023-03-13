@@ -519,7 +519,7 @@ def check_goal_f(goal_f: int | float | None,
         neither an `int` nor a `float`
     :raises ValueError: if `goal_f` is invalid
     """
-    if not (isinstance(goal_f, (int, float))):
+    if not (isinstance(goal_f, int | float)):
         if none_is_ok and (goal_f is None):
             return None
         raise type_error(goal_f, "goal_f", (int, float))

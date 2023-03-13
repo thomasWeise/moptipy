@@ -107,7 +107,7 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
             if fr.f is not fr2.f:
                 raise ValueError(
                     f"fitness assignment assigned rec.f to {fr.f}!")
-            if not isinstance(fr.fitness, (int, float)):
+            if not isinstance(fr.fitness, int | float):
                 raise type_error(fr.fitness, "rec.fitness", (int, float))
             if not isfinite(fr.fitness):
                 raise ValueError(

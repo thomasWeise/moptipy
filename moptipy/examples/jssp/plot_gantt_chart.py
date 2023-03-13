@@ -129,7 +129,7 @@ def plot_gantt_chart(
                 raise type_error(marker, "marker", tuple, True)
             if not isinstance(name, str):
                 raise type_error(name, "marker name", str)
-            if not isinstance(val, (int, float)):
+            if not isinstance(val, int | float):
                 raise type_error(val, "marker", (int, float))
             if val in marks:
                 marks[val] = f"{marks[val]}/{name}"

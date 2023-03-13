@@ -104,7 +104,7 @@ class Ecdf(MultiRun2DData):
             self, "n_insts", check_int_range(n_insts, "n_insts", 1, self.n))
 
         if goal_f is not None:
-            if not isinstance(goal_f, (int, float)):
+            if not isinstance(goal_f, int | float):
                 raise type_error(goal_f, "goal_f", (int, float))
             if not isfinite(goal_f):
                 raise ValueError(f"Invalid goal_f {goal_f}.")
@@ -286,7 +286,7 @@ class Ecdf(MultiRun2DData):
         first: bool = True
         for instance, pl in inst_runs.items():
             goal = None
-            if isinstance(goal_f, (int, float)):
+            if isinstance(goal_f, int | float):
                 goal = goal_f
             elif callable(goal_f):
                 goal = goal_f(instance)
@@ -301,7 +301,7 @@ class Ecdf(MultiRun2DData):
                         if goal != pp.f_standard:
                             raise ValueError("Inconsistent goals: "
                                              f"{goal} and {pp.f_standard}")
-            if not isinstance(goal, (int, float)):
+            if not isinstance(goal, int | float):
                 raise type_error(goal, "goal", (int, float))
             if first:
                 same_goal_f = goal

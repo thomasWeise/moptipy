@@ -43,9 +43,9 @@ def __join(sets: Iterable[Iterable[int]],
     """
     if not isinstance(sets, Iterable):
         raise type_error(sets, "sets", Iterable)
-    if not isinstance(lower_limit, (int, float)):
+    if not isinstance(lower_limit, int | float):
         raise type_error(lower_limit, "lower_limit", (int, float))
-    if not isinstance(upper_limit, (int, float)):
+    if not isinstance(upper_limit, int | float):
         raise type_error(upper_limit, "upper_limit", (int, float))
     if upper_limit < lower_limit:
         raise ValueError(
