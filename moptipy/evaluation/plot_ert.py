@@ -59,8 +59,8 @@ def plot_ert(erts: Iterable[Ert],
              y_label: None | str | Callable[[str], str] =
              Lang.translate_func("ERT"),
              y_label_inside: bool = True,
-             inst_priority: float = 0.666,
-             algo_priority: float = 0.333) -> Axes:
+             instance_priority: float = 0.666,
+             algorithm_priority: float = 0.333) -> Axes:
     """
     Plot a set of Ert functions into one chart.
 
@@ -87,8 +87,8 @@ def plot_ert(erts: Iterable[Ert],
         string, or `None` if no label should be put
     :param y_label_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
-    :param inst_priority: the style priority for instances
-    :param algo_priority: the style priority for algorithms
+    :param instance_priority: the style priority for instances
+    :param algorithm_priority: the style priority for algorithms
     :returns: the axes object to allow you to add further plot elements
     """
     # Before doing anything, let's do some type checking on the parameters.
@@ -130,21 +130,21 @@ def plot_ert(erts: Iterable[Ert],
         raise type_error(y_label, "y_label", (str, None), call=True)
     if not isinstance(y_label_inside, bool):
         raise type_error(y_label_inside, "y_label_inside", bool)
-    if not isinstance(inst_priority, float):
-        raise type_error(inst_priority, "inst_priority", float)
-    if not isinstance(algo_priority, float):
-        raise type_error(algo_priority, "algo_priority", float)
+    if not isinstance(instance_priority, float):
+        raise type_error(instance_priority, "instance_priority", float)
+    if not isinstance(algorithm_priority, float):
+        raise type_error(algorithm_priority, "algorithm_priority", float)
 
     # First, we try to find groups of data to plot together in the same
     # color/style.
     instances: Final[Styler] = Styler(
         key_func=get_instance,
         none_name=Lang.translate("all_insts"),
-        priority=inst_priority)
+        priority=instance_priority)
     algorithms: Final[Styler] = Styler(
         key_func=get_algorithm,
         none_name=Lang.translate("all_algos"),
-        priority=algo_priority)
+        priority=algorithm_priority)
     x_dim: str | None = None
     y_dim: str | None = None
     source: list[Ert] = cast(list[Ert], erts) if isinstance(erts, list) \

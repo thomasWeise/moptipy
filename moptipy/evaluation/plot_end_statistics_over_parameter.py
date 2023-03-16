@@ -75,8 +75,8 @@ def plot_end_statistics_over_param(
         y_label: None | str | Callable[[str], str] = __make_y_label,
         y_label_inside: bool = True,
         y_label_location: float = 1.0,
-        inst_priority: float = 0.666,
-        algo_priority: float = 0.333,
+        instance_priority: float = 0.666,
+        algorithm_priority: float = 0.333,
         stat_priority: float = 0.0,
         instance_sort_key: Callable[[str], Any] = lambda x: x,
         algorithm_sort_key: Callable[[str], Any] = lambda x: x,
@@ -115,8 +115,8 @@ def plot_end_statistics_over_param(
     :param y_label_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
     :param y_label_location: the location of the y-axis label
-    :param inst_priority: the style priority for instances
-    :param algo_priority: the style priority for algorithms
+    :param instance_priority: the style priority for instances
+    :param algorithm_priority: the style priority for algorithms
     :param stat_priority: the style priority for statistics
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
@@ -180,14 +180,14 @@ def plot_end_statistics_over_param(
         raise type_error(y_label_inside, "y_label_inside", bool)
     if not isinstance(y_label_location, float):
         raise type_error(y_label_location, "y_label_location", float)
-    if not isinstance(inst_priority, float):
-        raise type_error(inst_priority, "inst_priority", float)
-    if not isfinite(inst_priority):
-        raise ValueError(f"inst_priority cannot be {inst_priority}.")
-    if not isinstance(algo_priority, float):
-        raise type_error(algo_priority, "algo_priority", float)
-    if not isfinite(algo_priority):
-        raise ValueError(f"algo_priority cannot be {algo_priority}.")
+    if not isinstance(instance_priority, float):
+        raise type_error(instance_priority, "instance_priority", float)
+    if not isfinite(instance_priority):
+        raise ValueError(f"instance_priority cannot be {instance_priority}.")
+    if not isinstance(algorithm_priority, float):
+        raise type_error(algorithm_priority, "algorithm_priority", float)
+    if not isfinite(algorithm_priority):
+        raise ValueError(f"algorithm_priority cannot be {algorithm_priority}.")
     if not isinstance(stat_priority, float):
         raise type_error(stat_priority, "stat_priority", float)
     if not isfinite(stat_priority):
@@ -228,13 +228,13 @@ def plot_end_statistics_over_param(
     # color/style. We distinguish progress objects from statistical runs.
     instances: Final[Styler] = Styler(
         none_name=Lang.translate("all_insts"),
-        priority=inst_priority,
+        priority=instance_priority,
         namer=instance_namer,
         name_sort_function=instance_sort_key)
     algorithms: Final[Styler] = Styler(
         none_name=Lang.translate("all_algos"),
         namer=algorithm_namer,
-        priority=algo_priority, name_sort_function=algorithm_sort_key)
+        priority=algorithm_priority, name_sort_function=algorithm_sort_key)
 
     # we now extract the data: x -> algo -> inst -> y
     dataset: Final[dict[str | None, dict[
