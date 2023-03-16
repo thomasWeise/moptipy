@@ -29,7 +29,7 @@ class Styler:
                  namer: Callable[[Any], str] = str,
                  none_name: str = "None",
                  priority: int | float = 0,
-                 name_sort_function: Callable[[str], str] | None =
+                 name_sort_function: Callable[[str], Any] | None =
                  lambda s: s):
         """
         Initialize the style grouper.
@@ -68,7 +68,7 @@ class Styler:
             return rv
 
         #: the name sort function
-        self.__name_sort_function: Final[Callable[[str], str] | None] = \
+        self.__name_sort_function: Final[Callable[[str], Any] | None] = \
             name_sort_function
         #: The key function of the grouper
         self.key_func: Final[Callable] = key_func
@@ -102,7 +102,7 @@ class Styler:
         if self.has_none:
             self.__collection.remove(None)
 
-        nsf: Final[Callable[[str], str] | None] = self.__name_sort_function
+        nsf: Final[Callable[[str], Any] | None] = self.__name_sort_function
         if nsf is None:
             data = [(k, self.name_func(k)) for k in self.__collection]
             data.sort()

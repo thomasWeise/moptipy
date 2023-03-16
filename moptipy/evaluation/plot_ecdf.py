@@ -217,12 +217,12 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     # pick the right sorting order
     sf: Callable[[Ecdf], Any] = sort_key
     if (goals.count > 1) and (algorithms.count == 1):
-        def __x1(r: Ecdf, ssf=goal_sort_key) -> str:
+        def __x1(r: Ecdf, ssf=goal_sort_key) -> Any:
             return ssf(goal_to_str(r.goal_f))
 
         sf = __x1
     elif (goals.count == 1) and (algorithms.count > 1):
-        def __x2(r: Ecdf, ssf=algorithm_sort_key) -> str:
+        def __x2(r: Ecdf, ssf=algorithm_sort_key) -> Any:
             return ssf(r.algorithm)
 
         sf = __x2
