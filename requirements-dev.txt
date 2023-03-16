@@ -48,7 +48,7 @@ setuptools >= 67.6.0
 testresources >= 2.0.1
 twine >= 4.0.2
 virtualenv >= 20.21.0
-wheel >= 0.38.4
+wheel >= 0.40.0
 
 # sphinx is needed for generating the documentation. Together with its
 # modules, it parses the documentation root file as well as the code and
@@ -80,8 +80,8 @@ pydocstyle >= 6.3.0
 pyflakes >= 2.5.0
 pylint >= 2.17.0
 pyroma >= 4.2
-ruff >= 0.0.254
-semgrep >= 1.14.0
+ruff >= 0.0.256
+semgrep >= 1.14.1
 tryceratops >= 1.1.0
 unimport >= 0.14.1
 vulture >= 2.7
