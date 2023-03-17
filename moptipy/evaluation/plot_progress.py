@@ -233,7 +233,7 @@ def plot_progress(
     elif (instances.count == 1) and (algorithms.count > 1) \
             and (statistics.count == 1):
         def __x(r: StatRun | Progress, ssf=algorithm_sort_key) -> str:
-            return ssf(r.instance)
+            return ssf(r.algorithm)
         sf = __x
     elif (instances.count == 1) and (algorithms.count == 1) \
             and (statistics.count > 1):
