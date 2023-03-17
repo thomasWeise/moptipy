@@ -227,17 +227,17 @@ def plot_progress(
     sf: Callable[[StatRun | Progress], Any] = sort_key
     if (instances.count > 1) and (algorithms.count == 1) \
             and (statistics.count == 1):
-        def __x(r: StatRun | Progress, ssf=instance_sort_key) -> str:
+        def __x(r: StatRun | Progress, ssf=instance_sort_key) -> Any:
             return ssf(r.instance)
         sf = __x
     elif (instances.count == 1) and (algorithms.count > 1) \
             and (statistics.count == 1):
-        def __x(r: StatRun | Progress, ssf=algorithm_sort_key) -> str:
+        def __x(r: StatRun | Progress, ssf=algorithm_sort_key) -> Any:
             return ssf(r.algorithm)
         sf = __x
     elif (instances.count == 1) and (algorithms.count == 1) \
             and (statistics.count > 1):
-        def __x(r: StatRun | Progress, ssf=stat_sort_key) -> str:
+        def __x(r: StatRun | Progress, ssf=stat_sort_key) -> Any:
             return ssf(r.instance)
         sf = __x
 
