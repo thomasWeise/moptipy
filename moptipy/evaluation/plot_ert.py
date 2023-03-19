@@ -61,6 +61,8 @@ def plot_ert(erts: Iterable[Ert],
              y_label_inside: bool = True,
              instance_sort_key: Callable[[str], Any] = lambda x: x,
              algorithm_sort_key: Callable[[str], Any] = lambda x: x,
+             instance_namer: Callable[[str], str] = lambda x: x,
+             algorithm_namer: Callable[[str], str] = lambda x: x,
              instance_priority: float = 0.666,
              algorithm_priority: float = 0.333) -> Axes:
     """
@@ -91,6 +93,10 @@ def plot_ert(erts: Iterable[Ert],
         it does not consume additional horizontal space)
     :param instance_sort_key: the sort key function for instances
     :param algorithm_sort_key: the sort key function for algorithms
+    :param instance_namer: the name function for instances receives an
+        instance ID and returns an instance name; default=identity function
+    :param algorithm_namer: the name function for algorithms receives an
+        algorithm ID and returns an instance name; default=identity function
     :param instance_priority: the style priority for instances
     :param algorithm_priority: the style priority for algorithms
     :returns: the axes object to allow you to add further plot elements
@@ -142,16 +148,22 @@ def plot_ert(erts: Iterable[Ert],
         raise type_error(instance_priority, "instance_priority", float)
     if not isinstance(algorithm_priority, float):
         raise type_error(algorithm_priority, "algorithm_priority", float)
+    if not callable(instance_namer):
+        raise type_error(instance_namer, "instance_namer", call=True)
+    if not callable(algorithm_namer):
+        raise type_error(algorithm_namer, "algorithm_namer", call=True)
 
     # First, we try to find groups of data to plot together in the same
     # color/style.
     instances: Final[Styler] = Styler(
         key_func=get_instance,
+        namer=instance_namer,
         none_name=Lang.translate("all_insts"),
         priority=instance_priority,
         name_sort_function=instance_sort_key)
     algorithms: Final[Styler] = Styler(
         key_func=get_algorithm,
+        namer=algorithm_namer,
         none_name=Lang.translate("all_algos"),
         priority=algorithm_priority,
         name_sort_function=algorithm_sort_key)
