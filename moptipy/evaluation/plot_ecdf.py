@@ -219,21 +219,17 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
     if (goals.count > 1) and (algorithms.count == 1):
         def __x1(r: Ecdf, ssf=goal_sort_key) -> Any:
             return ssf(goal_to_str(r.goal_f))
-
         sf = __x1
     elif (goals.count == 1) and (algorithms.count > 1):
         def __x2(r: Ecdf, ssf=algorithm_sort_key) -> Any:
             return ssf(r.algorithm)
-
         sf = __x2
     elif (goals.count > 1) and (algorithms.count > 1):
-
         def __x3(r: Ecdf, sgs=goal_sort_key, sas=algorithm_sort_key,
                  ag=algorithm_priority > goal_priority) -> tuple[Any, Any]:
             k1 = sgs(goal_to_str(r.goal_f))
             k2 = sas(r.algorithm)
             return (k2, k1) if ag else (k1, k2)
-
         sf = __x3
 
     source.sort(key=sf)

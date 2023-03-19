@@ -59,6 +59,8 @@ def plot_ert(erts: Iterable[Ert],
              y_label: None | str | Callable[[str], str] =
              Lang.translate_func("ERT"),
              y_label_inside: bool = True,
+             instance_sort_key: Callable[[str], Any] = lambda x: x,
+             algorithm_sort_key: Callable[[str], Any] = lambda x: x,
              instance_priority: float = 0.666,
              algorithm_priority: float = 0.333) -> Axes:
     """
@@ -87,6 +89,8 @@ def plot_ert(erts: Iterable[Ert],
         string, or `None` if no label should be put
     :param y_label_inside: put the y-axis label inside the plot (so that
         it does not consume additional horizontal space)
+    :param instance_sort_key: the sort key function for instances
+    :param algorithm_sort_key: the sort key function for algorithms
     :param instance_priority: the style priority for instances
     :param algorithm_priority: the style priority for algorithms
     :returns: the axes object to allow you to add further plot elements
@@ -130,6 +134,10 @@ def plot_ert(erts: Iterable[Ert],
         raise type_error(y_label, "y_label", (str, None), call=True)
     if not isinstance(y_label_inside, bool):
         raise type_error(y_label_inside, "y_label_inside", bool)
+    if not callable(instance_sort_key):
+        raise type_error(instance_sort_key, "instance_sort_key", call=True)
+    if not callable(algorithm_sort_key):
+        raise type_error(algorithm_sort_key, "algorithm_sort_key", call=True)
     if not isinstance(instance_priority, float):
         raise type_error(instance_priority, "instance_priority", float)
     if not isinstance(algorithm_priority, float):
@@ -140,11 +148,13 @@ def plot_ert(erts: Iterable[Ert],
     instances: Final[Styler] = Styler(
         key_func=get_instance,
         none_name=Lang.translate("all_insts"),
-        priority=instance_priority)
+        priority=instance_priority,
+        name_sort_function=instance_sort_key)
     algorithms: Final[Styler] = Styler(
         key_func=get_algorithm,
         none_name=Lang.translate("all_algos"),
-        priority=algorithm_priority)
+        priority=algorithm_priority,
+        name_sort_function=algorithm_sort_key)
     x_dim: str | None = None
     y_dim: str | None = None
     source: list[Ert] = cast(list[Ert], erts) if isinstance(erts, list) \
@@ -174,7 +184,30 @@ def plot_ert(erts: Iterable[Ert],
     if (x_dim is None) or (y_dim is None) or (len(source) <= 0):
         raise ValueError("Illegal state?")
 
-    source.sort(key=sort_key)
+    # determine the style groups
+    groups: list[Styler] = []
+    instances.finalize()
+    algorithms.finalize()
+
+    sf: Callable[[Ert], Any] = sort_key
+    if (instances.count > 1) and (algorithms.count == 1):
+        def __x1(r: Ert, ssf=instance_sort_key) -> Any:
+            return ssf(r.instance)
+        sf = __x1
+    elif (instances.count == 1) and (algorithms.count > 1):
+        def __x2(r: Ert, ssf=algorithm_sort_key) -> Any:
+            return ssf(r.algorithm)
+        sf = __x2
+    elif (instances.count > 1) and (algorithms.count > 1):
+        def __x3(r: Ert, sas=algorithm_sort_key,
+                 ias=instance_sort_key,
+                 ag=algorithm_priority > instance_priority) \
+                -> tuple[Any, Any]:
+            k1 = ias(r.instance)
+            k2 = sas(r.algorithm)
+            return (k2, k1) if ag else (k1, k2)
+        sf = __x3
+    source.sort(key=sf)
 
     def __set_importance(st: Styler) -> None:
         none = 1
@@ -187,11 +220,6 @@ def plot_ert(erts: Iterable[Ert],
         not_none_a = importance_to_alpha_func(not_none)
         st.set_line_alpha(lambda p: [none_a if i <= 0 else not_none_a
                                      for i in range(p)])
-
-    # determine the style groups
-    groups: list[Styler] = []
-    instances.finalize()
-    algorithms.finalize()
 
     if instances.count > 1:
         groups.append(instances)

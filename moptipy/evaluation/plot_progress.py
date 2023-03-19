@@ -227,19 +227,28 @@ def plot_progress(
     sf: Callable[[StatRun | Progress], Any] = sort_key
     if (instances.count > 1) and (algorithms.count == 1) \
             and (statistics.count == 1):
-        def __x(r: StatRun | Progress, ssf=instance_sort_key) -> Any:
+        def __x1(r: StatRun | Progress, ssf=instance_sort_key) -> Any:
             return ssf(r.instance)
-        sf = __x
+        sf = __x1
     elif (instances.count == 1) and (algorithms.count > 1) \
             and (statistics.count == 1):
-        def __x(r: StatRun | Progress, ssf=algorithm_sort_key) -> Any:
+        def __x2(r: StatRun | Progress, ssf=algorithm_sort_key) -> Any:
             return ssf(r.algorithm)
-        sf = __x
+        sf = __x2
     elif (instances.count == 1) and (algorithms.count == 1) \
             and (statistics.count > 1):
-        def __x(r: StatRun | Progress, ssf=stat_sort_key) -> Any:
+        def __x3(r: StatRun | Progress, ssf=stat_sort_key) -> Any:
             return ssf(r.instance)
-        sf = __x
+        sf = __x3
+    elif (instances.count > 1) and (algorithms.count > 1):
+        def __x4(r: StatRun | Progress, sas=algorithm_sort_key,
+                 ias=instance_sort_key,
+                 ag=algorithm_priority > instance_priority) \
+                -> tuple[Any, Any]:
+            k1 = ias(r.instance)
+            k2 = sas(r.algorithm)
+            return (k2, k1) if ag else (k1, k2)
+        sf = __x4
 
     statrun_list.sort(key=sf)
     progress_list.sort()
