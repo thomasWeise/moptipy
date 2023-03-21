@@ -34,7 +34,8 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
    Polynomial Time Algorithm for the Traveling Salesman Problem. *Biological
    Cybernetics,* 65(1):31-35, May 1991, https://doi.org/10.1007/BF00197287
 5. Zbigniew Michalewicz. *Genetic Algorithms + Data Structures = Evolution
-   Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5
+   Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5.
+   https://doi.org/10.1007/978-3-662-03315-9
 6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
    Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332-349.
    1991. New York: Van Nostrand Reinhold.
