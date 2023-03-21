@@ -7,7 +7,7 @@ from numpy.random import Generator
 from moptipy.api.operators import Op2
 
 
-@numba.njit(nogil=True, cache=True)
+@numba.njit(cache=True)
 def __op2_uniform(r: np.ndarray, dest: np.ndarray, x0: np.ndarray,
                   x1: np.ndarray) -> None:
     """
