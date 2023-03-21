@@ -52,18 +52,18 @@ from moptipy.utils.strings import (
 from moptipy.utils.types import check_int_range, type_error
 
 #: The internal CSV header
-_HEADER: Final[str] = f"{KEY_ALGORITHM}{CSV_SEPARATOR}" \
-                      f"{KEY_INSTANCE}{CSV_SEPARATOR}" \
-                      f"{KEY_RAND_SEED}{CSV_SEPARATOR}" \
-                      f"{KEY_BEST_F}{CSV_SEPARATOR}" \
-                      f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}" \
-                      f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}" \
-                      f"{CSV_SEPARATOR}" \
-                      f"{KEY_TOTAL_FES}{CSV_SEPARATOR}" \
-                      f"{KEY_TOTAL_TIME_MILLIS}{CSV_SEPARATOR}" \
-                      f"{KEY_GOAL_F}{CSV_SEPARATOR}" \
-                      f"{KEY_MAX_FES}{CSV_SEPARATOR}" \
-                      f"{KEY_MAX_TIME_MILLIS}\n"
+_HEADER: Final[str] = (f"{KEY_ALGORITHM}{CSV_SEPARATOR}"
+                       f"{KEY_INSTANCE}{CSV_SEPARATOR}"
+                       f"{KEY_RAND_SEED}{CSV_SEPARATOR}"
+                       f"{KEY_BEST_F}{CSV_SEPARATOR}"
+                       f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}"
+                       f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}"
+                       f"{CSV_SEPARATOR}"
+                       f"{KEY_TOTAL_FES}{CSV_SEPARATOR}"
+                       f"{KEY_TOTAL_TIME_MILLIS}{CSV_SEPARATOR}"
+                       f"{KEY_GOAL_F}{CSV_SEPARATOR}"
+                       f"{KEY_MAX_FES}{CSV_SEPARATOR}"
+                       f"{KEY_MAX_TIME_MILLIS}\n")
 
 
 def __get_goal_f(e: "EndResult") -> int | float:

@@ -123,7 +123,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
     body: str | None
     method = "GET" if needs_body else "HEAD"
     try:
-        error: BaseException | None
+        error: Exception | None
         response = None
 
 # Sometimes, access to the URLs on GitHub fails.
@@ -143,7 +143,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
                     retries=retries, headers=header)
                 error = None
                 break
-            except BaseException as be:
+            except Exception as be:
                 logger(f"sleep={sleep_time}, retries={retries}, "
                        f"timeout={timeout}, error={str(be)!r}, and "
                        f"header={header!r}.")
@@ -154,7 +154,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
             raise ValueError(f"no response from url={base_url!r}?")  # noqa
         code = response.status
         body = response.data.decode("utf-8") if needs_body else None
-    except BaseException as be:
+    except Exception as be:
         # sometimes, I cannot reach github from here...
         parsed: Final[Url] = parse_url(url)
         host: Final[str | None] = parsed.hostname

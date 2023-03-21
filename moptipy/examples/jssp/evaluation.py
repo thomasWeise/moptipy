@@ -114,8 +114,8 @@ def sa_family(name: str) -> str:
     :returns: the short name of the family
     """
     if name.startswith("sa_") and name.endswith("_swap2"):
-        return f"sa_T\u2080_" \
-               f"{beautify_float_str(name_str_to_num(name.split('_')[2]))}"
+        return (f"sa_T\u2080_"
+                f"{beautify_float_str(name_str_to_num(name.split('_')[2]))}")
     raise ValueError(f"Invalid SA name {name!r}.")
 
 
@@ -735,8 +735,8 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
         x_axis=AxisRanger(log_scale=True, log_base=2.0),
         legend_pos="upper center",
         dest_dir=dest)
-    lims: Final[str] = f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}" \
-                       f"{KEY_MEAN_ARITH}"
+    lims: Final[str] = (f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
+                        f"{KEY_MEAN_ARITH}")
     totfes: Final[str] = f"{KEY_TOTAL_FES}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}"
     table(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
                         "ea_512_512_swap2", "rls_swap2"], dest,

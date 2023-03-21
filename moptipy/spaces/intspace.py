@@ -121,9 +121,9 @@ class IntSpace(NPArraySpace):
         >>> print(IntSpace(4, -1, 3))
         ints4bm1to3
         """
-        return f"ints{self.dimension}{self.dtype.char}"\
-               f"{num_to_str_for_name(self.min_value)}to"\
-               f"{num_to_str_for_name(self.max_value)}"
+        return (f"ints{self.dimension}{self.dtype.char}"
+                f"{num_to_str_for_name(self.min_value)}to"
+                f"{num_to_str_for_name(self.max_value)}")
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

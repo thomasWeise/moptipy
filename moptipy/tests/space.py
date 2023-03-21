@@ -2,7 +2,7 @@
 from typing import Any, Callable
 
 # noinspection PyPackageRequirements
-from pytest import raises
+import pytest
 
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
@@ -116,5 +116,5 @@ def validate_space(
         raise ValueError(
             "make_element_invalid did not lead to a change in element!")
 
-    with raises(ValueError):
+    with pytest.raises(ValueError):  # noqa
         space.validate(x2)

@@ -1090,7 +1090,7 @@ class EndStatistics(MultiRunData):
                                 n, row[idx:(idx + CSV_COLS)])
                             idx += CSV_COLS
 
-                    except BaseException as be:
+                    except Exception as be:
                         raise ValueError(
                             f"Invalid row {line!r} in file {path!r}.") from be
 

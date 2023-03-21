@@ -358,7 +358,7 @@ def __get_font(choices: list[str]) -> str:
                     fname=fname).get_name().strip()
                 if font_name.encode("ascii", "ignore").decode() == font_name:
                     font_list.append(font_name)
-            except BaseException:  # noqa
+            except Exception:  # noqa
                 continue
         if len(font_list) <= 0:
             raise ValueError("Did not find any font.")

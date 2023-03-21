@@ -178,8 +178,8 @@ class ExponentialSchedule(TemperatureSchedule):
         >>> ExponentialSchedule(100.5, 0.3)
         exp100d5_0d3
         """
-        return f"exp{num_to_str_for_name(self.t0)}_" \
-               f"{num_to_str_for_name(self.epsilon)}"
+        return (f"exp{num_to_str_for_name(self.t0)}_"
+                f"{num_to_str_for_name(self.epsilon)}")
 
 
 # start logarithmic
@@ -270,5 +270,5 @@ class LogarithmicSchedule(TemperatureSchedule):
         >>> LogarithmicSchedule(100.5, 0.3)
         ln100d5_0d3
         """
-        return f"ln{num_to_str_for_name(self.t0)}_" \
-               f"{num_to_str_for_name(self.epsilon)}"
+        return (f"ln{num_to_str_for_name(self.t0)}_"
+                f"{num_to_str_for_name(self.epsilon)}")

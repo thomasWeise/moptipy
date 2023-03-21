@@ -238,7 +238,7 @@ class LogParser:
         retval: bool
         try:
             retval = self.start_file(file)
-        except BaseException as be:
+        except Exception as be:
             raise ValueError(f"Error when starting file {file!r}") from be
 
         if retval:
@@ -267,7 +267,7 @@ class LogParser:
                 if index >= len(buffer):
                     try:
                         buffer = handle.readlines(128)
-                    except BaseException as be:
+                    except Exception as be:
                         raise ValueError(
                             f"Error when reading lines from file {file!r} "
                             f"while in section {section!r}."
@@ -311,7 +311,7 @@ class LogParser:
                         if wants_section:
                             try:
                                 do_next = self.lines(lines)
-                            except BaseException as be:
+                            except Exception as be:
                                 raise ValueError(
                                     "Error when processing section "
                                     f"{section!r} in file {file!r}.") from be
@@ -329,7 +329,7 @@ class LogParser:
 
         try:
             retval = self.end_file()
-        except BaseException as be:
+        except Exception as be:
             raise ValueError("Error when ending section parsing "
                              f"of file {file!r}.") from be
         if self.__print_file_end:
@@ -456,8 +456,8 @@ class ExperimentParser(LogParser):
         self.instance = sanitize_name(basename(inst_dir))
         self.algorithm = sanitize_name(basename(algo_dir))
 
-        start = f"{self.algorithm}{PART_SEPARATOR}" \
-                f"{self.instance}{PART_SEPARATOR}0x"
+        start = (f"{self.algorithm}{PART_SEPARATOR}"
+                 f"{self.instance}{PART_SEPARATOR}0x")
         base = basename(path)
         if not base.startswith(start):
             raise ValueError(

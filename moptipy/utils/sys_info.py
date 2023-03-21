@@ -74,7 +74,7 @@ def __make_sys_info() -> str:
 
         :returns: a string if there is any processor information
         """
-        with contextlib.suppress(BaseException):
+        with contextlib.suppress(Exception):
             if platform.system() == "Windows":
                 return platform.processor()
             if platform.system() == "Linux":
@@ -89,7 +89,7 @@ def __make_sys_info() -> str:
 
         :returns: an integer with the memory size if available
         """
-        with contextlib.suppress(BaseException):
+        with contextlib.suppress(Exception):
             k1 = "SC_PAGESIZE"
             if k1 not in os.sysconf_names:
                 k1 = "SC_PAGE_SIZE"
@@ -117,7 +117,7 @@ def __make_sys_info() -> str:
 
         :returns: an integer with the memory size if available
         """
-        with contextlib.suppress(BaseException):
+        with contextlib.suppress(Exception):
             meminfo = {i.split()[0].rstrip(":"): int(i.split()[1])
                        for i in Path.path("/proc/meminfo").read_all_list()}
             mem_kib = meminfo["MemTotal"]  # e.g. 3921852
@@ -159,7 +159,7 @@ def __make_sys_info() -> str:
                     # doesn't even have to be reachable
                     s.connect(("10.255.255.255", 1))
                     ip = s.getsockname()[0]
-                except BaseException:
+                except Exception:
                     ip = "127.0.0.1"
                 finally:
                     s.close()
@@ -235,8 +235,8 @@ __SYS_INFO: Final[list[str]] = [__make_sys_info()]
 def refresh_sys_info() -> None:
     """Refresh the system information."""
     sys_info_str = __SYS_INFO[0]
-    start = f"\n{logging.SCOPE_SESSION}{SCOPE_SEPARATOR}" \
-            f"{logging.KEY_CPU_AFFINITY}{KEY_VALUE_SEPARATOR}"
+    start = (f"\n{logging.SCOPE_SESSION}{SCOPE_SEPARATOR}"
+             f"{logging.KEY_CPU_AFFINITY}{KEY_VALUE_SEPARATOR}")
     start_i = sys_info_str.find(start)
     if start_i < 0:
         return   # no affinity, don't need to update

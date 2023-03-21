@@ -422,12 +422,12 @@ class __WithoutShouldTerminate(Process):
 
     def evaluate(self, x) -> float | int:
         if self.should_terminate():
-            raise _InternalTerminationError()
+            raise _InternalTerminationError
         return self.__evaluate(x)
 
     def register(self, x, f: int | float) -> None:
         if self.should_terminate():
-            raise _InternalTerminationError()
+            raise _InternalTerminationError
         self.__register(x, f)
 
     def __str__(self) -> str:
@@ -492,17 +492,17 @@ class __WithoutShouldTerminateMO(MOProcess):
 
     def evaluate(self, x) -> float | int:
         if self.should_terminate():
-            raise _InternalTerminationError()
+            raise _InternalTerminationError
         return self.__evaluate(x)
 
     def register(self, x, f: int | float) -> None:
         if self.should_terminate():
-            raise _InternalTerminationError()
+            raise _InternalTerminationError
         self.__register(x, f)
 
     def f_evaluate(self, x, fs: np.ndarray) -> int | float:
         if self.should_terminate():
-            raise _InternalTerminationError()
+            raise _InternalTerminationError
         return self.__f_evaluate(x, fs)
 
     def __str__(self) -> str:

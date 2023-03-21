@@ -240,9 +240,9 @@ def makespan_lower_bound_table(
     lang: Final[Lang] = Lang.current()
 
     text: Final[list[str]] = [
-        r"|name|$\jsspJobs$|$\jsspMachines$|$\lowerBound(\objf)$|"
-        + r"$\lowerBound(\objf)^{\star}$|source for&nbsp;"
-        + r"$\lowerBound(\objf)^{\star}$|",
+        (r"|name|$\jsspJobs$|$\jsspMachines$|$\lowerBound(\objf)$|"
+         r"$\lowerBound(\objf)^{\star}$|source for&nbsp;"
+         r"$\lowerBound(\objf)^{\star}$|"),
         "|:--|--:|--:|--:|--:|:--|",
     ]
     bsrc: Final[str] = "[@eq:jsspLowerBound]"
@@ -277,9 +277,9 @@ def makespan_lower_bound_table(
                     f"Could not find end of instance {instn!r}.")
             sel = data[start:end].strip()
             logger(f"located instance text {sel!r} for {instn!r}.")
-            prefix = f'<td align="right">{inst.jobs}</td>\n<td align="' \
-                     f'right">{inst.machines}</td>\n<td align="right">' \
-                     f"{prefix}"
+            prefix = (f'<td align="right">{inst.jobs}</td>\n<td align="'
+                      f'right">{inst.machines}</td>\n<td align="right">'
+                      f"{prefix}")
             pi = sel.find(prefix)
             if pi <= 0:
                 raise ValueError(

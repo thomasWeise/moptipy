@@ -133,8 +133,8 @@ def type_error(obj: Any, name: str,
 
     message: Final[str] = f"{name} should be {exp} but is None." \
         if obj is None else \
-        f"{name} should be {exp} but is {type_name_of(obj)}, " \
-        f"namely {str(obj)!r}."
+        (f"{name} should be {exp} but is {type_name_of(obj)}, "
+         f"namely {str(obj)!r}.")
 
     return TypeError(message)
 

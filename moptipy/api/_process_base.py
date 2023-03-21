@@ -106,7 +106,7 @@ def _error_1(logger: Logger, title: str, exception_type,
                     ts.write(os.linesep)
 
 
-def _error_2(logger: Logger, title: str, exception: BaseException) -> None:
+def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     """
     Log an exception.
 
@@ -121,7 +121,7 @@ def _error_2(logger: Logger, title: str, exception: BaseException) -> None:
     ...     1 / 0
     >>> try:
     ...     k()
-    ... except BaseException as be:
+    ... except Exception as be:
     ...     _error_2(ime, "ERROR", be)
     >>> print(ime.get_log()[0])
     BEGIN_ERROR
@@ -139,7 +139,7 @@ def _error_2(logger: Logger, title: str, exception: BaseException) -> None:
              traceback=exception.__traceback__)
 
 
-# the function used to get the time
+#: the function used to get the time
 _TIME_IN_NS: Final[Callable[[], int]] = time_ns
 
 
@@ -285,7 +285,7 @@ class _ProcessBase(Process):
                   function=self.terminate)
 
         #: an internal base exception caught by the algorithm execution
-        self._caught: BaseException | None = None
+        self._caught: Exception | None = None
 
     def _after_init(self) -> None:
         """
@@ -532,34 +532,34 @@ class _ProcessBase(Process):
         # below.
         self._current_time_nanos = _TIME_IN_NS()
 
-        y_error: BaseException | None = None  # error in solution?
-        v_error: BaseException | None = None  # error in objective value?
-        x_error: BaseException | None = None  # error in search space?
-        t_error: BaseException | None = None  # error in timing?
-        log_error: BaseException | None = None  # error while logging?
+        y_error: Exception | None = None  # error in solution?
+        v_error: Exception | None = None  # error in objective value?
+        x_error: Exception | None = None  # error in search space?
+        t_error: Exception | None = None  # error in timing?
+        log_error: Exception | None = None  # error while logging?
         try:
             self._solution_space.validate(self._current_best_y)
-        except BaseException as be:
+        except Exception as be:
             y_error = be
         if self._current_fes > 0:
             try:
                 self._validate_best_f()
-            except BaseException as be:
+            except Exception as be:
                 v_error = be
             try:
                 self._validate_x()
-            except BaseException as be:
+            except Exception as be:
                 x_error = be
         try:
             self._check_timing()
-        except BaseException as be:
+        except Exception as be:
             t_error = be
 
         if self.__log_file is not None:
             with FileLogger(self.__log_file) as logger:
                 try:
                     self._write_log(logger)
-                except BaseException as be:
+                except Exception as be:
                     log_error = be
 
                 if self._caught is not None:

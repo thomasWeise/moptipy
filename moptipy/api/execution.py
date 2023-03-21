@@ -387,7 +387,7 @@ class Execution:
                 search_space.initialize()  # initialize the search space
             algorithm.initialize()  # initialize the algorithm
             algorithm.solve(process)  # apply the algorithm
-        except BaseException as be:
+        except Exception as be:
             # noinspection PyProtectedMember
             process._caught = be
         return process

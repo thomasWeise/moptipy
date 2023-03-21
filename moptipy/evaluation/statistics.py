@@ -385,14 +385,14 @@ class Statistics:
         """
         q: Final[str] = "" if (self.mean_geom is None) \
             else num_to_str(self.mean_geom)
-        return f"{num_to_str(self.minimum)}{CSV_SEPARATOR}" \
-               f"{num_to_str(self.median)}{CSV_SEPARATOR}" \
-               f"{num_to_str(self.mean_arith)}" \
-               f"{CSV_SEPARATOR}" \
-               f"{q}" \
-               f"{CSV_SEPARATOR}" \
-               f"{num_to_str(self.maximum)}{CSV_SEPARATOR}" \
-               f"{num_to_str(self.stddev)}"
+        return (f"{num_to_str(self.minimum)}{CSV_SEPARATOR}"
+                f"{num_to_str(self.median)}{CSV_SEPARATOR}"
+                f"{num_to_str(self.mean_arith)}"
+                f"{CSV_SEPARATOR}"
+                f"{q}"
+                f"{CSV_SEPARATOR}"
+                f"{num_to_str(self.maximum)}{CSV_SEPARATOR}"
+                f"{num_to_str(self.stddev)}")
 
     @staticmethod
     def from_csv(n: int, row: str | Iterable[str]) -> "Statistics":
