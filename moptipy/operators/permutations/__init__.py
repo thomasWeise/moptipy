@@ -6,6 +6,8 @@ These operators can be used in conjunction with the space
 
 - Module :mod:`~moptipy.operators.permutations.op0_shuffle` provides a nullary
   operator sampling an entirely random permutation.
+- Module :mod:`~moptipy.operators.permutations.op1_insert1` provides a unary
+  operator that extracts one element and inserts it elsewhere.
 - Module :mod:`~moptipy.operators.permutations.op1_swap2` provides a unary
   operator which swaps exactly two different elements of a permutation.
 - Module :mod:`~moptipy.operators.permutations.op1_swapn` provides a unary

@@ -803,6 +803,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
   - Nullary Operators:
     - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations.
   - Unary Operators:
+    - [insert_1](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_insert1) removes one element from a permutation and inserts it elsewhere.
     - [swap 2](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2) swaps exactly two (different) values.
     - [swap n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN) performs a random number of swaps.
     - [swap_exactly_n](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#module-moptipy.operators.permutations.op1_swap_exactly_n) is a unary operator with step size that will change/swap exactly a given number of elements for permutations where each element occurs once and which will try to swap that many in permutations with repetitions (where it might not be possible to swap exactly the required number of elements). 
