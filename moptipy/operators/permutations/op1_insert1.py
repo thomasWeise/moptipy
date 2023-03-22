@@ -31,7 +31,7 @@ operator is therefore called "position based mutation operator" in [5].
    https://doi.org/10.1007/978-3-662-03315-9
 5. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
    Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332-349.
-   1991. New York: Van Nostrand Reinhold.
+   1991. New York, NY, USA: Van Nostrand Reinhold.
 6. Yuezhong Wu, Thomas Weise, and Raymond Chiong. Local Search for the
    Traveling Salesman Problem: A Comparative Study. In *Proceedings of the
    14th IEEE Conference on Cognitive Informatics & Cognitive Computing

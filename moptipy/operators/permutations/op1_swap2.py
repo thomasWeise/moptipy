@@ -38,7 +38,7 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
    https://doi.org/10.1007/978-3-662-03315-9
 6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In
    Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332-349.
-   1991. New York: Van Nostrand Reinhold.
+   1991. New York, NY, USA: Van Nostrand Reinhold.
 7. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/

@@ -28,7 +28,7 @@ used `OX2`.
 
 1. G. Syswerda. Schedule Optimization Using Genetic Algorithms. In Lawrence
    Davis, L. (ed.), *Handbook of Genetic Algorithms,* pages 332-349.
-   New York: Van Nostrand Reinhold.
+   New York, NY, USA: Van Nostrand Reinhold.
 2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, Iñaki Inza, and
    S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A
    Review of Representations and Operators. *Artificial Intelligence Review,*

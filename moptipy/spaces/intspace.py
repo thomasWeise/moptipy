@@ -88,9 +88,10 @@ class IntSpace(NPArraySpace):
         Validate an integer string.
 
         :param x: the integer string
-        :raises TypeError: if the string is not an element of this space.
-        :raises ValueError: if the shape of the vector is wrong or any of its
-            element is not finite.
+        :raises TypeError: if the string is not an :class:`numpy.ndarray`.
+        :raises ValueError: if the shape or data type of the vector is wrong
+            or any of its element is not finite or if an element is out of
+            the bounds.
         """
         super().validate(x)
 

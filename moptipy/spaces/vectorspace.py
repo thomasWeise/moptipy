@@ -166,7 +166,7 @@ class VectorSpace(NPArraySpace):
         Validate a vector.
 
         :param x: the real vector
-        :raises TypeError: if the vector is not an element of this space.
+        :raises TypeError: if the string is not an :class:`numpy.ndarray`.
         :raises ValueError: if the shape of the vector is wrong or any of its
             element is not finite.
         """

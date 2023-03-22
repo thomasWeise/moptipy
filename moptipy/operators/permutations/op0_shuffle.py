@@ -41,8 +41,8 @@ class Op0Shuffle(Op0):
         Copy the base string to `dest` and shuffle it randomly.
 
         :param random: the random number generator
-        :param dest: the permutation that should be shuffled.
-            Afterwards, the order of its elements is random.
+        :param dest: the permutation that should be filled with a random
+            sequence of the base permutation.
         """
         np.copyto(dest, self.__blueprint)  # Copy blueprint to dest.
         random.shuffle(dest)  # Shuffle destination array randomly.

@@ -132,10 +132,48 @@ class Space(Component):
         """
         Check whether a given point in the space is valid.
 
+        This function should be implemented such that it very carefully checks
+        whether the argument `x` is a valid element of this space. It should
+        check the Python data type of `x` and the type of its components and
+        raise a `TypeError` if it does not match the exact requirements. It
+        should also check the value of each element of `x` whether it is
+        permitted. Once this function returns without throwing an exception,
+        the user can rely on that the data structure `x` is correct.
+
+        For example, if we have a space of
+        :mod:`~moptipy.spaces.permutations` of the values from `1` to `n`,
+        where the elements are represented as :class:`numpy.ndarray` objects,
+        then this function should first check whether `x` is indeed an
+        instance of :class:`numpy.ndarray`. If not, it should raise a
+        `TypeError`. Then it could check whether the length of `x` is indeed
+        `n` and raise a `ValueError` otherwise. It could then check whether
+        each element of `x` is from `1..n` *and* occurs exactly one time (and
+        otherwise raise a `ValueError`). Moreover, it should also check
+        whether the numpy `dtype` of `x` is an appropriate integer data type
+        and raise a `ValueError` otherwise. Hence, if this function checks an
+        element `x` and does not raise any error, the user can rely on that
+        this element `x` is, indeed, a fully valid permutation.
+
+        In our system, we use this method for example at the end of
+        optimization processes. Every solution that is written to a log file
+        must pass through this method. In other words, we ensure that only
+        valid solutions are stored. If the optimization algorithm or a search
+        operator has a bug and sometimes may produce invalid data structures,
+        this a) helps us in finding the bug and b) prevents us from storing
+        invalid solutions. It is also strongly encouraged that the
+        :meth:`from_str` method of any :class:`Space` implementation should
+        run its results through :meth:`validate`. Since :meth:`from_str` can
+        be used to, e.g., parse the data from the result sections of log
+        files, this ensures that no corrupted or otherwise invalid data is
+        parsed into an application.
+        See https://thomasweise.github.io/moptipy/#data-formats for more
+        information on log files.
+
         :param x: the point
-        :raises ValueError: if the point `x` is invalid
         :raises TypeError: if the point `x` (or one of its elements, if
             applicable) has the wrong data type
+        :raises ValueError: if the point `x` is invalid and/or simply is not
+            an element of this space
         """
 
     def n_points(self) -> int:

@@ -207,9 +207,11 @@ class Permutations(IntSpace):  # +book
         Validate a permutation of the base string.
 
         :param x: the integer string
-        :raises TypeError: if the string is not an element of this space.
-        :raises ValueError: if the shape of the vector is wrong or any of its
-            element is not finite.
+        :raises TypeError: if the string is not an :class:`numpy.ndarray`.
+        :raises ValueError: if the element is not a valid element of this
+            permutation space, e.g., if the shape or data type of `x` is
+            wrong, if an element is outside of the bounds, or if an
+            element does not occur exactly the prescribed amount of times
         """
         super().validate(x)
         counts: Counter[int] = Counter[int]()
@@ -230,7 +232,7 @@ class Permutations(IntSpace):  # +book
         """
         Get the number of possible different permutations of the base string.
 
-        :return: factorial(simension) / Product(factorial(count(e)) for all e)
+        :return: factorial(dimension) / Product(factorial(count(e)) for all e)
 
         >>> print(Permutations([0, 1, 2, 3, 0, 1, 2, 3]).n_points())
         2520

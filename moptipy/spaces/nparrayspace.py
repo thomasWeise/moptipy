@@ -86,9 +86,9 @@ class NPArraySpace(Space):
         Validate a numpy nd-array.
 
         :param x: the numpy vector
-        :raises TypeError: if the string is not an element of this space.
-        :raises ValueError: if the shape of the vector is wrong or any of its
-            element is not finite.
+        :raises TypeError: if the string is not an :class:`numpy.ndarray`.
+        :raises ValueError: if the shape or data type of the vector is wrong
+            or any of its element is not finite.
         """
         if not isinstance(x, np.ndarray):
             raise type_error(x, "x", np.ndarray)

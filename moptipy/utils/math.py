@@ -431,7 +431,7 @@ def try_int_root(value: int, power: int,
     if root_power >= value:
         if root_power == value:
             return int_root  # ok, we are done
-        raise ValueError(f"huh? {int_root}**{power}={root_power} > {value}?")
+        raise ValueError(f"{int_root}**{power}={root_power} > {value}?")
 
     # Now try to remove integer factors from the value and the root,
     # to achieve a more accurate division of the rest.
@@ -463,7 +463,7 @@ def try_int_root(value: int, power: int,
     if root_power >= value:
         if root_power == value:
             return root_base * int_root  # ok, we are done
-        raise ValueError(f"huh? {int_root}**{power}={root_power} > {value}?")
+        raise ValueError(f"{int_root}**{power}={root_power} > {value}?")
 
     # from now on, root may be either and int or (more likely) a float.
     root: int | float = int_root
