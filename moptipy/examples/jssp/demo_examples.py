@@ -224,7 +224,7 @@ def makespan_lower_bound_table(
     # get the data with the lower bounds information
     url: Final[str] = "https://github.com/thomasWeise/jsspInstancesAndResults"
     logger(f"now loading data from {url!r}.")
-    with rq.urlopen(url) as f:  # nosec
+    with rq.urlopen(url) as f:  # nosec # noqa
         data: str = f.read().decode(UTF8).strip()
     if not data:
         raise ValueError(f"Could not load data form {url}.")
