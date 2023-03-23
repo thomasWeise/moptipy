@@ -21,6 +21,11 @@ The following pre-defined spaces are currently available:
   on the base string, each element may occur an element-specific number of
   times. For the base string `(-1, -1, 2, 7, 7, 7)`, for example, `-1` may
   occur twice, `2` can occur once, and `7` three times.
+- :class:`~moptipy.spaces.ordered_choices.OrderedChoices` is a combination of
+  permutations and combinations. There are `n` choices of one or multiple
+  different values each. The choices are either disjoint or identical. An
+  element from the space picks one value per choice. The order of the elements
+  matters.
 - :class:`~moptipy.spaces.vectorspace.VectorSpace` is the space of
   `n`-dimensional floating point number vectors
 """

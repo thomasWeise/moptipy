@@ -810,6 +810,14 @@ In other words, they try to minimize multiple [objective functions](https://thom
   - Binary Operators:
     - [generalized alternating position crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_gap.Op2GeneralizedAlternatingPosition) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
     - [order-based crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased) randomly selects a set of indices and copies the elements from first source permutation to the same indices in the destination string. It then copies the remaining elements from the second source, maintaining the order in which they appear in the second source string.
+- [Ordered Choices](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.ordered_choices) are a hybrid of permutations and combinations.
+  Given are `n` choices, i.e., sets of different values.
+  Each choice could contain any number of different values.
+  Any two choices must either be disjoint or contain the values.
+  Now an element of the space contains one value from each choice and the order matters.
+  So permutations and permutations with repetitions can be represented as ordered choices.
+  - Nullary Operators:
+    - [choose_and_shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.ordered_choices.html#module-moptipy.operators.ordered_choices) picks one random value from each choice and shuffles them.
 - [`n`-dimensional spaces of real numbers](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace) are subsets of the `n`-dimensional real numbers.
   They are `numpy` arrays representing vectors of length `n`.
   On each dimension, a [lower](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.lower_bound) and an [upper bound](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.upper_bound) are imposed.
