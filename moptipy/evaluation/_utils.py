@@ -5,19 +5,6 @@ from typing import Final
 import numba  # type: ignore
 import numpy as np
 
-import moptipy.api.logging as lg
-
-#: the maximum FEs of a black-box process
-_FULL_KEY_MAX_FES: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_MAX_FES}"
-#: the maximum runtime in milliseconds of a black-box process
-_FULL_KEY_MAX_TIME_MILLIS: Final[str] = \
-    f"{lg.SCOPE_PROCESS}.{lg.KEY_MAX_TIME_MILLIS}"
-#: the goal objective value of a black-box process
-_FULL_KEY_GOAL_F: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_GOAL_F}"
-#: the random seed
-_FULL_KEY_RAND_SEED: Final[str] = f"{lg.SCOPE_PROCESS}.{lg.KEY_RAND_SEED}"
-#: the FE when the best objective value was reached
-
 
 def _check_max_time_millis(max_time_millis: int | float,
                            total_fes: int | float,
@@ -86,45 +73,3 @@ def _get_goal_reach_index(f: np.ndarray, goal_f: int | float):  # noqa
     if res <= 0:
         return -1
     return int(f.size - res)
-
-
-@numba.njit(nogil=True)
-def _get_time_reach_index(time: np.ndarray, upper_limit: int):  # noqa
-    """
-    Get the time reach index.
-
-    :param time: the array with the time values
-    :param upper_limit: the upper limit for the time
-    :return: the index at which the limit is reached, or `-1` if `upper_limit`
-        is less than all the values in the `time` array
-
-    >>> ft = np.array([1, 2, 3, 5, 8, 9, 10])
-    >>> _get_time_reach_index(ft, 0)
-    -1
-    >>> _get_time_reach_index(ft, 1)
-    0
-    >>> _get_time_reach_index(ft, 2)
-    1
-    >>> _get_time_reach_index(ft, 3)
-    2
-    >>> _get_time_reach_index(ft, 4)
-    2
-    >>> _get_time_reach_index(ft, 5)
-    3
-    >>> _get_time_reach_index(ft, 6)
-    3
-    >>> _get_time_reach_index(ft, 7)
-    3
-    >>> _get_time_reach_index(ft, 8)
-    4
-    >>> _get_time_reach_index(ft, 9)
-    5
-    >>> _get_time_reach_index(ft, 10)
-    6
-    >>> _get_time_reach_index(ft, 11)
-    6
-    """
-    res = np.searchsorted(time, upper_limit, side="left")
-    while (res >= 0) and (time[res] > upper_limit):
-        res = res - 1
-    return int(res)

@@ -18,14 +18,8 @@ from moptipy.api.logging import (
     KEY_RAND_SEED,
     KEY_TOTAL_FES,
     KEY_TOTAL_TIME_MILLIS,
-    SECTION_FINAL_STATE,
-    SECTION_SETUP,
 )
 from moptipy.evaluation._utils import (
-    _FULL_KEY_GOAL_F,
-    _FULL_KEY_MAX_FES,
-    _FULL_KEY_MAX_TIME_MILLIS,
-    _FULL_KEY_RAND_SEED,
     _check_max_time_millis,
 )
 from moptipy.evaluation.base import (
@@ -34,10 +28,10 @@ from moptipy.evaluation.base import (
     F_NAME_SCALED,
     PerRunData,
 )
-from moptipy.evaluation.log_parser import ExperimentParser
+from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
-from moptipy.utils.logger import CSV_SEPARATOR, parse_key_values
+from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.path import Path
 from moptipy.utils.strings import (
@@ -404,7 +398,7 @@ class EndResult(PerRunData):
         logger(f"Done reading CSV file {path!r}.")
 
 
-class _InnerLogParser(ExperimentParser):
+class _InnerLogParser(SetupAndStateParser):
     """The internal log parser class."""
 
     def __init__(self, consumer: Callable[[EndResult], Any]):
@@ -417,134 +411,19 @@ class _InnerLogParser(ExperimentParser):
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[["EndResult"], Any]] = consumer
-        self.__total_fes: int | None = None
-        self.__total_time_millis: int | None = None
-        self.__best_f: int | float | None = None
-        self.__last_improvement_fe: int | None = None
-        self.__last_improvement_time_millis: int | None = None
-        self.__goal_f: int | float | None = None
-        self.__max_fes: int | None = None
-        self.__max_time_millis: int | None = None
-        self.__state: int = 0
 
-    def start_file(self, path: Path) -> bool:
-        if not super().start_file(path):
-            return False
-
-        if self.__state != 0:
-            raise ValueError(f"Illegal state when trying to parse {path}.")
-
-        return True
-
-    def end_file(self) -> bool:
-        if self.__state != 3:
-            raise ValueError(
-                "Illegal state, log file must have both a "
-                f"{SECTION_FINAL_STATE} and a "
-                f"{SECTION_SETUP} section.")
-
-        if self.rand_seed is None:
-            raise ValueError("rand_seed is missing.")
-        if self.algorithm is None:
-            raise ValueError("algorithm is missing.")
-        if self.instance is None:
-            raise ValueError("instance is missing.")
-        if self.__total_fes is None:
-            raise ValueError("total_fes is missing.")
-        if self.__total_time_millis is None:
-            raise ValueError("total_time_millis is missing.")
-        if self.__best_f is None:
-            raise ValueError("best_f is missing.")
-        if self.__last_improvement_fe is None:
-            raise ValueError("last_improvement_fe is missing.")
-        if self.__last_improvement_time_millis is None:
-            raise ValueError("last_improvement_time_millis is missing.")
-
+    def process(self) -> None:
         self.__consumer(EndResult(self.algorithm,
                                   self.instance,
                                   self.rand_seed,
-                                  self.__best_f,
-                                  self.__last_improvement_fe,
-                                  self.__last_improvement_time_millis,
-                                  self.__total_fes,
-                                  self.__total_time_millis,
-                                  self.__goal_f,
-                                  self.__max_fes,
-                                  self.__max_time_millis))
-
-        self.__total_fes = None
-        self.__total_time_millis = None
-        self.__best_f = None
-        self.__last_improvement_fe = None
-        self.__last_improvement_time_millis = None
-        self.__goal_f = None
-        self.__max_fes = None
-        self.__max_time_millis = None
-        self.__state = 0
-        return super().end_file()
-
-    def start_section(self, title: str) -> bool:
-        super().start_section(title)
-        if title == SECTION_SETUP:
-            if (self.__state & 1) != 0:
-                raise ValueError(f"Already did section {title}.")
-            self.__state |= 4
-            return True
-        if title == SECTION_FINAL_STATE:
-            if (self.__state & 2) != 0:
-                raise ValueError(f"Already did section {title}.")
-            self.__state |= 8
-            return True
-        return False
-
-    def lines(self, lines: list[str]) -> bool:
-        data = parse_key_values(lines)
-        if not isinstance(data, dict):
-            raise type_error(data, "data", dict)
-
-        if (self.__state & 4) != 0:
-            if _FULL_KEY_GOAL_F in data:
-                goal_f = data[_FULL_KEY_GOAL_F]
-                if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
-                    self.__goal_f = float(goal_f)
-                elif goal_f == "-inf":
-                    self.__goal_f = None
-                else:
-                    self.__goal_f = int(goal_f)
-            else:
-                self.__goal_f = None
-
-            if _FULL_KEY_MAX_FES in data:
-                self.__max_fes = int(data[_FULL_KEY_MAX_FES])
-            if _FULL_KEY_MAX_TIME_MILLIS in data:
-                self.__max_time_millis = \
-                    int(data[_FULL_KEY_MAX_TIME_MILLIS])
-
-            seed_check = int(data[_FULL_KEY_RAND_SEED])
-            if seed_check != self.rand_seed:
-                raise ValueError(
-                    f"Found seed {seed_check} in log file, but file name "
-                    f"indicates seed {self.rand_seed}.")
-
-            self.__state = (self.__state | 1) & (~4)
-            return self.__state != 3
-
-        if (self.__state & 8) != 0:
-            self.__total_fes = int(data[KEY_TOTAL_FES])
-            self.__total_time_millis = \
-                int(data[KEY_TOTAL_TIME_MILLIS])
-
-            self.__best_f = str_to_intfloat(data[KEY_BEST_F])
-
-            self.__last_improvement_fe = \
-                int(data[KEY_LAST_IMPROVEMENT_FE])
-            self.__last_improvement_time_millis = \
-                int(data[KEY_LAST_IMPROVEMENT_TIME_MILLIS])
-
-            self.__state = (self.__state | 2) & (~8)
-            return self.__state != 3
-
-        raise ValueError("Illegal state.")
+                                  self.best_f,
+                                  self.last_improvement_fe,
+                                  self.last_improvement_time_millis,
+                                  self.total_fes,
+                                  self.total_time_millis,
+                                  self.goal_f,
+                                  self.max_fes,
+                                  self.max_time_millis))
 
 
 # Run log files to end results if executed as script

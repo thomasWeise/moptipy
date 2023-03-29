@@ -657,18 +657,23 @@ def parse_key_values(lines: Iterable[str]) -> dict[str, str]:
     if not isinstance(lines, Iterable):
         raise type_error(lines, "lines", Iterable)
     dct = {}
-    for line in lines:
+    for i, line in enumerate(lines):
+        if not isinstance(line, str):
+            raise type_error(line, f"lines[{i}]", str)
         splt = line.split(KEY_VALUE_SEPARATOR)
         if len(splt) != 2:
             raise ValueError(
                 f"Two strings separated by {KEY_VALUE_SEPARATOR!r} "
-                f"expected, but encountered {len(splt)} in {line!r}.")
+                f"expected, but encountered {len(splt)} in {i}th "
+                f"line {line!r}.")
         key = splt[0].strip()
         if len(key) <= 0:
-            raise ValueError(f"Empty key encountered in {line!r}.")
+            raise ValueError(
+                f"Empty key encountered in {i}th line {line!r}.")
         value = splt[1].strip()
         if len(value) <= 0:
-            raise ValueError(f"Empty value encountered in {line!r}.")
+            raise ValueError(
+                f"Empty value encountered in {i}th line {line!r}.")
         dct[key] = value
 
     return dct

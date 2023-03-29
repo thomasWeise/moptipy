@@ -21,16 +21,64 @@ module :mod:`~moptipy.evaluation.progress` reads the whole
 over time.
 """
 
+from math import isfinite
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, join
 from typing import Final
 
-from moptipy.api import logging
+from moptipy.api.logging import (
+    ERROR_SECTION_PREFIX,
+    FILE_SUFFIX,
+    KEY_BEST_F,
+    KEY_GOAL_F,
+    KEY_LAST_IMPROVEMENT_FE,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+    KEY_MAX_FES,
+    KEY_MAX_TIME_MILLIS,
+    KEY_NAME,
+    KEY_RAND_SEED,
+    KEY_TOTAL_FES,
+    KEY_TOTAL_TIME_MILLIS,
+    SCOPE_ALGORITHM,
+    SCOPE_OBJECTIVE_FUNCTION,
+    SCOPE_PROCESS,
+    SECTION_FINAL_STATE,
+    SECTION_SETUP,
+)
 from moptipy.utils.console import logger
-from moptipy.utils.logger import COMMENT_CHAR, SECTION_END, SECTION_START
+from moptipy.utils.logger import (
+    COMMENT_CHAR,
+    SCOPE_SEPARATOR,
+    SECTION_END,
+    SECTION_START,
+    parse_key_values,
+)
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.path import Path
-from moptipy.utils.strings import PART_SEPARATOR, sanitize_name
+from moptipy.utils.strings import (
+    PART_SEPARATOR,
+    sanitize_name,
+    str_to_intfloat,
+)
+from moptipy.utils.types import check_to_int_range
+
+#: the maximum FEs of a black-box process
+_FULL_KEY_MAX_FES: Final[str] = \
+    f"{SCOPE_PROCESS}{SCOPE_SEPARATOR}{KEY_MAX_FES}"
+#: the maximum runtime in milliseconds of a black-box process
+_FULL_KEY_MAX_TIME_MILLIS: Final[str] = \
+    f"{SCOPE_PROCESS}{SCOPE_SEPARATOR}{KEY_MAX_TIME_MILLIS}"
+#: the goal objective value of a black-box process
+_FULL_KEY_GOAL_F: Final[str] = f"{SCOPE_PROCESS}{SCOPE_SEPARATOR}{KEY_GOAL_F}"
+#: the random seed
+_FULL_KEY_RAND_SEED: Final[str] = \
+    f"{SCOPE_PROCESS}{SCOPE_SEPARATOR}{KEY_RAND_SEED}"
+#: the full algorithm name key
+_FULL_KEY_ALGORITHM: Final[str] = \
+    f"{SCOPE_ALGORITHM}{SCOPE_SEPARATOR}{KEY_NAME}"
+#: the full objective name key
+_FULL_KEY_INSTANCE: Final[str] = \
+    f"{SCOPE_OBJECTIVE_FUNCTION}{SCOPE_SEPARATOR}{KEY_NAME}"
 
 
 class LogParser:
@@ -135,7 +183,7 @@ class LogParser:
             :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
             return `True`).
         """
-        return path.endswith(logging.FILE_SUFFIX)
+        return path.endswith(FILE_SUFFIX)
 
     # noinspection PyMethodMayBeStatic
     def start_section(self, title: str) -> bool:
@@ -157,7 +205,7 @@ class LogParser:
         """
         if not title:
             raise ValueError(f"Title cannot be empty, but is {title!r}.")
-        if title.startswith(logging.ERROR_SECTION_PREFIX):
+        if title.startswith(ERROR_SECTION_PREFIX):
             raise ValueError(f"Encountered error section {title!r}.")
         return False
 
@@ -463,7 +511,7 @@ class ExperimentParser(LogParser):
             raise ValueError(
                 f"File name of {path!r} should start with {start!r}.")
         self.rand_seed = rand_seed_check(int(
-            base[len(start):(-len(logging.FILE_SUFFIX))], base=16))
+            base[len(start):(-len(FILE_SUFFIX))], base=16))
 
         return True
 
@@ -473,3 +521,197 @@ class ExperimentParser(LogParser):
         self.algorithm = None
         self.instance = None
         return super().end_file()
+
+
+class SetupAndStateParser(ExperimentParser):
+    """A log parser which loads and processes the basic data from the logs."""
+
+    def __init__(self):
+        """Create the basic data parser."""
+        super().__init__()
+        self.total_fes: int | None = None
+        self.total_time_millis: int | None = None
+        self.best_f: int | float | None = None
+        self.last_improvement_fe: int | None = None
+        self.last_improvement_time_millis: int | None = None
+        self.goal_f: int | float | None = None
+        self.max_fes: int | None = None
+        self.max_time_millis: int | None = None
+        self.__state: int = 0
+
+    def start_file(self, path: Path) -> bool:
+        """
+        Begin parsing the file identified by `path`.
+
+        :param path: the path identifying the file
+        """
+        if not super().start_file(path):
+            return False
+        if self.__state != 0:
+            raise ValueError(f"Illegal state when trying to parse {path}.")
+        return True
+
+    def process(self) -> None:
+        """
+        Process the result of the log parsing.
+
+        This function is invoked by :meth:`end_file` if the end of the parsing
+        process is reached. By now, all the data should have been loaded and it
+        can now be passed on to wherever it should be passed to.
+        """
+
+    def end_file(self) -> bool:
+        """
+        Finalize parsing a file and invoke the :meth:`process` method.
+
+        :returns: `True` if parsing should be continued, `False` otherwise
+        """
+        # perform sanity checks
+        if self.__state != 3:
+            raise ValueError(
+                "Illegal state, log file must have both a "
+                f"{SECTION_FINAL_STATE!r} and a "
+                f"{SECTION_SETUP!r} section.")
+        if self.rand_seed is None:
+            raise ValueError("rand_seed is missing.")
+        if self.algorithm is None:
+            raise ValueError("algorithm is missing.")
+        if self.instance is None:
+            raise ValueError("instance is missing.")
+        if self.total_fes is None:
+            raise ValueError("total_fes is missing.")
+        if self.total_time_millis is None:
+            raise ValueError("total_time_millis is missing.")
+        if self.best_f is None:
+            raise ValueError("best_f is missing.")
+        if self.last_improvement_fe is None:
+            raise ValueError("last_improvement_fe is missing.")
+        if self.last_improvement_time_millis is None:
+            raise ValueError("last_improvement_time_millis is missing.")
+        self.process()  # invoke the handler
+        # now clear the data
+        self.total_fes = None
+        self.total_time_millis = None
+        self.best_f = None
+        self.last_improvement_fe = None
+        self.last_improvement_time_millis = None
+        self.goal_f = None
+        self.max_fes = None
+        self.max_time_millis = None
+        self.__state = 0
+        return super().end_file()
+
+    def needs_more_lines(self) -> bool:
+        """
+        Check whether we need to process more lines.
+
+        :returns: `True` if more data needs to be processed, `False` otherwise
+        """
+        return self.__state != 3
+
+    def lines(self, lines: list[str]) -> bool:
+        """
+        Process the lines loaded from a section.
+
+        :param lines: the lines that have been loaded
+        :returns: `True` if parsing should be continued, `False` otherwise
+        """
+        if (self.__state & 4) != 0:
+            self.setup_section(lines)
+        elif (self.__state & 8) != 0:
+            self.state_section(lines)
+        return self.needs_more_lines()
+
+    def start_section(self, title: str) -> bool:
+        """
+        Begin a section.
+
+        :param title: the section title
+        :returns: `True` if the text of the section should be processed,
+            `False` otherwise
+        """
+        super().start_section(title)
+        if title == SECTION_SETUP:
+            if (self.__state & 1) != 0:
+                raise ValueError(f"Already did section {title!r}.")
+            self.__state |= 4
+            return True
+        if title == SECTION_FINAL_STATE:
+            if (self.__state & 2) != 0:
+                raise ValueError(f"Already did section {title}.")
+            self.__state |= 8
+            return True
+        return False
+
+    def setup_section(self, lines: list[str]) -> None:
+        """
+        Parse the data from the `setup` section.
+
+        :param lines: the lines of the section
+        """
+        data: Final[dict[str, str]] = parse_key_values(lines)
+        if _FULL_KEY_GOAL_F in data:
+            goal_f = data[_FULL_KEY_GOAL_F]
+            if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
+                self.goal_f = float(goal_f)
+            elif goal_f == "-inf":
+                self.goal_f = None
+            else:
+                self.goal_f = int(goal_f)
+        else:
+            self.goal_f = None
+
+        if _FULL_KEY_MAX_FES in data:
+            self.max_fes = check_to_int_range(
+                data[_FULL_KEY_MAX_FES], _FULL_KEY_MAX_FES, 1,
+                1_000_000_000_000_000)
+        if _FULL_KEY_MAX_TIME_MILLIS in data:
+            self.max_time_millis = check_to_int_range(
+                data[_FULL_KEY_MAX_TIME_MILLIS], _FULL_KEY_MAX_TIME_MILLIS, 1,
+                1_000_000_000_000)
+        if _FULL_KEY_ALGORITHM in data:
+            a = data[_FULL_KEY_ALGORITHM]
+            if self.algorithm is None:
+                self.algorithm = a
+            elif a != self.algorithm:
+                raise ValueError(
+                    f"algorithm name from file name is {self.algorithm!r}, "
+                    f"but key {_FULL_KEY_ALGORITHM!r} gives {a!r}.")
+        if (self.instance is None) and (_FULL_KEY_INSTANCE in data):
+            self.instance = data[_FULL_KEY_INSTANCE]
+
+        seed_check = rand_seed_check(int(data[_FULL_KEY_RAND_SEED]))
+        if self.rand_seed is None:
+            self.rand_seed = seed_check
+        elif seed_check != self.rand_seed:
+            raise ValueError(
+                f"Found seed {seed_check} in log file, but file name "
+                f"indicates seed {self.rand_seed}.")
+
+        self.__state = (self.__state | 1) & (~4)
+
+    def state_section(self, lines: list[str]) -> None:
+        """
+        Process the data of the final state section.
+
+        :param lines: the lines of that section
+        """
+        data: Final[dict[str, str]] = parse_key_values(lines)
+
+        self.total_fes = check_to_int_range(
+            data[KEY_TOTAL_FES], KEY_TOTAL_FES, 1,
+            1_000_000_000_000_000 if self.max_fes is None else self.max_fes)
+        self.total_time_millis = check_to_int_range(
+            data[KEY_TOTAL_TIME_MILLIS], KEY_TOTAL_TIME_MILLIS, 1,
+            1_000_000_000_000 if self.max_time_millis is None else
+            self.max_time_millis)
+        self.best_f = str_to_intfloat(data[KEY_BEST_F])
+        if not isfinite(self.best_f):
+            raise ValueError(f"infinite best f detected: {self.best_f}")
+        self.last_improvement_fe = check_to_int_range(
+            data[KEY_LAST_IMPROVEMENT_FE], KEY_LAST_IMPROVEMENT_FE, 1,
+            self.total_fes)
+        self.last_improvement_time_millis = check_to_int_range(
+            data[KEY_LAST_IMPROVEMENT_TIME_MILLIS],
+            KEY_LAST_IMPROVEMENT_TIME_MILLIS, 1, self.total_time_millis)
+        self.__state = (self.__state | 2) & (~8)

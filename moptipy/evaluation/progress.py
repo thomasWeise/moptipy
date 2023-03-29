@@ -1,12 +1,31 @@
-"""Progress data over a run."""
+"""
+Objects embodying the progress of a run over time.
+
+An instance of :class:`Progress` holds one :attr:`~Progress.time` vector and
+an objective value (:attr:`~Progress.f`) vector. The time dimension (stored in
+:attr:`~Progress.time_unit`) can either be in FEs or in milliseconds and the
+objective value dimension (stored in :attr:`~Progress.f_name`) can be raw
+objective values, standardized objective values, or normalized objective
+values.
+The two vectors together thus describe how a run of an optimization algorithm
+improves the objective value over time.
+"""
 from dataclasses import dataclass
 from math import inf, isfinite
 from typing import Any, Callable, Final
 
 import numpy as np
 
-from moptipy.api import logging
-from moptipy.evaluation._utils import _FULL_KEY_GOAL_F, _FULL_KEY_RAND_SEED
+from moptipy.api.logging import (
+    KEY_ALGORITHM,
+    KEY_GOAL_F,
+    KEY_INSTANCE,
+    KEY_RAND_SEED,
+    PROGRESS_CURRENT_F,
+    PROGRESS_FES,
+    PROGRESS_TIME_MILLIS,
+    SECTION_PROGRESS,
+)
 from moptipy.evaluation.base import (
     F_NAME_RAW,
     F_NAME_SCALED,
@@ -16,13 +35,12 @@ from moptipy.evaluation.base import (
     check_f_name,
     check_time_unit,
 )
-from moptipy.evaluation.log_parser import ExperimentParser
+from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.console import logger
 from moptipy.utils.logger import (
     COMMENT_CHAR,
     CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
-    parse_key_values,
 )
 from moptipy.utils.nputils import is_all_finite, is_np_float, is_np_int
 from moptipy.utils.path import Path
@@ -196,14 +214,14 @@ class Progress(PerRunData):
                 kv: Final[str] = KEY_VALUE_SEPARATOR
                 cmt: Final[str] = COMMENT_CHAR
                 out.write(
-                    f"{cmt} {logging.KEY_ALGORITHM}{kv}{self.algorithm}\n")
+                    f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
                 out.write(
-                    f"{cmt} {logging.KEY_INSTANCE}{kv}{self.instance}\n")
-                out.write(f"{cmt} {logging.KEY_RAND_SEED}{kv}"
+                    f"{cmt} {KEY_INSTANCE}{kv}{self.instance}\n")
+                out.write(f"{cmt} {KEY_RAND_SEED}{kv}"
                           f"{hex(self.rand_seed)}\n")
                 if self.f_standard is not None:
                     out.write(
-                        f"{cmt} {logging.KEY_GOAL_F}{kv}{self.f_standard}\n")
+                        f"{cmt} {KEY_GOAL_F}{kv}{self.f_standard}\n")
             out.write(f"{self.time_unit}{sep}{self.f_name}\n")
             for i, t in enumerate(self.time):
                 out.write(f"{t}{sep}{num_to_str(self.f[i])}\n")
@@ -214,7 +232,7 @@ class Progress(PerRunData):
         return path
 
 
-class _InnerLogParser(ExperimentParser):
+class _InnerLogParser(SetupAndStateParser):
     """The internal log parser class."""
 
     # States are OR combinations of the following:
@@ -244,10 +262,7 @@ class _InnerLogParser(ExperimentParser):
         self.__consumer: Final[Callable[[Progress], Any]] = consumer
         self.__time_unit = check_time_unit(time_unit)
         self.__f_name = check_f_name(f_name)
-        self.__total_time: int | None = None
-        self.__total_fes: int | None = None
         self.__last_fe: int | None = None
-        self.__goal_f: int | float | None = None
         self.__t_collector: Final[list[int]] = []
         self.__f_collector: Final[list[int | float]] = []
         if not isinstance(only_improvements, bool):
@@ -257,62 +272,45 @@ class _InnerLogParser(ExperimentParser):
             raise type_error(f_standard, "f_standard", dict)
         self.__f_standard: Final[None | dict[str, int | float]] \
             = f_standard
-        self.__state = 0
-
-    def start_file(self, path: Path) -> bool:
-        if not super().start_file(path):
-            return False
-        if self.__state != 0:
-            raise ValueError(f"Illegal state when trying to parse {path}.")
-        return True
+        self.__state: int = 0
 
     def end_file(self) -> bool:
-        if self.__state != 7:
+        if self.__state != 2:
             raise ValueError(
                 "Illegal state, log file must have a "
-                f"{logging.SECTION_FINAL_STATE}, a "
-                f"{logging.SECTION_SETUP}, and a "
-                f"{logging.SECTION_PROGRESS} section.")
-
-        if self.rand_seed is None:
-            raise ValueError("rand_seed is missing.")
-        if self.algorithm is None:
-            raise ValueError("algorithm is missing.")
-        if self.instance is None:
-            raise ValueError("instance is missing.")
-        if self.__total_time is None:
-            raise ValueError("total time is missing.")
-        if self.__total_fes is None:
-            raise ValueError("total FEs are missing.")
+                f"{SECTION_PROGRESS!r} section.")
         if not self.__f_collector:
             raise ValueError("f-collector cannot be empty.")
         if not self.__t_collector:
             raise ValueError("time-collector cannot be empty.")
+        self.__state = 0
+        return super().end_file()
 
+    def process(self) -> None:
         f_standard: int | float | None = None
         if (self.__f_standard is not None) and \
                 (self.instance in self.__f_standard):
             f_standard = self.__f_standard[self.instance]
         if f_standard is None:
-            f_standard = self.__goal_f
+            f_standard = self.goal_f
         if (self.__f_name != F_NAME_RAW) and (f_standard is None):
             raise ValueError(f"f_standard cannot be {f_standard} if f_name "
                              f"is {self.__f_name}.")
 
-        tt = self.__total_time if (self.__time_unit == TIME_UNIT_MILLIS) \
-            else self.__total_fes
+        tt = self.total_time_millis if (self.__time_unit == TIME_UNIT_MILLIS) \
+            else self.total_fes
         if tt < self.__t_collector[-1]:
             raise ValueError(
                 f"Last time units {tt} inconsistent with last"
                 f"recorded time unit {self.__t_collector[-1]}.")
-        if self.__last_fe < self.__total_fes:
+        if self.__last_fe < self.total_fes:
             if tt > self.__t_collector[-1]:
                 self.__t_collector.append(tt)
                 self.__f_collector.append(self.__f_collector[-1])
-        elif self.__last_fe > self.__total_fes:
+        elif self.__last_fe > self.total_fes:
             raise ValueError(
                 f"Last FE {self.__last_fe} inconsistent with total number"
-                f"{self.__total_fes} of FEs.")
+                f"{self.total_fes} of FEs.")
 
         ff: np.ndarray
         if self.__f_name == F_NAME_RAW:
@@ -333,139 +331,87 @@ class _InnerLogParser(ExperimentParser):
                                  self.__f_name,
                                  f_standard,
                                  self.__only_improvements))
-
-        self.__total_time = None
-        self.__goal_f = None
         self.__t_collector.clear()
-        self.__total_time = None
-        self.__total_fes = None
         self.__last_fe = None
-        self.__state = 0
-        return super().end_file()
 
     def start_section(self, title: str) -> bool:
-        super().start_section(title)
-        if title == logging.SECTION_SETUP:
-            if (self.__state & 1) != 0:
+        if title == SECTION_PROGRESS:
+            if self.__state != 0:
                 raise ValueError(f"Already did section {title}.")
-            self.__state |= 8
+            self.__state = 1
             return True
-        if title == logging.SECTION_FINAL_STATE:
-            if (self.__state & 2) != 0:
-                raise ValueError(f"Already did section {title}.")
-            self.__state |= 16
-            return True
-        if title == logging.SECTION_PROGRESS:
-            if (self.__state & 4) != 0:
-                raise ValueError(f"Already did section {title}.")
-            self.__state |= 32
-            return True
-        return False
+        return super().start_section(title)
+
+    def needs_more_lines(self) -> bool:
+        return (self.__state < 2) or super().needs_more_lines()
 
     def lines(self, lines: list[str]) -> bool:
+        if self.__state != 1:
+            return super().lines(lines)
         if not isinstance(lines, list):
             raise type_error(lines, "lines", list)
+        n_rows = len(lines)
+        if n_rows < 2:
+            raise ValueError("lines must contain at least two elements,"
+                             f"but contains {n_rows}.")
 
-        if (self.__state & 24) != 0:  # final state or setup
-            data = parse_key_values(lines)
+        columns = [c.strip() for c in lines[0].split(CSV_SEPARATOR)]
+        n_cols = len(columns)
+        if n_cols < 3:
+            raise ValueError("There must be at least three columns, "
+                             f"but found {n_cols} in {lines[0]!r}.")
 
-            if not isinstance(data, dict):
-                raise ValueError("Error when parsing data.")
-
-            if (self.__state & 8) != 0:  # state
-                if _FULL_KEY_GOAL_F in data:
-                    goal_f = data[_FULL_KEY_GOAL_F]
-                    if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
-                        self.__goal_f = float(goal_f)
-                    elif goal_f == "-inf":
-                        self.__goal_f = None
-                    else:
-                        self.__goal_f = int(goal_f)
-                else:
-                    self.__goal_f = None
-
-                seed_check = int(data[_FULL_KEY_RAND_SEED])
-                if seed_check != self.rand_seed:
+        time_col_name: str = PROGRESS_TIME_MILLIS if \
+            self.__time_unit == TIME_UNIT_MILLIS else PROGRESS_FES
+        time_col_idx: int = -1
+        f_col_idx: int = -1
+        fe_col_idx: int = -1
+        for idx, col in enumerate(columns):  # find the columns we
+            if col == PROGRESS_FES:
+                fe_col_idx = idx
+            if col == time_col_name:
+                if time_col_idx >= 0:
+                    raise ValueError(f"Time column {time_col_name} "
+                                     "appears twice.")
+                time_col_idx = idx
+            elif col == PROGRESS_CURRENT_F:
+                if f_col_idx >= 0:
                     raise ValueError(
-                        f"Found seed {seed_check} in log file, but file name "
-                        f"indicates seed {self.rand_seed}.")
+                        f"F column {PROGRESS_CURRENT_F} "
+                        "appears twice.")
+                f_col_idx = idx
 
-                self.__state = (self.__state | 1) & (~8)
-                return self.__state != 7
+        def aa(splt):  # noqa
+            return splt[time_col_idx], splt[f_col_idx]
 
-            if (self.__state & 16) != 0:  # END_STATE
-                self.__total_fes = int(data[logging.KEY_TOTAL_FES])
-                self.__total_time = \
-                    int(data[logging.KEY_TOTAL_TIME_MILLIS])
-                self.__state = (self.__state | 2) & (~16)
-                return self.__state != 7
+        time, f = zip(*[[c.strip()
+                         for c in aa(line.split(CSV_SEPARATOR))]
+                        for line in lines[1:]], strict=True)
+        time = [int(t) for t in time]
+        f = [str_to_intfloat(v) for v in f]
+        if self.__only_improvements:
+            biggest_t: int = -1
+            best_f: int | float = inf
+            for idx, t in enumerate(time):
+                v = f[idx]
+                if t > biggest_t:
+                    if biggest_t >= 0:
+                        self.__t_collector.append(biggest_t)
+                        self.__f_collector.append(best_f)
+                    best_f = v
+                    biggest_t = t
+                elif v < best_f:
+                    best_f = v
+            if biggest_t >= 0:
+                self.__t_collector.append(biggest_t)
+                self.__f_collector.append(best_f)
+        else:
+            self.__t_collector.extend(time)
+            self.__f_collector.extend(f)
 
-        if (self.__state & 32) != 0:  # CSV data
-            n_rows = len(lines)
-            if n_rows < 2:
-                raise ValueError("lines must contain at least two elements,"
-                                 f"but contains {n_rows}.")
+        self.__last_fe = int((lines[-1].split(CSV_SEPARATOR))[fe_col_idx])
+        if self.__last_fe <= 0:
+            raise ValueError(f"Last FE cannot be {self.__last_fe}.")
 
-            columns = [c.strip() for c in
-                       lines[0].split(CSV_SEPARATOR)]
-            n_cols = len(columns)
-            if n_cols < 3:
-                raise ValueError("There must be at least three columns, "
-                                 f"but found {n_cols} in {lines[0]!r}.")
-
-            time_col_name: str = logging.PROGRESS_TIME_MILLIS if \
-                self.__time_unit == TIME_UNIT_MILLIS else logging.PROGRESS_FES
-            time_col_idx: int = -1
-            f_col_idx: int = -1
-            fe_col_idx: int = -1
-            for idx, col in enumerate(columns):  # find the columns we
-                if col == logging.PROGRESS_FES:
-                    fe_col_idx = idx
-                if col == time_col_name:
-                    if time_col_idx >= 0:
-                        raise ValueError(f"Time column {time_col_name} "
-                                         "appears twice.")
-                    time_col_idx = idx
-                elif col == logging.PROGRESS_CURRENT_F:
-                    if f_col_idx >= 0:
-                        raise ValueError(
-                            f"F column {logging.PROGRESS_CURRENT_F} "
-                            "appears twice.")
-                    f_col_idx = idx
-
-            def aa(splt):  # noqa
-                return splt[time_col_idx], splt[f_col_idx]
-
-            time, f = zip(*[[c.strip()
-                             for c in aa(line.split(CSV_SEPARATOR))]
-                            for line in lines[1:]], strict=True)
-            time = [int(t) for t in time]
-            f = [str_to_intfloat(v) for v in f]
-            if self.__only_improvements:
-                biggest_t: int = -1
-                best_f: int | float = inf
-                for idx, t in enumerate(time):
-                    v = f[idx]
-                    if t > biggest_t:
-                        if biggest_t >= 0:
-                            self.__t_collector.append(biggest_t)
-                            self.__f_collector.append(best_f)
-                        best_f = v
-                        biggest_t = t
-                    elif v < best_f:
-                        best_f = v
-                if biggest_t >= 0:
-                    self.__t_collector.append(biggest_t)
-                    self.__f_collector.append(best_f)
-            else:
-                self.__t_collector.extend(time)
-                self.__f_collector.extend(f)
-
-            self.__last_fe = int((lines[-1].split(CSV_SEPARATOR))[fe_col_idx])
-            if self.__last_fe <= 0:
-                raise ValueError(f"Last FE cannot be {self.__last_fe}.")
-
-            self.__state = (self.__state | 4) & (~32)
-            return self.__state != 7
-
-        raise ValueError("Illegal state.")
+        self.__state = 2
+        return self.needs_more_lines()
