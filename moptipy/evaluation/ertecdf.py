@@ -58,6 +58,10 @@ class ErtEcdf(Ecdf):
         """
         Compute the times for the given goals.
 
+        Warning: `source` must only contain progress objects that contain
+        monotonously improving points. It must not contain runs that may get
+        worse over time.
+
         :param source: the source array
         :param goal: the goal value
         :return: a list of times

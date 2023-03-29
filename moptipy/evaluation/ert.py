@@ -38,7 +38,7 @@ import numpy as np
 
 import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
-from moptipy.evaluation._utils import _get_reach_index
+from moptipy.evaluation._utils import _get_goal_reach_index
 from moptipy.evaluation.base import (
     F_NAME_NORMALIZED,
     F_NAME_RAW,
@@ -70,16 +70,64 @@ def compute_single_ert(source: Iterable[Progress],
     once they have terminated, we would immediately start a new,
     independent run.
 
+    Warning: `source` must only contain progress objects that contain
+    monotonously improving points. It must not contain runs that may get
+    worse over time.
+
     :param source: the source array
     :param goal_f: the goal objective value
     :return: the ERT
+
+    >>> from moptipy.evaluation.progress import Progress as Pr
+    >>> from numpy import array as a
+    >>> f = "plainF"
+    >>> t = "FEs"
+    >>> r = [Pr("a", "i", 1, a([1, 4, 8]), t, a([10, 8, 5]), f),
+    ...      Pr("a", "i", 2, a([1, 3, 6]), t, a([9, 7, 4]), f),
+    ...      Pr("a", "i", 3, a([1, 2, 7, 9]), t, a([8, 7, 6, 3]), f),
+    ...      Pr("a", "i", 4, a([1, 12]), t, a([9, 3]), f)]
+    >>> print(compute_single_ert(r, 11))
+    1.0
+    >>> print(compute_single_ert(r, 10))
+    1.0
+    >>> print(compute_single_ert(r, 9.5))  # (4 + 1 + 1 + 1) / 4 = 1.75
+    1.75
+    >>> print(compute_single_ert(r, 9))  # (4 + 1 + 1 + 1) / 4 = 1.75
+    1.75
+    >>> print(compute_single_ert(r, 8.5))  # (4 + 3 + 1 + 12) / 4 = 5
+    5.0
+    >>> print(compute_single_ert(r, 8))  # (4 + 3 + 1 + 12) / 4 = 5
+    5.0
+    >>> print(compute_single_ert(r, 7.3))  # (8 + 3 + 2 + 12) / 4 = 6.25
+    6.25
+    >>> print(compute_single_ert(r, 7))  # (8 + 3 + 2 + 12) / 4 = 6.25
+    6.25
+    >>> print(compute_single_ert(r, 6.1))  # (8 + 6 + 7 + 12) / 4 = 8.25
+    8.25
+    >>> print(compute_single_ert(r, 6))  # (8 + 6 + 7 + 12) / 4 = 8.25
+    8.25
+    >>> print(compute_single_ert(r, 5.7))  # (8 + 6 + 9 + 12) / 4 = 8.75
+    8.75
+    >>> print(compute_single_ert(r, 5))  # (8 + 6 + 9 + 12) / 4 = 8.75
+    8.75
+    >>> print(compute_single_ert(r, 4.2))  # (8 + 6 + 9 + 12) / 3 = 11.666...
+    11.666666666666666
+    >>> print(compute_single_ert(r, 4))  # (8 + 6 + 9 + 12) / 3 = 11.666...
+    11.666666666666666
+    >>> print(compute_single_ert(r, 3.8))  # (8 + 6 + 9 + 12) / 2 = 17.5
+    17.5
+    >>> print(compute_single_ert(r, 3))  # (8 + 6 + 9 + 12) / 2 = 17.5
+    17.5
+    >>> print(compute_single_ert(r, 2.9))
+    inf
+    >>> print(compute_single_ert(r, 2))
+    inf
     """
     n_success: int = 0
     time_sum: int = 0
     for progress in source:
-        size = progress.f.size
-        idx = size - _get_reach_index(progress.f, goal_f)
-        if idx < size:
+        idx = _get_goal_reach_index(progress.f, goal_f)
+        if idx >= 0:
             n_success += 1
         else:
             idx = cast(np.integer, -1)

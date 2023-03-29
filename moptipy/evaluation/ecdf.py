@@ -41,7 +41,7 @@ import numpy as np
 
 import moptipy.api.logging as lg
 import moptipy.utils.nputils as npu
-from moptipy.evaluation._utils import _get_reach_index
+from moptipy.evaluation._utils import _get_goal_reach_index
 from moptipy.evaluation.base import (
     F_NAME_NORMALIZED,
     F_NAME_SCALED,
@@ -201,16 +201,20 @@ class Ecdf(MultiRun2DData):
         """
         Compute the times for the given goals.
 
+        Warning: `source` must only contain progress objects that contain
+        monotonously improving points. It must not contain runs that may get
+        worse over time.
+
         :param source: the source array
         :param goal: the goal value
         :return: a list of times
         """
         ret = []
         for pr in source:
-            idx = _get_reach_index(pr.f, goal)
-            if idx <= 0:
+            idx = _get_goal_reach_index(pr.f, goal)
+            if idx < 0:
                 continue
-            ret.append(pr.time[pr.time.size - idx])
+            ret.append(pr.time[idx])
         return ret
 
     # noinspection PyUnusedLocal

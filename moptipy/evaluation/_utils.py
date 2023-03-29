@@ -57,29 +57,74 @@ def _check_max_time_millis(max_time_millis: int | float,
 
 
 @numba.njit(nogil=True)
-def _get_reach_index(f: np.ndarray, goal_f: int | float):  # noqa
+def _get_goal_reach_index(f: np.ndarray, goal_f: int | float):  # noqa
     """
     Compute the offset from the end of `f` when `goal_f` was reached.
 
     :param f: the raw data array, which must be sorted in
         descending order
     :param goal_f: the goal f value
-    :return: the index, or `0` if `goal_f` was not reached
+    :return: the index, or `-1` if `goal_f` was not reached
 
     >>> ft = np.array([10, 9, 8, 5, 3, 2, 1])
-    >>> _get_reach_index(ft, 11)
-    7
-    >>> ft[ft.size - _get_reach_index(ft, 11)]
-    10
-    >>> _get_reach_index(ft, 10)
-    7
-    >>> _get_reach_index(ft, 9)
-    6
-    >>> ft[ft.size - _get_reach_index(ft, 6)]
-    5
-    >>> _get_reach_index(ft, 1)
-    1
-    >>> _get_reach_index(ft, 0.9)
+    >>> _get_goal_reach_index(ft, 11)
     0
+    >>> ft[_get_goal_reach_index(ft, 11)]
+    10
+    >>> _get_goal_reach_index(ft, 10)
+    0
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft[_get_goal_reach_index(ft, 6)]
+    5
+    >>> _get_goal_reach_index(ft, 1)
+    6
+    >>> _get_goal_reach_index(ft, 0.9)
+    -1
     """
-    return np.searchsorted(f[::-1], goal_f, side="right")
+    res: Final = np.searchsorted(f[::-1], goal_f, side="right")
+    if res <= 0:
+        return -1
+    return int(f.size - res)
+
+
+@numba.njit(nogil=True)
+def _get_time_reach_index(time: np.ndarray, upper_limit: int):  # noqa
+    """
+    Get the time reach index.
+
+    :param time: the array with the time values
+    :param upper_limit: the upper limit for the time
+    :return: the index at which the limit is reached, or `-1` if `upper_limit`
+        is less than all the values in the `time` array
+
+    >>> ft = np.array([1, 2, 3, 5, 8, 9, 10])
+    >>> _get_time_reach_index(ft, 0)
+    -1
+    >>> _get_time_reach_index(ft, 1)
+    0
+    >>> _get_time_reach_index(ft, 2)
+    1
+    >>> _get_time_reach_index(ft, 3)
+    2
+    >>> _get_time_reach_index(ft, 4)
+    2
+    >>> _get_time_reach_index(ft, 5)
+    3
+    >>> _get_time_reach_index(ft, 6)
+    3
+    >>> _get_time_reach_index(ft, 7)
+    3
+    >>> _get_time_reach_index(ft, 8)
+    4
+    >>> _get_time_reach_index(ft, 9)
+    5
+    >>> _get_time_reach_index(ft, 10)
+    6
+    >>> _get_time_reach_index(ft, 11)
+    6
+    """
+    res = np.searchsorted(time, upper_limit, side="left")
+    while (res >= 0) and (time[res] > upper_limit):
+        res = res - 1
+    return int(res)
