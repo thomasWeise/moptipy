@@ -1,4 +1,13 @@
-"""Statistics aggregated over multiple instances of EndResult."""
+"""
+Statistics aggregated over multiple instances of `EndResult`.
+
+The :mod:`~moptipy.evaluation.end_results` records hold the final result of
+a run of an optimization algorithm on a problem instance. Often, we do not
+want to compare these single results directly, but instead analyze summary
+statistics, such as the mean best objective value found. For this purpose,
+:class:`EndStatistics` exists. It summarizes the singular results from the
+runs into a record with the most important statistics.
+"""
 import argparse
 import os.path
 from dataclasses import dataclass

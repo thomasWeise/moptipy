@@ -1,4 +1,18 @@
-"""Record for EndResult as well as parsing, serialization, and parsing."""
+"""
+Record for EndResult as well as parsing, serialization, and parsing.
+
+When doing experiments with `moptipy`, you apply algorithm setups to problem
+instances. For each `setup x instance` combination, you may conduct a series
+of repetitions (so-called runs) with different random seeds. Each single run
+of an algorithm setup on a problem instances can produce a separate log file.
+From each log file, we can load a :class:`EndResult` instance, which
+represents, well, the end result of the run, i.e., information such as the
+best solution quality reached, when it was reached, and the termination
+criterion. These end result records then can be the basis for, e.g., computing
+summary statistics via :mod:`~moptipy.evaluation.end_statistics` or for
+plotting the end result distribution via
+:mod:`~moptipy.evaluation.plot_end_results`.
+"""
 import argparse
 import os.path
 from dataclasses import dataclass
@@ -376,7 +390,7 @@ class EndResult(PerRunData):
                     raise type_error(goal_f, "goal_f", (int, float, None))
                 if isfinite(goal_f):
                     need_goals = True
-                elif goal_f >= inf:
+                elif goal_f <= -inf:
                     goal_f = None
                 else:
                     raise ValueError(f"goal_f={goal_f} is not permissible.")
@@ -584,17 +598,20 @@ class _InnerProgressLogParser(SetupAndStateParser):
                     f"Invalid state: algorithm={self.algorithm!r}, "
                     f"instance={self.instance!r}.")
 
-            self.__limit_fes_n = check_int_range(
-                self.__src_limit_fes(self.algorithm, self.instance)
-                if callable(self.__src_limit_fes) else self.__src_limit_fes,
-                "limit_fes", 1, 1_000_000_000_000_000)
+            self.__limit_fes_n = None if self.__src_limit_fes is None else \
+                check_int_range(
+                    self.__src_limit_fes(self.algorithm, self.instance)
+                    if callable(self.__src_limit_fes) else
+                    self.__src_limit_fes, "limit_fes", 1,
+                    1_000_000_000_000_000)
             self.__limit_fes = inf if self.__limit_fes_n is None \
                 else self.__limit_fes_n
 
-            self.__limit_ms_n = check_int_range(
-                self.__src_limit_ms(self.algorithm, self.instance)
-                if callable(self.__src_limit_ms) else self.__src_limit_ms,
-                "limit_ms", 1, 1_000_000_000_000)
+            self.__limit_ms_n = None if self.__src_limit_ms is None else \
+                check_int_range(
+                    self.__src_limit_ms(self.algorithm, self.instance)
+                    if callable(self.__src_limit_ms) else self.__src_limit_ms,
+                    "limit_ms", 1, 1_000_000_000_000)
             self.__limit_ms = inf if self.__limit_ms_n is None \
                 else self.__limit_ms_n
 
