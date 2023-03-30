@@ -304,10 +304,14 @@ class EndResult(PerRunData):
                          f"should be one of {sorted(_GETTERS.keys())}.")
 
     @staticmethod
-    def from_logs(path: str, consumer: Callable[["EndResult"], Any],
-                  max_fes: int | None = None,
-                  max_time_millis: int | None = None,
-                  goal_f: int | float | None = None) -> None:
+    def from_logs(
+            path: str, consumer: Callable[["EndResult"], Any],
+            max_fes: int | None | Callable[
+                [str, str], int | None] = None,
+            max_time_millis: int | None | Callable[
+                [str, str], int | None] = None,
+            goal_f: int | float | None | Callable[
+                [str, str], int | float | None] = None) -> None:
         """
         Parse a given path and pass all end results found to the consumer.
 
@@ -344,29 +348,38 @@ class EndResult(PerRunData):
 
         :param path: the path to parse
         :param consumer: the consumer
-        :param max_fes: the maximum FEs, or `None` if unspecified
-        :param max_time_millis: the maximum runtime in milliseconds, or
+        :param max_fes: the maximum FEs, a callable to compute the maximum
+            FEs from the algorithm and instance name, or `None` if unspecified
+        :param max_time_millis: the maximum runtime in milliseconds, a
+            callable to compute the maximum runtime from the algorithm and
+            instance name, or `None` if unspecified
+        :param goal_f: the goal objective value, a callable to compute the
+            goal objective value from the algorithm and instance name, or
             `None` if unspecified
-        :param goal_f: the goal objective value, or `None` if unspecified
         """
         need_goals: bool = False
         if max_fes is not None:
-            max_fes = check_int_range(
-                max_fes, "max_fes", 1, 1_000_000_000_000_000)
+            if not callable(max_fes):
+                max_fes = check_int_range(
+                    max_fes, "max_fes", 1, 1_000_000_000_000_000)
             need_goals = True
         if max_time_millis is not None:
-            max_time_millis = check_int_range(
-                max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
+            if not callable(max_time_millis):
+                max_time_millis = check_int_range(
+                    max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
             need_goals = True
         if goal_f is not None:
-            if not isinstance(goal_f, int | float):
-                raise type_error(goal_f, "goal_f", (int, float, None))
-            if isfinite(goal_f):
+            if callable(goal_f):
                 need_goals = True
-            elif goal_f >= inf:
-                goal_f = None
             else:
-                raise ValueError(f"goal_f={goal_f} is not permissible.")
+                if not isinstance(goal_f, int | float):
+                    raise type_error(goal_f, "goal_f", (int, float, None))
+                if isfinite(goal_f):
+                    need_goals = True
+                elif goal_f >= inf:
+                    goal_f = None
+                else:
+                    raise ValueError(f"goal_f={goal_f} is not permissible.")
         if need_goals:
             _InnerProgressLogParser(
                 max_fes, max_time_millis, goal_f, consumer).parse(path)
@@ -485,11 +498,13 @@ class _InnerLogParser(SetupAndStateParser):
 class _InnerProgressLogParser(SetupAndStateParser):
     """The internal log parser class for virtual end results."""
 
-    def __init__(self,
-                 max_fes: int | None,
-                 max_time_millis: int | None,
-                 goal_f: int | float | None,
-                 consumer: Callable[[EndResult], Any]):
+    def __init__(
+            self,
+            max_fes: int | None | Callable[[str, str], int | None],
+            max_time_millis: int | None | Callable[[str, str], int | None],
+            goal_f: int | float | None | Callable[
+                [str, str], int | float | None],
+            consumer: Callable[[EndResult], Any]):
         """
         Create the internal log parser.
 
@@ -503,15 +518,22 @@ class _InnerProgressLogParser(SetupAndStateParser):
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[[EndResult], Any]] = consumer
-        self.__limit_time: Final[int | float] =\
-            inf if max_time_millis is None else max_time_millis
-        self.__limit_time_n: Final[int | None] = max_time_millis
-        self.__limit_fes: Final[int | float] =\
-            inf if max_fes is None else max_fes
-        self.__limit_fes_n: Final[int | None] = max_fes
-        self.__limit_f_n: Final[int | float | None] = goal_f
-        self.__limit_f: Final[int | float] =\
-            -inf if goal_f is None else goal_f
+
+        self.__src_limit_ms: Final[
+            int | None | Callable[[str, str], int | None]] = max_time_millis
+        self.__src_limit_fes: Final[
+            int | None | Callable[[str, str], int | None]] = max_fes
+        self.__src_limit_f: Final[
+            int | float | None | Callable[
+                [str, str], int | float | None]] = goal_f
+
+        self.__limit_ms: int | float = inf
+        self.__limit_ms_n: int | None = None
+        self.__limit_fes: int | float = inf
+        self.__limit_fes_n: int | None = None
+        self.__limit_f: int | float = -inf
+        self.__limit_f_n: int | float | None = None
+
         self.__stop_fes: int | None = None
         self.__stop_ms: int | None = None
         self.__stop_f: int | float | None = None
@@ -541,13 +563,59 @@ class _InnerProgressLogParser(SetupAndStateParser):
             self.goal_f if self.__limit_f_n is None else self.__limit_f_n,
             self.max_fes if self.__limit_fes_n is None
             else self.__limit_fes_n,
-            self.max_time_millis if self.__limit_time_n is None
-            else self.__limit_time_n))
+            self.max_time_millis if self.__limit_ms_n is None else
+            self.__limit_ms_n))
         self.__stop_fes = None
         self.__stop_ms = None
         self.__stop_f = None
         self.__stop_li_fe = None
         self.__stop_li_ms = None
+        self.__limit_fes_n = None
+        self.__limit_fes = inf
+        self.__limit_ms_n = None
+        self.__limit_ms = inf
+        self.__limit_f_n = None
+        self.__limit_f = -inf
+
+    def start_file(self, path: Path) -> bool:
+        if super().start_file(path):
+            if (self.algorithm is None) or (self.instance is None):
+                raise ValueError(
+                    f"Invalid state: algorithm={self.algorithm!r}, "
+                    f"instance={self.instance!r}.")
+
+            self.__limit_fes_n = check_int_range(
+                self.__src_limit_fes(self.algorithm, self.instance)
+                if callable(self.__src_limit_fes) else self.__src_limit_fes,
+                "limit_fes", 1, 1_000_000_000_000_000)
+            self.__limit_fes = inf if self.__limit_fes_n is None \
+                else self.__limit_fes_n
+
+            self.__limit_ms_n = check_int_range(
+                self.__src_limit_ms(self.algorithm, self.instance)
+                if callable(self.__src_limit_ms) else self.__src_limit_ms,
+                "limit_ms", 1, 1_000_000_000_000)
+            self.__limit_ms = inf if self.__limit_ms_n is None \
+                else self.__limit_ms_n
+
+            self.__limit_f_n = self.__src_limit_f(
+                self.algorithm, self.instance) \
+                if callable(self.__src_limit_f) else self.__src_limit_f
+            if self.__limit_f_n is not None:
+                if not isinstance(self.__limit_f_n, int | float):
+                    raise type_error(self.__limit_f_n, "limit_f", (
+                        int, float))
+                if not isfinite(self.__limit_f_n):
+                    if self.__limit_f_n <= -inf:
+                        self.__limit_f_n = None
+                    else:
+                        raise ValueError(
+                            f"invalid limit f={self.__limit_f_n} for "
+                            f"{self.algorithm} on {self.instance}")
+            self.__limit_f = -inf if self.__limit_f_n is None \
+                else self.__limit_f_n
+            return True
+        return False
 
     def start_section(self, title: str) -> bool:
         if title == SECTION_PROGRESS:
@@ -585,8 +653,7 @@ class _InnerProgressLogParser(SetupAndStateParser):
         stop_li_fe: int | None = None
         stop_li_ms: int | None = None
         limit_fes: Final[int | float] = self.__limit_fes
-        limit_ms: Final[int | float] = self.__limit_time
-        limit_ms_n: Final[int | None] = self.__limit_time_n
+        limit_ms: Final[int | float] = self.__limit_ms
         limit_f: Final[int | float] = self.__limit_f
 
         for line in lines[1:]:
@@ -608,7 +675,7 @@ class _InnerProgressLogParser(SetupAndStateParser):
                     current_li_ms = current_ms
             if (current_fes >= limit_fes) or (current_ms >= limit_ms) or \
                     (current_best_f <= limit_f):
-                if limit_ms_n is not None:
+                if self.__limit_ms_n is not None:
                     if current_ms > limit_ms:
                         stop_ms = int(limit_ms)
                     if current_ms <= limit_ms:

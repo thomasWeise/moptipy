@@ -88,8 +88,9 @@ def __lang_setup() -> None:
         "gantt_info": "{gantt.instance.name} ({gantt.instance.jobs}份作业"
                       "\u00D7{gantt.instance.machines}台机器), "
                       "最大完工时间{gantt[:,:,2].max()}",
-        "gantt_info_no_ms": "{gantt.instance.name} ({gantt.instance.jobs}份作业"
-                            "\u00D7{gantt.instance.machines}台机器) ",
+        "gantt_info_no_ms":
+            "{gantt.instance.name} ({gantt.instance.jobs}份作业"
+            "\u00D7{gantt.instance.machines}台机器) ",
         "gantt_info_short": "{gantt.instance.name} / {gantt[:,:,2].max()}",
         "machine": "机器",
         "makespan": "最大完工时间",
