@@ -40,7 +40,6 @@ from moptipy.api.logging import (
     KEY_TOTAL_FES,
     KEY_TOTAL_TIME_MILLIS,
     SCOPE_ALGORITHM,
-    SCOPE_OBJECTIVE_FUNCTION,
     SCOPE_PROCESS,
     SECTION_FINAL_STATE,
     SECTION_SETUP,
@@ -76,9 +75,6 @@ _FULL_KEY_RAND_SEED: Final[str] = \
 #: the full algorithm name key
 _FULL_KEY_ALGORITHM: Final[str] = \
     f"{SCOPE_ALGORITHM}{SCOPE_SEPARATOR}{KEY_NAME}"
-#: the full objective name key
-_FULL_KEY_INSTANCE: Final[str] = \
-    f"{SCOPE_OBJECTIVE_FUNCTION}{SCOPE_SEPARATOR}{KEY_NAME}"
 
 
 class LogParser:
@@ -524,7 +520,12 @@ class ExperimentParser(LogParser):
 
 
 class SetupAndStateParser(ExperimentParser):
-    """A log parser which loads and processes the basic data from the logs."""
+    """
+    A log parser which loads and processes the basic data from the logs.
+
+    This parser processes the `SETUP` and `STATE` sections of a log file and
+    stores the performance-related information in member variables.
+    """
 
     def __init__(self):
         """Create the basic data parser."""
@@ -557,12 +558,15 @@ class SetupAndStateParser(ExperimentParser):
 
         This function is invoked by :meth:`end_file` if the end of the parsing
         process is reached. By now, all the data should have been loaded and it
-        can now be passed on to wherever it should be passed to.
+        can be passed on to wherever it should be passed to.
         """
 
     def end_file(self) -> bool:
         """
         Finalize parsing a file and invoke the :meth:`process` method.
+
+        This method invokes the :meth:`process` method to process the parsed
+        data.
 
         :returns: `True` if parsing should be continued, `False` otherwise
         """
@@ -605,6 +609,11 @@ class SetupAndStateParser(ExperimentParser):
         """
         Check whether we need to process more lines.
 
+        You can overwrite this method if your parser parses additional log
+        sections. Your overwritten method should return `True` if more
+        sections except `STATE` and `SETUP` still need to be parsed and return
+        `super().needs_more_lines()` otherwise.
+
         :returns: `True` if more data needs to be processed, `False` otherwise
         """
         return self.__state != 3
@@ -612,6 +621,10 @@ class SetupAndStateParser(ExperimentParser):
     def lines(self, lines: list[str]) -> bool:
         """
         Process the lines loaded from a section.
+
+        If you process more sections, you should override this method. Your
+        overridden method then can parse the data if you are in the right
+        section. It should end with `return super().lines(lines)`.
 
         :param lines: the lines that have been loaded
         :returns: `True` if parsing should be continued, `False` otherwise
@@ -671,14 +684,10 @@ class SetupAndStateParser(ExperimentParser):
                 1_000_000_000_000)
         if _FULL_KEY_ALGORITHM in data:
             a = data[_FULL_KEY_ALGORITHM]
-            if self.algorithm is None:
-                self.algorithm = a
-            elif a != self.algorithm:
+            if a != self.algorithm:
                 raise ValueError(
                     f"algorithm name from file name is {self.algorithm!r}, "
                     f"but key {_FULL_KEY_ALGORITHM!r} gives {a!r}.")
-        if (self.instance is None) and (_FULL_KEY_INSTANCE in data):
-            self.instance = data[_FULL_KEY_INSTANCE]
 
         seed_check = rand_seed_check(int(data[_FULL_KEY_RAND_SEED]))
         if self.rand_seed is None:

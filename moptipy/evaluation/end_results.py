@@ -18,6 +18,10 @@ from moptipy.api.logging import (
     KEY_RAND_SEED,
     KEY_TOTAL_FES,
     KEY_TOTAL_TIME_MILLIS,
+    PROGRESS_CURRENT_F,
+    PROGRESS_FES,
+    PROGRESS_TIME_MILLIS,
+    SECTION_PROGRESS,
 )
 from moptipy.evaluation._utils import (
     _check_max_time_millis,
@@ -43,7 +47,7 @@ from moptipy.utils.strings import (
     str_to_intfloatnone,
     str_to_intnone,
 )
-from moptipy.utils.types import check_int_range, type_error
+from moptipy.utils.types import check_int_range, check_to_int_range, type_error
 
 #: The internal CSV header
 _HEADER: Final[str] = (f"{KEY_ALGORITHM}{CSV_SEPARATOR}"
@@ -300,7 +304,10 @@ class EndResult(PerRunData):
                          f"should be one of {sorted(_GETTERS.keys())}.")
 
     @staticmethod
-    def from_logs(path: str, consumer: Callable[["EndResult"], Any]) -> None:
+    def from_logs(path: str, consumer: Callable[["EndResult"], Any],
+                  max_fes: int | None = None,
+                  max_time_millis: int | None = None,
+                  goal_f: int | float | None = None) -> None:
         """
         Parse a given path and pass all end results found to the consumer.
 
@@ -312,10 +319,59 @@ class EndResult(PerRunData):
         accepts instances of :class:`EndResult`, e.g., the `append` method of
         a :class:`list`.
 
+        Via the parameters `max_fes`, `max_time_millis`, and `goal_f`, you can
+        set virtual limits for the objective function evaluations, the maximum
+        runtime, and the objective value. The :class:`EndResult` records will
+        then not represent the actual final state of the runs but be
+        synthesized from the logged progress information. This, of course,
+        requires such information to be present. It will also raise a
+        `ValueError` if the goals are invalid, e.g., if a runtime limit is
+        specified that is before the first logged points.
+
+        There is one caveat when specifying `max_time_millis`: Let's say that
+        the log files only log improvements. Then you might have a log point
+        for 7000 FEs, 1000ms, and f=100. The next log point could be 8000 FEs,
+        1200ms, and f=90. Now if your time limit specified is 1100ms, we know
+        that the end result is f=100 (because f=90 was reached too late) and
+        that the total runtime is 1100ms, as this is the limit you specified
+        and it was also reached. But we do not know the number of consumed
+        FEs. We know you consumed at least 7000 FEs, but you did not consume
+        8000 FEs. It would be wrong to claim that 7000 FEs were consumed,
+        since it could have been more. We therefore set a virtual end point at
+        7999 FEs. In terms of performance metrics such as the
+        :mod:`~moptipy.evaluation.ert`, this would be the most conservative
+        choice in that it does not over-estimate the speed of the algorithm.
+
         :param path: the path to parse
         :param consumer: the consumer
+        :param max_fes: the maximum FEs, or `None` if unspecified
+        :param max_time_millis: the maximum runtime in milliseconds, or
+            `None` if unspecified
+        :param goal_f: the goal objective value, or `None` if unspecified
         """
-        _InnerLogParser(consumer).parse(path)
+        need_goals: bool = False
+        if max_fes is not None:
+            max_fes = check_int_range(
+                max_fes, "max_fes", 1, 1_000_000_000_000_000)
+            need_goals = True
+        if max_time_millis is not None:
+            max_time_millis = check_int_range(
+                max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
+            need_goals = True
+        if goal_f is not None:
+            if not isinstance(goal_f, int | float):
+                raise type_error(goal_f, "goal_f", (int, float, None))
+            if isfinite(goal_f):
+                need_goals = True
+            elif goal_f >= inf:
+                goal_f = None
+            else:
+                raise ValueError(f"goal_f={goal_f} is not permissible.")
+        if need_goals:
+            _InnerProgressLogParser(
+                max_fes, max_time_millis, goal_f, consumer).parse(path)
+        else:
+            _InnerLogParser(consumer).parse(path)
 
     @staticmethod
     def to_csv(results: Iterable["EndResult"], file: str) -> Path:
@@ -426,6 +482,152 @@ class _InnerLogParser(SetupAndStateParser):
                                   self.max_time_millis))
 
 
+class _InnerProgressLogParser(SetupAndStateParser):
+    """The internal log parser class for virtual end results."""
+
+    def __init__(self,
+                 max_fes: int | None,
+                 max_time_millis: int | None,
+                 goal_f: int | float | None,
+                 consumer: Callable[[EndResult], Any]):
+        """
+        Create the internal log parser.
+
+        :param consumer: the consumer
+        :param max_fes: the maximum FEs, or `None` if unspecified
+        :param max_time_millis: the maximum runtime in milliseconds, or
+            `None` if unspecified
+        :param goal_f: the goal objective value, or `None` if unspecified
+        """
+        super().__init__()
+        if not callable(consumer):
+            raise type_error(consumer, "consumer", call=True)
+        self.__consumer: Final[Callable[[EndResult], Any]] = consumer
+        self.__limit_time: Final[int | float] =\
+            inf if max_time_millis is None else max_time_millis
+        self.__limit_time_n: Final[int | None] = max_time_millis
+        self.__limit_fes: Final[int | float] =\
+            inf if max_fes is None else max_fes
+        self.__limit_fes_n: Final[int | None] = max_fes
+        self.__limit_f_n: Final[int | float | None] = goal_f
+        self.__limit_f: Final[int | float] =\
+            -inf if goal_f is None else goal_f
+        self.__stop_fes: int | None = None
+        self.__stop_ms: int | None = None
+        self.__stop_f: int | float | None = None
+        self.__stop_li_fe: int | None = None
+        self.__stop_li_ms: int | None = None
+        self.__state: int = 0
+
+    def end_file(self) -> bool:
+        if self.__state != 2:
+            raise ValueError(
+                "Illegal state, log file must have a "
+                f"{SECTION_PROGRESS!r} section.")
+        self.__state = 0
+        return super().end_file()
+
+    def process(self) -> None:
+        self.__consumer(EndResult(
+            self.algorithm, self.instance, self.rand_seed,
+            self.best_f if self.__stop_f is None else self.__stop_f,
+            self.last_improvement_fe if self.__stop_li_fe is None
+            else self.__stop_li_fe,
+            self.last_improvement_time_millis if self.__stop_li_ms is None
+            else self.__stop_li_ms,
+            self.total_fes if self.__stop_fes is None else self.__stop_fes,
+            self.total_time_millis if self.__stop_ms is None
+            else self.__stop_ms,
+            self.goal_f if self.__limit_f_n is None else self.__limit_f_n,
+            self.max_fes if self.__limit_fes_n is None
+            else self.__limit_fes_n,
+            self.max_time_millis if self.__limit_time_n is None
+            else self.__limit_time_n))
+        self.__stop_fes = None
+        self.__stop_ms = None
+        self.__stop_f = None
+        self.__stop_li_fe = None
+        self.__stop_li_ms = None
+
+    def start_section(self, title: str) -> bool:
+        if title == SECTION_PROGRESS:
+            if self.__state != 0:
+                raise ValueError(f"Already did section {title}.")
+            self.__state = 1
+            return True
+        return super().start_section(title)
+
+    def needs_more_lines(self) -> bool:
+        return (self.__state < 2) or super().needs_more_lines()
+
+    def lines(self, lines: list[str]) -> bool:
+        if not isinstance(lines, list):
+            raise type_error(lines, "lines", list)
+        if self.__state != 1:
+            return super().lines(lines)
+        n_rows = len(lines)
+        if n_rows < 2:
+            raise ValueError("lines must contain at least two elements,"
+                             f"but contains {n_rows}.")
+
+        columns = [c.strip() for c in lines[0].split(CSV_SEPARATOR)]
+        fe_col: Final[int] = columns.index(PROGRESS_FES)
+        ms_col: Final[int] = columns.index(PROGRESS_TIME_MILLIS)
+        f_col: Final[int] = columns.index(PROGRESS_CURRENT_F)
+        current_fes: int = -1
+        current_ms: int = -1
+        current_best_f: int | float = inf
+        current_li_fe: int | None = None
+        current_li_ms: int | None = None
+        stop_fes: int | None = None
+        stop_ms: int | None = None
+        stop_best_f: int | float | None = None
+        stop_li_fe: int | None = None
+        stop_li_ms: int | None = None
+        limit_fes: Final[int | float] = self.__limit_fes
+        limit_ms: Final[int | float] = self.__limit_time
+        limit_ms_n: Final[int | None] = self.__limit_time_n
+        limit_f: Final[int | float] = self.__limit_f
+
+        for line in lines[1:]:
+            values = line.split(CSV_SEPARATOR)
+            current_fes = check_to_int_range(
+                values[fe_col], "fes", current_fes, 1_000_000_000_000_000)
+            current_ms = check_to_int_range(
+                values[ms_col], "ms", current_ms, 1_000_000_000_00)
+            f: int | float = str_to_intfloat(values[f_col])
+            if (current_fes <= limit_fes) and (current_ms <= limit_ms):
+                stop_ms = current_ms
+                stop_fes = current_fes
+                stop_best_f = current_best_f
+                stop_li_fe = current_li_fe
+                stop_li_ms = current_li_ms
+                if f < current_best_f:  # can only update best within budget
+                    current_best_f = f
+                    current_li_fe = current_fes
+                    current_li_ms = current_ms
+            if (current_fes >= limit_fes) or (current_ms >= limit_ms) or \
+                    (current_best_f <= limit_f):
+                if limit_ms_n is not None:
+                    if current_ms > limit_ms:
+                        stop_ms = int(limit_ms)
+                    if current_ms <= limit_ms:
+                        stop_fes = current_fes
+                    else:
+                        stop_fes = int(max(stop_fes, min(
+                            current_fes - 1, limit_fes)))  # caveat
+                elif current_fes >= limit_fes:
+                    stop_fes = int(limit_fes)  # must be int
+                self.__stop_fes = stop_fes
+                self.__stop_ms = stop_ms
+                self.__stop_f = stop_best_f
+                self.__stop_li_fe = stop_li_fe
+                self.__stop_li_ms = stop_li_ms
+                break
+        self.__state = 2
+        return self.needs_more_lines()
+
+
 # Run log files to end results if executed as script
 if __name__ == "__main__":
     parser: Final[argparse.ArgumentParser] = argparser(
@@ -454,8 +656,18 @@ if __name__ == "__main__":
     parser.add_argument(
         "dest", help="the path to the end results CSV file to be created",
         type=Path.path, nargs="?", default="./evaluation/end_results.txt")
+    parser.add_argument(
+        "--maxFEs", help="the maximum permitted FEs",
+        type=int, nargs="?", default=None)
+    parser.add_argument(
+        "--maxTime", help="the maximum permitted time in milliseconds",
+        type=int, nargs="?", default=None)
+    parser.add_argument(
+        "--goalF", help="the goal objective value",
+        type=str_to_intfloat, nargs="?", default=None)
     args: Final[argparse.Namespace] = parser.parse_args()
 
     end_results: Final[list[EndResult]] = []
-    EndResult.from_logs(args.source, end_results.append)
+    EndResult.from_logs(args.source, end_results.append,
+                        args.maxFEs, args.maxTime, args.goalF)
     EndResult.to_csv(end_results, args.dest)

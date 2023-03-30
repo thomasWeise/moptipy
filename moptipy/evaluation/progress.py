@@ -235,13 +235,6 @@ class Progress(PerRunData):
 class _InnerLogParser(SetupAndStateParser):
     """The internal log parser class."""
 
-    # States are OR combinations of the following:
-    # --> 0 == initial and end state
-    # --> 7 == all necessary data should have been collected
-    #  8: SECTION_SETUP is in progress
-    # 16: SECTION_FINAL_STATE is in progress
-    # 32: SECTION_PROGRESS is in progress
-
     def __init__(self, time_unit: str, f_name: str,
                  consumer: Callable[[Progress], Any],
                  f_standard: dict[str, int | float] | None = None,
@@ -346,10 +339,10 @@ class _InnerLogParser(SetupAndStateParser):
         return (self.__state < 2) or super().needs_more_lines()
 
     def lines(self, lines: list[str]) -> bool:
-        if self.__state != 1:
-            return super().lines(lines)
         if not isinstance(lines, list):
             raise type_error(lines, "lines", list)
+        if self.__state != 1:
+            return super().lines(lines)
         n_rows = len(lines)
         if n_rows < 2:
             raise ValueError("lines must contain at least two elements,"
