@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib.axes import Axes  # type: ignore
 
 from moptipy.api.logging import (
+    KEY_BEST_F,
     KEY_LAST_IMPROVEMENT_FE,
     KEY_LAST_IMPROVEMENT_TIME_MILLIS,
     KEY_TOTAL_FES,
@@ -410,7 +411,7 @@ class AxisRanger:
             return AxisRanger(__min, chosen_max, __data_min, __data_max,
                               __log, log_base if __log else None)
 
-        if name == F_NAME_RAW:
+        if name in (F_NAME_RAW, KEY_BEST_F):
             if use_data_max is not None:
                 __data_max = use_data_max
             if use_data_min is not None:

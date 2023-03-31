@@ -22,6 +22,7 @@ def __lang_setup() -> None:
 
     EN.extend({
         "f": "f",
+        "bestF": "f",
         "feasible": "feasible",
         "name": "name",
         "time": "time",
@@ -61,6 +62,7 @@ def __lang_setup() -> None:
 
     DE.extend({
         "f": "f",
+        "bestF": "f",
         "feasible": "realisierbar",
         "name": "Name",
         "time": "Zeit",
@@ -100,6 +102,7 @@ def __lang_setup() -> None:
 
     ZH.extend({
         "f": "f",
+        "bestF": "f",
         "feasible": "可行的",
         "name": "名称",
         "time": "时间",

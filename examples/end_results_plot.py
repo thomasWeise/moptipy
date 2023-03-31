@@ -159,7 +159,7 @@ with TempDir.create() as td:  # create temporary directory `td`
                              formats="svg"))  # file type = svg
     del fig  # dispose figure
 
-    # OK, we have now plotted a set of different progress plots.
+    # OK, we have now plotted a set of different end results plots.
     # We will open them in the web browser if we are not in a make build.
     if SHOW_PLOTS_IN_BROWSER:
         for file in files:  # for each file we generated

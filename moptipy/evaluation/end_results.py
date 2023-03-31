@@ -247,7 +247,8 @@ class EndResult(PerRunData):
         object.__setattr__(self, "goal_f", goal_f)
 
         if max_fes is not None:
-            check_int_range(max_fes, "max_fes", total_fes, 1_000_000_000_000)
+            check_int_range(max_fes, "max_fes", total_fes,
+                            1_000_000_000_000_000_000)
         object.__setattr__(self, "max_fes", max_fes)
 
         if max_time_millis is not None:
@@ -565,20 +566,24 @@ class _InnerProgressLogParser(SetupAndStateParser):
 
     def process(self) -> None:
         self.__consumer(EndResult(
-            self.algorithm, self.instance, self.rand_seed,
-            self.best_f if self.__stop_f is None else self.__stop_f,
-            self.last_improvement_fe if self.__stop_li_fe is None
-            else self.__stop_li_fe,
-            self.last_improvement_time_millis if self.__stop_li_ms is None
-            else self.__stop_li_ms,
-            self.total_fes if self.__stop_fes is None else self.__stop_fes,
-            self.total_time_millis if self.__stop_ms is None
+            algorithm=self.algorithm,
+            instance=self.instance,
+            rand_seed=self.rand_seed,
+            best_f=self.best_f if self.__stop_f is None else self.__stop_f,
+            last_improvement_fe=self.last_improvement_fe
+            if self.__stop_li_fe is None else self.__stop_li_fe,
+            last_improvement_time_millis=self.last_improvement_time_millis
+            if self.__stop_li_ms is None else self.__stop_li_ms,
+            total_fes=self.total_fes if self.__stop_fes is None
+            else self.__stop_fes,
+            total_time_millis=self.total_time_millis if self.__stop_ms is None
             else self.__stop_ms,
-            self.goal_f if self.__limit_f_n is None else self.__limit_f_n,
-            self.max_fes if self.__limit_fes_n is None
+            goal_f=self.goal_f if self.__limit_f_n is None
+            else self.__limit_f_n,
+            max_fes=self.max_fes if self.__limit_fes_n is None
             else self.__limit_fes_n,
-            self.max_time_millis if self.__limit_ms_n is None else
-            self.__limit_ms_n))
+            max_time_millis=self.max_time_millis if self.__limit_ms_n is None
+            else self.__limit_ms_n))
         self.__stop_fes = None
         self.__stop_ms = None
         self.__stop_f = None
@@ -648,8 +653,11 @@ class _InnerProgressLogParser(SetupAndStateParser):
     def lines(self, lines: list[str]) -> bool:
         if not isinstance(lines, list):
             raise type_error(lines, "lines", list)
+
         if self.__state != 1:
             return super().lines(lines)
+        self.__state = 2
+
         n_rows = len(lines)
         if n_rows < 2:
             raise ValueError("lines must contain at least two elements,"
@@ -666,7 +674,7 @@ class _InnerProgressLogParser(SetupAndStateParser):
         current_li_ms: int | None = None
         stop_fes: int | None = None
         stop_ms: int | None = None
-        stop_best_f: int | float | None = None
+        stop_f: int | float | None = None
         stop_li_fe: int | None = None
         stop_li_ms: int | None = None
         limit_fes: Final[int | float] = self.__limit_fes
@@ -681,34 +689,37 @@ class _InnerProgressLogParser(SetupAndStateParser):
                 values[ms_col], "ms", current_ms, 1_000_000_000_00)
             f: int | float = str_to_intfloat(values[f_col])
             if (current_fes <= limit_fes) and (current_ms <= limit_ms):
-                stop_ms = current_ms
-                stop_fes = current_fes
-                stop_best_f = current_best_f
-                stop_li_fe = current_li_fe
-                stop_li_ms = current_li_ms
                 if f < current_best_f:  # can only update best within budget
                     current_best_f = f
                     current_li_fe = current_fes
                     current_li_ms = current_ms
+                stop_ms = current_ms
+                stop_fes = current_fes
+                stop_f = current_best_f
+                stop_li_fe = current_li_fe
+                stop_li_ms = current_li_ms
             if (current_fes >= limit_fes) or (current_ms >= limit_ms) or \
                     (current_best_f <= limit_f):
-                if self.__limit_ms_n is not None:
-                    if current_ms > limit_ms:
-                        stop_ms = int(limit_ms)
-                    if current_ms <= limit_ms:
-                        stop_fes = current_fes
-                    else:
-                        stop_fes = int(max(stop_fes, min(
-                            current_fes - 1, limit_fes)))  # caveat
-                elif current_fes >= limit_fes:
-                    stop_fes = int(limit_fes)  # must be int
-                self.__stop_fes = stop_fes
-                self.__stop_ms = stop_ms
-                self.__stop_f = stop_best_f
-                self.__stop_li_fe = stop_li_fe
-                self.__stop_li_ms = stop_li_ms
-                break
-        self.__state = 2
+                break  # we can stop parsing the stuff
+
+        if (stop_fes is None) or (stop_ms is None) or (stop_f is None):
+            raise ValueError("Illegal state, no fitting data point found.")
+
+        if self.__limit_ms_n is not None:
+            if current_ms > limit_ms:
+                stop_ms = int(limit_ms)
+            if current_ms <= limit_ms:
+                stop_fes = current_fes
+            else:
+                stop_fes = int(max(stop_fes, min(
+                    current_fes - 1, limit_fes)))  # caveat
+        elif current_fes >= limit_fes:
+            stop_fes = int(limit_fes)  # must be int
+        self.__stop_fes = stop_fes
+        self.__stop_ms = stop_ms
+        self.__stop_f = stop_f
+        self.__stop_li_fe = stop_li_fe
+        self.__stop_li_ms = stop_li_ms
         return self.needs_more_lines()
 
 
