@@ -829,7 +829,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
 
 - [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
   - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
-  - The minimization version of the [Jump](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.jump) problem, which is equivalent OneMax, but has a deceptive region right before the optimum.
+  - The minimization version of the [Jump](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.jump) problem, which is equivalent to OneMax, but has a deceptive region right before the optimum.
   - The minimization version of the well-known [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones) problem, where the goal is to maximize the length of the trailing substring of all `True` bits.
   - The minimization version of the well-known [OneMax](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem, where the goal is to maximize the number of `True` bits in a string.
   - The minimization version of the [Trap](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.trap) problem, which is equivalent of OneMax, but with the optimum and worst-possible solution swapped.
@@ -1701,6 +1701,8 @@ We already discussed two formats that can be used to export data to Excel or oth
 
 The [End Results CSV format](#52-end-result-csv-files) produces semicolon-separated-values files that include the states of each run.
 For every single run, there will be a row with the algorithm name, instance name, and random seed, as well as the best objective value, the last improvement time and FE, and the total time and consumed FEs.
+It is possible to select "virtual" limits for the runtime (measured in either FEs or milliseconds) and the objective value and to obtain the end results of the algorithms *if* these were the termination criteria.
+This is, of course, only possible if we logged algorithm progress (i.e., did at least [`set_log_improvements(True)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements)) over runtime and if these virtual limits are less or equal to the actual termination criteria.
 
 The [End Results Statistics CSV format](#53-end-result-statistics-csv-files) allows you to export statistics aggregated, e.g., over the instance-algorithm combinations, for instance over all algorithms, or for one algorithm over all instances.
 The format is otherwise similar to the End Results CSV format. 
@@ -1774,6 +1776,17 @@ Ofcourse you can also use it to plot raw objective values, or even runtimes if y
 
 <a href="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png">
 <img alt="Example for an end result plot" src="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png" style="width:70%;max-width:70%;min-width:70%" />
+</a>
+
+In the file [end_results_with_limits_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_with_limits_plot.html), you can find an example of the interplay of this type of plots with the "virtual" runtime limits that can be specified when parsing [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult)s.
+Here, we run an RLS on three OneMax instances for 126&nbsp;FEs per run.
+We then plot the result distribution that we get after 16, 32, 64, and 128&nbsp;FEs in different charts inside one figure.
+It can be seen nicely how the end result distribution approaches 0, i.e., the optimum, more and more everytime we double runtime.
+All plots are generated from the same source data, which is possible since we log all the improvements during the runs.
+We can know what results we would be getting if we only gave 16&nbsp;FEs since we know the complete progress up to 128&nbsp;FEs.
+
+<a href="https://thomasweise.github.io/moptipy/_static/selected_end_results.png">
+<img alt="Example for end results plots at different time limits" src="https://thomasweise.github.io/moptipy/_static/selected_end_results.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
 The end result plots are implemented in the module [moptipy.evaluation.plot_end_results](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_results).
@@ -2005,24 +2018,25 @@ Here we list the set of examples that are provided in the [moptipy](https://gith
 
 - [continuous_optimization.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization.html) applies a set of numerical/continuous optimization algorithms to a simple problem and prints their results.
 - [continuous_optimization_with_logging.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization_with_logging.html) is exactly the same example, but this time log files are created and their contents are printed for each run.
-- [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html) runs a small experiment on the OneMax problem and plots the [ECDF](#64-ecdf-plots).
+- [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html) runs a small experiment on the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem and plots the [ECDF](#64-ecdf-plots).
 - [end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html) runs a small experiment with on the Job Shop Scheduling Problem (JSSP) and generates an [end results CSV file](#52-end-result-csv-files).
 - [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html) applies two algorithms to the JSSP and creates [plots of end results](#63-end-results-plot). 
 - [end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html) runs another small experiment on the JSSP and generates a [table of end results](#68-end-results-table).
 - [end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html) runs a small experiment on bit string search spaces and generates a [table with statistical comprisons of end results](#69-testing-end-results-for-statistically-significant-differences-table).
+- [end_results_with_limits_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_with_limits_plot.html) runs a small experiment with one algorithm on three [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and collects the whole algorithm progress in the log files. It then plots [plots of end results](#63-end-results-plot) for different runtime limits.
 - [end_statistics_jssp.py](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html) runs a small experiment on the JSSP and generates an [end statistics CSV file](#53-end-result-statistics-csv-files).
-- [end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html) solves several OneMax instances and plots the ERT over the problem scale, i.e., generates a [performance-over-feature plot](#67-performance-over-algorithm-parameter-or-instance-feature).
+- [end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html) solves several [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and plots the ERT over the problem scale, i.e., generates a [performance-over-feature plot](#67-performance-over-algorithm-parameter-or-instance-feature).
 - [end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html) applies different settings of an algorithm to LeadingOnes instances and plots their [performance over their parameter setting](#67-performance-over-algorithm-parameter-or-instance-feature).
-- [ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html) applies an algorithm to the OneMax and plots the [ERT](#65-expected-running-time-ert-plots) over the solution qualities.
-- [ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot.html) applies one algorithm to several OneMax instances and creates an [ERT-ECDF plot](#66-ert-ecdf-plots).
-- [experiment_2_algorithms_4_problems.py](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html) shows how to use the [structured experiment API](#32-how-to-run-a-series-of-experiments) and applies two algorithms to four problem instances (OneMax and LeadingOnes).
+- [ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html) applies an algorithm to the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and plots the [ERT](#65-expected-running-time-ert-plots) over the solution qualities.
+- [ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot.html) applies one algorithm to several [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and creates an [ERT-ECDF plot](#66-ert-ecdf-plots).
+- [experiment_2_algorithms_4_problems.py](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html) shows how to use the [structured experiment API](#32-how-to-run-a-series-of-experiments) and applies two algorithms to four problem instances ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and LeadingOnes).
 - [experiment_own_algorithm_and_problem.py](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem.html) shows how to [implement](#333-applying-an-own-algorithm-to-an-own-problem) some of the core components of our API, namely how a [self-implemented algorithm](#332-define-a-new-algorithm) can be applied to a [self-implemented problem](#331-define-a-new-problem-type).
 - [log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html) showcases the [log file structure](#51-log-files) for single-objective optimization.
 - [mo_example.py](https://thomasweise.github.io/moptipy/examples/mo_example.html) is a simple example for multi-objective optimization: we apply multi-objective RLS to a multi-objective version of the JSSP.
 - [mo_example_nsga2.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2.html) the same simple example for multi-objective optimization, but this time using the popular NSGA-II algorithm, which works out better than our multi-objective RLS.
 - [mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits.html) another example of NSGA-II solving a multi-objective optimization problem, this time over the space of the bit strings.
 - The package [`moptipy.examples.jssp`](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html) contains a complete experiment on the Job Shop Scheduling Problem (JSSP) together with its evaluation routines, making up an epxerimental part of the book ["Optimization Algorithms"](https://thomasweise.github.io/oa).
-- [progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html) shows how [progress plots](#62-progress-plots) can be generated from a small experiment with the OneMax problem and the 1-dimensional Ising model.
+- [progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html) shows how [progress plots](#62-progress-plots) can be generated from a small experiment with the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem and the 1-dimensional Ising model.
 - [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
 
 
