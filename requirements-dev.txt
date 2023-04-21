@@ -40,14 +40,14 @@
 # errors. But they can at least check whether our code behaves as it should in
 # some usual or border cases. Also, they can help us find out if changes in
 # the code lead to changes in (tested/expected) behavior.
-pytest >= 7.2.2
+pytest >= 7.3.1
 
 # setuptools, testresources, twine, virtualenv, and wheel are needed for
 # generating the installable pip package.
-setuptools >= 67.6.1
+setuptools >= 67.7.1
 testresources >= 2.0.1
 twine >= 4.0.2
-virtualenv >= 20.21.0
+virtualenv >= 20.22.0
 wheel >= 0.40.0
 
 # sphinx is needed for generating the documentation. Together with its
@@ -55,7 +55,7 @@ wheel >= 0.40.0
 # generates the html files with the documentation. It therefore uses the
 # docstrings and the type hints.
 sphinx >= 6.1.3
-sphinx-autodoc-typehints >= 1.22
+sphinx-autodoc-typehints >= 1.23.0
 # myst-parser is needed for including README.md into the documentation
 myst-parser >= 1.0.0
 
@@ -68,7 +68,7 @@ autoflake >= 1.7.8
 bandit >= 1.7.5
 coverage >= 7.2.3
 coverage-badge >= 1.1.0
-dlint >= 0.14.0
+dlint >= 0.14.1
 dodgy >= 0.2.1
 flake8 >= 5.0.4
 flake8-bugbear >= 23.3.12
@@ -80,8 +80,8 @@ pydocstyle >= 6.3.0
 pyflakes >= 2.5.0
 pylint >= 2.17.2
 pyroma >= 4.2
-ruff >= 0.0.261
-semgrep >= 1.17.1
+ruff >= 0.0.262
+semgrep >= 1.18.0
 tryceratops >= 1.1.0
 unimport >= 0.16.0
 vulture >= 2.7

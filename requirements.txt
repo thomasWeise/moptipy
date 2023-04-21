@@ -32,7 +32,7 @@ matplotlib >= 3.7.1
 
 # psutil is used for getting information about the system configuration which
 # is stored in the log files (see moptipy.utils.sys_info.py).
-psutil >= 5.9.4
+psutil >= 5.9.5
 
 # scikit-learn is used to obtain some clusters of JSSP instances for our
 # experiments.
