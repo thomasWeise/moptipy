@@ -2194,7 +2194,6 @@ If you use a shared root folder for experiments and launch the same experiment o
 - The documentation of our project is available at <https://thomasweise.github.io/moptipy/>.
 - Our project can be found on PyPi at <https://pypi.org/project/moptipy/>
 - Our project can be found on Libraries.io at <https://libraries.io/pypi/moptipy>, however, this page usually does not show the most recent version.
-- Or project can be found on openbase at <https://openbase.com/python/moptipy>, however, this page usually does not show the most recent version.
 - Our project can be found on snyk.io at <https://snyk.io/advisor/python/moptipy>, however, this page usually does not show the most recent version. 
 - An example data set of experimental results obtained with `moptipy` can be found at <https://thomasweise.github.io/oa_data/>. 
 

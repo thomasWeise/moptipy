@@ -255,7 +255,7 @@ class Path(str):
 
     def create_file_or_truncate(self) -> None:
         """
-        Create the file identified by this path and truncate it it it exists.
+        Create the file identified by this path and truncate it if it exists.
 
         :raises: ValueError if anything goes wrong during the file creation
         """
