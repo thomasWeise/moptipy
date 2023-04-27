@@ -11,10 +11,14 @@ It will incorporate the iteration index
 (:attr:`~moptipy.algorithms.so.record.Record.it`) of the solutions
 into the fitness.
 This index is used to break ties, in which case newer solutions are preferred.
+
 This can make the EA with FFA compatible with the
 :class:`moptipy.algorithms.so.fea1plus1.FEA1plus1` if "best" selection
 (:class:`moptipy.algorithms.modules.selections.best.Best`) is used
 at mu=lambda=1.
+To facilitate this, there is one special case in the FFA fitness assignment:
+If the population consists of exactly 1 element at iteration index 0, then
+the frequency values are not updated.
 
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
    Assignment: Making Optimization Algorithms Invariant under Bijective
@@ -97,11 +101,14 @@ class _IntFFA1(FFA):
 
     #: the internal frequency table
     __h: np.ndarray
+    #: is this the first iteration?
+    __first: bool
 
     def __new__(cls, ub: int) -> "_IntFFA1":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA1)
         instance.__h = np.zeros(ub + 1, dtype=DEFAULT_UNSIGNED_INT)
+        instance.__first = True
         return instance
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
@@ -110,17 +117,42 @@ class _IntFFA1(FFA):
 
         :param p: the list of records
         :param random: ignored
+
+        >>> fit = _IntFFA1(100)
+        >>> a = FRecord(None, 1)
+        >>> b = FRecord(None, 2)
+        >>> c = FRecord(None, 2)
+        >>> d = FRecord(None, 3)
+        >>> from numpy.random import default_rng
+        >>> rand = default_rng()
+        >>> fit.assign_fitness([a, b, c, d], rand)
+        >>> assert a.fitness == 1
+        >>> assert b.fitness == 2
+        >>> assert c.fitness == 2
+        >>> assert d.fitness == 1
+        >>> fit.assign_fitness([a, b, c, d], rand)
+        >>> assert a.fitness == 2
+        >>> assert b.fitness == 4
+        >>> assert c.fitness == 4
+        >>> assert d.fitness == 2
         """
         h: Final[np.ndarray] = self.__h
-        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
-        max_it: int = -1  # the maximum iteration index
+        min_it = max_it = p[0].it  # the minimum and maximum iteration index
         for r in p:
             it: int = r.it  # get iteration index from record
             if it < min_it:  # update minimum iteration index
                 min_it = it
-            if it > max_it:  # update maximum iteration index
+            elif it > max_it:  # update maximum iteration index
                 max_it = it
-        if max_it <= 0:  # in the first iteration, all elements get the
+# Compatibility with (1+1) FEA: In first generation with a population size of
+# 1, all elements get the same fitness zero. Otherwise, we would count the
+# very first solution in the next fitness assignment step again.
+# This creates a small incompatibility between FFA with mu=1 and FFA with m>1.
+# This incompatibility is not nice, but it is the only way to ensure that the
+# (1+1) FEA and the GeneralEA with EA and mu=1, lambda=1 are identical.
+        first = self.__first
+        self.__first = False
+        if first and (max_it <= 0) and (len(p) <= 1):
             for r in p:  # same fitness: 0
                 r.fitness = 0
             return
@@ -144,6 +176,7 @@ class _IntFFA1(FFA):
         """Initialize the algorithm."""
         super().initialize()
         self.__h.fill(0)
+        self.__first = True
 
 
 class _IntFFA2(FFA):
@@ -153,12 +186,15 @@ class _IntFFA2(FFA):
     __h: np.ndarray
     #: the lower bound
     __lb: int
+    #: is this the first iteration?
+    __first: bool
 
     def __new__(cls, lb: int, ub: int) -> "_IntFFA2":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA2)
         instance.__h = np.zeros(ub - lb + 1, dtype=DEFAULT_UNSIGNED_INT)
         instance.__lb = lb
+        instance.__first = True
         return instance
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
@@ -167,19 +203,46 @@ class _IntFFA2(FFA):
 
         :param p: the list of records
         :param random: ignored
+
+        >>> fit = _IntFFA2(-10, 100)
+        >>> a = FRecord(None, -1)
+        >>> b = FRecord(None, 2)
+        >>> c = FRecord(None, 2)
+        >>> d = FRecord(None, 3)
+        >>> from numpy.random import default_rng
+        >>> rand = default_rng()
+        >>> fit.assign_fitness([a, b, c, d], rand)
+        >>> assert a.fitness == 1
+        >>> assert b.fitness == 2
+        >>> assert c.fitness == 2
+        >>> assert d.fitness == 1
+        >>> from numpy.random import default_rng
+        >>> rand = default_rng()
+        >>> fit.assign_fitness([a, b, c, d], rand)
+        >>> assert a.fitness == 2
+        >>> assert b.fitness == 4
+        >>> assert c.fitness == 4
+        >>> assert d.fitness == 2
         """
         h: Final[np.ndarray] = self.__h
         lb: Final[int] = self.__lb
 
-        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
-        max_it: int = -1  # the maximum iteration index
+        min_it = max_it = p[0].it  # the minimum and maximum iteration index
         for r in p:
             it: int = r.it  # get iteration index from record
             if it < min_it:  # update minimum iteration index
                 min_it = it
-            if it > max_it:  # update maximum iteration index
+            elif it > max_it:  # update maximum iteration index
                 max_it = it
-        if max_it <= 0:  # in the first iteration, all elements get the
+# Compatibility with (1+1) FEA: In first generation with a population size of
+# 1, all elements get the same fitness zero. Otherwise, we would count the
+# very first solution in the next fitness assignment step again.
+# This creates a small incompatibility between FFA with mu=1 and FFA with m>1.
+# This incompatibility is not nice, but it is the only way to ensure that the
+# (1+1) FEA and the GeneralEA with EA and mu=1, lambda=1 are identical.
+        first = self.__first
+        self.__first = False
+        if first and (max_it <= 0) and (len(p) <= 1):
             for r in p:  # same fitness: 0
                 r.fitness = 0
             return
@@ -204,6 +267,7 @@ class _IntFFA2(FFA):
         """Initialize the algorithm."""
         super().initialize()
         self.__h.fill(0)
+        self.__first = True
 
 
 class _DictFFA(FFA):
@@ -211,11 +275,14 @@ class _DictFFA(FFA):
 
     #: the internal frequency table
     __h: Counter
+    #: is this the first iteration?
+    __first: bool
 
     def __new__(cls) -> "_DictFFA":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_DictFFA)
         instance.__h = Counter()
+        instance.__first = True
         return instance
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
@@ -224,18 +291,43 @@ class _DictFFA(FFA):
 
         :param p: the list of records
         :param random: ignored
+
+        >>> fit = _DictFFA()
+        >>> a = FRecord(None, -1)
+        >>> b = FRecord(None, 2.9)
+        >>> c = FRecord(None, 2.9)
+        >>> d = FRecord(None, 3)
+        >>> from numpy.random import default_rng
+        >>> rand = default_rng()
+        >>> fit.assign_fitness([a, b, c, d], rand)
+        >>> assert a.fitness == 1
+        >>> assert b.fitness == 2
+        >>> assert c.fitness == 2
+        >>> assert d.fitness == 1
+        >>> fit.assign_fitness([a, b, c, d], rand)
+        >>> assert a.fitness == 2
+        >>> assert b.fitness == 4
+        >>> assert c.fitness == 4
+        >>> assert d.fitness == 2
         """
         h: Final[Counter[int | float]] = self.__h
 
-        min_it: int = 9_223_372_036_854_775_808  # the minimum iteration index
-        max_it: int = -1  # the maximum iteration index
+        min_it = max_it = p[0].it  # the minimum and maximum iteration index
         for r in p:
             it: int = r.it  # get iteration index from record
             if it < min_it:  # update minimum iteration index
                 min_it = it
-            if it > max_it:  # update maximum iteration index
+            elif it > max_it:  # update maximum iteration index
                 max_it = it
-        if max_it <= 0:  # in the first iteration, all elements get the
+# Compatibility with (1+1) FEA: In first generation with a population size of
+# 1, all elements get the same fitness zero. Otherwise, we would count the
+# very first solution in the next fitness assignment step again.
+# This creates a small incompatibility between FFA with mu=1 and FFA with m>1.
+# This incompatibility is not nice, but it is the only way to ensure that the
+# (1+1) FEA and the GeneralEA with EA and mu=1, lambda=1 are identical.
+        first = self.__first
+        self.__first = False
+        if first and (max_it <= 0) and (len(p) <= 1):
             for r in p:  # same fitness: 0
                 r.fitness = 0
             return
@@ -249,3 +341,4 @@ class _DictFFA(FFA):
         """Initialize the algorithm."""
         super().initialize()
         self.__h.clear()
+        self.__first = True

@@ -27,6 +27,7 @@ from moptipy.algorithms.so.hill_climber_with_restarts import (
 )
 from moptipy.algorithms.so.ma import MA
 from moptipy.algorithms.so.marls import MARLS
+from moptipy.algorithms.so.ppa import PPA
 from moptipy.algorithms.so.rls import RLS
 from moptipy.algorithms.so.simulated_annealing import SimulatedAnnealing
 from moptipy.api.algorithm import Algorithm
@@ -38,6 +39,7 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.op0_forward import Op0Forward
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
+from moptipy.operators.permutations.op1_swap_exactly_n import Op1SwapExactlyN
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.operators.permutations.op2_gap import (
     Op2GeneralizedAlternatingPosition,
@@ -186,6 +188,13 @@ for mu_lambda in [2, 8, 32]:
                            1e7 * (1 - ((0.22 / 16.0) ** (
                                1.0 / (0.8 * lss))))) / 1e7))),
                    ml, ml, lss)))
+
+for m in [1, 8, 32]:
+    for nmax in [1, 4, 8]:
+        ALGORITHMS.append(cast(
+            Callable[[Instance, Permutations], Algorithm],
+            lambda inst, pwr, mm=m, ll=nmax: PPA(
+                Op0Shuffle(pwr), Op1SwapExactlyN(pwr), mm, ll)))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),
