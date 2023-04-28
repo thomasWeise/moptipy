@@ -1,4 +1,99 @@
-"""A simple implementation of a Plant Propagation Algorithm (PPA)."""
+"""
+A simple implementation of a Plant Propagation Algorithm (PPA).
+
+This is a simple implementation of the Plant Propagation Algorithm, PPA for
+short, with some tweaks and modifications.
+Our PPA implementation works as follows:
+
+1. It starts with a set of :attr:`~moptipy.algorithms.so.ppa.PPA.m` randomly
+   sampled solutions in the list `lst`. Each solution `x` is evaluated and its
+   objective value `f(x)` is remembered.
+2. In the main loop...
+
+   a. First, the range `[fmin,fmax]` of the objective values of the first
+      :attr:`~moptipy.algorithms.so.ppa.PPA.m` solutions in `lst` is
+      determined. We set `frange = fmax - fmin`. If `frange > 0`, then the
+      fitness `z(x)` of each element be `(f(x) - fmin) / frange`. Otherwise,
+      i.e., if all solutions in `lst` have the same objective value, we set
+      `z(x)` to be a random number uniformly distributed in `[0,1)` and drawn
+      separately for each solution.
+   b. For each of the first :attr:`~moptipy.algorithms.so.ppa.PPA.m` solutions
+      `x` in `lst`, we create `1 + int(nmax * r * (1 - z(x)))` offspring,
+      where :attr:`~moptipy.algorithms.so.ppa.PPA.nmax` is the maximum number
+      of offspring per solution and `r` be again an independently drawn random
+      number uniformly distributed in `[0,1)`. In other words, solutions with
+      a fitness close to zero will produce more offspring. If the solutions in
+      the list `lst` have different objective values, then this means that
+      better solutions produce more offsprings.
+      Each such offspring is the result of the application of a unary operator
+      with step size, i.e., an instance of
+      :class:`~moptipy.api.operators.Op1WithStepSize`. The step size is set to
+      `r * z(x)`, where `r` again is a freshly and independently drawn random
+      number uniformly distributed in `[0,1)`. This means that better
+      solutions are modified with smaller step sizes and worse solutions are
+      modified more strongly.
+      The new solutions are appended into `lst` and their objective values are
+      computed.
+   c. The list is then sorted by objective values in ascending order, meaning
+      that the best solutions are up front.
+
+The main differences between this procedure and the "standard-PPA" are as
+follows:
+
+A. The algorithm is implemented for minimization and all equations are
+   adopted correspondingly.
+B. After normalizing the objective values in the population, the `tanh`-based
+   scaling is *not* applied.
+C. The fitness of a record equals its normalized objective value
+   (in `[0, 1]`), unless all records have the same objective value, in which
+   case the fitness of each record is set to a random number uniformly
+   distributed in `[0, 1)`.
+D. The decisions regarding the number of offspring per selected record and the
+   step-width of the search moves are made only based on this fitness (and,
+   again, not on the `tanh` scaling which is not used).
+E. As unary operators, we employ instances of the class
+   :class:`~moptipy.api.operators.Op1WithStepSize`, which provides a unary
+   operator with a step size between `0` (smallest possible modification) to
+   `1` (largest possible modification) and will scale appropriately between
+   the two extremes.
+
+Below, you can find references on the PPA.
+
+1. Abdellah Salhi and Eric Serafin Fraga. Nature-Inspired Optimisation
+   Approaches and the New Plant Propagation Algorithm. *Proceeding of the
+   International Conference on Numerical Analysis and Optimization
+   (ICeMATH'2011),* June 6-8, 2011, Yogyakarta, Indonesia, volume 1,
+   pages K2-1--K2-8. ISBN: 978-602-98919-1-1.
+   https://doi.org/10.13140/2.1.3262.0806.
+   https://repository.essex.ac.uk/9974/1/paper.pdf.
+2. Misha Paauw and Daan van den Berg. Paintings, Polygons and Plant
+   Propagation. In Anikó Ekárt, Antonios Liapis, and María Luz Castro Pena,
+   editors, *Proceedings of the 8th International Conference on Computational
+   Intelligence in Music, Sound, Art and Design (EvoMUSART'19, Part of
+   EvoStar)*, April 24-26, 2019, Leipzig, Germany, Lecture Notes in Computer
+   Science (LNCS), volume 11453, pages 84-97. ISBN: 978-3-030-16666-3. Cham,
+   Switzerland: Springer. https://doi.org/10.1007/978-3-030-16667-0_6.
+   https://www.researchgate.net/publication/332328080.
+3. Muhammad Sulaiman, Abdellah Salhi, Eric Serafin Fraga, Wali Khan Mashwa,
+   and Muhammad M. Rashi. A Novel Plant Propagation Algorithm: Modifications
+   and Implementation. *Science International (Lahore)* 28(1):201-209, #2330,
+   January/February 2016. http://www.sci-int.com/pdf/4066579081%20a%20201-\
+209%20PPA%20Science%20international_Wali.pdf.
+   https://arxiv.org/pdf/1412.4290.pdf
+4. Hussein Fouad Almazini, Salah Mortada, Hassan Fouad Abbas Al-Mazini, Hayder
+   Naser Khraibet AL-Behadili, and Jawad Alkenani. Improved Discrete Plant
+   Propagation Algorithm for Solving the Traveling Salesman Problem. *IAES
+   International Journal of Artificial Intelligence (IJ-AI)* 11(1):13-22.
+   March 2022. http://doi.org/10.11591/ijai.v11.i1.pp13-22.
+   https://www.researchgate.net/publication/357484222.
+5. Birsen İrem Selamoğlu and Abdellah Salhi. The Plant Propagation Algorithm
+   for Discrete Optimisation: The Case of the Travelling Salesman Problem.
+   In Xin-She Yang, editor, *Nature-Inspired Computation in Engineering,*
+   pages 43-61. Studies in Computational Intelligence (SCI), Volume 637.
+   Cham, Switzerland: Springer. https://doi.org/10.1007/978-3-319-30235-5_3.
+   https://www.researchgate.net/publication/299286896.
+"""
+from math import isfinite
 from typing import Callable, Final, cast
 
 from numpy.random import Generator
@@ -61,15 +156,15 @@ class PPA(Algorithm1):
         it: int = 0  # the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
             it = it + 1  # step iteration counter
-            fmin = frange = lst[0].f  # get range of objective values
+            fmin = fmax = lst[0].f  # get range of objective values
             for i in range(m):  # iterate over selected individuals
                 fval = lst[i].f  # get objective value
                 if fval < fmin:  # is it less than minimum?
                     fmin = fval  # yes -> update the minimum
-                elif fval > frange:  # no! is it more than maximum then?
-                    frange = fval  # yes -> update maximum
-            frange = frange - fmin  # compute the range of objective
-            all_same = frange <= 0.0  # do all elements have same f?
+                elif fval > fmax:  # no! is it more than maximum then?
+                    fmax = fval  # yes -> update maximum
+            frange = fmax - fmin  # compute the range of objective
+            all_same = (not isfinite(frange)) or (frange <= 0.0)
             total = m  # the total population length (so far: m)
             for i in range(m):  # generate offspring for each survivor
                 rec = lst[i]  # get parent record
@@ -83,9 +178,9 @@ class PPA(Algorithm1):
                     dest.it = it  # set iteration counter
                     op1(random, dest.x, x, fit * r01())  # step-sized op
                     dest.f = evaluate(dest.x)  # evaluate new point
-            ls = lst[0:total]
-            ls.sort()  # finally, only sort the used elements
-            lst[0:total] = ls
+            ls = lst[0:total]  # get sub-list of elements in population
+            ls.sort()  # sort these used elements
+            lst[0:total] = ls  # write the sorted sub-list back
 # end book
 
     def __init__(self, op0: Op0, op1: Op1WithStepSize, m: int = 30,

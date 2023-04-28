@@ -39,7 +39,7 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.op0_forward import Op0Forward
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.operators.permutations.op1_swap_exactly_n import Op1SwapExactlyN
+from moptipy.operators.permutations.op1_swap_try_n import Op1SwapTryN
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.operators.permutations.op2_gap import (
     Op2GeneralizedAlternatingPosition,
@@ -189,12 +189,12 @@ for mu_lambda in [2, 8, 32]:
                                1.0 / (0.8 * lss))))) / 1e7))),
                    ml, ml, lss)))
 
-for m in [1, 8, 32]:
-    for nmax in [1, 4, 8]:
+for m in [2, 8, 32]:
+    for nmax in [2, 4, 8]:
         ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, mm=m, ll=nmax: PPA(
-                Op0Shuffle(pwr), Op1SwapExactlyN(pwr), mm, ll)))
+                Op0Shuffle(pwr), Op1SwapTryN(pwr), mm, ll)))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

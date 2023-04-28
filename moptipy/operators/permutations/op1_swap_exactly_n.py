@@ -104,6 +104,11 @@ the first time and :func:`find_move` fails to find a move of length `q` but
 instead offers one of length `p<q`, then the operator remembers this. The next
 time we ask to change `q` positions, it will directly try to change only `p`.
 This memory is reset in :meth:`~Op1SwapExactlyN.initialize`.
+
+A similar but much more light-weight and faster operator is given in
+:mod:`~moptipy.operators.permutations.op1_swap_try_n`. That operator also
+tries to perform a given number of swaps, but puts in much less effort to
+achieve this goal, i.e., it will only perform a single attempt.
 """
 from typing import Callable, Counter, Final, Iterable
 
@@ -532,7 +537,7 @@ class Op1SwapExactlyN(Op1WithStepSize):
         self.__move_map.update(self.__initial_move_map)
 
     def op1(self, random: Generator, dest: np.ndarray, x: np.ndarray,
-            step_size: float = 0) -> None:
+            step_size: float = 0.0) -> None:
         """
         Copy `x` into `dest` and then swap several different values.
 

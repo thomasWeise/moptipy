@@ -59,13 +59,16 @@ def validate_op1_with_step_size(
             random = default_rng()
         x = search_space.create()
         if x is None:
-            raise ValueError("search_space.create()=None")
+            raise ValueError(
+                f"search_space.create()=None for {search_space}")
         x_copy = search_space.create()
         if x_copy is None:
-            raise ValueError("search_space.create()=None")
+            raise ValueError(
+                f"search_space.create()=None for {search_space}")
         dest = search_space.create()
         if dest is None:
-            raise ValueError("search_space.create()=None")
+            raise ValueError(
+                f"search_space.create()=None for {search_space}")
 
     for i, step_size in enumerate(step_sizes):
         if not isinstance(step_size, float):
@@ -76,20 +79,24 @@ def validate_op1_with_step_size(
             if make_search_space_element_valid is not None:
                 x = make_search_space_element_valid(random, x)
             if x is None:
-                raise ValueError("make_search_space_element_valid("
-                                 "search_space.create())=None")
+                raise ValueError(
+                    "make_search_space_element_valid(search_space.create())="
+                    f"None for {search_space}")
             search_space.validate(x)
             search_space.copy(x_copy, x)
             if not search_space.is_equal(x_copy, x):
-                raise ValueError(f"error when copying {x}, got {x_copy}")
+                raise ValueError(
+                    f"error when copying {x}, got {x_copy} on {search_space}")
             op1.op1(random, dest, x, step_size)
             search_space.validate(dest)
             if search_space.is_equal(dest, x_copy):
                 raise ValueError(
-                    f"operator copies source for step_size={step_size}")
+                    f"operator copies source for step_size={step_size} "
+                    f"on {search_space} and {dest}")
             if not search_space.is_equal(x, x_copy):
                 raise ValueError(
-                    f"operator modifies source for step_size={step_size}")
+                    f"operator modifies source for step_size={step_size} "
+                    f"on {search_space}")
             if get_step_size is not None:
                 found_step_size: float | None = \
                     get_step_size(search_space, x, dest)
@@ -98,9 +105,10 @@ def validate_op1_with_step_size(
                 if not (isfinite(found_step_size)
                         and (0 <= found_step_size <= 1)):
                     raise ValueError(
-                        f"invalid detected step size {found_step_size}.")
+                        f"invalid detected step size {found_step_size} "
+                        f"for {search_space}.")
                 if found_step_size != step_size:
                     raise ValueError(
                         f"step_size={step_size} but {op1} actually "
                         f"performs step of size {found_step_size} for "
-                        f"x={x} and returns {dest}.")
+                        f"x={x} and returns {dest} for {search_space}.")
