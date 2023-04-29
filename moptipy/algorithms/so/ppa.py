@@ -90,8 +90,17 @@ Below, you can find references on the PPA.
    for Discrete Optimisation: The Case of the Travelling Salesman Problem.
    In Xin-She Yang, editor, *Nature-Inspired Computation in Engineering,*
    pages 43-61. Studies in Computational Intelligence (SCI), Volume 637.
-   Cham, Switzerland: Springer. https://doi.org/10.1007/978-3-319-30235-5_3.
+   March 2016. Cham, Switzerland: Springer.
+   https://doi.org/10.1007/978-3-319-30235-5_3.
    https://www.researchgate.net/publication/299286896.
+6. Marleen de Jonge and Daan van den Berg. Parameter Sensitivity Patterns in
+   the Plant Propagation Algorithm. In Juan Julián Merelo Guervós,
+   Jonathan M. Garibaldi, Christian Wagner, Thomas Bäck, Kurosh Madani, and
+   Kevin Warwick, editors, *Proceedings of the 12th International Joint
+   Conference on Computational Intelligence* (IJCCI'20), November 2-4, 2020,
+   Budapest, Hungary, pages 92-99. Setúbal, Portugal: SciTePress.
+   https://doi.org/10.5220/0010134300920099.
+   https://www.researchgate.net/publication/346829569.
 """
 from math import isfinite
 from typing import Callable, Final, cast
