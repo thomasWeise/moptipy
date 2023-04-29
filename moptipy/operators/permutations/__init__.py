@@ -17,12 +17,18 @@ These operators can be used in conjunction with the space
   probability 0.125, and so on. It does so by performing a sequence of swaps
   but does not check whether one swap undoes a previous one.
 - Module :mod:`~moptipy.operators.permutations.op1_swap_exactly_n` offers a
-  unary operator with a step size. A step size of 0 means that it will swap
-  two elements, a step size of 1 means that it tries to perform the
-  largest-possible modification. If it is applied to permutations where each
-  element occurs once, this means that all elements change their position. If
-  applied to permutations with repetitions, things are more complex and some
-  moves may be impossible, in which case a best effort is attempted.
+  unary operator with a step size (see
+  :class:`~moptipy.api.operators.Op1WithStepSize`). A step size of `0.0` means
+  that it will swap two elements, a step size of `1.0` means that it tries to
+  perform the largest-possible modification. If it is applied to permutations
+  where each element occurs once, this means that all elements change their
+  position. If applied to permutations with repetitions, things are more
+  complex and some moves may be impossible, in which case a best effort is
+  attempted.
+- Module :mod:`~moptipy.operators.permutations.op1_swap_try_n` is similar to
+  the operator from :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`,
+  but invests less effort into reaching the prescribed number of modifications
+  exactly. Instead, it will accept making only fewer swaps more easily.
 - Module :mod:`~moptipy.operators.permutations.op2_gap` offers an operator
   that tries to build a new permutation by appending not-yet-appended elements
   from both input permutations, alternating between them randomly.

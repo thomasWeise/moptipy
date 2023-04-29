@@ -41,7 +41,16 @@ class Op1FlipM(Op1WithStepSize):
 
         `step_size=0.0` will flip exactly `1` bit, `step_size=1.0` will flip
         all `n` bits. All other values are extrapolated by function
-        :func:`~moptipy.operators.tools.exponential_step_size`.
+        :func:`~moptipy.operators.tools.exponential_step_size`. In between
+        the two extremes, an exponential scaling
+        (:func:`~moptipy.operators.tools.exponential_step_size`) is performed,
+        meaning that for `n=10` bits, a step-size of `0.2` means flipping
+        two bits, `0.4` means flipping three bits, `0.6` means flipping four
+        bits, `0.7` means flipping five bits, `0.9` means flipping eight bits,
+        `0.95` means flipping nine bits, and `1.0` means flipping all bits.
+        In other words, a larger portion of the `step_size` range corresponds
+        to making small changes while the large changes are all condensed at
+        the higher end of the scale.
 
         :param self: the self pointer
         :param random: the random number generator

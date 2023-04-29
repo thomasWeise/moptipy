@@ -1,4 +1,36 @@
-"""A binary operator copying each bit from either source string."""
+"""
+A binary operator copying each bit from either source string.
+
+Uniform crossover copies the value of every bit with the same probability
+from either of the two parent strings. This means that all bits where both
+parent strings have the same value remain unchanged and are copied directly
+to the offspring. The bits where the parent strings have different values
+are effectively randomized. This is easy to see from the fact that, if both
+parents have different values for one bit, then one of them must have the
+bit set to `1` and the other one set to `0`. This means that the value in the
+offspring is set to `0` with probability `0.5` and set to `1` with probability
+`0.5`. This corresponds to drawing it uniformly at random, i.e., randomizing
+it.
+
+1. Gilbert Syswerda. Uniform Crossover in Genetic Algorithms. In J. David
+   Schaffer, editor, *Proceedings of the 3rd International Conference on
+   Genetic Algorithms* (ICGA'89), June 4-7, 1989, Fairfax, VA, USA, pages 2-9.
+   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.
+   ISBN: 1-55860-066-3. https://www.researchgate.net/publication/201976488.
+2. Hans-Georg Beyer and Hans-Paul Schwefel. Evolution Strategies - A
+   Comprehensive Introduction. *Natural Computing: An International
+   Journal* 1(1):3-52, March 2002, http://doi.org/10.1023/A:1015059928466.
+   https://www.researchgate.net/publication/220132816.
+3. Hans-Georg Beyer. An Alternative Explanation for the Manner in which
+   Genetic Algorithms Operate. *Biosystems* 41(1):1-15, January 1997,
+   https://doi.org/10.1016/S0303-2647(96)01657-7.
+4. William M. Spears and Kenneth Alan De Jong. On the Virtues of Parameterized
+   Uniform Crossover. In Richard K. Belew and Lashon Bernard Booker, editors,
+   *Proceedings of the Fourth International Conference on Genetic Algorithms*
+   (ICGA'91), July 13-16, 1991, San Diego, CA, USA, pages 230-236.
+   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.
+   ISBN: 1-55860-208-9. https://www.mli.gmu.edu/papers/91-95/91-18.pdf.
+"""
 
 import numba  # type: ignore
 import numpy as np

@@ -32,6 +32,10 @@ Our PPA implementation works as follows:
       number uniformly distributed in `[0,1)`. This means that better
       solutions are modified with smaller step sizes and worse solutions are
       modified more strongly.
+      Examples for such operators are given in
+      :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`,
+      :mod:`~moptipy.operators.permutations.op1_swap_try_n`, or
+      :mod:`~moptipy.operators.bitstrings.op1_flip_m`.
       The new solutions are appended into `lst` and their objective values are
       computed.
    c. The list is then sorted by objective values in ascending order, meaning
@@ -114,15 +118,6 @@ from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
 from moptipy.utils.types import check_int_range, type_error
-
-
-def _int_0(_: int) -> int:
-    """
-    Return an integer with value `0`.
-
-    :retval 0: always
-    """
-    return 0
 
 
 # start book
