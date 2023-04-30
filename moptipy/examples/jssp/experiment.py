@@ -189,12 +189,13 @@ for mu_lambda in [2, 8, 32]:
                                1.0 / (0.8 * lss))))) / 1e7))),
                    ml, ml, lss)))
 
-for m in [2, 8, 32]:
-    for nmax in [2, 4, 8]:
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, mm=m, ll=nmax: PPA(
-                Op0Shuffle(pwr), Op1SwapTryN(pwr), mm, ll)))
+for m in [2, 4, 8, 16, 32]:
+    for nmax in [2, 4, 8, 16, 32]:
+        for max_step in [1.0, 0.3]:
+            ALGORITHMS.append(cast(
+                Callable[[Instance, Permutations], Algorithm],
+                lambda inst, pwr, mm=m, ll=nmax, ms=max_step: PPA(
+                    Op0Shuffle(pwr), Op1SwapTryN(pwr), mm, ll, ms)))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

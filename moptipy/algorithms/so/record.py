@@ -29,9 +29,9 @@ class Record:
         """
         #: the point in the search space
         self.x: Final = x
-        #: the objective value corresponding to x
+        #: the objective value corresponding to :attr:`x`
         self.f: int | float = f
-        #: the iteration index when the record was created
+        #: the iteration index when :attr:`x` was sampled
         self.it: int = 0
 
     def __lt__(self, other) -> bool:
