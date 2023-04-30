@@ -1,9 +1,11 @@
 """Test the unary swap-exactly-n operation."""
 from collections.abc import Iterable
+from typing import Callable, Final
 
 import numpy as np
-from numpy.random import default_rng
+from numpy.random import Generator, default_rng
 
+from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap_exactly_n import (
     Op1SwapExactlyN,
     apply_move,
@@ -11,6 +13,7 @@ from moptipy.operators.permutations.op1_swap_exactly_n import (
     get_max_changes,
 )
 from moptipy.operators.tools import (
+    exponential_step_size,
     inv_exponential_step_size,
 )
 from moptipy.spaces.permutations import Permutations
@@ -115,3 +118,25 @@ def test_op1_swapxn() -> None:
         Op1SwapExactlyN, None, _min_unique,
         _get_step_sizes, _get_step_size,
         lambda p: (p.dimension < 50) and (get_max_changes(p.blueprint) >= 2))
+
+
+def test_op1_swapxn_exact() -> None:
+    """Test the exact number of swaps by a swap-exactly-n op."""
+    random: Final[Generator] = default_rng()
+    perm: Final[Permutations] = Permutations.standard(
+        int(random.integers(10, 100)))
+    x1: Final[np.ndarray] = perm.create()
+    Op0Shuffle(perm).op0(random, x1)
+    x2: Final[np.ndarray] = perm.create()
+    op1: Final[Op1SwapExactlyN] = Op1SwapExactlyN(perm)
+    op1.initialize()
+    op: Final[Callable[[Generator, np.ndarray,
+                        np.ndarray, float], None]] = op1.op1
+
+    for _ in range(1000):
+        steps = random.integers(0, 101) / 100
+        assert 0.0 <= steps <= 1.0
+        changes = exponential_step_size(steps, 2, len(x1))
+        assert 2 <= changes <= len(x1)
+        op(random, x2, x1, steps)
+        assert sum(x1 != x2) == changes

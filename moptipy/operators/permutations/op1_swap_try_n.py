@@ -51,7 +51,7 @@ class Op1SwapTryN(Op1WithStepSize):
         continue_after: bool = True  # True -> loop at least once.
         while continue_after:  # Repeat until we should stop
             steps = steps - 1
-            continue_after = (steps > 0) and (remaining > 1)
+            continue_after = (steps > 1) and (remaining > 1)
             tested: int = remaining  # the indices that we can test.
             while True:  # Loop forever until eligible element found.
                 ii = ri(tested)  # Get a new random index.
