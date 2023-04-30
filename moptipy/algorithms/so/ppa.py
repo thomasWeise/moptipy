@@ -12,11 +12,13 @@ Our PPA implementation works as follows:
 
    a. First, the range `[fmin,fmax]` of the objective values of the first
       :attr:`~moptipy.algorithms.so.ppa.PPA.m` solutions in `lst` is
-      determined. We set `frange = fmax - fmin`. If `frange > 0`, then the
-      fitness `z(x)` of each element be `(f(x) - fmin) / frange`. Otherwise,
-      i.e., if all solutions in `lst` have the same objective value, we set
-      `z(x)` to be a random number uniformly distributed in `[0,1)` and drawn
-      separately for each solution.
+      determined. We set `frange = fmax - fmin`, where `fmax` is the largest
+      objective value of any of the first `m` solutions in `lst` and `fmin`
+      is the smallest one. If `frange > 0`, then the fitness `z(x)` of each
+      element be `(f(x) - fmin) / frange`. Otherwise, i.e., if all solutions
+      in `lst` have the same objective value, we set `z(x)` to be a random
+      number uniformly distributed in `[0,1)` and drawn separately for each
+      solution.
    b. For each of the first :attr:`~moptipy.algorithms.so.ppa.PPA.m` solutions
       `x` in `lst`, we create `1 + int(nmax * r * (1 - z(x)))` offspring,
       where :attr:`~moptipy.algorithms.so.ppa.PPA.nmax` is the maximum number
@@ -28,10 +30,13 @@ Our PPA implementation works as follows:
       Each such offspring is the result of the application of a unary operator
       with step size, i.e., an instance of
       :class:`~moptipy.api.operators.Op1WithStepSize`. The step size is set to
-      `r * z(x)`, where `r` again is a freshly and independently drawn random
-      number uniformly distributed in `[0,1)`. This means that better
-      solutions are modified with smaller step sizes and worse solutions are
-      modified more strongly.
+      `r * max_step * z(x)`, where `r` again is a freshly and independently
+      drawn random number uniformly distributed in `[0,1)`. This means that
+      better solutions are modified with smaller step sizes and worse
+      solutions are modified more strongly.
+      :attr:`~moptipy.algorithms.so.ppa.PPA.max_step` is a parameter of the
+      algorithm that determines the maximum permissible step size. It is
+      always from the interval `[0,1]`.
       Examples for such operators are given in
       :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`,
       :mod:`~moptipy.operators.permutations.op1_swap_try_n`, or
@@ -60,6 +65,9 @@ E. As unary operators, we employ instances of the class
    operator with a step size between `0` (smallest possible modification) to
    `1` (largest possible modification) and will scale appropriately between
    the two extremes.
+F. Maximum step lengths, i.e., the parameter
+   :attr:`~moptipy.algorithms.so.ppa.PPA.max_step`, are not always explicitly
+   used in some of the papers.
 
 Below, you can find references on the PPA.
 
@@ -105,6 +113,14 @@ Below, you can find references on the PPA.
    Budapest, Hungary, pages 92-99. Setúbal, Portugal: SciTePress.
    https://doi.org/10.5220/0010134300920099.
    https://www.researchgate.net/publication/346829569.
+7. Ege de Bruin. Escaping Local Optima by Preferring Rarity with the
+   Frequency Fitness Assignment. Master's Thesis at Vrije Universiteit
+   Amsterdam, Amsterdam, the Netherlands. 2022.
+8. Wouter Vrielink and Daan van den Berg. Parameter control for the Plant
+   Propagation Algorithm. In Antonio M. Mora and Anna Isabel Esparcia-Alcázar,
+   editors, *Late-Breaking Abstracts of EvoStar'21*, April 7-9, 2021, online
+   conference. https://arxiv.org/pdf/2106.11804.pdf.
+   https://www.researchgate.net/publication/350328314.
 """
 from math import isfinite
 from typing import Callable, Final, cast
@@ -116,7 +132,7 @@ from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1WithStepSize
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.strings import PART_SEPARATOR
+from moptipy.utils.strings import PART_SEPARATOR, num_to_str_for_name
 from moptipy.utils.types import check_int_range, type_error
 
 
@@ -144,6 +160,7 @@ class PPA(Algorithm1):
         should_terminate: Final[Callable] = process.should_terminate
         r01: Final[Callable[[], float]] = cast(  # random floats
             Callable[[], float], random.random)
+        max_step: Final[float] = self.max_step
         # start book
         # create list of m random records and enough empty records
         lst: Final[list] = [None] * list_len  # pre-allocate list
@@ -180,7 +197,7 @@ class PPA(Algorithm1):
                     dest = lst[total]  # get next destination record
                     total = total + 1  # remember we have now one more
                     dest.it = it  # set iteration counter
-                    op1(random, dest.x, x, fit * r01())  # step-sized op
+                    op1(random, dest.x, x, fit * max_step * r01())
                     dest.f = evaluate(dest.x)  # evaluate new point
             ls = lst[0:total]  # get sub-list of elements in population
             ls.sort()  # sort these used elements
@@ -188,7 +205,8 @@ class PPA(Algorithm1):
 # end book
 
     def __init__(self, op0: Op0, op1: Op1WithStepSize, m: int = 30,
-                 nmax: int = 5, name: str = "ppa") -> None:
+                 nmax: int = 5, max_step: float = 0.3,
+                 name: str = "ppa") -> None:
         """
         Create the Plant Propagation Algorithm (PPA).
 
@@ -200,14 +218,23 @@ class PPA(Algorithm1):
         """
         if not isinstance(op1, Op1WithStepSize):
             raise type_error(op1, "op1", Op1WithStepSize)
-        name = f"{name}{PART_SEPARATOR}{m}{PART_SEPARATOR}{nmax}"
-        super().__init__(name, op0, op1)
 
         #: the number of records to survive in each generation
         self.m: Final[int] = check_int_range(m, "m", 1, 1_000_000)
         #: the maximum number of offsprings per solution per iteration
         self.nmax: Final[int] = check_int_range(
             nmax, "nmax", 1, 1_000_000)
+        if not isinstance(max_step, float):
+            raise type_error(max_step, "max_step", float)
+        if (not isfinite(max_step)) or (max_step < 0.0) or (max_step > 1.0):
+            raise ValueError(f"max_step={max_step}, but must be in [0,1].")
+        #: the maximum step length
+        self.max_step: Final[float] = max_step
+
+        name = f"{name}{PART_SEPARATOR}{m}{PART_SEPARATOR}{nmax}"
+        if max_step != 1.0:
+            name = f"{name}{PART_SEPARATOR}{num_to_str_for_name(max_step)}"
+        super().__init__(name, op0, op1)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -218,3 +245,4 @@ class PPA(Algorithm1):
         super().log_parameters_to(logger)
         logger.key_value("m", self.m)
         logger.key_value("nmax", self.nmax)
+        logger.key_value("maxStep", self.max_step)
