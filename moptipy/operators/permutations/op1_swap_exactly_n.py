@@ -4,6 +4,12 @@ An operator trying to change exactly `n` elements in a permutation.
 This is an operator with a step size
 (:class:`moptipy.api.operators.Op1WithStepSize`) and the step size determines
 how many elements of a permutation should be changed.
+If you are working on permutations without repetitions, the operator in
+:mod:`~moptipy.operators.permutations.op1_swap_try_n` is the better and faster
+choice. On normal permutations, it will be equivalent to
+:mod:`~moptipy.operators.permutations.op1_swap_exactly_n`, but faster. On
+Permutations with repetitions, it will still be faster but less precisely
+enforces the number of swaps.
 
 Let's say we have a "normal" permutation where each element occurs once.
 The permutation has length `n`, let's say that its

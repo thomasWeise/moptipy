@@ -9,6 +9,12 @@ Different from :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`,
 however, it does so less strictly. It applies a simple best-effort approach
 and if that does not work out, then so be it. It is therefore faster, but
 adheres less strictly to the give `step_size`.
+
+This operator will always swap the right number of elements on normal
+permutations. On permutations with repetitions, it enforces the number of
+swaps less strongly compared to
+:mod:`~moptipy.operators.permutations.op1_swap_exactly_n`, but it will be
+faster either way.
 """
 from typing import Callable, Final
 
