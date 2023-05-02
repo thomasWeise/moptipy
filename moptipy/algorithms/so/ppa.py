@@ -50,21 +50,46 @@ The main differences between this procedure and the "standard-PPA" are as
 follows:
 
 A. The algorithm is implemented for minimization and all equations are
-   adopted correspondingly.
+   modified accordingly.
 B. After normalizing the objective values in the population, the `tanh`-based
    scaling is *not* applied.
+   Instead, the normalized objective values, where `0` is best and `1` is
+   worst, are used directly to determine the number of offspring per record
+   and the step length.
 C. The fitness of a record equals its normalized objective value
    (in `[0, 1]`), unless all records have the same objective value, in which
    case the fitness of each record is set to a random number uniformly
    distributed in `[0, 1)`.
+   If all elements in the population have the same objective value,
+   normalizing is not possible as it would lead to a division by zero.
+   One could use a constant value, say `0.5`, in this case, but there is no
+   guarantee that this would be a good choice.
+   We therefore use random values from `[0, 1)` instead.
+   These may sometimes be suitable, sometimes not.
+   But at least they likely are not *always* a bad choice, which might happen
+   in some scenarios with `0.5` or any other constant.
 D. The decisions regarding the number of offspring per selected record and the
    step-width of the search moves are made only based on this fitness (and,
    again, not on the `tanh` scaling which is not used).
+   Since we normally do not know the characteristics of the objective function
+   in advance, I think that we also often do not know whether a `tanh` scaling
+   (that emphasizes objective values close to the best and close to the worst)
+   is necessary or a good idea.
+   It could be good in some cases, but it might as well be a bad choice in
+   others.
+   For now, I have thus not implemented this and just use the raw normalized
+   objective values.
 E. As unary operators, we employ instances of the class
    :class:`~moptipy.api.operators.Op1WithStepSize`, which provides a unary
    operator with a step size between `0` (smallest possible modification) to
    `1` (largest possible modification) and will scale appropriately between
    the two extremes.
+   Often, instances of this class will determine the number or magnitude of
+   changes based on an exponential scaling (see
+   :func:`~moptipy.operators.tools.exponential_step_size`) of the step length.
+   The idea is that small step sizes should be emphasized and that really big
+   step sizes are often rarely needed.
+   This thus effectively takes the place of the `tanh` scaling.
 F. Maximum step lengths, i.e., the parameter
    :attr:`~moptipy.algorithms.so.ppa.PPA.max_step`, are not always explicitly
    used in some of the papers.

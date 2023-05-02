@@ -133,10 +133,21 @@ def test_op1_swapxn_exact() -> None:
     op: Final[Callable[[Generator, np.ndarray,
                         np.ndarray, float], None]] = op1.op1
 
+    op(random, x2, x1, 0.0)
+    assert sum(x1 != x2) == 2
+    op(random, x2, x1, 1.0)
+    assert sum(x1 != x2) == len(x2)
+
     for _ in range(1000):
-        steps = random.integers(0, 101) / 100
+        steps = random.integers(0, 10001) / 10000
         assert 0.0 <= steps <= 1.0
         changes = exponential_step_size(steps, 2, len(x1))
         assert 2 <= changes <= len(x1)
+        op(random, x2, x1, steps)
+        assert sum(x1 != x2) == changes
+
+    for changes in range(2, len(x2) + 1):
+        steps = inv_exponential_step_size(changes, 2, len(x2))
+        assert 0.0 <= steps <= 1.0
         op(random, x2, x1, steps)
         assert sum(x1 != x2) == changes
