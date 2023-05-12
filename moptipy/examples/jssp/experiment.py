@@ -189,9 +189,9 @@ for mu_lambda in [2, 8, 32]:
                                1.0 / (0.8 * lss))))) / 1e7))),
                    ml, ml, lss)))
 
-for m in [2, 4, 8, 16, 32]:
-    for nmax in [2, 4, 8, 16, 32]:
-        for max_step in [1.0, 0.3]:
+for m in [1, 2, 4, 8, 16, 32]:
+    for nmax in [1, 2, 4, 8, 16, 32]:
+        for max_step in [1.0, 0.5, 0.3, 0.0]:
             ALGORITHMS.append(cast(
                 Callable[[Instance, Permutations], Algorithm],
                 lambda inst, pwr, mm=m, ll=nmax, ms=max_step: PPA(

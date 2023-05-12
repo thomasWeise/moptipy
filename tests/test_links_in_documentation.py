@@ -1,5 +1,6 @@
 """Test all the links in the project's *.md files."""
 import os.path
+from os import environ
 from random import choice
 from time import sleep
 from typing import Final
@@ -16,6 +17,13 @@ from urllib3.util.url import Url, parse_url
 from moptipy.utils.console import logger
 from moptipy.utils.path import Path
 from moptipy.utils.strings import replace_all
+
+#: The hosts that somtimes are unreachable from my local machine.
+#: When the test is executed in a GitHub workflow, all hosts should be
+#: reachable.
+SOMETIMES_UNREACHABLE_HOSTS: Final[set[str]] = \
+    () if "GITHUB_JOB" in environ else \
+    {"github.com", "img.shields.io", "pypi.org", "docs.python.org"}
 
 
 def __ve(msg: str, text: str, idx: int) -> ValueError:
@@ -122,20 +130,20 @@ def __check(url: str, valid_urls: dict[str, str | None],
     code: int
     body: str | None
     method = "GET" if needs_body else "HEAD"
-    try:
-        error: Exception | None
-        response = None
-
+    error: Exception | None = None
+    response = None
 # Sometimes, access to the URLs on GitHub fails.
 # I think they probably throttle access from here.
 # Therefore, we first do a request with 5s timeout and 0 retries.
-# If that fails, we wait 2 seconds and try with timeout 8 and 5 retries.
-# If that fails, we wait for 20s, then try with timeout 30 and 10 retries.
+# If that fails, we wait 2 seconds and try with timeout 8 and 3 retries.
+# If that fails, we wait for 5s, then try with timeout 30 and 3 retries.
 # If that fails too, we assume that the URL is really incorrect, which rarely
-# should be the case (justifying the many retries).
-        for sltrt in [(0, 0, 5), (2, 5, 8), (20, 10, 30)]:
+# should not be the case (justifying the many retries).
+    try:
+        for sltrt in [(0, 0, 5), (2, 3, 8), (5, 3, 30)]:
             sleep_time, retries, timeout = sltrt
-            sleep(sleep_time)
+            if sleep_time > 0:
+                sleep(sleep_time)
             header: dict[str, str] = choice(__HEADERS)
             try:
                 response = http.request(
@@ -146,7 +154,14 @@ def __check(url: str, valid_urls: dict[str, str | None],
             except Exception as be:
                 logger(f"sleep={sleep_time}, retries={retries}, "
                        f"timeout={timeout}, error={str(be)!r}, and "
-                       f"header={header!r}.")
+                       f"header={header!r} for {base_url!r}.")
+                if error is not None:
+                    bz = be
+                    while True:
+                        if bz.__cause__ is None:
+                            bz.__cause__ = error
+                            break
+                        bz = bz.__cause__
                 error = be
         if error is not None:
             raise error  # noqa
@@ -160,7 +175,7 @@ def __check(url: str, valid_urls: dict[str, str | None],
         host: Final[str | None] = parsed.hostname
         if host is None:
             raise ValueError(f"url {url!r} has None as host??") from be
-        if host == "github.com":
+        if host in SOMETIMES_UNREACHABLE_HOSTS:  # sometimes not reachable!
             return
         raise ValueError(f"invalid url {url!r}.") from be
 
@@ -415,3 +430,13 @@ def test_all_links_in_readme_md() -> None:
 def test_all_links_in_contributing_md() -> None:
     """Test all the links in the CONTRIBUTING.md file."""
     check_links_in_file("CONTRIBUTING.md")
+
+
+def test_all_links_in_security_md() -> None:
+    """Test all the links in the SECURITY.md file."""
+    check_links_in_file("SECURITY.md")
+
+
+def test_all_links_in_license() -> None:
+    """Test all the links in the LICENSE file."""
+    check_links_in_file("LICENSE")

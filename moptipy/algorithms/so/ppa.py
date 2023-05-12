@@ -94,6 +94,46 @@ F. Maximum step lengths, i.e., the parameter
    :attr:`~moptipy.algorithms.so.ppa.PPA.max_step`, are not always explicitly
    used in some of the papers.
 
+In order to understand the behavior of the algorithm, consider the following
+case. Assume that we set the maximum number
+(:attr:`~moptipy.algorithms.so.ppa.PPA.nmax`) of offspring per solution to `1`
+and the number :attr:`~moptipy.algorithms.so.ppa.PPA.m` of solutions to
+survive selection to `1` as well. In this case, the PPA has exactly the same
+"population structure" as the Randomized Local Search
+(:mod:`~moptipy.algorithms.so.rls`), namely it preserves the best-so-far
+solution and generates one new solution in each step, which then competes with
+that best-so-far solution. The two algorithms then only differ in their search
+operator: The step-length of the unary operator used in PPA depends on the
+relative objective value and the one of the RLS does not. However, there are
+many situations where the two could still be equivalent. For example, if the
+current and new solution have different objective values, normalizing the
+objective value will mean that the best of the two has normalized objective
+value "0". This equates to the shortest possible step length. In this case,
+for example, the step-length based operator
+:mod:`~moptipy.operators.permutations.op1_swap_try_n` behaves exactly like the
+:mod:`~moptipy.operators.permutations.op1_swap2` operator and the step-length
+based :mod:`~moptipy.operators.bitstrings.op1_flip_m` operator behaves like
+the :mod:`~moptipy.operators.bitstrings.op1_flip1`.
+Of course, if both the current and the new solution have the same objective
+value, then we use a random number from `[0,1)` as normalized objective value,
+so the operators would not behave the same. Then again, one could set the
+maximum step length :attr:`~moptipy.algorithms.so.ppa.PPA.max_step` to `0`.
+In this case, the step length is always zero and most of our step-length based
+operations will behave like fixed small step-length based counterparts, as
+mentioned above. So in other words, if we set both
+:attr:`~moptipy.algorithms.so.ppa.PPA.m` and
+:attr:`~moptipy.algorithms.so.ppa.PPA.nmax` to `1` and set
+:attr:`~moptipy.algorithms.so.ppa.PPA.max_step` to `0`, our PPA behaves like
+:mod:`~moptipy.algorithms.so.rls` (if the search operators are appropriately
+chosen).
+
+Now :mod:`~moptipy.algorithms.so.rls` is also known as the (1+1) EA
+and indeed, it is a special case of the (mu+lambda) EA implemented in
+:mod:`~moptipy.algorithms.so.ea`.
+I think with some appropriate settings of the parameter, we can probably
+construct some setups of both algorithms with larger populations that should
+be equivalent or close-to-equivalent in the big picture.
+
 Below, you can find references on the PPA.
 
 1. Abdellah Salhi and Eric Serafin Fraga. Nature-Inspired Optimisation
@@ -146,6 +186,14 @@ Below, you can find references on the PPA.
    editors, *Late-Breaking Abstracts of EvoStar'21*, April 7-9, 2021, online
    conference. https://arxiv.org/pdf/2106.11804.pdf.
    https://www.researchgate.net/publication/350328314.
+9. Levi Koppenhol, Nielis Brouwer, Danny Dijkzeul, Iris Pijning, Joeri
+   Sleegers, and Daan van den Berg. Exactly Characterizable Parameter Settings
+   in a Crossoverless Evolutionary Algorithm. In Jonathan E. Fieldsend and
+   Markus Wagner, editors, Genetic and Evolutionary Computation Conference
+   (GECCO'22) Companion Volume, July 9-13, 2022, Boston, MA, USA,
+   pages 1640-1649. New York, NY, USA: ACM.
+   https://doi.org/10.1145/3520304.3533968.
+   https://www.researchgate.net/publication/362120506.
 """
 from math import isfinite
 from typing import Callable, Final, cast

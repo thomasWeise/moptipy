@@ -24,6 +24,7 @@ import warnings
 from typing import Any, Callable, Final, cast
 
 import numpy as np
+import pdfo  # type: ignore
 
 # noinspection PyProtectedMember
 from pdfo._bobyqa import bobyqa  # type: ignore
@@ -38,6 +39,15 @@ from moptipy.api.subprocesses import (
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.types import type_error
+
+#: pdfo with version 1.3 and below is incompatible with numpy
+#: of version 1.24.0 and above. It will crash with an exception.
+#: So for this case, we will later just invoke a single random sample and
+#: exit. See https://github.com/pdfo/pdfo/issues/55
+_CANNOT_DO_PDFO: Final[bool] = \
+    hasattr(np, "__version__") and hasattr(pdfo, "__version__") \
+    and (list(map(int, np.__version__.split("."))) >= [1, 24])\
+    and (list(map(int, pdfo.__version__.split("."))) <= [1, 3])
 
 
 class BOBYQA(Algorithm0):
@@ -77,6 +87,10 @@ class BOBYQA(Algorithm0):
         npt: int = (2 * len(x0)) + 1  # the default npt value
         max_fes: int = max(npt + 1, get_remaining_fes(process))
         self.op0.op0(process.get_random(), x0)  # sample start point
+
+        if _CANNOT_DO_PDFO:  # PDFO incompatible to current setup
+            process.evaluate(x0)  # do single random sample
+            return  # and quit
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

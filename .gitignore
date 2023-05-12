@@ -205,7 +205,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-/.github/
 
 # additional own files and folders
 

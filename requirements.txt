@@ -22,10 +22,10 @@
 # We will need numpy for several reasons:
 #  - it provides the random number generators
 #  - it provides efficient arrays as backends of vector-based search spaces
-numpy >= 1.23.5
+numpy >= 1.24.3
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba >= 0.56.4
+numba >= 0.57.0
 
 # matplotlib is used to create plots in the evaluation procedures.
 matplotlib >= 3.7.1

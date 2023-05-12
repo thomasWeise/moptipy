@@ -59,9 +59,9 @@ test: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "$(NOW): PATH is now '${PATH}'." &&\
 	echo "$(NOW): Running pytest tests." && \
-	coverage run --include="moptipy/*" -m pytest --strict-config tests -o faulthandler_timeout=1800 --ignore=examples && \
+	timeout --kill-after=15s 90m coverage run --include="moptipy/*" -m pytest --strict-config tests --ignore=examples && \
 	echo "$(NOW): Running pytest with doctests." && \
-	coverage run -a --include="moptipy/*" -m pytest --strict-config --doctest-modules -o faulthandler_timeout=720 --ignore=tests --ignore=examples && \
+	timeout --kill-after=15s 90m coverage run -a --include="moptipy/*" -m pytest --strict-config --doctest-modules --ignore=tests --ignore=examples && \
 	echo "$(NOW): Finished running pytest tests."
 
 # Perform static code analysis.
