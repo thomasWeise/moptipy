@@ -1,6 +1,6 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
-from math import isfinite
+from math import isfinite, isnan
 from typing import Any, Final, cast
 
 import numba  # type: ignore
@@ -86,7 +86,8 @@ def is_np_float(dtype: np.dtype) -> bool:
     return dtype.kind == "f"
 
 
-def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
+def int_range_to_dtype(min_value: int, max_value: int,
+                       force_signed: bool = False) -> np.dtype:
     """
     Convert an integer range to an appropriate numpy data type.
 
@@ -97,29 +98,66 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
 
     :param min_value: the minimum value
     :param max_value: the maximum value
+    :param force_signed: enforce signed types
     :return: the numpy integer range
     :raises TypeError: if the parameters are not integers
-    :raises ValueError: if the range is invalid
+    :raises ValueError: if the range is invalid, i.e., if `min_value` exceeds
+        `max_value` or either of them exceeds the possible range of the
+        largest numpy integers.
 
     >>> from moptipy.utils.nputils import int_range_to_dtype
     >>> print(int_range_to_dtype(0, 127))
     int8
     >>> print(int_range_to_dtype(0, 128))
     uint8
+    >>> print(int_range_to_dtype(0, 128, True))
+    int16
     >>> print(int_range_to_dtype(0, 32767))
     int16
     >>> print(int_range_to_dtype(0, 32768))
     uint16
+    >>> print(int_range_to_dtype(0, 32768, True))
+    int32
     >>> print(int_range_to_dtype(0, (2 ** 31) - 1))
     int32
     >>> print(int_range_to_dtype(0, 2 ** 31))
     uint32
+    >>> print(int_range_to_dtype(0, 2 ** 31, True))
+    int64
     >>> print(int_range_to_dtype(0, (2 ** 63) - 1))
     int64
     >>> print(int_range_to_dtype(0, 2 ** 63))
     uint64
     >>> print(int_range_to_dtype(0, (2 ** 64) - 1))
     uint64
+    >>> try:
+    ...     int_range_to_dtype(0, (2 ** 64) - 1, True)
+    ... except ValueError as e:
+    ...     print(e)
+    Signed integer range cannot exceed -9223372036854775808..922337203685477\
+5807, but 0..18446744073709551615 was specified.
+    >>> try:
+    ...     int_range_to_dtype(0, (2 ** 64) + 1)
+    ... except ValueError as e:
+    ...     print(e)
+    max_value for unsigned integers must be <=18446744073709551615, but is \
+18446744073709551617 for min_value=0.
+    >>> try:
+    ...     int_range_to_dtype(-1, (2 ** 64) - 1)
+    ... except ValueError as e:
+    ...     print(e)
+    Signed integer range cannot exceed -9223372036854775808..922337203685477\
+5807, but -1..18446744073709551615 was specified.
+    >>> try:
+    ...     int_range_to_dtype(-1.0, (2 ** 64) - 1)
+    ... except TypeError as e:
+    ...     print(e)
+    min_value should be an instance of int but is float, namely '-1.0'.
+    >>> try:
+    ...     int_range_to_dtype(-1, 'a')
+    ... except TypeError as e:
+    ...     print(e)
+    max_value should be an instance of int but is str, namely 'a'.
     """
     if not isinstance(min_value, int):
         raise type_error(min_value, "min_value", int)
@@ -130,14 +168,16 @@ def int_range_to_dtype(min_value: int, max_value: int) -> np.dtype:
             f"min_value must be <= max_value, but min_value={min_value} "
             f"and max_value={max_value} was provided.")
 
+    use_min_value: Final[int] = -1 if force_signed and (min_value >= 0) \
+        else min_value
     for t in __INTS_AND_RANGES:
-        if (min_value >= t[1]) and (max_value <= t[2]):
+        if (use_min_value >= t[1]) and (max_value <= t[2]):
             return t[0]
 
-    if min_value >= 0:
+    if (min_value >= 0) and (not force_signed):
         raise ValueError(
             "max_value for unsigned integers must be <="
-            f"{(__INTS_AND_RANGES[-1])[2]}, but is {max_value} "
+            f"{(__INTS_AND_RANGES[-1])[2]}, but is {max_value}"
             f" for min_value={min_value}.")
 
     raise ValueError(
@@ -152,11 +192,118 @@ def dtype_for_data(always_int: bool,
     """
     Obtain the most suitable numpy data type to represent the data.
 
+    If the data is always integer, the smallest possible integer type will be
+    sought using :func:`int_range_to_dtype`. If `always_int` is `True` and
+    one or both of the bounds are infinite, then the largest available integer
+    type is returned. If the bounds are finite but exceed the integer range,
+    a `ValueError` is thrown. If the data is not always integer, the `float64`
+    is returned.
+
     :param always_int: is the data always integer?
     :param lower_bound: the lower bound of the data, set to `-inf` if no lower
         bound is known and we should assume the full integer range
     :param upper_bound: the upper bound of the data, set to `-inf` if no upper
         bound is known and we should assume the full integer range
+    :raises ValueError: if the `lower_bound > upper_bound` or any bound is
+        `nan` or the integer bounds exceed the largest int range
+    :raises TypeError: if, well, you provide parameters of the wrong types
+
+    >>> print(dtype_for_data(True, 0, 127))
+    int8
+    >>> print(dtype_for_data(True, 0, 128))
+    uint8
+    >>> print(dtype_for_data(True, -1, 32767))
+    int16
+    >>> print(dtype_for_data(True, 0, 32768))
+    uint16
+    >>> print(dtype_for_data(True, -1, 32768))
+    int32
+    >>> print(dtype_for_data(True, 0, 65535))
+    uint16
+    >>> print(dtype_for_data(True, 0, 65536))
+    int32
+    >>> print(dtype_for_data(True, -1, 65535))
+    int32
+    >>> print(dtype_for_data(True, 0, (2 ** 31) - 1))
+    int32
+    >>> print(dtype_for_data(True, 0, 2 ** 31))
+    uint32
+    >>> print(dtype_for_data(True, -1, 2 ** 31))
+    int64
+    >>> print(dtype_for_data(True, 0, (2 ** 63) - 1))
+    int64
+    >>> print(dtype_for_data(True, 0, 2 ** 63))
+    uint64
+    >>> print(dtype_for_data(True, 0, (2 ** 63) + 1))
+    uint64
+    >>> print(dtype_for_data(True, 0, (2 ** 64) - 1))
+    uint64
+    >>> try:
+    ...     dtype_for_data(True, 0, 2 ** 64)
+    ... except ValueError as v:
+    ...     print(v)
+    max_value for unsigned integers must be <=18446744073709551615, but \
+is 18446744073709551616 for min_value=0.
+    >>> from math import inf, nan
+    >>> print(dtype_for_data(True, 0, inf))
+    uint64
+    >>> print(dtype_for_data(True, -1, inf))
+    int64
+    >>> print(dtype_for_data(True, -inf, inf))
+    int64
+    >>> print(dtype_for_data(True, -inf, inf))
+    int64
+    >>> try:
+    ...     dtype_for_data(True, 1, 0)
+    ... except ValueError as v:
+    ...     print(v)
+    invalid bounds [1,0].
+    >>> try:
+    ...     dtype_for_data(False, 1, 0)
+    ... except ValueError as v:
+    ...     print(v)
+    invalid bounds [1,0].
+    >>> try:
+    ...     dtype_for_data(True, 1, nan)
+    ... except ValueError as v:
+    ...     print(v)
+    invalid bounds [1,nan].
+    >>> try:
+    ...     dtype_for_data(False, nan, 0)
+    ... except ValueError as v:
+    ...     print(v)
+    invalid bounds [nan,0].
+    >>> print(dtype_for_data(False, 1, 2))
+    float64
+    >>> try:
+    ...     dtype_for_data(False, nan, '0')
+    ... except TypeError as v:
+    ...     print(v)
+    upper_bound should be an instance of any in {float, int} but is str, \
+namely '0'.
+    >>> try:
+    ...     dtype_for_data(True, 'x', 0)
+    ... except TypeError as v:
+    ...     print(v)
+    lower_bound should be an instance of any in {float, int} but is str, \
+namely 'x'.
+    >>> try:
+    ...     dtype_for_data(True, 1.0, 2.0)
+    ... except TypeError as v:
+    ...     print(v)
+    finite lower_bound of always_int should be an instance of int but is \
+float, namely '1.0'.
+    >>> try:
+    ...     dtype_for_data(True, 0, 2.0)
+    ... except TypeError as v:
+    ...     print(v)
+    finite upper_bound of always_int should be an instance of int but is \
+float, namely '2.0'.
+    >>> try:
+    ...     dtype_for_data(3, 0, 2)
+    ... except TypeError as v:
+    ...     print(v)
+    always_int should be an instance of bool but is int, namely '3'.
     """
     if not isinstance(always_int, bool):
         raise type_error(always_int, "always_int", bool)
@@ -164,6 +311,9 @@ def dtype_for_data(always_int: bool,
         raise type_error(lower_bound, "lower_bound", (int, float))
     if not isinstance(upper_bound, int | float):
         raise type_error(upper_bound, "upper_bound", (int, float))
+    if isnan(lower_bound) or isnan(upper_bound) or \
+            (lower_bound > upper_bound):
+        raise ValueError(f"invalid bounds [{lower_bound},{upper_bound}].")
     if always_int:
         if isfinite(lower_bound):
             if not isinstance(lower_bound, int):
@@ -286,6 +436,13 @@ def rand_generator(seed: int) -> Generator:
 
     :param seed: the random seed
     :return: the random number generator
+
+    >>> type(rand_generator(1))
+    <class 'numpy.random._generator.Generator'>
+    >>> type(rand_generator(1).bit_generator)
+    <class 'numpy.random._pcg64.PCG64'>
+    >>> rand_generator(1).random() == rand_generator(1).random()
+    True
     """
     return default_rng(rand_seed_check(seed))
 
@@ -432,20 +589,37 @@ def numpy_type_to_str(dtype: np.dtype) -> str:
     return dtype.char
 
 
-def np_to_py_number(number) -> int | float:
+def np_to_py_number(number: Any) -> int | float:
     """
     Convert a scalar number from numpy to a corresponding Python type.
 
     :param number: the numpy number
     :returns: an integer or float representing the number
+
+    >>> type(np_to_py_number(1))
+    <class 'int'>
+    >>> type(np_to_py_number(1.0))
+    <class 'float'>
+    >>> type(np_to_py_number(np.int8(1)))
+    <class 'int'>
+    >>> type(np_to_py_number(np.float64(1)))
+    <class 'float'>
+    >>> try:
+    ...    np_to_py_number(np.complex64(1))
+    ... except TypeError as te:
+    ...    print(te)
+    number should be an instance of any in {float, int, numpy.floating, \
+numpy.integer} but is numpy.complex64, namely '(1+0j)'.
     """
-    if isinstance(number, int | float):
+    if isinstance(number, int):
         return number
     if isinstance(number, np.number):
         if isinstance(number, np.integer):
             return int(number)
         if isinstance(number, np.floating):
             return float(number)
+    if isinstance(number, float):
+        return number
     raise type_error(number, "number",
                      (int, float, np.integer, np.floating))
 

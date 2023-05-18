@@ -81,7 +81,7 @@ published by different researchers in literature [6-14].
 deServlet/dbt_derivate_00001373/Dissertation.pdf
 """
 from importlib import resources  # nosem
-from typing import Final
+from typing import Final, cast
 
 import numpy as np
 
@@ -93,15 +93,15 @@ from moptipy.utils.strings import sanitize_name
 from moptipy.utils.types import check_int_range, type_error
 
 #: the recommended scope under which instance data should be stored
-SCOPE_INSTANCE: Final = "inst"
+SCOPE_INSTANCE: Final[str] = "inst"
 #: The number of machines in the instance.
-MACHINES: Final = "machines"
+MACHINES: Final[str] = "machines"
 #: The number of jobs in the instance.
-JOBS: Final = "jobs"
+JOBS: Final[str] = "jobs"
 #: The lower bound of the makespan of the instance.
-MAKESPAN_LOWER_BOUND: Final = "makespanLowerBound"
+MAKESPAN_LOWER_BOUND: Final[str] = "makespanLowerBound"
 #: The upper bound of the makespan of the instance.
-MAKESPAN_UPPER_BOUND: Final = "makespanUpperBound"
+MAKESPAN_UPPER_BOUND: Final[str] = "makespanUpperBound"
 
 #: the internal final set of instances
 _INSTANCES: Final[tuple[str, ...]] = \
@@ -222,7 +222,7 @@ class Instance(Component, np.ndarray):
     `I[job, operation, 1] = time` that the job spents on machine.
     """
 
-    # the name of the instance
+    #: the name of the instance
     name: str
     #: the number of jobs == self.shape[0]
     jobs: int
@@ -467,10 +467,17 @@ class Instance(Component, np.ndarray):
         >>> print(jssp)
         demo
         """
+        container: Final = Instance.from_resource
+        inst_attr: Final[str] = f"__inst_{name}"
+        if hasattr(container, inst_attr):
+            return cast(Instance, getattr(container, inst_attr))
         with resources.open_text(package=str(__package__),
                                  resource="demo.txt" if (name == "demo")
                                  else "instances.txt") as stream:
-            return Instance.from_stream(name=name, stream=stream)
+            inst: Final[Instance] = Instance.from_stream(
+                name=name, stream=stream)
+            setattr(container, inst_attr, inst)
+            return inst
 
     @staticmethod
     def list_resources() -> tuple[str, ...]:

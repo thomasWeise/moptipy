@@ -96,7 +96,7 @@ class GanttSpace(Space):
         :return: the Gantt chart
         """
         if not isinstance(text, str):
-            raise type_error(text, "instance text", str)
+            raise type_error(text, "Gannt text", str)
         # start book
         x: Final[Gantt] = self.create()
         np.copyto(x, np.fromstring(
@@ -108,7 +108,7 @@ class GanttSpace(Space):
 
     def validate(self, x: Gantt) -> None:  # +book
         """
-        Check if a Gantt chart if valid and feasible.
+        Check if a Gantt chart is valid and feasible.
 
         This means that the operations of the jobs must appear in the right
         sequences and must not intersect in any way.
