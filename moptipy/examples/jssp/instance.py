@@ -338,6 +338,15 @@ class Instance(Component, np.ndarray):
         Log the parameters describing this JSSP instance to the logger.
 
         :param logger: the logger for the parameters
+
+        >>> from moptipy.utils.logger import InMemoryLogger
+        >>> with InMemoryLogger() as l:
+        ...     with l.key_values("I") as kv:
+        ...         Instance.from_resource("abz8").log_parameters_to(kv)
+        ...     print(repr('@'.join(l.get_log())))
+        'BEGIN_I@name: abz8@class: moptipy.examples.jssp.instance.\
+Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
+@makespanUpperBound: 7586@dtype: b@END_I'
         """
         super().log_parameters_to(logger)
         logger.key_value(MACHINES, self.machines)

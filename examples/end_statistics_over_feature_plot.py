@@ -106,7 +106,7 @@ with TempDir.create() as td:  # create temporary directory `td`
         x_getter=lambda es: int(es.instance[7:]),  # => n
         instance_getter=lambda es: es.instance[:6],  # => onemax
         x_label="n", y_axis=AxisRanger())
-    # Save the image only as svg and png.
+    # Save the image only as svg.
     files.extend(save_figure(fig=fig,  # store fig to a file
                              file_name="ert_over_onemax_n",  # base name
                              dir_name=td,  # store graphic in temp directory
