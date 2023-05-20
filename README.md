@@ -797,9 +797,9 @@ In other words, they try to minimize multiple [objective functions](https://thom
     - [flip m](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#module-moptipy.operators.bitstrings.op1_flip_m) is an operator with step width where the exact number of bits to flip can be determined.
   - Binary Operators:
     - [uniform crossover](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op2_uniform.Op2Uniform) randomly chooses, for each bit, from which of the two source strings it will be copied.
-- [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.permutations.Permutations) with and without Repetitions are represented as numpy arrays of integers.
+- [Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.permutations) with and without Repetitions are represented as numpy arrays of integers.
   A permutation of the values "1,2,3", for example, is an arrangement containing these values in any order.
-- In `moptipy`, the space `Permutation` is defined over any arrangement of a given base string. For example, if a base string is "1,2,2,3", then any arrangement containing one "1", two "2"s, and one "3" is then an element of this space.
+  In `moptipy`, the space `Permutation` is defined over any arrangement of a given base string. For example, if a base string is "1,2,2,3", then any arrangement containing one "1", two "2"s, and one "3" is then an element of this space.
   This allows us to represent both normal permutations as well as those with repetitions.
   - Nullary Operators:
     - [Fisher-Yates shuffle](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op0_shuffle.Op0Shuffle) creates uniformly randomly distributed permutations.
@@ -812,6 +812,12 @@ In other words, they try to minimize multiple [objective functions](https://thom
   - Binary Operators:
     - [generalized alternating position crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_gap.Op2GeneralizedAlternatingPosition) chooses, for each index, from which of the two source permutations the (next not-yet-used) value should be copied
     - [order-based crossover](https://thomasweise.github.io/moptipy/moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased) randomly selects a set of indices and copies the elements from first source permutation to the same indices in the destination string. It then copies the remaining elements from the second source, maintaining the order in which they appear in the second source string.
+- [Signed Permutations](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.signed_permutations) with and without Repetitions are represented as numpy arrays of integers.
+   They cannot contain the value `0`. All other values may occur either positive or negative, e.g., `5` or `-5`.
+  - Nullary Operators:
+    - [shuffle-and-flip](https://thomasweise.github.io/moptipy/moptipy.operators.signed_permutations.html#module-moptipy.operators.signed_permutations.op0_shuffle_and_flip) creates uniformly randomly distributed signed permutations.
+  - Unary Operators:
+    - [swap 2 or flip](https://thomasweise.github.io/moptipy/moptipy.operators.signed_permutations.html#module-moptipy.operators.signed_permutations.op1_swap_2_or_flip) either swaps exactly two (different) values or flips the sign of one value.    
 - [Ordered Choices](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.ordered_choices) are a hybrid of permutations and combinations.
   Given are `n` choices, i.e., sets of different values.
   Each choice could contain any number of different values.

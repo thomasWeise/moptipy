@@ -242,6 +242,10 @@ class OrderedChoices(IntSpace):
         """
         Create a space for signed permutations with values `1..n`.
 
+        You would be much better off using
+        :mod:`~moptipy.spaces.signed_permutations` instead of this space for
+        signed permutations, though.
+
         :param n: the range of the values
         :returns: the permutations space
 
