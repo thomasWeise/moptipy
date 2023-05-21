@@ -39,6 +39,7 @@ class Makespan(Objective):
         super().__init__()
         if not isinstance(instance, Instance):
             raise type_error(instance, "instance", Instance)
+        #: the internal instance reference
         self.__instance: Final[Instance] = instance
         #: The fast call forwarding to the makespan function. # +book
         self.evaluate = makespan  # type: ignore # +book

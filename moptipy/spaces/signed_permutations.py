@@ -95,6 +95,29 @@ class SignedPermutations(IntSpace):  # +book
     signedPerm5
     >>> print(perm.n_points())
     3840
+
+    Different from normal permutations with repetitions, it is allowed
+    that signed permutations with repetitions contain the same element,
+    as long as their length is larger than 1.
+
+    >>> perm = SignedPermutations([1, 1])
+    >>> print(perm.to_str(perm.blueprint))
+    1;1
+    >>> x = perm.create()
+    >>> perm.validate(x)
+    >>> x[0] = -1
+    >>> perm.validate(x)
+    >>> x[1] = -1
+    >>> perm.validate(x)
+    >>> x[0] = 1
+    >>> perm.validate(x)
+
+    >>> try:
+    ...     perm = SignedPermutations([1])
+    ... except ValueError as ve:
+    ...     print(ve)
+    base_string must contain at least two different elements or have at \
+least length 2, but is [1].
     """
 
     def __init__(self, base_string: Iterable[int]) -> None:  # +book
@@ -129,10 +152,10 @@ class SignedPermutations(IntSpace):  # +book
 
         # checking that the data is not empty
         different: Final[int] = len(self.__shape)
-        if different <= 1:
-            raise ValueError(
-                "base_string must contain at least two different "
-                f"elements, but is {base_string}.")
+        if (total <= 1) and (different <= 1):
+            raise ValueError("base_string must contain at least two different"
+                             " elements or have at least length 2, but is "
+                             f"{base_string}.")
         if minimum <= 0:
             raise ValueError(f"base_string must only contain positive values,"
                              f" but minimum is {minimum}.")

@@ -40,6 +40,7 @@ class Worktime(Objective):
         super().__init__()
         if not isinstance(instance, Instance):
             raise type_error(instance, "instance", Instance)
+        #: the internal instance reference
         self.__instance: Final[Instance] = instance
         #: The fast call forwarding to the worktime function. # +book
         self.evaluate = worktime  # type: ignore # +book

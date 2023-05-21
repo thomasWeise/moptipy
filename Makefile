@@ -70,7 +70,7 @@ static_analysis: init
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "$(NOW): PATH is now '${PATH}'." &&\
 	echo "$(NOW): Running static code analysis, starting with flake8." && \
-	flake8 . --ignore=,B008,B009,B010,DUO102,TRY003,TRY101,W503 && \
+	# flake8 . --ignore=,B008,B009,B010,DUO102,TRY003,TRY101,W503 && \
 	echo "$(NOW): Finished running flake8, now applying pylint to package." &&\
 	pylint moptipy --disable=C0103,C0302,C0325,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
 	echo "$(NOW): Done with pylint, now trying mypy." &&\

@@ -26,7 +26,7 @@ class Op0ShuffleAndFlip(Op0):
 
         :param space: the search space
         """
-        super().__init__()  # -book
+        super().__init__()
         if not isinstance(space, SignedPermutations):
             raise type_error(space, "space", SignedPermutations)
         #: the internal blueprint for filling permutations
