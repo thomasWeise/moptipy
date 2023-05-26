@@ -84,7 +84,7 @@ def validate_algorithm_on_1_jssp(
         raise type_error(instance, "JSSP instance name", (str, None))
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
-        raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
+        raise type_error(inst, f"loaded JSSP instance {instance!r}", Instance)
     if (post is not None) and (not callable(post)):
         raise type_error(post, "post", None, call=True)
 
@@ -150,7 +150,7 @@ def validate_objective_on_1_jssp(
         raise type_error(instance, "JSSP instance name", (str, None))
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
-        raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
+        raise type_error(inst, f"loaded JSSP instance {instance!r}", Instance)
 
     if callable(objective):
         objective = objective(inst)

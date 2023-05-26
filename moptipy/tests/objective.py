@@ -114,9 +114,9 @@ def validate_objective(
         raise type_error(res, f"evaluate(x) of {x}", (int, float))
 
     if (res < lower) or (res > upper):
-        raise ValueError(f"evaluate(x) of {x} must return a value in"
-                         "[lower_bound(), upper_bound()], but returned "
-                         f"{res} vs. [{lower},{upper}].")
+        raise ValueError(
+            f"evaluate(x) of {x} must return a value in [lower_bound() = "
+            f"{lower}, upper_bound()={upper}], but returned {res}.")
     if is_int and (not isinstance(res, int)):
         raise TypeError(
             f"if is_always_integer()==True, then evaluate(x) must "
