@@ -566,7 +566,7 @@ def label_axes(axes: Axes,
                 axes.set_ylabel(y_label, fontsize=font_size)
 
 
-def get_axes(figure: Axes | Axes | Figure) -> Axes:
+def get_axes(figure: Axes | Figure) -> Axes:
     """
     Obtain the axes from a figure or axes object.
 
