@@ -72,6 +72,7 @@ What `moptipy` *also* offers is an [experiment execution facility](https://thoma
 The `moptipy` API supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 You can also take a look at our [`moptipy` flyer](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf).
+Examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps/) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps/).
 
 
 ## 2. Installation
@@ -834,6 +835,12 @@ In other words, they try to minimize multiple [objective functions](https://thom
 
 
 ### 4.3. Implemented Problems
+
+Within this package, we implement a subset of basic problems that are useful for testing different aspects of the algorithms and spaces we provide.
+`moptipy` itself is not intended to be a collection of optimization problems, but more a collection of algorithms, spaces, and operators.
+We do need a set of examples to [unit test](#81-unit-tests-and-static-analysis) these components, so a set of [example problems](https://thomasweise.github.io/moptipy/moptipy.examples.html#module-moptipy.examples) is indeed provided.
+More examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps/) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps/).
+The `moptipyapps` package is where we will include future examples and benchmark cases.
 
 - [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
   - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
@@ -2248,9 +2255,10 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 
 ## 10. Works using `moptipy`
 
-1. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
+1. Thomas Weise and Zhize Wu. 2023. Replicable Self-Documenting Experiments with Arbitrary Search Spaces and Algorithms. In *Genetic and Evolutionary Computation Conference Companion* (GECCO'23 Companion), July 15-19, 2023, Lisbon, Portugal. ACM, New York, NY, USA, 9 pages. doi:10.1145/3583133.3596306. ISBN: 979-8-4007-0120-7. (Accepted for publication)
+2. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
    This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
-2. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore.
+3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore.
    This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.fitnesses.ffa)) on the Traveling Salesperson Problem.
 
 
