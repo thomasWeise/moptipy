@@ -2267,7 +2267,7 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing, using, and experimenting with metaheuristic optimization algorithms.
 Our project is developed for scientific, educational, and industrial applications.
 
-Copyright (C) 2021-2022  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
+Copyright (C) 2021-2023  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
 
 Dr. Thomas Weise (see [Contact](#12-contact)) holds the copyright of this package *except* for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
 
