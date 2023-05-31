@@ -16,7 +16,7 @@ from moptipy.api.operators import Op1
 # start book
 class Op1Swap2OrFlip(Op1):
     """
-    A unary search operation that swaps two (different) elements or a sign.
+    A search operation that swaps two (different) elements or flips a sign.
 
     In other words, it performs exactly one swap on a permutation or a sign
     flip. It spans a neighborhood of a rather limited size but is easy

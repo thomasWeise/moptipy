@@ -15,9 +15,15 @@ in the `pdfo` library.
    Department of Applied Mathematics and Theoretical Physics, Cambridge
    University, Cambridge, UK, 2009.
    https://www.damtp.cam.ac.uk/user/na/NA_papers/NA2009_06.pdf
+2. Tom M. Ragonneau and Zaikun Zhang. *PDFO: a cross-platform package for
+   Powell's derivative-free optimization solvers,* arXiv preprint.
+   Ithaca, NY, USA: Cornell University Library February, 2023.
+   arXiv:2302.13246v1 [math.OC] 26 Feb 202.
+   https://arxiv.org/pdf/2302.13246v1
 
 - https://github.com/pdfo/pdfo
 - https://www.pdfo.net
+- https://pypi.org/project/pdfo
 """
 
 import warnings
