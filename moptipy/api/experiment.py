@@ -160,7 +160,19 @@ _CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
 
 
 class Parallelism(IntEnum):
-    """An enumeration of parallel thread counts."""
+    """
+    An enumeration of parallel thread counts.
+
+    The `value` of each element of this enumeration equal the number of
+    threads that would be used. Thus, the values are different on
+    different systems. Currently, only Linux is supported for parallelism.
+    For all other systems, you need to manually start the program as often
+    as you want it to run in parallel. On other systems, all values of this
+    enumeration are `1`.
+
+    >>> Parallelism.SINGLE_THREAD.value
+    1
+    """
 
     #: use only a single thread
     SINGLE_THREAD = 1
@@ -188,7 +200,7 @@ class Parallelism(IntEnum):
     #: usable while the experiment is running. Background tasks like garbage
     #: collection, moving the mouse course, accepting user input, or network
     #: communication may come to a halt. Seriously, why would you use this?
-    # If you have four physical cores with  two logical cores each, this would
+    #: If you have four physical cores with  two logical cores each, this would
     #: mean using eight threads on Linux.
     #: On Windows, parallelism is not supported yet, so this would equal using
     #: only one core on Windows.
