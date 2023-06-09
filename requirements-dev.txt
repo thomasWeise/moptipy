@@ -71,7 +71,7 @@ coverage-badge >= 1.1.0
 dlint >= 0.14.1
 dodgy >= 0.2.1
 flake8 >= 6.0.0
-flake8-bugbear >= 23.5.9
+flake8-bugbear >= 23.6.5
 flake8-eradicate >= 1.5.0
 flake8-use-fstring >= 1.4
 mypy >= 1.3.0
@@ -80,8 +80,8 @@ pydocstyle >= 6.3.0
 pyflakes >= 3.0.1
 pylint >= 2.17.4
 pyroma >= 4.2
-ruff >= 0.0.270
-semgrep >= 1.24.0
+ruff >= 0.0.272
+semgrep >= 1.25.0
 tryceratops >= 2.3.2
 unimport >= 0.16.0
 vulture >= 2.7
@@ -93,7 +93,7 @@ pyyaml >= 6.0
 # As part of the build process, we check all the URLs in the README.md file
 # whether they can still be reached.
 urllib3 >= 1.26.16
-certifi >= 2023.05.7
+certifi >= 2023.5.7
 
 # minify_html is needed to minify html output. Our documentation is fairly
 # large. We apply this tool to try to reduce the file size of the

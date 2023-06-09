@@ -22,6 +22,7 @@ from moptipy.utils.logger import (
     Logger,
 )
 from moptipy.utils.path import Path
+from moptipy.utils.types import type_error
 
 
 def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
@@ -43,6 +44,37 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
     return None
 
 
+#: the dependencies
+__DEPENDENCIES: set[str] | None = {
+    "contourpy", "cycler", "fonttools", "joblib", "kiwisolver", "llvmlite",
+    "matplotlib", "moptipy", "numba", "numpy", "packaging", "pdfo", "Pillow",
+    "psutil", "pyparsing", "python-dateutil", "scikit-learn", "scipy", "six",
+    "threadpoolctl"}
+
+
+def add_dependency(dependency: str) -> None:
+    """
+    Add a dependency so that its version can be stored in log files.
+
+    Warning: You must add all dependencies *before* the first log file is
+    written. As soon as the :func:`log_sys_info` is invoked for the first
+    time, adding new dependencies will cause an error. And writing a log
+    file via the :mod:`~moptipy.api.experiment` API or to a file specified in
+    the :mod:`~moptipy.api.execution` API will invoke this function.
+
+    :param dependency: the dependency
+    """
+    if not isinstance(dependency, str):
+        raise type_error(dependency, "dependency", str)
+    if (len(dependency) <= 0) or (dependency != dependency.strip())\
+            or (" " in dependency):
+        raise ValueError(f"Invalid dependency string {dependency!r}.")
+    if __DEPENDENCIES is None:
+        raise ValueError(
+            f"Too late. Cannot add dependency {dependency!r} anymore.")
+    __DEPENDENCIES.add(dependency)
+
+
 # noinspection PyBroadException
 def __make_sys_info() -> str:
     """
@@ -52,6 +84,12 @@ def __make_sys_info() -> str:
 
     :returns: the system info string.
     """
+    global __DEPENDENCIES  # noqa: PLW0603  # pylint: disable=W0603
+    if __DEPENDENCIES is None:
+        raise ValueError("Cannot re-create log info.")
+    dep: Final[set[str]] = __DEPENDENCIES
+    __DEPENDENCIES = None  # noqa: PLW0603  # pylint: disable=W0603
+
     def __v(sec: KeyValueLogSection, key: str, value) -> None:
         """
         Create a key-value pair if value is not empty.
@@ -166,15 +204,12 @@ def __make_sys_info() -> str:
                 __v(k, logging.KEY_NODE_IP, ip)
 
             with kv.scope(logging.SCOPE_VERSIONS) as k:
-                __v(k, "moptipy", ver.__version__)
-                for package in ["contourpy", "cycler", "fonttools", "joblib",
-                                "kiwisolver", "llvmlite", "matplotlib",
-                                "numba", "numpy", "packaging", "pdfo",
-                                "Pillow", "psutil", "pyparsing",
-                                "python-dateutil", "scikit-learn", "scipy",
-                                "six", "threadpoolctl"]:
-                    __v(k, package.replace("-", ""),
-                        ilm.version(package).strip())
+                for package in sorted(dep):
+                    if package == "moptipy":
+                        __v(k, "moptipy", ver.__version__)
+                    else:
+                        __v(k, package.replace("-", ""),
+                            ilm.version(package).strip())
 
             with kv.scope(logging.SCOPE_HARDWARE) as k:
                 __v(k, logging.KEY_HW_MACHINE, platform.machine())
@@ -225,16 +260,71 @@ def __make_sys_info() -> str:
 
     if len(lst) < 3:
         raise ValueError("sys info turned out to be empty?")
+    __DEPENDENCIES = None
     return "\n".join(lst[1:(len(lst) - 1)])
 
 
-#: The internal variable holding the system information
-__SYS_INFO: Final[list[str]] = [__make_sys_info()]
+def get_sys_info() -> str:
+    r"""
+    Get the system information as string.
+
+    :returns: the system information as string
+
+    >>> raw_infos = get_sys_info()
+    >>> raw_infos is get_sys_info()  # caching!
+    True
+    >>> for k in raw_infos.split("\n"):
+    ...     print(k[:k.find(": ")])
+    session.start
+    session.node
+    session.procesId
+    session.cpuAffinity
+    session.ipAddress
+    version.Pillow
+    version.contourpy
+    version.cycler
+    version.fonttools
+    version.joblib
+    version.kiwisolver
+    version.llvmlite
+    version.matplotlib
+    version.moptipy
+    version.numba
+    version.numpy
+    version.packaging
+    version.pdfo
+    version.psutil
+    version.pyparsing
+    version.pythondateutil
+    version.scikitlearn
+    version.scipy
+    version.six
+    version.threadpoolctl
+    hardware.machine
+    hardware.nPhysicalCpus
+    hardware.nLogicalCpus
+    hardware.cpuMhz
+    hardware.byteOrder
+    hardware.cpu
+    hardware.memSize
+    python.version
+    python.implementation
+    os.name
+    os.release
+    os.version
+    """
+    the_object: Final[object] = get_sys_info
+    the_attr: Final[str] = "__the_sysinfo"
+    if hasattr(the_object, the_attr):
+        return getattr(the_object, the_attr)
+    sys_info: Final[str] = __make_sys_info()
+    setattr(the_object, the_attr, sys_info)
+    return sys_info
 
 
-def refresh_sys_info() -> None:
-    """Refresh the system information."""
-    sys_info_str = __SYS_INFO[0]
+def update_sys_info_cpu_affinity() -> None:
+    """Update the CPU affinity of the system information."""
+    sys_info_str = get_sys_info()
     start = (f"\n{logging.SCOPE_SESSION}{SCOPE_SEPARATOR}"
              f"{logging.KEY_CPU_AFFINITY}{KEY_VALUE_SEPARATOR}")
     start_i = sys_info_str.find(start)
@@ -250,11 +340,14 @@ def refresh_sys_info() -> None:
             f"first affinity query is {sys_info_str[start_i:end_i]},"
             f" but second one is None?")
     sys_info_str = f"{sys_info_str[:start_i]}{affinity}{sys_info_str[end_i:]}"
-    __SYS_INFO[0] = sys_info_str
+
+    the_object: Final[object] = get_sys_info
+    the_attr: Final[str] = "__the_sysinfo"
+    setattr(the_object, the_attr, sys_info_str)
 
 
 def log_sys_info(logger: Logger) -> None:
-    """
+    r"""
     Write the system information section to a logger.
 
     The concept of this method is that we only construct the whole system
@@ -263,6 +356,17 @@ def log_sys_info(logger: Logger) -> None:
     every single time.
 
     :param logger: the logger
+
+    >>> from moptipy.utils.logger import InMemoryLogger
+    >>> with InMemoryLogger() as l:
+    ...     log_sys_info(l)
+    ...     log = l.get_log()
+    >>> print(log[0])
+    BEGIN_SYS_INFO
+    >>> print(log[-1])
+    END_SYS_INFO
+    >>> log[1:-1] == get_sys_info().split('\n')
+    True
     """
     with logger.text(logging.SECTION_SYS_INFO) as txt:
-        txt.write(__SYS_INFO[0])
+        txt.write(get_sys_info())

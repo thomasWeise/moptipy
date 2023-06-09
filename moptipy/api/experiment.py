@@ -20,6 +20,7 @@ import multiprocessing as mp
 import os.path
 import platform
 from contextlib import AbstractContextManager, nullcontext
+from enum import IntEnum
 from math import ceil
 from typing import Any, Callable, Final, Iterable, Sequence, cast
 
@@ -33,7 +34,7 @@ from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.path import Path
 from moptipy.utils.strings import sanitize_name, sanitize_names
-from moptipy.utils.sys_info import refresh_sys_info
+from moptipy.utils.sys_info import get_sys_info, update_sys_info_cpu_affinity
 from moptipy.utils.types import check_int_range, type_error
 
 
@@ -150,18 +151,49 @@ def __run_experiment(base_dir: Path,
 
 
 #: the number of logical CPU cores
-__CPU_LOGICAL_CORES: Final[int] = psutil.cpu_count(logical=True)
+_CPU_LOGICAL_CORES: Final[int] = psutil.cpu_count(logical=True)
 #: the number of phyiscal CPU cores
-__CPU_PHYSICAL_CORES: Final[int] = psutil.cpu_count(logical=False)
+_CPU_PHYSICAL_CORES: Final[int] = psutil.cpu_count(logical=False)
 #: the logical cores per physical core
-__CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
-    max(1, int(ceil(__CPU_LOGICAL_CORES / __CPU_PHYSICAL_CORES)))
-#: The default number of threads to be used.
-#: This will be the number of physical cores - 1 under Linux.
-#: In other words, it will be different on different machines!
-#: It is 1 under all other operating systems.
-DEFAULT_N_THREADS: Final[int] = max(1, __CPU_PHYSICAL_CORES - 1) \
-    if "Linux" in platform.system() else 1
+_CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
+    max(1, int(ceil(_CPU_LOGICAL_CORES / _CPU_PHYSICAL_CORES)))
+
+
+class Parallelism(IntEnum):
+    """An enumeration of parallel thread counts."""
+
+    #: use only a single thread
+    SINGLE_THREAD = 1
+    #: Use as many threads as accurate time measurement permits. This equals
+    #: to using one logical core on each physical core and leaving one
+    #: physical core unoccupied (but always using at least one thread,
+    #: obviously). If you have four physical cores with two logical cores
+    #: each, this would mean using three threads on Linux.
+    #: On Windows, parallelism is not supported yet, so this would equal using
+    #: only one core on Windows.
+    ACCURATE_TIME_MEASUREMENTS = max(1, _CPU_PHYSICAL_CORES - 1) \
+        if "Linux" in platform.system() else 1
+    #: Use all but one logical core. This *will* mess up time measurements but
+    #: should produce the maximum performance while not impeding the system of
+    #: doing stuff like garbage collection or other bookkeeping and overhead
+    #: tasks. This is the most reasonable option if you want to execute one
+    #: experiment as quickly as possible. If you have four physical cores with
+    #: two logical cores each, this would mean using seven threads on Linux.
+    #: On Windows, parallelism is not supported yet, so this would equal using
+    #: only one core on Windows.
+    PERFORMANCE = max(1, _CPU_LOGICAL_CORES - 1) \
+        if "Linux" in platform.system() else 1
+    #: Use every single logical core available, which may mess up your system.
+    #: We run the experiment as quickly as possible, but the system may not be
+    #: usable while the experiment is running. Background tasks like garbage
+    #: collection, moving the mouse course, accepting user input, or network
+    #: communication may come to a halt. Seriously, why would you use this?
+    # If you have four physical cores with  two logical cores each, this would
+    #: mean using eight threads on Linux.
+    #: On Windows, parallelism is not supported yet, so this would equal using
+    #: only one core on Windows.
+    RECKLESS = max(1, _CPU_LOGICAL_CORES) \
+        if "Linux" in platform.system() else 1
 
 
 def __waiting_run_experiment(base_dir: Path,
@@ -181,7 +213,7 @@ def __waiting_run_experiment(base_dir: Path,
     if not event.wait():
         raise ValueError("Wait terminated unexpectedly.")
     logger("got start signal, beginning experiment", thread_id, stdio_lock)
-    refresh_sys_info()
+    update_sys_info_cpu_affinity()
     gc.collect()
     __run_experiment(base_dir, experiments, n_runs,
                      perform_warmup, warmup_fes, perform_pre_warmup,
@@ -193,7 +225,7 @@ def run_experiment(base_dir: str,
                    instances: Iterable[Callable[[], Any]],
                    setups: Iterable[Callable[[Any], Execution]],
                    n_runs: int | Iterable[int] = 11,
-                   n_threads: int = DEFAULT_N_THREADS,
+                   n_threads: int = Parallelism.ACCURATE_TIME_MEASUREMENTS,
                    perform_warmup: bool = True,
                    warmup_fes: int = 20,
                    perform_pre_warmup: bool = True,
@@ -235,9 +267,9 @@ def run_experiment(base_dir: str,
         This parameter only works under Linux! It should be set to 1 under all
         other operating systems. Under Linux, by default, we will use the
         number of physical cores - 1 processes.
-        The default value for `n_threads` is computed in
-        :py:const:`~moptipy.api.experiment.DEFAULT_N_THREADS`, which will be
-        different for different machines(!).
+        The default value for `n_threads` is computed in \
+:py:const:`~moptipy.api.experiment.Parallelism.ACCURATE_TIME_MEASUREMENTS`,
+        which will be different for different machines(!).
         We will try to distribute the threads over different logical and
         physical cores to minimize their interactions. If n_threads is less
         or equal the number of physical cores, then multiple logical cores
@@ -291,6 +323,12 @@ def run_experiment(base_dir: str,
         if not callable(instance):
             raise type_error(instance, "all instances", call=True)
 
+    sysinfo_check: str = get_sys_info()
+    if not isinstance(sysinfo_check, str):
+        raise type_error(sysinfo_check, "system information", str)
+    if len(sysinfo_check) <= 0:
+        raise ValueError(f"invalid system info {sysinfo_check!r}!")
+
     setups = list(setups)
     if len(setups) <= 0:
         raise ValueError("Setup enumeration is empty.")
@@ -322,9 +360,9 @@ def run_experiment(base_dir: str,
         file_lock: AbstractContextManager = mp.Lock()
         stdio_lock = mp.Lock()
         logger(f"starting experiment with {n_threads} threads "
-               f"on {__CPU_LOGICAL_CORES} logical cores, "
-               f"{__CPU_PHYSICAL_CORES} physical cores (i.e.,"
-               f" {__CPU_LOGICAL_PER_PHYSICAL} logical cores per physical "
+               f"on {_CPU_LOGICAL_CORES} logical cores, "
+               f"{_CPU_PHYSICAL_CORES} physical cores (i.e.,"
+               f" {_CPU_LOGICAL_PER_PHYSICAL} logical cores per physical "
                "core).", "", stdio_lock)
 
         event: Final = mp.Event()
@@ -353,12 +391,12 @@ def run_experiment(base_dir: str,
                    "", stdio_lock)
 
         # try to distribute the load evenly over all cores
-        n_cpus: int = __CPU_PHYSICAL_CORES
+        n_cpus: int = _CPU_PHYSICAL_CORES
         core_ofs: int = 0
         if n_threads < n_cpus:
             n_cpus -= 1
-            core_ofs = __CPU_LOGICAL_PER_PHYSICAL
-        n_cores: Final[int] = n_cpus * __CPU_LOGICAL_PER_PHYSICAL
+            core_ofs = _CPU_LOGICAL_PER_PHYSICAL
+        n_cores: Final[int] = n_cpus * _CPU_LOGICAL_PER_PHYSICAL
         n_cores_per_thread: Final[int] = max(1, n_cores // n_threads)
 
         last_core: int = 0
@@ -366,7 +404,7 @@ def run_experiment(base_dir: str,
             pid: int = int(p.pid)
             aff: list[int] = []
             for _ in range(n_cores_per_thread):
-                aff.append(int((last_core + core_ofs) % __CPU_LOGICAL_CORES))
+                aff.append(int((last_core + core_ofs) % _CPU_LOGICAL_CORES))
                 last_core += 1
             psutil.Process(pid).cpu_affinity(aff)
             logger(f"set affinity of processes {hex(i)[2:]} with "
@@ -380,9 +418,9 @@ def run_experiment(base_dir: str,
 
     else:
         logger(f"starting experiment with single thread "
-               f"on {__CPU_LOGICAL_CORES} logical cores, "
-               f"{__CPU_PHYSICAL_CORES} physical cores (i.e.,"
-               f" {__CPU_LOGICAL_PER_PHYSICAL} logical cores per physical "
+               f"on {_CPU_LOGICAL_CORES} logical cores, "
+               f"{_CPU_PHYSICAL_CORES} physical cores (i.e.,"
+               f" {_CPU_LOGICAL_PER_PHYSICAL} logical cores per physical "
                "core).")
         stdio_lock = nullcontext()
         __run_experiment(base_dir=use_dir,

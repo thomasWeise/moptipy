@@ -3,7 +3,7 @@
 from typing import Final
 
 from moptipy.utils.logger import InMemoryLogger
-from moptipy.utils.sys_info import log_sys_info, refresh_sys_info
+from moptipy.utils.sys_info import log_sys_info, update_sys_info_cpu_affinity
 
 
 def __check_sys_info() -> None:
@@ -68,5 +68,5 @@ def __check_sys_info() -> None:
 def test_and_renew_sys_info() -> None:
     """Test the sys info after renewing it."""
     __check_sys_info()
-    refresh_sys_info()
+    update_sys_info_cpu_affinity()
     __check_sys_info()

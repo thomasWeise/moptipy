@@ -311,6 +311,7 @@ if __name__ == "__main__":
         type=Path.path, default="./results", nargs="?")
     parser.add_argument(
         "threads", help="the number of threads to use for the experiment",
-        type=int, default=ex.DEFAULT_N_THREADS, nargs="?")
+        type=int, default=ex.Parallelism.ACCURATE_TIME_MEASUREMENTS,
+        nargs="?")
     args: Final[argparse.Namespace] = parser.parse_args()
     run_experiment(base_dir=args.dest, n_threads=args.threads)
