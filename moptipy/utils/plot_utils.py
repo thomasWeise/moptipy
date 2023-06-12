@@ -3,7 +3,7 @@ import os.path
 import statistics as st
 import warnings
 from math import isfinite, sqrt
-from typing import Callable, Final, Iterable, Sequence, cast
+from typing import Any, Callable, Final, Iterable, Sequence, cast
 
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib import rcParams  # type: ignore
@@ -160,6 +160,7 @@ def create_figure_with_subplots(
         default_height_per_row: float | int | None = 8.6 / __GOLDEN_RATIO,
         max_height: float | int | None = 9,
         dpi: float | int | None = 384.0,
+        plot_config: dict[str, Any] | None = None,
         **kwargs) \
         -> tuple[Figure, tuple[tuple[Axes | Figure,
                                      int, int, int, int, int], ...]]:
@@ -178,6 +179,7 @@ def create_figure_with_subplots(
     :param max_width: the maximum width
     :param dpi: the dpi value
     :param kwargs: a set of optional arguments
+    :param plot_config: the configuration to be applied to all sub-plots
     :returns: a tuple with the figure, followed by a series of tuples with
         each sub-figure, the index of the first item assigned to it, the
         index of the last item assigned to it + 1, their row, their column,
@@ -242,6 +244,8 @@ def create_figure_with_subplots(
             default_width_per_col = min(default_width_per_col, max_width)
     if max_width is None:
         max_width = default_width_per_col
+    if (plot_config is not None) and not isinstance(plot_config, dict):
+        raise type_error(plot_config, "plot_config", (dict, None))
 
     # How many plots do we need at least? Well, if we can put
     # max_items_per_plot items into each plot and have items many items, then
@@ -348,7 +352,8 @@ def create_figure_with_subplots(
     figure: Final[Figure] = create_figure(
         width=best[width_i], height=best[height_i],  # type: ignore
         dpi=dpi, **kwargs)
-    if n_plots <= 1:  # if there is only one plot, we are done here
+    if (n_plots <= 1) and (plot_config is None):
+        # if there is only one plot, we are done here
         return figure, ((figure, 0, items, 0, 0, 0), )
 
     # if there are multiple plots, we need to generate them
@@ -363,9 +368,12 @@ def create_figure_with_subplots(
     for i in range(nrows):
         for j in range(plots_per_row[i]):
             chunk_next = chunk_start + chunks[index]
-            allfigs.append((figure.add_subplot(nrows, ncols,
-                                               (i * ncols) + j + 1),
-                            chunk_start, chunk_next, i, j, index))
+            if plot_config is None:
+                sp = figure.add_subplot(nrows, ncols, (i * ncols) + j + 1)
+            else:
+                sp = figure.add_subplot(nrows, ncols, (i * ncols) + j + 1,
+                                        **plot_config)
+            allfigs.append((sp, chunk_start, chunk_next, i, j, index))
             chunk_start = chunk_next
             index += 1
     return figure, tuple(allfigs)
@@ -404,8 +412,9 @@ def save_figure(fig: Figure,
         "landscape" if size[0] >= size[1] else "portrait"
 
     # set minimal margins to the axes to avoid wasting space
-    for ax in fig.axes:
-        ax.margins(0, 0)
+    for ax in fig.axes:  # consider the dimension of the axes
+        margins: list[int] = [0] * len(ax.margins())
+        ax.margins(*margins)
 
     use_dir = Path.directory(dir_name)
     files = []
