@@ -1727,9 +1727,7 @@ The format is otherwise similar to the End Results CSV format.
 
 We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data/).
 This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#511-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
-You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/) that you can either install locally or use online at <https://iohanalyzer.liacs.nl/>.
-In the latter case, you first need to zip-compress your data before uploading it.
-
+You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/).
 If you have the [`moptipy`](https://thomasweise.github.io/moptipy) package installed, then you can call the module directly from the command line as:
 
 ```shell
@@ -2247,8 +2245,8 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 ### 9.4. Links to related works and tools by other researchers
 
 1. The [IOHprofiler](https://iohprofiler.github.io) is a nice piece of open source software for analyzing the performance of optimization algorithms.
-   It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the [IOHanalyzer](https://iohanalyzer.liacs.nl/), which allows you to use this software to analyze your optimization results as well.
-   You can then upload the data to the online [IOHanalyzer service](https://iohanalyzer.liacs.nl/) and evaluate it. 
+   It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
+   You can then upload the data to the online IOHanalyzer service and evaluate it. 
 2. A nice discussion of experimentation with (numerical) optimization methods is:
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
