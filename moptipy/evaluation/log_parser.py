@@ -503,7 +503,9 @@ class ExperimentParser(LogParser):
         start = (f"{self.algorithm}{PART_SEPARATOR}"
                  f"{self.instance}{PART_SEPARATOR}0x")
         base = basename(path)
-        if not base.startswith(start):
+        if (not base.startswith(start)) and \
+                (not base.casefold().startswith(start.casefold())):
+            # case-insensitive comparison needed because of Windows
             raise ValueError(
                 f"File name of {path!r} should start with {start!r}.")
         self.rand_seed = rand_seed_check(int(
@@ -685,9 +687,14 @@ class SetupAndStateParser(ExperimentParser):
         if _FULL_KEY_ALGORITHM in data:
             a = data[_FULL_KEY_ALGORITHM]
             if a != self.algorithm:
-                raise ValueError(
-                    f"algorithm name from file name is {self.algorithm!r}, "
-                    f"but key {_FULL_KEY_ALGORITHM!r} gives {a!r}.")
+                # this error may occur under windows due to case-insensitive
+                # file names
+                if a.casefold() == self.algorithm.casefold():
+                    self.algorithm = a  # rely on name from log file
+                else:  # ok, case was not the issue - raise error
+                    raise ValueError(
+                        f"algorithm name from file name is {self.algorithm!r}"
+                        f", but key {_FULL_KEY_ALGORITHM!r} gives {a!r}.")
 
         seed_check = rand_seed_check(int(data[_FULL_KEY_RAND_SEED]))
         if self.rand_seed is None:
