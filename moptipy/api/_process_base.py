@@ -12,6 +12,7 @@ from numpy.random import Generator
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.logging import (
     _ALL_SECTIONS,
+    ERROR_SECTION_PREFIX,
     KEY_BEST_F,
     KEY_EXCEPTION_STACK_TRACE,
     KEY_EXCEPTION_TYPE,
@@ -67,7 +68,8 @@ from moptipy.utils.types import type_error, type_name_of
 
 
 def _error_1(logger: Logger, title: str, exception_type,
-             exception_value, traceback) -> None:
+             exception_value, traceback,
+             error_repl: str = f"{ERROR_SECTION_PREFIX!r}") -> None:
     """
     Create a text section with error information as from a contextmanager.
 
@@ -77,6 +79,7 @@ def _error_1(logger: Logger, title: str, exception_type,
     :param exception_type: the exception type
     :param exception_value: the exception value
     :param traceback: the traceback
+    :param error_repl: a replacement for the error section prefix
     """
     if exception_type or exception_value or traceback:
         with logger.text(title=title) as ts:
@@ -101,9 +104,16 @@ def _error_1(logger: Logger, title: str, exception_type,
                 ts.write(os.linesep)
                 sio = StringIO()
                 print_tb(traceback, file=sio)
-                for line in sio.getvalue().split("\n"):
-                    ts.write(line.strip())
-                    ts.write(os.linesep)
+                needs_lb: bool = False
+                for line in sio.getvalue().strip().split("\n"):
+                    ll: str = line.strip()
+                    if len(ll) <= 0:
+                        continue
+                    ll = ll.replace(ERROR_SECTION_PREFIX, error_repl)
+                    if needs_lb:
+                        ts.write(os.linesep)
+                    needs_lb = True
+                    ts.write(ll)
 
 
 def _error_2(logger: Logger, title: str, exception: Exception) -> None:
@@ -123,16 +133,21 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     ...     k()
     ... except Exception as be:
     ...     _error_2(ime, "ERROR", be)
-    >>> print(ime.get_log()[0])
+    >>> the_log = ime.get_log()
+    >>> print(the_log[0])
     BEGIN_ERROR
-    >>> print(ime.get_log()[1])
+    >>> print(the_log[1])
     exceptionType: ZeroDivisionError
-    >>> print(ime.get_log()[2])
+    >>> print(the_log[2])
     exceptionValue: division by zero
-    >>> print(ime.get_log()[3])
+    >>> print(the_log[3])
     exceptionStackTrace:
-    >>> print(ime.get_log()[-1])
+    >>> print(the_log[-1])
     END_ERROR
+    >>> all(ss == ss.strip() for ss in the_log)
+    True
+    >>> all(len(ss) > 0 for ss in the_log)
+    True
     """
     _error_1(logger, title, exception_type=exception,
              exception_value=str(exception),

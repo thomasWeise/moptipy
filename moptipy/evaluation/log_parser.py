@@ -44,6 +44,7 @@ from moptipy.api.logging import (
     SECTION_FINAL_STATE,
     SECTION_SETUP,
 )
+from moptipy.evaluation._utils import _check_max_time_millis
 from moptipy.utils.console import logger
 from moptipy.utils.logger import (
     COMMENT_CHAR,
@@ -718,9 +719,12 @@ class SetupAndStateParser(ExperimentParser):
             data[KEY_TOTAL_FES], KEY_TOTAL_FES, 1,
             1_000_000_000_000_000 if self.max_fes is None else self.max_fes)
         self.total_time_millis = check_to_int_range(
-            data[KEY_TOTAL_TIME_MILLIS], KEY_TOTAL_TIME_MILLIS, 1,
+            data[KEY_TOTAL_TIME_MILLIS], KEY_TOTAL_TIME_MILLIS, 0,
             1_000_000_000_000 if self.max_time_millis is None else
-            self.max_time_millis)
+            ((1_000_000 + self.max_time_millis) * 1_000))
+        if self.max_time_millis is not None:
+            _check_max_time_millis(self.max_time_millis, self.total_fes,
+                                   self.total_time_millis)
         self.best_f = str_to_intfloat(data[KEY_BEST_F])
         if not isfinite(self.best_f):
             raise ValueError(f"infinite best f detected: {self.best_f}")
@@ -729,5 +733,5 @@ class SetupAndStateParser(ExperimentParser):
             self.total_fes)
         self.last_improvement_time_millis = check_to_int_range(
             data[KEY_LAST_IMPROVEMENT_TIME_MILLIS],
-            KEY_LAST_IMPROVEMENT_TIME_MILLIS, 1, self.total_time_millis)
+            KEY_LAST_IMPROVEMENT_TIME_MILLIS, 0, self.total_time_millis)
         self.__state = (self.__state | 2) & (~8)
