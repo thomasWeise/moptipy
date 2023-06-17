@@ -204,7 +204,7 @@ class EndStatistics(MultiRunData):
         check_int_range(
             last_improvement_time_millis.minimum,
             "last_improvement_time_millis.minimum",
-            1, 100_000_000_000)
+            0, 100_000_000_000)
         check_int_range(
             last_improvement_time_millis.maximum,
             "last_improvement_time_millis.maximum",
