@@ -49,10 +49,9 @@ class BasicMOProblem(MOProblem):
     """
 
     def __init__(self, objectives: Iterable[Objective],
-                 get_scalarizer: Callable[
-                     [bool, int, list[int | float],
-                      list[int | float]],
-                     Callable[[np.ndarray], int | float]] = None,
+                 get_scalarizer: Callable[[bool, int, list[int | float],
+                                           list[int | float]],
+                 Callable[[np.ndarray], int | float]] | None = None,
                  domination: Callable[[np.ndarray, np.ndarray], int] | None
                  = dominates) -> None:
         """

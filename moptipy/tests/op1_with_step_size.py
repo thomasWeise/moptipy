@@ -12,7 +12,7 @@ from moptipy.utils.types import type_error
 
 def validate_op1_with_step_size(
         op1: Op1WithStepSize,
-        search_space: Space = None,
+        search_space: Space | None = None,
         make_search_space_element_valid:
         Callable[[Generator, Any], Any] | None = lambda _, x: x,
         number_of_samples: int = 100,

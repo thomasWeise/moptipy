@@ -538,6 +538,15 @@ class _ProcessBase(Process):
                 f"Reproduced the objective value {ff} of the best "
                 "solution, but it is not finite?")  # noqa
 
+    def has_log(self) -> bool:
+        """
+        Check if this log has an associated log file.
+
+        :retval `True`: if the process is associated with a log output
+        :retval `False`: if no information is stored in a log output
+        """
+        return self.__log_file is not None
+
     def __exit__(self, exception_type, exception_value, traceback) -> None:
         """Exit the process and write the log if necessary."""
         # noinspection PyProtectedMember

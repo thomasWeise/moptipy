@@ -41,6 +41,7 @@ from numpy.random import Generator
 from moptipy.algorithms.modules.selection import FitnessRecord
 from moptipy.algorithms.so.record import Record
 from moptipy.api.component import Component
+from moptipy.api.process import Process
 from moptipy.utils.types import type_error
 
 
@@ -105,6 +106,18 @@ class Fitness(Component):
         :param random: the random number generator
         """
 # end book
+
+    def log_information_after_run(self, process: Process) -> None:
+        """
+        Log the information of this fitness assignment process to the process.
+
+        An instance of :class:`~moptipy.api.process.Process` is given to this
+        method after the algorithm has completed its work. The fitness
+        assignment process then may store some data as a separate log section
+        via :meth:`~moptipy.api.process.Process.add_log_section` if it wants
+        to. Implementing this method is optional. This method is only invoked
+        if :meth:`~moptipy.api.process.Process.has_log` returns `True`.
+        """
 
 
 def check_fitness(fitness: Fitness) -> Fitness:

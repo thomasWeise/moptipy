@@ -50,6 +50,7 @@ def test_process_no_ss_log_log() -> None:
             assert str(process) == "LoggingProcessWithoutSearchSpace"
             assert process.has_best()
             assert process.get_max_fes() == 100
+            assert process.has_log()
             assert process.get_max_time_millis() == 20
             assert process.get_best_f() >= 0
             assert 0 <= process.get_best_f() <= dim
@@ -117,6 +118,7 @@ def test_process_no_ss_log_log_all() -> None:
             assert str(process) == "LoggingProcessWithoutSearchSpace"
             assert process.has_best()
             assert process.get_best_f() >= 0
+            assert process.has_log()
             assert 0 <= process.get_best_f() <= dim
             assert process.get_consumed_time_millis() > 0
             assert process.get_consumed_fes() > 0
@@ -200,6 +202,7 @@ def test_process_no_ss_no_log_register() -> None:
             assert str(process) == "LoggingProcessWithoutSearchSpace"
             assert process.has_best()
             assert process.get_max_fes() == 100
+            assert process.has_log()
             assert process.get_max_time_millis() == 20
             assert process.get_best_f() >= 0
             assert 0 <= process.get_best_f() <= dim
@@ -269,6 +272,7 @@ def test_process_no_ss_no_log_all_register() -> None:
             assert process.get_max_fes() == 100
             assert process.get_max_time_millis() == 20
             assert process.get_best_f() >= 0
+            assert process.has_log()
             assert 0 <= process.get_best_f() <= dim
             assert 0 < process.get_consumed_time_millis() <= 1000
             assert 0 < process.get_consumed_fes() <= 100

@@ -54,15 +54,18 @@ the frequency values are not updated.
 
 
 from collections import Counter
-from typing import Final, cast
+from typing import Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator
 
+from moptipy.algorithms.so.fea1plus1 import log_h
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 from moptipy.api.objective import Objective, check_objective
+from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_UNSIGNED_INT
+from moptipy.utils.strings import num_to_str
 
 
 class FFA(Fitness):
@@ -110,6 +113,12 @@ class _IntFFA1(FFA):
         instance.__h = np.zeros(ub + 1, dtype=DEFAULT_UNSIGNED_INT)
         instance.__first = True
         return instance
+
+    def log_information_after_run(self, process: Process) -> None:
+        """Write the H table."""
+        log_h(process, range(len(self.__h)),
+              cast(Callable[[int | float], int], self.__h.__getitem__),
+              str)
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
@@ -197,6 +206,12 @@ class _IntFFA2(FFA):
         instance.__first = True
         return instance
 
+    def log_information_after_run(self, process: Process) -> None:
+        """Write the H table."""
+        log_h(process, range(len(self.__h)),
+              cast(Callable[[int | float], int], self.__h.__getitem__),
+              lambda i: str(i + self.__lb))
+
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
         Assign the frequency fitness.
@@ -274,7 +289,7 @@ class _DictFFA(FFA):
     """The internal FFA dict-based class."""
 
     #: the internal frequency table
-    __h: Counter
+    __h: Counter[int | float]
     #: is this the first iteration?
     __first: bool
 
@@ -284,6 +299,12 @@ class _DictFFA(FFA):
         instance.__h = Counter()
         instance.__first = True
         return instance
+
+    def log_information_after_run(self, process: Process) -> None:
+        """Write the H table."""
+        log_h(process, cast(Iterable[int | float], sorted(self.__h.keys())),
+              cast(Callable[[int | float], int], self.__h.__getitem__),
+              num_to_str)
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """

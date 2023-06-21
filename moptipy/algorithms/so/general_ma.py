@@ -154,6 +154,8 @@ class GeneralMA(MA):
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we stop now?
                     cast(Op0Forward, self.ls.op0).stop_forwarding()
+                    if process.has_log():
+                        self.fitness.log_information_after_run(process)
                     return   # computational budget exhausted -> quit
                 with for_fes(process, ls_fes) as s1, \
                         from_starting_point(s1, x, evaluate(x)) as s2:
@@ -178,6 +180,8 @@ class GeneralMA(MA):
             for _ in range(lambda_):  # for all lambda offspring
                 if should_terminate():  # should we stop now?
                     cast(Op0Forward, self.ls.op0).stop_forwarding()
+                    if process.has_log():
+                        self.fitness.log_information_after_run(process)
                     return   # computational budget exhausted -> quit
                 while True:  # get the next non-selected record
                     dest = recs[di]  # get the record

@@ -64,6 +64,7 @@ def test_mo_process_mo_ss_no_log() -> None:
                <= process.get_best_f() \
                <= (2 * f0.upper_bound()) + (3 * f1.upper_bound())
         assert 0 < process.get_consumed_fes() <= 100
+        assert not process.has_log()
         archive: list[MORecord] = process.get_archive()
         for rec in archive:
             assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
@@ -119,6 +120,7 @@ def test_mo_process_ss_log() -> None:
                    <= (f0.upper_bound() ** 2) + (f1.upper_bound() ** 2) \
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
             assert 0 < process.get_consumed_fes() <= 100
+            assert process.has_log()
             archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()

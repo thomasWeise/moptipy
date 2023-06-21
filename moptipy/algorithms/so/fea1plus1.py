@@ -43,7 +43,8 @@ FFA is also implemented as a fitness assignment process
    Society Press. ISBN: 978-1-4799-1488-3.
    https://dx.doi.org/10.1109/CEC.2014.6900292
 """
-from typing import Callable, Final, cast
+from io import StringIO
+from typing import Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator
@@ -51,6 +52,10 @@ from numpy.random import Generator
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
+from moptipy.utils.logger import CSV_SEPARATOR
+
+#: the log section for the frequency table
+H_LOG_SECTION: Final[str] = "H"
 
 
 class FEA1plus1(Algorithm1):
@@ -124,3 +129,64 @@ class FEA1plus1(Algorithm1):
             if h[new_f] <= best_h:  # new_x is no worse than best_x?
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
+
+        log_h(process, range(len(h)), cast(Callable[[int | float], int],
+                                           h.__getitem__), str)
+
+
+def __h_to_str(indices: Iterable[int | float],
+               h: Callable[[int | float], int],
+               print_index: Callable[[int | float], str]) -> str:
+    """
+    Convert a frequency table `H` to a string.
+
+    :param indices: the iterable of indices
+    :param h: the history table
+    :param print_index: a function to print an index
+    :returns: a string representation of the `H` table
+
+    >>> hl = [0, 0, 1, 7, 4, 0, 0, 9, 0]
+    >>> __h_to_str(range(len(hl)), hl.__getitem__, str)
+    '2;1;3;7;4;4;7;9'
+    >>> __h_to_str(range(len(hl)), hl.__getitem__, lambda ii: str(ii + 1))
+    '3;1;4;7;5;4;8;9'
+    >>> hd = {1: 5, 4: 7, 3: 6, 2: 9}
+    >>> __h_to_str(sorted(hd.keys()), hd.__getitem__, str)
+    '1;5;2;9;3;6;4;7'
+    """
+    first: bool = True
+    with StringIO() as out:
+        for i in indices:
+            v = h(i)
+            if v > 0:
+                if first:
+                    first = False
+                else:
+                    out.write(CSV_SEPARATOR)
+                out.write(print_index(i))
+                out.write(CSV_SEPARATOR)
+                out.write(str(v))
+        return out.getvalue()
+
+
+def log_h(process: Process, indices: Iterable[int | float],
+          h: Callable[[int | float], int],
+          print_index: Callable[[int | float], str]) -> None:
+    """
+    Convert a frequency table `H` to a string and log it to a process.
+
+    The frequency table is logged as a single line of text into a section
+    `H` delimited by the lines `BEGIN_H` and `END_H`. The line consists
+    of `2*n` semi-colon separated values. Each such value pair consists of
+    an objective value `y` and its observed frequency `H[y]`. The former is
+    either an integer or a float and the latter is an integer.
+
+    :param process: the process
+    :param indices: the iterable of indices
+    :param h: the history table
+    :param print_index: a function to print an index
+    """
+    if process.has_log():
+        s = __h_to_str(indices, h, print_index)
+        if len(s) > 0:
+            process.add_log_section(H_LOG_SECTION, s)

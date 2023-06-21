@@ -46,6 +46,7 @@ def test_process_ss_no_log() -> None:
                == "moptipy.api._process_ss._ProcessSS"
         assert str(process) == "ProcessWithSearchSpace"
         assert process.has_best()
+        assert not process.has_log()
         assert process.get_max_fes() == 100
         assert process.get_max_time_millis() is None
         assert objective.lower_bound() <= process.get_best_f() \
@@ -85,6 +86,7 @@ def test_process_ss_log() -> None:
                    == "moptipy.api._process_ss._ProcessSS"
             assert str(process) == "ProcessWithSearchSpace"
             assert process.has_best()
+            assert process.has_log()
             assert process.get_max_fes() == 100
             assert process.get_max_time_millis() is None
             assert objective.lower_bound() <= process.get_best_f() \
@@ -174,6 +176,7 @@ def test_process_ss_no_log_reg() -> None:
         assert str(process) == "ProcessWithSearchSpace"
         assert process.has_best()
         assert process.get_max_fes() == 100
+        assert not process.has_log()
         assert process.get_max_time_millis() is None
         assert objective.lower_bound() <= process.get_best_f() \
                <= objective.upper_bound()

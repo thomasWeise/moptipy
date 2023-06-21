@@ -31,7 +31,8 @@ class MyAlgorithm(Algorithm):
         assert isinstance(g, Generator)
         assert not process.has_best()
 
-        process.add_log_section("B", "Y\nZ\n")
+        if process.has_log():
+            process.add_log_section("B", "Y\nZ\n")
         i = WORST_F
         while not process.should_terminate():
             x.fill(i)
@@ -39,7 +40,8 @@ class MyAlgorithm(Algorithm):
             assert process.has_best()
             i -= 1
         assert all(x < WORST_F)
-        process.add_log_section("A", "X")
+        if process.has_log():
+            process.add_log_section("A", "X")
 
 
 class MyObjective(Objective):
@@ -69,6 +71,7 @@ def test_process_noss_log() -> None:
             assert all(x == BEST_F)
             p.get_copy_of_best_y(x)
             assert all(x == BEST_F)
+            assert p.has_log()
         assert isfile(path)
         assert getsize(path) > 10
         with open(path) as file:

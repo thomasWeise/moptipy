@@ -374,7 +374,10 @@ class Process(Space, Objective, AbstractContextManager):
         """
         Get the name of this process implementation.
 
-        :return: "process"
+        This method is overwritten for each subclass of :class:`Process`
+        and then returns a short descriptive value of these classes.
+
+        :return: "process" for this base class
         """
         return "process"
 
@@ -388,6 +391,17 @@ class Process(Space, Objective, AbstractContextManager):
         criterion is hit.
         After the first time this method is invoked, :meth:`should_terminate`
         becomes `True`.
+        """
+
+    def has_log(self) -> bool:
+        """
+        Will any information of this process be logged?.
+
+        Only if this method returns `True`, invoking :meth:`add_log_section`
+        makes any sense. Otherwise, the data would just be discarded.
+
+        :retval `True`: if the process is associated with a log output
+        :retval `False`: if no information is stored in a log output
         """
 
     def add_log_section(self, title: str, text: str) -> None:
@@ -408,7 +422,9 @@ class Process(Space, Objective, AbstractContextManager):
         This method here allows you to add a custom section to your log file.
         This can happen in your implementation of the method
         :meth:`~moptipy.api.algorithm.Algorithm.solve` of your algorithm.
-        (Ideally at its end.)
+        (Ideally at its end.) Of course, invoking this method only makes sense
+        if there actually is a log file. You can check for this by calling
+        :meth:`has_log`.
 
         You can specify a custom section name (which must be in upper case
         characters) and a custom section body text.

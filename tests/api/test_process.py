@@ -94,6 +94,7 @@ def test_process_noss_no_log() -> None:
         assert p.has_best()
         assert p.get_best_f() == BEST_F
         p.get_copy_of_best_x(x)
+        assert not p.has_log()
         assert all(x == BEST_F)
         p.get_copy_of_best_y(x)
         assert all(x == BEST_F)
@@ -118,6 +119,7 @@ def test_process_noss_log() -> None:
             assert all(x == BEST_F)
             p.get_copy_of_best_y(x)
             assert all(x == BEST_F)
+            assert p.has_log()
         assert isfile(path)
         assert getsize(path) > 10
         with open(path) as file:
@@ -140,6 +142,7 @@ def test_process_noss_timed_log() -> None:
             assert p.has_best()
             lll = p.get_best_f()
             assert lll < WORST_F
+            assert p.has_log()
             p.get_copy_of_best_x(x)
             assert all(x == lll)
             p.get_copy_of_best_y(x)
@@ -164,6 +167,7 @@ def test_process_noss_maxfes_log_state() -> None:
         exp.set_log_improvements()
         with exp.execute() as p:
             assert p.has_best()
+            assert p.has_log()
         assert isfile(path)
         assert getsize(path) > 10
         result = path.read_all_list()
@@ -204,6 +208,7 @@ def test_process_with_error() -> None:
         with pytest.raises(ValueError):
             with exp.execute() as p:
                 assert p.has_best()
+                assert p.has_log()
             assert isfile(path)
             assert getsize(path) > 10
             result = path.read_all_list()

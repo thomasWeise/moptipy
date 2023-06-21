@@ -53,6 +53,7 @@ class __ForFEs(Process):
         self.get_max_time_millis = a  # type: ignore
         a = owner.get_last_improvement_time_millis  # type: ignore
         self.get_last_improvement_time_millis = a  # type: ignore
+        self.has_log = owner.has_log  # type: ignore
         self.add_log_section = owner.add_log_section  # type: ignore
         self.lower_bound = owner.lower_bound  # type: ignore
         self.upper_bound = owner.upper_bound  # type: ignore
@@ -135,6 +136,7 @@ class __ForFEsMO(MOProcess):
         self.get_max_time_millis = a  # type: ignore
         a = owner.get_last_improvement_time_millis  # type: ignore
         self.get_last_improvement_time_millis = a  # type: ignore
+        self.has_log = owner.has_log  # type: ignore
         self.add_log_section = owner.add_log_section  # type: ignore
         self.lower_bound = owner.lower_bound  # type: ignore
         self.upper_bound = owner.upper_bound  # type: ignore
@@ -258,6 +260,7 @@ class __FromStartingPoint(Process):
         self.get_max_time_millis = a  # type: ignore
         a = owner.get_last_improvement_time_millis  # type: ignore
         self.get_last_improvement_time_millis = a  # type: ignore
+        self.has_log = owner.has_log  # type: ignore
         self.add_log_section = owner.add_log_section  # type: ignore
         self.lower_bound = owner.lower_bound  # type: ignore
         self.upper_bound = owner.upper_bound  # type: ignore
@@ -396,6 +399,7 @@ class __WithoutShouldTerminate(Process):
         self.get_last_improvement_time_millis = a  # type: ignore
         a = owner.get_last_improvement_fe  # type: ignore
         self.get_last_improvement_fe = a  # type: ignore
+        self.has_log = owner.has_log  # type: ignore
         self.add_log_section = owner.add_log_section  # type: ignore
         self.lower_bound = owner.lower_bound  # type: ignore
         self.upper_bound = owner.upper_bound  # type: ignore
@@ -455,6 +459,7 @@ class __WithoutShouldTerminateMO(MOProcess):
         self.get_last_improvement_time_millis = a  # type: ignore
         a = owner.get_last_improvement_fe  # type: ignore
         self.get_last_improvement_fe = a  # type: ignore
+        self.has_log = owner.has_log  # type: ignore
         self.add_log_section = owner.add_log_section  # type: ignore
         self.lower_bound = owner.lower_bound  # type: ignore
         self.upper_bound = owner.upper_bound  # type: ignore

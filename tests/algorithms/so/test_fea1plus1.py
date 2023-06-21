@@ -1,8 +1,11 @@
 """Test the (1+1)-FEA."""
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
+from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
+from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.examples.jssp.instance import Instance
 from moptipy.operators.bitstrings.op0_random import Op0Random
+from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
@@ -13,6 +16,7 @@ from moptipy.tests.on_bitstrings import (
     validate_algorithm_on_onemax,
 )
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
+from moptipy.utils.temp import TempFile
 
 
 def test_fea1plus1_on_jssp() -> None:
@@ -48,3 +52,31 @@ def test_fea1plus1_on_leadingones() -> None:
         return FEA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
 
     validate_algorithm_on_leadingones(create)
+
+
+def test_h_log() -> None:
+    """Test whether the history table is properly logged."""
+    n = 10
+    space = BitStrings(n)
+    problem = OneMax(n)
+    algorithm = FEA1plus1(Op0Random(), Op1Flip1())
+
+    with TempFile.create() as tf:
+        ex = Execution()
+        ex.set_solution_space(space)
+        ex.set_objective(problem)
+        ex.set_algorithm(algorithm)
+        ex.set_rand_seed(199)
+        ex.set_log_file(tf)
+        ex.set_max_fes(10)
+        with ex.execute() as process:
+            end_result = process.create()
+            process.get_copy_of_best_y(end_result)
+
+        lines = tf.read_all_list()
+        assert lines[-1] == "END_H"
+        vals = [int(s) for s in lines[-2].split(";")]
+        assert len(vals) % 2 == 0
+        assert lines[-2] == "3;2;4;3;5;4;6;4;7;2;8;2;9;1"
+        assert all(i >= 0 for i in vals)
+        assert lines[-3] == "BEGIN_H"

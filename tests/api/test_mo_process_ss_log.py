@@ -69,6 +69,7 @@ def test_mo_process_ss_log() -> None:
             assert process.has_best()
             assert process.get_max_time_millis() == 100
             assert process.get_max_fes() == 200
+            assert process.has_log()
             assert 0 < process.get_best_f() \
                    <= (f0.upper_bound() ** 2) + (f1.upper_bound() ** 2) \
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
@@ -178,6 +179,7 @@ def test_process_ss_log_all() -> None:
             assert process.has_best()
             assert process.get_max_fes() == 100
             assert process.get_max_time_millis() is None
+            assert process.has_log()
             assert 0 < process.get_best_f() \
                    <= (f0.upper_bound() ** 2) + (f1.upper_bound() ** 2) \
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))

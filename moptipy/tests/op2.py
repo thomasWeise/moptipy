@@ -11,7 +11,7 @@ from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_op2(op2: Op2,
-                 search_space: Space = None,
+                 search_space: Space | None = None,
                  make_search_space_element_valid:
                  Callable[[Generator, Any], Any] | None = lambda _, x: x,
                  number_of_samples: int = 100,

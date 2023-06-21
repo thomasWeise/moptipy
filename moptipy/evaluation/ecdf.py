@@ -351,12 +351,12 @@ class Ecdf(MultiRun2DData):
                                     np.array(ecdf))))
 
     @classmethod
-    def from_progresses(cls: type["Ecdf"],
-                        source: Iterable[Progress],
-                        consumer: Callable[["Ecdf"], Any],
-                        f_goal: int | float | Callable | Iterable[
-                            int | float | Callable] = None,
-                        join_all_algorithms: bool = False) -> None:
+    def from_progresses(
+            cls: type["Ecdf"],
+            source: Iterable[Progress], consumer: Callable[["Ecdf"], Any],
+            f_goal: int | float | Callable
+                        | Iterable[int | float | Callable] | None = None,
+            join_all_algorithms: bool = False) -> None:
         """
         Compute one or multiple ECDFs from a stream of end results.
 

@@ -67,6 +67,7 @@ class MyAlgorithm1(Algorithm2):
             assert not z.has_best()
             assert z.get_consumed_fes() == 0
             assert get_remaining_fes(z) == 100
+            assert not z.has_log()
             self.ea.solve(z)
             fnew = z.get_best_f()
             assert fnew >= 0
@@ -89,6 +90,7 @@ class MyAlgorithm1(Algorithm2):
         fes2: int
         with from_starting_point(process, x1, fnew) as z1:
             assert str(z1) == f"fromStart_{process}"
+            assert not z1.has_log()
             with for_fes(z1, 100) as z:
                 assert get_remaining_fes(z) == 100
                 self.fwd.forward_to(z.get_copy_of_best_x)
@@ -97,6 +99,7 @@ class MyAlgorithm1(Algorithm2):
                 assert z.has_best()
                 assert z.get_best_f() == fnew
                 assert z.get_consumed_fes() == 0
+                assert not z.has_log()
                 self.rls.solve(z)
                 self.fwd.stop_forwarding()
                 fnew2 = z.get_best_f()
@@ -124,6 +127,7 @@ def test_from_start_for_fes_with_drift() -> None:
     exp.set_solution_space(v)
     exp.set_objective(f)
     with exp.execute() as p:
+        assert not p.has_log()
         assert p.has_best()
         assert p.get_best_f() >= 0
         assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 200)
@@ -143,6 +147,7 @@ class MyAlgorithm2(Algorithm2):
 
     def _solve(self, process: Process) -> None:
         assert str(process).startswith("protect_")
+        assert not process.has_log()
         # Create records for old and new point in the search space.
         best_x = process.create()  # record for best-so-far solution
         new_x = process.create()  # record for new solution
@@ -176,6 +181,7 @@ def test_without_should_terminate() -> None:
     exp.set_objective(f)
     exp.set_max_fes(100)
     with exp.execute() as p:
+        assert not p.has_log()
         assert p.has_best()
         assert p.get_best_f() >= 0
         assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 100)
@@ -196,6 +202,7 @@ class _OneMaxRegAlgo(Algorithm0):
         """Solve."""
         x = process.create()
         r = process.get_random()
+        assert not process.has_log()
         while not process.should_terminate():
             self.op0.op0(r, x)
             f = self.f.evaluate(x)
@@ -228,6 +235,7 @@ class __RegisterForFEs(Algorithm):
             assert process.get_consumed_fes() == 0
             assert sp1.get_consumed_fes() == 0
             assert sp1.get_max_fes() == 50
+            assert not sp1.has_log()
             self.a.solve(sp1)
             cf = process.get_consumed_fes()
             assert 0 < cf <= 50
@@ -239,6 +247,7 @@ class __RegisterForFEs(Algorithm):
         assert cf >= 50
         nf = mf - cf
         with for_fes(process, nf) as sp2:
+            assert not sp2.has_log()
             assert str(sp2) == f"forFEs_{nf}_{process}"
             assert process.get_consumed_fes() == cf
             assert sp2.get_consumed_fes() == 0
@@ -272,6 +281,7 @@ def test_for_fes_process_no_ss_no_log_reg_norm() -> None:
                    == "moptipy.api._process_no_ss._ProcessNoSS"
             assert str(process) == "ProcessWithoutSearchSpace"
             assert process.has_best()
+            assert not process.has_log()
             assert process.get_max_fes() == 100
             assert process.get_max_time_millis() is None
             assert 0 <= process.get_best_f() <= dim
@@ -300,6 +310,7 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
             assert process.get_consumed_fes() == 0
             assert pp.get_consumed_fes() == 0
             assert pp.get_max_fes() == me
+            assert not pp.has_log()
             self.__solve_mo(pp)
             assert 0 < pp.get_consumed_fes() <= me
             assert pp.get_consumed_fes() == process.get_consumed_fes()
@@ -309,6 +320,7 @@ class _MOAlgoForFEs(MOAlgorithm, Algorithm0):
         x = process.create()
         fs = process.f_create()
         r = process.get_random()
+        assert not process.has_log()
         while not process.should_terminate():
             self.op0.op0(r, x)
             process.evaluate(x)
@@ -340,6 +352,7 @@ def test_for_fes_mo_process_no_ss_no_log() -> None:
             .set_max_fes(100) \
             .execute() as process:
         assert isinstance(process, MOProcess)
+        assert not process.has_log()
         assert type_name_of(process) \
                == "moptipy.api._mo_process_no_ss._MOProcessNoSS"
         assert str(process) == "MOProcessWithoutSearchSpace"
@@ -371,12 +384,14 @@ class _MOWithoutShouldTerminate(MOAlgorithm, Algorithm0):
     def solve_mo(self, process: MOProcess) -> None:
         """Solve."""
         assert process.get_consumed_fes() == 0
+        assert not process.has_log()
         without_should_terminate(self.__solve_mo, process)
         assert 0 < process.get_consumed_fes() <= 100
 
     def __solve_mo(self, process: MOProcess) -> None:
         """Solve."""
         assert str(process).startswith("protectMO_")
+        assert not process.has_log()
         x = process.create()
         fs = process.f_create()
         r = process.get_random()
@@ -408,6 +423,7 @@ def test_without_should_terminate_mo_process_no_ss_no_log() -> None:
             .set_max_fes(100) \
             .execute() as process:
         assert isinstance(process, MOProcess)
+        assert not process.has_log()
         assert type_name_of(process) \
                == "moptipy.api._mo_process_no_ss._MOProcessNoSS"
         assert str(process) == "MOProcessWithoutSearchSpace"

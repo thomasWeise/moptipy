@@ -43,6 +43,7 @@ def test_process_no_ss_no_log() -> None:
         assert str(process) == "ProcessWithoutSearchSpace"
         assert process.has_best()
         assert process.get_max_fes() == 100
+        assert not process.has_log()
         assert process.get_max_time_millis() is None
         assert 0 <= process.get_best_f() <= dim
         assert 0 < process.get_consumed_fes() <= 100
@@ -76,6 +77,7 @@ def test_process_no_ss_log() -> None:
                    == "moptipy.api._process_no_ss._ProcessNoSS"
             assert str(process) == "ProcessWithoutSearchSpace"
             assert process.has_best()
+            assert process.has_log()
             assert process.get_best_f() >= 0
             assert process.get_max_time_millis() == 20
             assert process.get_max_fes() is None
@@ -143,6 +145,7 @@ def test_process_no_ss_log_with_immediate_error() -> None:
                 assert str(process) == "ProcessWithoutSearchSpace"
                 assert not process.has_best()
                 assert process.get_max_fes() == 12
+                assert process.has_log()
                 assert process.get_consumed_fes() == 0
         except ValueError:
             got_error = True
@@ -210,6 +213,7 @@ def test_process_no_ss_log_with_error_after_evaluation() -> None:
                        == "moptipy.api._process_no_ss._ProcessNoSS"
                 assert str(process) == "ProcessWithoutSearchSpace"
                 assert process.has_best()
+                assert process.has_log()
                 assert process.get_best_f() >= 0
                 assert 0 <= process.get_best_f() <= dim
                 assert process.get_consumed_fes() == 1
@@ -285,6 +289,7 @@ def test_process_no_ss_no_log_register() -> None:
         assert str(process) == "ProcessWithoutSearchSpace"
         assert process.has_best()
         assert process.get_max_fes() == 100
+        assert not process.has_log()
         assert process.get_max_time_millis() is None
         assert 0 <= process.get_best_f() <= dim
         assert 0 < process.get_consumed_fes() <= 100

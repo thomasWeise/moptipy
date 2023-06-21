@@ -90,7 +90,7 @@ static_analysis: init
 	(semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto || semgrep --error --strict --use-git-ignore --skip-unknown-extensions --optimizations all --config=auto --verbose) &&\
 	echo "$(NOW): Done with semgrep, now applying pydocstyle." &&\
 	pydocstyle --convention=pep257 &&\
-	echo "$(NOW): Done with pydocstype, now applying tryceratops." &&\
+	echo "$(NOW): Done with pydocstyle, now applying tryceratops." &&\
 	tryceratops -i TRY003 -i TRY101 moptipy &&\
 	tryceratops -i TRY003 -i TRY101 examples &&\
 	tryceratops -i TRY003 -i TRY101 tests &&\

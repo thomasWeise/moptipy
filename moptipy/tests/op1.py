@@ -22,7 +22,7 @@ def default_min_unique_samples(samples: int, space: Space) -> int:
 
 
 def validate_op1(op1: Op1,
-                 search_space: Space = None,
+                 search_space: Space | None = None,
                  make_search_space_element_valid:
                  Callable[[Generator, Any], Any] | None = lambda _, x: x,
                  number_of_samples: int = 100,

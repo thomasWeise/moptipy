@@ -137,6 +137,9 @@ class GeneralEA(EA):
             if selected:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we quit?  # -book
+                    if process.has_log():  # -book
+                        self.fitness.log_information_after_run(  # -book
+                            process)  # -book
                     return  # computational budget exhausted -> quit  # -book
                 f = evaluate(x)  # continue? ok, evaluate new solution
             recs[i] = _Record(x, f, selected)  # create and store record
@@ -156,6 +159,9 @@ class GeneralEA(EA):
             di = 0  # set index of next potential destination
             for _ in range(lambda_):  # for all lambda offspring
                 if should_terminate():  # only continue if we still... # -book
+                    if process.has_log():  # -book
+                        self.fitness.log_information_after_run(  # -book
+                            process)  # -book
                     return  # ...have sufficient budget # -book
                 while True:  # get the next non-selected record
                     dest = recs[di]  # get the record
