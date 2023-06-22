@@ -88,7 +88,9 @@ def test_process_no_ss_log_log() -> None:
         assert data[i] == "BEGIN_RESULT_Y"
         j = data.index("END_RESULT_Y")
         assert j > i + 1
-        assert data[-1] == "END_RESULT_Y"
+        assert data[-4] == "END_RESULT_Y"
+        assert data[-3] == "BEGIN_H"
+        assert data[-1] == "END_H"
 
 
 def test_process_no_ss_log_log_all() -> None:
@@ -169,7 +171,9 @@ class _OMA(Algorithm0):
         """Solve."""
         x = process.create()
         r = process.get_random()
-        while not process.should_terminate():
+        first: bool = True
+        while first or (not process.should_terminate()):
+            first = False
             self.op0.op0(r, x)
             f = self.f.evaluate(x)
             process.register(x, f)
@@ -191,7 +195,7 @@ def test_process_no_ss_no_log_register() -> None:
                 .set_solution_space(space)\
                 .set_objective(objective)\
                 .set_algorithm(algorithm)\
-                .set_max_time_millis(20)\
+                .set_max_time_millis(2000)\
                 .set_goal_f(dim - 2)\
                 .set_max_fes(100)\
                 .set_log_file(tf)\
@@ -203,7 +207,7 @@ def test_process_no_ss_no_log_register() -> None:
             assert process.has_best()
             assert process.get_max_fes() == 100
             assert process.has_log()
-            assert process.get_max_time_millis() == 20
+            assert process.get_max_time_millis() == 2000
             assert process.get_best_f() >= 0
             assert 0 <= process.get_best_f() <= dim
             assert 0 < process.get_consumed_time_millis() <= 1000

@@ -130,6 +130,8 @@ class FEA1plus1(Algorithm1):
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
 
+        if h[best_f] == 0:  # Fix the H table for the case that only one
+            h[best_f] = 1   # single FE was performed.
         log_h(process, range(len(h)), cast(Callable[[int | float], int],
                                            h.__getitem__), str)
 
