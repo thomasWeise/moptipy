@@ -59,7 +59,7 @@ operator is therefore called "position based mutation operator" in [5].
    2016, Denver, CO, USA, pages 57-58, New York, NY, USA: ACM.
    ISBN: 978-1-4503-4323-7. https://doi.org/10.1145/2908961.2909001
 """
-from typing import Callable, Final
+from typing import Final
 
 import numba  # type: ignore
 import numpy as np
@@ -68,8 +68,8 @@ from numpy.random import Generator
 from moptipy.api.operators import Op1
 
 
-@numba.njit(cache=True)
-def _op1_rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def _rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
     """
     Rotate a portion of an array to the left or right in place.
 
@@ -100,72 +100,72 @@ def _op1_rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
     >>> dest = npx.array(range(10))
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _op1_rotate(dest, 3, 4)
+    >>> _rotate(dest, 3, 4)
     False
     >>> print(dest)
     [0 1 2 4 3 5 6 7 8 9]
-    >>> _op1_rotate(dest, 3, 4)
+    >>> _rotate(dest, 3, 4)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _op1_rotate(dest, 4, 3)
+    >>> _rotate(dest, 4, 3)
     False
     >>> print(dest)
     [0 1 2 4 3 5 6 7 8 9]
-    >>> _op1_rotate(dest, 4, 3)
+    >>> _rotate(dest, 4, 3)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _op1_rotate(dest, 3, 6)
+    >>> _rotate(dest, 3, 6)
     False
     >>> print(dest)
     [0 1 2 4 5 6 3 7 8 9]
-    >>> _op1_rotate(dest, 6, 3)
+    >>> _rotate(dest, 6, 3)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _op1_rotate(dest, 0, len(dest) - 1)
+    >>> _rotate(dest, 0, len(dest) - 1)
     False
     >>> print(dest)
     [1 2 3 4 5 6 7 8 9 0]
-    >>> _op1_rotate(dest, len(dest) - 1, 0)
+    >>> _rotate(dest, len(dest) - 1, 0)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _op1_rotate(dest, 7, 7)
+    >>> _rotate(dest, 7, 7)
     True
     >>> dest = np.array([0, 1, 2, 3, 3, 3, 3, 3, 8, 9])
-    >>> _op1_rotate(dest, 7, 7)
+    >>> _rotate(dest, 7, 7)
     True
-    >>> _op1_rotate(dest, 4, 6)
-    True
-    >>> print(dest)
-    [0 1 2 3 3 3 3 3 8 9]
-    >>> _op1_rotate(dest, 6, 4)
+    >>> _rotate(dest, 4, 6)
     True
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _op1_rotate(dest, 4, 7)
+    >>> _rotate(dest, 6, 4)
     True
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _op1_rotate(dest, 6, 7)
+    >>> _rotate(dest, 4, 7)
     True
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _op1_rotate(dest, 4, 8)
+    >>> _rotate(dest, 6, 7)
+    True
+    >>> print(dest)
+    [0 1 2 3 3 3 3 3 8 9]
+    >>> _rotate(dest, 4, 8)
     False
     >>> print(dest)
     [0 1 2 3 3 3 3 8 3 9]
-    >>> _op1_rotate(dest, 8, 4)
+    >>> _rotate(dest, 8, 4)
     False
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _op1_rotate(dest, 9, 4)
+    >>> _rotate(dest, 9, 4)
     False
     >>> print(dest)
     [0 1 2 3 9 3 3 3 3 8]
-    >>> _op1_rotate(dest, 4, 9)
+    >>> _rotate(dest, 4, 9)
     False
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
@@ -199,6 +199,40 @@ def _op1_rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
     return unchanged
 
 
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def rotate(random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
+    """
+    Copy `x` into `dest` and then rotate a subsequence by one step.
+
+    :param random: the random number generator
+    :param dest: the array to receive the modified copy of `x`
+    :param x: the existing point in the search space
+
+    >>> rand = np.random.default_rng(10)
+    >>> xx = np.array(range(10), int)
+    >>> out = np.empty(len(xx), int)
+    >>> rotate(rand, out, xx)
+    >>> print(out)
+    [0 1 2 3 4 5 6 8 9 7]
+    >>> rotate(rand, out, xx)
+    >>> print(out)
+    [0 1 2 3 4 5 6 8 7 9]
+    >>> rotate(rand, out, xx)
+    >>> print(out)
+    [0 5 1 2 3 4 6 7 8 9]
+    >>> rotate(rand, out, xx)
+    >>> print(out)
+    [0 1 2 3 4 8 5 6 7 9]
+    """
+    dest[:] = x[:]
+    length: Final[int] = len(dest)  # Get the length of `dest`.
+
+    # try to rotate the dest array until something changes
+    while _rotate(dest, random.integers(0, length),
+                  random.integers(0, length)):
+        pass
+
+
 class Op1Insert1(Op1):
     """
     Delete an element from a permutation and insert it elsewhere.
@@ -212,22 +246,10 @@ class Op1Insert1(Op1):
     with repetitions.
     """
 
-    def op1(self, random: Generator,
-            dest: np.ndarray, x: np.ndarray) -> None:
-        """
-        Copy `x` into `dest` and then rotate a subsequence by one step.
-
-        :param random: the random number generator
-        :param dest: the array to receive the modified copy of `x`
-        :param x: the existing point in the search space
-        """
-        np.copyto(dest, x)  # First, we copy `x` to `dest`.
-        length: Final[int] = len(dest)  # Get the length of `dest`.
-        ri: Final[Callable[[int], int]] = random.integers  # fast call!
-
-        # try to rotate the dest array until something changes
-        while _op1_rotate(dest, ri(length), ri(length)):
-            pass
+    def __init__(self) -> None:
+        """Initialize the object."""
+        super().__init__()
+        self.op1 = rotate  # type: ignore  # use function directly
 
     def __str__(self) -> str:
         """

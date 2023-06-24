@@ -116,8 +116,9 @@ A similar but much more light-weight and faster operator is given in
 tries to perform a given number of swaps, but puts in much less effort to
 achieve this goal, i.e., it will only perform a single attempt.
 """
-from typing import Callable, Counter, Final, Iterable
+from typing import Counter, Final, Iterable
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
@@ -239,8 +240,9 @@ def get_max_changes(blueprint: Iterable[int]) -> int:
     return changes
 
 
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
 def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
-              ri: Callable[[int, int], int], max_trials: int,
+              random: Generator, max_trials: int,
               temp: np.ndarray) -> np.ndarray:
     """
     Find a move of at most step_size changes and store it in indices.
@@ -284,14 +286,14 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
     :param indices: the set of indices, which must be the canonical
         permutation of `0...len(x)-1`
     :param step_size: the step size, i.e., the number of elements to change
-    :param ri: a function to get random integers
+    :param random: the random number generator
     :param max_trials: the maximum number of trials
     :param temp: a temporary array
     :returns: the discovered move
 
     >>> import numpy as npx
     >>> from numpy.random import default_rng
-    >>> rand_int = default_rng(12).integers
+    >>> gen = default_rng(12)
     >>> perm = npx.array([0, 1, 2, 3, 3, 3, 3, 3, 3], int)
     >>> use_indices = npx.array(range(len(perm)), int)
     >>> want_size = len(perm)
@@ -300,7 +302,7 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
     >>> print(get_max_changes(perm))
     6
     >>> use_temp = npx.empty(len(perm), int)
-    >>> res = find_move(perm, use_indices, want_size, rand_int, 1000, use_temp)
+    >>> res = find_move(perm, use_indices, want_size, gen, 1000, use_temp)
     >>> print(res)
     [5 2 8 1 4 0]
     >>> perm2 = perm.copy()
@@ -315,7 +317,7 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
     8
     >>> use_indices = npx.array(range(len(perm)), int)
     >>> use_temp = npx.empty(len(perm), int)
-    >>> res = find_move(perm, use_indices, want_size, rand_int, 1, use_temp)
+    >>> res = find_move(perm, use_indices, want_size, gen, 1, use_temp)
     >>> print(res)
     [4 0 5 3 1 7 2 6]
     >>> print(len(res))
@@ -357,7 +359,7 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
 # This procedure, however, may end up in a dead end. We therefore need to wrap
 # it into a loop that tries until success...  ...but we cannot do that because
 # success may not be possible. Some moves may be impossible to do.
-        i_idx: int = ri(0, length)  # Get the first random index.
+        i_idx: int = random.integers(0, length)  # Get the first random index.
         i_src: int = indices[i_idx]  # Pick the actual index at that index.
         indices[0], indices[i_idx] = i_src, indices[0]  # Swap it to 0.
         found: int = 1  # the number of found indices
@@ -365,7 +367,7 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
         last = first = x[i_src]  # Get the value at the first index.
         continue_after: bool = found < sm1  # continue until step_size-1
         while True:
-            i_idx = ri(tested, length)  # Get random index.
+            i_idx = random.integers(tested, length)  # Get random index.
             i_dst: int = indices[i_idx]  # Pick the actual index.
             current: int = x[i_dst]  # Get value at the new index.
             can_end: bool = current != first
@@ -401,9 +403,9 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
     return temp[0:best_size]
 
 
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
 def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
-               shuffle: Callable[[np.ndarray], None],
-               ri: Callable[[int, int], int], max_trials: int) -> None:
+               random: Generator, max_trials: int) -> None:
     """
     Apply a given move copying from source `x` to `dest`.
 
@@ -412,26 +414,23 @@ def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
     :param x: the source permutation
     :param dest: the destination permutation
     :param move: the move of length `step_size`
-    :param shuffle: a source for random shuffling
-    :param ri: a source for random integers
+    :param random: the random number generator
     :param max_trials: a maximum number of trials
 
     >>> import numpy as npx
     >>> from numpy.random import default_rng
-    >>> random = default_rng(12)
-    >>> shuff = random.shuffle
-    >>> rint = random.integers
+    >>> rand = default_rng(12)
     >>> xx = npx.array([0, 1, 2, 3, 3, 3, 3, 3, 3], int)
     >>> dd = npx.empty(len(xx), int)
     >>> mv = npx.array([5, 2, 8, 1, 4, 0], int)
     >>> print(len(mv))
     6
-    >>> apply_move(xx, dd, mv, shuff, rint, 0)
+    >>> apply_move(xx, dd, mv, rand, 0)
     >>> print(dd)
     [3 3 3 3 0 2 3 3 1]
     >>> print(sum(dd != xx))
     6
-    >>> apply_move(xx, dd, mv, shuff, rint, 1000)
+    >>> apply_move(xx, dd, mv, rand, 1000)
     >>> print(dd)
     [3 3 3 3 2 1 3 3 0]
     >>> print(sum(dd != xx))
@@ -441,19 +440,19 @@ def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
     >>> mv = npx.array([4, 0, 5, 3, 1, 7, 2, 6], int)
     >>> print(len(mv))
     8
-    >>> apply_move(xx, dd, mv, shuff, rint, 0)
+    >>> apply_move(xx, dd, mv, rand, 0)
     >>> print(dd)
     [ 4  9  7  2 11  1  5  3]
     >>> print(sum(dd != xx))
     8
     >>> xx = npx.array([1, 3, 5, 9, 4, 2, 11, 7], int)
-    >>> apply_move(xx, dd, mv, shuff, rint, 10)
+    >>> apply_move(xx, dd, mv, rand, 10)
     >>> print(dd)
     [ 5  4  2 11  7  3  9  1]
     >>> print(sum(dd != xx))
     8
     """
-    np.copyto(dest, x)  # First, we copy `x` to `dest`.
+    dest[:] = x[:]  # First, we copy `x` to `dest`.
     step_size: Final[int] = len(move)  # Get the move size.
 # We now try to replace the sub-string x[move] with a random permutation of
 # itself. Since `move` is the return value of `find_move`, we know that it
@@ -464,7 +463,7 @@ def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
     orig: np.ndarray = dest[move]   # Get the original subsequence.
     perm: np.ndarray = orig.copy()
     for _ in range(max_trials):  # Try to permute it.
-        shuffle(perm)  # Shuffle the permutation
+        random.shuffle(perm)  # Shuffle the permutation
         if sum(perm != orig) == step_size:  # If all elements are now...
             dest[move] = perm  # ...at different places, accept the move and
             return  # quit
@@ -484,7 +483,7 @@ def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
 # whether to cycle left or right. We cannot cycle more than one step, though,
 # because there is guarantee that an element is different from its successor's
 # successor.
-    dest[move] = np.roll(orig, 1 if ri(0, 2) == 0 else -1)
+    dest[move] = np.roll(orig, 1 if random.integers(0, 2) == 0 else -1)
 
 
 class Op1SwapExactlyN(Op1WithStepSize):
@@ -552,8 +551,6 @@ class Op1SwapExactlyN(Op1WithStepSize):
         :param x: the existing point in the search space
         :param step_size: the number of elements to swap
         """
-# setup of other variables and fast calls
-        ri: Final[Callable[[int, int], int]] = random.integers  # fast call!
 # compute the real step size based on the maximum changes
         use_step_size: int = exponential_step_size(
             step_size, 2, self.max_changes)
@@ -565,7 +562,7 @@ class Op1SwapExactlyN(Op1WithStepSize):
             use_step_size = mapped_step_size
 
         move: Final[np.ndarray] = find_move(
-            x, self.__indices, use_step_size, ri, self.max_move_trials,
+            x, self.__indices, use_step_size, random, self.max_move_trials,
             self.__temp)
 
 # If we did not yet know the move size, then update it.
@@ -573,7 +570,7 @@ class Op1SwapExactlyN(Op1WithStepSize):
             self.__move_map[use_step_size] = len(move)
         self.__move_map[use_step_size] = use_step_size
 # Finally, apply the move.
-        apply_move(x, dest, move, random.shuffle, ri, self.max_move_trials)
+        apply_move(x, dest, move, random, self.max_move_trials)
 
     def __str__(self) -> str:
         """

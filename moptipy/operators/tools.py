@@ -5,7 +5,7 @@ from math import exp, log
 import numba  # type: ignore
 
 
-@numba.njit(cache=True)
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
 def exponential_step_size(step_size: float,
                           min_steps: int, max_steps: int) -> int:
     """
@@ -115,7 +115,7 @@ def exponential_step_size(step_size: float,
         max_steps - min_steps + 1))) - 1
 
 
-@numba.njit(cache=True)
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
 def inv_exponential_step_size(int_val: int,
                               min_steps: int, max_steps: int) -> float:
     """

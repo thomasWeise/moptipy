@@ -46,15 +46,59 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
 This operator performs one swap. It is similar to :class:`~moptipy.operators.\
 permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
 """
-from typing import Callable, Final
+from typing import Final
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1
 
 
-# start book
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def swap_2(random: Generator, dest: np.ndarray,  # +book
+           x: np.ndarray) -> None:  # +book
+    """
+    Copy `x` into `dest` and swap two different values in `dest`.
+
+    :param random: the random number generator
+    :param dest: the array to receive the modified copy of `x`
+    :param x: the existing point in the search space
+
+    >>> rand = np.random.default_rng(10)
+    >>> xx = np.array(range(10), int)
+    >>> out = np.empty(len(xx), int)
+    >>> swap_2(rand, out, xx)
+    >>> print(out)
+    [0 1 2 3 4 5 6 9 8 7]
+    >>> sum(out != xx)
+    2
+    >>> swap_2(rand, out, xx)
+    >>> print(out)
+    [0 1 7 3 4 5 6 2 8 9]
+    >>> sum(out != xx)
+    2
+    >>> swap_2(rand, out, xx)
+    >>> print(out)
+    [0 1 2 3 4 8 6 7 5 9]
+    >>> sum(out != xx)
+    2
+    """
+    # start book
+    dest[:] = x[:]  # First, we copy `x` to `dest`.
+    length: Final[int] = len(dest)  # Get the length of `dest`.
+
+    i1: Final[int] = random.integers(0, length)  # first random index
+    v1: Final = dest[i1]  # Get the value at the first index.
+    while True:  # Repeat until we find a different value.
+        i2: int = random.integers(0, length)  # second random index
+        v2 = dest[i2]  # Get the value at the second index.
+        if v1 != v2:  # If both values different...
+            dest[i2] = v1  # store v1 where v2 was
+            dest[i1] = v2  # store v2 where v1 was
+            return  # Exit function: we are finished.
+
+
 class Op1Swap2(Op1):
     """
     A unary search operation that swaps two (different) elements.
@@ -64,28 +108,10 @@ class Op1Swap2(Op1):
     and fast.
     """
 
-    def op1(self, random: Generator,
-            dest: np.ndarray, x: np.ndarray) -> None:
-        """
-        Copy `x` into `dest` and swap two different values in `dest`.
-
-        :param random: the random number generator
-        :param dest: the array to receive the modified copy of `x`
-        :param x: the existing point in the search space
-        """
-        np.copyto(dest, x)  # First, we copy `x` to `dest`.
-        length: Final[int] = len(dest)  # Get the length of `dest`.
-        ri: Final[Callable[[int], int]] = random.integers  # fast call!
-
-        i1: Final[int] = ri(length)  # Get the first random index.
-        v1: Final = dest[i1]  # Get the value at the first index.
-        while True:  # Repeat until we find a different value.
-            i2: int = ri(length)  # Get the second random index.
-            v2 = dest[i2]  # Get the value at the second index.
-            if v1 != v2:  # If both values different...
-                dest[i2] = v1  # store v1 where v2 was
-                dest[i1] = v2  # store v2 where v1 was
-                return  # Exit function: we are finished.
+    def __init__(self) -> None:
+        """Initialize the object."""
+        super().__init__()  # -book
+        self.op1 = swap_2  # type: ignore  # use function directly
     # end book
 
     def __str__(self) -> str:

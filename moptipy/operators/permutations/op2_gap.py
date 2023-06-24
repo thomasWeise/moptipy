@@ -45,7 +45,7 @@ from moptipy.utils.nputils import DEFAULT_BOOL
 from moptipy.utils.types import type_error
 
 
-@numba.njit(nogil=True, cache=True)
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
 # start book
 def _op2_gap(r: np.ndarray, dest: np.ndarray,
              x0: np.ndarray, x1: np.ndarray,

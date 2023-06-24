@@ -28,7 +28,6 @@ def test_operator_components() -> None:
     """Test the `find_move` function."""
     random = default_rng()
     ri = random.integers
-    pp = random.permutation
     permute = random.permutation
     for perm in permutations_for_tests(lambda p: p.dimension < 50):
         n = check_int_range(perm.n(), "perm.dimension", 1, 1_000_000)
@@ -46,7 +45,7 @@ def test_operator_components() -> None:
         for ss in range(2, min(50, mc + 1)):
             x = permute(perm.blueprint)
             steps: int = 1 if ri(0, 2) < 1 else ri(1, 1000)
-            mv = find_move(x, indices, ss, ri, steps, temp)
+            mv = find_move(x, indices, ss, random, steps, temp)
             if not isinstance(mv, np.ndarray):
                 raise type_error(
                     mv,
@@ -78,7 +77,7 @@ def test_operator_components() -> None:
                         f"differences instead of {lmv}.")
 
             xcpy = x.copy()
-            apply_move(x, dest, mv, pp, ri, 0 if (ri(3) <= 0) else ri(1, 1000))
+            apply_move(x, dest, mv, random, 0 if (ri(3) <= 0) else ri(1, 1000))
             if not perm.is_equal(xcpy, x):
                 raise ValueError("applying move destroyed source")
             perm.validate(dest)

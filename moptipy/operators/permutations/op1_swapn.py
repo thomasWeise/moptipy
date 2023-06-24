@@ -47,15 +47,59 @@ will swap 4 elements, and so on.
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
-from typing import Callable, Final
+from typing import Final
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1
 
 
-# start book
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def swap_n(random: Generator, dest: np.ndarray,  # +book
+           x: np.ndarray) -> None:  # +book
+    """
+    Copy `x` into `dest` and then swap several different values.
+
+    :param random: the random number generator
+    :param dest: the array to receive the modified copy of `x`
+    :param x: the existing point in the search space
+
+    >>> rand = np.random.default_rng(10)
+    >>> xx = np.array(range(10), int)
+    >>> out = np.empty(len(xx), int)
+    >>> swap_n(rand, out, xx)
+    >>> print(out)
+    [0 1 7 3 4 5 6 2 8 9]
+    >>> swap_n(rand, out, xx)
+    >>> print(out)
+    [0 1 8 3 4 5 6 7 2 9]
+    >>> swap_n(rand, out, xx)
+    >>> print(out)
+    [0 5 2 3 4 8 6 7 1 9]
+    """
+    # start book
+    dest[:] = x[:]  # First, we copy `x` to `dest`.
+    length: Final[int] = len(dest)  # Get the length of `dest`.
+
+    i1: int = random.integers(0, length)  # Get the first random index.
+    last = first = dest[i1]  # Get the value at the first index.
+    continue_after: bool = True  # True -> loop at least once.
+    while continue_after:  # Repeat until we should stop
+        continue_after = random.integers(0, 2) <= 0  # 50/50 chance
+        while True:  # Loop forever until eligible element found.
+            i2: int = random.integers(0, length)  # new random index.
+            current = dest[i2]  # Get the value at the new index.
+            if current == last:  # If it is the same as the
+                continue  # previous value, continue.
+            if continue_after or (current != first):  # If we want
+                break  # to stop, then it must be != first value.
+        dest[i1] = last = current  # Store value for from i2 at i1.
+        i1 = i2  # Update i1 to now point to cell of i2.
+    dest[i1] = first  # Finally, store first element back at end.
+
+
 class Op1SwapN(Op1):
     """
     A unary search operation that swaps several (different) elements.
@@ -65,34 +109,10 @@ class Op1SwapN(Op1):
     or not to perform another swap.
     """
 
-    def op1(self, random: Generator,
-            dest: np.ndarray, x: np.ndarray) -> None:
-        """
-        Copy `x` into `dest` and then swap several different values.
-
-        :param random: the random number generator
-        :param dest: the array to receive the modified copy of `x`
-        :param x: the existing point in the search space
-        """
-        np.copyto(dest, x)  # First, we copy `x` to `dest`.
-        length: Final[int] = len(dest)  # Get the length of `dest`.
-        ri: Final[Callable[[int], int]] = random.integers  # fast call!
-
-        i1: int = ri(length)  # Get the first random index.
-        last = first = dest[i1]  # Get the value at the first index.
-        continue_after: bool = True  # True -> loop at least once.
-        while continue_after:  # Repeat until we should stop
-            continue_after = ri(2) <= 0  # Continue after iteration?
-            while True:  # Loop forever until eligible element found.
-                i2: int = ri(length)  # Get a new random index.
-                current = dest[i2]  # Get the value at the new index.
-                if current == last:  # If it is the same as the
-                    continue  # previous value, continue.
-                if continue_after or (current != first):  # If we want
-                    break  # to stop, then it must be != first value.
-            dest[i1] = last = current  # Store value for from i2 at i1.
-            i1 = i2  # Update i1 to now point to cell of i2.
-        dest[i1] = first  # Finally, store first element back at end.
+    def __init__(self) -> None:
+        """Initialize the object."""
+        super().__init__()  # -book
+        self.op1 = swap_n  # type: ignore  # use function directly
     # end book
 
     def __str__(self) -> str:
