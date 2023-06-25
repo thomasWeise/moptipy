@@ -39,34 +39,38 @@ from numpy.random import Generator
 from moptipy.api.operators import Op2
 
 
-@numba.njit(cache=True)
-def __op2_uniform(r: np.ndarray, dest: np.ndarray, x0: np.ndarray,
-                  x1: np.ndarray) -> None:
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def uniform(random: Generator, dest: np.ndarray, x0: np.ndarray,
+            x1: np.ndarray) -> None:
     """
     Perform the actual work of the uniform crossover.
 
-    :param r: the array with random numbers in 0..1
+    :param random: the random number generator
     :param dest: the destination array
     :param x0: the first source array
     :param x1: the second source array
+
+    >>> a = np.full(10, True)
+    >>> b = np.full(len(a), False)
+    >>> r = np.random.default_rng(10)
+    >>> out = np.empty(len(a), bool)
+    >>> uniform(r, out, a, b)
+    >>> print(out)
+    [ True  True False False  True  True  True False  True  True]
+    >>> uniform(r, out, a, b)
+    >>> print(out)
+    [False False False  True False  True False False  True  True]
+    >>> uniform(r, out, a, b)
+    >>> print(out)
+    [False  True False False  True  True  True  True  True  True]
+    >>> uniform(r, out, a, b)
+    >>> print(out)
+    [False  True  True False  True  True False False False  True]
     """
-    for i, v in enumerate(r):  # iterate over random numbers
+    for i in range(len(dest)):  # pylint: disable=C0200
+        v = random.integers(0, 2)  # create boolean value
         # copy from x0 with p=0.5 and from x1 with p=0.5
         dest[i] = x1[i] if v == 0 else x0[i]
-
-
-def _op2_uniform(random: Generator, dest: np.ndarray, x0: np.ndarray,
-                 x1: np.ndarray) -> None:
-    """
-    Perform the uniform operator as plain old function.
-
-    :param random: the random number generator
-    :param dest: the destination array to receive the new point
-    :param x0: the first source array
-    :param x1: the second source array
-    """
-    __op2_uniform(random.integers(low=2, high=None, size=len(dest)),
-                  dest, x0, x1)
 
 
 class Op2Uniform(Op2):
@@ -85,7 +89,7 @@ class Op2Uniform(Op2):
     def __init__(self):
         """Initialize the uniform crossover operator."""
         super().__init__()
-        self.op2 = _op2_uniform  # type: ignore
+        self.op2 = uniform  # type: ignore
 
     def __str__(self) -> str:
         """

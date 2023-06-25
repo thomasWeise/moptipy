@@ -532,7 +532,8 @@ All of this is implemented in the source code example below in [Section 3.3.3](#
 Finally, as a side note:
 Our system can automatically store the results of optimization processes in [log file](#51-log-files).
 The `process` API also allows your algorithm to store additional information in these files:
-You can create a [section](#512-log-file-sections) with a given `title` in the log files that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
+First, you can check with [`process.has_log()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.has_log) if the process was configured to store information in a log file.
+If this function returns `True`, then you can create a [section](#512-log-file-sections) with a given `title` in the log files that should contain one single string `text` by calling  [`process.add_log_section(title, text)`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.add_log_section).
 Make sure that all section `title`s are unique.
 All such sections will be appended at the end of the log files, wrapped in `BEGIN_title` and `END_title` markers, as prescribed by [our log file format](#512-log-file-sections).
 
@@ -1050,6 +1051,10 @@ It is a very easy way to make sure that your results are reproducible, easy-to-u
 The system information section is again a key-value section.
 It holds key-value pairs describing features of the machine on which the experiment was executed.
 This includes information about the CPU, the operating system, the Python installation, as well as the version information of packages used by moptipy.
+If your `moptipy` application uses additional Python libraries, then it is strongly suggested to also include their versions in the log files.
+This can be done by invoking the function [`add_dependency`](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.sys_info.add_dependency) **before** running any experiment.
+This way, you can add the name of a library that your application depends on.
+The system will then automatically get the version information of that library and include it into the log files.
 
 
 ##### 5.1.2.5 The `RESULT` Sections

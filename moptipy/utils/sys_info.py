@@ -62,7 +62,11 @@ def add_dependency(dependency: str) -> None:
     file via the :mod:`~moptipy.api.experiment` API or to a file specified in
     the :mod:`~moptipy.api.execution` API will invoke this function.
 
-    :param dependency: the dependency
+    :param dependency: the basic name of the library, exactly as you would
+        `import` it in a Python module. For example, to include the version of
+        `numpy` in the log files, you would do `add_dependency("numpy")` (of
+        course, the version of `numpy` is already automatically included
+        anyway).
     """
     if not isinstance(dependency, str):
         raise type_error(dependency, "dependency", str)
