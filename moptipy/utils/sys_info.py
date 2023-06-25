@@ -67,6 +67,10 @@ def add_dependency(dependency: str) -> None:
         `numpy` in the log files, you would do `add_dependency("numpy")` (of
         course, the version of `numpy` is already automatically included
         anyway).
+    :raises TypeError: if `dependency` is not a string
+    :raises ValueError: if `dependency` is an invalid string or the log
+        information has already been accessed before and modifying it now is
+        not permissible.
     """
     if not isinstance(dependency, str):
         raise type_error(dependency, "dependency", str)

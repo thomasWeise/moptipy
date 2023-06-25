@@ -40,65 +40,65 @@
 # errors. But they can at least check whether our code behaves as it should in
 # some usual or border cases. Also, they can help us find out if changes in
 # the code lead to changes in (tested/expected) behavior.
-pytest >= 7.3.1
+pytest == 7.4.0
 
 # setuptools, testresources, twine, virtualenv, and wheel are needed for
 # generating the installable pip package.
-setuptools >= 67.8.0
-testresources >= 2.0.1
-twine >= 4.0.2
-virtualenv >= 20.23.0
-wheel >= 0.40.0
+setuptools == 68.0.0
+testresources == 2.0.1
+twine == 4.0.2
+virtualenv == 20.23.1
+wheel == 0.40.0
 
 # sphinx is needed for generating the documentation. Together with its
 # modules, it parses the documentation root file as well as the code and
 # generates the html files with the documentation. It therefore uses the
 # docstrings and the type hints.
-sphinx >= 6.2.1
-sphinx-autodoc-typehints >= 1.23.0
+sphinx == 7.0.1
+sphinx-autodoc-typehints == 1.23.2
 # myst-parser is needed for including README.md into the documentation
-myst-parser >= 1.0.0
+myst-parser == 2.0.0
 
 # We use a set of different static code analysis tools. They check the code
 # for errors in typing, for violations of conventions, for potential security
 # issues, for possible bugs, for unnecessary code or imports, and for other
 # things that can be improved. If all checks of all of these tools pass, then
 # we probably have good quality code.
-autoflake >= 2.1.1
-bandit >= 1.7.5
-coverage >= 7.2.7
-coverage-badge >= 1.1.0
-dlint >= 0.14.1
-dodgy >= 0.2.1
-flake8 >= 6.0.0
-flake8-bugbear >= 23.6.5
-flake8-eradicate >= 1.5.0
-flake8-use-fstring >= 1.4
-mypy >= 1.3.0
-pycodestyle >= 2.10.0
-pydocstyle >= 6.3.0
-pyflakes >= 3.0.1
-pylint >= 2.17.4
-pyroma >= 4.2
-ruff >= 0.0.274
-semgrep >= 1.25.0
-tryceratops >= 2.3.2
-unimport >= 0.16.0
-vulture >= 2.7
+autoflake == 2.2.0
+bandit == 1.7.5
+coverage == 7.2.7
+coverage-badge == 1.1.0
+dlint == 0.14.1
+dodgy == 0.2.1
+flake8 == 6.0.0
+flake8-bugbear == 23.6.5
+flake8-eradicate == 1.5.0
+flake8-use-fstring == 1.4
+mypy == 1.3.0
+pycodestyle == 2.10.0
+pydocstyle == 6.3.0
+pyflakes == 3.0.1
+pylint == 2.17.4
+pyroma == 4.2
+ruff == 0.0.275
+semgrep == 1.28.0
+tryceratops == 2.3.2
+unimport == 0.16.0
+vulture == 2.7
 
 # yaml is used only in tests and examples.
-pyyaml >= 6.0
+pyyaml == 6.0
 
 # urllib3 and certifi are used to check the URLs in the README.md
 # As part of the build process, we check all the URLs in the README.md file
 # whether they can still be reached.
-urllib3 >= 1.26.16
-certifi >= 2023.5.7
+urllib3 == 1.26.16
+certifi == 2023.5.7
 
 # minify_html is needed to minify html output. Our documentation is fairly
 # large. We apply this tool to try to reduce the file size of the
 # documentation, by, e.g., removing useless white space.
-minify_html >= 0.11.1
+minify_html == 0.11.1
 
 # for converting the additional markdown files to HTML
-markdown >= 3.4.3
+markdown == 3.4.3
