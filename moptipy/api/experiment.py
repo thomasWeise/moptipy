@@ -29,6 +29,7 @@ from numpy.random import Generator, default_rng
 
 from moptipy.api.execution import Execution
 from moptipy.api.logging import FILE_SUFFIX
+from moptipy.api.process import Process
 from moptipy.utils.cache import is_new
 from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seeds_from_str
@@ -49,7 +50,8 @@ def __run_experiment(base_dir: Path,
                      stdio_lock: AbstractContextManager,
                      cache: Callable[[str], bool],
                      thread_id: str,
-                     pre_warmup_barrier) -> None:
+                     pre_warmup_barrier,
+                     on_completion: Callable[[Path, Process], None]) -> None:
     """
     Execute a single thread of experiments.
 
@@ -65,6 +67,9 @@ def __run_experiment(base_dir: Path,
     :param cache: the cache
     :param thread_id: the thread id
     :param pre_warmup_barrier: a barrier to wait at after the pre-warmup
+    :param on_completion: a function to be called for every completed run,
+        receiving the path to the log file (before it is created) and the
+        :class:`~moptipy.api.process.Process` of the run as parameters
     """
     random: Final[Generator] = default_rng()
 
@@ -146,8 +151,8 @@ def __run_experiment(base_dir: Path,
 
                     exp.set_log_file(log_file)
                     logger(filename, thread_id, stdio_lock)
-                    with exp.execute():  # run the experiment
-                        pass
+                    with exp.execute() as process:  # run the experiment
+                        on_completion(cast(Path, log_file), process)
 
 
 #: the number of logical CPU cores
@@ -208,18 +213,14 @@ class Parallelism(IntEnum):
         if "Linux" in platform.system() else 1
 
 
-def __waiting_run_experiment(base_dir: Path,
-                             experiments: list[list[Callable]],
-                             n_runs: list[int],
-                             perform_warmup: bool,
-                             warmup_fes: int,
-                             perform_pre_warmup: bool,
-                             pre_warmup_fes: int,
-                             file_lock: AbstractContextManager,
-                             stdio_lock: AbstractContextManager,
-                             cache: Callable,
-                             thread_id: str,
-                             event, pre_warmup_barrier) -> None:
+def __waiting_run_experiment(
+        base_dir: Path, experiments: list[list[Callable]],
+        n_runs: list[int], perform_warmup: bool, warmup_fes: int,
+        perform_pre_warmup: bool, pre_warmup_fes: int,
+        file_lock: AbstractContextManager,
+        stdio_lock: AbstractContextManager, cache: Callable, thread_id: str,
+        event, pre_warmup_barrier,
+        on_completion: Callable[[Path, Process], None]) -> None:
     """Wait until event is set, then run experiment."""
     logger("waiting for start signal", thread_id, stdio_lock)
     if not event.wait():
@@ -230,18 +231,22 @@ def __waiting_run_experiment(base_dir: Path,
     __run_experiment(base_dir, experiments, n_runs,
                      perform_warmup, warmup_fes, perform_pre_warmup,
                      pre_warmup_fes, file_lock, stdio_lock, cache,
-                     thread_id, pre_warmup_barrier)
+                     thread_id, pre_warmup_barrier, on_completion)
 
 
-def run_experiment(base_dir: str,
-                   instances: Iterable[Callable[[], Any]],
-                   setups: Iterable[Callable[[Any], Execution]],
-                   n_runs: int | Iterable[int] = 11,
-                   n_threads: int = Parallelism.ACCURATE_TIME_MEASUREMENTS,
-                   perform_warmup: bool = True,
-                   warmup_fes: int = 20,
-                   perform_pre_warmup: bool = True,
-                   pre_warmup_fes: int = 20) -> Path:
+def __no_complete(_: Path, __: Process) -> None:
+    """Do nothing."""
+
+
+def run_experiment(
+        base_dir: str, instances: Iterable[Callable[[], Any]],
+        setups: Iterable[Callable[[Any], Execution]],
+        n_runs: int | Iterable[int] = 11,
+        n_threads: int = Parallelism.ACCURATE_TIME_MEASUREMENTS,
+        perform_warmup: bool = True, warmup_fes: int = 20,
+        perform_pre_warmup: bool = True, pre_warmup_fes: int = 20,
+        on_completion: Callable[[Path, Process], None] = __no_complete) \
+        -> Path:
     """
     Run an experiment and store the log files into the given folder.
 
@@ -314,6 +319,9 @@ def run_experiment(base_dir: str,
         completed it, the actual experiment will begin. I am not sure whether
         this makes sense or not, but it also would not hurt.
     :param pre_warmup_fes: the FEs for the pre-warmup runs
+    :param on_completion: a function to be called for every completed run,
+        receiving the path to the log file (before it is created) and the
+        :class:`~moptipy.api.process.Process` of the run as parameters
 
     :returns: the canonicalized path to `base_dir`
     """
@@ -394,7 +402,8 @@ def run_experiment(base_dir: str,
                               cache,
                               ":" + hex(i)[2:],
                               event,
-                              pre_warmup_barrier))
+                              pre_warmup_barrier,
+                              on_completion))
              for i in range(n_threads)]
 
         for i, p in enumerate(processes):
@@ -446,7 +455,8 @@ def run_experiment(base_dir: str,
                          stdio_lock=stdio_lock,
                          cache=cache,
                          thread_id="",
-                         pre_warmup_barrier=None)
+                         pre_warmup_barrier=None,
+                         on_completion=on_completion)
 
     logger("finished experiment.", "", stdio_lock)
     return use_dir
