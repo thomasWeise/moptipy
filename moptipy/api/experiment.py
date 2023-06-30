@@ -51,7 +51,8 @@ def __run_experiment(base_dir: Path,
                      cache: Callable[[str], bool],
                      thread_id: str,
                      pre_warmup_barrier,
-                     on_completion: Callable[[Path, Process], None]) -> None:
+                     on_completion: Callable[[
+                         Any, Path, Process], None]) -> None:
     """
     Execute a single thread of experiments.
 
@@ -68,8 +69,9 @@ def __run_experiment(base_dir: Path,
     :param thread_id: the thread id
     :param pre_warmup_barrier: a barrier to wait at after the pre-warmup
     :param on_completion: a function to be called for every completed run,
-        receiving the path to the log file (before it is created) and the
-        :class:`~moptipy.api.process.Process` of the run as parameters
+        receiving the instance, the path to the log file (before it is
+        created) and the :class:`~moptipy.api.process.Process` of the run
+        as parameters
     """
     random: Final[Generator] = default_rng()
 
@@ -152,7 +154,7 @@ def __run_experiment(base_dir: Path,
                     exp.set_log_file(log_file)
                     logger(filename, thread_id, stdio_lock)
                     with exp.execute() as process:  # run the experiment
-                        on_completion(cast(Path, log_file), process)
+                        on_completion(instance, cast(Path, log_file), process)
 
 
 #: the number of logical CPU cores
@@ -220,7 +222,7 @@ def __waiting_run_experiment(
         file_lock: AbstractContextManager,
         stdio_lock: AbstractContextManager, cache: Callable, thread_id: str,
         event, pre_warmup_barrier,
-        on_completion: Callable[[Path, Process], None]) -> None:
+        on_completion: Callable[[Any, Path, Process], None]) -> None:
     """Wait until event is set, then run experiment."""
     logger("waiting for start signal", thread_id, stdio_lock)
     if not event.wait():
@@ -234,7 +236,7 @@ def __waiting_run_experiment(
                      thread_id, pre_warmup_barrier, on_completion)
 
 
-def __no_complete(_: Path, __: Process) -> None:
+def __no_complete(_: Any, __: Path, ___: Process) -> None:
     """Do nothing."""
 
 
@@ -245,7 +247,7 @@ def run_experiment(
         n_threads: int = Parallelism.ACCURATE_TIME_MEASUREMENTS,
         perform_warmup: bool = True, warmup_fes: int = 20,
         perform_pre_warmup: bool = True, pre_warmup_fes: int = 20,
-        on_completion: Callable[[Path, Process], None] = __no_complete) \
+        on_completion: Callable[[Any, Path, Process], None] = __no_complete) \
         -> Path:
     """
     Run an experiment and store the log files into the given folder.
@@ -320,8 +322,9 @@ def run_experiment(
         this makes sense or not, but it also would not hurt.
     :param pre_warmup_fes: the FEs for the pre-warmup runs
     :param on_completion: a function to be called for every completed run,
-        receiving the path to the log file (before it is created) and the
-        :class:`~moptipy.api.process.Process` of the run as parameters
+        receiving the instance, the path to the log file (before it is
+        created) and the :class:`~moptipy.api.process.Process` of the run
+        as parameters
 
     :returns: the canonicalized path to `base_dir`
     """
