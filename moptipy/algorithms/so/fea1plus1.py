@@ -126,14 +126,17 @@ class FEA1plus1(Algorithm1):
 
             h[new_f] = h[new_f] + 1  # Increase frequency of new_f and
             h[best_f] = best_h = h[best_f] + 1  # of best_f.
-            if h[new_f] <= best_h:  # new_x is no worse than best_x?
+            if h[new_f] <= best_h:  # frequency of new_f no worse than best_f?
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
 
+        # After we are done, we want to print the H table.
         if h[best_f] == 0:  # Fix the H table for the case that only one
             h[best_f] = 1   # single FE was performed.
         log_h(process, range(len(h)), cast(Callable[[int | float], int],
-                                           h.__getitem__), str)
+                                           h.__getitem__),
+              cast(Callable[[int | float], str],  # add the lower bound back in
+                   lambda i, _lb=lb: str(i + _lb)))
 
 
 def __h_to_str(indices: Iterable[int | float],
@@ -155,6 +158,12 @@ def __h_to_str(indices: Iterable[int | float],
     >>> hd = {1: 5, 4: 7, 3: 6, 2: 9}
     >>> __h_to_str(sorted(hd.keys()), hd.__getitem__, str)
     '1;5;2;9;3;6;4;7'
+    >>> try:
+    ...     hd = {1: 0}
+    ...     __h_to_str(sorted(hd.keys()), hd.__getitem__, str)
+    ... except ValueError as ve:
+    ...     print(ve)
+    empty H table?
     """
     first: bool = True
     with StringIO() as out:
@@ -168,6 +177,8 @@ def __h_to_str(indices: Iterable[int | float],
                 out.write(print_index(i))
                 out.write(CSV_SEPARATOR)
                 out.write(str(v))
+        if first:
+            raise ValueError("empty H table?")
         return out.getvalue()
 
 

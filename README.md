@@ -2200,7 +2200,7 @@ It will take on a reasonable system-dependent default values based on your CPU a
 On all other operating systems, `n_threads=1` by default.
 There, you can simply start the program running the experiment multiple times.
 
-You can achieve distributed experiment executing by simply [sharing the folder](https://www.technewstoday.com/how-to-share-a-folder-or-file-over-a-network) for the log files between the machines.
+You can achieve distributed experiment executing by simply sharing the folder for the log files between the machines.
 If you use a shared root folder for experiments and launch the same experiment on multiple machines, they will automatically distribute the work load amongst each other using this very (and therefore very robust) simple system.
 
 
