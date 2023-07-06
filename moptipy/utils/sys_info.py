@@ -46,10 +46,10 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
 
 #: the dependencies
 __DEPENDENCIES: set[str] | None = {
-    "contourpy", "cycler", "fonttools", "joblib", "kiwisolver", "llvmlite",
-    "matplotlib", "moptipy", "numba", "numpy", "packaging", "pdfo", "Pillow",
-    "psutil", "pyparsing", "python-dateutil", "scikit-learn", "scipy", "six",
-    "threadpoolctl"}
+    "contourpy", "cycler", "fonttools", "intel-cmplr-lib-rt", "joblib",
+    "kiwisolver", "llvmlite", "matplotlib", "moptipy", "numba", "numpy",
+    "packaging", "pdfo", "Pillow", "psutil", "pyparsing", "python-dateutil",
+    "scikit-learn", "scipy", "six", "threadpoolctl"}
 
 
 def add_dependency(dependency: str) -> None:
@@ -292,6 +292,7 @@ def get_sys_info() -> str:
     version.contourpy
     version.cycler
     version.fonttools
+    version.intelcmplrlibrt
     version.joblib
     version.kiwisolver
     version.llvmlite
