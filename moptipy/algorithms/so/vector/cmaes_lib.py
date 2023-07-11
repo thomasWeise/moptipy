@@ -72,9 +72,10 @@ def _run_cma(cma: SepCMA | CMA,
       `run_criterion`, `-1` otherwise
     """
     fes: int = 0
+    pop_size: Final[int] = cma.population_size
     while True:  # the main loop
         solutions.clear()  # clear the ask/tell records
-        for _ in range(cma.population_size):
+        for _ in range(pop_size):
             if should_terminate():  # buget over?
                 return -1  # exit
             x: np.ndarray = cma.ask()  # sample a point from CMA-ES

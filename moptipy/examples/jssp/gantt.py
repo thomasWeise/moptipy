@@ -26,9 +26,10 @@ class Gantt(np.ndarray):
     :class:`moptipy.examples.jssp.gantt_space.GanttSpace`.
     """
 
+# end book
+
     #: the JSSP instance for which the Gantt chart is created
     instance: Instance
-# end book
 
     def __new__(cls, space) -> "Gantt":
         """
