@@ -153,25 +153,13 @@ class RBFInterpolation(Algorithm):
         with logger.scope("space") as space:
             self._space.log_parameters_to(space)
 
-    def create_interpolator(self, x: np.ndarray, z: np.ndarray) \
-            -> Callable[[np.ndarray], np.ndarray]:
-        """
-        Create the interpolator to serve as surrogate objective function.
-
-        This function is overwritten in concrete implementations.
-
-        :param x: the points in the search space sampled so far
-        :param z: the recorded objective values
-        :returns: a function to serve as surrogate objective function
-        """
-
     def solve(self, process: Process) -> None:
         """
         Apply the surrogate-assisted optimization method to the given process.
 
         :param process: the process to solve
         """
-        # constants and fast calls
+        # fast calls
         should_terminate: Final[Callable[[], bool]] = process.should_terminate
         inner: Final[Callable[[Process], None]] = self.__inner.solve
         evaluate: Final[Callable[[np.ndarray], int | float]] = \
@@ -182,6 +170,8 @@ class RBFInterpolation(Algorithm):
             process.get_random().uniform
         empty: Final[Callable[[int, np.dtype], np.ndarray]] \
             = np.empty
+
+        # constants
         lb: Final[np.ndarray] = self._space.lower_bound
         ub: Final[np.ndarray] = self._space.upper_bound
         dim: Final[int] = self._space.dimension

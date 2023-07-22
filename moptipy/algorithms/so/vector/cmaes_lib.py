@@ -67,22 +67,30 @@ def _run_cma(cma: SepCMA | CMA,
     :param should_terminate: the termination criterion
     :param solutions: the internal list to store the solutions
     :param run_criterion: the stopper for a run
-
     :returns: the number of consumed FEs if the run was terminated by
       `run_criterion`, `-1` otherwise
     """
     fes: int = 0
     pop_size: Final[int] = cma.population_size
+
+    # now we load a lot of fast call function pointers
+    ask: Final[Callable[[], np.ndarray]] = cma.ask
+    append: Final[Callable[[
+        tuple[np.ndarray, int | float]], None]] = solutions.append
+    tell: Final[Callable[
+        [list[tuple[np.ndarray, float]]], None]] = cma.tell
+    clear: Final[Callable[[], None]] = solutions.clear
+
     while True:  # the main loop
-        solutions.clear()  # clear the ask/tell records
+        clear()  # clear the ask/tell records
         for _ in range(pop_size):
-            if should_terminate():  # buget over?
+            if should_terminate():  # budget over?
                 return -1  # exit
-            x: np.ndarray = cma.ask()  # sample a point from CMA-ES
+            x: np.ndarray = ask()  # sample a point from CMA-ES
             value: int | float = f(x)  # compute its objective value
-            solutions.append((x, value))  # store the point
+            append((x, value))  # store the point
             fes = fes + 1
-        cma.tell(solutions)  # feed all results back to the CMA
+        tell(solutions)  # feed all results back to the CMA
         if run_criterion():
             return fes
 
@@ -126,9 +134,10 @@ class CMAES(Algorithm):
 
         lb: Final[np.ndarray] = self.space.lower_bound  # the upper bound
         ub: Final[np.ndarray] = self.space.upper_bound  # the lower bound
-        mean = 0.5 * (lb + ub)  # we always use the center as mean value
-        sigma = 0.2 * max(ub - lb)  # we always use a large initial sigma
-        bounds = np.stack((lb, ub)).transpose()  # construct bounds
+        mean: Final[np.ndarray] = 0.5 * (lb + ub)  # use center as mean value
+        sigma: Final[float] = 0.2 * max(ub - lb)  # use a large initial sigma
+        bounds: Final[np.ndarray] = \
+            np.stack((lb, ub)).transpose()  # construct bounds
 
         # we create and directly run the CMA-ES algorithm
         _run_cma(CMA(mean=mean, sigma=sigma, bounds=bounds,
@@ -195,9 +204,10 @@ class SepCMAES(CMAES):
 
         lb: Final[np.ndarray] = self.space.lower_bound  # the upper bound
         ub: Final[np.ndarray] = self.space.upper_bound  # the lower bound
-        mean = 0.5 * (lb + ub)  # we always use the center as mean value
-        sigma = 0.2 * max(ub - lb)  # we always use a large initial sigma
-        bounds = np.stack((lb, ub)).transpose()  # construct bounds
+        mean: Final[np.ndarray] = 0.5 * (lb + ub)  # use center as mean value
+        sigma: Final[float] = 0.2 * max(ub - lb)  # use a large initial sigma
+        bounds: Final[np.ndarray] = \
+            np.stack((lb, ub)).transpose()  # construct bounds
 
         # we create and directly run the CMA-ES algorithm
         _run_cma(SepCMA(mean=mean, sigma=sigma, bounds=bounds,
@@ -247,9 +257,10 @@ class BiPopCMAES(CMAES):
 
         lb: Final[np.ndarray] = self.space.lower_bound  # the upper bound
         ub: Final[np.ndarray] = self.space.upper_bound  # the lower bound
-        mean = 0.5 * (lb + ub)  # we always use the center as mean value
-        sigma = 0.2 * max(ub - lb)  # we always use a large initial sigma
-        bounds = np.stack((lb, ub)).transpose()  # construct bounds
+        mean: Final[np.ndarray] = 0.5 * (lb + ub)  # use center as mean value
+        sigma: Final[float] = 0.2 * max(ub - lb)  # use a large initial sigma
+        bounds: Final[np.ndarray] = \
+            np.stack((lb, ub)).transpose()  # construct bounds
 
         random: Generator = process.get_random()
 

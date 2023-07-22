@@ -56,7 +56,7 @@ KEY_NUMPY_TYPE_JOB_TIME: Final[str] = f"{KEY_NUMPY_TYPE}JobTime"
 @numba.njit(nogil=True, cache=True)
 def decode(x: np.ndarray, machine_idx: np.ndarray,
            job_time: np.ndarray, job_idx: np.ndarray,
-           matrix: np.ndarray, y: np.ndarray) -> None:
+           instance: np.ndarray, y: np.ndarray) -> None:
     """
     Map an operation-based encoded array to a Gantt chart.
 
@@ -64,8 +64,8 @@ def decode(x: np.ndarray, machine_idx: np.ndarray,
     :param machine_idx: array of length `m` for machine indices
     :param job_time: array of length `n` for job times
     :param job_idx: length `n` array of current job operations
-    :param matrix: the instance data matrix
-    :param y: the output array: `times` of the Gantt chart
+    :param instance: the instance data matrix
+    :param y: the output array, i.e., the Gantt chart
     """
     machine_idx.fill(-1)  # all machines start by having done no jobs
     job_time.fill(0)  # each job has initially consumed 0 time units
@@ -74,14 +74,14 @@ def decode(x: np.ndarray, machine_idx: np.ndarray,
     for job in x:  # iterate over multi-permutation
         idx = job_idx[job]  # get the current operation of the job
         job_idx[job] = idx + 1  # and step it to the next operation
-        machine = matrix[job, idx, 0]  # get the machine id
+        machine = instance[job, idx, 0]  # get the machine id
         start = job_time[job]  # end time of previous operation of job
         mi = machine_idx[machine]  # get jobs finished on machine - 1
         if mi >= 0:  # we already have one job done?
             start = max(start, y[machine, mi, 2])  # earliest start
         mi += 1  # step the machine index
         machine_idx[machine] = mi  # step the machine index
-        end = start + matrix[job, idx, 1]  # compute end time
+        end = start + instance[job, idx, 1]  # compute end time
         y[machine, mi, 0] = job  # store job index
         y[machine, mi, 1] = start  # store start of job's operation
         y[machine, mi, 2] = end  # store end of job's operation

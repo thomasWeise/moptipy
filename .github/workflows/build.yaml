@@ -36,7 +36,7 @@ jobs:
         touch /home/runner/work/moptipy/moptipy/docs/build/.nojekyll
 # deploy to github pages
     - name: deploy documentation
-      uses: JamesIves/github-pages-deploy-action@v4
+      uses: JamesIves/github-pages-deploy-action@a1ea191d508feb8485aceba848389d49f80ca2dc
       with:
         branch: gh-pages
         folder: /home/runner/work/moptipy/moptipy/docs/build/
