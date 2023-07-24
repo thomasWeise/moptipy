@@ -37,11 +37,8 @@ them 100 FEs and perform 21 runs per setup. We then plot the ERT in terms
 of the expected number of objective function evaluations (FEs) over the
 objective values (`f`).
 """
-import os
 from time import sleep
 from webbrowser import open_new_tab
-
-import psutil
 
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.so.rls import RLS
@@ -56,17 +53,8 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.plot_utils import create_figure, save_figure
+from moptipy.utils.sys_info import is_make_build
 from moptipy.utils.temp import TempDir
-
-# We do not show the generated graphics in the browser if this script is
-# called from a "make" build. This small lambda checks whether there is any
-# process with "make" in its name anywhere in the parent hierarchy of the
-# current process.
-ns = lambda prc: False if prc is None else (  # noqa: E731
-    "make" in prc.name() or ns(prc.parent()))
-
-# should we show the plots?
-SHOW_PLOTS_IN_BROWSER = not ns(psutil.Process(os.getppid()))
 
 # We try to solve only the 16-bit OneMax problem
 problems = [lambda: OneMax(16)]
@@ -162,7 +150,7 @@ with TempDir.create() as td:  # create temporary directory `td`
 
     # OK, we have now plotted a set of different ERT plots.
     # We will open them in the web browser if we are not in a make build.
-    if SHOW_PLOTS_IN_BROWSER:
+    if not is_make_build():
         for file in files:  # for each file we generated
             open_new_tab(f"file://{file}")  # open a browser tab
         sleep(10)  # sleep 10 seconds (enough time for the browser to load)

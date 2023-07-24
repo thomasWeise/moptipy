@@ -552,14 +552,13 @@ class EndStatistics(MultiRunData):
             consumer(EndStatistics.create(source))
             return
 
-        sorter: dict[str, list[EndResult]] = {}
+        sorter: dict[tuple[str, str], list[EndResult]] = {}
         for er in source:
             if not isinstance(er, EndResult):
                 raise type_error(source, "end results from source",
                                  EndResult)
-            key = er.instance if join_all_algorithms else \
-                er.algorithm if join_all_instances else \
-                f"{er.algorithm}/{er.instance}"
+            key = ("" if join_all_algorithms else er.algorithm,
+                   "" if join_all_instances else er.instance)
             if key in sorter:
                 lst = sorter[key]
             else:
@@ -571,9 +570,7 @@ class EndStatistics(MultiRunData):
             raise ValueError("source must not be empty")
 
         if len(sorter) > 1:
-            keyz = list(sorter.keys())
-            keyz.sort()
-            for key in keyz:
+            for key in sorted(sorter.keys()):
                 consumer(EndStatistics.create(sorter[key]))
         else:
             consumer(EndStatistics.create(
@@ -618,7 +615,8 @@ class EndStatistics(MultiRunData):
                 has_instance = True
                 checker &= ~2
             if es.goal_f is not None:
-                if isinstance(es.goal_f, Statistics):
+                if isinstance(es.goal_f, Statistics) \
+                        and (es.goal_f.maximum > es.goal_f.minimum):
                     has_goal_f = 2
                     checker &= ~4
                 elif has_goal_f == 0:
@@ -642,15 +640,18 @@ class EndStatistics(MultiRunData):
                 has_ert_time_millis = True
                 checker &= ~256
             if es.max_fes is not None:
-                if isinstance(es.max_fes, Statistics):
+                if isinstance(es.max_fes, Statistics) \
+                        and (es.max_fes.maximum > es.max_fes.minimum):
                     has_max_fes = 2
                     checker &= ~512
                 elif has_max_fes == 0:
                     has_max_fes = 1
             if es.max_time_millis is not None:
-                if isinstance(es.max_time_millis, Statistics):
+                if isinstance(es.max_time_millis, Statistics) \
+                        and (es.max_time_millis.maximum
+                             > es.max_time_millis.minimum):
                     has_max_time_millis = 2
-                    checker &= ~512
+                    checker &= ~1024
                 elif has_max_time_millis == 0:
                     has_max_time_millis = 1
             if checker == 0:
@@ -744,7 +745,8 @@ class EndStatistics(MultiRunData):
                 if has_goal_f == 1:
                     wrt(sep)
                     if er.goal_f is not None:
-                        wrt(num(er.goal_f))
+                        wrt(num(er.goal_f.median if isinstance(
+                            er.goal_f, Statistics) else er.goal_f))
                 elif has_goal_f == 2:
                     wrt(sep)
                     if isinstance(er.goal_f, Statistics):
@@ -786,7 +788,8 @@ class EndStatistics(MultiRunData):
                 if has_max_fes == 1:
                     wrt(sep)
                     if er.max_fes is not None:
-                        wrt(str(er.max_fes))
+                        wrt(str(er.max_fes.median if isinstance(
+                            er.max_fes, Statistics) else er.max_fes))
                 elif has_max_fes == 2:
                     wrt(sep)
                     if isinstance(er.max_fes, Statistics):
@@ -798,7 +801,9 @@ class EndStatistics(MultiRunData):
                 if has_max_time_millis == 1:
                     wrt(sep)
                     if er.max_time_millis is not None:
-                        wrt(str(er.max_time_millis))
+                        wrt(str(er.max_time_millis.median if isinstance(
+                            er.max_time_millis, Statistics)
+                            else er.max_time_millis))
                 elif has_max_time_millis == 2:
                     wrt(sep)
                     if isinstance(er.max_time_millis, Statistics):

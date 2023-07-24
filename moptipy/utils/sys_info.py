@@ -7,7 +7,7 @@ import re
 import socket
 import sys
 from datetime import datetime, timezone
-from typing import Final
+from typing import Final, cast
 
 import psutil  # type: ignore
 
@@ -37,7 +37,7 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
     if proc is None:
         return None
     cpua = proc.cpu_affinity()
-    if cpua:
+    if cpua is not None:
         cpua = CSV_SEPARATOR.join(map(str, cpua))
         if len(cpua) > 0:
             return cpua
@@ -52,7 +52,37 @@ __DEPENDENCIES: set[str] | None = {
     "scikit-learn", "scipy", "six", "threadpoolctl"}
 
 
-def add_dependency(dependency: str) -> None:
+def is_make_build() -> bool:
+    """
+    Check if the program was run inside a `make` build.
+
+    :returns: `True` if this process is executed as part of a `make` build
+        process, `False` otherwise.
+    """
+    obj: Final[object] = is_make_build
+    key: Final[str] = "_value"
+    if hasattr(obj, key):
+        return cast(bool, getattr(obj, key))
+
+    ret: bool = False
+    with contextlib.suppress(Exception):
+        process: psutil.Process = psutil.Process(os.getppid())
+        while process is not None:
+            name = process.cmdline()[0]
+            if not isinstance(name, str):
+                break
+            name = os.path.basename(name)
+            if (name == "make") or (name.startswith("make.")):
+                ret = True
+                break
+            process = process.parent()
+
+    setattr(obj, key, ret)
+    return ret
+
+
+def add_dependency(dependency: str,
+                   ignore_if_make_build: bool = False) -> None:
     """
     Add a dependency so that its version can be stored in log files.
 
@@ -67,6 +97,11 @@ def add_dependency(dependency: str) -> None:
         `numpy` in the log files, you would do `add_dependency("numpy")` (of
         course, the version of `numpy` is already automatically included
         anyway).
+    :param ignore_if_make_build: should this dependency be ignored if this
+        method is invoked during a `make` build? This makes sense if the
+        dependency itself is a package which is uninstalled and then
+        re-installed during a `make` build process. In such a situation, the
+        dependency version may be unavailable and cause an exception.
     :raises TypeError: if `dependency` is not a string
     :raises ValueError: if `dependency` is an invalid string or the log
         information has already been accessed before and modifying it now is
@@ -80,6 +115,8 @@ def add_dependency(dependency: str) -> None:
     if __DEPENDENCIES is None:
         raise ValueError(
             f"Too late. Cannot add dependency {dependency!r} anymore.")
+    if ignore_if_make_build and is_make_build():
+        return
     __DEPENDENCIES.add(dependency)
 
 
@@ -195,9 +232,17 @@ def __make_sys_info() -> str:
                 proc = psutil.Process()
                 __v(k, logging.KEY_PROCESS_ID, hex(proc.pid))
                 cpua = __cpu_affinity(proc)
-                if cpua:
+                if cpua is not None:
                     __v(k, logging.KEY_CPU_AFFINITY, cpua)
                 del proc, cpua
+                # get the command line of the process
+                try:
+                    cmdline = psutil.Process(os.getpid()).cmdline()
+                except Exception:
+                    cmdline = None
+                if cmdline is not None:
+                    __v(k, logging.KEY_COMMAND_LINE,
+                        " ".join(f'"{vv}"' for vv in cmdline))
 
                 # see https://stackoverflow.com/questions/166506/.
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -285,8 +330,9 @@ def get_sys_info() -> str:
     ...     print(k[:k.find(": ")])
     session.start
     session.node
-    session.procesId
+    session.processId
     session.cpuAffinity
+    session.commandLine
     session.ipAddress
     version.Pillow
     version.contourpy
