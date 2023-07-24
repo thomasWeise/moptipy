@@ -7,7 +7,7 @@ import re
 import socket
 import sys
 from datetime import datetime, timezone
-from typing import Final, cast
+from typing import Final, Iterable, cast
 
 import psutil  # type: ignore
 
@@ -58,6 +58,13 @@ def is_make_build() -> bool:
 
     :returns: `True` if this process is executed as part of a `make` build
         process, `False` otherwise.
+
+    >>> isinstance(is_make_build(), bool)
+    True
+    >>> ns = lambda prc: False if prc is None else (  # noqa: E731
+    ...     "make" in prc.name() or ns(prc.parent()))
+    >>> is_make_build() == ns(psutil.Process(os.getppid()))
+    True
     """
     obj: Final[object] = is_make_build
     key: Final[str] = "_value"
@@ -235,14 +242,18 @@ def __make_sys_info() -> str:
                 if cpua is not None:
                     __v(k, logging.KEY_CPU_AFFINITY, cpua)
                 del proc, cpua
-                # get the command line of the process
-                try:
-                    cmdline = psutil.Process(os.getpid()).cmdline()
-                except Exception:
-                    cmdline = None
-                if cmdline is not None:
-                    __v(k, logging.KEY_COMMAND_LINE,
-                        " ".join(f'"{vv}"' for vv in cmdline))
+
+                # get the command line and working directory of the process
+                with contextlib.suppress(Exception):
+                    proc = psutil.Process(os.getpid())
+                    cmd = proc.cmdline()
+                    if isinstance(cmd, Iterable):
+                        __v(k, logging.KEY_COMMAND_LINE,
+                            " ".join(map(repr, proc.cmdline())))
+                    cwd = proc.cwd()
+                    if isinstance(cwd, str):
+                        __v(k, logging.KEY_WORKING_DIRECTORY,
+                            repr(proc.cwd()))
 
                 # see https://stackoverflow.com/questions/166506/.
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -333,6 +344,7 @@ def get_sys_info() -> str:
     session.processId
     session.cpuAffinity
     session.commandLine
+    session.workingDirectory
     session.ipAddress
     version.Pillow
     version.contourpy

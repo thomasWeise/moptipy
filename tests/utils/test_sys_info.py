@@ -36,6 +36,7 @@ def __check_sys_info() -> None:
     assert "session.cpuAffinity" in values
     assert "session.processId" in values
     assert "session.commandLine" in values
+    assert "session.workingDirectory" in values
     assert "session.ipAddress" in values
     assert "version.cycler" in values
     assert "version.fonttools" in values

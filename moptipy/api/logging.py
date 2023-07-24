@@ -141,6 +141,8 @@ KEY_CPU_AFFINITY: Final[str] = "cpuAffinity"
 KEY_PROCESS_ID: Final[str] = "processId"
 #: the command line of the process
 KEY_COMMAND_LINE: Final[str] = "commandLine"
+#: the working directory of the process
+KEY_WORKING_DIRECTORY: Final[str] = "workingDirectory"
 #: the ip address of the node on which the session is running
 KEY_NODE_IP: Final[str] = "ipAddress"
 #: the versions scope in the sys-info section
