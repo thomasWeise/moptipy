@@ -93,7 +93,7 @@ pyyaml == 6.0
 # As part of the build process, we check all the URLs in the README.md file
 # whether they can still be reached.
 urllib3 == 1.26.16
-certifi == 2023.5.7
+certifi == 2023.7.22
 
 # minify_html is needed to minify html output. Our documentation is fairly
 # large. We apply this tool to try to reduce the file size of the
