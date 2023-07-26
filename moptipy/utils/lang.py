@@ -145,10 +145,11 @@ class Lang:
         if not isinstance(item, str):
             raise type_error(item, "item", str)
         fstr: str = self.__dict[item]
-        # pylint: disable=W0123 # noqa: DUO104
-        return eval(f"f{fstr!r}",  # nosec # nosemgrep # noqa: DUO104,B028
-                    {"__builtins__": None},  # nosec # nosemgrep # noqa:DUO104
-                    kwargs).strip()  # nosec # nosemgrep # noqa: DUO104
+        # pylint: disable=W0123 # noqa: DUO104,S307
+        return eval(  # nosec # nosemgrep # noqa: DUO104,S307
+            f"f{fstr!r}",  # nosec # nosemgrep # noqa: DUO104,B028,S307
+            {"__builtins__": None},  # nosec # nosemgrep # noqa:DUO104,S307
+            kwargs).strip()  # nosec # nosemgrep # noqa: DUO104,S307
 
     def font(self) -> str:
         """

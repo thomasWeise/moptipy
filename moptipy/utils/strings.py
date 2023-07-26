@@ -421,8 +421,13 @@ def regex_sub(search: str | Pattern,
     >>> regex_sub('[0-9]A', 'X', '23A7AA')
     '2XXA'
     """
+    if not isinstance(search, Pattern):
+        if isinstance(search, str):
+            search = _compile(search, flags=MULTILINE)
+        else:
+            raise type_error(search, "search", (str, Pattern))
     while True:
-        text = sub(search, replace, inside, MULTILINE)
+        text = sub(pattern=search, repl=replace, string=inside)
         if text is inside:
             return inside
         inside = text

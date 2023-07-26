@@ -82,8 +82,8 @@ class FFA(Fitness):
             lb: Final[int | float] = f.lower_bound()
             ub: Final[int | float] = f.upper_bound()
             if isinstance(ub, int) and isinstance(lb, int) \
-                    and ((ub - lb) <= 100_000_000):
-                if 0 <= lb <= 10_000_000:
+                    and ((ub - lb) <= 67_108_864):
+                if 0 <= lb <= 8_388_608:
                     return _IntFFA1.__new__(_IntFFA1, cast(int, ub))
                 return _IntFFA2.__new__(_IntFFA2, cast(int, lb),
                                         cast(int, ub))

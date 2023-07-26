@@ -24,9 +24,9 @@ def test_ffa_on_bit_strings_2() -> None:
         olb = f.lower_bound()
         oub = f.upper_bound()
         while True:
-            lb = int(random.integers(-100_000_000, 100_000_000))
-            ub = int(random.integers(lb + oub - olb + 1, lb + 100_000_000))
-            if ((ub - lb) <= 100_000_000) and (not (0 <= lb <= 10_000_000)):
+            lb = int(random.integers(-67_108_864, 67_108_864))
+            ub = int(random.integers(lb + oub - olb + 1, lb + 67_108_864))
+            if ((ub - lb) <= 67_108_864) and (not (0 <= lb <= 8_388_608)):
                 break
         f.lower_bound = lambda _l=lb: _l  # type: ignore
         f.upper_bound = lambda _u=ub: _u  # type: ignore
@@ -53,8 +53,8 @@ def test_ffa_on_bit_strings_3() -> None:
             while True:
                 lb = int(random.integers(-1_000_000_000, 1_000_000_000))
                 ub = int(random.integers(lb + oub - olb + 1,
-                                         lb + 10_000_000_000))
-                if (ub - lb) > 100_000_000:
+                                         lb + 8_388_608_000))
+                if (ub - lb) > 67_108_864:
                     break
             f.lower_bound = lambda _l=lb: _l  # type: ignore
             f.upper_bound = lambda _u=ub: _u  # type: ignore

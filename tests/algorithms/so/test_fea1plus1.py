@@ -19,6 +19,16 @@ from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 from moptipy.utils.temp import TempFile
 
 
+def __lb() -> int:
+    """A mock lower bound."""
+    return -1_000_000_000_000_000
+
+
+def __ub() -> int:
+    """A mock upper bound."""
+    return 1_000_000_000_000_000
+
+
 def test_fea1plus1_on_jssp() -> None:
     """Validate the (1+1)-FEA on the JSSP."""
 
@@ -43,12 +53,38 @@ def test_fea1plus1_on_onemax() -> None:
     validate_algorithm_on_onemax(create)
 
 
+def test_fea1plus1_on_onemax_with_large_range() -> None:
+    """Validate the (1+1)-FEA on the OneMax problem."""
+
+    def create(bs: BitStrings, objective: Objective) -> FEA1plus1:
+        assert isinstance(bs, BitStrings)
+        assert isinstance(objective, Objective)
+        objective.lower_bound = __lb  # type: ignore
+        objective.upper_bound = __ub  # type: ignore
+        return FEA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+
+    validate_algorithm_on_onemax(create)
+
+
 def test_fea1plus1_on_leadingones() -> None:
     """Validate the (1+1)-FEA on the LeadingOnes problem."""
 
     def create(bs: BitStrings, objective: Objective) -> FEA1plus1:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
+        return FEA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+
+    validate_algorithm_on_leadingones(create)
+
+
+def test_fea1plus1_on_leadingones_large_range() -> None:
+    """Validate the (1+1)-FEA on the LeadingOnes problem with larger bounds."""
+
+    def create(bs: BitStrings, objective: Objective) -> FEA1plus1:
+        assert isinstance(bs, BitStrings)
+        assert isinstance(objective, Objective)
+        objective.lower_bound = __lb  # type: ignore
+        objective.upper_bound = __ub  # type: ignore
         return FEA1plus1(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
 
     validate_algorithm_on_leadingones(create)

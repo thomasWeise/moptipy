@@ -170,7 +170,8 @@ def __make_sys_info() -> str:
             if platform.system() == "Linux":
                 for line in Path.path("/proc/cpuinfo").read_all_list():
                     if "model name" in line:
-                        return re.sub(".*model name.*:", "", line, 1).strip()
+                        return re.sub(pattern=".*model name.*:",
+                                      repl="", string=line, count=1).strip()
         return None
 
     def __get_mem_size_sysconf() -> int | None:

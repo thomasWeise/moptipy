@@ -8,6 +8,49 @@ the selection decisions. The more often an objective value is encountered, the
 higher gets its encounter frequency. Therefore, local optima are slowly
 receiving worse and worse fitness.
 
+Most of the existing metaheuristic algorithms have in common that they
+maintain a set `Si` of one or multiple solutions and derive a set `Ni` of one
+or multiple new solutions in each iteration `i`. From the joint set
+`Pi = Si + Ni` of old and new solutions, they then select the set `Si+1` of
+solutions to be propagated to the next iteration, and so on. This selection
+decision is undertaken based mainly on the objective values `f(x)` of the
+solutions `x in Pi` and solutions with better objective values tend to be
+preferred over solutions with worse objective values.
+
+Frequency Fitness Assignment (FFA) completely breaks with this most
+fundamental concept of optimization. FFA was first proposed by
+Weise *et al.* as a "plug-in" for metaheuristics intended to prevent
+premature convergence. It therefore maintains a frequency table `H` for
+objective values. Before the metaheuristic chooses the set `Si+1` from `Pi`,
+it increments the encounter frequencies of the objective value of each
+solution in `Pi`, i.e., performs `H[yj] <- H[yj] + 1` for each `xj in Pi`,
+where `yj = f(xj)`. In its selection decisions, the algorithm then uses the
+frequency fitness `H[yj]` instead of the objective values `yj`.
+
+Here we integrate FFA into the randomized local search algorithm
+:class:`~moptipy.algorithms.so.rls.RLS`, which is also known as the
+`(1+1) EA`. In its original form, RLS maintains a single solution and derives
+a slightly modified copy from it in every iteration. If the modified copy is
+not worse than the original solution, it replaces it. "Not worse" here means
+that its objective value needs to be better or equally good, i.e., `<=`, than
+the maintained current best solution. The RLS with FFA (here called
+`(1+1) FEA`) now replaces the comparison of objective values with a comparison
+of the frequencies of the objective values. Of course, following the
+definition of FFA, the frequencies are first incremented (both of the current
+and the new solution) and then compared.
+
+The algorithm is here implemented in two different ways: If the objective
+function is always integer valued and the difference between its upper and
+lower bound is not too high, then we count the frequency fitness by using a
+numpy array. This means that frequency updates and getting frequency values is
+very fast. If the objective function is not always integer or if the
+difference between its maximum and minimum is too large, then we will use
+a :class:`collections.Counter` to back the frequency table instead. This will
+be slower and probably require more memory, but it may be the only way to
+accommodate the frequency table. Of course, this will still fail if there are
+too many different objective values and the memory consumed is simply too
+high.
+
 FFA is also implemented as a fitness assignment process
 (:mod:`~moptipy.algorithms.so.fitness`) in module
 :mod:`~moptipy.algorithms.so.fitnesses.ffa`.
@@ -43,6 +86,7 @@ FFA is also implemented as a fitness assignment process
    Society Press. ISBN: 978-1-4799-1488-3.
    https://dx.doi.org/10.1109/CEC.2014.6900292
 """
+from collections import Counter
 from io import StringIO
 from typing import Callable, Final, Iterable, cast
 
@@ -56,6 +100,95 @@ from moptipy.utils.logger import CSV_SEPARATOR
 
 #: the log section for the frequency table
 H_LOG_SECTION: Final[str] = "H"
+
+
+def _fea_flat(process: Process, op0: Callable, op1: Callable,
+              lb: int, ub: int) -> None:
+    """
+    Apply the (1+1)-FEA to an optimization problem.
+
+    :param process: the black-box process object
+    :param op0: the nullary search operator
+    :param op1: the unary search operator
+    :param lb: the lower bound
+    :param ub: the upper bound
+    """
+    # Create records for old and new point in the search space.
+    best_x = process.create()  # record for best-so-far solution
+    new_x = process.create()  # record for new solution
+
+# h holds the encounter frequency of each objective value.
+    h: Final[np.ndarray] = np.zeros(ub - lb + 1, np.uint64)
+    # Obtain the random number generator.
+    random: Final[Generator] = process.get_random()
+
+    # Put function references in variables to save time.
+    evaluate: Final[Callable] = process.evaluate  # the objective
+    should_terminate: Final[Callable] = process.should_terminate
+
+    # Start at a random point in the search space and evaluate it.
+    op0(random, best_x)  # Create 1 solution randomly and
+    best_f: int = cast(int, evaluate(best_x)) - lb  # evaluate it.
+
+    while not should_terminate():  # Until we need to quit...
+        op1(random, new_x, best_x)  # new_x = neighbor of best_x
+        new_f: int = cast(int, evaluate(new_x)) - lb
+
+        h[new_f] = h[new_f] + 1  # Increase frequency of new_f and
+        h[best_f] = best_h = h[best_f] + 1  # of best_f.
+        if h[new_f] <= best_h:  # frequency of new_f no worse than best_f?
+            best_f = new_f  # Store its objective value.
+            best_x, new_x = new_x, best_x  # Swap best and new.
+
+    # After we are done, we want to print the H table.
+    if h[best_f] == 0:  # Fix the H table for the case that only one
+        h[best_f] = 1   # single FE was performed.
+    log_h(process, range(len(h)), cast(Callable[[int | float], int],
+                                       h.__getitem__),
+          cast(Callable[[int | float], str],  # add the lower bound back in
+               lambda i, _lb=lb: str(i + _lb)))
+
+
+def _fea_map(process: Process, op0: Callable, op1: Callable) -> None:
+    """
+    Apply the (1+1)-FEA to an optimization problem.
+
+    :param process: the black-box process object
+    :param op0: the nullary search operator
+    :param op1: the unary search operator
+    """
+    # Create records for old and new point in the search space.
+    best_x = process.create()  # record for best-so-far solution
+    new_x = process.create()  # record for new solution
+
+# h holds the encounter frequency of each objective value.
+    h: Final[Counter] = Counter()
+    # Obtain the random number generator.
+    random: Final[Generator] = process.get_random()
+
+    # Put function references in variables to save time.
+    evaluate: Final[Callable] = process.evaluate  # the objective
+    should_terminate: Final[Callable] = process.should_terminate
+
+    # Start at a random point in the search space and evaluate it.
+    op0(random, best_x)  # Create 1 solution randomly and
+    best_f: int | float = evaluate(best_x)  # evaluate it.
+
+    while not should_terminate():  # Until we need to quit...
+        op1(random, new_x, best_x)  # new_x = neighbor of best_x
+        new_f: int | float = evaluate(new_x)
+
+        h[new_f] += 1  # Increase frequency of new_f and
+        h[best_f] = best_h = h[best_f] + 1  # of best_f.
+        if h[new_f] <= best_h:  # frequency of new_f no worse than best_f?
+            best_f = new_f  # Store its objective value.
+            best_x, new_x = new_x, best_x  # Swap best and new.
+
+    # After we are done, we want to print the H table.
+    if h[best_f] == 0:  # Fix the H table for the case that only one
+        h[best_f] = 1   # single FE was performed.
+    log_h(process, sorted(h.keys()),
+          cast(Callable[[int | float], int], h.__getitem__), str)
 
 
 class FEA1plus1(Algorithm1):
@@ -100,43 +233,14 @@ class FEA1plus1(Algorithm1):
 
         :param process: the black-box process object
         """
-        # Create records for old and new point in the search space.
-        best_x = process.create()  # record for best-so-far solution
-        new_x = process.create()  # record for new solution
-        lb: Final[int] = cast(int, process.lower_bound())
-
-        # h holds the encounter frequency of each objective value.
-        h: Final[np.ndarray] = np.zeros(
-            cast(int, process.upper_bound()) - lb + 1, np.uint64)
-        # Obtain the random number generator.
-        random: Final[Generator] = process.get_random()
-
-        # Put function references in variables to save time.
-        evaluate: Final[Callable] = process.evaluate  # the objective
-        op1: Final[Callable] = self.op1.op1  # the unary operator
-        should_terminate: Final[Callable] = process.should_terminate
-
-        # Start at a random point in the search space and evaluate it.
-        self.op0.op0(random, best_x)  # Create 1 solution randomly and
-        best_f: int = cast(int, evaluate(best_x)) - lb  # evaluate it.
-
-        while not should_terminate():  # Until we need to quit...
-            op1(random, new_x, best_x)  # new_x = neighbor of best_x
-            new_f: int = cast(int, evaluate(new_x)) - lb
-
-            h[new_f] = h[new_f] + 1  # Increase frequency of new_f and
-            h[best_f] = best_h = h[best_f] + 1  # of best_f.
-            if h[new_f] <= best_h:  # frequency of new_f no worse than best_f?
-                best_f = new_f  # Store its objective value.
-                best_x, new_x = new_x, best_x  # Swap best and new.
-
-        # After we are done, we want to print the H table.
-        if h[best_f] == 0:  # Fix the H table for the case that only one
-            h[best_f] = 1   # single FE was performed.
-        log_h(process, range(len(h)), cast(Callable[[int | float], int],
-                                           h.__getitem__),
-              cast(Callable[[int | float], str],  # add the lower bound back in
-                   lambda i, _lb=lb: str(i + _lb)))
+        if process.is_always_integer():
+            lb: Final[int | float] = process.lower_bound()
+            ub: Final[int | float] = process.upper_bound()
+            if isinstance(ub, int) and isinstance(lb, int) \
+                    and ((ub - lb) <= 67_108_864):
+                _fea_flat(process, self.op0.op0, self.op1.op1, lb, ub)
+                return
+        _fea_map(process, self.op0.op0, self.op1.op1)
 
 
 def __h_to_str(indices: Iterable[int | float],
@@ -156,6 +260,9 @@ def __h_to_str(indices: Iterable[int | float],
     >>> __h_to_str(range(len(hl)), hl.__getitem__, lambda ii: str(ii + 1))
     '3;1;4;7;5;4;8;9'
     >>> hd = {1: 5, 4: 7, 3: 6, 2: 9}
+    >>> __h_to_str(sorted(hd.keys()), hd.__getitem__, str)
+    '1;5;2;9;3;6;4;7'
+    >>> hd = Counter({1: 5, 4: 7, 3: 6, 2: 9})
     >>> __h_to_str(sorted(hd.keys()), hd.__getitem__, str)
     '1;5;2;9;3;6;4;7'
     >>> try:

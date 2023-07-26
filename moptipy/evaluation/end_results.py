@@ -500,7 +500,7 @@ class _InnerLogParser(SetupAndStateParser):
         super().__init__()
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
-        self.__consumer: Final[Callable[["EndResult"], Any]] = consumer
+        self.__consumer: Final[Callable[[EndResult], Any]] = consumer
 
     def process(self) -> None:
         self.__consumer(EndResult(self.algorithm,
