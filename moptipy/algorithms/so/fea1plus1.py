@@ -97,9 +97,15 @@ from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import CSV_SEPARATOR
+from moptipy.utils.nputils import DEFAULT_INT
+from moptipy.utils.strings import num_to_str
 
 #: the log section for the frequency table
 H_LOG_SECTION: Final[str] = "H"
+
+#: The difference between upper- and lower bound at which we switch from
+#: using arrays as backing store for the frequency table H to maps.
+SWITCH_TO_MAP_RANGE: Final[int] = 67_108_864
 
 
 def _fea_flat(process: Process, op0: Callable, op1: Callable,
@@ -118,15 +124,15 @@ def _fea_flat(process: Process, op0: Callable, op1: Callable,
     new_x = process.create()  # record for new solution
 
 # h holds the encounter frequency of each objective value.
-    h: Final[np.ndarray] = np.zeros(ub - lb + 1, np.uint64)
-    # Obtain the random number generator.
+    h: Final[np.ndarray] = np.zeros(ub - lb + 1, DEFAULT_INT)
+# Obtain the random number generator.
     random: Final[Generator] = process.get_random()
 
-    # Put function references in variables to save time.
+# Put function references in variables to save time.
     evaluate: Final[Callable] = process.evaluate  # the objective
     should_terminate: Final[Callable] = process.should_terminate
 
-    # Start at a random point in the search space and evaluate it.
+# Start at a random point in the search space and evaluate it.
     op0(random, best_x)  # Create 1 solution randomly and
     best_f: int = cast(int, evaluate(best_x)) - lb  # evaluate it.
 
@@ -134,9 +140,9 @@ def _fea_flat(process: Process, op0: Callable, op1: Callable,
         op1(random, new_x, best_x)  # new_x = neighbor of best_x
         new_f: int = cast(int, evaluate(new_x)) - lb
 
-        h[new_f] = h[new_f] + 1  # Increase frequency of new_f and
-        h[best_f] = best_h = h[best_f] + 1  # of best_f.
-        if h[new_f] <= best_h:  # frequency of new_f no worse than best_f?
+        h[new_f] += 1  # Increase the frequency of new_f and
+        h[best_f] += 1  # of best_f.
+        if h[new_f] <= h[best_f]:  # frequency of new_f no worse than best_f?
             best_f = new_f  # Store its objective value.
             best_x, new_x = new_x, best_x  # Swap best and new.
 
@@ -163,14 +169,14 @@ def _fea_map(process: Process, op0: Callable, op1: Callable) -> None:
 
 # h holds the encounter frequency of each objective value.
     h: Final[Counter] = Counter()
-    # Obtain the random number generator.
+# Obtain the random number generator.
     random: Final[Generator] = process.get_random()
 
-    # Put function references in variables to save time.
+# Put function references in variables to save time.
     evaluate: Final[Callable] = process.evaluate  # the objective
     should_terminate: Final[Callable] = process.should_terminate
 
-    # Start at a random point in the search space and evaluate it.
+# Start at a random point in the search space and evaluate it.
     op0(random, best_x)  # Create 1 solution randomly and
     best_f: int | float = evaluate(best_x)  # evaluate it.
 
@@ -178,17 +184,17 @@ def _fea_map(process: Process, op0: Callable, op1: Callable) -> None:
         op1(random, new_x, best_x)  # new_x = neighbor of best_x
         new_f: int | float = evaluate(new_x)
 
-        h[new_f] += 1  # Increase frequency of new_f and
-        h[best_f] = best_h = h[best_f] + 1  # of best_f.
-        if h[new_f] <= best_h:  # frequency of new_f no worse than best_f?
+        h[new_f] += 1  # Increase the frequency of new_f and
+        h[best_f] += 1  # of best_f.
+        if h[new_f] <= h[best_f]:  # frequency of new_f no worse than best_f?
             best_f = new_f  # Store its objective value.
             best_x, new_x = new_x, best_x  # Swap best and new.
 
-    # After we are done, we want to print the H table.
+# After we are done, we want to print the H table.
     if h[best_f] == 0:  # Fix the H table for the case that only one
         h[best_f] = 1   # single FE was performed.
-    log_h(process, sorted(h.keys()),
-          cast(Callable[[int | float], int], h.__getitem__), str)
+    log_h(process, h.keys(),
+          cast(Callable[[int | float], int], h.__getitem__), num_to_str)
 
 
 class FEA1plus1(Algorithm1):
@@ -237,7 +243,7 @@ class FEA1plus1(Algorithm1):
             lb: Final[int | float] = process.lower_bound()
             ub: Final[int | float] = process.upper_bound()
             if isinstance(ub, int) and isinstance(lb, int) \
-                    and ((ub - lb) <= 67_108_864):
+                    and ((ub - lb) <= SWITCH_TO_MAP_RANGE):
                 _fea_flat(process, self.op0.op0, self.op1.op1, lb, ub)
                 return
         _fea_map(process, self.op0.op0, self.op1.op1)
@@ -271,22 +277,50 @@ def __h_to_str(indices: Iterable[int | float],
     ... except ValueError as ve:
     ...     print(ve)
     empty H table?
+    >>> hx = np.zeros(100, int)
+    >>> hx[10] = 4
+    >>> hx[12] = 234
+    >>> hx[89] = 111
+    >>> hx[45] = 2314
+    >>> __h_to_str(range(100), hx.__getitem__, str)
+    '10;4;12;234;45;2314;89;111'
+    >>> __h_to_str(range(100), hx.__getitem__, lambda k: str(10 + k))
+    '20;4;22;234;55;2314;99;111'
+    >>> hx = np.zeros(100, np.int8)
+    >>> hx[10] = 4
+    >>> hx[12] = 34
+    >>> hx[89] = 11
+    >>> hx[45] = 14
+    >>> __h_to_str(range(100), hx.__getitem__, str)
+    '10;4;12;34;45;14;89;11'
+    >>> __h_to_str(range(100), hx.__getitem__, lambda k: str(10 + k))
+    '20;4;22;34;55;14;99;11'
+    >>> hx = np.zeros(100, np.uint64)
+    >>> hx[10] = 4232124356792834738
+    >>> hx[12] = 3423443534534
+    >>> hx[89] = 13589732857375734566
+    >>> hx[45] = 14
+    >>> __h_to_str(range(100), hx.__getitem__, str)
+    '10;4232124356792834738;12;3423443534534;45;14;89;13589732857375734566'
+    >>> __h_to_str(range(100), hx.__getitem__, lambda k: str(10 + k))
+    '20;4232124356792834738;22;3423443534534;55;14;99;13589732857375734566'
     """
-    first: bool = True
     with StringIO() as out:
+        write: Callable[[str], int] = out.write  # fast call
+        csep: Final[str] = CSV_SEPARATOR
+        sep: str = ""
         for i in indices:
             v = h(i)
             if v > 0:
-                if first:
-                    first = False
-                else:
-                    out.write(CSV_SEPARATOR)
-                out.write(print_index(i))
-                out.write(CSV_SEPARATOR)
-                out.write(str(v))
-        if first:
-            raise ValueError("empty H table?")
-        return out.getvalue()
+                write(sep)
+                sep = csep
+                write(print_index(i))
+                write(sep)
+                write(str(v))
+        res: Final[str] = out.getvalue()
+    if len(res) <= 0:
+        raise ValueError("empty H table?")
+    return res
 
 
 def log_h(process: Process, indices: Iterable[int | float],
@@ -297,7 +331,7 @@ def log_h(process: Process, indices: Iterable[int | float],
 
     The frequency table is logged as a single line of text into a section
     `H` delimited by the lines `BEGIN_H` and `END_H`. The line consists
-    of `2*n` semi-colon separated values. Each such value pair consists of
+    of `2*n` semicolon separated values. Each such value pair consists of
     an objective value `y` and its observed frequency `H[y]`. The former is
     either an integer or a float and the latter is an integer.
 

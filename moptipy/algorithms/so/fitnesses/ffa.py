@@ -59,13 +59,17 @@ from typing import Callable, Final, Iterable, cast
 import numpy as np
 from numpy.random import Generator
 
-from moptipy.algorithms.so.fea1plus1 import log_h
+from moptipy.algorithms.so.fea1plus1 import SWITCH_TO_MAP_RANGE, log_h
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import DEFAULT_UNSIGNED_INT
+from moptipy.utils.nputils import DEFAULT_INT
 from moptipy.utils.strings import num_to_str
+
+#: The lower bound at which we switch to an offset-based backing array for
+#: the frequency table H.
+SWITCH_TO_OFFSET_LB: Final[int] = 8_388_608
 
 
 class FFA(Fitness):
@@ -82,8 +86,8 @@ class FFA(Fitness):
             lb: Final[int | float] = f.lower_bound()
             ub: Final[int | float] = f.upper_bound()
             if isinstance(ub, int) and isinstance(lb, int) \
-                    and ((ub - lb) <= 67_108_864):
-                if 0 <= lb <= 8_388_608:
+                    and ((ub - lb) <= SWITCH_TO_MAP_RANGE):
+                if 0 <= lb <= SWITCH_TO_OFFSET_LB:
                     return _IntFFA1.__new__(_IntFFA1, cast(int, ub))
                 return _IntFFA2.__new__(_IntFFA2, cast(int, lb),
                                         cast(int, ub))
@@ -110,7 +114,7 @@ class _IntFFA1(FFA):
     def __new__(cls, ub: int) -> "_IntFFA1":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA1)
-        instance.__h = np.zeros(ub + 1, dtype=DEFAULT_UNSIGNED_INT)
+        instance.__h = np.zeros(ub + 1, dtype=DEFAULT_INT)
         instance.__first = True
         return instance
 
@@ -201,7 +205,7 @@ class _IntFFA2(FFA):
     def __new__(cls, lb: int, ub: int) -> "_IntFFA2":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA2)
-        instance.__h = np.zeros(ub - lb + 1, dtype=DEFAULT_UNSIGNED_INT)
+        instance.__h = np.zeros(ub - lb + 1, dtype=DEFAULT_INT)
         instance.__lb = lb
         instance.__first = True
         return instance
@@ -302,7 +306,7 @@ class _DictFFA(FFA):
 
     def log_information_after_run(self, process: Process) -> None:
         """Write the H table."""
-        log_h(process, cast(Iterable[int | float], sorted(self.__h.keys())),
+        log_h(process, cast(Iterable[int | float], self.__h.keys()),
               cast(Callable[[int | float], int], self.__h.__getitem__),
               num_to_str)
 

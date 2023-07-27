@@ -4,7 +4,8 @@ from typing import Final
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.so.fitnesses.ffa import FFA
+from moptipy.algorithms.so.fea1plus1 import SWITCH_TO_MAP_RANGE
+from moptipy.algorithms.so.fitnesses.ffa import FFA, SWITCH_TO_OFFSET_LB
 from moptipy.api.objective import Objective
 from moptipy.tests.on_bitstrings import validate_fitness_on_bitstrings
 
@@ -24,9 +25,12 @@ def test_ffa_on_bit_strings_2() -> None:
         olb = f.lower_bound()
         oub = f.upper_bound()
         while True:
-            lb = int(random.integers(-67_108_864, 67_108_864))
-            ub = int(random.integers(lb + oub - olb + 1, lb + 67_108_864))
-            if ((ub - lb) <= 67_108_864) and (not (0 <= lb <= 8_388_608)):
+            lb = int(random.integers(-SWITCH_TO_MAP_RANGE,
+                                     SWITCH_TO_MAP_RANGE))
+            ub = int(random.integers(lb + oub - olb + 1,
+                                     lb + SWITCH_TO_MAP_RANGE))
+            if ((ub - lb) <= SWITCH_TO_MAP_RANGE) and (not (
+                    0 <= lb <= SWITCH_TO_OFFSET_LB)):
                 break
         f.lower_bound = lambda _l=lb: _l  # type: ignore
         f.upper_bound = lambda _u=ub: _u  # type: ignore
@@ -51,10 +55,11 @@ def test_ffa_on_bit_strings_3() -> None:
 
         if choice in (1, 3):
             while True:
-                lb = int(random.integers(-1_000_000_000, 1_000_000_000))
+                lb = int(random.integers(-SWITCH_TO_MAP_RANGE,
+                                         SWITCH_TO_MAP_RANGE))
                 ub = int(random.integers(lb + oub - olb + 1,
-                                         lb + 8_388_608_000))
-                if (ub - lb) > 67_108_864:
+                                         lb + (3 * SWITCH_TO_MAP_RANGE)))
+                if (ub - lb) > SWITCH_TO_MAP_RANGE:
                     break
             f.lower_bound = lambda _l=lb: _l  # type: ignore
             f.upper_bound = lambda _u=ub: _u  # type: ignore
