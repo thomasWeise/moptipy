@@ -430,7 +430,7 @@ class Algorithm:
         jitters: list[float] = []
         complexities: list[float] = []
 
-        prefixes: Final[tuple[str, ...]] = ("aco", "bobyqa", "cma-es", "de",
+        prefixes: Final[tuple[str, ...]] = ("aco", "bobyqa", "cmaes", "de",
                                             "ea", "eda", "ga", "gp", "hc",
                                             "ma", "pso", "rs", "rw", "sa",
                                             "umda")
@@ -548,15 +548,15 @@ class Algorithm:
 class BasePerformance:
     """An algorithm applied to a problem instance description record."""
 
-    #: The algorithm.
+    #: the algorithm.
     algorithm: Algorithm
-    #: The problem instance
+    #: the problem instance
     instance: Instance
-    #: The base performance, in (0, 1), larger values are worst
+    #: the base performance, in (0, 1), larger values are worst
     performance: float
-    #: The performance jitter, in (0, 1), larger values are worst
+    #: the performance jitter, in (0, 1), larger values are worst
     jitter: float
-    #: The time per FE, in (0, 1), larger values are worst
+    #: the time per FE, in (0, 1), larger values are worst
     speed: float
 
     def __init__(self,

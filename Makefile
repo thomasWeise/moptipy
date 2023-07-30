@@ -61,10 +61,10 @@ test: init
 	echo "$(NOW): The original value of PATH is '${PATH}'." &&\
 	export PATH="${PATH}:${PYTHON_PACKAGE_BINARIES}" &&\
 	echo "$(NOW): PATH is now '${PATH}'." &&\
-	echo "$(NOW): Running pytest tests." && \
-	timeout --kill-after=15s 90m coverage run --include="moptipy/*" -m pytest --strict-config tests --ignore=examples && \
 	echo "$(NOW): Running pytest with doctests." && \
 	timeout --kill-after=15s 90m coverage run -a --include="moptipy/*" -m pytest --strict-config --doctest-modules --ignore=tests --ignore=examples && \
+	echo "$(NOW): Running pytest tests." && \
+	timeout --kill-after=15s 90m coverage run --include="moptipy/*" -m pytest --strict-config tests --ignore=examples && \
 	echo "$(NOW): Finished running pytest tests."
 
 # Perform static code analysis.

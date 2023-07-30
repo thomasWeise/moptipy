@@ -135,7 +135,8 @@ def _apply_fun(x_unique: np.ndarray, x_raw: list[np.ndarray],
                        dest_y, stat_dim, values, pos)
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_arith_mean(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean.
@@ -146,7 +147,8 @@ def __stat_arith_mean(data: np.ndarray) -> np.number:
     return data.mean()
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_geo_mean(data: np.ndarray) -> np.number:
     """
     Compute the geometric mean.
@@ -157,7 +159,8 @@ def __stat_geo_mean(data: np.ndarray) -> np.number:
     return np.exp(np.mean(np.log(data)))
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_min(data: np.ndarray) -> np.number:
     """
     Compute the minimum.
@@ -168,7 +171,8 @@ def __stat_min(data: np.ndarray) -> np.number:
     return data.min()
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_max(data: np.ndarray) -> np.number:
     """
     Compute the maximum.
@@ -179,7 +183,8 @@ def __stat_max(data: np.ndarray) -> np.number:
     return data.max()
 
 
-@numba.njit
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_median(data: np.ndarray) -> np.ndarray:
     """
     Compute the median.
@@ -190,7 +195,8 @@ def __stat_median(data: np.ndarray) -> np.ndarray:
     return np.median(data)
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_sd(data: np.ndarray) -> np.number:
     """
     Compute the standard deviation.
@@ -201,7 +207,8 @@ def __stat_sd(data: np.ndarray) -> np.number:
     return data.std()
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_mean_minus_sd(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean minus the standard deviation.
@@ -212,7 +219,8 @@ def __stat_mean_minus_sd(data: np.ndarray) -> np.number:
     return data.mean() - data.std()
 
 
-@numba.njit(parallel=True)
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
     """
     Compute the arithmetic mean plus the standard deviation.
@@ -223,7 +231,8 @@ def __stat_mean_plus_sd(data: np.ndarray) -> np.number:
     return data.mean() + data.std()
 
 
-@numba.njit
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_quantile_10(data: np.ndarray) -> np.ndarray:
     """
     Compute the 10% quantile.
@@ -238,7 +247,8 @@ def __stat_quantile_10(data: np.ndarray) -> np.ndarray:
     return np.quantile(data, 0.1)
 
 
-@numba.njit
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_quantile_90(data: np.ndarray) -> np.ndarray:
     """
     Compute the 90% quantile.
@@ -253,7 +263,8 @@ def __stat_quantile_90(data: np.ndarray) -> np.ndarray:
     return np.quantile(data, 0.9)
 
 
-@numba.njit
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_quantile_159(data: np.ndarray) -> np.ndarray:
     """
     Compute the 15.9% quantile, which equals mean-sd in normal distributions.
@@ -264,7 +275,8 @@ def __stat_quantile_159(data: np.ndarray) -> np.ndarray:
     return np.quantile(data, __Q159)
 
 
-@numba.njit
+@numba.njit(cache=True, inline="always", fastmath=False, boundscheck=False,
+            parallel=True)
 def __stat_quantile_841(data: np.ndarray) -> np.ndarray:
     """
     Compute the 84.1% quantile, which equals mean+sd in normal distributions.
@@ -319,7 +331,7 @@ _FUNC_MAP: Final[dict[str, Callable]] = {
 }
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class StatRun(MultiRun2DData):
     """A time-value statistic over a set of runs."""
 
@@ -331,6 +343,8 @@ class StatRun(MultiRun2DData):
     def __init__(self,
                  algorithm: str | None,
                  instance: str | None,
+                 objective: str | None,
+                 encoding: str | None,
                  n: int,
                  time_unit: str,
                  f_name: str,
@@ -343,13 +357,18 @@ class StatRun(MultiRun2DData):
             with the same algorithm
         :param instance: the instance name, if all runs are
             on the same instance
+        :param objective: the objective name, if all runs are on the same
+            objective function, `None` otherwise
+        :param encoding: the encoding name, if all runs are on the same
+            encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         :param time_unit: the time unit
         :param f_name: the objective dimension name
         :param stat_name: the name of the statistic
         :param stat: the statistic itself
         """
-        super().__init__(algorithm, instance, n, time_unit, f_name)
+        super().__init__(algorithm, instance, objective, encoding, n,
+                         time_unit, f_name)
 
         if not isinstance(stat_name, str):
             raise type_error(stat_name, "stat_name", str)
@@ -389,6 +408,8 @@ class StatRun(MultiRun2DData):
 
         algorithm: str | None = None
         instance: str | None = None
+        objective: str | None = None
+        encoding: str | None = None
         time_unit: str | None = None
         f_name: str | None = None
         time: list[np.ndarray] = []
@@ -401,6 +422,8 @@ class StatRun(MultiRun2DData):
             if n <= 0:
                 algorithm = progress.algorithm
                 instance = progress.instance
+                objective = progress.objective
+                encoding = progress.encoding
                 time_unit = progress.time_unit
                 f_name = progress.f_name
             else:
@@ -408,6 +431,10 @@ class StatRun(MultiRun2DData):
                     algorithm = None
                 if instance != progress.instance:
                     instance = None
+                if objective != progress.objective:
+                    objective = None
+                if encoding != progress.encoding:
+                    encoding = None
                 if time_unit != progress.time_unit:
                     raise ValueError(
                         f"Cannot mix time units {time_unit} "
@@ -438,7 +465,8 @@ class StatRun(MultiRun2DData):
                 raise type_error(name, "statistic name", str)
             if name not in _FUNC_MAP:
                 raise ValueError(f"Unknown statistic name {name!r}.")
-            consumer(StatRun(algorithm, instance, n, time_unit, f_name, name,
+            consumer(StatRun(algorithm, instance, objective, encoding, n,
+                             time_unit, f_name, name,
                              _apply_fun(x_unique, time, f, _FUNC_MAP[name])))
             count += 1
 
@@ -450,7 +478,9 @@ class StatRun(MultiRun2DData):
                       statistics: str | Iterable[str],
                       consumer: Callable[["StatRun"], Any],
                       join_all_algorithms: bool = False,
-                      join_all_instances: bool = False) -> None:
+                      join_all_instances: bool = False,
+                      join_all_objectives: bool = False,
+                      join_all_encodings: bool = False) -> None:
         """
         Aggregate statist runs over a stream of progress data.
 
@@ -462,6 +492,10 @@ class StatRun(MultiRun2DData):
             over all algorithms
         :param join_all_instances: should the statistics be aggregated
             over all algorithms
+        :param join_all_objectives: should the statistics be aggregated over
+            all objective functions?
+        :param join_all_encodings: should the statistics be aggregated over
+            all encodings?
         """
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
@@ -475,14 +509,22 @@ class StatRun(MultiRun2DData):
             raise type_error(join_all_algorithms, "join_all_algorithms", bool)
         if not isinstance(join_all_instances, bool):
             raise type_error(join_all_instances, "join_all_instances", bool)
+        if not isinstance(join_all_objectives, bool):
+            raise type_error(join_all_objectives, "join_all_objectives", bool)
+        if not isinstance(join_all_encodings, bool):
+            raise type_error(join_all_encodings, "join_all_encodings", bool)
 
-        sorter: dict[str, list[Progress]] = {}
+        sorter: dict[tuple[str, str, str, str, str, str], list[Progress]] = {}
         for prog in source:
             if not isinstance(prog, Progress):
                 raise type_error(prog, "progress source", Progress)
-            a: str = "" if join_all_algorithms else prog.algorithm
-            i: str = "" if join_all_instances else prog.instance
-            key: str = f"{a}/{i}/{prog.time_unit}/{prog.f_name}"
+            key = ("" if join_all_algorithms else prog.algorithm,
+                   "" if join_all_instances else prog.instance,
+                   "" if join_all_objectives else prog.objective,
+                   "" if join_all_encodings else (
+                       "" if prog.encoding is None else prog.encoding),
+                   prog.time_unit, prog.f_name)
+
             if key in sorter:
                 lst = sorter[key]
             else:

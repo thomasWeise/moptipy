@@ -39,13 +39,17 @@ from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 
-import moptipy.api.logging as lg
-import moptipy.utils.nputils as npu
+from moptipy.api.logging import (
+    KEY_ALGORITHM,
+    KEY_GOAL_F,
+)
 from moptipy.evaluation._utils import _get_goal_reach_index
 from moptipy.evaluation.base import (
     F_NAME_NORMALIZED,
     F_NAME_SCALED,
+    KEY_ENCODING,
     KEY_N,
+    KEY_OBJECTIVE_FUNCTION,
     MultiRun2DData,
 )
 from moptipy.evaluation.progress import Progress
@@ -56,6 +60,7 @@ from moptipy.utils.logger import (
     CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
 )
+from moptipy.utils.nputils import is_all_finite
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import check_int_range, type_error
@@ -66,7 +71,7 @@ KEY_N_INSTS: Final[str] = f"{KEY_N}Insts"
 KEY_F_NAME: Final[str] = "fName"
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class Ecdf(MultiRun2DData):
     """The ECDF data."""
 
@@ -80,6 +85,8 @@ class Ecdf(MultiRun2DData):
 
     def __init__(self,
                  algorithm: str | None,
+                 objective: str | None,
+                 encoding: str | None,
                  n: int,
                  n_insts: int,
                  time_unit: str,
@@ -91,6 +98,10 @@ class Ecdf(MultiRun2DData):
 
         :param algorithm: the algorithm name, if all runs are with the same
             algorithm
+        :param objective: the objective name, if all runs are on the same
+            objective function, `None` otherwise
+        :param encoding: the encoding name, if all runs are on the same
+            encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         :param n_insts: the total number of instances
         :param time_unit: the time unit
@@ -99,7 +110,8 @@ class Ecdf(MultiRun2DData):
             for different instances
         :param numpy.ndarray ecdf: the ert-ecdf matrix
         """
-        super().__init__(algorithm, None, n, time_unit, f_name)
+        super().__init__(algorithm, None, objective, encoding, n,
+                         time_unit, f_name)
         object.__setattr__(
             self, "n_insts", check_int_range(n_insts, "n_insts", 1, self.n))
 
@@ -119,7 +131,7 @@ class Ecdf(MultiRun2DData):
         if ll < 2:
             raise ValueError("Must have at least two points in "
                              f"ecdf curve , but encountered {ll}.")
-        if not npu.is_all_finite(time[:-1]):
+        if not is_all_finite(time[:-1]):
             raise ValueError("Non-last Ert-based time-values must be finite, "
                              f"but encountered {time}.")
         if np.any(time[1:] <= time[:-1]):
@@ -127,7 +139,7 @@ class Ecdf(MultiRun2DData):
                              f"but encountered {time}.")
 
         prb: Final[np.ndarray] = ecdf[:, 1]
-        if not npu.is_all_finite(prb):
+        if not is_all_finite(prb):
             raise ValueError(
                 f"All ECDF values must be finite, but encountered {prb}.")
         if (ll > 2) and np.any(prb[1:-1] <= prb[:-2]):
@@ -155,6 +167,21 @@ class Ecdf(MultiRun2DData):
         """
         return self.time_unit
 
+    def _tuple(self) -> tuple[Any, ...]:
+        """
+        Get the tuple representation of this object used in comparisons.
+
+        :return: the comparison-relevant data of this object in a tuple
+        """
+        return (self.__class__.__name__,
+                "" if self.algorithm is None else self.algorithm,
+                "" if self.instance is None else self.instance,
+                "" if self.objective is None else self.objective,
+                "" if self.encoding is None else self.encoding,
+                self.n, -1, self.time_unit, self.f_name,
+                inf if self.goal_f is None else self.goal_f,
+                self.n_insts)
+
     def to_csv(self, file: str,
                put_header: bool = True) -> Path:
         """
@@ -169,23 +196,24 @@ class Ecdf(MultiRun2DData):
 
         with path.open_for_write() as out:
             sep: Final[str] = CSV_SEPARATOR
+            write: Final[Callable[[str], int]] = out.write
             if put_header:
                 kv: Final[str] = KEY_VALUE_SEPARATOR
                 cmt: Final[str] = COMMENT_CHAR
                 if self.algorithm is not None:
-                    out.write(
-                        f"{cmt} {lg.KEY_ALGORITHM}{kv}{self.algorithm}\n")
-                out.write(
-                    f"{cmt} {KEY_N}{kv}{self.n}\n")
-                out.write(
-                    f"{cmt} {KEY_N_INSTS}{kv}{self.n_insts}\n")
-                out.write(
-                    f"{cmt} {KEY_F_NAME}{kv}{self.f_name}\n")
+                    write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
+                write(f"{cmt} {KEY_N}{kv}{self.n}\n")
+                write(f"{cmt} {KEY_N_INSTS}{kv}{self.n_insts}\n")
+                write(f"{cmt} {KEY_F_NAME}{kv}{self.f_name}\n")
                 if self.goal_f is not None:
-                    out.write(
-                        f"{cmt} {lg.KEY_GOAL_F}{kv}{self.goal_f}\n")
+                    write(f"{cmt} {KEY_GOAL_F}{kv}{self.goal_f}\n")
+                if self.objective is not None:
+                    write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}"
+                          f"{kv}{self.objective}\n")
+                if self.encoding is not None:
+                    write(f"{cmt} {KEY_ENCODING}{kv}{self.encoding}\n")
 
-            out.write(f"{self._time_key()}{sep}ecdf\n")
+            write(f"{self._time_key()}{sep}ecdf\n")
             for v in self.ecdf:
                 out.write(
                     f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
@@ -249,6 +277,8 @@ class Ecdf(MultiRun2DData):
             raise type_error(source, "source", Iterable)
 
         algorithm: str | None = None
+        objective: str | None = None
+        encoding: str | None = None
         time_unit: str | None = None
         f_name: str | None = None
         inst_runs: dict[str, list[Progress]] = {}
@@ -260,10 +290,16 @@ class Ecdf(MultiRun2DData):
             if n <= 0:
                 algorithm = progress.algorithm
                 time_unit = progress.time_unit
+                objective = progress.objective
+                encoding = progress.encoding
                 f_name = progress.f_name
             else:
                 if algorithm != progress.algorithm:
                     algorithm = None
+                if objective != progress.objective:
+                    objective = None
+                if encoding != progress.encoding:
+                    encoding = None
                 if time_unit != progress.time_unit:
                     raise ValueError(
                         f"Cannot mix time units {time_unit} "
@@ -322,9 +358,8 @@ class Ecdf(MultiRun2DData):
         del inst_runs
 
         if len(times) <= 0:
-            return cls(algorithm, n, n_insts, time_unit,
-                       f_name, same_goal_f,
-                       np.array([[0, 0], [inf, 0]]))
+            return cls(algorithm, objective, encoding, n, n_insts, time_unit,
+                       f_name, same_goal_f, np.array([[0, 0], [inf, 0]]))
 
         times.sort()
         time: list[float] = [0]
@@ -344,11 +379,9 @@ class Ecdf(MultiRun2DData):
         time.append(inf)
         ecdf.append(ecdf[ll])
 
-        return cls(algorithm, n, n_insts,
-                   time_unit, f_name,
-                   same_goal_f,
-                   np.column_stack((np.array(time),
-                                    np.array(ecdf))))
+        return cls(algorithm, objective, encoding, n, n_insts,
+                   time_unit, f_name, same_goal_f,
+                   np.column_stack((np.array(time), np.array(ecdf))))
 
     @classmethod
     def from_progresses(
@@ -356,7 +389,9 @@ class Ecdf(MultiRun2DData):
             source: Iterable[Progress], consumer: Callable[["Ecdf"], Any],
             f_goal: int | float | Callable
                         | Iterable[int | float | Callable] | None = None,
-            join_all_algorithms: bool = False) -> None:
+            join_all_algorithms: bool = False,
+            join_all_objectives: bool = False,
+            join_all_encodings: bool = False) -> None:
         """
         Compute one or multiple ECDFs from a stream of end results.
 
@@ -364,8 +399,12 @@ class Ecdf(MultiRun2DData):
         :param f_goal: one or multiple goal values
         :param consumer: the destination to which the new records will be
             passed, can be the `append` method of a :class:`list`
-        :param join_all_algorithms: should the Ert-Ecdf be aggregated over all
+        :param join_all_algorithms: should the Ecdf be aggregated over all
             algorithms
+        :param join_all_objectives: should the Ecdf be aggregated over all
+            objective functions
+        :param join_all_encodings: should the Ecdf be aggregated over all
+            encodings
         """
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
@@ -374,14 +413,23 @@ class Ecdf(MultiRun2DData):
         if not isinstance(join_all_algorithms, bool):
             raise type_error(join_all_algorithms,
                              "join_all_algorithms", bool)
+        if not isinstance(join_all_objectives, bool):
+            raise type_error(join_all_objectives,
+                             "join_all_objectives", bool)
+        if not isinstance(join_all_encodings, bool):
+            raise type_error(join_all_encodings,
+                             "join_all_encodings", bool)
         if not isinstance(f_goal, Iterable):
             f_goal = [f_goal]
 
-        sorter: dict[str, list[Progress]] = {}
+        sorter: dict[tuple[str, str, str], list[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
                 raise type_error(er, "progress", Progress)
-            key = er.algorithm
+            key = ("" if join_all_algorithms else er.algorithm,
+                   "" if join_all_objectives else er.objective,
+                   "" if join_all_encodings else (
+                       "" if er.encoding is None else er.encoding))
             if key in sorter:
                 lst = sorter[key]
             else:
@@ -392,9 +440,7 @@ class Ecdf(MultiRun2DData):
         if len(sorter) <= 0:
             raise ValueError("source must not be empty")
 
-        keyz = list(sorter.keys())
-        keyz.sort()
-
+        keyz = sorted(sorter.keys())
         for goal in f_goal:
             use_default_goal = goal is None
             for key in keyz:

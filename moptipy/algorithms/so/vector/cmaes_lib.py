@@ -68,7 +68,7 @@ def _run_cma(cma: SepCMA | CMA,
     :param solutions: the internal list to store the solutions
     :param run_criterion: the stopper for a run
     :returns: the number of consumed FEs if the run was terminated by
-      `run_criterion`, `-1` otherwise
+        `run_criterion`, `-1` otherwise
     """
     fes: int = 0
     pop_size: Final[int] = cma.population_size

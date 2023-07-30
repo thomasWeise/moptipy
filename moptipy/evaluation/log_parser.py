@@ -40,6 +40,8 @@ from moptipy.api.logging import (
     KEY_TOTAL_FES,
     KEY_TOTAL_TIME_MILLIS,
     SCOPE_ALGORITHM,
+    SCOPE_ENCODING,
+    SCOPE_OBJECTIVE_FUNCTION,
     SCOPE_PROCESS,
     SECTION_FINAL_STATE,
     SECTION_SETUP,
@@ -76,6 +78,12 @@ _FULL_KEY_RAND_SEED: Final[str] = \
 #: the full algorithm name key
 _FULL_KEY_ALGORITHM: Final[str] = \
     f"{SCOPE_ALGORITHM}{SCOPE_SEPARATOR}{KEY_NAME}"
+#: the full objective function name key
+_FULL_KEY_OBJECTIVE: Final[str] = \
+    f"{SCOPE_OBJECTIVE_FUNCTION}{SCOPE_SEPARATOR}{KEY_NAME}"
+#: the full encoding name key
+_FULL_KEY_ENCODING: Final[str] = \
+    f"{SCOPE_ENCODING}{SCOPE_SEPARATOR}{KEY_NAME}"
 
 
 class LogParser:
@@ -533,14 +541,30 @@ class SetupAndStateParser(ExperimentParser):
     def __init__(self):
         """Create the basic data parser."""
         super().__init__()
+        #: the total consumed runtime, in objective function evaluations
         self.total_fes: int | None = None
+        #: the total consumed runtime in milliseconds
         self.total_time_millis: int | None = None
+        #: the best objective function value encountered
         self.best_f: int | float | None = None
+        #: the objective function evaluation when the last improvement
+        #: happened, in milliseconds
         self.last_improvement_fe: int | None = None
+        #: the time step when the last improvement happened, in milliseconds
         self.last_improvement_time_millis: int | None = None
+        #: the goal objective value, if any
         self.goal_f: int | float | None = None
+        #: the maximum permitted number of objective function evaluations,
+        #: if any
         self.max_fes: int | None = None
+        #: the maximum runtime limit in milliseconds, if any
         self.max_time_millis: int | None = None
+        #: The name of the objective to which the current log file belongs.
+        self.objective: str | None = None
+        #: The name of the encoding to which the current log file belongs.
+        self.encoding: str | None = None
+        #: the internal state, an OR mask: 1=after setup section, 2=after
+        #: state section, 4=in setup section, 8=in state section
         self.__state: int = 0
 
     def start_file(self, path: Path) -> bool:
@@ -585,6 +609,8 @@ class SetupAndStateParser(ExperimentParser):
             raise ValueError("algorithm is missing.")
         if self.instance is None:
             raise ValueError("instance is missing.")
+        if self.objective is None:
+            raise ValueError("objective is missing.")
         if self.total_fes is None:
             raise ValueError("total_fes is missing.")
         if self.total_time_millis is None:
@@ -605,6 +631,8 @@ class SetupAndStateParser(ExperimentParser):
         self.goal_f = None
         self.max_fes = None
         self.max_time_millis = None
+        self.objective = None
+        self.encoding = None
         self.__state = 0
         return super().end_file()
 
@@ -696,6 +724,16 @@ class SetupAndStateParser(ExperimentParser):
                     raise ValueError(
                         f"algorithm name from file name is {self.algorithm!r}"
                         f", but key {_FULL_KEY_ALGORITHM!r} gives {a!r}.")
+        else:
+            raise ValueError(f"key {_FULL_KEY_ALGORITHM!r} missing in file!")
+
+        if _FULL_KEY_OBJECTIVE in data:
+            self.objective = data[_FULL_KEY_OBJECTIVE]
+        else:
+            raise ValueError(f"key {_FULL_KEY_OBJECTIVE!r} missing in file!")
+
+        self.encoding = data[_FULL_KEY_ENCODING] \
+            if _FULL_KEY_ENCODING in data else None
 
         seed_check = rand_seed_check(int(data[_FULL_KEY_RAND_SEED]))
         if self.rand_seed is None:

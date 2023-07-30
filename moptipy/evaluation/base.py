@@ -1,7 +1,6 @@
 """Some internal helper functions and base classes."""
 
 from dataclasses import dataclass
-from math import inf
 from typing import Any, Final
 
 from moptipy.utils.nputils import rand_seed_check
@@ -10,6 +9,10 @@ from moptipy.utils.types import check_int_range, type_error
 
 #: The key for the total number of runs.
 KEY_N: Final[str] = "n"
+#: a key for the objective function name
+KEY_OBJECTIVE_FUNCTION: Final[str] = "objective"
+#: a key for the encoding name
+KEY_ENCODING: Final[str] = "encoding"
 
 #: The unit of the time axis if time is measured in milliseconds.
 TIME_UNIT_MILLIS: Final[str] = "ms"
@@ -89,36 +92,338 @@ are permitted.
         f"{F_NAME_SCALED!r}, and {F_NAME_NORMALIZED!r} are permitted.")
 
 
-@dataclass(frozen=True, init=False, order=True)
-class PerRunData:
+class EvaluationDataElement:
+    """A base class for all the data classes in this module."""
+
+    def _tuple(self) -> tuple[Any, ...]:
+        """
+        Create a tuple with all the data of this data class for comparison.
+
+        All the relevant data of an instance of this class is stored in a
+        tuple. The tuple is then used in the dunder methods for comparisons.
+        The returned tuple *must* be based on the scheme
+        `tuple[str, str, str, str, str, int, int, str, str]`.
+        They can be shorter than this and they can be longer, but they must
+        adhere to this basic scheme:
+
+        1. class name
+        2. algorithm name, or `""` if algorithm name is `None`
+        3. instance name, or `""` if instance name is `None`
+        4. objective name, `""` objective name is `None`
+        5. encoding name, or `""` encoding name is `None`
+        6. number of runs, or `0` if no number of runs is specified or `1` if
+           the data concerns exactly one run
+        7. the random seed, or `-1` if no random seed is specified
+        8. the string time unit, or `""` if no time unit is given
+        9. the scaling name of the objective function, or `""` if no scaling
+           name is given
+
+        If the tuples are longer, then all values following after this must be
+        integers or floats.
+
+        >>> EvaluationDataElement()._tuple()
+        ('EvaluationDataElement',)
+
+        :returns: a tuple with all the data of this class, where `None` values
+            are masked out
+        """
+        return (self.__class__.__name__, )
+
+    def __eq__(self, other) -> bool:
+        """
+        Compare for `==` with another object based on the `_tuple()` value.
+
+        :param other: the other object to compare to, must be an instance of
+            :class:`EvaluationDataElement`
+        :retval `True`: if the `other` object's `_tuple()` representation is
+            `==` with this object's `_tuple()` representation
+        :retval `False`: otherwise
+        :raises NotImplementedError: if the other object is not an instance of
+            :class:`EvaluationDataElement` and therefore cannot be compared.
+
+        >>> PerRunData("a", "i", "f", "e", 234) == PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        True
+        >>> PerRunData("a", "i", "f", "e", 234) == PerRunData(
+        ...     "a", "j", "f", "e", 234)
+        False
+        >>> try:
+        ...     PerRunData("a", "i", "f", "e", 234) == 3
+        ... except NotImplementedError as ni:
+        ...     print(ni)
+        Cannot compare PerRunData(algorithm='a', instance='i', \
+objective='f', encoding='e', rand_seed=234) with 3 for ==.
+        """
+        if isinstance(other, EvaluationDataElement):
+            return self._tuple() == other._tuple()
+        raise NotImplementedError(
+            f"Cannot compare {self} with {other} for ==.")
+
+    def __ne__(self, other) -> bool:
+        """
+        Compare for `!=` with another object based on the `_tuple()` value.
+
+        :param other: the other object to compare to, must be an instance of
+            :class:`EvaluationDataElement`
+        :retval `True`: if the `other` object's `_tuple()` representation is
+            `!=` with this object's `_tuple()` representation
+        :retval `False`: otherwise
+        :raises NotImplementedError: if the other object is not an instance of
+            :class:`EvaluationDataElement` and therefore cannot be compared.
+
+        >>> PerRunData("a", "i", "f", "e", 234) != PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        False
+        >>> PerRunData("a", "i", "f", "e", 234) != PerRunData(
+        ...     "a", "j", "f", "e", 234)
+        True
+        >>> try:
+        ...     PerRunData("a", "i", "f", "e", 234) != 3
+        ... except NotImplementedError as ni:
+        ...     print(ni)
+        Cannot compare PerRunData(algorithm='a', instance='i', \
+objective='f', encoding='e', rand_seed=234) with 3 for !=.
+        """
+        if isinstance(other, EvaluationDataElement):
+            return self._tuple() != other._tuple()
+        raise NotImplementedError(
+            f"Cannot compare {self} with {other} for !=.")
+
+    def __lt__(self, other) -> bool:
+        """
+        Compare for `<` with another object based on the `_tuple()` value.
+
+        :param other: the other object to compare to, must be an instance of
+            :class:`EvaluationDataElement`
+        :retval `True`: if the `other` object's `_tuple()` representation is
+            `<` with this object's `_tuple()` representation
+        :retval `False`: otherwise
+        :raises NotImplementedError: if the other object is not an instance of
+            :class:`EvaluationDataElement` and therefore cannot be compared.
+
+        >>> PerRunData("a", "i", "f", "e", 234) < PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        False
+        >>> PerRunData("a", "i", "f", "e", 234) < PerRunData(
+        ...     "a", "j", "f", "e", 234)
+        True
+        >>> PerRunData("a", "j", "f", "e", 234) < PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        False
+        >>> try:
+        ...     PerRunData("a", "i", "f", "e", 234) < 3
+        ... except NotImplementedError as ni:
+        ...     print(ni)
+        Cannot compare PerRunData(algorithm='a', instance='i', \
+objective='f', encoding='e', rand_seed=234) with 3 for <.
+        """
+        if isinstance(other, EvaluationDataElement):
+            return self._tuple() < other._tuple()
+        raise NotImplementedError(
+            f"Cannot compare {self} with {other} for <.")
+
+    def __le__(self, other) -> bool:
+        """
+        Compare for `<=` with another object based on the `_tuple()` value.
+
+        :param other: the other object to compare to, must be an instance of
+            :class:`EvaluationDataElement`
+        :retval `True`: if the `other` object's `_tuple()` representation is
+            `<=` with this object's `_tuple()` representation
+        :retval `False`: otherwise
+        :raises NotImplementedError: if the other object is not an instance of
+            :class:`EvaluationDataElement` and therefore cannot be compared.
+
+        >>> PerRunData("a", "i", "f", "e", 234) <= PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        True
+        >>> PerRunData("a", "i", "f", "e", 234) <= PerRunData(
+        ...     "a", "j", "f", "e", 234)
+        True
+        >>> PerRunData("a", "j", "f", "e", 234) < PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        False
+        >>> try:
+        ...     PerRunData("a", "i", "f", "e", 234) <= 3
+        ... except NotImplementedError as ni:
+        ...     print(ni)
+        Cannot compare PerRunData(algorithm='a', instance='i', \
+objective='f', encoding='e', rand_seed=234) with 3 for <=.
+        """
+        if isinstance(other, EvaluationDataElement):
+            return self._tuple() <= other._tuple()
+        raise NotImplementedError(
+            f"Cannot compare {self} with {other} for <=.")
+
+    def __gt__(self, other) -> bool:
+        """
+        Compare for `>` with another object based on the `_tuple()` value.
+
+        :param other: the other object to compare to, must be an instance of
+            :class:`EvaluationDataElement`
+        :retval `True`: if the `other` object's `_tuple()` representation is
+            `>` with this object's `_tuple()` representation
+        :retval `False`: otherwise
+        :raises NotImplementedError: if the other object is not an instance of
+            :class:`EvaluationDataElement` and therefore cannot be compared.
+
+        >>> PerRunData("a", "i", "f", "e", 234) > PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        False
+        >>> PerRunData("a", "i", "f", "e", 234) > PerRunData(
+        ...     "a", "j", "f", "e", 234)
+        False
+        >>> PerRunData("a", "j", "f", "e", 234) > PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        True
+        >>> try:
+        ...     PerRunData("a", "i", "f", "e", 234) > 3
+        ... except NotImplementedError as ni:
+        ...     print(ni)
+        Cannot compare PerRunData(algorithm='a', instance='i', \
+objective='f', encoding='e', rand_seed=234) with 3 for >.
+        """
+        if isinstance(other, EvaluationDataElement):
+            return self._tuple() > other._tuple()
+        raise NotImplementedError(
+            f"Cannot compare {self} with {other} for >.")
+
+    def __ge__(self, other) -> bool:
+        """
+        Compare for `>=` with another object based on the `_tuple()` value.
+
+        :param other: the other object to compare to, must be an instance of
+            :class:`EvaluationDataElement`
+        :retval `True`: if the `other` object's `_tuple()` representation is
+            `>=` with this object's `_tuple()` representation
+        :retval `False`: otherwise
+        :raises NotImplementedError: if the other object is not an instance of
+            :class:`EvaluationDataElement` and therefore cannot be compared.
+
+        >>> PerRunData("a", "i", "f", "e", 234) >= PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        True
+        >>> PerRunData("a", "i", "f", "e", 234) >= PerRunData(
+        ...     "a", "j", "f", "e", 234)
+        False
+        >>> PerRunData("a", "j", "f", "e", 234) >= PerRunData(
+        ...     "a", "i", "f", "e", 234)
+        True
+        >>> try:
+        ...     PerRunData("a", "i", "f", "e", 234) >= 3
+        ... except NotImplementedError as ni:
+        ...     print(ni)
+        Cannot compare PerRunData(algorithm='a', instance='i', \
+objective='f', encoding='e', rand_seed=234) with 3 for >=.
+        """
+        if isinstance(other, EvaluationDataElement):
+            return self._tuple() >= other._tuple()
+        raise NotImplementedError(
+            f"Cannot compare {self} with {other} for >=.")
+
+
+@dataclass(frozen=True, init=False, order=False, eq=False)
+class PerRunData(EvaluationDataElement):
     """
     An immutable record of information over a single run.
 
-    >>> p = PerRunData("a", "i", 234)
-    >>> print(p.instance)
-    i
-    >>> print(p.algorithm)
-    a
-    >>> print(p.rand_seed)
+    >>> p = PerRunData("a", "i", "f", None, 234)
+    >>> p.instance
+    'i'
+    >>> p.algorithm
+    'a'
+    >>> p.objective
+    'f'
+    >>> print(p.encoding)
+    None
+    >>> p.rand_seed
     234
+    >>> p = PerRunData("a", "i", "f", "e", 234)
+    >>> p.instance
+    'i'
+    >>> p.algorithm
+    'a'
+    >>> p.objective
+    'f'
+    >>> p.encoding
+    'e'
+    >>> p.rand_seed
+    234
+    >>> try:
+    ...     PerRunData(3, "i", "f", "e", 234)
+    ... except TypeError as te:
+    ...     print(te)
+    algorithm should be an instance of str but is int, namely '3'.
+    >>> try:
+    ...     PerRunData("@1 2", "i", "f", "e", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid algorithm name '@1 2'.
+    >>> try:
+    ...     PerRunData("x", 3.2, "f", "e", 234)
+    ... except TypeError as te:
+    ...     print(te)
+    instance should be an instance of str but is float, namely '3.2'.
+    >>> try:
+    ...     PerRunData("x", "sdf i", "f", "e", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid instance name 'sdf i'.
+    >>> try:
+    ...     PerRunData("a", "i", True, "e", 234)
+    ... except TypeError as te:
+    ...     print(te)
+    objective should be an instance of str but is bool, namely 'True'.
+    >>> try:
+    ...     PerRunData("x", "i", "d-f", "e", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid objective name 'd-f'.
+    >>> try:
+    ...     PerRunData("x", "i", "f", 54.2, 234)
+    ... except TypeError as te:
+    ...     print(te)
+    encoding should be an instance of any in {None, str} but is float, \
+namely '54.2'.
+    >>> try:
+    ...     PerRunData("y", "i", "f", "x  x", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid encoding name 'x  x'.
+    >>> try:
+    ...     PerRunData("x", "i", "f", "e", 3.3)
+    ... except TypeError as te:
+    ...     print(te)
+    rand_seed should be an instance of int but is float, namely '3.3'.
+    >>> try:
+    ...     PerRunData("x", "i", "f", "e", -234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    rand_seed=-234 is invalid, must be in 0..18446744073709551615.
     """
 
     #: The algorithm that was applied.
     algorithm: str
-
     #: The problem instance that was solved.
     instance: str
-
+    #: the name of the objective function
+    objective: str
+    #: the encoding, if any, or `None` if no encoding was used
+    encoding: str | None
     #: The seed of the random number generator.
     rand_seed: int
 
-    def __init__(self, algorithm: str, instance: str, rand_seed: int):
+    def __init__(self, algorithm: str, instance: str, objective: str,
+                 encoding: str | None, rand_seed: int):
         """
         Create a per-run data record.
 
-        :param str algorithm: the algorithm name
-        :param str instance: the instance name
-        :param int rand_seed: the random seed
+        :param algorithm: the algorithm name
+        :param instance: the instance name
+        :param objective: the name of the objective function
+        :param encoding: the name of the encoding that was used, if any, or
+            `None` if no encoding was used
+        :param rand_seed: the random seed
         """
         if not isinstance(algorithm, str):
             raise type_error(algorithm, "algorithm", str)
@@ -131,11 +436,40 @@ class PerRunData:
         if instance != sanitize_name(instance):
             raise ValueError(f"Invalid instance name {instance!r}.")
         object.__setattr__(self, "instance", instance)
+
+        if not isinstance(objective, str):
+            raise type_error(objective, "objective", str)
+        if objective != sanitize_name(objective):
+            raise ValueError(f"Invalid objective name {objective!r}.")
+        object.__setattr__(self, "objective", objective)
+
+        if encoding is not None:
+            if not isinstance(encoding, str):
+                raise type_error(encoding, "encoding", (None, str))
+            if encoding != sanitize_name(encoding):
+                raise ValueError(f"Invalid encoding name {encoding!r}.")
+        object.__setattr__(self, "encoding", encoding)
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
 
+    def _tuple(self) -> tuple[Any, ...]:
+        """
+        Get the tuple representation of this object used in comparisons.
 
-@dataclass(frozen=True, init=False, order=True)
-class MultiRunData:
+        :return: the comparison-relevant data of this object in a tuple
+
+        >>> PerRunData("a", "i", "f", "e", 234)._tuple()
+        ('PerRunData', 'a', 'i', 'f', 'e', 1, 234)
+        >>> PerRunData("a", "i", "f", None, 234)._tuple()
+        ('PerRunData', 'a', 'i', 'f', '', 1, 234)
+        """
+        return (self.__class__.__name__, self.algorithm, self.instance,
+                self.objective,
+                "" if self.encoding is None else self.encoding, 1,
+                self.rand_seed)
+
+
+@dataclass(frozen=True, init=False, order=False, eq=False)
+class MultiRunData(EvaluationDataElement):
     """
     A class that represents statistics over a set of runs.
 
@@ -143,59 +477,211 @@ class MultiRunData:
     defined. Otherwise, only the parameter which is the same over all recorded
     runs is defined.
 
-    >>> p = MultiRunData("a", "i", 3)
-    >>> print(p.instance)
-    i
-    >>> print(p.algorithm)
-    a
-    >>> print(p.n)
+    >>> p = MultiRunData("a", "i", "f", None, 3)
+    >>> p.instance
+    'i'
+    >>> p.algorithm
+    'a'
+    >>> p.objective
+    'f'
+    >>> print(p.encoding)
+    None
+    >>> p.n
     3
+    >>> p = MultiRunData(None, None, None, "x", 3)
+    >>> print(p.instance)
+    None
+    >>> print(p.algorithm)
+    None
+    >>> print(p.objective)
+    None
+    >>> p.encoding
+    'x'
+    >>> p.n
+    3
+    >>> try:
+    ...     MultiRunData(1, "i", "f", "e", 234)
+    ... except TypeError as te:
+    ...     print(te)
+    algorithm should be an instance of any in {None, str} but is int, \
+namely '1'.
+    >>> try:
+    ...     MultiRunData("x x", "i", "f", "e", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid algorithm name 'x x'.
+    >>> try:
+    ...     MultiRunData("a", 5.5, "f", "e", 234)
+    ... except TypeError as te:
+    ...     print(te)
+    instance should be an instance of any in {None, str} but is float, \
+namely '5.5'.
+    >>> try:
+    ...     MultiRunData("x", "a-i", "f", "e", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid instance name 'a-i'.
+    >>> try:
+    ...     MultiRunData("a", "i", True, "e", 234)
+    ... except TypeError as te:
+    ...     print(te)
+    objective should be an instance of any in {None, str} but is bool, \
+namely 'True'.
+    >>> try:
+    ...     MultiRunData("xx", "i", "d'@f", "e", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid objective name "d'@f".
+    >>> try:
+    ...     MultiRunData("yy", "i", "f", -9.4, 234)
+    ... except TypeError as te:
+    ...     print(te)
+    encoding should be an instance of any in {None, str} but is float, \
+namely '-9.4'.
+    >>> try:
+    ...     MultiRunData("xx", "i", "f", "e-{a", 234)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid encoding name 'e-{a'.
+    >>> try:
+    ...     MultiRunData("x", "i", "f", "e", -1.234)
+    ... except TypeError as te:
+    ...     print(te)
+    n should be an instance of int but is float, namely '-1.234'.
+    >>> try:
+    ...     MultiRunData("xx", "i", "f", "e", 1_000_000_000_000_000_000_000)
+    ... except ValueError as ve:
+    ...     print(ve)
+    n=1000000000000000000000 is invalid, must be in 1..1000000000000000.
     """
 
     #: The algorithm that was applied, if the same over all runs.
     algorithm: str | None
     #: The problem instance that was solved, if the same over all runs.
     instance: str | None
+    #: the name of the objective function, if the same over all runs
+    objective: str | None
+    #: the encoding, if any, or `None` if no encoding was used or if it was
+    #: not the same over all runs
+    encoding: str | None
+
     #: The number of runs over which the statistic information is computed.
     n: int
 
-    def __init__(self, algorithm: str | None, instance: str | None, n: int):
+    def __init__(self, algorithm: str | None, instance: str | None,
+                 objective: str | None, encoding: str | None, n: int):
         """
         Create the dataset of an experiment-setup combination.
 
         :param algorithm: the algorithm name, if all runs are with the same
-            algorithm
+            algorithm, `None` otherwise
         :param instance: the instance name, if all runs are on the same
-            instance
+            instance, `None` otherwise
+        :param objective: the objective name, if all runs are on the same
+            objective function, `None` otherwise
+        :param encoding: the encoding name, if all runs are on the same
+            encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         """
-        if (algorithm is not None) and \
-                (algorithm != sanitize_name(algorithm)):
-            raise ValueError(f"Invalid algorithm {algorithm!r}.")
+        if algorithm is not None:
+            if not isinstance(algorithm, str):
+                raise type_error(algorithm, "algorithm", (None, str))
+            if algorithm != sanitize_name(algorithm):
+                raise ValueError(f"Invalid algorithm name {algorithm!r}.")
         object.__setattr__(self, "algorithm", algorithm)
 
-        if (instance is not None) and (instance != sanitize_name(instance)):
-            raise ValueError(f"Invalid instance {instance!r}.")
+        if instance is not None:
+            if not isinstance(instance, str):
+                raise type_error(instance, "instance", (None, str))
+            if instance != sanitize_name(instance):
+                raise ValueError(f"Invalid instance name {instance!r}.")
         object.__setattr__(self, "instance", instance)
-        object.__setattr__(self, "n", check_int_range(n, "n", 1))
+
+        if objective is not None:
+            if not isinstance(objective, str):
+                raise type_error(objective, "objective", (None, str))
+            if objective != sanitize_name(objective):
+                raise ValueError(f"Invalid objective name {objective!r}.")
+        object.__setattr__(self, "objective", objective)
+
+        if encoding is not None:
+            if not isinstance(encoding, str):
+                raise type_error(encoding, "encoding", (None, str))
+            if encoding != sanitize_name(encoding):
+                raise ValueError(f"Invalid encoding name {encoding!r}.")
+        object.__setattr__(self, "encoding", encoding)
+        object.__setattr__(self, "n", check_int_range(
+            n, "n", 1, 1_000_000_000_000_000))
+
+    def _tuple(self) -> tuple[Any, ...]:
+        """
+        Get the tuple representation of this object used in comparisons.
+
+        :return: the comparison-relevant data of this object in a tuple
+
+        >>> MultiRunData("a", "i", "f", None, 3)._tuple()
+        ('MultiRunData', 'a', 'i', 'f', '', 3, -1)
+        >>> MultiRunData(None, "i", "f", "e", 31)._tuple()
+        ('MultiRunData', '', 'i', 'f', 'e', 31, -1)
+        >>> MultiRunData("x", None, "fy", "e1", 131)._tuple()
+        ('MultiRunData', 'x', '', 'fy', 'e1', 131, -1)
+        >>> MultiRunData("yx", "z", None, "xe1", 2131)._tuple()
+        ('MultiRunData', 'yx', 'z', '', 'xe1', 2131, -1)
+        """
+        return (self.__class__.__name__,
+                "" if self.algorithm is None else self.algorithm,
+                "" if self.instance is None else self.instance,
+                "" if self.objective is None else self.objective,
+                "" if self.encoding is None else self.encoding,
+                self.n, -1)
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class MultiRun2DData(MultiRunData):
     """
     A multi-run data based on one time and one objective dimension.
 
-    >>> p = MultiRun2DData("a", "i", 3, TIME_UNIT_FES, F_NAME_SCALED)
-    >>> print(p.instance)
-    i
-    >>> print(p.algorithm)
-    a
-    >>> print(p.n)
+    >>> p = MultiRun2DData("a", "i", "f", None, 3,
+    ...                    TIME_UNIT_FES, F_NAME_SCALED)
+    >>> p.instance
+    'i'
+    >>> p.algorithm
+    'a'
+    >>> p.objective
+    'f'
+    >>> print(p.encoding)
+    None
+    >>> p.n
     3
     >>> print(p.time_unit)
     FEs
     >>> print(p.f_name)
     scaledF
+    >>> try:
+    ...     MultiRun2DData("a", "i", "f", None, 3,
+    ...                    3, F_NAME_SCALED)
+    ... except TypeError as te:
+    ...     print(te)
+    time_unit should be an instance of str but is int, namely '3'.
+    >>> try:
+    ...     MultiRun2DData("a", "i", "f", None, 3,
+    ...                    "sdfjsdf", F_NAME_SCALED)
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid time unit 'sdfjsdf', only 'FEs' and 'ms' are permitted.
+    >>> try:
+    ...     MultiRun2DData("a", "i", "f", None, 3,
+    ...                    TIME_UNIT_FES, True)
+    ... except TypeError as te:
+    ...     print(te)
+    f_name should be an instance of str but is bool, namely 'True'.
+    >>> try:
+    ...     MultiRun2DData("a", "i", "f", None, 3,
+    ...                    TIME_UNIT_FES, "blablue")
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid f name 'blablue', only 'plainF', 'scaledF', and 'normalizedF' \
+are permitted.
     """
 
     #: The unit of the time axis.
@@ -203,7 +689,8 @@ class MultiRun2DData(MultiRunData):
     #: the name of the objective value axis.
     f_name: str
 
-    def __init__(self, algorithm: str | None, instance: str | None, n: int,
+    def __init__(self, algorithm: str | None, instance: str | None,
+                 objective: str | None, encoding: str | None, n: int,
                  time_unit: str, f_name: str):
         """
         Create multi-run data based on one time and one objective dimension.
@@ -212,13 +699,40 @@ class MultiRun2DData(MultiRunData):
             algorithm
         :param instance: the instance name, if all runs are on the same
             instance
+        :param objective: the objective name, if all runs are on the same
+            objective function, `None` otherwise
+        :param encoding: the encoding name, if all runs are on the same
+            encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         :param time_unit: the time unit
         :param f_name: the objective dimension name
         """
-        super().__init__(algorithm, instance, n)
+        super().__init__(algorithm, instance, objective, encoding, n)
         object.__setattr__(self, "time_unit", check_time_unit(time_unit))
         object.__setattr__(self, "f_name", check_f_name(f_name))
+
+    def _tuple(self) -> tuple[Any, ...]:
+        """
+        Get the tuple representation of this object used in comparisons.
+
+        :return: the comparison-relevant data of this object in a tuple
+
+        >>> MultiRun2DData("a", "i", "f", None, 3,
+        ...                TIME_UNIT_FES, F_NAME_SCALED)._tuple()
+        ('MultiRun2DData', 'a', 'i', 'f', '', 3, -1, 'FEs', 'scaledF')
+        >>> MultiRun2DData(None, "ix", None, "x", 43,
+        ...                TIME_UNIT_MILLIS, F_NAME_RAW)._tuple()
+        ('MultiRun2DData', '', 'ix', '', 'x', 43, -1, 'ms', 'plainF')
+        >>> MultiRun2DData("xa", None, None, None, 143,
+        ...                TIME_UNIT_MILLIS, F_NAME_NORMALIZED)._tuple()
+        ('MultiRun2DData', 'xa', '', '', '', 143, -1, 'ms', 'normalizedF')
+        """
+        return (self.__class__.__name__,
+                "" if self.algorithm is None else self.algorithm,
+                "" if self.instance is None else self.instance,
+                "" if self.objective is None else self.objective,
+                "" if self.encoding is None else self.encoding,
+                self.n, -1, self.time_unit, self.f_name)
 
 
 def get_instance(obj: PerRunData | MultiRunData) -> str | None:
@@ -228,12 +742,12 @@ def get_instance(obj: PerRunData | MultiRunData) -> str | None:
     :param obj: the object
     :return: the instance string, or `None` if no instance is specified
 
-    >>> p1 = MultiRunData("a", "i1", 3)
-    >>> print(get_instance(p1))
-    i1
-    >>> p2 = PerRunData("a", "i2", 31)
-    >>> print(get_instance(p2))
-    i2
+    >>> p1 = MultiRunData("a", "i1", None, "x", 3)
+    >>> get_instance(p1)
+    'i1'
+    >>> p2 = PerRunData("a", "i2", "f", "x", 31)
+    >>> get_instance(p2)
+    'i2'
     """
     return obj.instance
 
@@ -245,20 +759,19 @@ def get_algorithm(obj: PerRunData | MultiRunData) -> str | None:
     :param obj: the object
     :return: the algorithm string, or `None` if no algorithm is specified
 
-    >>> p1 = MultiRunData("a1", "i1", 3)
-    >>> print(get_algorithm(p1))
-    a1
-    >>> p2 = PerRunData("a2", "i2", 31)
-    >>> print(get_algorithm(p2))
-    a2
+    >>> p1 = MultiRunData("a1", "i1", "f", "y", 3)
+    >>> get_algorithm(p1)
+    'a1'
+    >>> p2 = PerRunData("a2", "i2", "y", None, 31)
+    >>> get_algorithm(p2)
+    'a2'
     """
     return obj.algorithm
 
 
-def sort_key(obj: PerRunData | MultiRunData) -> \
-        tuple[str, str, str, int, int, str, str, float]:
+def sort_key(obj: PerRunData | MultiRunData) -> tuple[Any, ...]:
     """
-    Get a default sort key for the given object.
+    Get the default sort key for the given object.
 
     The sort key is a tuple with well-defined field elements that should
     allow for a default and consistent sorting over many different elements of
@@ -268,27 +781,18 @@ def sort_key(obj: PerRunData | MultiRunData) -> \
     :param obj: the object
     :return: the sort key
 
-    >>> p1 = MultiRunData("a1", "i1", 3)
-    >>> p2 = PerRunData("a2", "i2", 31)
-    >>> print(sort_key(p1) < sort_key(p2))
+    >>> p1 = MultiRunData("a1", "i1", "f", None, 3)
+    >>> p2 = PerRunData("a2", "i2", "f", None, 31)
+    >>> sort_key(p1) < sort_key(p2)
     True
-    >>> print(sort_key(p1) >= sort_key(p2))
+    >>> sort_key(p1) >= sort_key(p2)
     False
-    >>> p3 = MultiRun2DData("a", "i", 3, TIME_UNIT_FES, F_NAME_SCALED)
-    >>> print(sort_key(p3) < sort_key(p1))
+    >>> p3 = MultiRun2DData("a", "i", "f", None, 3,
+    ...                     TIME_UNIT_FES, F_NAME_SCALED)
+    >>> sort_key(p3) < sort_key(p1)
     True
-    >>> print(sort_key(p3) >= sort_key(p1))
+    >>> sort_key(p3) >= sort_key(p1)
     False
     """
-    goal_f = getattr(obj, "goal_f") if hasattr(obj, "goal_f") else None
-    if goal_f is None:
-        goal_f = inf
-
-    return obj.__class__.__name__, \
-        "" if obj.algorithm is None else obj.algorithm, \
-        "" if obj.instance is None else obj.instance, \
-        obj.n if isinstance(obj, MultiRunData) else 0, \
-        obj.rand_seed if isinstance(obj, PerRunData) else 0, \
-        obj.time_unit if isinstance(obj, MultiRun2DData) else "", \
-        obj.f_name if isinstance(obj, MultiRun2DData) else "", \
-        goal_f
+    # noinspection PyProtectedMember
+    return obj._tuple()

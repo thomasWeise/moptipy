@@ -68,7 +68,7 @@ from moptipy.utils.strings import PART_SEPARATOR
 
 
 class _Record(FRecord):
-    """Same as :class:`FRecord`, but with a secret selection marker."""
+    """Same as `FRecord`, but with a secret selection marker."""
 
     def __init__(self, x, f: int | float, selected: bool = False):
         """

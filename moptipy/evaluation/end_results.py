@@ -44,6 +44,8 @@ from moptipy.evaluation.base import (
     F_NAME_NORMALIZED,
     F_NAME_RAW,
     F_NAME_SCALED,
+    KEY_ENCODING,
+    KEY_OBJECTIVE_FUNCTION,
     PerRunData,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
@@ -63,19 +65,18 @@ from moptipy.utils.strings import (
 )
 from moptipy.utils.types import check_int_range, check_to_int_range, type_error
 
-#: The internal CSV header
-_HEADER: Final[str] = (f"{KEY_ALGORITHM}{CSV_SEPARATOR}"
-                       f"{KEY_INSTANCE}{CSV_SEPARATOR}"
-                       f"{KEY_RAND_SEED}{CSV_SEPARATOR}"
-                       f"{KEY_BEST_F}{CSV_SEPARATOR}"
-                       f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}"
-                       f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}"
-                       f"{CSV_SEPARATOR}"
-                       f"{KEY_TOTAL_FES}{CSV_SEPARATOR}"
-                       f"{KEY_TOTAL_TIME_MILLIS}{CSV_SEPARATOR}"
-                       f"{KEY_GOAL_F}{CSV_SEPARATOR}"
-                       f"{KEY_MAX_FES}{CSV_SEPARATOR}"
-                       f"{KEY_MAX_TIME_MILLIS}\n")
+#: The internal CSV header, part 1
+_HEADER_1: Final[str] = (f"{KEY_ALGORITHM}{CSV_SEPARATOR}"
+                         f"{KEY_INSTANCE}{CSV_SEPARATOR}"
+                         f"{KEY_OBJECTIVE_FUNCTION}")
+#: The internal CSV header, part 2
+_HEADER_2: Final[str] = (f"{CSV_SEPARATOR}{KEY_RAND_SEED}{CSV_SEPARATOR}"
+                         f"{KEY_BEST_F}{CSV_SEPARATOR}"
+                         f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}"
+                         f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}"
+                         f"{CSV_SEPARATOR}"
+                         f"{KEY_TOTAL_FES}{CSV_SEPARATOR}"
+                         f"{KEY_TOTAL_TIME_MILLIS}")
 
 
 def __get_goal_f(e: "EndResult") -> int | float:
@@ -160,7 +161,7 @@ _GETTERS: Final[dict[str, Callable[["EndResult"], int | float]]] = {
 _GETTERS[KEY_BEST_F] = _GETTERS[F_NAME_RAW]
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class EndResult(PerRunData):
     """
     An immutable end result record of one run of one algorithm on one problem.
@@ -196,6 +197,8 @@ class EndResult(PerRunData):
     def __init__(self,
                  algorithm: str,
                  instance: str,
+                 objective: str,
+                 encoding: str | None,
                  rand_seed: int,
                  best_f: int | float,
                  last_improvement_fe: int,
@@ -210,6 +213,9 @@ class EndResult(PerRunData):
 
         :param algorithm: the algorithm name
         :param instance: the instance name
+        :param objective: the name of the objective function
+        :param encoding: the name of the encoding that was used, if any, or
+            `None` if no encoding was used
         :param rand_seed: the random seed
         :param best_f: the best reached objective value
         :param last_improvement_fe: the FE when best_f was reached
@@ -223,7 +229,7 @@ class EndResult(PerRunData):
         :raises TypeError: if any parameter has a wrong type
         :raises ValueError: if the parameter values are inconsistent
         """
-        super().__init__(algorithm, instance, rand_seed)
+        super().__init__(algorithm, instance, objective, encoding, rand_seed)
         object.__setattr__(self, "best_f", try_int(best_f))
         object.__setattr__(
             self, "last_improvement_fe", check_int_range(
@@ -258,6 +264,25 @@ class EndResult(PerRunData):
                                    total_fes,
                                    total_time_millis)
         object.__setattr__(self, "max_time_millis", max_time_millis)
+
+    def _tuple(self) -> tuple[Any, ...]:
+        """
+        Get the tuple representation of this object used in comparisons.
+
+        :return: the comparison-relevant data of this object in a tuple
+        """
+        return (self.__class__.__name__,
+                "" if self.algorithm is None else self.algorithm,
+                "" if self.instance is None else self.instance,
+                "" if self.objective is None else self.objective,
+                "" if self.encoding is None else self.encoding,
+                1, self.rand_seed, "", "",
+                inf if self.goal_f is None else self.goal_f,
+                inf if self.max_fes is None else self.max_fes,
+                inf if self.max_time_millis is None else self.max_time_millis,
+                self.best_f, self.last_improvement_fe,
+                self.last_improvement_time_millis, self.total_fes,
+                self.total_time_millis)
 
     def success(self) -> bool:
         """
@@ -420,21 +445,57 @@ class EndResult(PerRunData):
         logger(f"Writing end results to CSV file {path!r}.")
         Path.path(os.path.dirname(path)).ensure_dir_exists()
 
+        sorted_results: Final[list[EndResult]] = sorted(results)
+        needs_encoding: bool = False
+        needs_max_fes: bool = False
+        needs_max_ms: bool = False
+        needs_goal_f: bool = False
+        for er in sorted_results:
+            if er.encoding is not None:
+                needs_encoding = True
+            if er.max_fes is not None:
+                needs_max_fes = True
+            if er.max_time_millis is not None:
+                needs_max_ms = True
+            if (er.goal_f is not None) and (isfinite(er.goal_f)):
+                needs_goal_f = True
+
         with path.open_for_write() as out:
-            out.write(_HEADER)
+            write: Final[Callable[[str], int]] = out.write
+            write(_HEADER_1)
+            if needs_encoding:
+                write(f"{CSV_SEPARATOR}{KEY_ENCODING}")
+            write(_HEADER_2)
+            if needs_goal_f:
+                write(f"{CSV_SEPARATOR}{KEY_GOAL_F}")
+            if needs_max_fes:
+                write(f"{CSV_SEPARATOR}{KEY_MAX_FES}")
+            if needs_max_ms:
+                write(f"{CSV_SEPARATOR}{KEY_MAX_TIME_MILLIS}")
+            write("\n")
+
             for e in results:
-                out.write(
-                    f"{e.algorithm}{CSV_SEPARATOR}"
-                    f"{e.instance}{CSV_SEPARATOR}"
-                    f"{hex(e.rand_seed)}{CSV_SEPARATOR}"
-                    f"{num_to_str(e.best_f)}{CSV_SEPARATOR}"
-                    f"{e.last_improvement_fe}{CSV_SEPARATOR}"
-                    f"{e.last_improvement_time_millis}{CSV_SEPARATOR}"
-                    f"{e.total_fes}{CSV_SEPARATOR}"
-                    f"{e.total_time_millis}{CSV_SEPARATOR}"
-                    f"{intfloatnone_to_str(e.goal_f)}{CSV_SEPARATOR}"
-                    f"{intnone_to_str(e.max_fes)}{CSV_SEPARATOR}"
-                    f"{intnone_to_str(e.max_time_millis)}\n")
+                write(f"{e.algorithm}{CSV_SEPARATOR}"
+                      f"{e.instance}{CSV_SEPARATOR}"
+                      f"{e.objective}")
+                if needs_encoding:
+                    write(CSV_SEPARATOR)
+                    if e.encoding is not None:
+                        write(e.encoding)
+                write(f"{CSV_SEPARATOR}{hex(e.rand_seed)}{CSV_SEPARATOR}"
+                      f"{num_to_str(e.best_f)}{CSV_SEPARATOR}"
+                      f"{e.last_improvement_fe}{CSV_SEPARATOR}"
+                      f"{e.last_improvement_time_millis}{CSV_SEPARATOR}"
+                      f"{e.total_fes}{CSV_SEPARATOR}"
+                      f"{e.total_time_millis}")
+                if needs_goal_f:
+                    write(f"{CSV_SEPARATOR}{intfloatnone_to_str(e.goal_f)}")
+                if needs_max_fes:
+                    write(f"{CSV_SEPARATOR}{intnone_to_str(e.max_fes)}")
+                if needs_max_ms:
+                    write(
+                        f"{CSV_SEPARATOR}{intnone_to_str(e.max_time_millis)}")
+                write("\n")
 
         logger(f"Done writing end results to CSV file {path!r}.")
         return path
@@ -457,12 +518,99 @@ class EndResult(PerRunData):
         logger(f"Now reading CSV file {path!r}.")
 
         with path.open_for_read() as rd:
-            header = rd.readlines(1)
-            if (header is None) or (len(header) <= 0):
+            header_rows: list[str] = rd.readlines(1)
+            if (header_rows is None) or (len(header_rows) <= 0):
                 raise ValueError(f"No line in file {file!r}.")
-            if header[0] != _HEADER:
+            header = header_rows[0]
+            if not isinstance(header, str):
+                raise type_error(header, f"{file!r}[0]", str)
+            header = header.strip()
+            if not header.startswith(_HEADER_1):
+                raise ValueError(f"header of {file!r} should start with "
+                                 f"{_HEADER_1!r} but is {header!r}")
+
+            idx_algorithm: int = -1
+            idx_instance: int = -1
+            idx_objective: int = -1
+            idx_encoding: int = -1
+            idx_seed: int = -1
+            idx_li_fe: int = -1
+            idx_li_ms: int = -1
+            idx_best_f: int = -1
+            idx_tt_fe: int = -1
+            idx_tt_ms: int = -1
+            idx_goal_f: int = -1
+            idx_max_fes: int = -1
+            idx_max_ms: int = -1
+
+            for i, cell in enumerate(header.split(CSV_SEPARATOR)):
+                if cell == KEY_ALGORITHM:
+                    idx_algorithm = i
+                elif cell == KEY_INSTANCE:
+                    idx_instance = i
+                elif cell == KEY_OBJECTIVE_FUNCTION:
+                    idx_objective = i
+                elif cell == KEY_ENCODING:
+                    idx_encoding = i
+                elif cell == KEY_RAND_SEED:
+                    idx_seed = i
+                elif cell == KEY_LAST_IMPROVEMENT_FE:
+                    idx_li_fe = i
+                elif cell == KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+                    idx_li_ms = i
+                elif cell == KEY_BEST_F:
+                    idx_best_f = i
+                elif cell == KEY_TOTAL_FES:
+                    idx_tt_fe = i
+                elif cell == KEY_TOTAL_TIME_MILLIS:
+                    idx_tt_ms = i
+                elif cell == KEY_GOAL_F:
+                    idx_goal_f = i
+                elif cell == KEY_MAX_FES:
+                    idx_max_fes = i
+                elif cell == KEY_MAX_TIME_MILLIS:
+                    idx_max_ms = i
+                else:
+                    raise ValueError(
+                        f"Unknown key {cell!r} at index {i} in header "
+                        f"{header!r} of file {file!r}.")
+
+            if idx_algorithm < 0:
                 raise ValueError(
-                    f"Header {header[0]!r} in {path!r} should be {_HEADER!r}.")
+                    f"Missing key {KEY_ALGORITHM!r} in header "
+                    f"{header!r} of file {file!r}.")
+            if idx_instance < 0:
+                raise ValueError(
+                    f"Missing key {KEY_INSTANCE!r} in header "
+                    f"{header!r} of file {file!r}.")
+            if idx_objective < 0:
+                raise ValueError(
+                    f"Missing key {KEY_OBJECTIVE_FUNCTION!r} in header "
+                    f"{header!r} of file {file!r}.")
+            if idx_seed < 0:
+                raise ValueError(
+                    f"Missing key {KEY_RAND_SEED!r} in "
+                    f"header {header!r} of file {file!r}.")
+            if idx_li_fe < 0:
+                raise ValueError(
+                    f"Missing key {KEY_LAST_IMPROVEMENT_FE!r} in header "
+                    f"{header!r} of file {file!r}.")
+            if idx_li_ms < 0:
+                raise ValueError(
+                    f"Missing key {KEY_LAST_IMPROVEMENT_TIME_MILLIS!r} in "
+                    f"header {header!r} of file {file!r}.")
+            if idx_best_f < 0:
+                raise ValueError(
+                    f"Missing key {KEY_BEST_F!r} in header "
+                    f"{header!r} of file {file!r}.")
+            if idx_tt_fe < 0:
+                raise ValueError(
+                    f"Missing key {KEY_TOTAL_FES!r} in "
+                    f"header {header!r} of file {file!r}.")
+            if idx_tt_ms < 0:
+                raise ValueError(
+                    f"Missing key {KEY_TOTAL_TIME_MILLIS!r} in "
+                    f"header {header!r} of file {file!r}.")
 
             while True:
                 lines = rd.readlines(100)
@@ -470,18 +618,30 @@ class EndResult(PerRunData):
                     break
                 for line in lines:
                     splt = line.strip().split(CSV_SEPARATOR)
+                    encoding: str | None
+                    if idx_encoding < 0:
+                        encoding = None
+                    else:
+                        encoding = splt[idx_encoding].strip()
+                        if len(encoding) <= 0:
+                            encoding = None
                     er = EndResult(
-                        splt[0].strip(),  # algorithm
-                        splt[1].strip(),  # instance
-                        int((splt[2])[2:], 16),  # rand seed
-                        str_to_intfloat(splt[3]),  # best_f
-                        int(splt[4]),  # last_improvement_fe
-                        int(splt[5]),  # last_improvement_time_millis
-                        int(splt[6]),  # total_fes
-                        int(splt[7]),  # total_time_millis
-                        str_to_intfloatnone(splt[8]),  # goal_f
-                        str_to_intnone(splt[9]),  # max_fes
-                        str_to_intnone(splt[10]))  # max_time_millis
+                        splt[idx_algorithm].strip(),  # algorithm
+                        splt[idx_instance].strip(),  # instance
+                        splt[idx_objective].strip(),  # objective
+                        encoding,  # encoding
+                        int((splt[idx_seed])[2:], 16),  # rand seed
+                        str_to_intfloat(splt[idx_best_f]),  # best_f
+                        int(splt[idx_li_fe]),  # last_improvement_fe
+                        int(splt[idx_li_ms]),  # last_improvement_time_millis
+                        int(splt[idx_tt_fe]),  # total_fes
+                        int(splt[idx_tt_ms]),  # total_time_millis
+                        None if idx_goal_f < 0 else
+                        str_to_intfloatnone(splt[idx_goal_f]),  # goal_f
+                        None if idx_max_fes < 0 else
+                        str_to_intnone(splt[idx_max_fes]),  # max_fes
+                        None if idx_max_ms < 0 else
+                        str_to_intnone(splt[idx_max_ms]))  # max_time_millis
                     if filterer(er):
                         consumer(er)
 
@@ -505,6 +665,8 @@ class _InnerLogParser(SetupAndStateParser):
     def process(self) -> None:
         self.__consumer(EndResult(self.algorithm,
                                   self.instance,
+                                  self.objective,
+                                  self.encoding,
                                   self.rand_seed,
                                   self.best_f,
                                   self.last_improvement_fe,
@@ -595,6 +757,8 @@ class _InnerProgressLogParser(SetupAndStateParser):
         self.__consumer(EndResult(
             algorithm=self.algorithm,
             instance=self.instance,
+            objective=self.objective,
+            encoding=self.encoding,
             rand_seed=self.rand_seed,
             best_f=self.__stop_f,
             last_improvement_fe=self.__stop_li_fe,

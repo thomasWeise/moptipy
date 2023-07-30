@@ -2,7 +2,7 @@
 
 import statistics
 from dataclasses import dataclass
-from math import gcd, inf, isfinite, sqrt
+from math import gcd, inf, isfinite, nextafter, sqrt
 from typing import Callable, Final, Iterable, cast
 
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
@@ -21,7 +21,6 @@ from moptipy.utils.types import check_int_range, type_error
 
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(DBL_INT_LIMIT_P))
-_ULP: Final[float] = 1 - (2 ** (-53))
 
 #: The minimum value key.
 KEY_MINIMUM: Final[str] = "min"
@@ -54,7 +53,7 @@ _GETTERS: Final[dict[str, Callable[["Statistics"],
 }
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=True, eq=True)
 class Statistics:
     """An immutable record with statistics of one quantity."""
 
@@ -166,15 +165,17 @@ class Statistics:
                 if mean_geom < minimum:
                     raise ValueError(
                         f"mean_geom ({mean_geom}) must be >= "
-                        f"minimum ({minimum}) if n>1.")
+                        f"minimum ({minimum}) if (n={n})>1.")
                 if mean_geom > mean_arith:
                     raise ValueError(
                         f"mean_geom ({mean_geom}) must be <= "
-                        f"mean_arith ({mean_arith}) if n>1.")
-                if (mean_geom >= mean_arith) and (minimum < maximum):
+                        f"mean_arith ({mean_arith}) if (n={n})>1.")
+                if ((mean_geom >= mean_arith) and (minimum < maximum)
+                        and (((maximum - minimum) / (max(  # precision
+                            abs(maximum), abs(minimum)))) > 0.01)):
                     raise ValueError(
                         f"mean_geom ({mean_geom}) must be < "
-                        f"mean_arith ({mean_arith}) if n>1 and "
+                        f"mean_arith ({mean_arith}) if (n={n})>1 and "
                         f"minimum ({minimum}) < maximum ({maximum}).")
 
         if not isinstance(stddev, int | float):
@@ -317,13 +318,16 @@ class Statistics:
                     ((int_sum_sqr - (int_sum2 / i_n)) / (n - 1))
 
                 stddev = try_int(sqrt(var))
+                if (stddev == 0) and (minimum < maximum):
+                    stddev = statistics.stdev(source)
 
             if minimum > 0:  # geometric mean only defined for all-positive
                 if int_prod == 0:
                     mean_geom = 0  # geometric mean is 0 if product is 0
                 else:  # if not, geom_mean = prod ** (1/n)
                     mean_geom = try_int_root(int_prod, n, True)
-                    if mean_geom is None:
+                    if (mean_geom is None) or ((minimum < maximum) and (
+                            mean_geom >= mean_arith)):
                         mean_geom = statistics.geometric_mean(source)
         else:  # ok, we do not have only integer-like values
             mean_arith = try_int(statistics.mean(source))
@@ -335,12 +339,14 @@ class Statistics:
         if mean_geom is not None:
             # Deal with errors that may have arisen due to
             # numerical imprecision.
-            if (mean_geom < minimum) \
-                    and ((mean_geom / _ULP) >= (minimum * _ULP)):
+            if (mean_geom < minimum) and (nextafter(
+                    mean_geom, inf) >= nextafter(minimum, -inf)):
                 mean_geom = minimum
-            if (mean_geom > maximum) \
-                    and ((maximum / _ULP) >= (mean_geom * _ULP)):
-                mean_geom = maximum
+            upper_limit = mean_arith if (n > 1) else maximum
+            if (mean_geom > upper_limit) and ((nextafter(
+                    upper_limit, inf) >= nextafter(mean_geom, -inf)) or (
+                    (0.9999999999999 * mean_geom) <= upper_limit)):
+                mean_geom = upper_limit
 
         return Statistics(n=n,
                           minimum=minimum,

@@ -29,6 +29,8 @@ from moptipy.api.logging import (
 from moptipy.evaluation.base import (
     F_NAME_RAW,
     F_NAME_SCALED,
+    KEY_ENCODING,
+    KEY_OBJECTIVE_FUNCTION,
     TIME_UNIT_FES,
     TIME_UNIT_MILLIS,
     PerRunData,
@@ -48,7 +50,7 @@ from moptipy.utils.strings import num_to_str, str_to_intfloat
 from moptipy.utils.types import type_error
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class Progress(PerRunData):
     """An immutable record of progress information over a single run."""
 
@@ -72,6 +74,8 @@ class Progress(PerRunData):
     def __init__(self,
                  algorithm: str,
                  instance: str,
+                 objective: str,
+                 encoding: str | None,
                  rand_seed: int,
                  time: np.ndarray,
                  time_unit: str,
@@ -84,6 +88,9 @@ class Progress(PerRunData):
 
         :param algorithm: the algorithm name
         :param instance: the instance name
+        :param objective: the name of the objective function
+        :param encoding: the name of the encoding that was used, if any, or
+            `None` if no encoding was used
         :param rand_seed: the random seed
         :param time: the time axis data
         :param time_unit: the unit of the time axis
@@ -94,7 +101,7 @@ class Progress(PerRunData):
         :param only_improvements: enforce that f-values should be
             improving and time values increasing
         """
-        super().__init__(algorithm, instance, rand_seed)
+        super().__init__(algorithm, instance, objective, encoding, rand_seed)
 
         if not isinstance(time, np.ndarray):
             raise type_error(time, "time data", np.ndarray)
@@ -121,7 +128,7 @@ class Progress(PerRunData):
         object.__setattr__(self, "time_unit", check_time_unit(time_unit))
 
         mintime = 1 if time_unit == TIME_UNIT_FES else 0
-        if any(time < mintime):
+        if np.any(time < mintime):
             raise ValueError(f"No time value can be less than {mintime} if"
                              f" time unit is {time_unit}.")
 
@@ -210,21 +217,21 @@ class Progress(PerRunData):
 
         with path.open_for_write() as out:
             sep: Final[str] = CSV_SEPARATOR
+            write: Final[Callable[[str], int]] = out.write
             if put_header:
                 kv: Final[str] = KEY_VALUE_SEPARATOR
                 cmt: Final[str] = COMMENT_CHAR
-                out.write(
-                    f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
-                out.write(
-                    f"{cmt} {KEY_INSTANCE}{kv}{self.instance}\n")
-                out.write(f"{cmt} {KEY_RAND_SEED}{kv}"
-                          f"{hex(self.rand_seed)}\n")
+                write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
+                write(f"{cmt} {KEY_INSTANCE}{kv}{self.instance}\n")
+                write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}{kv}{self.objective}\n")
+                if self.encoding is not None:
+                    write(f"{cmt} {KEY_ENCODING}{kv}{self.objective}\n")
+                write(f"{cmt} {KEY_RAND_SEED}{kv}{hex(self.rand_seed)}\n")
                 if self.f_standard is not None:
-                    out.write(
-                        f"{cmt} {KEY_GOAL_F}{kv}{self.f_standard}\n")
-            out.write(f"{self.time_unit}{sep}{self.f_name}\n")
+                    write(f"{cmt} {KEY_GOAL_F}{kv}{self.f_standard}\n")
+            write(f"{self.time_unit}{sep}{self.f_name}\n")
             for i, t in enumerate(self.time):
-                out.write(f"{t}{sep}{num_to_str(self.f[i])}\n")
+                write(f"{t}{sep}{num_to_str(self.f[i])}\n")
 
         logger(f"Done writing progress object to CSV file {path!r}.")
 
@@ -317,6 +324,8 @@ class _InnerLogParser(SetupAndStateParser):
 
         self.__consumer(Progress(self.algorithm,
                                  self.instance,
+                                 self.objective,
+                                 self.encoding,
                                  self.rand_seed,
                                  np.array(self.__t_collector),
                                  self.__time_unit,

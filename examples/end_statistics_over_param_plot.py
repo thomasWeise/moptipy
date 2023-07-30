@@ -98,7 +98,8 @@ with TempDir.create() as td:  # create temporary directory `td`
     end_stats = []  # the end statistics go into this list
     EndStatistics.from_end_results(end_results, end_stats.append)
     EndStatistics.from_end_results(  # over all instances summary
-        end_results, end_stats.append, join_all_instances=True)
+        end_results, end_stats.append, join_all_instances=True,
+        join_all_objectives=True)
 
     files = []  # the collection of files
 

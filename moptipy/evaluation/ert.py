@@ -36,14 +36,18 @@ from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 
-import moptipy.api.logging as lg
-import moptipy.utils.nputils as npu
+from moptipy.api.logging import (
+    KEY_ALGORITHM,
+    KEY_INSTANCE,
+)
 from moptipy.evaluation._utils import _get_goal_reach_index
 from moptipy.evaluation.base import (
     F_NAME_NORMALIZED,
     F_NAME_RAW,
     F_NAME_SCALED,
+    KEY_ENCODING,
     KEY_N,
+    KEY_OBJECTIVE_FUNCTION,
     MultiRun2DData,
 )
 from moptipy.evaluation.progress import Progress
@@ -53,6 +57,7 @@ from moptipy.utils.logger import (
     CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
 )
+from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_all_finite
 from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error
@@ -82,10 +87,10 @@ def compute_single_ert(source: Iterable[Progress],
     >>> from numpy import array as a
     >>> f = "plainF"
     >>> t = "FEs"
-    >>> r = [Pr("a", "i", 1, a([1, 4, 8]), t, a([10, 8, 5]), f),
-    ...      Pr("a", "i", 2, a([1, 3, 6]), t, a([9, 7, 4]), f),
-    ...      Pr("a", "i", 3, a([1, 2, 7, 9]), t, a([8, 7, 6, 3]), f),
-    ...      Pr("a", "i", 4, a([1, 12]), t, a([9, 3]), f)]
+    >>> r = [Pr("a", "i", "f", "e", 1, a([1, 4, 8]), t, a([10, 8, 5]), f),
+    ...      Pr("a", "i", "f", "e", 2, a([1, 3, 6]), t, a([9, 7, 4]), f),
+    ...      Pr("a", "i", "f", "e", 3, a([1, 2, 7, 9]), t, a([8, 7, 6, 3]), f),
+    ...      Pr("a", "i", "f", "e", 4, a([1, 12]), t, a([9, 3]), f)]
     >>> print(compute_single_ert(r, 11))
     1.0
     >>> print(compute_single_ert(r, 10))
@@ -139,7 +144,7 @@ def compute_single_ert(source: Iterable[Progress],
     return time_sum / n_success
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class Ert(MultiRun2DData):
     """Estimate the Expected Running Time (ERT)."""
 
@@ -149,6 +154,8 @@ class Ert(MultiRun2DData):
     def __init__(self,
                  algorithm: str | None,
                  instance: str | None,
+                 objective: str | None,
+                 encoding: str | None,
                  n: int,
                  time_unit: str,
                  f_name: str,
@@ -160,18 +167,23 @@ class Ert(MultiRun2DData):
             algorithm
         :param instance: the instance name, if all runs are on the same
             instance
+        :param objective: the objective name, if all runs are on the same
+            objective function, `None` otherwise
+        :param encoding: the encoding name, if all runs are on the same
+            encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         :param time_unit: the time unit
         :param f_name: the objective dimension name
         :param ert: the ert matrix
         """
-        super().__init__(algorithm, instance, n, time_unit, f_name)
+        super().__init__(algorithm, instance, objective, encoding, n,
+                         time_unit, f_name)
         if not isinstance(ert, np.ndarray):
             raise type_error(ert, "ert", np.ndarray)
         ert.flags.writeable = False
 
         f: Final[np.ndarray] = ert[:, 0]
-        if not npu.is_all_finite(f):
+        if not is_all_finite(f):
             raise ValueError(
                 f"Ert x-axis must be all finite, but encountered {f}.")
         ll = f.size
@@ -181,7 +193,7 @@ class Ert(MultiRun2DData):
 
         t: Final[np.ndarray] = ert[:, 1]
         if np.isfinite(t[0]) or (np.isposinf(t[0])):
-            if not npu.is_all_finite(t[1:]):
+            if not is_all_finite(t[1:]):
                 raise ValueError(
                     "non-first ert y-axis elements must be all finite.")
             if np.any(t[1:] >= t[:-1]):
@@ -206,21 +218,23 @@ class Ert(MultiRun2DData):
 
         with path.open_for_write() as out:
             sep: Final[str] = CSV_SEPARATOR
+            write: Callable[[str], int] = out.write
             if put_header:
                 kv: Final[str] = KEY_VALUE_SEPARATOR
                 cmt: Final[str] = COMMENT_CHAR
                 if self.algorithm is not None:
-                    out.write(
-                        f"{cmt} {lg.KEY_ALGORITHM}{kv}{self.algorithm}\n")
+                    write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
                 if self.instance is not None:
-                    out.write(
-                        f"{cmt} {lg.KEY_INSTANCE}{kv}{self.instance}\n")
-                out.write(
-                    f"{cmt} {KEY_N}{kv}{self.n}\n")
-            out.write(f"{self.f_name}{sep}ert[{self.time_unit}]\n")
+                    write(f"{cmt} {KEY_INSTANCE}{kv}{self.instance}\n")
+                if self.objective is not None:
+                    write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}{kv}"
+                          f"{self.objective}\n")
+                if self.encoding is not None:
+                    write(f"{cmt} {KEY_ENCODING}{kv}{self.encoding}\n")
+                write(f"{cmt} {KEY_N}{kv}{self.n}\n")
+            write(f"{self.f_name}{sep}ert[{self.time_unit}]\n")
             for v in self.ert:
-                out.write(
-                    f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
+                write(f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
 
         logger(f"Done writing ERT to CSV file {path!r}.")
 
@@ -255,6 +269,8 @@ class Ert(MultiRun2DData):
 
         algorithm: str | None = None
         instance: str | None = None
+        objective: str | None = None
+        encoding: str | None = None
         time_unit: str | None = None
         f_name: str | None = None
         f_list: list[np.ndarray] = []
@@ -269,6 +285,8 @@ class Ert(MultiRun2DData):
             if n <= 0:
                 algorithm = progress.algorithm
                 instance = progress.instance
+                objective = progress.objective
+                encoding = progress.encoding
                 time_unit = progress.time_unit
                 f_name = progress.f_name
             else:
@@ -276,6 +294,10 @@ class Ert(MultiRun2DData):
                     algorithm = None
                 if instance != progress.instance:
                     instance = None
+                if objective != progress.objective:
+                    objective = None
+                if encoding != progress.encoding:
+                    encoding = None
                 if time_unit != progress.time_unit:
                     raise ValueError(
                         f"Cannot mix time units {time_unit} "
@@ -321,8 +343,8 @@ class Ert(MultiRun2DData):
 
         # prepare for backward iteration over arrays
         indices = np.array([(ppr.f.size - 1) for ppr in prgs],
-                           dtype=npu.DEFAULT_INT)
-        y = np.empty(base_len, dtype=npu.DEFAULT_FLOAT)
+                           dtype=DEFAULT_INT)
+        y = np.empty(base_len, dtype=DEFAULT_FLOAT)
 
         for out_index in range(base_len):
             f_lim = x[out_index]
@@ -349,7 +371,7 @@ class Ert(MultiRun2DData):
         # convert the two arrays into one matrix
         ert = np.concatenate((x, y)).reshape((base_len, 2), order="F")
 
-        return Ert(algorithm, instance, n,
+        return Ert(algorithm, instance, objective, encoding, n,
                    time_unit, f_name, ert)
 
     @staticmethod
@@ -358,7 +380,9 @@ class Ert(MultiRun2DData):
                         f_lower_bound: float | None = None,
                         use_default_lower_bounds: bool = True,
                         join_all_algorithms: bool = False,
-                        join_all_instances: bool = False) -> None:
+                        join_all_instances: bool = False,
+                        join_all_objectives: bool = False,
+                        join_all_encodings: bool = False) -> None:
         """
         Compute one or multiple ERTs from a stream of end results.
 
@@ -372,6 +396,10 @@ class Ert(MultiRun2DData):
             algorithms
         :param join_all_instances: should the Ert be aggregated over all
             algorithms
+        :param join_all_objectives: should the statistics be aggregated over
+            all objective functions?
+        :param join_all_encodings: should the statistics be aggregated over
+            all encodings?
         """
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
@@ -382,18 +410,21 @@ class Ert(MultiRun2DData):
         if not isinstance(join_all_instances, bool):
             raise type_error(join_all_instances, "join_all_instances", bool)
 
-        if join_all_algorithms and join_all_instances:
+        if (join_all_algorithms and join_all_instances and join_all_objectives
+                and join_all_encodings):
             consumer(Ert.create(source, f_lower_bound,
                                 use_default_lower_bounds))
             return
 
-        sorter: dict[str, list[Progress]] = {}
+        sorter: dict[tuple[str, str, str, str], list[Progress]] = {}
         for er in source:
             if not isinstance(er, Progress):
                 raise type_error(er, "progress source", Progress)
-            key = er.instance if join_all_algorithms else \
-                er.algorithm if join_all_instances else \
-                f"{er.algorithm}/{er.instance}"
+            key = ("" if join_all_algorithms else er.algorithm,
+                   "" if join_all_instances else er.instance,
+                   "" if join_all_objectives else er.objective,
+                   "" if join_all_encodings else (
+                       "" if er.encoding is None else er.encoding))
             if key in sorter:
                 lst = sorter[key]
             else:
@@ -405,8 +436,7 @@ class Ert(MultiRun2DData):
             raise ValueError("source must not be empty")
 
         if len(sorter) > 1:
-            keyz = list(sorter.keys())
-            keyz.sort()
+            keyz = sorted(sorter.keys())
             for key in keyz:
                 consumer(Ert.create(sorter[key], f_lower_bound,
                                     use_default_lower_bounds))

@@ -1,7 +1,7 @@
 """Compute the end result of one mock run."""
 
 from dataclasses import dataclass
-from math import ceil, inf
+from math import ceil
 from typing import Final
 
 from numpy.random import Generator
@@ -33,14 +33,14 @@ def end_result(performance: BasePerformance, seed: int,
     if not isinstance(performance, BasePerformance):
         raise type_error(performance, "performance", BasePerformance)
 
-    limit_time: int | float = inf
-    limit_fes: int | float = inf
+    limit_time: int = 1_000_000_000_000
+    limit_fes: int = 1_000_000_000_000
     if max_time_millis is not None:
         limit_time = check_int_range(
-            max_time_millis, "max_time_millis", 11, 1_000_000_000_000_000)
+            max_time_millis, "max_time_millis", 11, 1_000_000_000_000)
     if max_fes is not None:
         limit_fes = check_int_range(
-            max_fes, "max_fes", 11, 1_000_000_000_000_000)
+            max_fes, "max_fes", 11, 1_000_000_000_000)
 
     # The random number generator is determined by the seed.
     random: Final[Generator] = rand_generator(seed)
@@ -55,7 +55,7 @@ def end_result(performance: BasePerformance, seed: int,
     total_time: int
     total_fes: int
     trials: int
-    if max_time_millis:
+    if max_time_millis is not None:
         total_time = int(max_time_millis + abs(random.normal(
             loc=0, scale=5 * jitter)))
         total_fes = -1
@@ -69,7 +69,7 @@ def end_result(performance: BasePerformance, seed: int,
         if trials >= 10000:
             total_fes = int(min(limit_fes, 10000.0))
     else:
-        total_fes = max_fes if max_fes else 1_000_000
+        total_fes = max_fes if max_fes is not None else 1_000_000
         total_time = -1
         trials = 0
         while ((total_time <= 10) or (total_time > limit_time)) \
@@ -78,7 +78,7 @@ def end_result(performance: BasePerformance, seed: int,
                 loc=max(10.0, total_fes * (speed ** 3)),
                 scale=max(10.0, 100.0 / speed)))
         if trials >= 10000:
-            total_time = int(min(limit_time, 10000.0))
+            total_time = int(min(limit_time, 10000))
 
     # We now look for the vicinity of the local optimum that will be found.
     # We use the quality to determine which attractor to use.
@@ -96,7 +96,12 @@ def end_result(performance: BasePerformance, seed: int,
     att_index: int = -1
     best: Final[int] = performance.instance.best
     worst: Final[int] = performance.instance.worst
+    att_trials: int = 1000
     while (att_index < 0) or (att_index >= (attn - 1)):
+        att_trials -= 1
+        if att_trials <= 0:
+            att_index = attn // 2
+            break
         att_index = int(random.normal(loc=attn * (qual ** 1.7),
                                       scale=jitter ** 0.9))
     base: Final[int] = att[att_index]
@@ -138,6 +143,7 @@ def end_result(performance: BasePerformance, seed: int,
     res: Final[EndResult] = EndResult(
         algorithm=performance.algorithm.name,
         instance=performance.instance.name,
+        objective="f", encoding="e",
         rand_seed=seed,
         best_f=best_f,
         last_improvement_fe=last_improvement_fe,

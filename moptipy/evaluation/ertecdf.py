@@ -32,7 +32,7 @@ from moptipy.evaluation.ert import compute_single_ert
 from moptipy.evaluation.progress import Progress
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class ErtEcdf(Ecdf):
     """The ERT-ECDF."""
 

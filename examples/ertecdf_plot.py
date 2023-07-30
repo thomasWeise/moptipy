@@ -79,7 +79,7 @@ with TempDir.create() as td:  # create temporary directory `td`
     # The below function uses the goal objective values from the log files to
     # compute the ERT-ECDF functions. It groups all runs of one algorithm
     # together and then computes the algorithm's overall ECDF.
-    ErtEcdf.from_progresses(data, ertecdf.append)
+    ErtEcdf.from_progresses(data, ertecdf.append, join_all_objectives=True)
 
     # Plot the ERT-ECDF functions.
     # This function will automatically pick the labels of the axes and choose

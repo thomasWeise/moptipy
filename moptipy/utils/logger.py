@@ -112,7 +112,7 @@ class Logger(AbstractContextManager):
 
         :param message: the message elements to merge
         :raises ValueError: an error with the message and some context
-        information
+            information
         """
         raise ValueError(f"{message} in logger {self.__log_name!r}."
                          if self.__section is None else

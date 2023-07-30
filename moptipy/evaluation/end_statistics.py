@@ -14,12 +14,27 @@ from dataclasses import dataclass
 from math import ceil, inf
 from typing import Any, Callable, Final, Iterable, Union
 
-import moptipy.api.logging as log
-from moptipy.evaluation._utils import _check_max_time_millis
+from moptipy.api.logging import (
+    KEY_ALGORITHM,
+    KEY_BEST_F,
+    KEY_GOAL_F,
+    KEY_INSTANCE,
+    KEY_LAST_IMPROVEMENT_FE,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+    KEY_MAX_FES,
+    KEY_MAX_TIME_MILLIS,
+    KEY_TOTAL_FES,
+    KEY_TOTAL_TIME_MILLIS,
+)
+from moptipy.evaluation._utils import (
+    _check_max_time_millis,
+)
 from moptipy.evaluation.base import (
     F_NAME_RAW,
     F_NAME_SCALED,
+    KEY_ENCODING,
     KEY_N,
+    KEY_OBJECTIVE_FUNCTION,
     MultiRunData,
 )
 from moptipy.evaluation.end_results import EndResult
@@ -38,7 +53,7 @@ from moptipy.utils.strings import num_to_str, sanitize_name, str_to_intfloat
 from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 #: The key for the best F.
-KEY_BEST_F_SCALED: Final[str] = log.KEY_BEST_F + "scaled"
+KEY_BEST_F_SCALED: Final[str] = KEY_BEST_F + "scaled"
 #: The key for the number of successful runs.
 KEY_N_SUCCESS: Final[str] = "successN"
 #: The key for the success FEs.
@@ -56,33 +71,33 @@ _GETTERS_0: Final[dict[str, Callable[["EndStatistics"],
     KEY_N_SUCCESS: lambda s: s.n_success,
     KEY_ERT_FES: lambda s: s.ert_fes,
     KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis,
-    log.KEY_GOAL_F: lambda s: s.goal_f if isinstance(s.goal_f,
-                                                     int | float) else None,
-    log.KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis
+    KEY_GOAL_F: lambda s: s.goal_f if isinstance(s.goal_f,
+                                                 int | float) else None,
+    KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis
     if isinstance(s.max_time_millis, int | float) else None,
-    log.KEY_MAX_FES: lambda s: s.max_fes
+    KEY_MAX_FES: lambda s: s.max_fes
     if isinstance(s.max_fes, int | float) else None,
 }
 
 #: the internal getters that access end statistics
 _GETTERS_1: Final[dict[
     str, Callable[["EndStatistics"], int | float | Statistics | None]]] = {
-    log.KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
-    log.KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+    KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS:
         lambda s: s.last_improvement_time_millis,
-    log.KEY_TOTAL_FES: lambda s: s.total_fes,
-    log.KEY_TOTAL_TIME_MILLIS: lambda s: s.total_time_millis,
+    KEY_TOTAL_FES: lambda s: s.total_fes,
+    KEY_TOTAL_TIME_MILLIS: lambda s: s.total_time_millis,
     F_NAME_RAW: lambda s: s.best_f,
     F_NAME_SCALED: lambda s: s.best_f_scaled,
-    log.KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis,
-    log.KEY_MAX_FES: lambda s: s.max_fes,
-    log.KEY_GOAL_F: lambda s: s.goal_f,
+    KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis,
+    KEY_MAX_FES: lambda s: s.max_fes,
+    KEY_GOAL_F: lambda s: s.goal_f,
 }
-_GETTERS_1[log.KEY_BEST_F] = _GETTERS_1[F_NAME_RAW]
+_GETTERS_1[KEY_BEST_F] = _GETTERS_1[F_NAME_RAW]
 _GETTERS_1[KEY_BEST_F_SCALED] = _GETTERS_1[F_NAME_SCALED]
 
 
-@dataclass(frozen=True, init=False, order=True)
+@dataclass(frozen=True, init=False, order=False, eq=False)
 class EndStatistics(MultiRunData):
     """
     Statistics over end results of one or multiple algorithm*instance setups.
@@ -126,6 +141,8 @@ class EndStatistics(MultiRunData):
     def __init__(self,
                  algorithm: str | None,
                  instance: str | None,
+                 objective: str | None,
+                 encoding: str | None,
                  n: int,
                  best_f: Statistics,
                  last_improvement_fe: Statistics,
@@ -148,6 +165,10 @@ class EndStatistics(MultiRunData):
             algorithm
         :param instance: the instance name, if all runs are on the same
             instance
+        :param objective: the objective name, if all runs are on the same
+            objective function, `None` otherwise
+        :param encoding: the encoding name, if all runs are on the same
+            encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         :param best_f: statistics about the best achieved result
         :param last_improvement_fe: statistics about the last improvement FE
@@ -179,9 +200,9 @@ class EndStatistics(MultiRunData):
             the empirically estimated running time to solve the problem in
             milliseconds if `n_success>0` and `inf` otherwise
         :param max_fes: the budget in FEs, if any
-        :param max_time_millis: the budget in term of milliseconds
+        :param max_time_millis: the budget in terms of milliseconds
         """
-        super().__init__(algorithm, instance, n)
+        super().__init__(algorithm, instance, objective, encoding, n)
 
         if not isinstance(best_f, Statistics):
             raise type_error(best_f, "best_f", Statistics)
@@ -431,6 +452,8 @@ class EndStatistics(MultiRunData):
         time: int = 0
         algorithm: str | None = None
         instance: str | None = None
+        objective: str | None = None
+        encoding: str | None = None
 
         for er in source:
             if not isinstance(er, EndResult):
@@ -438,11 +461,17 @@ class EndStatistics(MultiRunData):
             if n == 0:
                 algorithm = er.algorithm
                 instance = er.instance
+                objective = er.objective
+                encoding = er.encoding
             else:
                 if algorithm != er.algorithm:
                     algorithm = None
                 if instance != er.instance:
                     instance = None
+                if objective != er.objective:
+                    objective = None
+                if encoding != er.encoding:
+                    encoding = None
             n += 1
             best_f.append(er.best_f)
             last_improvement_fe.append(er.last_improvement_fe)
@@ -497,6 +526,8 @@ class EndStatistics(MultiRunData):
         return EndStatistics(
             algorithm,
             instance,
+            objective,
+            encoding,
             n,
             Statistics.create(best_f),
             Statistics.create(last_improvement_fe),
@@ -526,7 +557,9 @@ class EndStatistics(MultiRunData):
     def from_end_results(source: Iterable[EndResult],
                          consumer: Callable[["EndStatistics"], Any],
                          join_all_algorithms: bool = False,
-                         join_all_instances: bool = False) -> None:
+                         join_all_instances: bool = False,
+                         join_all_objectives: bool = False,
+                         join_all_encodings: bool = False) -> None:
         """
         Aggregate statistics over a stream of end results.
 
@@ -537,6 +570,10 @@ class EndStatistics(MultiRunData):
             over all algorithms
         :param join_all_instances: should the statistics be aggregated
             over all algorithms
+        :param join_all_objectives: should the statistics be aggregated over
+            all objectives?
+        :param join_all_encodings: should statistics be aggregated over all
+            encodings
         """
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
@@ -547,18 +584,26 @@ class EndStatistics(MultiRunData):
                              "join_all_algorithms", bool)
         if not isinstance(join_all_instances, bool):
             raise type_error(join_all_instances, "join_all_instances", bool)
+        if not isinstance(join_all_objectives, bool):
+            raise type_error(join_all_objectives, "join_all_objectives", bool)
+        if not isinstance(join_all_encodings, bool):
+            raise type_error(join_all_encodings, "join_all_encodings", bool)
 
-        if join_all_algorithms and join_all_instances:
+        if (join_all_algorithms and join_all_instances
+                and join_all_objectives and join_all_encodings):
             consumer(EndStatistics.create(source))
             return
 
-        sorter: dict[tuple[str, str], list[EndResult]] = {}
+        sorter: dict[tuple[str, str, str, str], list[EndResult]] = {}
         for er in source:
             if not isinstance(er, EndResult):
                 raise type_error(source, "end results from source",
                                  EndResult)
             key = ("" if join_all_algorithms else er.algorithm,
-                   "" if join_all_instances else er.instance)
+                   "" if join_all_instances else er.instance,
+                   "" if join_all_objectives else er.objective,
+                   "" if join_all_encodings else (
+                       "" if er.encoding is None else er.encoding))
             if key in sorter:
                 lst = sorter[key]
             else:
@@ -593,16 +638,18 @@ class EndStatistics(MultiRunData):
 
         has_algorithm: bool = False  # 1
         has_instance: bool = False  # 2
-        has_goal_f: int = 0  # 4
-        has_best_f_scaled: bool = False  # 8
-        has_n_success: bool = False  # 16
-        has_success_fes: bool = False  # 32
-        has_success_time_millis: bool = False  # 64
-        has_ert_fes: bool = False  # 128
-        has_ert_time_millis: bool = False  # 256
-        has_max_fes: int = 0  # 512
-        has_max_time_millis: int = 0  # 1024
-        checker: int = 2047
+        has_objective: bool = False  # 4
+        has_encoding: bool = False  # 8
+        has_goal_f: int = 0  # 16
+        has_best_f_scaled: bool = False  # 32
+        has_n_success: bool = False  # 64
+        has_success_fes: bool = False  # 128
+        has_success_time_millis: bool = False  # 256
+        has_ert_fes: bool = False  # 512
+        has_ert_time_millis: bool = False  # 1024
+        has_max_fes: int = 0  # 2048
+        has_max_time_millis: int = 0  # 4096
+        checker: int = 8191
 
         if isinstance(data, EndStatistics):
             data = [data]
@@ -614,36 +661,42 @@ class EndStatistics(MultiRunData):
             if es.instance is not None:
                 has_instance = True
                 checker &= ~2
+            if es.objective is not None:
+                has_objective = True
+                checker &= ~4
+            if es.encoding is not None:
+                has_encoding = True
+                checker &= ~8
             if es.goal_f is not None:
                 if isinstance(es.goal_f, Statistics) \
                         and (es.goal_f.maximum > es.goal_f.minimum):
                     has_goal_f = 2
-                    checker &= ~4
+                    checker &= ~16
                 elif has_goal_f == 0:
                     has_goal_f = 1
             if es.best_f_scaled is not None:
                 has_best_f_scaled = True
-                checker &= ~8
+                checker &= ~32
             if es.n_success is not None:
                 has_n_success = True
-                checker &= ~8
+                checker &= ~64
             if es.success_fes is not None:
                 has_success_fes = True
-                checker &= ~32
+                checker &= ~128
             if es.success_time_millis is not None:
                 has_success_time_millis = True
-                checker &= ~64
+                checker &= ~256
             if es.ert_fes is not None:
                 has_ert_fes = True
-                checker &= ~128
+                checker &= ~512
             if es.ert_time_millis is not None:
                 has_ert_time_millis = True
-                checker &= ~256
+                checker &= ~1024
             if es.max_fes is not None:
                 if isinstance(es.max_fes, Statistics) \
                         and (es.max_fes.maximum > es.max_fes.minimum):
                     has_max_fes = 2
-                    checker &= ~512
+                    checker &= ~2048
                 elif has_max_fes == 0:
                     has_max_fes = 1
             if es.max_time_millis is not None:
@@ -651,7 +704,7 @@ class EndStatistics(MultiRunData):
                         and (es.max_time_millis.maximum
                              > es.max_time_millis.minimum):
                     has_max_time_millis = 2
-                    checker &= ~1024
+                    checker &= ~4096
                 elif has_max_time_millis == 0:
                     has_max_time_millis = 1
             if checker == 0:
@@ -661,10 +714,16 @@ class EndStatistics(MultiRunData):
             wrt: Final[Callable] = out.write
             sep: Final[str] = CSV_SEPARATOR
             if has_algorithm:
-                wrt(log.KEY_ALGORITHM)
+                wrt(KEY_ALGORITHM)
                 wrt(sep)
             if has_instance:
-                wrt(log.KEY_INSTANCE)
+                wrt(KEY_INSTANCE)
+                wrt(sep)
+            if has_objective:
+                wrt(KEY_OBJECTIVE_FUNCTION)
+                wrt(sep)
+            if has_encoding:
+                wrt(KEY_ENCODING)
                 wrt(sep)
 
             def h(p) -> None:
@@ -672,21 +731,21 @@ class EndStatistics(MultiRunData):
 
             wrt(KEY_N)
             wrt(sep)
-            h(log.KEY_BEST_F)
+            h(KEY_BEST_F)
             wrt(sep)
-            h(log.KEY_LAST_IMPROVEMENT_FE)
+            h(KEY_LAST_IMPROVEMENT_FE)
             wrt(sep)
-            h(log.KEY_LAST_IMPROVEMENT_TIME_MILLIS)
+            h(KEY_LAST_IMPROVEMENT_TIME_MILLIS)
             wrt(sep)
-            h(log.KEY_TOTAL_FES)
+            h(KEY_TOTAL_FES)
             wrt(sep)
-            h(log.KEY_TOTAL_TIME_MILLIS)
+            h(KEY_TOTAL_TIME_MILLIS)
             if has_goal_f == 1:
                 wrt(sep)
-                wrt(log.KEY_GOAL_F)
+                wrt(KEY_GOAL_F)
             elif has_goal_f == 2:
                 wrt(sep)
-                h(log.KEY_GOAL_F)
+                h(KEY_GOAL_F)
             if has_best_f_scaled:
                 wrt(sep)
                 h(KEY_BEST_F_SCALED)
@@ -707,16 +766,16 @@ class EndStatistics(MultiRunData):
                 wrt(KEY_ERT_TIME_MILLIS)
             if has_max_fes == 1:
                 wrt(sep)
-                wrt(log.KEY_MAX_FES)
+                wrt(KEY_MAX_FES)
             elif has_max_fes == 2:
                 wrt(sep)
-                h(log.KEY_MAX_FES)
+                h(KEY_MAX_FES)
             if has_max_time_millis == 1:
                 wrt(sep)
-                wrt(log.KEY_MAX_TIME_MILLIS)
+                wrt(KEY_MAX_TIME_MILLIS)
             elif has_max_time_millis == 2:
                 wrt(sep)
-                h(log.KEY_MAX_TIME_MILLIS)
+                h(KEY_MAX_TIME_MILLIS)
             out.write("\n")
 
             csv: Final[Callable] = Statistics.value_to_csv
@@ -730,6 +789,14 @@ class EndStatistics(MultiRunData):
                 if has_instance:
                     if er.instance is not None:
                         wrt(er.instance)
+                    wrt(sep)
+                if has_objective:
+                    if er.objective is not None:
+                        wrt(er.objective)
+                    wrt(sep)
+                if has_encoding:
+                    if er.encoding is not None:
+                        wrt(er.encoding)
                     wrt(sep)
                 wrt(str(er.n))
                 wrt(sep)
@@ -845,19 +912,25 @@ class EndStatistics(MultiRunData):
                     f"Invalid header {headerstr!r} in file {file!r}.")
 
             idx = 0
-            has_algorithm: bool
-            if header[0] == log.KEY_ALGORITHM:
+            has_algorithm: bool = False
+            if header[0] == KEY_ALGORITHM:
                 has_algorithm = True
                 idx = 1
-            else:
-                has_algorithm = False
 
-            has_instance: bool
-            if header[idx] == log.KEY_INSTANCE:
+            has_instance: bool = False
+            if header[idx] == KEY_INSTANCE:
                 has_instance = True
                 idx += 1
-            else:
-                has_instance = False
+
+            has_objective: bool = False
+            if header[idx] == KEY_OBJECTIVE_FUNCTION:
+                has_objective = True
+                idx += 1
+
+            has_encoding: bool = False
+            if header[idx] == KEY_ENCODING:
+                has_encoding = True
+                idx += 1
 
             csv: Final[Callable] = Statistics.csv_col_names
 
@@ -867,9 +940,9 @@ class EndStatistics(MultiRunData):
                     f"in header {headerstr!r} of file {path!r}.")
             idx += 1
 
-            for key in [log.KEY_BEST_F, log.KEY_LAST_IMPROVEMENT_FE,
-                        log.KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                        log.KEY_TOTAL_FES, log.KEY_TOTAL_TIME_MILLIS]:
+            for key in [KEY_BEST_F, KEY_LAST_IMPROVEMENT_FE,
+                        KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                        KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS]:
                 if csv(key) != header[idx:(idx + CSV_COLS)]:
                     raise ValueError(
                         f"Expected to find '{key}.*' keys from index "
@@ -888,14 +961,14 @@ class EndStatistics(MultiRunData):
             has_max_fes: int = 0
             has_max_time: int = 0
             while idx <= len(header):
-                if header[idx] == log.KEY_GOAL_F:
+                if header[idx] == KEY_GOAL_F:
                     has_goal_f = 1
                     idx += 1
-                elif header[idx].startswith(log.KEY_GOAL_F):
+                elif header[idx].startswith(KEY_GOAL_F):
                     has_goal_f = 2
-                    if csv(log.KEY_GOAL_F) != header[idx:(idx + CSV_COLS)]:
+                    if csv(KEY_GOAL_F) != header[idx:(idx + CSV_COLS)]:
                         raise ValueError(
-                            f"Expected to find '{log.KEY_GOAL_F}.*' keys from "
+                            f"Expected to find '{KEY_GOAL_F}.*' keys from "
                             f"index {idx} on in header "
                             f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
@@ -962,14 +1035,14 @@ class EndStatistics(MultiRunData):
                 if idx >= len(header):
                     break
 
-                if header[idx] == log.KEY_MAX_FES:
+                if header[idx] == KEY_MAX_FES:
                     has_max_fes = 1
                     idx += 1
-                elif header[idx].startswith(log.KEY_MAX_FES):
+                elif header[idx].startswith(KEY_MAX_FES):
                     has_max_fes = 2
-                    if csv(log.KEY_MAX_FES) != header[idx:(idx + CSV_COLS)]:
+                    if csv(KEY_MAX_FES) != header[idx:(idx + CSV_COLS)]:
                         raise ValueError(
-                            f"Expected to find '{log.KEY_MAX_FES}.*' keys"
+                            f"Expected to find '{KEY_MAX_FES}.*' keys"
                             f" from index {idx} on in header "
                             f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
@@ -977,14 +1050,14 @@ class EndStatistics(MultiRunData):
                 if idx >= len(header):
                     break
 
-                if header[idx] == log.KEY_MAX_TIME_MILLIS:
+                if header[idx] == KEY_MAX_TIME_MILLIS:
                     has_max_time = 1
                     idx += 1
-                elif header[idx].startswith(log.KEY_MAX_TIME_MILLIS):
+                elif header[idx].startswith(KEY_MAX_TIME_MILLIS):
                     has_max_time = 2
-                    if csv(log.KEY_MAX_FES) != header[idx:(idx + CSV_COLS)]:
+                    if csv(KEY_MAX_FES) != header[idx:(idx + CSV_COLS)]:
                         raise ValueError(
-                            f"Expected to find '{log.KEY_MAX_TIME_MILLIS}.*' "
+                            f"Expected to find '{KEY_MAX_TIME_MILLIS}.*' "
                             f"keys from index {idx} on in header "
                             f"{headerstr!r} of file {path!r}.")
                     idx += CSV_COLS
@@ -1004,8 +1077,10 @@ class EndStatistics(MultiRunData):
                     row = [ss.strip() for ss in line.strip().split(sep)]
 
                     idx = 0
-                    algo: str | None = None
-                    inst: str | None = None
+                    algorithm: str | None = None
+                    instance: str | None = None
+                    objective: str | None = None
+                    encoding: str | None = None
                     n: int
                     goal_f: None | int | float | Statistics = None
                     best_f_scaled: Statistics | None = None
@@ -1019,11 +1094,19 @@ class EndStatistics(MultiRunData):
 
                     try:
                         if has_algorithm:
-                            algo = sanitize_name(row[0])
+                            algorithm = sanitize_name(row[0])
                             idx += 1
 
                         if has_instance:
-                            inst = sanitize_name(row[idx])
+                            instance = sanitize_name(row[idx])
+                            idx += 1
+
+                        if has_objective:
+                            objective = sanitize_name(row[idx])
+                            idx += 1
+
+                        if has_encoding:
+                            encoding = sanitize_name(row[idx])
                             idx += 1
 
                         n = int(row[idx])
@@ -1112,10 +1195,11 @@ class EndStatistics(MultiRunData):
                         raise ValueError("Invalid number of columns in row "
                                          f"{line!r} in file {path!r}.")
                     consumer(EndStatistics(
-                        algo, inst, n, best_f, last_improv_fe,
-                        last_improv_time, total_fes, total_time, goal_f,
-                        best_f_scaled, n_success, success_fes, success_time,
-                        ert_fes, ert_time, max_fes, max_time))
+                        algorithm, instance, objective, encoding, n, best_f,
+                        last_improv_fe, last_improv_time, total_fes,
+                        total_time, goal_f, best_f_scaled, n_success,
+                        success_fes, success_time, ert_fes, ert_time, max_fes,
+                        max_time))
 
         logger("Finished reading end result statistics from CSV "
                f"file {path!r}.")
@@ -1210,6 +1294,16 @@ if __name__ == "__main__":
         help="compute statistics over all instances, i.e., the statistics"
              " are not separated by instance but all instances are treated "
              "as one", action="store_true")
+    parser.add_argument(
+        "--join_objectives",
+        help="compute statistics over all objective functions, i.e., the "
+             "statistics are not separated by objective functions but all "
+             "objectives functions are treated as one", action="store_true")
+    parser.add_argument(
+        "--join_encodings",
+        help="compute statistics over all encodings, i.e., the statistics"
+             " are not separated by encodings but all encodings are treated "
+             "as one", action="store_true")
     args: Final[argparse.Namespace] = parser.parse_args()
 
     src_path: Final[Path] = args.source
@@ -1225,5 +1319,7 @@ if __name__ == "__main__":
     EndStatistics.from_end_results(
         source=end_results, consumer=end_stats.append,
         join_all_algorithms=args.join_algorithms,
-        join_all_instances=args.join_instances)
+        join_all_instances=args.join_instances,
+        join_all_objectives=args.join_objectives,
+        join_all_encodings=args.join_encodings)
     EndStatistics.to_csv(end_stats, args.dest)

@@ -14,8 +14,7 @@ def test_stat_runs() -> None:
     inst0: Final[str] = "i0"
     tu: Final[str] = prg.TIME_UNIT_FES
     fn: Final[str] = prg.F_NAME_RAW
-    p0: Final[Progress] = Progress(algo0,
-                                   inst0,
+    p0: Final[Progress] = Progress(algo0, inst0, "f", "e",
                                    0,
                                    np.array([10, 20, 30, 40, 50, 60, 70]),
                                    tu,
@@ -42,8 +41,7 @@ def test_stat_runs() -> None:
                                 [60.0, 50.0],
                                 [70.0, 40.0]])).all()
 
-    p1: Final[Progress] = Progress(algo0,
-                                   inst0,
+    p1: Final[Progress] = Progress(algo0, inst0, "f", "e",
                                    0,
                                    np.array([5, 20, 35, 70, 90]),
                                    tu,
