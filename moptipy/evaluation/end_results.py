@@ -518,16 +518,9 @@ class EndResult(PerRunData):
         logger(f"Now reading CSV file {path!r}.")
 
         with path.open_for_read() as rd:
-            header_rows: list[str] = rd.readlines(1)
-            if (header_rows is None) or (len(header_rows) <= 0):
-                raise ValueError(f"No line in file {file!r}.")
-            header = header_rows[0]
+            header = rd.readline()
             if not isinstance(header, str):
                 raise type_error(header, f"{file!r}[0]", str)
-            header = header.strip()
-            if not header.startswith(_HEADER_1):
-                raise ValueError(f"header of {file!r} should start with "
-                                 f"{_HEADER_1!r} but is {header!r}")
 
             idx_algorithm: int = -1
             idx_instance: int = -1
@@ -543,7 +536,8 @@ class EndResult(PerRunData):
             idx_max_fes: int = -1
             idx_max_ms: int = -1
 
-            for i, cell in enumerate(header.split(CSV_SEPARATOR)):
+            for i, cellstr in enumerate(header.strip().split(CSV_SEPARATOR)):
+                cell = cellstr.strip()
                 if cell == KEY_ALGORITHM:
                     idx_algorithm = i
                 elif cell == KEY_INSTANCE:

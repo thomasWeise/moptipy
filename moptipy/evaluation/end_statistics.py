@@ -901,12 +901,11 @@ class EndStatistics(MultiRunData):
 
         sep: Final[str] = CSV_SEPARATOR
         with path.open_for_read() as rd:
-            headerrow: Final[list[str]] = rd.readlines(1)
-            if (headerrow is None) or (len(headerrow) <= 0):
-                raise ValueError(f"No line in file {file!r}.")
-            headerstr: Final[str] = headerrow[0].strip()
+            headerstr: Final[str] = rd.readline()
+            if not isinstance(headerstr, str):
+                raise type_error(headerstr, f"{file!r}[0]", str)
             header: Final[list[str]] = [ss.strip()
-                                        for ss in headerstr.split(sep)]
+                                        for ss in headerstr.strip().split(sep)]
             if len(header) <= 3:
                 raise ValueError(
                     f"Invalid header {headerstr!r} in file {file!r}.")
