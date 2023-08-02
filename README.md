@@ -1528,11 +1528,11 @@ It presents the following columns:
     If at least one run specified a goal objective value, this column is present.
     Otherwise it is omitted.
     For runs not having a goal objective value, it remains empty.
-12. `maxFEs`: the computational budget in terms of the [maximum number of permitted FEs](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_fes), if specified, otherwise omitted.
+12. optionally `maxFEs`: the computational budget in terms of the [maximum number of permitted FEs](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_fes), if specified, otherwise omitted.
     If at least one run specified a time limit in terms of objective function evaluations, this column is present.
     Otherwise it is omitted.
     For runs not having an FE-based time limit, it remains empty.
-13. `maxTimeMillis`: the computational budget in terms of the [maximum runtime in milliseconds](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_time_millis), if specified, otherwise omitted.
+13. optionally `maxTimeMillis`: the computational budget in terms of the [maximum runtime in milliseconds](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_time_millis), if specified, otherwise omitted.
     If at least one run specified a time limit in terms of milliseconds, this column is present.
     Otherwise it is omitted.
     For runs not having a ms-based time limit, it remains empty.

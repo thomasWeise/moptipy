@@ -300,7 +300,7 @@ def _call_tnc(func: Callable[[np.ndarray], int | float],
     _minimize_tnc(
         func, x0,
         bounds=[(lb, bounds.ub[i]) for i, lb in enumerate(bounds.lb)],
-        ftol=0.0, xtol=0.0, gtol=0.0, maxiter=max_fes, maxfun=max_fes)
+        ftol=0.0, xtol=0.0, gtol=0.0, maxfun=max_fes)
 
 
 class TNC(SciPyAlgorithmWrapper):
