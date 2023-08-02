@@ -1511,20 +1511,37 @@ Cells without value are left empty.
 
 It presents the following columns:
 
-1. `algorithm`: the algorithm that was executed
+1. `algorithm`: the [algorithm](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.algorithm) that was executed
 2. `instance`: the instance it was applied to
-3. `randSeed` the hexadecimal version of the random seed of the run
-4. `bestF`: the best objective value encountered during the run
-5. `lastImprovementFE`: the FE when the last improvement was registered
-6. `lastImprovementTimeMillis`: the time in milliseconds from the start of the run when the last improvement was registered
-7. `totalFEs`: the total number of FEs performed
-8. `totalTimeMillis`: the total time in milliseconds consumed by the run
-9. `goalF`: the goal objective value, if specified (otherwise empty)
-10. `maxFEs`: the computational budget in terms of the maximum number of permitted FEs, if specified (otherwise empty)
-11. `maxTimeMillis`: the computational budget in terms of the maximum runtime in milliseconds, if specified (otherwise empty)
+3. `objective`: the name of the [objective function](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective)
+4. optionally `encoding`: the name of the encoding, if any [encoding](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.encoding) was used.
+   This column is omitted if the search and solution space was the same in all runs and no encoding was used.
+   If at least one run did use an encoding, this column is present.
+   It will contain nothing for the runs that did not use an encoding.
+5. `randSeed` the hexadecimal version of the random seed of the run
+6. `bestF`: the best objective value encountered during the run
+7. `lastImprovementFE`: the FE when the last improvement was registered
+8. `lastImprovementTimeMillis`: the time in milliseconds from the start of the run when the last improvement was registered
+9. `totalFEs`: the total number of FEs performed
+10. `totalTimeMillis`: the total time in milliseconds consumed by the run
+11. optionally `goalF`: the [goal objective value](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_goal_f), if specified, otherwise omitted.
+    If at least one run specified a goal objective value, this column is present.
+    Otherwise it is omitted.
+    For runs not having a goal objective value, it remains empty.
+12. `maxFEs`: the computational budget in terms of the [maximum number of permitted FEs](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_fes), if specified, otherwise omitted.
+    If at least one run specified a time limit in terms of objective function evaluations, this column is present.
+    Otherwise it is omitted.
+    For runs not having an FE-based time limit, it remains empty.
+13. `maxTimeMillis`: the computational budget in terms of the [maximum runtime in milliseconds](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_max_time_millis), if specified, otherwise omitted.
+    If at least one run specified a time limit in terms of milliseconds, this column is present.
+    Otherwise it is omitted.
+    For runs not having a ms-based time limit, it remains empty.
 
-For each run, i.e., algorithm x instance x seed combination, one row with the above values is generated.
+For each run, i.e., "algorithm x instance x seed combination," one row with the above values is generated.
 Notice that from the algorithm and instance name together with the random seed, you can find the corresponding log file.
+In some situations, you may apply "algorithm x instance x seed combinations" together with different objective functions or different encodings or both.
+In such situations, you would store the results in different base folders, as these elements do not appear in the algorithm names.
+They are contained in the end results CSV file, though.
 
 
 #### 5.2.2. An Example for End Results Files
