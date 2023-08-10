@@ -1,7 +1,7 @@
 """The multi-objective algorithm execution API."""
 
 from math import isfinite
-from typing import Final, cast
+from typing import Final, TypeVar, cast
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._mo_process_no_ss_log import _MOProcessNoSSLog
@@ -9,7 +9,7 @@ from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api._mo_process_ss_log import _MOProcessSSLog
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
-from moptipy.api.execution import Execution
+from moptipy.api.execution import Execution, TExecution
 from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner
 from moptipy.api.mo_problem import (
     MOProblem,
@@ -27,6 +27,9 @@ from moptipy.api.space import Space, check_space
 from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.types import check_int_range
+
+#: The execution type variable for returning `Self`.
+TMOExecution = TypeVar("TMOExecution", bound="MOExecution")
 
 
 class MOExecution(Execution):
@@ -48,7 +51,7 @@ class MOExecution(Execution):
         #: the archive pruning strategy
         self._archive_pruner: MOArchivePruner | None = None
 
-    def set_archive_max_size(self, size: int) -> "MOExecution":
+    def set_archive_max_size(self: TMOExecution, size: int) -> TMOExecution:
         """
         Set the upper limit for the archive size (after pruning).
 
@@ -72,7 +75,8 @@ class MOExecution(Execution):
         self._archive_max_size = size
         return self
 
-    def set_archive_pruning_limit(self, limit: int) -> "MOExecution":
+    def set_archive_pruning_limit(self: TMOExecution,
+                                  limit: int) -> TMOExecution:
         """
         Set the size limit of the archive above which pruning is performed.
 
@@ -91,7 +95,8 @@ class MOExecution(Execution):
         self._archive_prune_limit = limit
         return self
 
-    def set_archive_pruner(self, pruner: MOArchivePruner) -> "MOExecution":
+    def set_archive_pruner(self: TMOExecution,
+                           pruner: MOArchivePruner) -> TMOExecution:
         """
         Set the pruning strategy for downsizing the archive.
 
@@ -101,7 +106,8 @@ class MOExecution(Execution):
         self._archive_pruner = check_mo_archive_pruner(pruner)
         return self
 
-    def set_objective(self, objective: Objective) -> "MOExecution":
+    def set_objective(self: TExecution,
+                      objective: Objective) -> TExecution:
         """
         Set the objective function in form of a multi-objective problem.
 
@@ -112,144 +118,6 @@ class MOExecution(Execution):
         if not isinstance(objective, MOProblem):
             objective = MOSOProblemBridge(objective)
         super().set_objective(check_mo_problem(objective))
-        return self
-
-    def set_algorithm(self, algorithm: Algorithm) -> "MOExecution":
-        """
-        Set the algorithm to be used for this experiment.
-
-        :param algorithm: the algorithm
-        :returns: this execution
-        """
-        super().set_algorithm(algorithm)
-        return self
-
-    def set_solution_space(self, solution_space: Space) -> "MOExecution":
-        """
-        Set the solution space to be used for this experiment.
-
-        This is the space managing the data structure holding the candidate
-        solutions.
-
-        :param solution_space: the solution space
-        :returns: this execution
-        """
-        super().set_solution_space(solution_space)
-        return self
-
-    def set_search_space(self, search_space: Space | None) -> "MOExecution":
-        """
-        Set the search space to be used for this experiment.
-
-        This is the space from which the algorithm samples points.
-
-        :param search_space: the search space, or `None` of none shall be
-            used, i.e., if search and solution space are the same
-        :returns: this execution
-        """
-        super().set_search_space(search_space)
-        return self
-
-    def set_encoding(self, encoding: Encoding | None) -> "MOExecution":
-        """
-        Set the encoding to be used for this experiment.
-
-        This is the function translating from the search space to the
-        solution space.
-
-        :param encoding: the encoding, or `None` of none shall be used
-        :returns: this execution
-        """
-        super().set_encoding(encoding)
-        return self
-
-    def set_rand_seed(self, rand_seed: int | None) -> "MOExecution":
-        """
-        Set the seed to be used for initializing the random number generator.
-
-        :param rand_seed: the random seed, or `None` if a seed should
-            automatically be chosen when the experiment is executed
-        """
-        super().set_rand_seed(rand_seed)
-        return self
-
-    def set_max_fes(self, max_fes: int,
-                    force_override: bool = False) -> "MOExecution":
-        """
-        Set the maximum FEs.
-
-        This is the number of candidate solutions an optimization is allowed
-        to evaluate. If this method is called multiple times, then the
-        shortest limit is used unless `force_override` is `True`.
-
-        :param max_fes: the maximum FEs
-        :param force_override: the use the value given in `max_time_millis`
-            regardless of what was specified before
-        :returns: this execution
-        """
-        super().set_max_fes(max_fes, force_override)
-        return self
-
-    def set_max_time_millis(self, max_time_millis: int,
-                            force_override: bool = False) -> "MOExecution":
-        """
-        Set the maximum time in milliseconds.
-
-        This is the maximum time that the process is allowed to run. If this
-        method is called multiple times, the shortest time is used unless
-        `force_override` is `True`.
-
-        :param max_time_millis: the maximum time in milliseconds
-        :param force_override: the use the value given in `max_time_millis`
-            regardless of what was specified before
-        :returns: this execution
-        """
-        super().set_max_time_millis(max_time_millis, force_override)
-        return self
-
-    def set_goal_f(self, goal_f: int | float) -> "MOExecution":
-        """
-        Set the goal objective value after which the process can stop.
-
-        If this method is called multiple times, then the largest value is
-        retained.
-
-        :param goal_f: the goal objective value.
-        :returns: this execution
-        """
-        super().set_goal_f(goal_f)
-        return self
-
-    def set_log_file(self, log_file: str | None) -> "MOExecution":
-        """
-        Set the log file to write to.
-
-        This method can be called arbitrarily often.
-
-        :param log_file: the log file
-        """
-        super().set_log_file(log_file)
-        return self
-
-    def set_log_improvements(self, log_improvements: bool = True) \
-            -> "MOExecution":
-        """
-        Set whether improvements should be logged.
-
-        :param log_improvements: if improvements should be logged?
-        :returns: this execution
-        """
-        super().set_log_improvements(log_improvements)
-        return self
-
-    def set_log_all_fes(self, log_all_fes: bool = True) -> "MOExecution":
-        """
-        Set whether all FEs should be logged.
-
-        :param log_all_fes: if all FEs should be logged?
-        :returns: this execution
-        """
-        super().set_log_all_fes(log_all_fes)
         return self
 
     def execute(self) -> MOProcess:
