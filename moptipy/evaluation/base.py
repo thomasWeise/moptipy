@@ -92,6 +92,84 @@ are permitted.
         f"{F_NAME_SCALED!r}, and {F_NAME_NORMALIZED!r} are permitted.")
 
 
+def _set_name(dest: object, name: str, what: str,
+              none_allowed: bool = False,
+              empty_to_none: bool = True) -> None:
+    """
+    Check and set a name.
+
+    :param dest: the destination
+    :param name: the name to set
+    :param what: the name's type
+    :param none_allowed: is `None` allowed?
+    :param empty_to_none: If both `none_allowed` and `empty_to_none` are
+        `True`, then empty strings are converted to `None`
+
+    >>> class TV:
+    ...     algorithm: str
+    ...     instance: str | None
+    >>> t = TV()
+    >>> _set_name(t, "bla", "algorithm", False)
+    >>> t.algorithm
+    'bla'
+    >>> _set_name(t, "xbla", "instance", True)
+    >>> t.instance
+    'xbla'
+    >>> _set_name(t, None, "instance", True)
+    >>> print(t.instance)
+    None
+    >>> t.instance = "x"
+    >>> _set_name(t, "  ", "instance", True)
+    >>> print(t.instance)
+    None
+    >>> try:
+    ...     _set_name(t, 1, "algorithm")
+    ... except TypeError as te:
+    ...     print(te)
+    algorithm name should be an instance of str but is int, namely '1'.
+    >>> t.algorithm
+    'bla'
+    >>> try:
+    ...     _set_name(t, "  ", "algorithm")
+    ... except ValueError as ve:
+    ...     print(ve)
+    algorithm name cannot be empty of just consist of white space, but \
+'  ' does.
+    >>> t.algorithm
+    'bla'
+    >>> try:
+    ...     _set_name(t, "a a", "instance")
+    ... except ValueError as ve:
+    ...     print(ve)
+    Invalid instance name 'a a'.
+    >>> print(t.instance)
+    None
+    >>> try:
+    ...     _set_name(t, " ", "instance", True, False)
+    ... except ValueError as ve:
+    ...     print(ve)
+    instance name cannot be empty of just consist of white space, but \
+' ' does.
+    >>> print(t.instance)
+    None
+    """
+    use_name = name
+    if isinstance(name, str):
+        use_name = use_name.strip()
+        if len(use_name) <= 0:
+            if empty_to_none and none_allowed:
+                use_name = None
+            else:
+                raise ValueError(f"{what} name cannot be empty of just cons"
+                                 f"ist of white space, but {name!r} does.")
+        elif use_name != sanitize_name(use_name):
+            raise ValueError(f"Invalid {what} name {name!r}.")
+    elif not ((name is None) and none_allowed):
+        raise type_error(name, f"{what} name",
+                         (str, None) if none_allowed else str)
+    object.__setattr__(dest, what, use_name)
+
+
 class EvaluationDataElement:
     """A base class for all the data classes in this module."""
 
@@ -353,7 +431,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData(3, "i", "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    algorithm should be an instance of str but is int, namely '3'.
+    algorithm name should be an instance of str but is int, namely '3'.
     >>> try:
     ...     PerRunData("@1 2", "i", "f", "e", 234)
     ... except ValueError as ve:
@@ -363,7 +441,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData("x", 3.2, "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    instance should be an instance of str but is float, namely '3.2'.
+    instance name should be an instance of str but is float, namely '3.2'.
     >>> try:
     ...     PerRunData("x", "sdf i", "f", "e", 234)
     ... except ValueError as ve:
@@ -373,7 +451,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData("a", "i", True, "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    objective should be an instance of str but is bool, namely 'True'.
+    objective name should be an instance of str but is bool, namely 'True'.
     >>> try:
     ...     PerRunData("x", "i", "d-f", "e", 234)
     ... except ValueError as ve:
@@ -383,7 +461,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData("x", "i", "f", 54.2, 234)
     ... except TypeError as te:
     ...     print(te)
-    encoding should be an instance of any in {None, str} but is float, \
+    encoding name should be an instance of any in {None, str} but is float, \
 namely '54.2'.
     >>> try:
     ...     PerRunData("y", "i", "f", "x  x", 234)
@@ -425,30 +503,10 @@ namely '54.2'.
             `None` if no encoding was used
         :param rand_seed: the random seed
         """
-        if not isinstance(algorithm, str):
-            raise type_error(algorithm, "algorithm", str)
-        if algorithm != sanitize_name(algorithm):
-            raise ValueError(f"Invalid algorithm name {algorithm!r}.")
-        object.__setattr__(self, "algorithm", algorithm)
-
-        if not isinstance(instance, str):
-            raise type_error(instance, "instance", str)
-        if instance != sanitize_name(instance):
-            raise ValueError(f"Invalid instance name {instance!r}.")
-        object.__setattr__(self, "instance", instance)
-
-        if not isinstance(objective, str):
-            raise type_error(objective, "objective", str)
-        if objective != sanitize_name(objective):
-            raise ValueError(f"Invalid objective name {objective!r}.")
-        object.__setattr__(self, "objective", objective)
-
-        if encoding is not None:
-            if not isinstance(encoding, str):
-                raise type_error(encoding, "encoding", (None, str))
-            if encoding != sanitize_name(encoding):
-                raise ValueError(f"Invalid encoding name {encoding!r}.")
-        object.__setattr__(self, "encoding", encoding)
+        _set_name(self, algorithm, "algorithm")
+        _set_name(self, instance, "instance")
+        _set_name(self, objective, "objective")
+        _set_name(self, encoding, "encoding", True, False)
         object.__setattr__(self, "rand_seed", rand_seed_check(rand_seed))
 
     def _tuple(self) -> tuple[Any, ...]:
@@ -503,7 +561,7 @@ class MultiRunData(EvaluationDataElement):
     ...     MultiRunData(1, "i", "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    algorithm should be an instance of any in {None, str} but is int, \
+    algorithm name should be an instance of any in {None, str} but is int, \
 namely '1'.
     >>> try:
     ...     MultiRunData("x x", "i", "f", "e", 234)
@@ -514,7 +572,7 @@ namely '1'.
     ...     MultiRunData("a", 5.5, "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    instance should be an instance of any in {None, str} but is float, \
+    instance name should be an instance of any in {None, str} but is float, \
 namely '5.5'.
     >>> try:
     ...     MultiRunData("x", "a-i", "f", "e", 234)
@@ -525,7 +583,7 @@ namely '5.5'.
     ...     MultiRunData("a", "i", True, "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    objective should be an instance of any in {None, str} but is bool, \
+    objective name should be an instance of any in {None, str} but is bool, \
 namely 'True'.
     >>> try:
     ...     MultiRunData("xx", "i", "d'@f", "e", 234)
@@ -536,7 +594,7 @@ namely 'True'.
     ...     MultiRunData("yy", "i", "f", -9.4, 234)
     ... except TypeError as te:
     ...     print(te)
-    encoding should be an instance of any in {None, str} but is float, \
+    encoding name should be an instance of any in {None, str} but is float, \
 namely '-9.4'.
     >>> try:
     ...     MultiRunData("xx", "i", "f", "e-{a", 234)
@@ -564,7 +622,6 @@ namely '-9.4'.
     #: the encoding, if any, or `None` if no encoding was used or if it was
     #: not the same over all runs
     encoding: str | None
-
     #: The number of runs over which the statistic information is computed.
     n: int
 
@@ -583,33 +640,10 @@ namely '-9.4'.
             encoding and an encoding was actually used, `None` otherwise
         :param n: the total number of runs
         """
-        if algorithm is not None:
-            if not isinstance(algorithm, str):
-                raise type_error(algorithm, "algorithm", (None, str))
-            if algorithm != sanitize_name(algorithm):
-                raise ValueError(f"Invalid algorithm name {algorithm!r}.")
-        object.__setattr__(self, "algorithm", algorithm)
-
-        if instance is not None:
-            if not isinstance(instance, str):
-                raise type_error(instance, "instance", (None, str))
-            if instance != sanitize_name(instance):
-                raise ValueError(f"Invalid instance name {instance!r}.")
-        object.__setattr__(self, "instance", instance)
-
-        if objective is not None:
-            if not isinstance(objective, str):
-                raise type_error(objective, "objective", (None, str))
-            if objective != sanitize_name(objective):
-                raise ValueError(f"Invalid objective name {objective!r}.")
-        object.__setattr__(self, "objective", objective)
-
-        if encoding is not None:
-            if not isinstance(encoding, str):
-                raise type_error(encoding, "encoding", (None, str))
-            if encoding != sanitize_name(encoding):
-                raise ValueError(f"Invalid encoding name {encoding!r}.")
-        object.__setattr__(self, "encoding", encoding)
+        _set_name(self, algorithm, "algorithm", True, False)
+        _set_name(self, instance, "instance", True, False)
+        _set_name(self, objective, "objective", True, False)
+        _set_name(self, encoding, "encoding", True, False)
         object.__setattr__(self, "n", check_int_range(
             n, "n", 1, 1_000_000_000_000_000))
 

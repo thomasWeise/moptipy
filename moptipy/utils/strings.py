@@ -273,6 +273,7 @@ def str_to_intfloatnone(val: str) -> int | float | None:
     >>> print(type(str_to_intfloatnone("5.1")))
     <class 'float'>
     """
+    val = val.strip()
     return None if len(val) <= 0 else str_to_intfloat(val)
 
 
