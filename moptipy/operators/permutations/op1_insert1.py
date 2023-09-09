@@ -199,7 +199,7 @@ def _rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
     return unchanged
 
 
-@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def rotate(random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
     """
     Copy `x` into `dest` and then rotate a subsequence by one step.

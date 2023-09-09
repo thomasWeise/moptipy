@@ -118,7 +118,6 @@ achieve this goal, i.e., it will only perform a single attempt.
 """
 from typing import Counter, Final, Iterable
 
-import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
@@ -240,7 +239,7 @@ def get_max_changes(blueprint: Iterable[int]) -> int:
     return changes
 
 
-@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
               random: Generator, max_trials: int,
               temp: np.ndarray) -> np.ndarray:
@@ -403,7 +402,7 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
     return temp[0:best_size]
 
 
-@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def apply_move(x: np.ndarray, dest: np.ndarray, move: np.ndarray,
                random: Generator, max_trials: int) -> None:
     """

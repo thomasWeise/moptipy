@@ -49,14 +49,13 @@ will swap 4 elements, and so on.
 """
 from typing import Final
 
-import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1
 
 
-@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def swap_n(random: Generator, dest: np.ndarray,  # +book
            x: np.ndarray) -> None:  # +book
     """

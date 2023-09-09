@@ -18,7 +18,6 @@ faster either way.
 """
 from typing import Final
 
-import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
@@ -29,7 +28,7 @@ from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
 from moptipy.utils.types import type_error
 
 
-@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def swap_try_n(random: Generator, dest: np.ndarray, x: np.ndarray,
                step_size: float, indices: np.ndarray) -> None:
     """

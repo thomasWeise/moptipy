@@ -48,14 +48,13 @@ permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
 """
 from typing import Final
 
-import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1
 
 
-@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def swap_2(random: Generator, dest: np.ndarray,  # +book
            x: np.ndarray) -> None:  # +book
     """

@@ -14,8 +14,7 @@ from numpy.random import Generator
 from moptipy.api.operators import Op1
 
 
-# removed for now due to memory leak
-# = numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+# Temporary fix for https://github.com/numba/numba/issues/9103
 def swap_2_or_flip(random: Generator, dest: np.ndarray,
                    x: np.ndarray) -> None:
     """
