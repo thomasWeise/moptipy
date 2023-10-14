@@ -60,9 +60,10 @@ class FitnessRecord(Protocol):
     """A fitness record stores data together with a fitness."""
 
 # end book
-    #: the fitness value, the only criterion to be used by a selection
+    #: the fitness value, which can either be an integer or a float and
+    #: is the only criterion to be used by a selection
     #: algorithm (besides random numbers)
-    fitness: int | float
+    fitness: float
 
     def __lt__(self, other) -> bool:
         """

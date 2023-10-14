@@ -302,7 +302,7 @@ class __MA(MA):
                 if should_terminate():  # should we stop now?
                     cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
-                with for_fes(process, ls_fes) as s1,\
+                with for_fes(process, ls_fes) as s1, \
                         from_starting_point(s1, x, evaluate(x)) as s2:
                     forward_ls_op0_to(s2.get_copy_of_best_x)
                     ls_solve(s2)  # apply local search modifying x

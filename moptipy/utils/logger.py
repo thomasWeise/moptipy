@@ -448,12 +448,12 @@ class CsvLogSection(LogSection):
                 f"but row {row} has {len(row)}")
 
         # noinspection PyProtectedMember
-        txt = [str(c) if isinstance(c, int)
-               else bool_to_str(c) if isinstance(c, bool)  # type: ignore
+        txt = (bool_to_str(c) if isinstance(c, bool)  # type: ignore
+               else str(c) if isinstance(c, int)
                else (float_to_str(c) if isinstance(c, float) else
                cast(None, self._logger._error(
                    f"Invalid log value {c} in row {row}")))
-               for c in row]
+               for c in row)
 
         # noinspection PyProtectedMember
         self._logger._write(f"{CSV_SEPARATOR.join(txt)}\n")

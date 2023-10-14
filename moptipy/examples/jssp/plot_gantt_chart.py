@@ -25,7 +25,7 @@ def marker_lb(x: Gantt) -> tuple[str, int | float]:
     :param x: the Gantt chart
     :return: the lower bound marker
     """
-    return Lang.current()["lower_bound_short"],\
+    return Lang.current()["lower_bound_short"], \
         x.instance.makespan_lower_bound
 
 
@@ -219,7 +219,7 @@ def plot_gantt_chart(
             # does not apply here. Therefore, we try to re-adjust the boxes
             # in a very, very crude way.
             xp: float = 0.5 * (x_start + x_end)
-            yp = machine
+            yp: float | int = machine
 
             # Get the size of the text using a temporary text
             # that gets immediately deleted again.

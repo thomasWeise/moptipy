@@ -40,21 +40,21 @@
 # errors. But they can at least check whether our code behaves as it should in
 # some usual or border cases. Also, they can help us find out if changes in
 # the code lead to changes in (tested/expected) behavior.
-pytest == 7.4.0
+pytest == 7.4.2
 
 # setuptools, testresources, twine, virtualenv, and wheel are needed for
 # generating the installable pip package.
-setuptools == 68.0.0
+setuptools == 68.2.2
 testresources == 2.0.1
 twine == 4.0.2
-virtualenv == 20.24.2
-wheel == 0.41.0
+virtualenv == 20.24.5
+wheel == 0.41.2
 
 # sphinx is needed for generating the documentation. Together with its
 # modules, it parses the documentation root file as well as the code and
 # generates the html files with the documentation. It therefore uses the
 # docstrings and the type hints.
-sphinx == 7.1.0
+sphinx == 7.2.6
 sphinx-autodoc-typehints == 1.24.0
 # myst-parser is needed for including README.md into the documentation
 myst-parser == 2.0.0
@@ -64,27 +64,27 @@ myst-parser == 2.0.0
 # issues, for possible bugs, for unnecessary code or imports, and for other
 # things that can be improved. If all checks of all of these tools pass, then
 # we probably have good quality code.
-autoflake == 2.2.0
+autoflake == 2.2.1
 bandit == 1.7.5
-coverage == 7.2.7
+coverage == 7.3.2
 coverage-badge == 1.1.0
 dlint == 0.14.1
 dodgy == 0.2.1
-flake8 == 6.0.0
-flake8-bugbear == 23.7.10
+flake8 == 6.1.0
+flake8-bugbear == 23.9.16
 flake8-eradicate == 1.5.0
 flake8-use-fstring == 1.4
-mypy == 1.4.1
-pycodestyle == 2.10.0
+mypy == 1.6.0
+pycodestyle == 2.11.1
 pydocstyle == 6.3.0
-pyflakes == 3.0.1
-pylint == 2.17.4
+pyflakes == 3.1.0
+pylint == 3.0.1
 pyroma == 4.2
-ruff == 0.0.280
-semgrep == 1.33.2
+ruff == 0.0.292
+semgrep == 1.44.0
 tryceratops == 2.3.2
 unimport == 1.0.0
-vulture == 2.7
+vulture == 2.10
 
 # yaml is used only in tests and examples.
 pyyaml == 6.0.1
@@ -92,7 +92,7 @@ pyyaml == 6.0.1
 # urllib3 and certifi are used to check the URLs in the README.md
 # As part of the build process, we check all the URLs in the README.md file
 # whether they can still be reached.
-urllib3 == 1.26.16
+urllib3 == 1.26.17
 certifi == 2023.7.22
 
 # minify_html is needed to minify html output. Our documentation is fairly
@@ -101,4 +101,4 @@ certifi == 2023.7.22
 minify_html == 0.11.1
 
 # for converting the additional markdown files to HTML
-markdown == 3.4.4
+markdown == 3.5

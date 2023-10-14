@@ -11,7 +11,7 @@ from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.backend_bases import RendererBase  # type: ignore
 from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
-from matplotlib.figure import Figure  # type: ignore
+from matplotlib.figure import Figure, SubFigure  # type: ignore
 
 import moptipy.utils.plot_defaults as pd
 from moptipy.utils.lang import Lang
@@ -520,7 +520,7 @@ def label_box(axes: Axes,
             raise type_error(font, "font", str)
         args["fontname"] = font
 
-    axes.annotate(**args)
+    axes.annotate(**args)  # type: ignore
 
 
 def label_axes(axes: Axes,
@@ -583,7 +583,7 @@ def get_axes(figure: Axes | Figure) -> Axes:
     :return: the Axes
     """
     if isinstance(figure, Figure):
-        return figure.add_axes([0.005, 0.005, 0.99, 0.99])
+        return figure.add_axes((0.005, 0.005, 0.99, 0.99))
     if hasattr(figure, "axes") \
             or isinstance(getattr(type(figure), "axes", None), property):
         try:
@@ -608,7 +608,7 @@ def get_axes(figure: Axes | Figure) -> Axes:
         f"Cannot get Axes of object of type {type_name_of(figure)}.")
 
 
-def get_renderer(figure: Axes | Figure) -> RendererBase:
+def get_renderer(figure: Axes | Figure | SubFigure) -> RendererBase:
     """
     Get a renderer that can be used for determining figure element sizes.
 

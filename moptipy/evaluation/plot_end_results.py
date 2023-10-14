@@ -258,7 +258,7 @@ def plot_end_results(
     for i, algo in enumerate(algorithms):
         algo_colors[algo] = unique_colors[i]
 
-    bodies: Final[mc.PolyCollection] = violins["bodies"]
+    bodies: Final[list[mc.PolyCollection]] = violins["bodies"]
     use_colors: Final[list[tuple[float, float, float]]] = []
     counter = 0
     for key in inst_algos:
@@ -299,12 +299,13 @@ def plot_end_results(
                 continue
             polys: list[Line2D] = boxes[tkey]
             for line in polys:
-                xdata = line.get_xdata(True)
+                xdata = cast(list, line.get_xdata(True))
                 if len(xdata) <= 0:
                     line.remove()
                     continue
                 index = int(max(xdata)) - 1
-                thecolor = "white" if bid == 0 else use_colors[index]
+                thecolor: str | tuple[float, float, float] = \
+                    "white" if bid == 0 else use_colors[index]
                 width = lwd_bg if bid == 0 else lwd_fg
                 line.set_solid_joinstyle("round")
                 line.set_solid_capstyle("round")
@@ -378,7 +379,7 @@ def plot_end_results(
             linestyle["xdata"] = []
             linestyle["ydata"] = []
             linestyle["linewidth"] = 6
-            handles.append(Line2D(**linestyle))
+            handles.append(Line2D(**linestyle))  # type: ignore
         z_order += 1
 
         axes.legend(handles=handles, loc=legend_pos,

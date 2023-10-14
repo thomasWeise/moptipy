@@ -81,12 +81,12 @@ def test_experiment_jssp() -> None:
         for err in results:
             assert err.path_to_file(base_dir).is_file()
 
-        for i in range(0, 12):
+        for i in range(12):
             assert results[i].algorithm == "1rs"
         for i in range(12, 24):
             assert results[i].algorithm == "hc_swap2"
 
-        for i in range(0, 4):
+        for i in range(4):
             assert results[i].instance == "abz8"
         for i in range(4, 8):
             assert results[i].instance == "dmu21"
@@ -99,7 +99,7 @@ def test_experiment_jssp() -> None:
         for i in range(20, 24):
             assert results[i].instance == "la24"
 
-        for i in range(0, 12):
+        for i in range(12):
             assert results[i].rand_seed == results[i + 12].rand_seed
 
         for e in results:

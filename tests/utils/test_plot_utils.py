@@ -56,7 +56,7 @@ def test_create_multi_figure() -> None:
         assert 0 <= idx <= 150
         ids.add(idx)
 
-    for k in range(0, 100):
+    for k in range(100):
         assert k in data
     for k in range(min(ids), max(ids) + 1):
         assert k in ids

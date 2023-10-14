@@ -1308,10 +1308,10 @@ if __name__ == "__main__":
     src_path: Final[Path] = args.source
     end_results: Final[list[EndResult]] = []
     if src_path.is_file():
-        logger(f"{src_path!r} identifies file, load as end-results csv")
+        logger(f"{src_path!r} identifies as file, load as end-results csv")
         EndResult.from_csv(src_path, end_results.append)
     else:
-        logger(f"{src_path!r} identifies directory, load it as log files")
+        logger(f"{src_path!r} identifies as directory, load it as log files")
         EndResult.from_logs(src_path, end_results.append)
 
     end_stats: Final[list[EndStatistics]] = []

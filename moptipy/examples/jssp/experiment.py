@@ -96,7 +96,7 @@ for scale in range(7, 21):  # add the hill climbers with restarts
         Callable[[Instance, Permutations], Algorithm],
         lambda inst, pwr, i=scale: HillClimberWithRestarts(
             Op0Shuffle(pwr), Op1SwapN(), 2 ** i)))  # hill clim. with restarts
-for log2_mu in range(0, 14):
+for log2_mu in range(14):
     mu: int = 2 ** log2_mu
     for lambda_ in sorted({1, max(1, log2_mu), round(mu ** 0.5), mu, mu + mu,
                            4 * mu, 8 * mu}):
@@ -170,7 +170,7 @@ for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
                 ExponentialSchedule(t, e))))
 
 for mu_lambda in [2, 8, 32]:
-    for ls_steps in [2 ** i for i in range(0, 24)]:
+    for ls_steps in [2 ** i for i in range(24)]:
         ALGORITHMS.append(cast(
             Callable[[Instance, Permutations], Algorithm],
             lambda inst, pwr, ml=mu_lambda, lss=ls_steps:

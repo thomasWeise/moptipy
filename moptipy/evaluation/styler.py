@@ -250,4 +250,4 @@ class Styler:
             style["label"] = name
             style["xdata"] = []
             style["ydata"] = []
-            consumer(Line2D(**style))
+            consumer(Line2D(**style))  # type: ignore

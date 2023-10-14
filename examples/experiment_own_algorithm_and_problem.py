@@ -73,7 +73,7 @@ class MySortProblem(Objective):
 
     def evaluate(self, x) -> int:
         """
-        Compute how often a bigger number follows a smaller one.
+        Compute how often a smaller number follows a bigger one.
 
         :param x: the permutation
         """
@@ -98,7 +98,7 @@ class MySortProblem(Objective):
 
     def upper_bound(self) -> int:
         """
-        Get the upper bound: n-1 errors is the worst.
+        Get the upper bound: `n-1` errors is the most unsorted list.
 
         Implementing this function is optional, but it can help, e.g., when
         the results of the optimization process are automatically checked.
