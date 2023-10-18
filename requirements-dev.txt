@@ -92,7 +92,7 @@ pyyaml == 6.0.1
 # urllib3 and certifi are used to check the URLs in the README.md
 # As part of the build process, we check all the URLs in the README.md file
 # whether they can still be reached.
-urllib3 == 1.26.17
+urllib3 == 1.26.18
 certifi == 2023.7.22
 
 # minify_html is needed to minify html output. Our documentation is fairly
