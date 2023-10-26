@@ -22,10 +22,10 @@
 # We will need numpy for several reasons:
 #  - it provides the random number generators
 #  - it provides efficient arrays as backends of vector-based search spaces
-numpy == 1.25.2
+numpy == 1.26.1
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba == 0.58.0
+numba == 0.58.1
 # numba uses intel-cmplr-lib-rt to generate faster compiled code, see
 # https://numba.readthedocs.io/en/stable/user/performance-tips.html
 intel-cmplr-lib-rt == 2023.2.0
