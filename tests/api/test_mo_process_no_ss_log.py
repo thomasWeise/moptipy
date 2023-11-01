@@ -45,6 +45,10 @@ def test_mo_process_no_ss_log() -> None:
         assert exists(tf)
         assert isfile(tf)
 
+        lid = tf.rfind(".")
+        lis = tf.rfind("/")
+        tfn: str = tf[:lid] if (lid > 0) and (lid > lis) else tf
+
         archive_len: int
         with MOExecution() \
                 .set_solution_space(space) \
@@ -57,6 +61,7 @@ def test_mo_process_no_ss_log() -> None:
                 .set_log_file(tf)\
                 .set_log_improvements(True)\
                 .execute() as process:
+            assert process.get_log_basename() == tfn
             assert isinstance(process, MOProcess)
             assert type_name_of(process) \
                    == "moptipy.api._mo_process_no_ss_log._MOProcessNoSSLog"

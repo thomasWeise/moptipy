@@ -311,6 +311,14 @@ class _ProcessBase(Process):
         if self.__timer is not None:
             self.__timer.start()
 
+    def get_log_basename(self) -> str | None:
+        lf: Final[str | None] = self.__log_file
+        if lf is None:
+            return None
+        lid = lf.rfind(".")
+        lis = lf.rfind("/")
+        return lf[:lid] if (lid > 0) and (lid > lis) else lf
+
     def get_random(self) -> Generator:
         return self.__random
 

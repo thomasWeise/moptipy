@@ -56,6 +56,7 @@ def test_mo_process_mo_ss_no_log() -> None:
             .set_max_fes(100)\
             .set_archive_max_size(ams)\
             .execute() as process:
+        assert process.get_log_basename() is None
         assert type_name_of(process) \
                == "moptipy.api._mo_process_ss._MOProcessSS"
         assert str(process) == "MOProcessWithSearchSpace"
@@ -121,6 +122,7 @@ def test_mo_process_ss_log() -> None:
                    + ((f1.upper_bound() + 1) * (1 + f0.upper_bound()))
             assert 0 < process.get_consumed_fes() <= 100
             assert process.has_log()
+            assert process.get_log_basename() is not None
             archive: list[MORecord] = process.get_archive()
             for rec in archive:
                 assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()

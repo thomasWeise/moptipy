@@ -46,6 +46,7 @@ def test_process_ss_no_log() -> None:
                == "moptipy.api._process_ss._ProcessSS"
         assert str(process) == "ProcessWithSearchSpace"
         assert process.has_best()
+        assert process.get_log_basename() is None
         assert not process.has_log()
         assert process.get_max_fes() == 100
         assert process.get_max_time_millis() is None

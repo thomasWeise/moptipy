@@ -51,6 +51,7 @@ def test_mo_process_no_ss_no_log() -> None:
             .set_algorithm(algorithm)\
             .set_max_fes(100)\
             .execute() as process:
+        assert process.get_log_basename() is None
         assert isinstance(process, MOProcess)
         assert type_name_of(process) \
                == "moptipy.api._mo_process_no_ss._MOProcessNoSS"
@@ -114,6 +115,7 @@ def test_mo_process_no_ss_log() -> None:
                 .set_log_file(tf)\
                 .execute() as process:
             assert isinstance(process, MOProcess)
+            assert process.get_log_basename() is not None
             assert type_name_of(process) \
                    == "moptipy.api._mo_process_no_ss._MOProcessNoSS"
             assert str(process) == "MOProcessWithoutSearchSpace"

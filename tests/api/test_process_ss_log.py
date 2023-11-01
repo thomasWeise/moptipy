@@ -46,6 +46,10 @@ def test_process_ss_log_log() -> None:
     with TempFile.create() as tf:
         assert exists(tf)
         assert isfile(tf)
+        lid = tf.rfind(".")
+        lis = tf.rfind("/")
+        tfn: str = tf[:lid] if (lid > 0) and (lid > lis) else tf
+
         with Execution()\
                 .set_search_space(search_space)\
                 .set_solution_space(solution_space)\
@@ -57,6 +61,7 @@ def test_process_ss_log_log() -> None:
                 .set_log_file(tf)\
                 .set_log_improvements(True)\
                 .execute() as process:
+            assert process.get_log_basename() == tfn
             assert type_name_of(process) \
                    == "moptipy.api._process_ss_log._ProcessSSLog"
             assert str(process) == "LoggingProcessWithSearchSpace"

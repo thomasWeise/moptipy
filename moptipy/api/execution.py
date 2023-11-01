@@ -397,5 +397,7 @@ class Execution:
             algorithm.solve(process)  # apply the algorithm
         except Exception as be:
             # noinspection PyProtectedMember
-            process._caught = be
+            if process._caught is None:
+                # noinspection PyProtectedMember
+                process._caught = be
         return process
