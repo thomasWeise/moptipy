@@ -56,7 +56,15 @@ class NPArraySpace(Space):
         # the function forwards
         self.copy = np.copyto  # type: ignore
         self.is_equal = np.array_equal  # type: ignore
-        self.to_str = array_to_str  # type: ignore
+
+    def to_str(self, x: np.ndarray) -> str:
+        """
+        Convert a np-array to a string.
+
+        :param x: the array
+        :returns: the string
+        """
+        return array_to_str(x)
 
     def create(self) -> np.ndarray:
         """
