@@ -204,8 +204,11 @@ def num_to_str(value: int | float) -> str:
     '1'
     >>> num_to_str(1.5)
     '1.5'
+    >>> num_to_str(True)
+    'T'
     """
-    return str(value) if isinstance(value, int) else float_to_str(value)
+    return bool_to_str(value) if isinstance(value, bool) else (
+        str(value) if isinstance(value, int) else float_to_str(value))
 
 
 def intfloatnone_to_str(val: int | float | None) -> str:

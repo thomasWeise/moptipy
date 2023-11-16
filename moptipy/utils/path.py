@@ -1,4 +1,4 @@
-"""The base class with the information of a build."""
+"""The base class for handling paths to files and directories."""
 
 import codecs
 import os.path

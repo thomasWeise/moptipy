@@ -46,7 +46,8 @@ from numpy.random import Generator
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.process import Process
 from moptipy.spaces.vectorspace import VectorSpace
-from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
+from moptipy.utils.strings import num_to_str
 from moptipy.utils.types import type_error
 
 
@@ -244,6 +245,29 @@ class BiPopCMAES(CMAES):
        https://hal.inria.fr/inria-00382093/document
     """
 
+    def __init__(self, space: VectorSpace,
+                 log_restarts: bool = False) -> None:
+        """
+        Create the CMAES algorithm.
+
+        :param space: the vector space
+        :param log_restarts: log the restart counters
+        """
+        super().__init__(space)
+        if not isinstance(log_restarts, bool):
+            raise type_error(log_restarts, "log_restarts", bool)
+        #: should we log the FEs when the restarts happen or not?
+        self.log_restarts: Final[bool] = log_restarts
+
+    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
+        """
+        Log the parameters of the algorithm to a logger.
+
+        :param logger: the logger for the parameters
+        """
+        super().log_parameters_to(logger)  # log algorithm/operator
+        logger.key_value("logRestarts", self.log_restarts)
+
     def solve(self, process: Process) -> None:
         """
         Apply the external `cmaes` implementation to an optimization problem.
@@ -254,6 +278,9 @@ class BiPopCMAES(CMAES):
             self.space.clipped(process.evaluate)  # the clipped objective
         should_terminate: Final[Callable[[], bool]] = \
             process.should_terminate  # the termination criterion
+        # should we log the CMA-ES restart settings?
+        restarts: list[tuple[int, int, int, int, bool]] | None = \
+            [] if self.log_restarts and process.has_log() else None
 
         lb: Final[np.ndarray] = self.space.lower_bound  # the upper bound
         ub: Final[np.ndarray] = self.space.upper_bound  # the lower bound
@@ -265,8 +292,8 @@ class BiPopCMAES(CMAES):
         random: Generator = process.get_random()
 
         # create the initial CMA-ES setup
-        cma = CMA(mean=mean, sigma=sigma, bounds=bounds,
-                  seed=random.integers(0, 4294967296))
+        seed: int = random.integers(0, 4294967296)
+        cma = CMA(mean=mean, sigma=sigma, bounds=bounds, seed=seed)
 
         solutions: list[tuple[np.ndarray, int | float]] = []
         large_pop_restarts: int = 0  # the restarts with big population
@@ -279,10 +306,14 @@ class BiPopCMAES(CMAES):
         # the large population before the first doubling, but its FEs
         # count for the small population.
         while True:  # the main loop
+            if restarts is not None:
+                restarts.append((process.get_consumed_fes(),
+                                 process.get_consumed_time_millis(),
+                                 cma.population_size, seed, is_small_pop))
             fes = _run_cma(cma, f, should_terminate, solutions,
                            cma.should_stop)
             if fes < 0:  # this means that should_terminate became True
-                return   # so we quit
+                break   # so we quit
             if is_small_pop:  # it was a small population so increment
                 small_pop_fes += fes  # the small-population-FEs
             else:  # it was a large population, so increment the
@@ -302,9 +333,21 @@ class BiPopCMAES(CMAES):
                 pop_size = initial_pop_size * (2 ** large_pop_restarts)
 
             # Create the new CMA-ES instance.
+            seed = random.integers(0, 4294967296)
             cma = CMA(mean=mean, sigma=sigma, bounds=bounds,
                       population_size=pop_size,
-                      seed=random.integers(0, 4294967296))
+                      seed=seed)
+
+        if restarts is not None:  # write the log section
+            log: Final[list[str]] = [
+                f"fes{CSV_SEPARATOR}timeMillis{CSV_SEPARATOR}popSize"
+                f"{CSV_SEPARATOR}seed{CSV_SEPARATOR}isSmall"]
+            for row in restarts:
+                log.append(CSV_SEPARATOR.join(map(
+                    num_to_str, (x for x in row))))
+            del restarts
+            process.add_log_section("CMA_RESTARTS", "\n".join(log))
+            del log
 
     def __str__(self):
         """

@@ -67,6 +67,7 @@ class __ForFEs(Process):
         self.has_best = owner.has_best  # type: ignore
         self.get_copy_of_best_x = owner.get_copy_of_best_x  # type: ignore
         self.get_best_f = owner.get_best_f  # type: ignore
+        self.get_log_basename = owner.get_log_basename  # type: ignore
         #: the maximum FEs
         self.max_fes: Final[int] = check_max_fes(max_fes)
         #: the FEs that we still have left
@@ -157,6 +158,7 @@ class __ForFEsMO(MOProcess):
         self.f_dtype = owner.f_dtype  # type: ignore
         self.f_dominates = owner.f_dominates  # type: ignore
         self.f_dimension = owner.f_dimension  # type: ignore
+        self.get_log_basename = owner.get_log_basename  # type: ignore
         #: the maximum FEs
         self.max_fes: Final[int] = check_max_fes(max_fes)
         #: the FEs that we still have left
@@ -273,6 +275,7 @@ class __FromStartingPoint(Process):
         self.n_points = owner.n_points  # type: ignore
         self.should_terminate = owner.should_terminate  # type: ignore
         self.terminate = owner.terminate  # type: ignore
+        self.get_log_basename = owner.get_log_basename  # type: ignore
         #: the best solution
         self.__best_x: Final[Any] = in_and_out_x
         #: the best-so-far solution
@@ -417,6 +420,7 @@ class __WithoutShouldTerminate(Process):
         self.terminate = owner.terminate  # type: ignore
         self.get_max_fes = owner.get_max_fes  # type: ignore
         self.get_consumed_fes = owner.get_consumed_fes  # type: ignore
+        self.get_log_basename = owner.get_log_basename  # type: ignore
         #: the fast call to the owner's evaluate method
         self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
@@ -484,6 +488,7 @@ class __WithoutShouldTerminateMO(MOProcess):
         self.f_dimension = owner.f_dimension  # type: ignore
         self.get_archive = owner.get_archive  # type: ignore
         self.check_in = owner.check_in  # type: ignore
+        self.get_log_basename = owner.get_log_basename  # type: ignore
         #: the fast call to the owner's evaluate method
         self.__evaluate: Final[Callable[[Any], int | float]] \
             = owner.evaluate
