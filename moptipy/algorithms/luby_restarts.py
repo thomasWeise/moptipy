@@ -107,7 +107,7 @@ class __LubyAlgorithm(Algorithm):
                 prc.add_log_section = __als  # type: ignore
                 rst()
                 sv(prc)
-        if restarts is not None:
+        if (restarts is not None) and (len(restarts) > 0):
             log: Final[list[str]] = [f"fes{CSV_SEPARATOR}timeMillis"]
             for row in restarts:
                 log.append(CSV_SEPARATOR.join(map(
@@ -160,7 +160,7 @@ class __LubyMOAlgorithm(__LubyAlgorithm, MOAlgorithm):
                 prc.add_log_section = __als  # type: ignore
                 rst()
                 sv(prc)
-        if restarts is not None:
+        if (restarts is not None) and (len(restarts) > 0):
             log: Final[list[str]] = [f"fes{CSV_SEPARATOR}timeMillis"]
             for row in restarts:
                 log.append(CSV_SEPARATOR.join(map(
