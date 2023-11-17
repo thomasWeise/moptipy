@@ -279,7 +279,7 @@ class BiPopCMAES(CMAES):
         should_terminate: Final[Callable[[], bool]] = \
             process.should_terminate  # the termination criterion
         # should we log the CMA-ES restart settings?
-        restarts: list[tuple[int, int, int, int, bool]] | None = \
+        restarts: Final[list[tuple[int, int, int, int, bool]] | None] = \
             [] if self.log_restarts and process.has_log() else None
 
         lb: Final[np.ndarray] = self.space.lower_bound  # the upper bound

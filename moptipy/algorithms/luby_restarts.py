@@ -24,7 +24,7 @@ from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.process import Process
 from moptipy.api.subprocesses import for_fes
-from moptipy.utils.logger import KeyValueLogSection
+from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.types import check_int_range, type_error
 
 
@@ -54,12 +54,14 @@ def _luby(i: int) -> int:
 class __LubyAlgorithm(Algorithm):
     """A wrapper around an existing algorithm."""
 
-    def __init__(self, algorithm: Algorithm, base_fes: int) -> None:
+    def __init__(self, algorithm: Algorithm, base_fes: int,
+                 log_restarts: bool = False) -> None:
         """
         Create the algorithm wrapper.
 
         :param algorithm: the algorithm to wrap
         :param base_fes: the base fes
+        :param log_restarts: should we log the restarts?
         """
         super().__init__()
         #: the algorithm
@@ -67,6 +69,8 @@ class __LubyAlgorithm(Algorithm):
         #: the base FEs
         self._base_fes: Final[int] = base_fes
         self.initialize = algorithm.initialize  # type: ignore # fast call
+        #: should we log the restarts?
+        self._log_restarts: Final[bool] = log_restarts
 
     def __str__(self) -> str:
         """
@@ -85,13 +89,32 @@ class __LubyAlgorithm(Algorithm):
         st: Final[Callable[[], bool]] = process.should_terminate
         rst: Final[Callable[[], None]] = self.initialize
         sv: Final[Callable[[Process], None]] = self._algo.solve
+        restarts: Final[list[tuple[int, int]] | None] = \
+            [] if self._log_restarts and process.has_log() else None
         base: Final[int] = self._base_fes
         index: int = 0
         while not st():
+            if (index > 1) and (restarts is not None):
+                restarts.append((process.get_consumed_fes(),
+                                 process.get_consumed_time_millis()))
             index = index + 1
             with for_fes(process, base * _luby(index)) as prc:
+                als: Callable[[str, str], None] = prc.add_log_section
+
+                def __als(t: str, c: str, _a=als, _i=index) -> None:
+                    _a(f"{t}_{_i}", c)
+
+                prc.add_log_section = __als  # type: ignore
                 rst()
                 sv(prc)
+        if restarts is not None:
+            log: Final[list[str]] = [f"fes{CSV_SEPARATOR}timeMillis"]
+            for row in restarts:
+                log.append(CSV_SEPARATOR.join(map(
+                    str, (x for x in row))))
+            del restarts
+            process.add_log_section("LUBY_RESTARTS", "\n".join(log))
+            del log
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -101,6 +124,7 @@ class __LubyAlgorithm(Algorithm):
         """
         super().log_parameters_to(logger)
         logger.key_value("baseFEs", self._base_fes)
+        logger.key_value("logRestarts", self._log_restarts)
         with logger.scope("a") as scope:
             self._algo.log_parameters_to(scope)
 
@@ -118,13 +142,32 @@ class __LubyMOAlgorithm(__LubyAlgorithm, MOAlgorithm):
         rst: Final[Callable[[], None]] = self.initialize
         sv: Final[Callable[[MOProcess], None]] = cast(
             MOAlgorithm, self._algo).solve_mo
+        restarts: Final[list[tuple[int, int]] | None] = \
+            [] if self._log_restarts and process.has_log() else None
         base: Final[int] = self._base_fes
         index: int = 0
         while not st():
+            if (index > 1) and (restarts is not None):
+                restarts.append((process.get_consumed_fes(),
+                                 process.get_consumed_time_millis()))
             index = index + 1
             with for_fes(process, base * _luby(index)) as prc:
+                als: Callable[[str, str], None] = prc.add_log_section
+
+                def __als(t: str, c: str, _a=als, _i=index) -> None:
+                    _a(f"{t}_{_i}", c)
+
+                prc.add_log_section = __als  # type: ignore
                 rst()
                 sv(prc)
+        if restarts is not None:
+            log: Final[list[str]] = [f"fes{CSV_SEPARATOR}timeMillis"]
+            for row in restarts:
+                log.append(CSV_SEPARATOR.join(map(
+                    str, (x for x in row))))
+            del restarts
+            process.add_log_section("LUBY_RESTARTS", "\n".join(log))
+            del log
 
     def __str__(self) -> str:
         """
@@ -139,7 +182,8 @@ class __LubyMOAlgorithm(__LubyAlgorithm, MOAlgorithm):
 T = TypeVar("T", Algorithm, MOAlgorithm)
 
 
-def luby_restarts(algorithm: T, base_fes: int = 64) -> T:
+def luby_restarts(algorithm: T, base_fes: int = 64,
+                  log_restarts: bool = False) -> T:
     """
     Perform restarts of an algorithm in the Luby fashion.
 
@@ -150,10 +194,13 @@ def luby_restarts(algorithm: T, base_fes: int = 64) -> T:
 
     :param algorithm: the algorithm
     :param base_fes: the basic objective function evaluations
+    :param log_restarts: should we log the restarts?
     """
     check_int_range(base_fes, "base_fes", 1, 1_000_000_000_000)
+    if not isinstance(log_restarts, bool):
+        raise type_error(log_restarts, "log_restarts", bool)
     if isinstance(algorithm, MOAlgorithm):
-        return __LubyMOAlgorithm(algorithm, base_fes)
+        return __LubyMOAlgorithm(algorithm, base_fes, log_restarts)
     if isinstance(algorithm, Algorithm):
-        return __LubyAlgorithm(algorithm, base_fes)
+        return __LubyAlgorithm(algorithm, base_fes, log_restarts)
     raise type_error(algorithm, "algorithm", (Algorithm, MOAlgorithm))
