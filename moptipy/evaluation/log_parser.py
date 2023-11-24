@@ -21,7 +21,7 @@ module :mod:`~moptipy.evaluation.progress` reads the whole
 over time.
 """
 
-from math import isfinite
+from math import inf, isfinite, isinf
 from os import listdir
 from os.path import basename, dirname, isdir, isfile, join
 from typing import Final
@@ -661,7 +661,7 @@ class SetupAndStateParser(ExperimentParser):
         :returns: `True` if parsing should be continued, `False` otherwise
         """
         if (self.__state & 4) != 0:
-            self.setup_section(lines)
+            self.setup_section(parse_key_values(lines))
         elif (self.__state & 8) != 0:
             self.state_section(lines)
         return self.needs_more_lines()
@@ -687,23 +687,21 @@ class SetupAndStateParser(ExperimentParser):
             return True
         return False
 
-    def setup_section(self, lines: list[str]) -> None:
+    def setup_section(self, data: dict[str, str]) -> None:
         """
         Parse the data from the `setup` section.
 
-        :param lines: the lines of the section
+        :param data: the parsed data
         """
-        data: Final[dict[str, str]] = parse_key_values(lines)
+        self.goal_f = None
         if _FULL_KEY_GOAL_F in data:
             goal_f = data[_FULL_KEY_GOAL_F]
-            if ("e" in goal_f) or ("E" in goal_f) or ("." in goal_f):
-                self.goal_f = float(goal_f)
-            elif goal_f == "-inf":
-                self.goal_f = None
-            else:
-                self.goal_f = int(goal_f)
-        else:
-            self.goal_f = None
+            g: Final[int | float] = str_to_intfloat(goal_f)
+            if isfinite(g):
+                self.goal_f = g
+            elif not (isinf(g) and (g >= inf)):
+                raise ValueError(
+                    f"invalid goal f {goal_f}, which renders to {g}")
 
         if _FULL_KEY_MAX_FES in data:
             self.max_fes = check_to_int_range(

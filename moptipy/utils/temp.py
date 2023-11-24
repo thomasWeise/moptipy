@@ -1,8 +1,9 @@
-"""A set of utilities interactions with the file system."""
+"""Automatically deleted temporary files and directories."""
 import os
 from contextlib import AbstractContextManager
 from shutil import rmtree
 from tempfile import mkdtemp, mkstemp
+from typing import Final
 
 from moptipy.utils.path import Path
 
@@ -59,7 +60,7 @@ class TempDir(Path, AbstractContextManager):
         :param traceback: ignored
         :returns: `True` to suppress an exception, `False` to rethrow it
         """
-        opn = self.__is_open
+        opn: Final[bool] = self.__is_open
         self.__is_open = False
         if opn:
             rmtree(self, ignore_errors=True, onerror=None)
@@ -135,7 +136,7 @@ class TempFile(Path, AbstractContextManager):
         :param traceback: ignored
         :returns: `True` to suppress an exception, `False` to rethrow it
         """
-        opn = self.__is_open
+        opn: Final[bool] = self.__is_open
         self.__is_open = False
         if opn:
             os.remove(self)
