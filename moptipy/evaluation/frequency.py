@@ -1,4 +1,15 @@
-"""Load the encounter frequencies or the set of different objective values."""
+"""
+Load the encounter frequencies or the set of different objective values.
+
+This tool can load the different objective values that exist or are
+encountered by optimization processes. This may be useful for statistical
+evaluations or fitness landscape analyses.
+
+This tool is based on code developed by Mr. Tianyu LIANG (梁天宇),
+MSc student at the Institute of Applied Optimization (IAO,
+应用优化研究所) of the School of Artificial Intelligence and
+Big Data (人工智能与大数据学院) of Hefei University (合肥学院).
+"""
 import argparse
 import os.path
 from collections import Counter
