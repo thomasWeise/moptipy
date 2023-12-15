@@ -73,7 +73,7 @@ class GanttSpace(Space):
         :param x: the Gantt chart
         :return: a string corresponding to the flattened `Gantt` array
         """
-        return CSV_SEPARATOR.join([str(xx) for xx in np.nditer(x)])  # +book
+        return CSV_SEPARATOR.join(map(str, np.nditer(x)))  # +book
 
     def is_equal(self, x1: Gantt, x2: Gantt) -> bool:  # +book
         """

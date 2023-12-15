@@ -651,7 +651,7 @@ def array_to_str(data: np.ndarray) -> str:
         raise type_error(data, "data", np.ndarray)
     k: Final[str] = data.dtype.kind
     if k in ("i", "u"):
-        return CSV_SEPARATOR.join(str(d) for d in data)
+        return CSV_SEPARATOR.join(map(str, data))
     if k == "f":
         return CSV_SEPARATOR.join(num_to_str(float(d)) for d in data)
     if k == "b":
