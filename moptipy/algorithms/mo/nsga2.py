@@ -301,12 +301,12 @@ class NSGA2(Algorithm2, MOAlgorithm):
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
-        Log the parameters of the algorithm to a logger.
+        Log the parameters of the NSGA-II algorithm to a logger.
 
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        logger.key_value("pop_size", self.pop_size)
+        logger.key_value("popSize", self.pop_size)
         logger.key_value("cr", self.cr)
 
     def initialize(self) -> None:

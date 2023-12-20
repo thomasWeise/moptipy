@@ -1140,8 +1140,22 @@ class EndStatistics(MultiRunData):
                             idx += CSV_COLS
 
                         if has_best_f_scaled:
-                            best_f_scaled = Statistics.from_csv(
-                                n, row[idx:(idx + CSV_COLS)])
+                            must_be_defined: bool = True
+                            if goal_f is None:
+                                must_be_defined = False
+                            elif isinstance(goal_f, int):
+                                must_be_defined = goal_f > 0
+                            elif isinstance(goal_f, float):
+                                must_be_defined = goal_f > 0.0
+                            elif isinstance(goal_f, Statistics):
+                                must_be_defined = goal_f.minimum > 0
+                            bfss: list[str] = row[idx:(idx + CSV_COLS)]
+                            if (len(bfss[0]) > 0) and (len(bfss[1]) > 0) \
+                               and (len(bfss[2]) > 0) and (len(bfss[4]) > 0):
+                                best_f_scaled = Statistics.from_csv(n, bfss)
+                            elif must_be_defined:
+                                raise ValueError(  # noqa TRY301
+                                    "bestFscaled must be defined but is not.")
                             idx += CSV_COLS
 
                         if has_n_success:
