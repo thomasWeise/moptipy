@@ -59,7 +59,7 @@ operator is therefore called "position based mutation operator" in [5].
    2016, Denver, CO, USA, pages 57-58, New York, NY, USA: ACM.
    ISBN: 978-1-4503-4323-7. https://doi.org/10.1145/2908961.2909001
 """
-from typing import Final
+from typing import Callable, Final
 
 import numba  # type: ignore
 import numpy as np
@@ -69,7 +69,7 @@ from moptipy.api.operators import Op1
 
 
 @numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
-def _rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
+def try_single_rotate(arr: np.ndarray, i1: int, i2: int) -> bool:  # +book
     """
     Rotate a portion of an array to the left or right in place.
 
@@ -100,107 +100,110 @@ def _rotate(arr: np.ndarray, i1: int, i2: int) -> bool:
     >>> dest = npx.array(range(10))
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _rotate(dest, 3, 4)
+    >>> try_single_rotate(dest, 3, 4)
     False
     >>> print(dest)
     [0 1 2 4 3 5 6 7 8 9]
-    >>> _rotate(dest, 3, 4)
+    >>> try_single_rotate(dest, 3, 4)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _rotate(dest, 4, 3)
+    >>> try_single_rotate(dest, 4, 3)
     False
     >>> print(dest)
     [0 1 2 4 3 5 6 7 8 9]
-    >>> _rotate(dest, 4, 3)
+    >>> try_single_rotate(dest, 4, 3)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _rotate(dest, 3, 6)
+    >>> try_single_rotate(dest, 3, 6)
     False
     >>> print(dest)
     [0 1 2 4 5 6 3 7 8 9]
-    >>> _rotate(dest, 6, 3)
+    >>> try_single_rotate(dest, 6, 3)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _rotate(dest, 0, len(dest) - 1)
+    >>> try_single_rotate(dest, 0, len(dest) - 1)
     False
     >>> print(dest)
     [1 2 3 4 5 6 7 8 9 0]
-    >>> _rotate(dest, len(dest) - 1, 0)
+    >>> try_single_rotate(dest, len(dest) - 1, 0)
     False
     >>> print(dest)
     [0 1 2 3 4 5 6 7 8 9]
-    >>> _rotate(dest, 7, 7)
+    >>> try_single_rotate(dest, 7, 7)
     True
     >>> dest = np.array([0, 1, 2, 3, 3, 3, 3, 3, 8, 9])
-    >>> _rotate(dest, 7, 7)
+    >>> try_single_rotate(dest, 7, 7)
     True
-    >>> _rotate(dest, 4, 6)
-    True
-    >>> print(dest)
-    [0 1 2 3 3 3 3 3 8 9]
-    >>> _rotate(dest, 6, 4)
+    >>> try_single_rotate(dest, 4, 6)
     True
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _rotate(dest, 4, 7)
+    >>> try_single_rotate(dest, 6, 4)
     True
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _rotate(dest, 6, 7)
+    >>> try_single_rotate(dest, 4, 7)
     True
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _rotate(dest, 4, 8)
+    >>> try_single_rotate(dest, 6, 7)
+    True
+    >>> print(dest)
+    [0 1 2 3 3 3 3 3 8 9]
+    >>> try_single_rotate(dest, 4, 8)
     False
     >>> print(dest)
     [0 1 2 3 3 3 3 8 3 9]
-    >>> _rotate(dest, 8, 4)
+    >>> try_single_rotate(dest, 8, 4)
     False
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
-    >>> _rotate(dest, 9, 4)
+    >>> try_single_rotate(dest, 9, 4)
     False
     >>> print(dest)
     [0 1 2 3 9 3 3 3 3 8]
-    >>> _rotate(dest, 4, 9)
+    >>> try_single_rotate(dest, 4, 9)
     False
     >>> print(dest)
     [0 1 2 3 3 3 3 3 8 9]
     """
+    # start book
     if i1 == i2:  # nothing to be done
         return True  # array will not be changed
 
-    unchanged: bool = True  # was the array unchanged?
+    unchanged: bool = True  # initially, assume that there is no change
 
-    if i1 < i2:  # rotate left
-        first = arr[i1]
-        while i1 < i2:
-            i3 = i1 + 1
-            cpy = arr[i3]
-            unchanged = unchanged and (cpy == arr[i1])
-            arr[i1] = cpy
-            i1 = i3
-        unchanged = unchanged and (first == arr[i2])
-        arr[i2] = first
-        return unchanged
+    if i1 < i2:  # rotate to the left: move elements to lower indices?
+        first = arr[i1]  # get the element to be removed
+        while i1 < i2:  # iterate the indices
+            i3 = i1 + 1  # get next higher index
+            cpy = arr[i3]  # get next element at that higher index
+            unchanged = unchanged and (cpy == arr[i1])  # is a change?
+            arr[i1] = cpy  # store next element at the lower index
+            i1 = i3  # move to next higher index
+        unchanged = unchanged and (first == arr[i2])  # check if change
+        arr[i2] = first  # store removed element at highest index
+        return unchanged  # return True if something changed, else False
 
-    last = arr[i1]
-    while i2 < i1:  # rotate right
-        i3 = i1 - 1
-        cpy = arr[i3]
-        unchanged = unchanged and (cpy == arr[i1])
-        arr[i1] = cpy
-        i1 = i3
-    unchanged = unchanged and (last == arr[i2])
-    arr[i2] = last
-    return unchanged
+    last = arr[i1]  # last element; rotate right: move elements up
+    while i2 < i1:  # iterate over indices
+        i3 = i1 - 1  # get next lower index
+        cpy = arr[i3]  # get element at that lower index
+        unchanged = unchanged and (cpy == arr[i1])  # is a change?
+        arr[i1] = cpy  # store element at higher index
+        i1 = i3  # move to next lower index
+    unchanged = unchanged and (last == arr[i2])  # check if change
+    arr[i2] = last  # store removed element at lowest index
+    return unchanged  # return True if something changed, else False
+# end book
 
 
 # Temporary fix for https://github.com/numba/numba/issues/9103
-def rotate(random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
+def rotate(random: Generator, dest: np.ndarray,  # +book
+           x: np.ndarray) -> None:  # +book
     """
     Copy `x` into `dest` and then rotate a subsequence by one step.
 
@@ -224,13 +227,14 @@ def rotate(random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
     >>> print(out)
     [0 1 2 3 4 8 5 6 7 9]
     """
+    # start book
     dest[:] = x[:]
     length: Final[int] = len(dest)  # Get the length of `dest`.
+    rint: Callable[[int, int], int] = random.integers  # fast call
 
     # try to rotate the dest array until something changes
-    while _rotate(dest, random.integers(0, length),
-                  random.integers(0, length)):
-        pass
+    while try_single_rotate(dest, rint(0, length), rint(0, length)):
+        pass  # do nothing in the loop, but try rotating again
 
 
 class Op1Insert1(Op1):
@@ -250,6 +254,7 @@ class Op1Insert1(Op1):
         """Initialize the object."""
         super().__init__()
         self.op1 = rotate  # type: ignore  # use function directly
+# end book
 
     def __str__(self) -> str:
         """

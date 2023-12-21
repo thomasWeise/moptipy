@@ -46,7 +46,7 @@ operator (Michalewicz 1992), or the order based mutation operator by Syswerda
 This operator performs one swap. It is similar to :class:`~moptipy.operators.\
 permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.
 """
-from typing import Final
+from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator
@@ -86,11 +86,12 @@ def swap_2(random: Generator, dest: np.ndarray,  # +book
     # start book
     dest[:] = x[:]  # First, we copy `x` to `dest`.
     length: Final[int] = len(dest)  # Get the length of `dest`.
+    rint: Callable[[int, int], int] = random.integers  # fast call
 
-    i1: Final[int] = random.integers(0, length)  # first random index
+    i1: Final[int] = rint(0, length)  # first random index
     v1: Final = dest[i1]  # Get the value at the first index.
     while True:  # Repeat until we find a different value.
-        i2: int = random.integers(0, length)  # second random index
+        i2: int = rint(0, length)  # second random index
         v2 = dest[i2]  # Get the value at the second index.
         if v1 != v2:  # If both values different...
             dest[i2] = v1  # store v1 where v2 was

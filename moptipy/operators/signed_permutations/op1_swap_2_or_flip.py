@@ -5,7 +5,7 @@ This operator is for :mod:`~moptipy.spaces.signed_permutations`. A similar
 operator which *only* swaps elements (for :mod:`~moptipy.spaces.permutations`)
 is defined in :mod:`~moptipy.operators.permutations.op1_swap2`.
 """
-from typing import Final
+from typing import Callable, Final
 
 # = import numba  # type: ignore
 import numpy as np
@@ -48,11 +48,12 @@ def swap_2_or_flip(random: Generator, dest: np.ndarray,
     """
     dest[:] = x[:]  # First, we copy `x` to `dest`.
     length: Final[int] = len(dest)  # Get the length of `dest`.
+    rint: Callable[[int, int], int] = random.integers  # fast call
 
-    i1: Final[int] = random.integers(0, length)  # first random index.
+    i1: Final[int] = rint(0, length)  # first random index.
     v1: Final = dest[i1]  # Get the value at the first index.
 
-    if random.integers(0, 2) == 0:  # With p=0.5, we flip the sign of v1.
+    if rint(0, 2) == 0:  # With p=0.5, we flip the sign of v1.
         dest[i1] = -v1  # Flip the sign of v1 and store it back at i1.
         return  # Quit.
 
@@ -61,7 +62,7 @@ def swap_2_or_flip(random: Generator, dest: np.ndarray,
 # possible that all values currently are the same. To avoid an endless loop,
 # we therefore use a sufficiently large range.
     for _ in range(10 + length):
-        i2: int = random.integers(0, length)  # Get the second random index.
+        i2: int = rint(0, length)  # Get the second random index.
         v2 = dest[i2]  # Get the value at the second index.
         if v1 != v2:  # If both values different...
             dest[i2] = v1  # store v1 where v2 was

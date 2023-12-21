@@ -5,7 +5,10 @@ import numpy as np
 from numpy.random import default_rng
 
 # noinspection PyProtectedMember
-from moptipy.operators.permutations.op1_insert1 import Op1Insert1, _rotate
+from moptipy.operators.permutations.op1_insert1 import (
+    Op1Insert1,
+    try_single_rotate,
+)
 from moptipy.tests.on_permutations import validate_op1_on_permutations
 
 
@@ -38,7 +41,7 @@ def test_rotate() -> None:
                     dst1[k + 1:j + 1] = dst1[k:j]
                     dst1[k] = v
 
-                res = _rotate(dst2, j, k)
+                res = try_single_rotate(dst2, j, k)
                 assert res == all(dst1 == x)
                 if j == k:
                     assert res

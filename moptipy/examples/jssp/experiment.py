@@ -4,46 +4,21 @@ import os.path as pp
 from typing import Any, Callable, Final, Iterable, cast
 
 import moptipy.api.experiment as ex
-from moptipy.algorithms.modules.selections.fitness_proportionate_sus import (
-    FitnessProportionateSUS,
-)
-from moptipy.algorithms.modules.selections.tournament_with_repl import (
-    TournamentWithReplacement,
-)
-from moptipy.algorithms.modules.selections.tournament_without_repl import (
-    TournamentWithoutReplacement,
-)
-from moptipy.algorithms.modules.temperature_schedule import ExponentialSchedule
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
-from moptipy.algorithms.so.ea import EA
-from moptipy.algorithms.so.fitnesses.direct import Direct
-from moptipy.algorithms.so.fitnesses.rank import Rank
-from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.algorithms.so.hill_climber import HillClimber
-from moptipy.algorithms.so.hill_climber_with_restarts import (
-    HillClimberWithRestarts,
-)
-from moptipy.algorithms.so.ma import MA
-from moptipy.algorithms.so.marls import MARLS
-from moptipy.algorithms.so.ppa import PPA
 from moptipy.algorithms.so.rls import RLS
-from moptipy.algorithms.so.simulated_annealing import SimulatedAnnealing
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
-from moptipy.operators.op0_forward import Op0Forward
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
+from moptipy.operators.permutations.op1_insert1 import Op1Insert1
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
-from moptipy.operators.permutations.op1_swap_try_n import Op1SwapTryN
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
-from moptipy.operators.permutations.op2_gap import (
-    Op2GeneralizedAlternatingPosition,
-)
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.help import argparser
 from moptipy.utils.path import Path
@@ -71,8 +46,8 @@ INSTANCES: \
 #: perform exactly this many runs.
 EXPERIMENT_RUNS: Final[int] = 23
 
-#: We will perform two minutes per run.
-EXPERIMENT_RUNTIME_MS: Final[int] = 2 * 60 * 1000
+#: We will perform five minutes per run.
+EXPERIMENT_RUNTIME_MS: Final[int] = 5 * 60 * 1000
 
 #: The default set of algorithms for our experiments.
 #: Each of them is a Callable that receives two parameters, the instance
@@ -82,120 +57,15 @@ ALGORITHMS: Final[list[
     lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
     lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
     lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
-    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # RLS
+    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # RLS with swap-2
     lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2()),  # random walk
     lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1SwapN()),  # hill climb.
     lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1SwapN()),  # RLS
+    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1SwapN()),  # random walk
+    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Insert1()),  # HC
+    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Insert1()),  # RLS
+    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Insert1()),  # random walk
 ]
-for scale in range(7, 21):  # add the hill climbers with restarts
-    ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, i=scale: HillClimberWithRestarts(
-            Op0Shuffle(pwr), Op1Swap2(), 2 ** i)))  # hill clim. with restarts
-    ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, i=scale: HillClimberWithRestarts(
-            Op0Shuffle(pwr), Op1SwapN(), 2 ** i)))  # hill clim. with restarts
-for log2_mu in range(14):
-    mu: int = 2 ** log2_mu
-    for lambda_ in sorted({1, max(1, log2_mu), round(mu ** 0.5), mu, mu + mu,
-                           4 * mu, 8 * mu}):
-        if lambda_ > 65536:
-            continue
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, mm=mu, ll=lambda_: EA(
-                Op0Shuffle(pwr), Op1Swap2(), None, mm, ll, 0.0)))
-        if (mu == lambda_) and (mu in {2, 4, 32, 256, 4096}):
-            for br_exp in range(1, 11):
-                ALGORITHMS.append(cast(
-                    Callable[[Instance, Permutations], Algorithm],
-                    lambda inst, pwr, ml=mu, br=(2 ** -br_exp): EA(
-                        Op0Shuffle(pwr), Op1Swap2(),
-                        Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
-            for br_exp in range(2, 11):
-                ALGORITHMS.append(cast(
-                    Callable[[Instance, Permutations], Algorithm],
-                    lambda inst, pwr, ml=mu, br=1.0 - (2 ** -br_exp): EA(
-                        Op0Shuffle(pwr), Op1Swap2(),
-                        Op2GeneralizedAlternatingPosition(pwr), ml, ml, br)))
-
-for mu_lambda in [4, 32]:
-    for ts in [2, 4]:
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, sze=ts: GeneralEA(
-                Op0Shuffle(pwr), Op1Swap2(),
-                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-                survival=TournamentWithReplacement(sze))))
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, sze=ts: GeneralEA(
-                Op0Shuffle(pwr), Op1Swap2(),
-                Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-                survival=TournamentWithoutReplacement(sze))))
-    ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            mating=TournamentWithoutReplacement(2))))
-    ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            fitness=Direct(), survival=FitnessProportionateSUS())))
-    ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            fitness=Direct(), survival=FitnessProportionateSUS(),
-            mating=TournamentWithoutReplacement(2))))
-    ALGORITHMS.append(cast(
-        Callable[[Instance, Permutations], Algorithm],
-        lambda inst, pwr, ml=mu_lambda: GeneralEA(
-            Op0Shuffle(pwr), Op1Swap2(),
-            Op2GeneralizedAlternatingPosition(pwr), ml, ml, 2 ** -3,
-            fitness=Rank(), survival=FitnessProportionateSUS(),
-            mating=TournamentWithoutReplacement(2))))
-
-for t0 in [2.0, 4.0, 8.0, 13.0, 16.0, 32.0, 44.0, 64.0, 128.0, 148.0, 256.0]:
-    for epsilon in [1e-7, 5e-7, 1e-6, 5e-6, 1e-5]:
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, t=t0, e=epsilon: SimulatedAnnealing(
-                Op0Shuffle(pwr), Op1Swap2(),
-                ExponentialSchedule(t, e))))
-
-for mu_lambda in [2, 8, 32]:
-    for ls_steps in [2 ** i for i in range(24)]:
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, lss=ls_steps:
-                MARLS(Op0Shuffle(pwr), Op1Swap2(),
-                      Op2GeneralizedAlternatingPosition(pwr),
-                      ml, ml, lss)))
-        ALGORITHMS.append(cast(
-            Callable[[Instance, Permutations], Algorithm],
-            lambda inst, pwr, ml=mu_lambda, lss=ls_steps:
-                MA(Op0Shuffle(pwr),
-                   Op2GeneralizedAlternatingPosition(pwr),
-                   SimulatedAnnealing(
-                       Op0Forward(), Op1Swap2(),
-                       ExponentialSchedule(16.0, max(1e-7, round(
-                           1e7 * (1 - ((0.22 / 16.0) ** (
-                               1.0 / (0.8 * lss))))) / 1e7))),
-                   ml, ml, lss)))
-
-for m in [1, 2, 4, 8, 16, 32]:
-    for nmax in [1, 2, 4, 8, 16, 32]:
-        for max_step in [1.0, 0.5, 0.3, 0.0]:
-            ALGORITHMS.append(cast(
-                Callable[[Instance, Permutations], Algorithm],
-                lambda inst, pwr, mm=m, ll=nmax, ms=max_step: PPA(
-                    Op0Shuffle(pwr), Op1SwapTryN(pwr), mm, ll, ms)))
 
 
 def run_experiment(base_dir: str = pp.join(".", "results"),

@@ -7,12 +7,10 @@ from re import compile as _compile
 from statistics import median
 from typing import Callable, Final, Iterable, cast
 
-from moptipy.api.logging import KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import EndStatistics
-from moptipy.evaluation.statistics import KEY_MEAN_ARITH
 from moptipy.evaluation.tabulate_end_results import (
     DEFAULT_ALGORITHM_INSTANCE_STATISTICS,
     DEFAULT_ALGORITHM_SUMMARY_STATISTICS,
@@ -32,7 +30,7 @@ from moptipy.spaces.permutations import Permutations
 from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
 from moptipy.utils.lang import EN
-from moptipy.utils.logger import SCOPE_SEPARATOR, sanitize_name
+from moptipy.utils.logger import sanitize_name
 from moptipy.utils.path import Path
 from moptipy.utils.strings import (
     beautify_float_str,
@@ -183,18 +181,8 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
     # fix some names using regular expressions
     namer: dict[str, str] = {}
     used_names: set[str] = set(names)
-    for pattern, repl in [("hc_swap2", "hc"), ("hcr_32768_swap2", "hcr"),
-                          ("hc_swapn", "hcn"), ("hcr_65536_swapn", "hcrn"),
-                          ("rls_swap2", "rls"), ("rls_swapn", "rlsn"),
-                          ("ea_([0-9]+)_([0-9]+)_swap2", "\\1+\\2_ea"),
-                          ("ea_([0-9]+)_([0-9]+)_(0d[0-9]+)_gap_swap2",
-                           __eacr),
-                          ("sa_exp([0-9]+)_([0-9])em([0-9])_swap2",
-                           __sa),
-                          ("marls_([0-9]+)_([0-9]+)_([0-9]+)_gap_swap2",
-                           lambda mm: __ma(mm, "rls")),
-                          ("ma_([0-9]+)_([0-9]+)_([0-9]+)_gap_sa_exp.*",
-                           lambda mm: __ma(mm, "sa"))]:
+    for pattern, repl in [("hc_swap2", "hc"), ("hc_swapn", "hcn"),
+                          ("rls_swap2", "rls"), ("rls_swapn", "rlsn")]:
         re: Pattern = _compile(pattern)
         found = False
         for s in names:
@@ -217,80 +205,6 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                 names_new.insert(names_new.index(s), ns)
         if not found:
             raise ValueError(f"did not find {pattern!r}.")
-
-    # fix the basic EA families
-    ea1p1: Final[int] = names_new.index("ea_1_1_swap2")
-    ea_families: dict[str, int] = {
-        NAME_EA_MU_PLUS_MU: ea1p1,
-        NAME_EA_MU_PLUS_SQRT_MU: ea1p1,
-        NAME_EA_MU_PLUS_LOG_MU: ea1p1,
-        NAME_EA_MU_PLUS_1: ea1p1}
-    for n in names:
-        if n.startswith("ea_"):
-            try:
-                fam = ea_family(n)
-            except ValueError:
-                continue
-            if fam not in ea_families:
-                if fam in used_names:
-                    raise ValueError(f"duplicated ea family {fam!r}.")
-                used_names.add(fam)
-                ea_families[fam] = names_new.index(n)
-            else:
-                ea_families[fam] = min(ea_families[fam], names_new.index(n))
-    for i, n in sorted([(n[1], n[0]) for n in ea_families.items()],
-                       reverse=True, key=lambda a: a[0]):
-        names_new.insert(i, n)
-
-    # fix the general EA names
-    for name in names:
-        if name.startswith("generalEa_"):
-            n = name[9:]
-            has_fitness: bool = False
-            for fl, fs in (("_direct", "D"), ("_rank", "R")):
-                if fl in n:
-                    n = n.replace(fl, fs)
-                    has_fitness = True
-            if not has_fitness:
-                n = f"RI{n}"
-            n = n.replace("_tour", "t").replace("_best", "b")\
-                .replace("_rndNoRep", "n").replace("_fpsus", "f")\
-                .replace("_0d125_gap_swap2", "")
-            if "_4_4" in n:
-                n = "ea4" + n.replace("_4_4", "")
-            elif "_32_32" in n:
-                n = "ea32" + n.replace("_32_32", "")
-            else:
-                raise ValueError(f"invalid general EA: {name!r}.")
-            os = namer.get(name, None)
-            if os is not None:
-                if os == n:
-                    continue
-                raise ValueError(f"{name!r} -> {n!r}, {os!r}?")
-            if n in used_names:
-                raise ValueError(f"Already got {n!r}.")
-            namer[name] = n
-            names_new.insert(names_new.index(name), n)
-
-    # do sa families
-    sa_done: set[str] = set()
-    for name in names:
-        if name.startswith("sa_"):
-            n = sa_family(name)
-            if n in sa_done:
-                continue
-            sa_done.add(n)
-            names_new.insert(names_new.index(name), n)
-
-    # do ma families
-    ma_done: set[str] = set()
-    for name in names:
-        if name.startswith(("ma_", "marls_")):
-            n = ma_family(name)
-            if n in ma_done:
-                continue
-            ma_done.add(n)
-            names_new.insert(names_new.index(name), n)
 
     return {__n: __i for __i, __n in enumerate(names_new)}, namer
 
@@ -673,175 +587,6 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     gantt(end_results, "hc_swap2", dest, source)
     progress(["hc_swap2", "rs"], dest, source)
     progress(["hc_swap2", "rs"], dest, source, millis=False)
-
-    logger("Now evaluating the hill climbing algorithm with "
-           "restarts 'hcr' on 'swap2'.")
-    makespans_over_param(
-        end_results,
-        lambda an: an.startswith("hcr_") and an.endswith("_swap2"),
-        lambda es: int(es.algorithm.split("_")[1]),
-        "hcr_L_swap2", dest,
-        lambda: AxisRanger(log_scale=True, log_base=2.0), "L")
-    table(end_results, ["hcr_32768_swap2", "hc_swap2", "rs"], dest)
-    makespans(end_results, ["hcr_32768_swap2", "hc_swap2", "rs"], dest)
-    gantt(end_results, "hcr_32768_swap2", dest, source)
-    progress(["hcr_32768_swap2", "hc_swap2", "rs"], dest, source)
-
-    logger("Now evaluating the hill climbing algorithm with 'swapn'.")
-    table(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
-    makespans(end_results, ["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest)
-    progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source)
-    progress(["hc_swapn", "hcr_32768_swap2", "hc_swap2"], dest, source,
-             millis=False)
-
-    logger("Now evaluating the hill climbing algorithm with "
-           "restarts 'hcr' on 'swapn'.")
-    makespans_over_param(
-        end_results,
-        lambda an: an.startswith("hcr_") and an.endswith("_swapn"),
-        lambda es: int(es.algorithm.split("_")[1]),
-        "hcr_L_swapn", dest,
-        lambda: AxisRanger(log_scale=True, log_base=2.0), "L")
-    table(end_results, ["hcr_65536_swapn", "hc_swapn",
-                        "hcr_32768_swap2"], dest)
-    makespans(end_results, ["hcr_65536_swapn", "hc_swapn",
-                            "hcr_32768_swap2"], dest)
-    progress(["hcr_65536_swapn", "hc_swapn",
-              "hcr_32768_swap2"], dest, source)
-    tests(end_results, ["hcr_65536_swapn", "hcr_32768_swap2",
-                        "hc_swapn"], dest)
-
-    logger("Now evaluating the RLS algorithm with 'swap2' and 'swapn'.")
-    table(end_results, ["rls_swapn", "rls_swap2",
-                        "hcr_32768_swap2", "hcr_65536_swapn"], dest)
-    tests(end_results, ["rls_swapn", "rls_swap2", "hcr_32768_swap2"], dest)
-    makespans(end_results, ["rls_swapn", "rls_swap2", "hcr_32768_swap2",
-                            "hcr_65536_swapn"], dest)
-    gantt(end_results, "rls_swap2", dest, source)
-    progress(["rls_swapn", "rls_swap2", "hcr_32768_swap2",
-              "hcr_65536_swapn"], dest, source)
-    gantt(end_results, "rls_swap2", dest, source, True, ["ta70"])
-
-    logger("Now evaluating EA without crossover.")
-
-    makespans_over_param(
-        end_results=end_results,
-        selector=lambda n: n.startswith("ea_") and n.split("_")[3] == "swap2",
-        x_getter=lambda es: int(es.algorithm.split("_")[1]),
-        name_base="ea_no_cr",
-        algo_getter=ea_family,
-        title=f"{LETTER_M}+{LETTER_L}_ea", x_label=LETTER_M,
-        title_x=0.8,
-        x_axis=AxisRanger(log_scale=True, log_base=2.0),
-        legend_pos="upper center",
-        dest_dir=dest)
-    lims: Final[str] = (f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}{SCOPE_SEPARATOR}"
-                        f"{KEY_MEAN_ARITH}")
-    totfes: Final[str] = f"{KEY_TOTAL_FES}{SCOPE_SEPARATOR}{KEY_MEAN_ARITH}"
-    table(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-                        "ea_512_512_swap2", "rls_swap2"], dest,
-          swap_stats=[(lims, totfes)])
-    tests(end_results, ["ea_1_2_swap2", "ea_2_2_swap2", "rls_swap2"], dest)
-    makespans(end_results, ["ea_1_2_swap2", "ea_2_2_swap2",
-                            "ea_512_512_swap2", "rls_swap2"], dest, 0.6)
-    progress(["ea_1_2_swap2", "ea_2_2_swap2", "ea_2_4_swap2",
-              "ea_64_1_swap2", "ea_1024_1024_swap2", "ea_8192_65536_swap2",
-              "rls_swap2"],
-             dest, source)
-
-    logger("Now evaluating EA with crossover.")
-    makespans_over_param(
-        end_results=end_results,
-        selector=lambda n: n.startswith("ea_") and n.endswith("_gap_swap2"),
-        x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[3]),
-        name_base="ea_cr",
-        algo_getter=ea_family,
-        title=f"{LETTER_M}+{LETTER_M}_ea_br", x_label="br",
-        x_axis=AxisRanger(log_scale=True, log_base=2.0),
-        legend_pos="upper right",
-        dest_dir=dest)
-    table(end_results, ["ea_2_2_0d001953125_gap_swap2", "ea_2_2_swap2",
-                        "rls_swap2"], dest)
-    tests(end_results, ["ea_2_2_0d001953125_gap_swap2", "ea_2_2_swap2",
-                        "rls_swap2"], dest)
-    progress(["ea_2_2_0d001953125_gap_swap2", "ea_2_2_swap2", "rls_swap2",
-              "ea_256_256_swap2", "ea_256_256_0d25_gap_swap2",
-              "ea_32_32_swap2", "ea_32_32_0d125_gap_swap2"],
-             dest, source)
-
-    logger("Now evaluating the general EA.")
-    for s in ["_4_4", "_32_32"]:
-        selected = [y for y in ALL_NAMES if (s in y)
-                    and y.startswith("generalEa_")]
-        selected.append("rls_swap2")
-        selected.append(f"ea{s}_0d125_gap_swap2")
-        progress(selected, dest, source, millis=False)
-
-    selected = [y for y in ALL_NAMES if y.startswith("generalEa_")]
-    selected.append("rls_swap2")
-    selected.append("ea_4_4_0d125_gap_swap2")
-    selected.append("ea_32_32_0d125_gap_swap2")
-    table(end_results, selected, dest, swap_stats=[(lims, totfes)])
-
-    logger("now preparing to evaluate simulated annealing")
-    EN.set_current()
-    stats = ["bestF.sd", "lastImprovementFE.med", "totalFEs.med"]
-    tabulate_end_results(
-        end_results=get_end_results(end_results, algos={"rls_swap2"}),
-        file_name="end_stats_rls_2", dir_name=dest,
-        instance_sort_key=instance_sort_key,
-        algorithm_sort_key=algorithm_sort_key,
-        col_namer=command_column_namer,
-        algorithm_namer=algorithm_namer,
-        algorithm_instance_statistics=stats,
-        algorithm_summary_statistics=stats,
-        put_lower_bound=False,
-        use_lang=False)
-
-    logger("now evaluating simulated annealing")
-    makespans_over_param(
-        end_results=end_results,
-        selector=lambda n: n.startswith("sa_") and n.endswith("_swap2") and (
-            "1em7" not in n),
-        x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[1][3:]),
-        name_base="sa_exp",
-        algo_getter=sa_family,
-        title="sa_T\u2080_\u03b5", x_label="T\u2080",
-        x_axis=AxisRanger(log_scale=True, log_base=2.0),
-        legend_pos="upper center",
-        title_x=0.8,
-        dest_dir=dest)
-    table(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
-    tests(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest)
-    makespans(end_results, ["sa_exp16_1em6_swap2", "rls_swap2"], dest, 0.72)
-    gantt(end_results, "sa_exp16_1em6_swap2", dest, source)
-    progress(["sa_exp16_1em6_swap2", "sa_exp16_1em7_swap2",
-              "sa_exp16_1em5_swap2", "rls_swap2"], dest, source)
-    gantt(end_results, "sa_exp16_1em6_swap2", dest, source, True, ["orb06"])
-
-    logger("now evaluating memetic algorithm")
-    table(end_results, ["ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2",
-                        "marls_8_8_16_gap_swap2",
-                        "sa_exp16_1em6_swap2"], dest,
-          swap_stats=[(lims, totfes)])
-    makespans_over_param(
-        end_results=end_results,
-        selector=lambda n: n.startswith("ma"),
-        x_getter=lambda er: name_str_to_num(er.algorithm.split("_")[3]),
-        name_base="ma_",
-        algo_getter=ma_family,
-        title=f"{LETTER_M}+{LETTER_L}_ma{{rls|sa}}", x_label="ls_fes",
-        x_axis=AxisRanger(log_scale=True, log_base=2.0),
-        legend_pos="lower center",
-        title_x=0.8,
-        y_label_location=0.1,
-        dest_dir=dest)
-    progress(["marls_8_8_16_gap_swap2",
-              "ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2",
-              "sa_exp16_1em6_swap2", "ea_2_2_swap2",
-              "ea_8_8_swap2"], dest, source)
-    makespans(end_results, ["ma_2_2_1048576_gap_sa_exp16_5d1em6_swap2",
-                            "sa_exp16_1em6_swap2"], dest, 0.72)
 
     logger(f"Finished evaluation from {source!r} to {dest!r}.")
 

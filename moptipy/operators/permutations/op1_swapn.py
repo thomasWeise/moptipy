@@ -47,7 +47,7 @@ will swap 4 elements, and so on.
    Institute of Applied Optimization (IAO), School of Artificial Intelligence
    and Big Data, Hefei University. http://thomasweise.github.io/oa/
 """
-from typing import Final
+from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator
@@ -81,14 +81,15 @@ def swap_n(random: Generator, dest: np.ndarray,  # +book
     # start book
     dest[:] = x[:]  # First, we copy `x` to `dest`.
     length: Final[int] = len(dest)  # Get the length of `dest`.
+    rint: Callable[[int, int], int] = random.integers  # fast call
 
     i1: int = random.integers(0, length)  # Get the first random index.
     last = first = dest[i1]  # Get the value at the first index.
     continue_after: bool = True  # True -> loop at least once.
     while continue_after:  # Repeat until we should stop
-        continue_after = random.integers(0, 2) <= 0  # 50/50 chance
+        continue_after = rint(0, 2) <= 0  # 50/50 chance
         while True:  # Loop forever until eligible element found.
-            i2: int = random.integers(0, length)  # new random index.
+            i2: int = rint(0, length)  # new random index.
             current = dest[i2]  # Get the value at the new index.
             if current == last:  # If it is the same as the
                 continue  # previous value, continue.
