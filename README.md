@@ -39,7 +39,7 @@
   - [Reproducibility](#82-reproducibility)
   - [Parallel and Distributed Experiments](#83-parallel-and-distributed-experiments)
 - [Uselful Links and References](#9-useful-links-and-references)
-- [Works using moptipy](#10-works-using-moptipy)
+- [Publications on moptipy and Works using moptipy](#10-publications-on-moptipy-and-works-using-moptipy)
 - [License](#11-license)
 - [Contact](#12-contact)
 
@@ -841,7 +841,7 @@ Within this package, we implement a subset of basic problems that are useful for
 `moptipy` itself is not intended to be a collection of optimization problems, but more a collection of algorithms, spaces, and operators.
 We do need a set of examples to [unit test](#81-unit-tests-and-static-analysis) these components, so a set of [example problems](https://thomasweise.github.io/moptipy/moptipy.examples.html#module-moptipy.examples) is indeed provided.
 More examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps/) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps/).
-The `moptipyapps` package is where we will include future examples and benchmark cases.
+The `moptipyapps` package is where we will include future examples and benchmark cases, such as for the Quadratic Assignment Problem ([QAP](https://thomasweise.github.io/moptipyapps/#the-quadratic-assignment-problem-qap)), the Traveling Salesperson Problem ([TSP](https://thomasweise.github.io/moptipyapps/#the-traveling-salesperson-problem-tsp)), the Traveling Tournament Problem ([TTP](https://thomasweise.github.io/moptipyapps/#the-traveling-tournament-problem-ttp)), Two-Dimensional [Bin Packing](https://thomasweise.github.io/moptipyapps/#two-dimensional-bin-packing-problem), or [Dynamic Control](https://thomasweise.github.io/moptipyapps/#dynamic-controller-synthesis).
 
 - [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
   - The minimization version of the [1D Ising Model](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d), where the goal is to ensure that all bits have the same values as their neighbors.
@@ -2273,13 +2273,13 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
    Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/). Research Report RR-7215, INRIA. 2010. inria-00462481
 
 
-## 10. Works using `moptipy`
-
-1. Thomas Weise and Zhize Wu. 2023. Replicable Self-Documenting Experiments with Arbitrary Search Spaces and Algorithms. In *Genetic and Evolutionary Computation Conference Companion* (GECCO'23 Companion), July 15-19, 2023, Lisbon, Portugal. ACM, New York, NY, USA, 9 pages. doi:10.1145/3583133.3596306. ISBN: 979-8-4007-0120-7. (Accepted for publication)
+## 10. Publications on `moptipy` and Works using `moptipy`
+1. Thomas Weise and Zhize Wu. 2023. Replicable Self-Documenting Experiments with Arbitrary Search Spaces and Algorithms. In *Genetic and Evolutionary Computation Conference Companion* (GECCO'23 Companion), July 15-19, 2023, Lisbon, Portugal. ACM, New York, NY, USA, 9 pages. doi:[10.1145/3583133.3596306](https://dx.doi.org/10.1145/3583133.3596306). ISBN: 979-8-4007-0120-7.
 2. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
    This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
-3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore.
+3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore. doi:[10.1109/SSCI51031.2022.10022296](https://dx.doi.org/10.1109/SSCI51031.2022.10022296)
    This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.fitnesses.ffa)) on the Traveling Salesperson Problem.
+4. Newsletter of the ACM Special Interest Group on Genetic and Evolutionary Computation. Volume 16, Issue 4, December&nbsp;2023, [Software Category](https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4#Software): "motipy: the Metaheuristic Optimization in Python Library" <https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4#Software>
 
 
 ## 11. License
@@ -2309,6 +2309,6 @@ If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
 Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the
 School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at
-[Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in
+[Hefei University](http://www.hfuu.edu.cn/english/) ([合肥大学](http://www.hfuu.edu.cn/)) in
 Hefei, Anhui, China (中国安徽省合肥市) via
 email to [tweise@hfuu.edu.cn](mailto:tweise@hfuu.edu.cn) with CC to [tweise@ustc.edu.cn](mailto:tweise@ustc.edu.cn).
