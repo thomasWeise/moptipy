@@ -2279,7 +2279,7 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
    This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
 3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore. doi:[10.1109/SSCI51031.2022.10022296](https://dx.doi.org/10.1109/SSCI51031.2022.10022296)
    This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.fitnesses.ffa)) on the Traveling Salesperson Problem.
-4. Newsletter of the ACM Special Interest Group on Genetic and Evolutionary Computation. Volume 16, Issue 4, December&nbsp;2023, [Software Category](https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4#Software): "motipy: the Metaheuristic Optimization in Python Library" <https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4#Software>
+4. Newsletter of the ACM Special Interest Group on Genetic and Evolutionary Computation. Volume 16, Issue 4, December&nbsp;2023, Software Category. "motipy: the Metaheuristic Optimization in Python Library" <https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4>
 
 
 ## 11. License
