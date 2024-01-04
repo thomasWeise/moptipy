@@ -314,7 +314,7 @@ class NumberRenderer:
             raise type_error(source, "source", Iterable)
         if (none_str is not None) and (
                 not isinstance(none_str, FormattedStr)):
-            raise type_error(none_str, "none_str", (str, None))
+            raise type_error(none_str, "none_str", (FormattedStr, None))
 
         # get the format parameters
         int_renderer: Final[Callable[[int], str]] = \

@@ -61,13 +61,14 @@ class FormattedStr(str):
     def __new__(cls, value, bold: bool = False, italic: bool = False,  # noqa
                 code: bool = False, mode: int = TEXT):  # noqa
         """
-        Construct the object.
+        Construct the formatted string.
 
         :param value: the string value
         :param bold: should the format be bold face?
         :param italic: should the format be italic face?
         :param code: should the format be code face?
         :param mode: the mode of the formatted string
+        :returns: an instance of `FormattedStr`
         """
         if not isinstance(value, str):
             raise type_error(value, "value", str)
@@ -78,14 +79,12 @@ class FormattedStr(str):
         if not isinstance(code, bool):
             raise type_error(code, "code", bool)
         check_int_range(mode, "mode", TEXT, SPECIAL)
-        if bold or italic or code or (mode != TEXT):
-            ret = super().__new__(cls, value)
-            ret.bold = bold
-            ret.italic = italic
-            ret.code = code
-            ret.mode = mode
-            return ret
-        return value
+        ret = super().__new__(cls, value)
+        ret.bold = bold
+        ret.italic = italic
+        ret.code = code
+        ret.mode = mode
+        return ret
 
     @staticmethod
     def add_format(s: str, bold: bool = False, italic: bool = False,

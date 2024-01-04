@@ -68,6 +68,65 @@ def _get_goal_reach_index(f: np.ndarray, goal_f: int | float):  # noqa
     6
     >>> _get_goal_reach_index(ft, 0.9)
     -1
+    >>> ft = np.array([10, 9, 8, 5, 5, 3, 2, 1])
+    >>> _get_goal_reach_index(ft, 8)
+    2
+    >>> _get_goal_reach_index(ft, 7)
+    3
+    >>> _get_goal_reach_index(ft, 6)
+    3
+    >>> _get_goal_reach_index(ft, 5)
+    3
+    >>> _get_goal_reach_index(ft, 4)
+    5
+    >>> ft = np.array([10, 9, 9, 8, 5, 5, 3, 2, 1])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 9, 8, 5, 5, 3, 2, 1])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 9, 9, 8, 5, 5, 3, 2, 1])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10])
+    >>> _get_goal_reach_index(ft, 10)
+    0
+    >>> ft = np.array([10, 10])
+    >>> _get_goal_reach_index(ft, 10)
+    0
+    >>> ft = np.array([10, 10, 10])
+    >>> _get_goal_reach_index(ft, 10)
+    0
+    >>> ft = np.array([10, 10, 10, 10])
+    >>> _get_goal_reach_index(ft, 10)
+    0
+    >>> ft = np.array([10, 9])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 9])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 9, 9])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 9, 9, 8])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 9, 8, 8])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 9, 8, 8, 8])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 9, 8, 8, 8, 8])
+    >>> _get_goal_reach_index(ft, 9)
+    1
+    >>> ft = np.array([10, 8, 8, 8, 8, 8])
+    >>> _get_goal_reach_index(ft, 9)
+    1
     """
     res: Final = np.searchsorted(f[::-1], goal_f, side="right")
     if res <= 0:
