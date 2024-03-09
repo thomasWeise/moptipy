@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from typing import Final, Iterable, cast
 
 import psutil  # type: ignore
+from pycommons.io.path import Path
+from pycommons.types import type_error
 
 import moptipy.version as ver
 from moptipy.api import logging
@@ -21,8 +23,6 @@ from moptipy.utils.logger import (
     KeyValueLogSection,
     Logger,
 )
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 
 def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
@@ -168,10 +168,12 @@ def __make_sys_info() -> str:
             if platform.system() == "Windows":
                 return platform.processor()
             if platform.system() == "Linux":
-                for line in Path.path("/proc/cpuinfo").read_all_list():
-                    if "model name" in line:
-                        return re.sub(pattern=".*model name.*:",
-                                      repl="", string=line, count=1).strip()
+                with Path("/proc/cpuinfo").open_for_read() as rd:
+                    for line in rd:
+                        if "model name" in line:
+                            return re.sub(
+                                pattern=".*model name.*:",
+                                repl="", string=line, count=1).strip()
         return None
 
     def __get_mem_size_sysconf() -> int | None:
@@ -209,8 +211,9 @@ def __make_sys_info() -> str:
         :returns: an integer with the memory size if available
         """
         with contextlib.suppress(Exception):
-            meminfo = {i.split()[0].rstrip(":"): int(i.split()[1])
-                       for i in Path.path("/proc/meminfo").read_all_list()}
+            with Path("/proc/meminfo").open_for_read() as rd:
+                meminfo = {i.split()[0].rstrip(":"): int(i.split()[1])
+                           for i in rd}
             mem_kib = meminfo["MemTotal"]  # e.g. 3921852
             mem_kib = int(mem_kib)
             if mem_kib > 0:

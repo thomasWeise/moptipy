@@ -43,12 +43,12 @@ from typing import Callable, Final, Iterable, cast
 
 import numba  # type: ignore
 import numpy as np
+from pycommons.types import check_int_range, type_error
 
 from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_BOOL
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import check_int_range, type_error
 
 
 @numba.njit(nogil=True, cache=True, inline="always")

@@ -27,6 +27,8 @@ See Also
 from time import sleep
 from webbrowser import open_new_tab
 
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
@@ -42,7 +44,6 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.plot_utils import create_figure, save_figure
 from moptipy.utils.sys_info import is_make_build
-from moptipy.utils.temp import TempDir
 
 # The three JSSP instances we want to try to solve:
 problems = [lambda: Instance.from_resource("ft06"),
@@ -95,9 +96,9 @@ def make_hill_climber(problem: Instance) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path into `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_rls,  # provide RLS run creator

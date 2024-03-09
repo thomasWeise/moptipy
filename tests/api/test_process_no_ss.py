@@ -3,6 +3,8 @@
 from os.path import exists, isfile
 
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.rls import RLS
@@ -18,8 +20,6 @@ from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_process_no_ss_no_log() -> None:
@@ -63,7 +63,7 @@ def test_process_no_ss_log() -> None:
     objective: Objective = Ising1d(dim)
     algorithm: Algorithm = EA(Op0Random(), Op1Flip1(), Op2Uniform())
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -93,7 +93,7 @@ def test_process_no_ss_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_STATE"
         i = data.index("END_STATE")
@@ -129,7 +129,7 @@ def test_process_no_ss_log_with_immediate_error() -> None:
     objective: Objective = Ising1d(dim)
     algorithm: Algorithm = ImmediateErrorAlgo()
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -155,7 +155,7 @@ def test_process_no_ss_log_with_immediate_error() -> None:
         assert got_error
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_STATE"
         i = data.index("END_STATE")
@@ -198,7 +198,7 @@ def test_process_no_ss_log_with_error_after_evaluation() -> None:
     objective: Objective = Ising1d(dim)
     algorithm: Algorithm = ErrorAlgoDelayed("error_delayed", Op0Random())
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -230,7 +230,7 @@ def test_process_no_ss_log_with_error_after_evaluation() -> None:
         assert got_error
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_STATE"
         i = data.index("END_STATE")

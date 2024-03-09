@@ -5,12 +5,12 @@ from typing import Any, Callable, Final, Iterable
 
 import numba  # type: ignore
 import numpy as np
+from pycommons.types import type_error
 
 import moptipy.evaluation.statistics as statn
 from moptipy.evaluation.base import MultiRun2DData, MultiRunData, PerRunData
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_np_float
-from moptipy.utils.types import type_error
 
 #: The value of the CDF of the standard normal distribution CDF at -1,
 #: which corresponds to "mean - 1 * sd".

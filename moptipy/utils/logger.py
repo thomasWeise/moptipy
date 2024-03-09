@@ -37,15 +37,16 @@ from os.path import realpath
 from re import sub
 from typing import Callable, Final, Iterable, cast
 
-from moptipy.utils.cache import is_new
-from moptipy.utils.path import Path
+from pycommons.ds.cache import str_is_new
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.utils.strings import (
     PART_SEPARATOR,
     bool_to_str,
     float_to_str,
     sanitize_name,
 )
-from moptipy.utils.types import type_error
 
 #: the separator used in CSV files to separate columns
 CSV_SEPARATOR: Final[str] = ";"
@@ -95,7 +96,7 @@ class Logger(AbstractContextManager):
         self.__section: str | None = None
         self.__starts_new_line: bool = True
         self.__log_name: str = name
-        self.__sections: Callable = is_new()
+        self.__sections: Callable = str_is_new()
         self.__closer: str | None = None
 
     def __enter__(self):
@@ -226,8 +227,8 @@ class Logger(AbstractContextManager):
         :param title: the title of the new section
         :return: the new logger
 
-        >>> from moptipy.utils.temp import TempFile
-        >>> with TempFile.create() as t:
+        >>> from pycommons.io.temp import temp_file
+        >>> with temp_file() as t:
         ...     with FileLogger(str(t)) as l:
         ...         with l.key_values("B") as kv:
         ...             kv.key_value("a", "b")
@@ -257,8 +258,8 @@ class Logger(AbstractContextManager):
         :return: the new logger
 
         >>> from moptipy.utils.logger import FileLogger
-        >>> from moptipy.utils.temp import TempFile
-        >>> with TempFile.create() as t:
+        >>> from pycommons.io.temp import temp_file
+        >>> with temp_file() as t:
         ...     with FileLogger(str(t)) as l:
         ...         with l.csv("A", ["x", "y"]) as csv:
         ...             csv.row([1,2])
@@ -310,8 +311,7 @@ class FileLogger(Logger):
             raise type_error(path, "path", str)
         name = path
         path = realpath(path)
-        super().__init__(stream=Path.path(path).open_for_write(),
-                         name=name)
+        super().__init__(stream=Path(path).open_for_write(), name=name)
 
 
 class InMemoryLogger(Logger):
@@ -506,7 +506,7 @@ class KeyValueLogSection(LogSection):
         self._prefix: Final[str] = prefix
         self.__done: Callable
         if done is None:
-            self.__done = is_new()
+            self.__done = str_is_new()
             self.__done(prefix)
         else:
             self.__done = done

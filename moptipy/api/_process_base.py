@@ -8,6 +8,8 @@ from traceback import print_tb
 from typing import Any, Callable, Final, cast
 
 from numpy.random import Generator
+from pycommons.io.path import Path
+from pycommons.types import type_error, type_name_of
 
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.logging import (
@@ -62,9 +64,7 @@ from moptipy.utils.nputils import (
     rand_seed_check,
     rand_seed_generate,
 )
-from moptipy.utils.path import Path
 from moptipy.utils.sys_info import log_sys_info
-from moptipy.utils.types import type_error, type_name_of
 
 
 def _error_1(logger: Logger, title: str, exception_type,

@@ -24,6 +24,7 @@ import numpy as np
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.types import type_error
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
@@ -32,7 +33,6 @@ from moptipy.evaluation.base import get_algorithm, get_instance, sort_key
 from moptipy.evaluation.ert import Ert
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang
-from moptipy.utils.types import type_error
 
 
 def plot_ert(erts: Iterable[Ert],

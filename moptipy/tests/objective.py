@@ -3,11 +3,11 @@ from math import inf, isfinite
 from typing import Any, Callable, Final
 
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
-from moptipy.utils.types import type_error
 
 
 def validate_objective(

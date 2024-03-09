@@ -3,6 +3,9 @@ import argparse
 import os.path as pp
 from typing import Any, Callable, Final, Iterable, cast
 
+from pycommons.io.path import Path
+from pycommons.types import check_int_range, type_error
+
 import moptipy.api.experiment as ex
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.random_walk import RandomWalk
@@ -21,8 +24,6 @@ from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.help import argparser
-from moptipy.utils.path import Path
-from moptipy.utils.types import check_int_range, type_error
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
@@ -178,7 +179,7 @@ if __name__ == "__main__":
         "Shop Scheduling Problem (JSSP).")
     parser.add_argument(
         "dest", help="the directory where the results should be stored",
-        type=Path.path, default="./results", nargs="?")
+        type=Path, default="./results", nargs="?")
     parser.add_argument(
         "threads", help="the number of threads to use for the experiment",
         type=int, default=ex.Parallelism.ACCURATE_TIME_MEASUREMENTS,

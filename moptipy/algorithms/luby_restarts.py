@@ -18,6 +18,7 @@ solution.
 from typing import Callable, Final, TypeVar, cast
 
 import numba  # type: ignore
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_algorithm import MOAlgorithm
@@ -25,7 +26,6 @@ from moptipy.api.mo_process import MOProcess
 from moptipy.api.process import Process
 from moptipy.api.subprocesses import for_fes
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
-from moptipy.utils.types import check_int_range, type_error
 
 
 @numba.njit(cache=True)

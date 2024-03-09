@@ -14,6 +14,10 @@ from dataclasses import dataclass
 from math import ceil, inf
 from typing import Any, Callable, Final, Iterable, Union
 
+from pycommons.io.console import logger
+from pycommons.io.path import Path, file_path
+from pycommons.types import check_int_range, type_error, type_name_of
+
 from moptipy.api.logging import (
     KEY_ALGORITHM,
     KEY_BEST_F,
@@ -44,13 +48,10 @@ from moptipy.evaluation.statistics import (
     KEY_STDDEV,
     Statistics,
 )
-from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
-from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str, sanitize_name, str_to_intfloat
-from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = KEY_BEST_F + "scaled"
@@ -632,9 +633,9 @@ class EndStatistics(MultiRunData):
         :param file: the file to generate
         :return: the path to the generated CSV file
         """
-        path: Final[Path] = Path.path(file)
+        path: Final[Path] = Path(file)
         logger(f"Writing end result statistics to CSV file {path!r}.")
-        Path.path(os.path.dirname(path)).ensure_dir_exists()
+        Path(os.path.dirname(path)).ensure_dir_exists()
 
         has_algorithm: bool = False  # 1
         has_instance: bool = False  # 2
@@ -896,7 +897,7 @@ class EndStatistics(MultiRunData):
             :class:`~moptipy.evaluation.end_statistics.EndStatistics`, can be
             the `append` method of a :class:`list`
         """
-        path: Final[Path] = Path.file(file)
+        path: Final[Path] = file_path(file)
         logger(f"Begin reading end result statistics from CSV file {path!r}.")
 
         sep: Final[str] = CSV_SEPARATOR
@@ -1292,9 +1293,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "source", nargs="?", default=def_src,
         help="either the directory with moptipy log files or the path to the "
-             "end-results CSV file", type=Path.path)
+             "end-results CSV file", type=Path)
     parser.add_argument(
-        "dest", type=Path.path, nargs="?",
+        "dest", type=Path, nargs="?",
         default="./evaluation/end_statistics.txt",
         help="the path to the end results statistics CSV file to be created")
     parser.add_argument(

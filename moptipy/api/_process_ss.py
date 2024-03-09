@@ -1,6 +1,8 @@
 """An implementation of processes with different search and solution spaces."""
 from typing import Callable, Final
 
+from pycommons.io.path import Path
+
 from moptipy.api._process_base import _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
@@ -13,7 +15,6 @@ from moptipy.api.logging import (
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space, check_space
 from moptipy.utils.logger import KeyValueLogSection, Logger
-from moptipy.utils.path import Path
 
 
 class _ProcessSS(_ProcessNoSS):

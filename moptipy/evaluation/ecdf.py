@@ -9,7 +9,7 @@ For any point in time, the ECDF then shows how many of these runs have solved
 the problem to this goal, to optimality.
 Let's say the first run solves the problem after 100 FEs.
 Then the ECDF is 0 until 99 FEs and at 100 FEs, it becomes 1/10.
-The second fastest run solves the problem after 200 FEs.
+The second-fastest run solves the problem after 200 FEs.
 The ECDF thus stays 0.1 until 199 FEs and at 200 FEs, it jumps to 0.2.
 And so on.
 This means that the value of the ECDF is always between 0 and 1.
@@ -38,6 +38,9 @@ from math import inf, isfinite
 from typing import Any, Callable, Final, Iterable
 
 import numpy as np
+from pycommons.io.console import logger
+from pycommons.io.path import Path
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.logging import (
     KEY_ALGORITHM,
@@ -53,7 +56,6 @@ from moptipy.evaluation.base import (
     MultiRun2DData,
 )
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
 from moptipy.utils.logger import (
     COMMENT_CHAR,
@@ -61,9 +63,7 @@ from moptipy.utils.logger import (
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import is_all_finite
-from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import check_int_range, type_error
 
 #: The number of instances.
 KEY_N_INSTS: Final[str] = f"{KEY_N}Insts"
@@ -191,7 +191,7 @@ class Ecdf(MultiRun2DData):
         :param put_header: should we put a header with meta-data?
         :return: the fully resolved file name
         """
-        path: Final[Path] = Path.path(file)
+        path: Final[Path] = Path(file)
         logger(f"Writing ECDF to CSV file {path!r}.")
 
         with path.open_for_write() as out:

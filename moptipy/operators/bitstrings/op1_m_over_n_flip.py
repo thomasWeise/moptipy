@@ -3,13 +3,13 @@ from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.operators import Op1
 from moptipy.utils.nputils import (
     fill_in_canonical_permutation,
     int_range_to_dtype,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 
 class Op1MoverNflip(Op1):

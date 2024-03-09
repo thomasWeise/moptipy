@@ -2,6 +2,9 @@
 from math import isfinite
 from typing import Any, Final, TypeVar
 
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.api._process_base import _ProcessBase
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api._process_no_ss_log import _ProcessNoSSLog
@@ -18,8 +21,6 @@ from moptipy.api.process import (
 )
 from moptipy.api.space import Space, check_space
 from moptipy.utils.nputils import rand_seed_check
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 
 def _check_log_file(log_file: Any, none_is_ok: bool = True) -> Path | None:
@@ -36,27 +37,29 @@ def _check_log_file(log_file: Any, none_is_ok: bool = True) -> Path | None:
     /a/b.txt
     >>> print(_check_log_file("/a/b.txt", True))
     /a/b.txt
-    >>> from moptipy.utils.path import Path as Pth
-    >>> print(_check_log_file(Pth.path("/a/b.txt"), False))
+    >>> from pycommons.io.path import Path as Pth
+    >>> print(_check_log_file(Path("/a/b.txt"), False))
     /a/b.txt
     >>> print(_check_log_file(None))
     None
     >>> print(_check_log_file(None, True))
     None
+
     >>> try:
     ...     _check_log_file(1)  # noqa  # type: ignore
     ... except TypeError as te:
     ...     print(te)
-    path should be an instance of str but is int, namely '1'.
+    descriptor '__len__' requires a 'str' object but received a 'int'
+
     >>> try:
     ...     _check_log_file(None, False)
     ... except TypeError as te:
     ...     print(te)
-    path should be an instance of str but is None.
+    descriptor '__len__' requires a 'str' object but received a 'NoneType'
     """
     if (log_file is None) and none_is_ok:
         return None
-    return Path.path(log_file)
+    return Path(log_file)
 
 
 #: The execution type variable for returning `Self`.

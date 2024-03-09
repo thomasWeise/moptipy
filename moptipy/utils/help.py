@@ -5,8 +5,9 @@ import os.path
 import sys
 from typing import Final
 
-from moptipy.utils.path import _canonicalize_path
-from moptipy.utils.types import type_error
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.version import __version__
 
 #: The default argument parser for moptipy executables.
@@ -29,13 +30,13 @@ def __get_python_interpreter_short() -> str:
 
     :returns: the fully-qualified path
     """
-    inter: Final[str] = _canonicalize_path(sys.executable)
+    inter: Final[str] = Path(sys.executable)
     bn = os.path.basename(inter)
     if bn.startswith("python3."):
         bn2 = bn[:7]
         interp2 = os.path.join(os.path.dirname(inter), bn2)
         if os.path.exists(interp2) and os.path.isfile(interp2) \
-                and (_canonicalize_path(interp2) == inter):
+                and (Path(interp2) == inter):
             return bn2
     return bn
 
@@ -45,8 +46,8 @@ __INTERPRETER_SHORT: Final[str] = __get_python_interpreter_short()
 del __get_python_interpreter_short
 
 #: the base path of the moptipy package
-__BASE_PATH: Final[str] = _canonicalize_path(os.path.dirname(
-    os.path.dirname(os.path.dirname(_canonicalize_path(__file__))))) + os.sep
+__BASE_PATH: Final[str] = Path(os.path.dirname(
+    os.path.dirname(os.path.dirname(Path(__file__))))) + os.sep
 
 
 def __get_prog(file: str) -> str:
@@ -64,7 +65,7 @@ def __get_prog(file: str) -> str:
         raise type_error(file, "file", str)
 
     # get the module minus the base path and extension
-    module: str = _canonicalize_path(file)
+    module: str = Path(file)
     end: int = len(module)
     start: int = 0
     if module.endswith(".py"):

@@ -5,8 +5,7 @@ import matplotlib.cm as mplcm  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 from matplotlib import colors  # type: ignore
-
-from moptipy.utils.types import check_int_range, type_error
+from pycommons.types import check_int_range, type_error
 
 #: The internal color black.
 COLOR_BLACK: Final[tuple[float, float, float]] = (0.0, 0.0, 0.0)

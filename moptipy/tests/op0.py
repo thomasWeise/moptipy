@@ -3,11 +3,11 @@ from math import isqrt
 from typing import Any, Callable, Final
 
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.operators import Op0, check_op0
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
-from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_op0(op0: Op0,

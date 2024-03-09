@@ -4,7 +4,7 @@ import contextlib
 from math import exp, inf, isfinite, isqrt, log, log2, nextafter
 from typing import Final
 
-from moptipy.utils.types import type_error
+from pycommons.types import type_error
 
 #: The positive limit for doubles that can be represented exactly as ints.
 DBL_INT_LIMIT_P: Final[float] = 9007199254740992.0  # = 1 << 53

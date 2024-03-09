@@ -28,6 +28,8 @@ from scipy.optimize._differentialevolution import (  # type: ignore
 )
 # isort: on
 
+from pycommons.types import type_error
+
 # noinspection PyProtectedMember
 from scipy.optimize._optimize import (  # type: ignore
     _minimize_bfgs,  # type: ignore
@@ -51,7 +53,6 @@ from moptipy.api.subprocesses import (
 )
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 
 class SciPyAlgorithmWrapper(Algorithm0):

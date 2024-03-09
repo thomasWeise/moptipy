@@ -20,13 +20,14 @@ operator that flips each bit in the bit string independently with probability
 We create a temporary file and execute a single run random seed `199` of the
 above algorithm on this problem at `n=10`.
 """
+from pycommons.io.temp import temp_file
+
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
 
 n = 10  # we chose dimension 10
 space = BitStrings(n)  # search in bit strings of length 10
@@ -38,8 +39,8 @@ algorithm = RLS(  # create RLS that
 # We work with a temporary log file which is automatically deleted after this
 # experiment. For a real experiment, you would not use the `with` block and
 # instead put the path to the file that you want to create into `tf` by doing
-# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
-with TempFile.create() as tf:  # create temporary file `tf`
+# `from pycommons.io.path import Path; tf = Path("mydir/my_file.txt")`.
+with temp_file() as tf:  # create temporary file `tf`
     ex = Execution()  # begin configuring execution
     ex.set_solution_space(space)  # set solution space
     ex.set_objective(problem)  # set objective function

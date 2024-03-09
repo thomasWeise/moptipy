@@ -4,6 +4,10 @@ from math import inf
 from statistics import median
 from typing import Any, Callable, Final, Iterable
 
+from pycommons.io.console import logger
+from pycommons.io.path import Path, directory_path
+from pycommons.types import type_error
+
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, TIME_UNIT_MILLIS
@@ -17,11 +21,8 @@ from moptipy.evaluation.plot_progress import plot_progress
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import STAT_MEAN_ARITH, StatRun
 from moptipy.examples.jssp.plot_gantt_chart import plot_gantt_chart
-from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
-from moptipy.utils.path import Path
 from moptipy.utils.plot_defaults import importance_to_font_size
-from moptipy.utils.types import type_error
 
 
 def plot_end_makespans(end_results: Iterable[EndResult],
@@ -164,7 +165,7 @@ def plot_stat_gantt_charts(
 
     # get the median runs
     stat_runs: list[Path] = []
-    results_dir = Path.directory(results_dir)
+    results_dir = directory_path(results_dir)
     for instance in instances:
         runs: list[EndResult] = data[instance]
         runs.sort()
@@ -276,7 +277,7 @@ def plot_progresses(results_dir: str,
         raise type_error(algorithm_namer, "algorithm_namer", call=True)
 
     # get the data
-    spath: Final[Path] = Path.directory(results_dir)
+    spath: Final[Path] = directory_path(results_dir)
     progresses: Final[list[Progress]] = []
     for algorithm in sorted(algorithms, key=algorithm_sort_key):
         Progress.from_logs(spath.resolve_inside(algorithm), progresses.append,

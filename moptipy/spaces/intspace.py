@@ -3,12 +3,12 @@
 from typing import Final
 
 import numpy as np
+from pycommons.types import type_error
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
 from moptipy.utils.strings import num_to_str_for_name
-from moptipy.utils.types import type_error
 
 #: the log key for the minimum value
 KEY_MIN: Final[str] = "min"

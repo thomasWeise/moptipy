@@ -2,6 +2,7 @@
 from math import inf
 
 import numpy as np
+from pycommons.io.temp import temp_file
 
 # noinspection PyPackageRequirements
 from pytest import raises
@@ -10,7 +11,6 @@ from moptipy.api.space import Space
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.tests.space import validate_space
 from moptipy.utils.logger import FileLogger
-from moptipy.utils.temp import TempFile
 
 
 def test_vector_space_1() -> None:
@@ -40,10 +40,10 @@ def test_vector_space_1() -> None:
     b[0] = 0.001
     assert not space.is_equal(a, b)
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         with FileLogger(path) as log, log.key_values("F") as kv:
             space.log_parameters_to(kv)
-        result = path.read_all_list()
+        result = path.read_all_str().splitlines()
     assert result == ["BEGIN_F",
                       "name: r12d",
                       "class: moptipy.spaces.vectorspace.VectorSpace",
@@ -99,10 +99,10 @@ def test_vector_space_2() -> None:
     b[0] = 2
     assert not space.is_equal(a, b)
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         with FileLogger(path) as log, log.key_values("F") as kv:
             space.log_parameters_to(kv)
-        result = path.read_all_list()
+        result = path.read_all_str().splitlines()
     assert result == ["BEGIN_F",
                       "name: r3d",
                       "class: moptipy.spaces.vectorspace.VectorSpace",
@@ -164,10 +164,10 @@ def test_vector_space_3() -> None:
     assert not space.is_equal(a, b)
     assert space.to_str(b) == "2;-0.9;-0.9"
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         with FileLogger(path) as log, log.key_values("F") as kv:
             space.log_parameters_to(kv)
-        result = path.read_all_list()
+        result = path.read_all_str().splitlines()
     assert result == ["BEGIN_F",
                       "name: r3d",
                       "class: moptipy.spaces.vectorspace.VectorSpace",

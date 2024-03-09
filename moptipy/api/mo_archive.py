@@ -3,11 +3,11 @@
 from typing import Any, Final
 
 import numpy as np
+from pycommons.types import type_error
 
 from moptipy.api.component import Component
 from moptipy.api.mo_utils import lexicographic
 from moptipy.utils.nputils import array_to_str
-from moptipy.utils.types import type_error
 
 
 class MORecord:

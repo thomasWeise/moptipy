@@ -2,6 +2,7 @@
 from os import environ
 
 import numpy as np
+from pycommons.io.temp import temp_dir, temp_file
 
 import moptipy.evaluation.base as bs
 from moptipy.algorithms.single_random_sample import SingleRandomSample
@@ -21,7 +22,6 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir, TempFile
 
 instances = [lambda: Instance.from_resource("dmu21"),
              lambda: Instance.from_resource("abz8"),
@@ -65,7 +65,7 @@ def algo_2(inst) -> Execution:
 
 def test_experiment_jssp() -> None:
     """Run a test experiment on the JSSP."""
-    with TempDir.create() as base_dir:
+    with temp_dir() as base_dir:
 
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],
@@ -112,8 +112,8 @@ def test_experiment_jssp() -> None:
             assert e.goal_f > 0
             assert e.best_f > e.goal_f
 
-        with TempFile.create(directory=base_dir,
-                             suffix=logging.FILE_SUFFIX) as path:
+        with temp_file(directory=base_dir,
+                       suffix=logging.FILE_SUFFIX) as path:
             EndResult.to_csv(results=results, file=path)
 
             results2: list[EndResult] = []
@@ -224,8 +224,8 @@ def test_experiment_jssp() -> None:
             assert es_one == [es_all]
             assert len(es_one) == 1
 
-        with TempFile.create(directory=base_dir,
-                             suffix=logging.FILE_SUFFIX) as f:
+        with temp_file(directory=base_dir,
+                       suffix=logging.FILE_SUFFIX) as f:
             check = [es_hc_a]
             EndStatistics.to_csv(check, f)
             check_2 = []

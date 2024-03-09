@@ -53,13 +53,13 @@ from math import exp
 from typing import Callable, Final
 
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.algorithms.modules.temperature_schedule import TemperatureSchedule
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 
 # start book

@@ -3,6 +3,8 @@ from typing import Final
 
 import numpy as np
 from numpy import copyto
+from pycommons.io.path import Path
+from pycommons.types import type_error
 
 from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
@@ -12,8 +14,6 @@ from moptipy.api.mo_archive import MOArchivePruner
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.space import Space
 from moptipy.utils.logger import Logger
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 
 class _MOProcessSSLog(_MOProcessSS):

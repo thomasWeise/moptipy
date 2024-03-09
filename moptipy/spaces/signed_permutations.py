@@ -20,13 +20,13 @@ from math import factorial
 from typing import Counter, Final, Iterable
 
 import numpy as np
+from pycommons.types import check_int_range, type_error
 
 from moptipy.spaces.intspace import IntSpace
 from moptipy.spaces.permutations import KEY_BASE_STRING, KEY_REPETITIONS
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import array_to_str
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import check_int_range, type_error
 
 #: the unsigned minimum
 KEY_UNSIGNED_MIN: Final[str] = "unsignedMin"

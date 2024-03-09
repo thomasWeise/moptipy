@@ -27,6 +27,8 @@ So with the code below, we can generate a structured experiment. We here
 set a temporary directory as root folder for everything and then load the
 end results from the log files and print them to standard out.
 """
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
@@ -37,7 +39,6 @@ from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempDir
 
 # The four problems we want to try to solve:
 problems = [lambda: OneMax(10),  # 10-dimensional OneMax
@@ -80,9 +81,9 @@ def make_random_sampling(problem) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path into `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_rls,  # provide RLS run creator

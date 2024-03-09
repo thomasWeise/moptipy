@@ -15,6 +15,9 @@ from math import inf, isfinite
 from typing import Any, Callable, Final
 
 import numpy as np
+from pycommons.io.console import logger
+from pycommons.io.path import Path
+from pycommons.types import type_error
 
 from moptipy.api.logging import (
     KEY_ALGORITHM,
@@ -38,16 +41,13 @@ from moptipy.evaluation.base import (
     check_time_unit,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
-from moptipy.utils.console import logger
 from moptipy.utils.logger import (
     COMMENT_CHAR,
     CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import is_all_finite, is_np_float, is_np_int
-from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str, str_to_intfloat
-from moptipy.utils.types import type_error
 
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
@@ -212,7 +212,7 @@ class Progress(PerRunData):
         :param put_header: should we put a header with meta-data?
         :return: the fully resolved file name
         """
-        path: Final[Path] = Path.path(file)
+        path: Final[Path] = Path(file)
         logger(f"Writing progress object to CSV file {path!r}.")
 
         with path.open_for_write() as out:

@@ -4,6 +4,8 @@ from os.path import exists, isfile
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.mo.nsga2 import NSGA2
 from moptipy.algorithms.so.ea import EA
@@ -28,8 +30,6 @@ from moptipy.operators.permutations.op2_gap import (
 )
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_mo_process_ss_log() -> None:
@@ -48,7 +48,7 @@ def test_mo_process_ss_log() -> None:
         Op2GeneralizedAlternatingPosition(search_space),
         int(random.integers(2, 10)), int(random.integers(2, 10)))
 
-    with TempFile.create(suffix=FILE_SUFFIX) as tf:
+    with temp_file(suffix=FILE_SUFFIX) as tf:
         assert exists(tf)
         assert isfile(tf)
         archive_len: int
@@ -97,7 +97,7 @@ def test_mo_process_ss_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f;f0;f1"
@@ -159,7 +159,7 @@ def test_process_ss_log_all() -> None:
         Op2OrderBased(search_space),
         int(random.integers(3, 10)), float(random.uniform(0.2, 0.8)))
 
-    with TempFile.create(suffix=FILE_SUFFIX) as tf:
+    with temp_file(suffix=FILE_SUFFIX) as tf:
         assert exists(tf)
         assert isfile(tf)
         lid = tf.rfind(".")
@@ -211,7 +211,7 @@ def test_process_ss_log_all() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f;f0;f1"

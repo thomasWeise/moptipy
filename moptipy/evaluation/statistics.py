@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from math import gcd, inf, isfinite, nextafter, sqrt
 from typing import Callable, Final, Iterable, cast
 
+from pycommons.types import check_int_range, type_error
+
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import (
     DBL_INT_LIMIT_P,
@@ -17,7 +19,6 @@ from moptipy.utils.strings import (
     str_to_intfloat,
     str_to_intfloatnone,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 #: The limit until which we simplify geometric mean data.
 _INT_ROOT_LIMIT: Final[int] = int(sqrt(DBL_INT_LIMIT_P))

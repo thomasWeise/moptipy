@@ -6,11 +6,11 @@ from typing import Final, Iterable
 
 import numpy as np
 from numpy.linalg import norm
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.utils.nputils import DEFAULT_FLOAT, is_np_int
-from moptipy.utils.types import check_int_range, type_error
 
 
 class KeepFarthest(MOArchivePruner):

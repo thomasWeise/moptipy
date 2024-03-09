@@ -5,6 +5,9 @@ from typing import Callable, Final, Iterable
 
 import numpy as np
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.io.console import logger
+from pycommons.io.path import UTF8, Path, write_lines
+from pycommons.types import type_error
 
 from moptipy.examples.jssp.experiment import INSTANCES
 from moptipy.examples.jssp.gantt import Gantt
@@ -20,11 +23,8 @@ from moptipy.examples.jssp.plot_gantt_chart import (
     plot_gantt_chart,
 )
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
-from moptipy.utils.path import UTF8, Path
 from moptipy.utils.plot_utils import cm_to_inch, create_figure, save_figure
-from moptipy.utils.types import type_error
 
 
 def demo_instance() -> Instance:
@@ -154,7 +154,7 @@ def demo_gantt_chart(dirname: str,
     :param height: the optional height
     :param filename: the file name
     """
-    the_dir: Final[Path] = Path.path(dirname)
+    the_dir: Final[Path] = Path(dirname)
     the_dir.ensure_dir_exists()
 
     if callable(filename):
@@ -338,10 +338,11 @@ def makespan_lower_bound_table(
             f"|{instname}|{inst.machines}|{inst.jobs}|{lb}|{lbx}|{src}|")
 
     # write the result
-    out_dir = Path.path(dirname)
+    out_dir = Path(dirname)
     out_dir.ensure_dir_exists()
     out_file = out_dir.resolve_inside(lang.filename(filename) + ".md")
-    out_file.write_all(text)
+    with out_dir.open_for_write() as wd:
+        write_lines(text, wd)
     out_file.enforce_file()
     logger(f"finished writing output results to file {out_file!r}.")
     return out_file
@@ -349,7 +350,7 @@ def makespan_lower_bound_table(
 
 # are we being executed?
 if __name__ == "__main__":
-    dest_dir: Final[Path] = Path.path(sys.argv[1])
+    dest_dir: Final[Path] = Path(sys.argv[1])
     dest_dir.ensure_dir_exists()
     logger(f"We will print the JSSP examples into dir {dest_dir!r}.")
     makespan_lower_bound_table(dest_dir)

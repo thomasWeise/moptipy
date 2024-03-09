@@ -20,12 +20,12 @@ from typing import Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op1WithStepSize
 from moptipy.operators.tools import exponential_step_size
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
-from moptipy.utils.types import type_error
 
 
 # Temporary fix for https://github.com/numba/numba/issues/9103

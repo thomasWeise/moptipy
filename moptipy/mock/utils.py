@@ -5,8 +5,7 @@ from typing import Callable, Final, Sequence, cast
 
 import numpy as np
 from numpy.random import Generator
-
-from moptipy.utils.types import type_error
+from pycommons.types import type_error
 
 #: The default types to be used for testing.
 DEFAULT_TEST_DTYPES: Final[tuple[np.dtype, ...]] = tuple(sorted({

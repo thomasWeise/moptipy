@@ -18,6 +18,8 @@ See `end_results_plot.py` for details.
 from time import sleep
 from webbrowser import open_new_tab
 
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -34,7 +36,6 @@ from moptipy.utils.plot_utils import (
     save_figure,
 )
 from moptipy.utils.sys_info import is_make_build
-from moptipy.utils.temp import TempDir
 
 # The three OneMax instances we want to try to solve:
 problems = [lambda: OneMax(10), lambda: OneMax(20), lambda: OneMax(30)]
@@ -58,9 +59,9 @@ def make_rls(problem: OneMax) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path into `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_rls],  # provide RLS run creator

@@ -61,6 +61,8 @@ specialized versions
 """
 from typing import Any, Final
 
+from pycommons.types import type_error
+
 from moptipy.api.component import Component
 from moptipy.api.logging import SCOPE_OP0, SCOPE_OP1, SCOPE_OP2
 from moptipy.api.operators import (
@@ -74,7 +76,6 @@ from moptipy.api.operators import (
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
-from moptipy.utils.types import type_error
 
 
 # start book

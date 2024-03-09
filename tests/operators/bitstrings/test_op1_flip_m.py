@@ -3,6 +3,7 @@ from typing import Iterable
 
 import numpy as np
 from numpy.random import default_rng
+from pycommons.types import check_int_range
 
 from moptipy.operators.bitstrings.op1_flip_m import Op1FlipM
 from moptipy.operators.tools import inv_exponential_step_size
@@ -10,7 +11,6 @@ from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.on_bitstrings import (
     validate_op1_with_step_size_on_bitstrings,
 )
-from moptipy.utils.types import check_int_range
 
 
 def test_op1_flip_m() -> None:

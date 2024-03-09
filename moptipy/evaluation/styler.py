@@ -3,9 +3,9 @@ from typing import Any, Callable, Final, Iterable, cast
 
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
+from pycommons.types import type_error
 
 from moptipy.utils.plot_defaults import create_line_style
-from moptipy.utils.types import type_error
 
 
 class Styler:

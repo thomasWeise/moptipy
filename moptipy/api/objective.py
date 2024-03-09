@@ -11,10 +11,11 @@ test routine :func:`~moptipy.tests.objective.validate_objective`.
 from math import inf, isfinite
 from typing import Any
 
+from pycommons.types import type_error
+
 from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 
 # start book

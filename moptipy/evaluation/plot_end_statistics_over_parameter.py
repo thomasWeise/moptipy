@@ -5,6 +5,7 @@ from typing import Any, Callable, Final, Iterable, cast
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.types import type_error
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
@@ -15,7 +16,6 @@ from moptipy.evaluation.statistics import KEY_MEAN_GEOM
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang
 from moptipy.utils.logger import SCOPE_SEPARATOR
-from moptipy.utils.types import type_error
 
 
 def __make_y_label(y_dim: str) -> str:

@@ -1,6 +1,9 @@
 """A process with logging and different search and solution space."""
 from typing import Final
 
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api._process_no_ss import _write_log
 from moptipy.api._process_ss import _ProcessSS
@@ -9,8 +12,6 @@ from moptipy.api.encoding import Encoding
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils.logger import Logger
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 
 class _ProcessSSLog(_ProcessSS):

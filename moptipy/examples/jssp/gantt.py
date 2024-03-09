@@ -2,11 +2,11 @@
 from typing import Final
 
 import numpy as np
+from pycommons.types import type_error
 
 from moptipy.api.logging import SECTION_RESULT_Y, SECTION_SETUP
 from moptipy.evaluation.log_parser import LogParser
 from moptipy.examples.jssp.instance import Instance
-from moptipy.utils.types import type_error
 
 
 # start book

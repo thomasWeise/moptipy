@@ -4,6 +4,8 @@ from os.path import exists, isfile
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.mo.morls import MORLS
 from moptipy.algorithms.mo.nsga2 import NSGA2
@@ -23,8 +25,6 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_mo_process_no_ss_no_log() -> None:
@@ -99,7 +99,7 @@ def test_mo_process_no_ss_log() -> None:
         float(random.uniform(0.3, 0.7)))
     ams = int(random.integers(2, 5))
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -147,7 +147,7 @@ def test_mo_process_no_ss_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_STATE"
         i = data.index("END_STATE")

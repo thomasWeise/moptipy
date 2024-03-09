@@ -5,6 +5,7 @@ from typing import Callable, Final
 
 import numpy as np
 from matplotlib.axes import Axes  # type: ignore
+from pycommons.types import type_error
 
 from moptipy.api.logging import (
     KEY_BEST_F,
@@ -21,7 +22,6 @@ from moptipy.evaluation.base import (
     TIME_UNIT_MILLIS,
 )
 from moptipy.evaluation.end_statistics import KEY_ERT_FES, KEY_ERT_TIME_MILLIS
-from moptipy.utils.types import type_error
 
 #: The internal minimum float value for log-scaled axes.
 _MIN_LOG_FLOAT: Final[float] = sys.float_info.min

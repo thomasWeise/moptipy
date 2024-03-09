@@ -1,5 +1,7 @@
 """Test converting the results of an experiment to the IOHprofiler format."""
 
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.algorithms.so.ea import EA
 from moptipy.api.execution import Execution
@@ -12,7 +14,6 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir
 
 inst_names = ["dmu21", "abz8", "la24"]
 instances = [lambda n=ins: Instance.from_resource(n)
@@ -56,7 +57,7 @@ def algo_2(inst) -> Execution:
 
 def test_experiment_jssp_to_ioh() -> None:
     """Run a quick experiment and convert to IOH format."""
-    with TempDir.create() as results_dir, TempDir.create() as ioh_dir:
+    with temp_dir() as results_dir, temp_dir() as ioh_dir:
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],
                        n_runs=4,

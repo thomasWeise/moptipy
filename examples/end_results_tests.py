@@ -37,6 +37,8 @@ a test would have, we could not really claim that any of the algorithms was
 better or worse. In such cases, no test is performed and `-` is printed
 instead (signified by `&mdash;` in the markdown format).
 """
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -49,7 +51,6 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempDir
 
 # The six problems we want to try to solve:
 problems = [lambda: OneMax(100),  # 100-dimensional OneMax
@@ -75,9 +76,9 @@ def rls(problem, op1) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path into `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(
         base_dir=td,  # set the base directory for log files
         instances=problems,  # define the problem instances

@@ -4,6 +4,8 @@ from os.path import exists, isfile
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.mo.morls import MORLS
 from moptipy.algorithms.mo.nsga2 import NSGA2
@@ -26,8 +28,6 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_mo_process_mo_ss_no_log() -> None:
@@ -100,7 +100,7 @@ def test_mo_process_ss_log() -> None:
     algorithm: Algorithm = MORLS(
         Op0Shuffle(search_space), Op1Swap2())
 
-    with TempFile.create(suffix=FILE_SUFFIX) as tf:
+    with temp_file(suffix=FILE_SUFFIX) as tf:
         assert exists(tf)
         assert isfile(tf)
         archive_len: int
@@ -145,7 +145,7 @@ def test_mo_process_ss_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_STATE"
         i = data.index("END_STATE")

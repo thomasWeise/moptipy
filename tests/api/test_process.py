@@ -8,6 +8,7 @@ import numpy as np
 # noinspection PyPackageRequirements
 import pytest
 from numpy.random import Generator
+from pycommons.io.temp import temp_file
 
 from moptipy.api import logging
 from moptipy.api.algorithm import Algorithm
@@ -16,7 +17,6 @@ from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils import logger
-from moptipy.utils.temp import TempFile
 
 #: the initial worst objective value
 WORST_F: Final[int] = 1_000_000_000_000
@@ -105,7 +105,7 @@ def test_process_noss_log() -> None:
     v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm1())
         exp.set_solution_space(v)
@@ -131,7 +131,7 @@ def test_process_noss_timed_log() -> None:
     """Test processes without search space, with log, with time limit."""
     v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
-    with TempFile.create() as path:
+    with temp_file() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm1())
         exp.set_solution_space(v)
@@ -157,7 +157,7 @@ def test_process_noss_timed_log() -> None:
 def test_process_noss_maxfes_log_state() -> None:
     """Test processes without search space, with log, and with MAX_FES."""
     v = VectorSpace(4, -1e100, 1e100)
-    with TempFile.create() as path:
+    with temp_file() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm2())
         exp.set_solution_space(v)
@@ -170,7 +170,7 @@ def test_process_noss_maxfes_log_state() -> None:
             assert p.has_log()
         assert isfile(path)
         assert getsize(path) > 10
-        result = path.read_all_list()
+        result = path.read_all_str().splitlines()
         assert len(result) > 5
 
 
@@ -197,7 +197,7 @@ class MyAlgorithm3(Algorithm):
 def test_process_with_error() -> None:
     """Test processes that throws an error."""
     v = VectorSpace(4, -1e100, 1e100)
-    with TempFile.create() as path:
+    with temp_file() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm3())
         exp.set_solution_space(v)
@@ -211,7 +211,7 @@ def test_process_with_error() -> None:
                 assert p.has_log()
             assert isfile(path)
             assert getsize(path) > 10
-            result = path.read_all_list()
+            result = path.read_all_str().splitlines()
             assert len(result) > 5
             assert (logger.SECTION_START
                     + logging.SECTION_ERROR_IN_RUN) in result

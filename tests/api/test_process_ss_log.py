@@ -3,6 +3,8 @@
 from os.path import exists, isfile
 
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.so.ea import EA
 from moptipy.api.algorithm import Algorithm, Algorithm0
@@ -23,8 +25,6 @@ from moptipy.operators.permutations.op2_gap import (
 )
 from moptipy.operators.permutations.op2_ox2 import Op2OrderBased
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_process_ss_log_log() -> None:
@@ -43,7 +43,7 @@ def test_process_ss_log_log() -> None:
         int(random.integers(3, 16)),
         float(random.uniform(0.1, 0.9)))
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
         lid = tf.rfind(".")
@@ -81,7 +81,7 @@ def test_process_ss_log_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"
@@ -126,7 +126,7 @@ def test_process_ss_log_log_all() -> None:
         int(random.integers(3, 16)),
         float(random.uniform(0.1, 0.9)))
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
         with Execution()\
@@ -159,7 +159,7 @@ def test_process_ss_log_log_all() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"
@@ -226,7 +226,7 @@ def test_process_ss_log_log_reg() -> None:
                                search_space.create(), solution_space.create(),
                                objective, encoding)
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
         with Execution()\
@@ -256,7 +256,7 @@ def test_process_ss_log_log_reg() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"
@@ -297,7 +297,7 @@ def test_process_ss_log_log_all_reg() -> None:
                                search_space.create(), solution_space.create(),
                                objective, encoding)
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
         with Execution()\
@@ -327,7 +327,7 @@ def test_process_ss_log_log_all_reg() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"

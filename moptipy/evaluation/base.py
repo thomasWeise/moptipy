@@ -3,9 +3,10 @@
 from dataclasses import dataclass
 from typing import Any, Final
 
+from pycommons.types import check_int_range, type_error
+
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import check_int_range, type_error
 
 #: The key for the total number of runs.
 KEY_N: Final[str] = "n"

@@ -24,8 +24,9 @@ pre-defined unit test routine
 """
 from typing import Any
 
+from pycommons.types import type_error
+
 from moptipy.api.component import Component
-from moptipy.utils.types import type_error
 
 
 # start book

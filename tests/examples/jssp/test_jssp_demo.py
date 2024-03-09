@@ -1,5 +1,6 @@
 """Test the demo functions."""
 import numpy as np
+from pycommons.io.temp import temp_dir
 
 from moptipy.examples.jssp.demo_examples import (
     demo_encoding,
@@ -15,7 +16,6 @@ from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir
 
 
 def test_demo_instance() -> None:
@@ -60,7 +60,7 @@ def test_demo_chart() -> None:
     for optimum in (False, True):
         for with_makespan in (False, True):
             for with_lower_bound in (False, True):
-                with TempDir.create() as td:
+                with temp_dir() as td:
                     lst = demo_gantt_chart(dirname=td,
                                            optimum=optimum,
                                            with_makespan=with_makespan,

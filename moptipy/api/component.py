@@ -8,9 +8,10 @@ component, you can test it using the pre-defined unit test routine
 """
 from typing import Final
 
+from pycommons.types import type_name_of
+
 from moptipy.api import logging
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_name_of
 
 
 class Component:

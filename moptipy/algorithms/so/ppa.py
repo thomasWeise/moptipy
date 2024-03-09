@@ -199,6 +199,7 @@ from math import isfinite
 from typing import Callable, Final, cast
 
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.algorithms.so.record import Record
 from moptipy.api.algorithm import Algorithm1
@@ -206,7 +207,6 @@ from moptipy.api.operators import Op0, Op1WithStepSize
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR, num_to_str_for_name
-from moptipy.utils.types import check_int_range, type_error
 
 
 # start book

@@ -37,6 +37,10 @@ matplotlib == 3.8.0
 # is stored in the log files (see moptipy.utils.sys_info.py).
 psutil == 5.9.5
 
+# pycommons offers many of the tools and utilities used in moptipy that are
+# not related to optimization.
+pycommons == 0.8.11
+
 # scikit-learn is used to obtain some clusters of JSSP instances for our
 # experiments.
 scikit-learn == 1.3.1

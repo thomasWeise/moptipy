@@ -70,11 +70,11 @@ from typing import Any, Callable, Final
 
 from numpy import empty, ndarray
 from numpy.random import Generator
+from pycommons.types import check_int_range
 
 from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
-from moptipy.utils.types import check_int_range
 
 
 # start book

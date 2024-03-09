@@ -3,6 +3,7 @@ from math import factorial
 from typing import Final
 
 import numpy as np
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.space import Space
 from moptipy.examples.jssp.gantt import Gantt
@@ -13,7 +14,6 @@ from moptipy.utils.nputils import (
     int_range_to_dtype,
     numpy_type_to_str,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 #: the array shape
 KEY_SHAPE: Final[str] = "shape"

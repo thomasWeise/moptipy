@@ -20,12 +20,12 @@ restart with a new random solution.
 from typing import Callable, Final
 
 from numpy.random import Generator
+from pycommons.types import check_int_range
 
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import check_int_range
 
 
 # start book

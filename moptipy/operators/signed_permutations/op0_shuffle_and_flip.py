@@ -11,10 +11,10 @@ from typing import Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op0
 from moptipy.spaces.signed_permutations import SignedPermutations
-from moptipy.utils.types import type_error
 
 
 class Op0ShuffleAndFlip(Op0):

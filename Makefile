@@ -37,9 +37,7 @@ clean: status
 	rm -rf build && \
 	rm -rf dist && \
 	rm -rf docs/build && \
-	mv docs/source/index.rst docs/source/index.x && \
 	rm -rf docs/source/*.rst && \
-	mv docs/source/index.x docs/source/index.rst && \
 	rm -rf moptipy.egg-info && \
 	echo "$(NOW): Done cleaning up, moptipy is uninstalled and auto-generated stuff is deleted."
 
@@ -64,7 +62,7 @@ test: init
 	echo "$(NOW): Running pytest with doctests." && \
 	timeout --kill-after=15s 90m coverage run -a --include="moptipy/*" -m pytest --strict-config --doctest-modules --ignore=tests --ignore=examples && \
 	echo "$(NOW): Running pytest tests." && \
-	timeout --kill-after=15s 90m coverage run --include="moptipy/*" -m pytest --strict-config tests --ignore=examples && \
+	timeout --kill-after=15s 90m coverage run -a --include="moptipy/*" -m pytest --strict-config tests --ignore=examples && \
 	echo "$(NOW): Finished running pytest tests."
 
 # Perform static code analysis.
@@ -75,7 +73,7 @@ static_analysis: init
 	echo "$(NOW): Running static code analysis, starting with flake8." && \
 	flake8 . --ignore=,B008,B009,B010,DUO102,TRY003,TRY101,W503 && \
 	echo "$(NOW): Finished running flake8, now applying pylint to package." &&\
-	pylint moptipy --disable=C0103,C0302,C0325,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
+	pylint moptipy --disable=C0103,C0302,C0325,C0412,R0801,R0901,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R1702,R1728,W0212,W0238,W0703 &&\
 	echo "$(NOW): Done with pylint, now trying mypy." &&\
 	mypy moptipy --no-strict-optional --check-untyped-defs &&\
 	echo "$(NOW): Done with mypy, now doing pyflakes." &&\
@@ -127,10 +125,8 @@ create_documentation: static_analysis test
 	echo "$(NOW): Now creating the documentation build folder and building the documentation." && \
 	sphinx-build -W -a -E -b html docs/source docs/build && \
 	echo "$(NOW): Done creating HTML documentation, cleaning up documentation temp files." && \
-	mv docs/source/index.rst docs/source/index.tmp && \
 	rm -rf docs/source/*.rst && \
 	rm -rf docs/source/*.md && \
-	mv docs/source/index.tmp docs/source/index.rst && \
 	echo "$(NOW): Now we pygmentize all the examples in 'examples' to 'build/examples'." &&\
 	mkdir -p docs/build/examples &&\
 	for f in examples/*.py; do \

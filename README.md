@@ -179,7 +179,7 @@ from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
+from pycommons.io.temp import temp_file
 
 space = BitStrings(10)  # search in bit strings of length 10
 problem = OneMax(10)  # we maximize the number of 1 bits
@@ -190,8 +190,8 @@ algorithm = RLS(  # create RLS that
 # We work with a temporary log file which is automatically deleted after this
 # experiment. For a real experiment, you would not use the `with` block and
 # instead put the path to the file that you want to create into `tf` by doing
-# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
-with TempFile.create() as tf:  # create temporary file `tf`
+# `from pycommons.io.path import Path; tf = Path("mydir/my_file.txt")`.
+with temp_file() as tf:  # create temporary file `tf`
     ex = Execution()  # begin configuring execution
     ex.set_solution_space(space)  # set solution space
     ex.set_objective(problem)  # set objective function
@@ -304,7 +304,7 @@ from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempDir
+from pycommons.io.temp import temp_dir
 
 # The four problems we want to try to solve:
 problems = [lambda: OneMax(10),  # 10-dimensional OneMax
@@ -347,9 +347,9 @@ def make_random_sampling(problem) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_rls,  # provide RLS run creator
@@ -552,7 +552,7 @@ from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.evaluation.end_results import EndResult
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir
+from pycommons.io.temp import temp_dir
 
 
 class MySortProblem(Objective):
@@ -682,9 +682,9 @@ def make_execution(problem) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_execution],  # creator for our algorithm
@@ -1112,13 +1112,13 @@ from moptipy.algorithms.so.rls import RLS  # the algorithm we use
 from moptipy.examples.jssp.experiment import run_experiment  # the runner
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
-from moptipy.utils.temp import TempDir  # temp directory tool
+from pycommons.io.temp import temp_dir  # temp directory tool
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temp directory
+with temp_dir() as td:  # create temp directory
     # Execute an experiment consisting of exactly one run.
     # As example domain, we use the job shop scheduling problem (JSSP).
     run_experiment(
@@ -1248,7 +1248,7 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
+from pycommons.io.temp import temp_file
 
 solution_space = BitStrings(16)  # We search a bit string of length 16,
 f1 = ZeroMax(16)                 # that has as many 0s in it as possible
@@ -1278,8 +1278,8 @@ algorithm = NSGA2(  # Create the NSGA-II algorithm.
 # We work with a temporary log file which is automatically deleted after this
 # experiment. For a real experiment, you would not use the `with` block and
 # instead put the path to the file that you want to create into `tf` by doing
-# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
-with TempFile.create() as tf:  # create temporary file `tf`
+# `from pycommons.io.path import Path; tf = Path("mydir/my_file.txt")`.
+with temp_file() as tf:  # create temporary file `tf`
     ex = MOExecution()  # begin configuring execution
     ex.set_solution_space(solution_space)
     ex.set_objective(problem)      # set the multi-objective problem
@@ -1556,13 +1556,13 @@ from moptipy.evaluation.end_results import EndResult  # the end result record
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
-from moptipy.utils.temp import TempDir  # tool for temp directories
+from pycommons.io.temp import temp_dir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:
+with temp_dir() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
         algorithms=[  # the set of algorithm generators
@@ -1680,13 +1680,13 @@ from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
-from moptipy.utils.temp import TempDir  # tool for temp directories
+from pycommons.io.temp import temp_dir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
 # For a real experiment, you would put an existing directory path in `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:
+with temp_dir() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
         algorithms=[  # the set of algorithm generators
@@ -2245,7 +2245,7 @@ If you use a shared root folder for experiments and launch the same experiment o
 ### 9.3. Other Python Libraries of Optimization Algorithms
 
 Here we provide a very incomplete list of other Python software packages that can be used for solving optimization problems (in alphabetical order).
-A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io) can be found [here](https://ktafakkori.github.io/optimization-packages-in-python-list/).
+A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io) can be found [here](https://ktafakkori.github.io/blog/optimization-packages-in-python-list/).
 
 - [`cmaes`](https://github.com/CyberAgent/cmaes) provides implementations of Covariance Matrix Adaptation Evolution Strategies for solving continuous optimization problems.
   It is maintained by Masashi Shibata and Masahiro Nomura and available at <https://pypi.org/project/cmaes/> and <https://github.com/CyberAgent/cmaes>.
@@ -2277,7 +2277,7 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 1. Thomas Weise and Zhize Wu. 2023. Replicable Self-Documenting Experiments with Arbitrary Search Spaces and Algorithms. In *Genetic and Evolutionary Computation Conference Companion* (GECCO'23 Companion), July 15-19, 2023, Lisbon, Portugal. ACM, New York, NY, USA, 9 pages. doi:[10.1145/3583133.3596306](https://dx.doi.org/10.1145/3583133.3596306). ISBN: 979-8-4007-0120-7.
 2. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
    This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
-3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://www.ieeessci2022.org))*, December 4-7, 2022, Singapore. doi:[10.1109/SSCI51031.2022.10022296](https://dx.doi.org/10.1109/SSCI51031.2022.10022296)
+3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence ([SSCI'22](https://dx.doi.org/10.1109/SSCI51031.2022))*, December 4-7, 2022, Singapore. doi:[10.1109/SSCI51031.2022.10022296](https://dx.doi.org/10.1109/SSCI51031.2022.10022296)
    This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.fitnesses.ffa)) on the Traveling Salesperson Problem.
 4. Newsletter of the ACM Special Interest Group on Genetic and Evolutionary Computation. Volume 16, Issue 4, December&nbsp;2023, Software Category. "motipy: the Metaheuristic Optimization in Python Library" <https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4>
 

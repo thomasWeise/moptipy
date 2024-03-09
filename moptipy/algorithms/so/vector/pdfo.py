@@ -34,6 +34,7 @@ import pdfo  # type: ignore
 
 # noinspection PyProtectedMember
 from pdfo._bobyqa import bobyqa  # type: ignore
+from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm0
 from moptipy.api.operators import Op0
@@ -44,7 +45,6 @@ from moptipy.api.subprocesses import (
 )
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 #: pdfo with version 1.3 and below is incompatible with numpy
 #: of version 1.24.0 and above. It will crash with an exception.

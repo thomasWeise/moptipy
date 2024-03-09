@@ -4,6 +4,7 @@ from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error, type_name_of
 
 from moptipy.algorithms.so.fitness import Fitness
 from moptipy.api.algorithm import Algorithm, check_algorithm
@@ -27,7 +28,6 @@ from moptipy.tests.op1 import validate_op1
 from moptipy.tests.op1_with_step_size import validate_op1_with_step_size
 from moptipy.tests.op2 import validate_op2
 from moptipy.utils.nputils import array_to_str
-from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 
 def dimensions_for_tests() -> Iterable[int]:

@@ -2,6 +2,8 @@
 import os.path as pt
 from os import listdir
 
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.api.execution import Execution
@@ -13,7 +15,6 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir
 
 instances = [lambda: Instance.from_resource("dmu01"),
              lambda: Instance.from_resource("abz7"),
@@ -57,7 +58,7 @@ def algo_2(inst: Instance) -> Execution:
 
 def test_experiment_jssp() -> None:
     """Run the JSSP test experiment."""
-    with TempDir.create() as base_dir:
+    with temp_dir() as base_dir:
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],
                        n_runs=10,

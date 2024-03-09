@@ -1,12 +1,13 @@
 """Perform restarts of an algorithm that terminates too early."""
 from typing import Callable, Final, TypeVar, cast
 
+from pycommons.types import type_error
+
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_algorithm import MOAlgorithm
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 
 class __RestartAlgorithm(Algorithm):

@@ -42,13 +42,13 @@ from typing import Callable, Final
 import numpy as np
 from cmaes import CMA, SepCMA  # type: ignore
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.process import Process
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import type_error
 
 
 def _run_cma(cma: SepCMA | CMA,

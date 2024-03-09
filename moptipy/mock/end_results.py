@@ -5,6 +5,8 @@ from math import ceil
 from typing import Final
 
 from numpy.random import Generator
+from pycommons.io.console import logger
+from pycommons.types import check_int_range, type_error
 
 from moptipy.evaluation.end_results import EndResult
 from moptipy.mock.components import (
@@ -13,9 +15,7 @@ from moptipy.mock.components import (
     Experiment,
     Instance,
 )
-from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator
-from moptipy.utils.types import check_int_range, type_error
 
 
 def end_result(performance: BasePerformance, seed: int,

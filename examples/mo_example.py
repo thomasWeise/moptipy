@@ -26,6 +26,8 @@ In this example, we apply a multi-objective version of the randomized local
 search algorithm, `morls`.
 """
 
+from pycommons.io.temp import temp_file
+
 from moptipy.algorithms.mo.morls import MORLS
 from moptipy.api.mo_archive import MORecord
 from moptipy.api.mo_execution import MOExecution
@@ -39,7 +41,6 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.nputils import array_to_str
-from moptipy.utils.temp import TempFile
 
 instance = Instance.from_resource("swv02")     # We load the instance "swv02".
 solution_space = GanttSpace(instance)          # Solutions are Gantt charts.
@@ -72,8 +73,8 @@ algorithm = MORLS(              # Create multi-objective RLS that
 # We work with a temporary log file which is automatically deleted after this
 # experiment. For a real experiment, you would not use the `with` block and
 # instead put the path to the file that you want to create into `tf` by doing
-# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
-with TempFile.create() as tf:  # create temporary file `tf`
+# `from pycommons.io.path import Path; tf = Path("mydir/my_file.txt")`.
+with temp_file() as tf:  # create temporary file `tf`
     ex = MOExecution()  # begin configuring execution
     ex.set_solution_space(solution_space)
     ex.set_search_space(search_space)

@@ -1,6 +1,7 @@
 """Test the Memetic Algorithm."""
 
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.algorithms.so.ma import MA
 from moptipy.algorithms.so.rls import RLS
@@ -22,7 +23,6 @@ from moptipy.spaces.bitstrings import BitStrings
 from moptipy.spaces.permutations import Permutations
 from moptipy.tests.on_bitstrings import validate_algorithm_on_onemax
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
-from moptipy.utils.types import type_error
 
 
 class __MyRLS(RLS):

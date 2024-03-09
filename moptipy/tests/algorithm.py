@@ -2,6 +2,8 @@
 from math import inf, isfinite
 from typing import Any, Callable, Final
 
+from pycommons.types import check_int_range, type_error
+
 from moptipy.api.algorithm import (
     Algorithm,
     Algorithm0,
@@ -19,7 +21,6 @@ from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.objective import validate_objective
 from moptipy.tests.space import validate_space
 from moptipy.utils.nputils import rand_seed_generate
-from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_algorithm(algorithm: Algorithm,

@@ -26,17 +26,17 @@ from typing import Any, Callable, Final, Iterable, Sequence, cast
 
 import psutil  # type: ignore
 from numpy.random import Generator, default_rng
+from pycommons.ds.cache import str_is_new
+from pycommons.io.console import logger
+from pycommons.io.path import Path
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.execution import Execution
 from moptipy.api.logging import FILE_SUFFIX
 from moptipy.api.process import Process
-from moptipy.utils.cache import is_new
-from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_seeds_from_str
-from moptipy.utils.path import Path
 from moptipy.utils.strings import sanitize_name, sanitize_names
 from moptipy.utils.sys_info import get_sys_info, update_sys_info_cpu_affinity
-from moptipy.utils.types import check_int_range, type_error
 
 
 def __run_experiment(base_dir: Path,
@@ -106,7 +106,7 @@ def __run_experiment(base_dir: Path,
                 # noinspection PyProtectedMember
                 algo_name = sanitize_name(str(exp._algorithm))
 
-                cd = Path.path(os.path.join(base_dir, algo_name, inst_name))
+                cd = Path(os.path.join(base_dir, algo_name, inst_name))
                 cd.ensure_dir_exists()
 
                 # generate sequence of seeds
@@ -121,7 +121,7 @@ def __run_experiment(base_dir: Path,
                     if warmup:
                         log_file = filename
                     else:
-                        log_file = Path.path(
+                        log_file = Path(
                             os.path.join(cd, filename + FILE_SUFFIX))
 
                         skip = True
@@ -373,8 +373,8 @@ def run_experiment(
     for run in n_runs:
         last = check_int_range(run, "n_runs", last + 1)
 
-    cache: Final[Callable[[str], bool]] = is_new()
-    use_dir: Final[Path] = Path.path(base_dir)
+    cache: Final[Callable[[str], bool]] = str_is_new()
+    use_dir: Final[Path] = Path(base_dir)
     use_dir.ensure_dir_exists()
 
     stdio_lock: AbstractContextManager

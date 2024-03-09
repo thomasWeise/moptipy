@@ -33,6 +33,7 @@ from typing import Final
 
 import numba  # type: ignore
 import numpy as np
+from pycommons.types import type_error
 
 from moptipy.api.encoding import Encoding
 from moptipy.examples.jssp.instance import Instance
@@ -42,7 +43,6 @@ from moptipy.utils.nputils import (
     int_range_to_dtype,
     numpy_type_to_str,
 )
-from moptipy.utils.types import type_error
 
 #: the numpy data type for machine indices
 KEY_NUMPY_TYPE_MACHINE_IDX: Final[str] = f"{KEY_NUMPY_TYPE}MachineIdx"

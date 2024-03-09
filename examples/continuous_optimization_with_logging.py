@@ -21,6 +21,8 @@ to read `experiment_2_algorithms_4_problems.py`.
 2. http://www-optima.amp.i.kyoto-u.ac.jp/member/student/hedar/Hedar_files\
 /TestGO_files/Page2537.htm
 """
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.so.vector.cmaes_lib import (
     CMAES,  # the covariance matrix adaptation evolution strategy (CMA-ES)
     BiPopCMAES,  # the Bi-Population CMA-ES
@@ -40,7 +42,6 @@ from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.operators.vectors.op0_uniform import Op0Uniform
 from moptipy.spaces.vectorspace import VectorSpace
-from moptipy.utils.temp import TempDir
 
 
 class Rosenbrock(Objective):
@@ -64,9 +65,9 @@ b = space.create()  # a variable to store the best solution
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path into `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     # Perform one run for a variety of different optimization algorithms.
     for algorithm in [BGFS(op0, space),  # Broyden/Fletcher/Goldfarb/Shanno
                       BiPopCMAES(space),  # the bi-population CMA-ES

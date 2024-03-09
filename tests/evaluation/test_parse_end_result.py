@@ -2,6 +2,8 @@
 
 from os import rename
 
+from pycommons.io.temp import temp_dir
+
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -10,7 +12,6 @@ from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempDir
 
 
 def __check_record(er: EndResult) -> None:
@@ -34,7 +35,7 @@ def __check_record(er: EndResult) -> None:
 
 def test_parse_end_result() -> None:
     """Do a single run of RLS on OneMax and parse the result."""
-    with TempDir.create() as td:
+    with temp_dir() as td:
         rd = run_experiment(
             base_dir=td,
             instances=[lambda: OneMax(10)],

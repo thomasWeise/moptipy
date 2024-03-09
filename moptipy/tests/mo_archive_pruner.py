@@ -3,6 +3,7 @@ from typing import Callable, Final, Iterable
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.mo_archive import (
     MOArchivePruner,
@@ -13,7 +14,6 @@ from moptipy.api.mo_problem import MOProblem
 from moptipy.mock.mo_problem import MockMOProblem
 from moptipy.tests.component import validate_component
 from moptipy.utils.nputils import DEFAULT_NUMERICAL
-from moptipy.utils.types import check_int_range, type_error
 
 
 def __run_single_test(

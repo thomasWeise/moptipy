@@ -44,14 +44,14 @@ import contextlib
 from typing import Callable, Final
 
 import numpy as np
+from pycommons.io.console import logger
+from pycommons.io.path import Path, directory_path
+from pycommons.types import check_int_range, type_error
 
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
-from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import check_int_range, type_error
 
 
 def __prefix(s: str) -> str:
@@ -113,8 +113,8 @@ def moptipy_to_ioh_analyzer(
     :param f_name: the objective name
     :param f_standard: a dictionary mapping instances to standard values
     """
-    source: Final[Path] = Path.directory(results_dir)
-    dest: Final[Path] = Path.path(dest_dir)
+    source: Final[Path] = directory_path(results_dir)
+    dest: Final[Path] = Path(dest_dir)
     dest.ensure_dir_exists()
     logger(f"converting the moptipy log files in {source!r} to "
            f"IOHprofiler data in {dest!r}. First we load the data.")
@@ -242,10 +242,10 @@ if __name__ == "__main__":
         "tool here, you can convert from the moptipy to the "
         "IOHprofiler format.")
     parser.add_argument(
-        "source", help="the directory with moptipy log files", type=Path.path,
+        "source", help="the directory with moptipy log files", type=Path,
         nargs="?", default="./results")
     parser.add_argument(
         "dest", help="the directory to write the IOHanalyzer data to",
-        type=Path.path, nargs="?", default="./IOHanalyzer")
+        type=Path, nargs="?", default="./IOHanalyzer")
     args: Final[argparse.Namespace] = parser.parse_args()
     moptipy_to_ioh_analyzer(args.source, args.dest)

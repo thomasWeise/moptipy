@@ -23,8 +23,11 @@ over time.
 
 from math import inf, isfinite, isinf
 from os import listdir
-from os.path import basename, dirname, isdir, isfile, join
 from typing import Final
+
+from pycommons.io.console import logger
+from pycommons.io.path import Path, directory_path, file_path
+from pycommons.types import check_to_int_range
 
 from moptipy.api.logging import (
     ERROR_SECTION_PREFIX,
@@ -47,7 +50,6 @@ from moptipy.api.logging import (
     SECTION_SETUP,
 )
 from moptipy.evaluation._utils import _check_max_time_millis
-from moptipy.utils.console import logger
 from moptipy.utils.logger import (
     COMMENT_CHAR,
     SCOPE_SEPARATOR,
@@ -56,13 +58,11 @@ from moptipy.utils.logger import (
     parse_key_values,
 )
 from moptipy.utils.nputils import rand_seed_check
-from moptipy.utils.path import Path
 from moptipy.utils.strings import (
     PART_SEPARATOR,
     sanitize_name,
     str_to_intfloat,
 )
-from moptipy.utils.types import check_to_int_range
 
 #: the maximum FEs of a black-box process
 _FULL_KEY_MAX_FES: Final[str] = \
@@ -286,7 +286,7 @@ class LogParser:
         :return: the return value received from invoking
             :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`
         """
-        file: Final[Path] = Path.file(path)
+        file: Final[Path] = file_path(path)
 
         retval: bool
         try:
@@ -400,7 +400,7 @@ class LogParser:
             :meth:`~moptipy.evaluation.log_parser.LogParser.end_dir` returned
             `True`, `False` otherwise
         """
-        folder: Final[Path] = Path.directory(path)
+        folder: Final[Path] = directory_path(path)
 
         if self.__depth <= 0:
             if self.__depth == 0:
@@ -422,14 +422,14 @@ class LogParser:
         do_files = True
         do_dirs = True
         for subpath in listdir(folder):
-            sub = Path.path(join(folder, subpath))
-            if isfile(sub):
+            sub: Path = folder.resolve_inside(subpath)
+            if sub.is_file():
                 if do_files and (not self.parse_file(sub)):
                     logger(f"will parse no more files in {folder!r}.")
                     if not do_dirs:
                         break
                     do_files = False
-            elif isdir(sub) and do_dirs and (not self.parse_dir(sub)):
+            elif sub.is_dir() and do_dirs and (not self.parse_dir(sub)):
                 logger("will parse no more sub-directories "
                        f"of {folder!r}.")
                 if not do_files:
@@ -466,10 +466,10 @@ class LogParser:
         :return: the result of the appropriate parsing routing
         :raises ValueError: if `path` does not identify a directory or file
         """
-        npath = Path.path(path)
-        if isfile(npath):
+        npath = Path(path)
+        if npath.is_file():
             return self.parse_file(npath)
-        if isdir(npath):
+        if npath.is_dir():
             return self.parse_dir(npath)
         raise ValueError(
             f"Path {npath} is neither a file nor a directory?")
@@ -504,14 +504,14 @@ class ExperimentParser(LogParser):
         if not super().start_file(path):
             return False
 
-        inst_dir = dirname(path)
-        algo_dir = dirname(inst_dir)
-        self.instance = sanitize_name(basename(inst_dir))
-        self.algorithm = sanitize_name(basename(algo_dir))
+        inst_dir: Final[Path] = path.up()
+        algo_dir: Final[Path] = inst_dir.up()
+        self.instance = sanitize_name(inst_dir.basename())
+        self.algorithm = sanitize_name(algo_dir.basename())
 
         start = (f"{self.algorithm}{PART_SEPARATOR}"
                  f"{self.instance}{PART_SEPARATOR}0x")
-        base = basename(path)
+        base = path.basename()
         if (not base.startswith(start)) and \
                 (not base.casefold().startswith(start.casefold())):
             # case-insensitive comparison needed because of Windows

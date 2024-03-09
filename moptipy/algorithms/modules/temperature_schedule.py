@@ -21,10 +21,11 @@ evaluation is at index `0`.
 from math import e, isfinite, log
 from typing import Final
 
+from pycommons.types import type_error
+
 from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import num_to_str_for_name
-from moptipy.utils.types import type_error
 
 
 # start schedule

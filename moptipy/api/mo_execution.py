@@ -3,6 +3,8 @@
 from math import isfinite
 from typing import Final, TypeVar, cast
 
+from pycommons.types import check_int_range
+
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._mo_process_no_ss_log import _MOProcessNoSSLog
 from moptipy.api._mo_process_ss import _MOProcessSS
@@ -26,7 +28,6 @@ from moptipy.api.process import (
 from moptipy.api.space import Space, check_space
 from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.utils.nputils import rand_seed_check
-from moptipy.utils.types import check_int_range
 
 #: The execution type variable for returning `Self`.
 TMOExecution = TypeVar("TMOExecution", bound="MOExecution")

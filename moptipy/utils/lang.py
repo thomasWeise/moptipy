@@ -12,9 +12,9 @@ from matplotlib.font_manager import (  # type: ignore
     FontProperties,
     findSystemFonts,
 )
+from pycommons.types import check_int_range, type_error
 
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import check_int_range, type_error
 
 
 class Lang:

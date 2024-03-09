@@ -56,10 +56,10 @@ from contextlib import AbstractContextManager
 from math import inf, isnan
 
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
-from moptipy.utils.types import check_int_range, type_error
 
 
 # start book

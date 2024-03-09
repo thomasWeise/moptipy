@@ -33,13 +33,13 @@ from typing import Iterable
 
 import numba  # type: ignore
 import numpy as np
+from pycommons.io.path import Path, write_lines
+from pycommons.types import check_int_range
 
 from moptipy.examples.jssp import experiment
 from moptipy.examples.jssp.gantt_space import gantt_space_size
 from moptipy.examples.jssp.instance import Instance
 from moptipy.utils.lang import Lang
-from moptipy.utils.path import Path
-from moptipy.utils.types import check_int_range
 
 
 def permutations_with_repetitions_space_size(n: int, m: int) -> int:
@@ -454,7 +454,7 @@ def make_gantt_space_size_table(
     :param instances: the instances to add
     :returns: the fully-qualified path to the generated file
     """
-    file = Path.path(dest)
+    file = Path(dest)
     text = [(f'|{Lang.current()["name"]}|'
              r"$\jsspJobs$|$\jsspMachines$|$\min(\#\text{"
              f'{Lang.current()["feasible"]}'
@@ -519,7 +519,8 @@ def make_gantt_space_size_table(
         text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
                     f"{__long_str(scale[3])}|{__long_str(scale[2])}|")
 
-    file.write_all(text)
+    with file.open_for_write() as wd:
+        write_lines(text, wd)
     file.enforce_file()
     return file
 
@@ -535,7 +536,7 @@ def make_search_space_size_table(
     :param instances: the instances to add
     :returns: the fully-qualified path to the generated file
     """
-    file = Path.path(dest)
+    file = Path(dest)
     text = [(f'|{Lang.current()["name"]}|'
              r"$\jsspJobs$|$\jsspMachines$|$\left|\solutionSpace\right|$|"
              r"$\left|\searchSpace\right|$|"),
@@ -581,14 +582,15 @@ def make_search_space_size_table(
         text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
                     f"{__long_str(scale[2])}|{__long_str(scale[3])}|")
 
-    file.write_all(text)
+    with file.open_for_write() as wd:
+        write_lines(text, wd)
     file.enforce_file()
     return file
 
 
 # create the tables if this is the main script
 if __name__ == "__main__":
-    dest_dir = Path.path(sys.argv[1])
+    dest_dir = Path(sys.argv[1])
     dest_dir.ensure_dir_exists()
     for lang in Lang.all_langs():
         lang.set_current()

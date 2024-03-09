@@ -16,6 +16,7 @@ from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy import sum as npsum
+from pycommons.types import type_error
 
 from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective
@@ -24,7 +25,6 @@ from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.math import try_int
 from moptipy.utils.nputils import dtype_for_data
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import type_error
 
 
 def _sum_int(a: np.ndarray) -> int:

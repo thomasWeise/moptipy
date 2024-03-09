@@ -5,6 +5,8 @@ from typing import Any, Callable, Final, cast
 
 import numpy as np
 from numpy import copyto
+from pycommons.io.path import Path
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api._process_base import _TIME_IN_NS, _ns_to_ms, _ProcessBase
 from moptipy.api.algorithm import Algorithm
@@ -33,8 +35,6 @@ from moptipy.api.mo_process import MOProcess
 from moptipy.api.space import Space
 from moptipy.utils.logger import KeyValueLogSection, Logger
 from moptipy.utils.nputils import array_to_str, np_to_py_number
-from moptipy.utils.path import Path
-from moptipy.utils.types import check_int_range, type_error
 
 
 class _MOProcessNoSS(MOProcess, _ProcessBase):

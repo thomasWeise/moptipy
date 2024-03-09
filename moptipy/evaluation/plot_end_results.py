@@ -5,15 +5,15 @@ import matplotlib.collections as mc  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure  # type: ignore
 from matplotlib.lines import Line2D  # type: ignore
+from pycommons.io.console import logger
+from pycommons.types import type_error
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
-from moptipy.utils.console import logger
 from moptipy.utils.lang import Lang
-from moptipy.utils.types import type_error
 
 
 def plot_end_results(

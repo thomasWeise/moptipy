@@ -5,11 +5,11 @@ from typing import Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy import clip
+from pycommons.types import type_error
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_FLOAT, array_to_str, is_np_float
-from moptipy.utils.types import type_error
 
 #: the log key for the lower bound, i.e., the minimum permitted value
 KEY_LOWER_BOUND: Final[str] = "lb"

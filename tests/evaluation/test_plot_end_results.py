@@ -2,12 +2,12 @@
 from typing import Final
 
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.io.temp import temp_dir
 
 from moptipy.evaluation.plot_end_results import plot_end_results
 from moptipy.mock.components import Experiment
 from moptipy.mock.end_results import EndResults
 from moptipy.utils.plot_utils import create_figure, save_figure
-from moptipy.utils.temp import TempDir
 
 
 def make_end_results_plot(dir_name: str, file_name: str) -> None:
@@ -33,5 +33,5 @@ def make_end_results_plot(dir_name: str, file_name: str) -> None:
 
 def test_end_results_plot() -> None:
     """Run the violin plot test."""
-    with TempDir.create() as dir_name:
+    with temp_dir() as dir_name:
         make_end_results_plot(dir_name, "test")

@@ -120,13 +120,13 @@ from typing import Counter, Final, Iterable
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.operators import Op1WithStepSize
 from moptipy.operators.tools import exponential_step_size
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT, fill_in_canonical_permutation
-from moptipy.utils.types import check_int_range, type_error
 
 
 def get_max_changes(blueprint: Iterable[int]) -> int:

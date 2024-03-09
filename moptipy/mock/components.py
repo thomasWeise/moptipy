@@ -5,11 +5,11 @@ from math import ceil, isfinite
 from typing import Any, Final, Iterable
 
 from numpy.random import Generator
+from pycommons.io.console import logger
+from pycommons.types import check_int_range, type_error
 
-from moptipy.utils.console import logger
 from moptipy.utils.nputils import rand_generator, rand_seeds_from_str
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import check_int_range, type_error
 
 
 def fixed_random_generator() -> Generator:

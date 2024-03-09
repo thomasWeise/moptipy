@@ -25,10 +25,10 @@ from typing import Final
 
 import numba  # type: ignore
 import numpy as np
+from pycommons.types import check_int_range
 
 from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import check_int_range
 
 
 @numba.njit(nogil=True, cache=True)

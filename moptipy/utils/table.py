@@ -4,6 +4,8 @@ from contextlib import AbstractContextManager
 from io import TextIOBase
 from typing import Callable, Final, Iterable
 
+from pycommons.types import check_int_range, type_error
+
 from moptipy.utils.formatted_string import TEXT, FormattedStr
 from moptipy.utils.text_format import (
     MODE_NORMAL,
@@ -11,7 +13,6 @@ from moptipy.utils.text_format import (
     MODE_TABLE_HEADER,
     TextFormatDriver,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 
 class Table(AbstractContextManager):

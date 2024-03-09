@@ -4,14 +4,14 @@ from os.path import exists, isfile
 
 # noinspection PyPackageRequirements
 import yaml
+from pycommons.io.temp import temp_file
 
 from moptipy.utils.logger import FileLogger
-from moptipy.utils.temp import TempFile
 
 
 def test_log_files() -> None:
     """Test the generation of log files."""
-    with TempFile.create() as path:
+    with temp_file() as path:
         with FileLogger(path) as log:
             with log.csv("A", ["x", "y"]) as xsv:
                 xsv.row([1, 2])

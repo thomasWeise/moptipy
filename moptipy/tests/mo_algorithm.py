@@ -5,6 +5,7 @@ from typing import Any, Final
 import numpy as np
 from numpy import array_equal
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.algorithm import (
     Algorithm0,
@@ -25,7 +26,6 @@ from moptipy.tests.encoding import validate_encoding
 from moptipy.tests.mo_problem import validate_mo_problem
 from moptipy.tests.space import validate_space
 from moptipy.utils.nputils import rand_seed_generate
-from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_mo_algorithm(

@@ -1,10 +1,11 @@
 """Test the callable objective function."""
 
+from pycommons.io.temp import temp_file
+
 from moptipy.api.component import Component
 from moptipy.api.objective import Objective
 from moptipy.tests.objective import validate_objective
 from moptipy.utils.logger import FileLogger
-from moptipy.utils.temp import TempFile
 
 
 class MyObjective(Objective):
@@ -34,10 +35,10 @@ def test_logged_args() -> None:
     assert isinstance(f, Component)
     validate_objective(f, None, None)
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         with FileLogger(path) as log, log.key_values("F") as kv:
             f.log_parameters_to(kv)
-        result = path.read_all_list()
+        result = path.read_all_str().splitlines()
 
     assert result == [
         "BEGIN_F",

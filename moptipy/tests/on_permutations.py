@@ -4,6 +4,7 @@ from typing import Any, Callable, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op0, Op1, Op1WithStepSize, Op2
 from moptipy.spaces.permutations import Permutations
@@ -11,7 +12,6 @@ from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
 from moptipy.tests.op1_with_step_size import validate_op1_with_step_size
 from moptipy.tests.op2 import validate_op2
-from moptipy.utils.types import type_error
 
 
 def permutations_for_tests(

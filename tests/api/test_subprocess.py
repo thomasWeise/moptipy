@@ -3,6 +3,7 @@ from collections.abc import Callable
 from typing import Final
 
 from numpy.random import Generator, default_rng
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.rls import RLS
@@ -33,7 +34,6 @@ from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.operators.op0_forward import Op0Forward
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.types import type_name_of
 
 
 class MyAlgorithm1(Algorithm2):

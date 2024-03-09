@@ -8,6 +8,7 @@ from matplotlib.lines import Line2D  # type: ignore
 from matplotlib.patches import Rectangle  # type: ignore
 from matplotlib.text import Text  # type: ignore
 from matplotlib.ticker import MaxNLocator  # type: ignore
+from pycommons.types import type_error
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
@@ -15,7 +16,6 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.makespan import makespan
 from moptipy.utils.lang import Lang
-from moptipy.utils.types import type_error
 
 
 def marker_lb(x: Gantt) -> tuple[str, int | float]:

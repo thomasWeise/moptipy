@@ -3,10 +3,10 @@ from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op0
 from moptipy.spaces.ordered_choices import OrderedChoices
-from moptipy.utils.types import type_error
 
 
 class Op0ChooseAndShuffle(Op0):

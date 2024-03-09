@@ -1,14 +1,15 @@
 """A process with logging, where search and solution space are the same."""
 from typing import Final
 
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api._process_no_ss import _ProcessNoSS, _write_log
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils.logger import Logger
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 
 class _ProcessNoSSLog(_ProcessNoSS):

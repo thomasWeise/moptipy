@@ -3,11 +3,11 @@ from math import isfinite
 from typing import Any, Callable, Iterable
 
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op1WithStepSize, check_op1_with_step_size
 from moptipy.api.space import Space
 from moptipy.tests.op1 import default_min_unique_samples, validate_op1
-from moptipy.utils.types import type_error
 
 
 def validate_op1_with_step_size(

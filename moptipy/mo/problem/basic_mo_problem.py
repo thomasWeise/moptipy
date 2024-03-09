@@ -4,6 +4,7 @@ from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 from numpy import empty
+from pycommons.types import type_error
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS, SCOPE_OBJECTIVE_FUNCTION
 from moptipy.api.mo_problem import MOProblem
@@ -16,7 +17,6 @@ from moptipy.utils.nputils import (
     dtype_for_data,
     numpy_type_to_str,
 )
-from moptipy.utils.types import type_error
 
 
 class BasicMOProblem(MOProblem):

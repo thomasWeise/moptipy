@@ -48,6 +48,8 @@ Via the experiment execution facility, we apply our algorithm for five runs
 to each of these problems. We collect all the results and print them to the
 standard out.
 """
+from pycommons.io.temp import temp_dir
+
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
@@ -55,7 +57,6 @@ from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.evaluation.end_results import EndResult
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempDir
 
 
 class MySortProblem(Objective):
@@ -185,9 +186,9 @@ def make_execution(problem) -> Execution:
 
 # We execute the whole experiment in a temp directory.
 # For a real experiment, you would put an existing directory path into `td`
-# by doing `from moptipy.utils.path import Path; td = Path.directory("mydir")`
+# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
 # and not use the `with` block.
-with TempDir.create() as td:  # create temporary directory `td`
+with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_execution],  # creator for our algorithm

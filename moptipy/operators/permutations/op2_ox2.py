@@ -39,6 +39,7 @@ from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op2
 from moptipy.spaces.permutations import Permutations
@@ -47,7 +48,6 @@ from moptipy.utils.nputils import (
     DEFAULT_INT,
     fill_in_canonical_permutation,
 )
-from moptipy.utils.types import type_error
 
 
 # start book

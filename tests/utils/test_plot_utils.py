@@ -2,9 +2,9 @@
 
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.io.temp import temp_dir
 
 import moptipy.utils.plot_utils as pu
-from moptipy.utils.temp import TempDir
 
 
 def test_create_and_save_figure() -> None:
@@ -13,7 +13,7 @@ def test_create_and_save_figure() -> None:
     assert isinstance(f, Figure)
     ax = pu.get_axes(f)
     ax.hist(x=range(100))
-    with TempDir.create() as td:
+    with temp_dir() as td:
         res = pu.save_figure(fig=f, file_name="test", dir_name=td,
                              formats=["svg", "pdf"])
         assert isinstance(res, list)

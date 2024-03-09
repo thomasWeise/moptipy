@@ -3,7 +3,7 @@
 from math import inf, isnan, nan
 from typing import Final
 
-from moptipy.utils.types import check_int_range, type_error
+from pycommons.types import check_int_range, type_error
 
 #: the formatted string represents normal text
 TEXT: Final[int] = 0

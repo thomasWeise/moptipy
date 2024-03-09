@@ -12,11 +12,11 @@ from matplotlib.axes import Axes  # type: ignore
 from matplotlib.backend_bases import RendererBase  # type: ignore
 from matplotlib.backends.backend_agg import RendererAgg  # type: ignore
 from matplotlib.figure import Figure, SubFigure  # type: ignore
+from pycommons.io.path import Path, directory_path
+from pycommons.types import check_int_range, type_error, type_name_of
 
 import moptipy.utils.plot_defaults as pd
 from moptipy.utils.lang import Lang
-from moptipy.utils.path import Path
-from moptipy.utils.types import check_int_range, type_error, type_name_of
 
 # Ensure that matplotlib uses Type 1 fonts.
 # Some scientific conferences, such as GECCO organized by ACM, require this.
@@ -416,12 +416,12 @@ def save_figure(fig: Figure,
         margins: list[int] = [0] * len(ax.margins())
         ax.margins(*margins)
 
-    use_dir = Path.directory(dir_name)
+    use_dir = directory_path(dir_name)
     files = []
     for fmt in formats:
         if not isinstance(fmt, str):
             raise type_error(fmt, "element of formats", str)
-        dest_file = Path.path(os.path.join(use_dir, f"{file_name}.{fmt}"))
+        dest_file = Path(os.path.join(use_dir, f"{file_name}.{fmt}"))
         dest_file.ensure_file_exists()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

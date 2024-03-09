@@ -4,11 +4,11 @@ from typing import Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op0
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import type_error
 
 
 class Op0Uniform(Op0):

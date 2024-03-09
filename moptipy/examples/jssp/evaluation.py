@@ -7,6 +7,10 @@ from re import compile as _compile
 from statistics import median
 from typing import Callable, Final, Iterable, cast
 
+from pycommons.io.console import logger
+from pycommons.io.path import Path, directory_path
+from pycommons.types import type_error
+
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
@@ -27,17 +31,14 @@ from moptipy.examples.jssp.plots import (
     plot_stat_gantt_charts,
 )
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
 from moptipy.utils.lang import EN
 from moptipy.utils.logger import sanitize_name
-from moptipy.utils.path import Path
 from moptipy.utils.strings import (
     beautify_float_str,
     name_str_to_num,
     num_to_str,
 )
-from moptipy.utils.types import type_error
 
 #: The letter mu
 LETTER_M: Final[str] = "\u03BC"
@@ -270,13 +271,13 @@ def compute_end_results(results_dir: str,
     :param dest_dir: the destination directory
     :returns: the path to the end results file.
     """
-    dest: Final[Path] = Path.directory(dest_dir)
+    dest: Final[Path] = directory_path(dest_dir)
     results_file: Final[Path] = dest.resolve_inside("end_results.txt")
     if results_file.is_file():
         return results_file
     results: Final[list[EndResult]] = []
 
-    source: Final[Path] = Path.directory(results_dir)
+    source: Final[Path] = directory_path(results_dir)
     logger(f"loading end results from path {source!r}.")
     EndResult.from_logs(source, results.append)
     if not results:
@@ -338,7 +339,7 @@ def compute_end_statistics(end_results_file: str,
     :param dest_dir: the destination directory
     :returns: the path to the end result statistics file.
     """
-    dest: Final[Path] = Path.directory(dest_dir)
+    dest: Final[Path] = directory_path(dest_dir)
     stats_file: Final[Path] = dest.resolve_inside("end_statistics.txt")
     if stats_file.is_file():
         return stats_file
@@ -556,9 +557,9 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     :param results_dir: the results directory
     :param dest_dir: the destination directory
     """
-    source: Final[Path] = Path.directory(results_dir)
-    dest: Final[Path] = Path.path(dest_dir if dest_dir else
-                                  pp.join(source, "..", "evaluation"))
+    source: Final[Path] = directory_path(results_dir)
+    dest: Final[Path] = Path(dest_dir if dest_dir else
+                             pp.join(source, "..", "evaluation"))
     dest.ensure_dir_exists()
     logger(f"Beginning evaluation from {source!r} to {dest!r}.")
 
@@ -600,10 +601,10 @@ if __name__ == "__main__":
         "'Optimization Algorithms' book (see "
         "http://thomasweise.github.io/oa).")
     parser.add_argument(
-        "source", nargs="?", default="./results", type=Path.path,
+        "source", nargs="?", default="./results", type=Path,
         help="the directory with the results of the JSSP experiment")
     parser.add_argument(
-        "dest", type=Path.path, nargs="?", default="./evaluation/",
+        "dest", type=Path, nargs="?", default="./evaluation/",
         help="the directory to write the evaluation results to")
     args: Final[argparse.Namespace] = parser.parse_args()
     evaluate_experiment(results_dir=args.source, dest_dir=args.dest)

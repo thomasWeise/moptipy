@@ -17,6 +17,10 @@ from gc import collect
 from math import isfinite
 from typing import Any, Callable, Final, Iterable
 
+from pycommons.io.console import logger
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.algorithms.so.fea1plus1 import H_LOG_SECTION
 from moptipy.api.logging import (
     KEY_F_LOWER_BOUND,
@@ -31,14 +35,11 @@ from moptipy.evaluation.base import (
     PerRunData,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
-from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
-from moptipy.utils.path import Path
 from moptipy.utils.strings import (
     str_to_intfloat,
 )
-from moptipy.utils.types import type_error
 
 #: the lower bound of the objective function
 _FULL_KEY_LOWER_BOUND: Final[str] = \
@@ -233,8 +234,8 @@ def number_of_objective_values_to_csv(
     :param report_goal_f: see :func:`from_logs`
     :param per_instance_known: see :func:`from_logs`
     """
-    input_path: Final[Path] = Path.path(input_dir)
-    output_path: Final[Path] = Path.path(output_file)
+    input_path: Final[Path] = Path(input_dir)
+    output_path: Final[Path] = Path(output_file)
     logger(f"Collecting number of objective values from {input_path!r} "
            f"in {output_path!r}.")
     logger(f"Lower bounds will{'' if report_lower_bound else ' not'} be "
@@ -244,7 +245,7 @@ def number_of_objective_values_to_csv(
     logger("Goal objective values bounds will"
            f"{'' if report_upper_bound else ' not'} be treated as existing "
            "objective values.")
-    Path.path(os.path.dirname(output_path)).ensure_dir_exists()
+    Path(os.path.dirname(output_path)).ensure_dir_exists()
     data: Counter[tuple[str, str]] = Counter()
     instances: set[str] = set()
     algorithms: set[str] = set()
@@ -477,10 +478,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "source", nargs="?", default="./results",
         help="the location of the experimental results, i.e., the root folder "
-             "under which to search for log files", type=Path.path)
+             "under which to search for log files", type=Path)
     parser.add_argument(
         "dest", help="the path to the end results CSV file to be created",
-        type=Path.path, nargs="?",
+        type=Path, nargs="?",
         default="./evaluation/objective_values.txt")
     parser.add_argument(
         "--lb", help="count the lower bound of the "

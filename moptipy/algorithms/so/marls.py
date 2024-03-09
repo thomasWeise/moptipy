@@ -51,6 +51,7 @@ here, i.e., uses the same search operators, same `mu`, `lambda_`, and
 from typing import Any, Callable, Final, cast
 
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.algorithms.so.record import Record
 from moptipy.api.algorithm import Algorithm2
@@ -58,7 +59,6 @@ from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
-from moptipy.utils.types import check_int_range, type_error
 
 
 # start book

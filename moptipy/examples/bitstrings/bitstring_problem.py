@@ -2,10 +2,11 @@
 
 from typing import Final
 
+from pycommons.types import check_int_range
+
 from moptipy.api.objective import Objective
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import check_int_range
 
 
 class BitStringProblem(Objective):

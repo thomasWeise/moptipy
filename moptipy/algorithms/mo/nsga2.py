@@ -34,6 +34,7 @@ from typing import Any, Callable, Final, cast
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.algorithm import Algorithm2
 from moptipy.api.mo_algorithm import MOAlgorithm
@@ -42,7 +43,6 @@ from moptipy.api.mo_process import MOProcess
 from moptipy.api.operators import Op0, Op1, Op2
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import num_to_str_for_name
-from moptipy.utils.types import check_int_range, type_error
 
 
 class _NSGA2Record(MORecord):

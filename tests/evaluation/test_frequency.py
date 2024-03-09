@@ -5,14 +5,14 @@ from os.path import dirname
 from typing import Final, cast
 
 from numpy.random import Generator, default_rng
+from pycommons.io.path import Path
+from pycommons.io.temp import temp_dir, temp_file
 
 from moptipy.evaluation.base import PerRunData
 from moptipy.evaluation.frequency import (
     from_logs,
     number_of_objective_values_to_csv,
 )
-from moptipy.utils.path import Path
-from moptipy.utils.temp import TempDir, TempFile
 
 
 class Example:
@@ -107,11 +107,11 @@ class Example:
 
 def test_frequency() -> None:
     """Test the frequency evaluation."""
-    with TempDir.create() as td:
+    with temp_dir() as td:
         exa: Final[Example] = Example()
         file = td.resolve_inside(exa.log_name())
-        Path.path(dirname(file)).ensure_dir_exists()
-        file.write_all(exa.file_contents)
+        Path(dirname(file)).ensure_dir_exists()
+        file.write_all_str(exa.file_contents)
 
         data: list = []
 
@@ -308,14 +308,14 @@ def test_number_of_objective_values_to_csv() -> None:
             algo_inst_count[(algo, inst)] = len(algo_ob)
         inst_count[inst] = len(inst_ob)
 
-    with TempDir.create() as td:
+    with temp_dir() as td:
         for exa in runs:
             path = td.resolve_inside(exa.log_name())
-            Path.path(dirname(path)).ensure_dir_exists()
-            path.write_all(exa.file_contents)
-        with TempFile.create() as tf:
+            Path(dirname(path)).ensure_dir_exists()
+            path.write_all_str(exa.file_contents)
+        with temp_file() as tf:
             number_of_objective_values_to_csv(td, tf)
-            lines = tf.read_all_list()
+            lines = tf.read_all_str().splitlines()
 
     expected: list[str] = [
         "instance;" + ";".join(a for a in algorithms) + ";all"]

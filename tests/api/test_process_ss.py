@@ -2,6 +2,9 @@
 
 from os.path import exists, isfile
 
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
+
 from moptipy.algorithms.random_walk import RandomWalk
 from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm, Algorithm0
@@ -20,8 +23,6 @@ from moptipy.examples.jssp.worktime import Worktime
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_process_ss_no_log() -> None:
@@ -71,7 +72,7 @@ def test_process_ss_log() -> None:
     objective: Objective = Makespan(instance)
     algorithm: Algorithm = RandomWalk(Op0Shuffle(search_space),
                                       Op1Swap2())
-    with TempFile.create(suffix=FILE_SUFFIX) as tf:
+    with temp_file(suffix=FILE_SUFFIX) as tf:
         assert exists(tf)
         assert isfile(tf)
         with Execution()\
@@ -102,7 +103,7 @@ def test_process_ss_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_STATE"
         i = data.index("END_STATE")

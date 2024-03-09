@@ -37,6 +37,7 @@ from math import inf
 from typing import Callable, Final
 
 import numpy as np
+from pycommons.types import check_int_range, type_error
 from scipy.interpolate import RBFInterpolator  # type: ignore
 from scipy.special import comb  # type: ignore
 
@@ -50,7 +51,6 @@ from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_FLOAT
 from moptipy.utils.strings import num_to_str_for_name, sanitize_names
-from moptipy.utils.types import check_int_range, type_error
 
 #: the permitted RBF kernels
 _RBF_KERNELS: Final[dict[str, str]] = {

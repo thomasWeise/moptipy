@@ -13,10 +13,11 @@ pre-defined unit test routine
 """
 from typing import cast
 
+from pycommons.types import type_error
+
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_process import MOProcess
 from moptipy.api.process import Process
-from moptipy.utils.types import type_error
 
 
 class MOAlgorithm(Algorithm):

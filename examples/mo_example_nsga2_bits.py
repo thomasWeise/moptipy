@@ -9,6 +9,8 @@ of length `n`, we can have `n+1` non-dominated solutions, including the
 all-`0` and the all-`1` string.
 """
 
+from pycommons.io.temp import temp_file
+
 from moptipy.algorithms.mo.nsga2 import NSGA2
 from moptipy.api.mo_execution import MOExecution
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
@@ -18,7 +20,6 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.operators.bitstrings.op2_uniform import Op2Uniform
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
 
 solution_space = BitStrings(16)  # We search a bit string of length 16,
 f1 = ZeroMax(16)                 # that has as many 0s in it as possible
@@ -48,8 +49,8 @@ algorithm = NSGA2(  # Create the NSGA-II algorithm.
 # We work with a temporary log file which is automatically deleted after this
 # experiment. For a real experiment, you would not use the `with` block and
 # instead put the path to the file that you want to create into `tf` by doing
-# `from moptipy.utils.path import Path; tf = Path.path("mydir/my_file.txt")`.
-with TempFile.create() as tf:  # create temporary file `tf`
+# `from pycommons.io.path import Path; tf = Path("mydir/my_file.txt")`.
+with temp_file() as tf:  # create temporary file `tf`
     ex = MOExecution()  # begin configuring execution
     ex.set_solution_space(solution_space)
     ex.set_objective(problem)      # set the multi-objective problem

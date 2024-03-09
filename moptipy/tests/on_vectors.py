@@ -4,6 +4,7 @@ from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.objective import Objective
@@ -13,7 +14,6 @@ from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.op0 import validate_op0
 from moptipy.utils.nputils import DEFAULT_FLOAT
-from moptipy.utils.types import check_int_range, type_error
 
 #: The dimensions for tests
 DIMENSIONS_FOR_TESTS: Final[tuple[int, ...]] = (1, 2, 3, 4, 5, 10)

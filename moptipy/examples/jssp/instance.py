@@ -84,13 +84,13 @@ from importlib import resources  # nosem
 from typing import Final, cast
 
 import numpy as np
+from pycommons.types import check_int_range, type_error
 
 import moptipy.utils.nputils as npu
 from moptipy.api.component import Component
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import int_range_to_dtype
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import check_int_range, type_error
 
 #: the recommended scope under which instance data should be stored
 SCOPE_INSTANCE: Final[str] = "inst"

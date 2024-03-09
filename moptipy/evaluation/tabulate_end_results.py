@@ -3,6 +3,9 @@
 from math import inf, isfinite, isnan, nan
 from typing import Any, Callable, Final, Iterable, cast
 
+from pycommons.io.path import Path
+from pycommons.types import type_error
+
 from moptipy.api.logging import (
     KEY_ALGORITHM,
     KEY_BEST_F,
@@ -32,10 +35,8 @@ from moptipy.utils.number_renderer import (
     DEFAULT_NUMBER_RENDERER,
     NumberRenderer,
 )
-from moptipy.utils.path import Path
 from moptipy.utils.table import Table
 from moptipy.utils.text_format import TextFormatDriver
-from moptipy.utils.types import type_error
 
 #: the lower bound key
 __KEY_LOWER_BOUND: Final[str] = "lower_bound"

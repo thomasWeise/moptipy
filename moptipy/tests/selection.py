@@ -4,6 +4,7 @@ from math import inf
 from typing import Final, Iterable
 
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.algorithms.modules.selection import (
     FitnessRecord,
@@ -12,7 +13,6 @@ from moptipy.algorithms.modules.selection import (
 )
 from moptipy.tests.component import validate_component
 from moptipy.utils.nputils import rand_seed_generate
-from moptipy.utils.types import check_int_range, type_error
 
 
 class _FRecord(FitnessRecord):

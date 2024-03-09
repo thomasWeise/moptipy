@@ -3,6 +3,8 @@
 from os.path import exists, isfile
 
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
 from moptipy.algorithms.so.hill_climber_with_restarts import (
@@ -19,8 +21,6 @@ from moptipy.examples.bitstrings.trap import Trap
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_process_no_ss_log_log() -> None:
@@ -31,7 +31,7 @@ def test_process_no_ss_log_log() -> None:
     objective: Objective = Trap(dim)
     algorithm: Algorithm = FEA1plus1(Op0Random(), Op1Flip1())
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -69,7 +69,7 @@ def test_process_no_ss_log_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"
@@ -107,7 +107,7 @@ def test_process_no_ss_log_log_all() -> None:
     algorithm: Algorithm = HillClimberWithRestarts(
         Op0Random(), Op1Flip1(), int(round(dim * 1.6)))
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -137,7 +137,7 @@ def test_process_no_ss_log_log_all() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"
@@ -192,7 +192,7 @@ def test_process_no_ss_no_log_register() -> None:
     objective: OneMax = OneMax(dim)
     algorithm: _OMA = _OMA(Op0Random(), objective)
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -225,7 +225,7 @@ def test_process_no_ss_no_log_register() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"
@@ -260,7 +260,7 @@ def test_process_no_ss_no_log_all_register() -> None:
     objective: OneMax = OneMax(dim)
     algorithm: _OMA = _OMA(Op0Random(), objective)
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -293,7 +293,7 @@ def test_process_no_ss_no_log_all_register() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f"

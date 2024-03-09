@@ -3,11 +3,11 @@
 from typing import Final
 
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
 
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.mock.components import Experiment
 from moptipy.mock.end_results import EndResults
-from moptipy.utils.temp import TempFile
 
 
 def __test_write_read_end_stats(
@@ -33,7 +33,7 @@ def __test_write_read_end_stats(
     assert len(stats) > 0
     loaded: list[EndStatistics] = []
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         EndStatistics.to_csv(stats, tf)
         EndStatistics.from_csv(tf, loaded.append)
 

@@ -4,12 +4,12 @@ from typing import Any, Callable, Final
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.mo_problem import MOProblem, check_mo_problem
 from moptipy.api.space import Space
 from moptipy.tests.objective import validate_objective
 from moptipy.utils.nputils import is_np_float, is_np_int
-from moptipy.utils.types import check_int_range, type_error
 
 
 def validate_mo_problem(

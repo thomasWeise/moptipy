@@ -3,6 +3,7 @@
 from typing import Any, Callable, Final, Iterable, cast
 
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.mo_algorithm import MOAlgorithm
@@ -20,7 +21,6 @@ from moptipy.spaces.permutations import Permutations
 from moptipy.tests.algorithm import validate_algorithm
 from moptipy.tests.mo_algorithm import validate_mo_algorithm
 from moptipy.tests.objective import validate_objective
-from moptipy.utils.types import type_error
 
 
 def jssp_instances_for_tests() -> Iterable[str]:

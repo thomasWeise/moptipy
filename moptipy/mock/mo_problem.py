@@ -4,10 +4,10 @@ from typing import Iterable, cast
 
 import numpy as np
 from numpy.random import default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.mo.problem.weighted_sum import WeightedSum
 from moptipy.mock.objective import MockObjective
-from moptipy.utils.types import check_int_range, type_error
 
 
 class MockMOProblem(WeightedSum):

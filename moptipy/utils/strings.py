@@ -5,8 +5,9 @@ from re import MULTILINE, sub
 from re import compile as _compile
 from typing import Final, Iterable, Pattern
 
+from pycommons.types import type_error
+
 from moptipy.utils.math import __try_int
-from moptipy.utils.types import type_error
 
 
 def float_to_str(x: float) -> str:

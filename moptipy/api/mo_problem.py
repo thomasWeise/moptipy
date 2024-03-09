@@ -34,6 +34,7 @@ Basically, a multi-objective problem provides three essential components:
 from typing import Any, Final
 
 import numpy as np
+from pycommons.types import type_error
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS, SCOPE_OBJECTIVE_FUNCTION
 from moptipy.api.mo_utils import dominates
@@ -47,7 +48,6 @@ from moptipy.utils.nputils import (
     int_range_to_dtype,
     numpy_type_to_str,
 )
-from moptipy.utils.types import type_error
 
 
 class MOProblem(Objective):

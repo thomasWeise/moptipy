@@ -5,6 +5,7 @@ from typing import Any, Callable, Final, Iterable
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.types import type_error
 
 import moptipy.utils.plot_defaults as pd
 import moptipy.utils.plot_utils as pu
@@ -14,7 +15,6 @@ from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun, get_statistic
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang
-from moptipy.utils.types import type_error
 
 
 def plot_progress(

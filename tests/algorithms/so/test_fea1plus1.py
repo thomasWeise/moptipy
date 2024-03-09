@@ -1,4 +1,6 @@
 """Test the (1+1)-FEA."""
+from pycommons.io.temp import temp_file
+
 from moptipy.algorithms.so.fea1plus1 import FEA1plus1
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
@@ -16,7 +18,6 @@ from moptipy.tests.on_bitstrings import (
     validate_algorithm_on_onemax,
 )
 from moptipy.tests.on_jssp import validate_algorithm_on_jssp
-from moptipy.utils.temp import TempFile
 
 
 def __lb() -> int:
@@ -97,7 +98,7 @@ def test_h_log() -> None:
     problem = OneMax(n)
     algorithm = FEA1plus1(Op0Random(), Op1Flip1())
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         ex = Execution()
         ex.set_solution_space(space)
         ex.set_objective(problem)
@@ -109,7 +110,7 @@ def test_h_log() -> None:
             end_result = process.create()
             process.get_copy_of_best_y(end_result)
 
-        lines = tf.read_all_list()
+        lines = tf.read_all_str().splitlines()
         assert lines[-1] == "END_H"
         vals = [int(s) for s in lines[-2].split(";")]
         assert len(vals) % 2 == 0

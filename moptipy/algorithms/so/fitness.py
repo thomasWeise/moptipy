@@ -37,12 +37,12 @@ Processes have been implemented so far:
 from math import inf
 
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.algorithms.modules.selection import FitnessRecord
 from moptipy.algorithms.so.record import Record
 from moptipy.api.component import Component
 from moptipy.api.process import Process
-from moptipy.utils.types import type_error
 
 
 # start book

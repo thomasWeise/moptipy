@@ -4,12 +4,12 @@ from typing import Any, Callable, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op0, Op1
 from moptipy.spaces.signed_permutations import SignedPermutations
 from moptipy.tests.op0 import validate_op0
 from moptipy.tests.op1 import validate_op1
-from moptipy.utils.types import type_error
 
 
 def signed_permutations_for_tests(

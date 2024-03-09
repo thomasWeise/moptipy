@@ -44,10 +44,10 @@ from math import inf
 from typing import Any, Callable, Final
 
 from numpy.random import Generator
+from pycommons.types import check_int_range
 
 from moptipy.algorithms.modules.selection import FitnessRecord, Selection
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.types import check_int_range
 
 
 # start book

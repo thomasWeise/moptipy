@@ -3,9 +3,9 @@
 from typing import Final
 
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
 
 from moptipy.evaluation.end_results import EndResult
-from moptipy.utils.temp import TempFile
 
 
 def __test_write_read_end_result(
@@ -60,7 +60,7 @@ def __test_write_read_end_result(
 
     assert len(results) > 0
     loaded: list[EndResult] = []
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         EndResult.to_csv(results, tf)
         EndResult.from_csv(tf, loaded.append)
 

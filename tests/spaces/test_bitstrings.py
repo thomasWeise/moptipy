@@ -1,11 +1,11 @@
 """Test the bit-string space."""
 import numpy as np
+from pycommons.io.temp import temp_file
 
 from moptipy.api.space import Space
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.tests.space import validate_space
 from moptipy.utils.logger import FileLogger
-from moptipy.utils.temp import TempFile
 
 
 def test_bit_strings() -> None:
@@ -32,10 +32,10 @@ def test_bit_strings() -> None:
     b[0] = not b[0]
     assert not f.is_equal(a, b)
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         with FileLogger(path) as log, log.key_values("F") as kv:
             f.log_parameters_to(kv)
-        result = path.read_all_list()
+        result = path.read_all_str().splitlines()
     assert result == ["BEGIN_F",
                       "name: bits12",
                       "class: moptipy.spaces.bitstrings.BitStrings",

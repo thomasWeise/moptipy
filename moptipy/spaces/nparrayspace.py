@@ -2,6 +2,7 @@
 from typing import Final
 
 import numpy as np
+from pycommons.types import check_int_range, type_error
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS
 from moptipy.api.space import Space
@@ -11,7 +12,6 @@ from moptipy.utils.nputils import (
     array_to_str,
     numpy_type_to_str,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 
 class NPArraySpace(Space):

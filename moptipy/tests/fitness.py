@@ -5,6 +5,7 @@ from math import inf, isfinite
 from typing import Final, cast
 
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.algorithms.so.fitness import Fitness, FRecord, check_fitness
 from moptipy.api.objective import Objective
@@ -12,7 +13,6 @@ from moptipy.api.operators import Op0
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
 from moptipy.utils.nputils import rand_seed_generate
-from moptipy.utils.types import type_error
 
 
 class _FRecord(FRecord):

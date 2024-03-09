@@ -1,10 +1,11 @@
 """Functions that can be used to test encodings."""
 from typing import Any, Callable
 
+from pycommons.types import type_error
+
 from moptipy.api.encoding import Encoding, check_encoding
 from moptipy.api.space import Space
 from moptipy.tests.component import validate_component
-from moptipy.utils.types import type_error
 
 
 def validate_encoding(encoding: Encoding,

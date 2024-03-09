@@ -3,11 +3,11 @@ from typing import Any, Callable
 
 # noinspection PyPackageRequirements
 import pytest
+from pycommons.types import type_error
 
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
 from moptipy.utils.logger import COMMENT_CHAR, SECTION_END, SECTION_START
-from moptipy.utils.types import type_error
 
 
 def validate_space(

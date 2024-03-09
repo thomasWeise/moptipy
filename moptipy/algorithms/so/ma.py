@@ -94,6 +94,7 @@ of another one can be found in the documentation of
 from typing import Callable, Final, cast
 
 from numpy.random import Generator
+from pycommons.types import check_int_range, type_error
 
 from moptipy.algorithms.so.record import Record
 from moptipy.api.algorithm import Algorithm0
@@ -104,7 +105,6 @@ from moptipy.api.subprocesses import for_fes, from_starting_point
 from moptipy.operators.op0_forward import Op0Forward
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.strings import PART_SEPARATOR
-from moptipy.utils.types import check_int_range, type_error
 
 
 # start book

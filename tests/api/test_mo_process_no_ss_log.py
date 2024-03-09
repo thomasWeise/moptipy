@@ -4,6 +4,8 @@ from os.path import exists, isfile
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.io.temp import temp_file
+from pycommons.types import type_name_of
 
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.rls import RLS
@@ -23,8 +25,6 @@ from moptipy.mo.problem.weighted_sum import Prioritize, WeightedSum
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
 from moptipy.spaces.bitstrings import BitStrings
-from moptipy.utils.temp import TempFile
-from moptipy.utils.types import type_name_of
 
 
 def test_mo_process_no_ss_log() -> None:
@@ -41,7 +41,7 @@ def test_mo_process_no_ss_log() -> None:
     algorithm: Algorithm = RLS(Op0Random(), Op1Flip1())
     ams = int(random.integers(2, 5))
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -95,7 +95,7 @@ def test_mo_process_no_ss_log() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f;f0;f1;f2"
@@ -148,7 +148,7 @@ def test_mo_process_no_ss_log_all() -> None:
     algorithm: Algorithm = HillClimber(Op0Random(), Op1Flip1())
     ams = int(random.integers(2, 5))
 
-    with TempFile.create() as tf:
+    with temp_file() as tf:
         assert exists(tf)
         assert isfile(tf)
 
@@ -198,7 +198,7 @@ def test_mo_process_no_ss_log_all() -> None:
 
         assert exists(tf)
         assert isfile(tf)
-        data = tf.read_all_list()
+        data = tf.read_all_str().splitlines()
         assert len(data) > 10
         assert data[0] == "BEGIN_PROGRESS"
         assert data[1] == "fes;timeMS;f;f0;f1;f2;f3"

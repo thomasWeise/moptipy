@@ -1,9 +1,10 @@
 """Test the sections parser."""
 
+from pycommons.io.temp import temp_file
+
 from moptipy.api import logging
 from moptipy.evaluation.log_parser import LogParser
 from moptipy.utils.logger import FileLogger
-from moptipy.utils.temp import TempFile
 
 
 class _TestParser(LogParser):
@@ -62,7 +63,7 @@ class _TestParser(LogParser):
 
 def test_sections_parser() -> None:
     """Test parsing sections."""
-    with TempFile.create(suffix=logging.FILE_SUFFIX) as tf:
+    with temp_file(suffix=logging.FILE_SUFFIX) as tf:
         with FileLogger(tf) as logger:
             with logger.text("TEXT") as txt:
                 txt.write("a\nb\nc")

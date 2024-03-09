@@ -4,11 +4,11 @@ from typing import Any, Callable, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import type_error
 
 from moptipy.api.operators import Op0
 from moptipy.spaces.ordered_choices import OrderedChoices
 from moptipy.tests.op0 import validate_op0
-from moptipy.utils.types import type_error
 
 
 def choices_for_tests(

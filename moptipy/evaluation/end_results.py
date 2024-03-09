@@ -14,10 +14,13 @@ plotting the end result distribution via
 :mod:`~moptipy.evaluation.plot_end_results`.
 """
 import argparse
-import os.path
 from dataclasses import dataclass
 from math import inf, isfinite
 from typing import Any, Callable, Final, Iterable, cast
+
+from pycommons.io.console import logger
+from pycommons.io.path import Path, file_path
+from pycommons.types import check_int_range, check_to_int_range, type_error
 
 from moptipy.api.logging import (
     FILE_SUFFIX,
@@ -49,11 +52,9 @@ from moptipy.evaluation.base import (
     PerRunData,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
-from moptipy.utils.console import logger
 from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.math import try_float_div, try_int
-from moptipy.utils.path import Path
 from moptipy.utils.strings import (
     intfloatnone_to_str,
     intnone_to_str,
@@ -63,7 +64,6 @@ from moptipy.utils.strings import (
     str_to_intfloatnone,
     str_to_intnone,
 )
-from moptipy.utils.types import check_int_range, check_to_int_range, type_error
 
 #: The internal CSV header, part 1
 _HEADER_1: Final[str] = (f"{KEY_ALGORITHM}{CSV_SEPARATOR}"
@@ -305,7 +305,7 @@ class EndResult(PerRunData):
         :param base_dir: the base directory
         :returns: the path to a file corresponding to the end result record
         """
-        return Path.path(base_dir).resolve_inside(
+        return Path(base_dir).resolve_inside(
             self.algorithm).resolve_inside(self.instance).resolve_inside(
             sanitize_names([self.algorithm, self.instance,
                             hex(self.rand_seed)]) + FILE_SUFFIX)
@@ -441,9 +441,9 @@ class EndResult(PerRunData):
         :param file: the path
         :return: the path of the file that was written
         """
-        path: Final[Path] = Path.path(file)
+        path: Final[Path] = Path(file)
         logger(f"Writing end results to CSV file {path!r}.")
-        Path.path(os.path.dirname(path)).ensure_dir_exists()
+        path.up().ensure_dir_exists()
 
         sorted_results: Final[list[EndResult]] = sorted(results)
         needs_encoding: bool = False
@@ -514,7 +514,7 @@ class EndResult(PerRunData):
         """
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
-        path: Final[Path] = Path.file(file)
+        path: Final[Path] = file_path(file)
         logger(f"Now reading CSV file {path!r}.")
 
         with path.open_for_read() as rd:
@@ -933,10 +933,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "source", nargs="?", default="./results",
         help="the location of the experimental results, i.e., the root folder "
-             "under which to search for log files", type=Path.path)
+             "under which to search for log files", type=Path)
     parser.add_argument(
         "dest", help="the path to the end results CSV file to be created",
-        type=Path.path, nargs="?", default="./evaluation/end_results.txt")
+        type=Path, nargs="?", default="./evaluation/end_results.txt")
     parser.add_argument(
         "--maxFEs", help="the maximum permitted FEs",
         type=int, nargs="?", default=None)

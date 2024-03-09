@@ -3,9 +3,10 @@
 from io import TextIOBase
 from typing import Final
 
+from pycommons.io.path import Path, directory_path
+from pycommons.types import type_error
+
 from moptipy.utils.lang import Lang
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 #: indicates a normal row or cell
 MODE_NORMAL: Final[int] = 0
@@ -197,7 +198,7 @@ class TextFormatDriver:
             raise ValueError(f"invalid file_name: {file_name!r}.")
         if not isinstance(use_lang, bool):
             raise type_error(use_lang, "use_lang", bool)
-        out_dir = Path.directory(dir_name)
+        out_dir = directory_path(dir_name)
         suffix = str(self)
         if not isinstance(suffix, str):
             raise type_error(suffix, "result of str(table driver)", str)

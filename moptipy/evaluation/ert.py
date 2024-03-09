@@ -35,6 +35,9 @@ from math import inf, isfinite
 from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
+from pycommons.io.console import logger
+from pycommons.io.path import Path
+from pycommons.types import type_error
 
 from moptipy.api.logging import (
     KEY_ALGORITHM,
@@ -51,16 +54,13 @@ from moptipy.evaluation.base import (
     MultiRun2DData,
 )
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.console import logger
 from moptipy.utils.logger import (
     COMMENT_CHAR,
     CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_all_finite
-from moptipy.utils.path import Path
 from moptipy.utils.strings import num_to_str
-from moptipy.utils.types import type_error
 
 
 def compute_single_ert(source: Iterable[Progress],
@@ -213,7 +213,7 @@ class Ert(MultiRun2DData):
         :param put_header: should we put a header with meta-data?
         :return: the fully resolved file name
         """
-        path: Final[Path] = Path.path(file)
+        path: Final[Path] = Path(file)
         logger(f"Writing ERT to CSV file {path!r}.")
 
         with path.open_for_write() as out:

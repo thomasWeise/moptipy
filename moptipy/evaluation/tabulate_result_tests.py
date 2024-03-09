@@ -23,6 +23,8 @@ from math import isfinite
 from statistics import mean, median
 from typing import Any, Callable, Final, Iterable, cast
 
+from pycommons.io.path import Path
+from pycommons.types import type_error
 from scipy.stats import mannwhitneyu  # type: ignore
 
 from moptipy.api.logging import KEY_BEST_F
@@ -33,10 +35,8 @@ from moptipy.utils.number_renderer import (
     DEFAULT_NUMBER_RENDERER,
     NumberRenderer,
 )
-from moptipy.utils.path import Path
 from moptipy.utils.table import Table
 from moptipy.utils.text_format import TextFormatDriver
-from moptipy.utils.types import type_error
 
 #: the string constant for alpha
 __ALPHA: Final[FormattedStr] = FormattedStr.special("\u03b1")

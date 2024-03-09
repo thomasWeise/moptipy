@@ -35,9 +35,9 @@ test all the binary operators that are implemented.
 from typing import Any
 
 from numpy.random import Generator
+from pycommons.types import type_error
 
 from moptipy.api.component import Component
-from moptipy.utils.types import type_error
 
 
 # start op0

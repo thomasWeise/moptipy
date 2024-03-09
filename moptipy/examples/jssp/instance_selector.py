@@ -6,6 +6,8 @@ from typing import Callable, Final
 
 import numpy as np  # type: ignore
 from numpy.random import Generator, RandomState  # type: ignore
+from pycommons.io.console import logger
+from pycommons.types import check_int_range, type_error
 from sklearn.cluster import SpectralClustering  # type: ignore
 
 from moptipy.algorithms.so.rls import RLS
@@ -17,14 +19,12 @@ from moptipy.examples.jssp.ob_encoding import OperationBasedEncoding
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.console import logger
 from moptipy.utils.nputils import (
     DEFAULT_FLOAT,
     DEFAULT_INT,
     rand_generator,
     rand_seeds_from_str,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 
 def __can_solve_instance(inst: Instance, seed: int,

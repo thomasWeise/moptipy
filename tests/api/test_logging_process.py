@@ -4,13 +4,13 @@ from typing import Final
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.io.temp import temp_file
 
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.spaces.vectorspace import VectorSpace
-from moptipy.utils.temp import TempFile
 
 #: the initial worst objective value
 WORST_F: Final[int] = 1_000_000_000_000
@@ -57,7 +57,7 @@ def test_process_noss_log() -> None:
     v = VectorSpace(10, -1e100, 1e100)
     x = v.create()
 
-    with TempFile.create() as path:
+    with temp_file() as path:
         exp = Execution()
         exp.set_algorithm(MyAlgorithm())
         exp.set_solution_space(v)

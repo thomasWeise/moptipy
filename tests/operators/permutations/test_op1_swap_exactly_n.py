@@ -4,6 +4,7 @@ from typing import Callable, Final
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.types import check_int_range, type_error
 
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap_exactly_n import (
@@ -21,7 +22,6 @@ from moptipy.tests.on_permutations import (
     permutations_for_tests,
     validate_op1_with_step_size_on_permutations,
 )
-from moptipy.utils.types import check_int_range, type_error
 
 
 def test_operator_components() -> None:

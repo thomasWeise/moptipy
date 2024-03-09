@@ -5,6 +5,8 @@ from typing import Callable, Final
 
 import numpy as np
 from numpy import copyto
+from pycommons.io.path import Path
+from pycommons.types import type_error
 
 from moptipy.api._mo_process_no_ss import _MOProcessNoSS
 from moptipy.api._process_base import _TIME_IN_NS
@@ -22,8 +24,6 @@ from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.space import Space, check_space
 from moptipy.utils.logger import KeyValueLogSection, Logger
-from moptipy.utils.path import Path
-from moptipy.utils.types import type_error
 
 
 class _MOProcessSS(_MOProcessNoSS):

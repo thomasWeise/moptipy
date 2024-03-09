@@ -2,11 +2,11 @@
 from typing import Final
 
 import numba  # type: ignore
+from pycommons.types import type_error
 
 from moptipy.api.objective import Objective
 from moptipy.examples.jssp.gantt import Gantt
 from moptipy.examples.jssp.instance import Instance
-from moptipy.utils.types import type_error
 
 
 # start book

@@ -33,8 +33,9 @@ The following pre-defined spaces are currently available:
 
 from typing import Any
 
+from pycommons.types import type_error
+
 from moptipy.api.component import Component
-from moptipy.utils.types import type_error
 
 
 # start book

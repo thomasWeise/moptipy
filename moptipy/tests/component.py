@@ -1,6 +1,8 @@
 """Functions that can be used to test component implementations."""
 from typing import Final
 
+from pycommons.types import type_error, type_name_of
+
 from moptipy.api import logging
 from moptipy.api.component import Component
 from moptipy.utils.logger import (
@@ -10,7 +12,6 @@ from moptipy.utils.logger import (
     InMemoryLogger,
 )
 from moptipy.utils.strings import sanitize_name
-from moptipy.utils.types import type_error, type_name_of
 
 
 def validate_component(component: Component) -> None:

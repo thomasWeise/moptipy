@@ -40,11 +40,11 @@ from math import factorial
 from typing import Final, Iterable
 
 import numpy as np
+from pycommons.types import type_error
 
 from moptipy.spaces.intspace import IntSpace
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.nputils import array_to_str
-from moptipy.utils.types import type_error
 
 #: the different choices
 KEY_CHOICES: Final[str] = "choices"
