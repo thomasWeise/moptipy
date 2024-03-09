@@ -17,6 +17,7 @@ from typing import Any, Callable, Final
 import numpy as np
 from pycommons.io.console import logger
 from pycommons.io.path import Path
+from pycommons.strings.string_conv import num_to_str, str_to_num
 from pycommons.types import type_error
 
 from moptipy.api.logging import (
@@ -47,7 +48,6 @@ from moptipy.utils.logger import (
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import is_all_finite, is_np_float, is_np_int
-from moptipy.utils.strings import num_to_str, str_to_intfloat
 
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
@@ -390,7 +390,7 @@ class _InnerLogParser(SetupAndStateParser):
                          for c in aa(line.split(CSV_SEPARATOR))]
                         for line in lines[1:]], strict=True)
         time = [int(t) for t in time]
-        f = [str_to_intfloat(v) for v in f]
+        f = [str_to_num(v) for v in f]
         if self.__only_improvements:
             biggest_t: int = -1
             best_f: int | float = inf

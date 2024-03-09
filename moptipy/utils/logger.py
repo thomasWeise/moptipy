@@ -39,12 +39,11 @@ from typing import Callable, Final, Iterable, cast
 
 from pycommons.ds.cache import str_is_new
 from pycommons.io.path import Path
+from pycommons.strings.string_conv import bool_to_str, float_to_str
 from pycommons.types import type_error
 
 from moptipy.utils.strings import (
     PART_SEPARATOR,
-    bool_to_str,
-    float_to_str,
     sanitize_name,
 )
 

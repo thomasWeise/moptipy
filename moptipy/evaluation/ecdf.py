@@ -40,6 +40,7 @@ from typing import Any, Callable, Final, Iterable
 import numpy as np
 from pycommons.io.console import logger
 from pycommons.io.path import Path
+from pycommons.strings.string_conv import num_to_str
 from pycommons.types import check_int_range, type_error
 
 from moptipy.api.logging import (
@@ -63,7 +64,6 @@ from moptipy.utils.logger import (
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import is_all_finite
-from moptipy.utils.strings import num_to_str
 
 #: The number of instances.
 KEY_N_INSTS: Final[str] = f"{KEY_N}Insts"

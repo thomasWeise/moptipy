@@ -20,6 +20,14 @@ from typing import Any, Callable, Final, Iterable, cast
 
 from pycommons.io.console import logger
 from pycommons.io.path import Path, file_path
+from pycommons.strings.string_conv import (
+    int_or_none_to_str,
+    num_or_none_to_str,
+    num_to_str,
+    str_to_int_or_none,
+    str_to_num,
+    str_to_num_or_none,
+)
 from pycommons.types import check_int_range, check_to_int_range, type_error
 
 from moptipy.api.logging import (
@@ -56,13 +64,7 @@ from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.strings import (
-    intfloatnone_to_str,
-    intnone_to_str,
-    num_to_str,
     sanitize_names,
-    str_to_intfloat,
-    str_to_intfloatnone,
-    str_to_intnone,
 )
 
 #: The internal CSV header, part 1
@@ -489,12 +491,12 @@ class EndResult(PerRunData):
                       f"{e.total_fes}{CSV_SEPARATOR}"
                       f"{e.total_time_millis}")
                 if needs_goal_f:
-                    write(f"{CSV_SEPARATOR}{intfloatnone_to_str(e.goal_f)}")
+                    write(f"{CSV_SEPARATOR}{num_or_none_to_str(e.goal_f)}")
                 if needs_max_fes:
-                    write(f"{CSV_SEPARATOR}{intnone_to_str(e.max_fes)}")
+                    write(f"{CSV_SEPARATOR}{int_or_none_to_str(e.max_fes)}")
                 if needs_max_ms:
-                    write(
-                        f"{CSV_SEPARATOR}{intnone_to_str(e.max_time_millis)}")
+                    write(f"{CSV_SEPARATOR}"
+                          f"{int_or_none_to_str(e.max_time_millis)}")
                 write("\n")
 
         logger(f"Done writing end results to CSV file {path!r}.")
@@ -625,17 +627,17 @@ class EndResult(PerRunData):
                         splt[idx_objective].strip(),  # objective
                         encoding,  # encoding
                         int((splt[idx_seed])[2:], 16),  # rand seed
-                        str_to_intfloat(splt[idx_best_f]),  # best_f
+                        str_to_num(splt[idx_best_f]),  # best_f
                         int(splt[idx_li_fe]),  # last_improvement_fe
                         int(splt[idx_li_ms]),  # last_improvement_time_millis
                         int(splt[idx_tt_fe]),  # total_fes
                         int(splt[idx_tt_ms]),  # total_time_millis
                         None if idx_goal_f < 0 else
-                        str_to_intfloatnone(splt[idx_goal_f]),  # goal_f
+                        str_to_num_or_none(splt[idx_goal_f]),  # goal_f
                         None if idx_max_fes < 0 else
-                        str_to_intnone(splt[idx_max_fes]),  # max_fes
+                        str_to_int_or_none(splt[idx_max_fes]),  # max_fes
                         None if idx_max_ms < 0 else
-                        str_to_intnone(splt[idx_max_ms]))  # max_time_millis
+                        str_to_int_or_none(splt[idx_max_ms]))  # max_time_ms
                     if filterer(er):
                         consumer(er)
 
@@ -864,7 +866,7 @@ class _InnerProgressLogParser(SetupAndStateParser):
                 values[fe_col], "fes", current_fes, 1_000_000_000_000_000)
             current_ms = check_to_int_range(
                 values[ms_col], "ms", current_ms, 1_000_000_000_00)
-            f: int | float = str_to_intfloat(values[f_col])
+            f: int | float = str_to_num(values[f_col])
             if (current_fes <= limit_fes) and (current_ms <= limit_ms):
                 if f < current_f:  # can only update best within budget
                     current_f = f
@@ -945,7 +947,7 @@ if __name__ == "__main__":
         type=int, nargs="?", default=None)
     parser.add_argument(
         "--goalF", help="the goal objective value",
-        type=str_to_intfloat, nargs="?", default=None)
+        type=str_to_num, nargs="?", default=None)
     args: Final[argparse.Namespace] = parser.parse_args()
 
     end_results: Final[list[EndResult]] = []

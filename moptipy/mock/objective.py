@@ -5,13 +5,13 @@ from typing import Any, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator, default_rng
+from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
 
 from moptipy.api.objective import Objective
 from moptipy.mock.utils import make_ordered_list, sample_from_attractors
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 from moptipy.utils.nputils import is_np_float, is_np_int
-from moptipy.utils.strings import num_to_str
 
 
 class MockObjective(Objective):

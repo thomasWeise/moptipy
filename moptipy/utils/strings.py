@@ -1,37 +1,12 @@
 """Routines for handling strings."""
 
-from math import isnan
-from re import MULTILINE, sub
 from re import compile as _compile
+from re import sub
 from typing import Final, Iterable, Pattern
 
+from pycommons.strings.string_conv import float_to_str, num_to_str, str_to_num
+from pycommons.strings.tools import replace_str
 from pycommons.types import type_error
-
-from moptipy.utils.math import __try_int
-
-
-def float_to_str(x: float) -> str:
-    """
-    Convert `float` to a string.
-
-    :param x: the floating point value
-    :return: the string representation
-
-    >>> float_to_str(1.3)
-    '1.3'
-    >>> float_to_str(1.0)
-    '1'
-    >>> float_to_str(1e-5)
-    '1e-5'
-    """
-    if x == 0.0:
-        return "0"
-    s = repr(x).replace("e-0", "e-")
-    if isnan(x):
-        raise ValueError(f"{str(s)!r} not permitted.")
-    if s.endswith(".0"):
-        return s[:-2]
-    return s
 
 
 def num_to_str_for_name(x: int | float) -> str:
@@ -81,8 +56,8 @@ def name_str_to_num(s: str) -> int | float:
     >>> name_str_to_num(num_to_str_for_name(-1e-4))
     -0.0001
     """
-    return str_to_intfloat(s.replace(MINUS_REPLACEMENT, "-")
-                           .replace(DECIMAL_DOT_REPLACEMENT, "."))
+    return str_to_num(s.replace(MINUS_REPLACEMENT, "-")
+                      .replace(DECIMAL_DOT_REPLACEMENT, "."))
 
 
 #: the internal table for converting normal characters to unicode superscripts
@@ -155,177 +130,6 @@ def beautify_float_str(s: str | float) -> str:
     return f"{s[:eidx]}\u00d710{s[eidx + 1:].translate(__SUPERSCRIPT)}"
 
 
-def bool_to_str(value: bool) -> str:
-    """
-    Convert a Boolean value to a string.
-
-    :param value: the Boolean value
-    :return: the string
-
-    >>> print(bool_to_str(True))
-    T
-    >>> print(bool_to_str(False))
-    F
-    """
-    return "T" if value else "F"
-
-
-def str_to_bool(value: str) -> bool:
-    """
-    Convert a string to a boolean value.
-
-    :param value: the string value
-    :return: the boolean value
-
-    >>> str_to_bool("T")
-    True
-    >>> str_to_bool("F")
-    False
-    >>> try:
-    ...     str_to_bool("x")
-    ... except ValueError as v:
-    ...     print(v)
-    Expected 'T' or 'F', but got 'x'.
-    """
-    if value == "T":
-        return True
-    if value == "F":
-        return False
-    raise ValueError(f"Expected 'T' or 'F', but got {str(value)!r}.")
-
-
-def num_to_str(value: int | float) -> str:
-    """
-    Transform a numerical type to a string.
-
-    :param value: the value
-    :return: the string
-
-    >>> num_to_str(1)
-    '1'
-    >>> num_to_str(1.5)
-    '1.5'
-    >>> num_to_str(True)
-    'T'
-    """
-    return bool_to_str(value) if isinstance(value, bool) else (
-        str(value) if isinstance(value, int) else float_to_str(value))
-
-
-def intfloatnone_to_str(val: int | float | None) -> str:
-    """
-    Convert an integer ot float or `None` to a string.
-
-    :param val: the value
-    :return: the string representation
-    :rtype: str
-
-    >>> print(repr(intfloatnone_to_str(None)))
-    ''
-    >>> print(intfloatnone_to_str(12))
-    12
-    >>> print(intfloatnone_to_str(12.3))
-    12.3
-    """
-    return "" if val is None else num_to_str(val)
-
-
-def intnone_to_str(val: int | None) -> str:
-    """
-    Convert an integer or `None` to a string.
-
-    :param val: the value
-    :return: the string representation
-
-    >>> print(repr(intnone_to_str(None)))
-    ''
-    >>> print(intnone_to_str(12))
-    12
-    """
-    return "" if val is None else str(val)
-
-
-def str_to_intfloat(val: str) -> int | float:
-    """
-    Convert a string to an int or float.
-
-    :param val: the string value
-    :return: the int or float
-
-    >>> print(type(str_to_intfloat("15.0")))
-    <class 'int'>
-    >>> print(type(str_to_intfloat("15.1")))
-    <class 'float'>
-    """
-    return __try_int(float(val)) if ("e" in val) or \
-                                    ("E" in val) or \
-                                    ("." in val) or \
-                                    ("inf" in val) else int(val)
-
-
-def str_to_intfloatnone(val: str) -> int | float | None:
-    """
-    Convert a string to an int or float or None.
-
-    :param val: the string value
-    :return: the int or float or None
-
-    >>> print(str_to_intfloatnone(""))
-    None
-    >>> print(type(str_to_intfloatnone("5.0")))
-    <class 'int'>
-    >>> print(type(str_to_intfloatnone("5.1")))
-    <class 'float'>
-    """
-    val = val.strip()
-    return None if len(val) <= 0 else str_to_intfloat(val)
-
-
-def str_to_intnone(val: str) -> int | None:
-    """
-    Convert a string to an int or None.
-
-    :param val: the string value
-    :return: the int or None
-
-    >>> print(str_to_intnone(""))
-    None
-    >>> print(str_to_intnone("5"))
-    5
-    """
-    return None if len(val) <= 0 else int(val)
-
-
-def replace_all(find: str, replace: str, src: str) -> str:
-    """
-    Perform a recursive replacement of strings.
-
-    After applying this function, there will not be any occurence of `find`
-    left in `src`. All of them will have been replaced by `replace`. If that
-    produces new instances of `find`, these will be replaced as well.
-    If `replace` contains `find`, this will lead to an endless loop!
-
-    :param find: the string to find
-    :param replace: the string with which it will be replaced
-    :param src: the string in which we search
-    :return: the string `src`, with all occurrences of find replaced by replace
-
-    >>> replace_all("a", "b", "abc")
-    'bbc'
-    >>> replace_all("aa", "a", "aaaaa")
-    'a'
-    >>> replace_all("aba", "a", "abaababa")
-    'aa'
-    """
-    new_len = len(src)
-    while True:
-        src = src.replace(find, replace)
-        old_len = new_len
-        new_len = len(src)
-        if new_len >= old_len:
-            return src
-
-
 def __replace_double(replace: str, src: str) -> str:
     """
     Replace any double-occurrence of a string with a single occurrence.
@@ -334,7 +138,7 @@ def __replace_double(replace: str, src: str) -> str:
     :param src: the source string
     :returns: the updated string
     """
-    return replace_all(replace + replace, replace, src)
+    return replace_str(replace + replace, replace, src)
 
 
 #: the separator of different filename parts
@@ -408,31 +212,3 @@ def sanitize_names(names: Iterable[str]) -> str:
     """
     return PART_SEPARATOR.join([
         sanitize_name(name) for name in names if len(name) > 0])
-
-
-def regex_sub(search: str | Pattern,
-              replace: str,
-              inside: str) -> str:
-    r"""
-    Replace all occurrences of 'search' in 'inside' with 'replace'.
-
-    :param search: the regular expression to search
-    :param replace: the regular expression to replace it with
-    :param inside: the string in which to search/replace
-    :return: the new string after the recursive replacement
-
-    >>> regex_sub('[ \t]+\n', '\n', ' bla \nxyz\tabc\t\n')
-    ' bla\nxyz\tabc\n'
-    >>> regex_sub('[0-9]A', 'X', '23A7AA')
-    '2XXA'
-    """
-    if not isinstance(search, Pattern):
-        if isinstance(search, str):
-            search = _compile(search, flags=MULTILINE)
-        else:
-            raise type_error(search, "search", (str, Pattern))
-    while True:
-        text = sub(pattern=search, repl=replace, string=inside)
-        if text is inside:
-            return inside
-        inside = text

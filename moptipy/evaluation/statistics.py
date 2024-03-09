@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from math import gcd, inf, isfinite, nextafter, sqrt
 from typing import Callable, Final, Iterable, cast
 
+from pycommons.strings.string_conv import (
+    num_to_str,
+    str_to_num,
+    str_to_num_or_none,
+)
 from pycommons.types import check_int_range, type_error
 
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
@@ -13,11 +18,6 @@ from moptipy.utils.math import (
     try_int,
     try_int_div,
     try_int_root,
-)
-from moptipy.utils.strings import (
-    num_to_str,
-    str_to_intfloat,
-    str_to_intfloatnone,
 )
 
 #: The limit until which we simplify geometric mean data.
@@ -417,12 +417,12 @@ class Statistics:
 
         mini, med, mean, geo, maxi, sd = cells
         return Statistics(n,
-                          str_to_intfloat(mini),
-                          str_to_intfloat(med),
-                          str_to_intfloat(mean),
-                          str_to_intfloatnone(geo),
-                          str_to_intfloat(maxi),
-                          str_to_intfloat(sd))
+                          str_to_num(mini),
+                          str_to_num(med),
+                          str_to_num(mean),
+                          str_to_num_or_none(geo),
+                          str_to_num(maxi),
+                          str_to_num(sd))
 
     @staticmethod
     def getter(dimension: str) -> Callable[["Statistics"],

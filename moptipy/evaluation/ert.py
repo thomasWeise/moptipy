@@ -37,6 +37,7 @@ from typing import Any, Callable, Final, Iterable, cast
 import numpy as np
 from pycommons.io.console import logger
 from pycommons.io.path import Path
+from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
 
 from moptipy.api.logging import (
@@ -60,7 +61,6 @@ from moptipy.utils.logger import (
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_all_finite
-from moptipy.utils.strings import num_to_str
 
 
 def compute_single_ert(source: Iterable[Progress],

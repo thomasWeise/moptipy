@@ -16,6 +16,7 @@ from typing import Any, Callable, Final, Iterable, Union
 
 from pycommons.io.console import logger
 from pycommons.io.path import Path, file_path
+from pycommons.strings.string_conv import num_to_str, str_to_num
 from pycommons.types import check_int_range, type_error, type_name_of
 
 from moptipy.api.logging import (
@@ -51,7 +52,7 @@ from moptipy.evaluation.statistics import (
 from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
-from moptipy.utils.strings import num_to_str, sanitize_name, str_to_intfloat
+from moptipy.utils.strings import sanitize_name
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = KEY_BEST_F + "scaled"
@@ -1133,7 +1134,7 @@ class EndStatistics(MultiRunData):
                         idx += CSV_COLS
 
                         if has_goal_f == 1:
-                            goal_f = str_to_intfloat(row[idx])
+                            goal_f = str_to_num(row[idx])
                             idx += 1
                         elif has_goal_f == 2:
                             goal_f = Statistics.from_csv(
@@ -1176,12 +1177,12 @@ class EndStatistics(MultiRunData):
                             idx += CSV_COLS
 
                         if has_ert_fes:
-                            ert_fes = str_to_intfloat(row[idx]) \
+                            ert_fes = str_to_num(row[idx]) \
                                 if n_success > 0 else inf
                             idx += 1
 
                         if has_ert_time:
-                            ert_time = str_to_intfloat(row[idx]) \
+                            ert_time = str_to_num(row[idx]) \
                                 if n_success > 0 else inf
                             idx += 1
 

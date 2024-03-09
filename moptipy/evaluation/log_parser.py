@@ -27,6 +27,7 @@ from typing import Final
 
 from pycommons.io.console import logger
 from pycommons.io.path import Path, directory_path, file_path
+from pycommons.strings.string_conv import str_to_num
 from pycommons.types import check_to_int_range
 
 from moptipy.api.logging import (
@@ -61,7 +62,6 @@ from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import (
     PART_SEPARATOR,
     sanitize_name,
-    str_to_intfloat,
 )
 
 #: the maximum FEs of a black-box process
@@ -696,7 +696,7 @@ class SetupAndStateParser(ExperimentParser):
         self.goal_f = None
         if _FULL_KEY_GOAL_F in data:
             goal_f = data[_FULL_KEY_GOAL_F]
-            g: Final[int | float] = str_to_intfloat(goal_f)
+            g: Final[int | float] = str_to_num(goal_f)
             if isfinite(g):
                 self.goal_f = g
             elif not (isinf(g) and (g >= inf)):
@@ -761,7 +761,7 @@ class SetupAndStateParser(ExperimentParser):
         if self.max_time_millis is not None:
             _check_max_time_millis(self.max_time_millis, self.total_fes,
                                    self.total_time_millis)
-        self.best_f = str_to_intfloat(data[KEY_BEST_F])
+        self.best_f = str_to_num(data[KEY_BEST_F])
         if not isfinite(self.best_f):
             raise ValueError(f"infinite best f detected: {self.best_f}")
         self.last_improvement_fe = check_to_int_range(

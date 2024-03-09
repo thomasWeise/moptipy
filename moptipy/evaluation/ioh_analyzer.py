@@ -41,17 +41,17 @@ Notice that we here have implemented the meta data format version
 
 import argparse
 import contextlib
-from typing import Callable, Final
+from typing import Any, Callable, Final
 
 import numpy as np
 from pycommons.io.console import logger
 from pycommons.io.path import Path, directory_path
+from pycommons.strings.string_conv import float_to_str
 from pycommons.types import check_int_range, type_error
 
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.help import argparser
-from moptipy.utils.strings import num_to_str
 
 
 def __prefix(s: str) -> str:
@@ -86,6 +86,17 @@ def __int_suffix(s: str) -> int:
             if i > 0:
                 return i
     return 1
+
+
+def __npstr(a: Any) -> str:
+    """
+    Convert numpy numbers to strings.
+
+    :param a: the input
+    :returns: a string
+    """
+    return str(int(a)) if isinstance(a, np.integer) \
+        else float_to_str(float(a))
 
 
 def moptipy_to_ioh_analyzer(
@@ -214,14 +225,14 @@ def moptipy_to_ioh_analyzer(
                             info.write(f", {per_dim[0]}:")
                             fes = per_dim[1]
                             f = per_dim[2]
-                            info.write(num_to_str(fes[-1]))
+                            info.write(__npstr(fes[-1]))
                             info.write("|")
-                            info.write(num_to_str(f[-1]))
+                            info.write(__npstr(f[-1]))
                             dat.write(
                                 '"function evaluation" "best-so-far f(x)"\n')
                             for i, ff in enumerate(f):
-                                dat.write(f"{num_to_str(fes[i])} "
-                                          f"{num_to_str(ff)}\n")
+                                dat.write(
+                                    f"{__npstr(fes[i])} {__npstr(ff)}\n")
                         dat.write("\n")
                 info.write("\n")
     del data

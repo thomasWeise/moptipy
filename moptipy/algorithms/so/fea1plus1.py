@@ -92,13 +92,13 @@ from typing import Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.strings.string_conv import num_to_str
 
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.nputils import DEFAULT_INT
-from moptipy.utils.strings import num_to_str
 
 #: the log section for the frequency table
 H_LOG_SECTION: Final[str] = "H"

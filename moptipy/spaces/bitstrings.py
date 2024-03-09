@@ -2,11 +2,11 @@
 from typing import Final
 
 import numpy as np
+from pycommons.strings.string_conv import str_to_bool
 from pycommons.types import type_error
 
 from moptipy.spaces.nparrayspace import NPArraySpace
 from moptipy.utils.nputils import DEFAULT_BOOL
-from moptipy.utils.strings import str_to_bool
 
 
 class BitStrings(NPArraySpace):

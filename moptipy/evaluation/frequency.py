@@ -19,6 +19,7 @@ from typing import Any, Callable, Final, Iterable
 
 from pycommons.io.console import logger
 from pycommons.io.path import Path
+from pycommons.strings.string_conv import str_to_num
 from pycommons.types import type_error
 
 from moptipy.algorithms.so.fea1plus1 import H_LOG_SECTION
@@ -37,9 +38,6 @@ from moptipy.evaluation.base import (
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import argparser
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
-from moptipy.utils.strings import (
-    str_to_intfloat,
-)
 
 #: the lower bound of the objective function
 _FULL_KEY_LOWER_BOUND: Final[str] = \
@@ -428,12 +426,12 @@ class __InnerLogParser(SetupAndStateParser):
         """
         super().setup_section(data)
         if self.__report_lower_bound and (_FULL_KEY_LOWER_BOUND in data):
-            lb: Final[int | float] = str_to_intfloat(
+            lb: Final[int | float] = str_to_num(
                 data[_FULL_KEY_LOWER_BOUND])
             if isfinite(lb):
                 self.__counter[lb] = max(self.__counter[lb], 1)
         if self.__report_upper_bound and (_FULL_KEY_UPPER_BOUND in data):
-            ub: Final[int | float] = str_to_intfloat(
+            ub: Final[int | float] = str_to_num(
                 data[_FULL_KEY_UPPER_BOUND])
             if isfinite(ub):
                 self.__counter[ub] = max(self.__counter[ub], 1)
@@ -453,7 +451,7 @@ class __InnerLogParser(SetupAndStateParser):
             f_col: Final[int] = columns.index(PROGRESS_CURRENT_F)
             counter = self.__counter
             for line in lines[1:]:
-                f: int | float = str_to_intfloat(line.split(
+                f: int | float = str_to_num(line.split(
                     CSV_SEPARATOR)[f_col])
                 counter[f] += 1
         elif self.__state_h == 1:
@@ -462,7 +460,7 @@ class __InnerLogParser(SetupAndStateParser):
             for line in lines:
                 split = line.split(CSV_SEPARATOR)
                 for i in range(0, len(split), 2):
-                    counter[str_to_intfloat(split[i])] += int(split[i + 1])
+                    counter[str_to_num(split[i])] += int(split[i + 1])
         else:
             return super().lines(lines)
 

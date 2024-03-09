@@ -58,6 +58,7 @@ from typing import Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.strings.string_conv import num_to_str
 
 from moptipy.algorithms.so.fea1plus1 import SWITCH_TO_MAP_RANGE, log_h
 from moptipy.algorithms.so.fitness import Fitness, FRecord
@@ -65,7 +66,6 @@ from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 from moptipy.utils.nputils import DEFAULT_INT
-from moptipy.utils.strings import num_to_str
 
 #: The lower bound at which we switch to an offset-based backing array for
 #: the frequency table H.

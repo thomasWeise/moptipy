@@ -6,10 +6,10 @@ from typing import Any, Final, cast
 import numba  # type: ignore
 import numpy as np
 from numpy.random import PCG64, Generator, default_rng
+from pycommons.strings.string_conv import bool_to_str, num_to_str
 from pycommons.types import check_int_range, type_error
 
 from moptipy.utils.logger import CSV_SEPARATOR
-from moptipy.utils.strings import bool_to_str, num_to_str
 
 #: All the numpy integer types and their ranges in increasing order of size.
 #: The tuple contains alternating signed and unsigned types. It starts with

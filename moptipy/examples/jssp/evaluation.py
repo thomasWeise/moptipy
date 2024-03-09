@@ -9,6 +9,7 @@ from typing import Callable, Final, Iterable, cast
 
 from pycommons.io.console import logger
 from pycommons.io.path import Path, directory_path
+from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
 
 from moptipy.evaluation.axis_ranger import AxisRanger
@@ -37,7 +38,6 @@ from moptipy.utils.logger import sanitize_name
 from moptipy.utils.strings import (
     beautify_float_str,
     name_str_to_num,
-    num_to_str,
 )
 
 #: The letter mu
