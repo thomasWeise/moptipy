@@ -32,7 +32,7 @@ from moptipy.examples.jssp.plots import (
     plot_stat_gantt_charts,
 )
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.help import argparser
+from moptipy.utils.help import moptipy_argparser
 from moptipy.utils.lang import EN
 from moptipy.utils.logger import sanitize_name
 from moptipy.utils.strings import (
@@ -594,7 +594,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
 
 # Evaluate experiment if run as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparser(
+    parser: Final[argparse.ArgumentParser] = moptipy_argparser(
         __file__, "Evaluate the results of the JSSP example experiment",
         "This experiment evaluates all the results of the JSSP example"
         " experiment and creates the figures and tables of the "

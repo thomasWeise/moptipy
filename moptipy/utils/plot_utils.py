@@ -20,7 +20,7 @@ from moptipy.utils.lang import Lang
 
 # Ensure that matplotlib uses Type 1 fonts.
 # Some scientific conferences, such as GECCO organized by ACM, require this.
-# In the language utilities :meth:`~mopitpy.utils.lang.Lang.font`, we do
+# In the language utilities :meth:`~moptipy.utils.lang.Lang.font`, we do
 # return acceptable fonts anyway, but it may be better to set this here
 # explicitly to avoid any problem.
 rcParams["pdf.fonttype"] = 42

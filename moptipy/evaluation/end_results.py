@@ -60,7 +60,7 @@ from moptipy.evaluation.base import (
     PerRunData,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
-from moptipy.utils.help import argparser
+from moptipy.utils.help import moptipy_argparser
 from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.strings import (
@@ -913,7 +913,7 @@ class _InnerProgressLogParser(SetupAndStateParser):
 
 # Run log files to end results if executed as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparser(
+    parser: Final[argparse.ArgumentParser] = moptipy_argparser(
         __file__,
         "Convert log files obtained with moptipy to the end results CSV "
         "format that can be post-processed or exported to other tools.",

@@ -23,7 +23,7 @@ from moptipy.operators.permutations.op1_insert1 import Op1Insert1
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.operators.permutations.op1_swapn import Op1SwapN
 from moptipy.spaces.permutations import Permutations
-from moptipy.utils.help import argparser
+from moptipy.utils.help import moptipy_argparser
 
 #: The default instances to be used in our experiment. These have been
 #: computed via instance_selector.propose_instances.
@@ -173,7 +173,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
 
 # Execute experiment if run as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparser(
+    parser: Final[argparse.ArgumentParser] = moptipy_argparser(
         __file__, "Execute the JSSP example experiment.",
         "Execute an example experiment on the Job "
         "Shop Scheduling Problem (JSSP).")

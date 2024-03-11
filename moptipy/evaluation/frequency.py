@@ -36,7 +36,7 @@ from moptipy.evaluation.base import (
     PerRunData,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
-from moptipy.utils.help import argparser
+from moptipy.utils.help import moptipy_argparser
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 
 #: the lower bound of the objective function
@@ -469,7 +469,7 @@ class __InnerLogParser(SetupAndStateParser):
 
 # Print a CSV file
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparser(
+    parser: Final[argparse.ArgumentParser] = moptipy_argparser(
         __file__, "Collecting the Number of Existing Objective Values.",
         "Gather all the existing objective values and store them in a "
         "CSV-formatted file.")

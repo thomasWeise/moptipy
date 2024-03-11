@@ -1,5 +1,4 @@
 """An internal module with the base class for implementing Processes."""
-import os
 from io import StringIO
 from math import inf, isfinite
 from threading import Lock, Timer
@@ -83,37 +82,26 @@ def _error_1(logger: Logger, title: str, exception_type,
     """
     if exception_type or exception_value or traceback:
         with logger.text(title=title) as ts:
+            wt: Final[Callable[[str], None]] = ts.write
             if exception_type:
-                ts.write(KEY_EXCEPTION_TYPE)
-                ts.write(": ")
                 if isinstance(exception_type, str):
                     if exception_type.startswith("<class '"):
                         exception_type = exception_type[8:-2]
-                    ts.write(exception_type.strip())
                 else:
-                    ts.write(type_name_of(exception_type))
-                ts.write(os.linesep)
+                    exception_type = type_name_of(exception_type)
+                wt(f"{KEY_EXCEPTION_TYPE}: {str.strip(exception_type)}")
             if exception_value:
-                ts.write(KEY_EXCEPTION_VALUE)
-                ts.write(": ")
-                ts.write(str(exception_value).strip())
-                ts.write(os.linesep)
+                exception_value = str.strip(str(exception_value))
+                wt(f"{KEY_EXCEPTION_VALUE}: {exception_value}")
             if traceback:
-                ts.write(KEY_EXCEPTION_STACK_TRACE)
-                ts.write(":")
-                ts.write(os.linesep)
+                wt(f"{KEY_EXCEPTION_STACK_TRACE}:")
                 sio = StringIO()
                 print_tb(traceback, file=sio)
-                needs_lb: bool = False
-                for line in sio.getvalue().strip().split("\n"):
-                    ll: str = line.strip()
-                    if len(ll) <= 0:
+                for line in str.splitlines(str.strip(sio.getvalue())):
+                    ll: str = str.strip(line)
+                    if str.__len__(ll) <= 0:
                         continue
-                    ll = ll.replace(ERROR_SECTION_PREFIX, error_repl)
-                    if needs_lb:
-                        ts.write(os.linesep)
-                    needs_lb = True
-                    ts.write(ll)
+                    wt(ll.replace(ERROR_SECTION_PREFIX, error_repl))
 
 
 def _error_2(logger: Logger, title: str, exception: Exception) -> None:
@@ -125,29 +113,24 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
         created
     :param exception: the exception
 
-    >>> from moptipy.utils.logger import InMemoryLogger
-    >>> ime = InMemoryLogger()
+    >>> from moptipy.utils.logger import PrintLogger
+    >>> ime = PrintLogger()
     >>> def k():
     ...     1 / 0
     >>> try:
     ...     k()
     ... except Exception as be:
     ...     _error_2(ime, "ERROR", be)
-    >>> the_log = ime.get_log()
-    >>> print(the_log[0])
     BEGIN_ERROR
-    >>> print(the_log[1])
     exceptionType: ZeroDivisionError
-    >>> print(the_log[2])
     exceptionValue: division by zero
-    >>> print(the_log[3])
     exceptionStackTrace:
-    >>> print(the_log[-1])
+    File "<doctest moptipy.api._process_base._error_2[3]>", line 2, in \
+<module>
+    k()
+    File "<doctest moptipy.api._process_base._error_2[2]>", line 2, in k
+    1 / 0
     END_ERROR
-    >>> all(ss == ss.strip() for ss in the_log)
-    True
-    >>> all(len(ss) > 0 for ss in the_log)
-    True
     """
     _error_1(logger, title, exception_type=exception,
              exception_value=str(exception),

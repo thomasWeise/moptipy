@@ -49,7 +49,7 @@ from moptipy.evaluation.statistics import (
     KEY_STDDEV,
     Statistics,
 )
-from moptipy.utils.help import argparser
+from moptipy.utils.help import moptipy_argparser
 from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.utils.strings import sanitize_name
@@ -1276,7 +1276,7 @@ class EndStatistics(MultiRunData):
 
 # Run end-results to stat file if executed as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparser(
+    parser: Final[argparse.ArgumentParser] = moptipy_argparser(
         __file__, "Build an end-results statistics CSV file.",
         "This program creates a CSV file with basic statistics on the "
         "end-of-run state of experiments conducted with moptipy. It "

@@ -33,12 +33,11 @@ Such log files can be parsed via :mod:`~moptipy.evaluation.log_parser`.
 from contextlib import AbstractContextManager
 from io import StringIO, TextIOBase
 from math import isfinite
-from os.path import realpath
 from re import sub
-from typing import Callable, Final, Iterable, cast
+from typing import Any, Callable, Final, Iterable, cast
 
 from pycommons.ds.cache import str_is_new
-from pycommons.io.path import Path
+from pycommons.io.path import Path, line_writer
 from pycommons.strings.string_conv import bool_to_str, float_to_str
 from pycommons.types import type_error
 
@@ -75,25 +74,26 @@ class Logger(AbstractContextManager):
     experiments with `moptipy`.
     """
 
-    def __init__(self, stream: TextIOBase, name: str) -> None:
+    def __init__(self, name: str, writer: Callable[[str], Any],
+                 closer: Callable[[], Any] = lambda: None) -> None:
         """
         Create a new logger.
 
-        :param stream: the stream to which we will log, will be closed when
-            the logger is closed
+        :param writer: the string writing function
+        :param closer: the function to be invoked when the stream is closed
         :param name: the name of the logger
         """
         if not isinstance(name, str):
             raise type_error(name, "name", str)
-        if stream is None:
-            raise ValueError("stream must be valid stream but is None.")
-        if not isinstance(stream, TextIOBase):
-            raise type_error(stream, "stream", TextIOBase)
+        if not callable(writer):
+            raise type_error(writer, "writer", call=True)
+        if not callable(closer):
+            raise type_error(closer, "closer", call=True)
 
         #: The internal stream
-        self._stream: TextIOBase = stream
+        self._writer: Callable[[str], Any] | None = writer
+        self._closer: Callable[[], Any] | None = closer
         self.__section: str | None = None
-        self.__starts_new_line: bool = True
         self.__log_name: str = name
         self.__sections: Callable = str_is_new()
         self.__closer: str | None = None
@@ -129,11 +129,10 @@ class Logger(AbstractContextManager):
         """
         if self.__section is not None:
             self._error("Cannot close logger, because section still open")
-        if self._stream is not None:
-            if not self.__starts_new_line:
-                self._stream.write("\n")
-            self._stream.close()
-            self._stream = None
+        if self._closer is not None:
+            self._closer()
+            self._closer = None
+            self._writer = None
 
     def _open_section(self, title: str) -> None:
         """
@@ -141,7 +140,7 @@ class Logger(AbstractContextManager):
 
         :param title: the section title
         """
-        if self._stream is None:
+        if self._writer is None:
             self._error(f"Cannot open section {title!r} "
                         "because logger already closed")
 
@@ -157,9 +156,8 @@ class Logger(AbstractContextManager):
         if not self.__sections(title):
             self._error(f"Section {title!r} already done")
 
-        self._stream.write(f"{SECTION_START}{title}\n")
-        self.__closer = f"{SECTION_END}{title}\n"
-        self.__starts_new_line = True
+        self._writer(f"{SECTION_START}{title}")
+        self.__closer = f"{SECTION_END}{title}"
         self.__section = title
 
     def _close_section(self, title: str) -> None:
@@ -170,18 +168,13 @@ class Logger(AbstractContextManager):
         """
         if (self.__section is None) or (self.__section != title):
             self._error(f"Cannot open section {title!r} since it is not open")
-        printer = self.__closer
-        if not self.__starts_new_line:
-            printer = "\n" + printer
-
-        self._stream.write(printer)
+        self._writer(self.__closer)
         self.__closer = None
-        self.__starts_new_line = True
         self.__section = None
 
     def _comment(self, comment: str) -> None:
         """
-        Write a comment.
+        Write a comment line.
 
         :param comment: the comment
         """
@@ -190,8 +183,7 @@ class Logger(AbstractContextManager):
         if len(comment) <= 0:
             return
         comment = sub(r"\s+", " ", comment.strip())
-        self._stream.write(f"{COMMENT_CHAR} {comment}\n")
-        self.__starts_new_line = True
+        self._writer(f"{COMMENT_CHAR} {comment}")
 
     def _write(self, text: str) -> None:
         """
@@ -209,9 +201,10 @@ class Logger(AbstractContextManager):
             self._error(f"String {self.__closer!r} "
                         "must not be contained in output")
 
-        text = text.replace("#", "")  # omit all # characters
-        self._stream.write(text)
-        self.__starts_new_line = text.endswith("\n")
+        if COMMENT_CHAR in text:
+            raise ValueError(
+                f"{COMMENT_CHAR!r} not permitted in text {text!r}.")
+        self._writer(text)
 
     def key_values(self, title: str) -> "KeyValueLogSection":
         r"""
@@ -292,7 +285,7 @@ class Logger(AbstractContextManager):
         ...         tx.write("\n")
         ...         tx.write("ccccc")
         ...     print(l.get_log())
-        ['BEGIN_C', 'aaaaaabbbbb', 'ccccc', 'END_C']
+        ['BEGIN_C', 'aaaaaa', 'bbbbb', '', 'ccccc', 'END_C']
         """
         return TextLogSection(title=title, logger=self)
 
@@ -309,8 +302,16 @@ class FileLogger(Logger):
         if not isinstance(path, str):
             raise type_error(path, "path", str)
         name = path
-        path = realpath(path)
-        super().__init__(stream=Path(path).open_for_write(), name=name)
+        tio: TextIOBase = Path(path).open_for_write()
+        super().__init__(name, line_writer(tio), tio.close)
+
+
+class PrintLogger(Logger):
+    """A logger logging to stdout."""
+
+    def __init__(self) -> None:
+        """Initialize the logger."""
+        super().__init__("printer", print)
 
 
 class InMemoryLogger(Logger):
@@ -318,8 +319,9 @@ class InMemoryLogger(Logger):
 
     def __init__(self) -> None:
         """Initialize the logger."""
-        super().__init__(stream=StringIO(),
-                         name="in-memory-logger")
+        #: the internal stream
+        self.__stream: Final[StringIO] = StringIO()
+        super().__init__("in-memory-logger", line_writer(self.__stream))
 
     def get_log(self) -> list[str]:
         """
@@ -327,7 +329,7 @@ class InMemoryLogger(Logger):
 
         :return: a list of strings with the logged lines
         """
-        return cast(StringIO, self._stream).getvalue().splitlines()
+        return cast(StringIO, self.__stream).getvalue().splitlines()
 
 
 class LogSection(AbstractContextManager):
@@ -383,7 +385,7 @@ class LogSection(AbstractContextManager):
         ...         tx.write("aaaaaa")
         ...         tx.comment("hello")
         ...     print(l.get_log())
-        ['BEGIN_A', 'aaaaaa# hello', 'END_A']
+        ['BEGIN_A', 'aaaaaa', '# hello', 'END_A']
         """
         # noinspection PyProtectedMember
         self._logger._comment(comment)
@@ -430,8 +432,7 @@ class CsvLogSection(LogSection):
                 logger._error(f"Invalid column {c}")
 
         # noinspection PyProtectedMember
-        logger._write(CSV_SEPARATOR.join(
-            [c.strip() for c in header]) + "\n")
+        logger._writer(CSV_SEPARATOR.join(c.strip() for c in header))
 
     def row(self, row: tuple[int | float | bool, ...]
             | list[int | float | bool]) -> None:
@@ -455,7 +456,7 @@ class CsvLogSection(LogSection):
                for c in row)
 
         # noinspection PyProtectedMember
-        self._logger._write(f"{CSV_SEPARATOR.join(txt)}\n")
+        self._logger._write(CSV_SEPARATOR.join(txt))
 
 
 class KeyValueLogSection(LogSection):
@@ -545,15 +546,15 @@ class KeyValueLogSection(LogSection):
                 the_hex = hex(value)
 
         txt = KEY_VALUE_SEPARATOR.join([key, txt])
-        txt = f"{txt}\n"
+        txt = f"{txt}"
 
         if the_hex:
             tmp = KEY_VALUE_SEPARATOR.join(
                 [key + KEY_HEX_VALUE, the_hex])
-            txt = f"{txt}{tmp}\n"
+            txt = f"{txt}\n{tmp}"
 
         # noinspection PyProtectedMember
-        self._logger._write(txt)
+        self._logger._writer(txt)
 
     def scope(self, prefix: str) -> "KeyValueLogSection":
         """
@@ -626,7 +627,7 @@ class TextLogSection(LogSection):
         """
         super().__init__(title, logger)
         # noinspection PyProtectedMember
-        self.write = self._logger._write  # type: ignore
+        self.write = self._logger._writer  # type: ignore
 
 
 def parse_key_values(lines: Iterable[str]) -> dict[str, str]:

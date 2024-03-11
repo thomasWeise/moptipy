@@ -81,7 +81,7 @@ published by different researchers in literature [6-14].
 deServlet/dbt_derivate_00001373/Dissertation.pdf
 """
 from importlib import resources  # nosem
-from typing import Final, cast
+from typing import Final, Iterable, cast
 
 import numpy as np
 from pycommons.types import check_int_range, type_error
@@ -416,7 +416,7 @@ Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
                         makespan_lower_bound=makespan_lower_bound)
 
     @staticmethod
-    def from_stream(name: str, stream) -> "Instance":
+    def from_stream(name: str, stream: Iterable[str]) -> "Instance":
         """
         Load an instance from a text stream.
 
@@ -427,7 +427,7 @@ Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
         state = 0
         rows: list[str] | None = None
         for linestr in stream:
-            line = str(linestr).strip()
+            line = str.strip(linestr)
             if len(line) <= 0:
                 continue
             if state == 0:

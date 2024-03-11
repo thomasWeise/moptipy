@@ -51,7 +51,7 @@ from pycommons.types import check_int_range, type_error
 
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
 from moptipy.evaluation.progress import Progress
-from moptipy.utils.help import argparser
+from moptipy.utils.help import moptipy_argparser
 
 
 def __prefix(s: str) -> str:
@@ -241,7 +241,7 @@ def moptipy_to_ioh_analyzer(
 
 # Run conversion if executed as script
 if __name__ == "__main__":
-    parser: Final[argparse.ArgumentParser] = argparser(
+    parser: Final[argparse.ArgumentParser] = moptipy_argparser(
         __file__,
         "Convert experimental results from the moptipy to the "
         "IOHanalyzer format.",
