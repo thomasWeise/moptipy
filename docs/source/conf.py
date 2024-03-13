@@ -7,7 +7,7 @@ from pycommons.io.path import Path, file_path
 # the path of the documentation configuration
 doc_path: Final[Path] = file_path(__file__).up(1)
 root_path: Final[Path] = doc_path.up(2)
-setup_doc(doc_path, root_path, 2023, dependencies=(
+setup_doc(doc_path, root_path, 2022, dependencies=(
     "matplotlib", "numpy", "pycommons", "scipy", "sklearn"),
     full_urls={
         "https://github.com/thomasWeise/moptipy/blob/main/LICENSE":

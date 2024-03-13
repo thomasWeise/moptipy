@@ -9,9 +9,9 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
-# For a real experiment, you would put an existing directory path into `td`
-# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
-# and not use the `with` block.
+# For a real experiment, you would put an existing directory path into `td` by
+# doing `from pycommons.io.path import Path; td = Path("mydir")` and not use
+# the `with` block.
 with temp_dir() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to

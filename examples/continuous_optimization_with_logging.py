@@ -64,9 +64,9 @@ op0 = Op0Uniform(space)  # the nullary search operator: random uniform
 b = space.create()  # a variable to store the best solution
 
 # We execute the whole experiment in a temp directory.
-# For a real experiment, you would put an existing directory path into `td`
-# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
-# and not use the `with` block.
+# For a real experiment, you would put an existing directory path into `td` by
+# doing `from pycommons.io.path import Path; td = Path("mydir")` and not use
+# the `with` block.
 with temp_dir() as td:  # create temporary directory `td`
     # Perform one run for a variety of different optimization algorithms.
     for algorithm in [BGFS(op0, space),  # Broyden/Fletcher/Goldfarb/Shanno

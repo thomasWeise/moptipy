@@ -71,9 +71,10 @@ algorithm = MORLS(              # Create multi-objective RLS that
     Op1SwapN())                 # swaps a random number of elements per step.
 
 # We work with a temporary log file which is automatically deleted after this
-# experiment. For a real experiment, you would not use the `with` block and
-# instead put the path to the file that you want to create into `tf` by doing
-# `from pycommons.io.path import Path; tf = Path("mydir/my_file.txt")`.
+# experiment.
+# For a real experiment, you would put the path to a file into `tf` by doing
+# `from pycommons.io.path import Path; tf = Path("myfile.txt")` and not use
+# the `with` block.
 with temp_file() as tf:  # create temporary file `tf`
     ex = MOExecution()  # begin configuring execution
     ex.set_solution_space(solution_space)

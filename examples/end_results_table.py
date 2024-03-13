@@ -140,9 +140,9 @@ def make_random_sampling(problem: Instance) -> Execution:
 
 
 # We execute the whole experiment in a temp directory.
-# For a real experiment, you would put an existing directory path into `td`
-# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
-# and not use the `with` block.
+# For a real experiment, you would put an existing directory path into `td` by
+# doing `from pycommons.io.path import Path; td = Path("mydir")` and not use
+# the `with` block.
 with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances

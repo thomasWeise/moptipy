@@ -1,7 +1,5 @@
 """Test all the links in the project's *.md files."""
 # noinspection PyPackageRequirements
-# noinspection PyPackageRequirements
-# noinspection PyPackageRequirements
 from pycommons.dev.tests.links_in_md import check_links_in_md
 from pycommons.io.path import file_path
 
