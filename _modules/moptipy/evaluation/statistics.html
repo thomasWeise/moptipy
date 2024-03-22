@@ -1,0 +1,469 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.statistics — moptipy 0.9.105 documentation</title><link href="../../../_static/pygments.css?v=80d5e7a1"rel=stylesheet><link href="../../../_static/bizstyle.css?v=532c1bf3"rel=stylesheet><script src="../../../_static/documentation_options.js?v=8311ffa5"></script><script src="../../../_static/doctools.js?v=888ff710"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/statistics.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label="related navigation"class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.105 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.statistics</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.statistics</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A simple and immutable basic statistics record."""</span>
+
+<span class=kn>import</span> <span class=nn>statistics</span>
+<span class=kn>from</span> <span class=nn>dataclasses</span> <span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span> <span class=nn>math</span> <span class=kn>import</span> <span class=n>gcd</span><span class=p>,</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>nextafter</span><span class=p>,</span> <span class=n>sqrt</span>
+<span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span> <span class=nn>pycommons.strings.string_conv</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>num_to_str</span><span class=p>,</span>
+    <span class=n>str_to_num</span><span class=p>,</span>
+    <span class=n>str_to_num_or_none</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span> <span class=nn>pycommons.types</span> <span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span> <span class=nn>moptipy.utils.logger</span> <span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>SCOPE_SEPARATOR</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.math</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DBL_INT_LIMIT_P</span><span class=p>,</span>
+    <span class=n>try_int</span><span class=p>,</span>
+    <span class=n>try_int_div</span><span class=p>,</span>
+    <span class=n>try_int_root</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=c1>#: The limit until which we simplify geometric mean data.</span>
+<span class=n>_INT_ROOT_LIMIT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>sqrt</span><span class=p>(</span><span class=n>DBL_INT_LIMIT_P</span><span class=p>))</span>
+
+<span class=c1>#: The minimum value key.</span>
+<span class=n>KEY_MINIMUM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"min"</span>
+<span class=c1>#: The median value key.</span>
+<span class=n>KEY_MEDIAN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"med"</span>
+<span class=c1>#: The arithmetic mean value key.</span>
+<span class=n>KEY_MEAN_ARITH</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"mean"</span>
+<span class=c1>#: The geometric mean value key.</span>
+<span class=n>KEY_MEAN_GEOM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"geom"</span>
+<span class=c1>#: The maximum value key.</span>
+<span class=n>KEY_MAXIMUM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"max"</span>
+<span class=c1>#: The standard deviation value key.</span>
+<span class=n>KEY_STDDEV</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"sd"</span>
+
+<span class=c1>#: The number of CSV columns.</span>
+<span class=n>CSV_COLS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>6</span>
+
+<span class=c1>#: The empty csv row of statistics</span>
+<span class=n>EMPTY_CSV_ROW</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span> <span class=o>*</span> <span class=p>(</span><span class=n>CSV_COLS</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+
+<span class=c1>#: the internal getters</span>
+<span class=n>_GETTERS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Callable</span><span class=p>[[</span><span class=s2>"Statistics"</span><span class=p>],</span>
+                                   <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=n>KEY_MINIMUM</span><span class=p>:</span> <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=o>.</span><span class=n>minimum</span><span class=p>,</span>
+    <span class=n>KEY_MEDIAN</span><span class=p>:</span> <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=o>.</span><span class=n>median</span><span class=p>,</span>
+    <span class=n>KEY_MEAN_ARITH</span><span class=p>:</span> <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=o>.</span><span class=n>mean_arith</span><span class=p>,</span>
+    <span class=n>KEY_MEAN_GEOM</span><span class=p>:</span> <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=o>.</span><span class=n>mean_geom</span><span class=p>,</span>
+    <span class=n>KEY_MAXIMUM</span><span class=p>:</span> <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=o>.</span><span class=n>maximum</span><span class=p>,</span>
+    <span class=n>KEY_STDDEV</span><span class=p>:</span> <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=o>.</span><span class=n>stddev</span><span class=p>,</span>
+<span class=p>}</span>
+
+
+<div class=viewcode-block id=Statistics>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span> <span class=nc>Statistics</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An immutable record with statistics of one quantity."""</span>
+
+    <span class=c1>#: The minimum.</span>
+    <span class=n>minimum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+    <span class=c1>#: The median.</span>
+    <span class=n>median</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+    <span class=c1>#: The arithmetic mean value.</span>
+    <span class=n>mean_arith</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+    <span class=c1>#: The geometric mean value, if defined.</span>
+    <span class=n>mean_geom</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: The maximum.</span>
+    <span class=n>maximum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+    <span class=c1>#: The standard deviation.</span>
+    <span class=n>stddev</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+
+    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>minimum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>median</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>mean_arith</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>mean_geom</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>maximum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>stddev</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the statistics class.</span>
+
+<span class=sd>        :param minimum: the minimum</span>
+<span class=sd>        :param median: the median</span>
+<span class=sd>        :param mean_arith: the arithmetic mean</span>
+<span class=sd>        :param mean_geom: the geometric mean, or `None` if it is undefined</span>
+<span class=sd>        :param maximum: the maximum</span>
+<span class=sd>        :param stddev: the standard deviation (`0` is also used for undefined)</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+
+        <span class=c1># check minimum</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=s2>"minimum"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>minimum</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"minimum must be finite, but is </span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># check median</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>median</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>median</span><span class=p>,</span> <span class=s2>"median"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>median</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>median</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"med must be finite, but is </span><span class=si>{</span><span class=n>median</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>median</span> <span class=o>!=</span> <span class=n>minimum</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"median (</span><span class=si>{</span><span class=n>median</span><span class=si>}</span><span class=s2>) must equal "</span>
+                                 <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if n=1."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>median</span> <span class=o><</span> <span class=n>minimum</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"median (</span><span class=si>{</span><span class=n>median</span><span class=si>}</span><span class=s2>) must be >= minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if n>1."</span><span class=p>)</span>
+
+        <span class=c1># check maximum</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=s2>"maximum"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>maximum</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"maximum must be finite, but is </span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>maximum</span> <span class=o>!=</span> <span class=n>minimum</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"maximum (</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>) must equal "</span>
+                                 <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if n=1."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>maximum</span> <span class=o><</span> <span class=n>median</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"maximum (</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>) must be >= med (</span><span class=si>{</span><span class=n>median</span><span class=si>}</span><span class=s2>) if n>1."</span><span class=p>)</span>
+
+        <span class=c1># check arithmetic mean</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mean_arith</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>mean_arith</span><span class=p>,</span> <span class=s2>"mean_arith"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mean_arith</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>mean_arith</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"mean_arith must be finite, but is </span><span class=si>{</span><span class=n>mean_arith</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>mean_arith</span> <span class=o>!=</span> <span class=n>minimum</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"mean_arith (</span><span class=si>{</span><span class=n>mean_arith</span><span class=si>}</span><span class=s2>) must equal "</span>
+                                 <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if n=1."</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>mean_arith</span> <span class=o><</span> <span class=n>minimum</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"mean_arith (</span><span class=si>{</span><span class=n>mean_arith</span><span class=si>}</span><span class=s2>) must be >= "</span>
+                    <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if n>1."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>mean_arith</span> <span class=o>></span> <span class=n>maximum</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"mean_arith (</span><span class=si>{</span><span class=n>mean_arith</span><span class=si>}</span><span class=s2>) must be <= "</span>
+                    <span class=sa>f</span><span class=s2>"maximum (</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>) if n>1."</span><span class=p>)</span>
+
+        <span class=c1># check geometric mean</span>
+        <span class=k>if</span> <span class=n>mean_geom</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>minimum</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"If minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) > 0, then mean_geom must be "</span>
+                    <span class=sa>f</span><span class=s2>"defined, but it is </span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>minimum</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"If minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) <= 0, then mean_geom is "</span>
+                    <span class=sa>f</span><span class=s2>"undefined, but it is </span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mean_geom</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>mean_geom</span><span class=p>,</span> <span class=s2>"mean_geom"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mean_geom</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>mean_geom</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"mean_geom must be finite, but is </span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>mean_geom</span> <span class=o>!=</span> <span class=n>minimum</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"mean_geom (</span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>) must equal "</span>
+                                     <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if n=1."</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>mean_geom</span> <span class=o><</span> <span class=n>minimum</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"mean_geom (</span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>) must be >= "</span>
+                        <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) if (n=</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2>)>1."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>mean_geom</span> <span class=o>></span> <span class=n>mean_arith</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"mean_geom (</span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>) must be <= "</span>
+                        <span class=sa>f</span><span class=s2>"mean_arith (</span><span class=si>{</span><span class=n>mean_arith</span><span class=si>}</span><span class=s2>) if (n=</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2>)>1."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=p>((</span><span class=n>mean_geom</span> <span class=o>>=</span> <span class=n>mean_arith</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>minimum</span> <span class=o><</span> <span class=n>maximum</span><span class=p>)</span>
+                        <span class=ow>and</span> <span class=p>(((</span><span class=n>maximum</span> <span class=o>-</span> <span class=n>minimum</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=nb>max</span><span class=p>(</span>  <span class=c1># precision</span>
+                            <span class=nb>abs</span><span class=p>(</span><span class=n>maximum</span><span class=p>),</span> <span class=nb>abs</span><span class=p>(</span><span class=n>minimum</span><span class=p>))))</span> <span class=o>></span> <span class=mf>0.01</span><span class=p>)):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"mean_geom (</span><span class=si>{</span><span class=n>mean_geom</span><span class=si>}</span><span class=s2>) must be < "</span>
+                        <span class=sa>f</span><span class=s2>"mean_arith (</span><span class=si>{</span><span class=n>mean_arith</span><span class=si>}</span><span class=s2>) if (n=</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2>)>1 and "</span>
+                        <span class=sa>f</span><span class=s2>"minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) < maximum (</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stddev</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>stddev</span><span class=p>,</span> <span class=s2>"stddev"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stddev</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>stddev</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"stddev must be finite, but is </span><span class=si>{</span><span class=n>stddev</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>stddev</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"If n==1, stddev must be 0, but is </span><span class=si>{</span><span class=n>stddev</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>stddev</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># set it to int 0</span>
+
+        <span class=k>if</span> <span class=p>(</span><span class=n>stddev</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=o>^</span> <span class=p>(</span><span class=n>minimum</span> <span class=o>==</span> <span class=n>maximum</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"If stddev (</span><span class=si>{</span><span class=n>stddev</span><span class=si>}</span><span class=s2>) is 0, then minimum (</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>) must "</span>
+                <span class=sa>f</span><span class=s2>"equal maximum (</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>) and vice versa."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>minimum</span> <span class=o>==</span> <span class=n>maximum</span><span class=p>:</span>
+            <span class=n>stddev</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># set if to int 0</span>
+
+        <span class=c1># fix types to int where possible without loss of precision</span>
+
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"minimum"</span><span class=p>,</span> <span class=n>try_int</span><span class=p>(</span><span class=n>minimum</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"median"</span><span class=p>,</span> <span class=n>try_int</span><span class=p>(</span><span class=n>median</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"maximum"</span><span class=p>,</span> <span class=n>try_int</span><span class=p>(</span><span class=n>maximum</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"mean_arith"</span><span class=p>,</span> <span class=n>try_int</span><span class=p>(</span><span class=n>mean_arith</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"mean_geom"</span><span class=p>,</span>
+                           <span class=kc>None</span> <span class=k>if</span> <span class=n>mean_geom</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>try_int</span><span class=p>(</span><span class=n>mean_geom</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"stddev"</span><span class=p>,</span> <span class=n>try_int</span><span class=p>(</span><span class=n>stddev</span><span class=p>))</span>
+
+<div class=viewcode-block id=Statistics.min_mean>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.min_mean>[docs]</a>
+    <span class=k>def</span> <span class=nf>min_mean</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the smallest of the three mean values.</span>
+
+<span class=sd>        :return: the smallest of `mean_arith`, `mean_geom`, and `median`</span>
+<span class=sd>        :rtype: Union[int, float]</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_geom</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_arith</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>median</span><span class=p>:</span>
+                <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_arith</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>median</span>
+
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_geom</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>median</span><span class=p>:</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_geom</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>median</span></div>
+
+
+<div class=viewcode-block id=Statistics.max_mean>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.max_mean>[docs]</a>
+    <span class=k>def</span> <span class=nf>max_mean</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the largest of the three mean values.</span>
+
+<span class=sd>        :return: the largest of `mean_arith`, `mean_geom`, and `median`</span>
+<span class=sd>        :rtype: Union[int, float]</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_arith</span> <span class=o>></span> <span class=bp>self</span><span class=o>.</span><span class=n>median</span><span class=p>:</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>mean_arith</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>median</span></div>
+
+
+<div class=viewcode-block id=Statistics.create>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.create>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span> <span class=nf>create</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=s2>"Statistics"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a statistics object from an iterable.</span>
+
+<span class=sd>        :param source: the source</span>
+<span class=sd>        :return: a statistics representing the statistics over `source`</span>
+<span class=sd>        :rtype: Statistics</span>
+
+<span class=sd>        >>> from moptipy.evaluation.statistics import Statistics</span>
+<span class=sd>        >>> s = Statistics.create([3, 1, 2, 5])</span>
+<span class=sd>        >>> print(s.minimum)</span>
+<span class=sd>        1</span>
+<span class=sd>        >>> print(s.maximum)</span>
+<span class=sd>        5</span>
+<span class=sd>        >>> print(s.mean_arith)</span>
+<span class=sd>        2.75</span>
+<span class=sd>        >>> print(s.median)</span>
+<span class=sd>        2.5</span>
+<span class=sd>        >>> print(f"{s.mean_geom:.4f}")</span>
+<span class=sd>        2.3403</span>
+<span class=sd>        >>> print(f"{s.min_mean():.4f}")</span>
+<span class=sd>        2.3403</span>
+<span class=sd>        >>> print(f"{s.max_mean()}")</span>
+<span class=sd>        2.75</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=s2>"source"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+        <span class=n>minimum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>maximum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+        <span class=n>can_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># are all values integers?</span>
+        <span class=n>int_sum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the integer sum (for mean, stddev)</span>
+        <span class=n>int_prod</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># the integer product (for geom_mean)</span>
+        <span class=n>int_sum_sqr</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the sum of squares (for stddev)</span>
+        <span class=n>n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the number of items</span>
+
+        <span class=k>for</span> <span class=n>ev</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>  <span class=c1># iterate over all data</span>
+            <span class=n>n</span> <span class=o>=</span> <span class=n>n</span> <span class=o>+</span> <span class=mi>1</span>
+            <span class=n>e</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>ev</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>can_int</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>e</span><span class=p>,</span> <span class=nb>int</span><span class=p>)):</span>
+                <span class=n>can_int</span> <span class=o>=</span> <span class=kc>False</span>
+            <span class=k>if</span> <span class=n>can_int</span><span class=p>:</span>  <span class=c1># so far, we only encountered ints</span>
+                <span class=n>zz</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+                <span class=n>int_sum</span> <span class=o>+=</span> <span class=n>zz</span>  <span class=c1># so we can sum exactly</span>
+                <span class=n>int_prod</span> <span class=o>*=</span> <span class=n>zz</span>  <span class=c1># and can compute exact products</span>
+                <span class=n>int_sum_sqr</span> <span class=o>+=</span> <span class=n>zz</span> <span class=o>*</span> <span class=n>zz</span>
+
+            <span class=n>minimum</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+            <span class=n>maximum</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>n</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"source cannot be empty."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>minimum</span> <span class=o>>=</span> <span class=n>maximum</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>Statistics</span><span class=p>(</span><span class=n>n</span><span class=o>=</span><span class=n>n</span><span class=p>,</span>
+                              <span class=n>minimum</span><span class=o>=</span><span class=n>minimum</span><span class=p>,</span>
+                              <span class=n>median</span><span class=o>=</span><span class=n>minimum</span><span class=p>,</span>
+                              <span class=n>mean_arith</span><span class=o>=</span><span class=n>minimum</span><span class=p>,</span>
+                              <span class=n>mean_geom</span><span class=o>=</span><span class=kc>None</span> <span class=k>if</span> <span class=n>minimum</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>minimum</span><span class=p>,</span>
+                              <span class=n>maximum</span><span class=o>=</span><span class=n>maximum</span><span class=p>,</span>
+                              <span class=n>stddev</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+
+        <span class=n>stddev</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>mean_geom</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>mean_arith</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+
+        <span class=k>if</span> <span class=n>can_int</span><span class=p>:</span>  <span class=c1># if we get here, we have exact sums and product</span>
+            <span class=n>mean_arith</span> <span class=o>=</span> <span class=n>try_int_div</span><span class=p>(</span><span class=n>int_sum</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>n</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>  <span class=c1># standard deviation only defined for n > 1</span>
+                <span class=n>int_sum2</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=p>(</span><span class=n>int_sum</span> <span class=o>*</span> <span class=n>int_sum</span><span class=p>)</span>
+                <span class=n>i_gcd</span> <span class=o>=</span> <span class=n>gcd</span><span class=p>(</span><span class=n>int_sum2</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+                <span class=n>int_sum2</span> <span class=o>=</span> <span class=n>int_sum2</span> <span class=o>//</span> <span class=n>i_gcd</span>
+                <span class=n>i_n</span> <span class=o>=</span> <span class=n>n</span> <span class=o>//</span> <span class=n>i_gcd</span>
+
+                <span class=n>var</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>  <span class=c1># the container for the variance</span>
+                <span class=n>var</span> <span class=o>=</span> <span class=n>try_int_div</span><span class=p>(</span><span class=n>int_sum_sqr</span> <span class=o>-</span> <span class=n>int_sum2</span><span class=p>,</span> <span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>i_n</span> <span class=o>==</span> <span class=mi>1</span> <span class=k>else</span> \
+                    <span class=p>((</span><span class=n>int_sum_sqr</span> <span class=o>-</span> <span class=p>(</span><span class=n>int_sum2</span> <span class=o>/</span> <span class=n>i_n</span><span class=p>))</span> <span class=o>/</span> <span class=p>(</span><span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+
+                <span class=n>stddev</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>sqrt</span><span class=p>(</span><span class=n>var</span><span class=p>))</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>stddev</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>minimum</span> <span class=o><</span> <span class=n>maximum</span><span class=p>):</span>
+                    <span class=n>stddev</span> <span class=o>=</span> <span class=n>statistics</span><span class=o>.</span><span class=n>stdev</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>minimum</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># geometric mean only defined for all-positive</span>
+                <span class=k>if</span> <span class=n>int_prod</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>mean_geom</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># geometric mean is 0 if product is 0</span>
+                <span class=k>else</span><span class=p>:</span>  <span class=c1># if not, geom_mean = prod ** (1/n)</span>
+                    <span class=n>mean_geom</span> <span class=o>=</span> <span class=n>try_int_root</span><span class=p>(</span><span class=n>int_prod</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>mean_geom</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>((</span><span class=n>minimum</span> <span class=o><</span> <span class=n>maximum</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                            <span class=n>mean_geom</span> <span class=o>>=</span> <span class=n>mean_arith</span><span class=p>)):</span>
+                        <span class=n>mean_geom</span> <span class=o>=</span> <span class=n>statistics</span><span class=o>.</span><span class=n>geometric_mean</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>  <span class=c1># ok, we do not have only integer-like values</span>
+            <span class=n>mean_arith</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>statistics</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>source</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>minimum</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>mean_geom</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>statistics</span><span class=o>.</span><span class=n>geometric_mean</span><span class=p>(</span><span class=n>source</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>n</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                <span class=n>stddev</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>statistics</span><span class=o>.</span><span class=n>stdev</span><span class=p>(</span><span class=n>source</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=n>mean_geom</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=c1># Deal with errors that may have arisen due to</span>
+            <span class=c1># numerical imprecision.</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>mean_geom</span> <span class=o><</span> <span class=n>minimum</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>nextafter</span><span class=p>(</span>
+                    <span class=n>mean_geom</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span> <span class=o>>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=o>-</span><span class=n>inf</span><span class=p>)):</span>
+                <span class=n>mean_geom</span> <span class=o>=</span> <span class=n>minimum</span>
+            <span class=n>upper_limit</span> <span class=o>=</span> <span class=n>mean_arith</span> <span class=k>if</span> <span class=p>(</span><span class=n>n</span> <span class=o>></span> <span class=mi>1</span><span class=p>)</span> <span class=k>else</span> <span class=n>maximum</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>mean_geom</span> <span class=o>></span> <span class=n>upper_limit</span><span class=p>)</span> <span class=ow>and</span> <span class=p>((</span><span class=n>nextafter</span><span class=p>(</span>
+                    <span class=n>upper_limit</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span> <span class=o>>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>mean_geom</span><span class=p>,</span> <span class=o>-</span><span class=n>inf</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span>
+                    <span class=p>(</span><span class=mf>0.9999999999999</span> <span class=o>*</span> <span class=n>mean_geom</span><span class=p>)</span> <span class=o><=</span> <span class=n>upper_limit</span><span class=p>)):</span>
+                <span class=n>mean_geom</span> <span class=o>=</span> <span class=n>upper_limit</span>
+
+        <span class=k>return</span> <span class=n>Statistics</span><span class=p>(</span><span class=n>n</span><span class=o>=</span><span class=n>n</span><span class=p>,</span>
+                          <span class=n>minimum</span><span class=o>=</span><span class=n>minimum</span><span class=p>,</span>
+                          <span class=n>median</span><span class=o>=</span><span class=n>statistics</span><span class=o>.</span><span class=n>median</span><span class=p>(</span><span class=n>source</span><span class=p>),</span>
+                          <span class=n>mean_arith</span><span class=o>=</span><span class=n>mean_arith</span><span class=p>,</span>
+                          <span class=n>mean_geom</span><span class=o>=</span><span class=n>mean_geom</span><span class=p>,</span>
+                          <span class=n>maximum</span><span class=o>=</span><span class=n>maximum</span><span class=p>,</span>
+                          <span class=n>stddev</span><span class=o>=</span><span class=n>stddev</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Statistics.csv_col_names>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.csv_col_names>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span> <span class=nf>csv_col_names</span><span class=p>(</span><span class=n>prefix</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Make the column names suitable for a CSV-formatted file.</span>
+
+<span class=sd>        :param str prefix: the prefix name of the columns</span>
+<span class=sd>        :return: the column header strings</span>
+<span class=sd>        :rtype: Iterable[str]</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>[</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>prefix</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>b</span><span class=si>}</span><span class=s2>"</span>
+                <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=p>[</span><span class=n>KEY_MINIMUM</span><span class=p>,</span> <span class=n>KEY_MEDIAN</span><span class=p>,</span>
+                          <span class=n>KEY_MEAN_ARITH</span><span class=p>,</span> <span class=n>KEY_MEAN_GEOM</span><span class=p>,</span>
+                          <span class=n>KEY_MAXIMUM</span><span class=p>,</span> <span class=n>KEY_STDDEV</span><span class=p>]]</span></div>
+
+
+<div class=viewcode-block id=Statistics.value_to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.value_to_csv>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span> <span class=nf>value_to_csv</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Expand a single value to a CSV row.</span>
+
+<span class=sd>        :param Union[int, float] value: the value</span>
+<span class=sd>        :return: the CSV row.</span>
+<span class=sd>        :rtype: str</span>
+<span class=sd>        """</span>
+        <span class=n>s</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=si>}{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>s</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>5</span><span class=si>}</span><span class=s2>0"</span></div>
+
+
+<div class=viewcode-block id=Statistics.to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.to_csv>[docs]</a>
+    <span class=k>def</span> <span class=nf>to_csv</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Generate a string with the data of this record in CSV format.</span>
+
+<span class=sd>        :return: the string</span>
+<span class=sd>        :rtype: str</span>
+<span class=sd>        """</span>
+        <span class=n>q</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>""</span> <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>mean_geom</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> \
+            <span class=k>else</span> <span class=n>num_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>mean_geom</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>minimum</span><span class=p>)</span><span class=si>}{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>median</span><span class=p>)</span><span class=si>}{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>mean_arith</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>q</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>maximum</span><span class=p>)</span><span class=si>}{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>stddev</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Statistics.from_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.from_csv>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span> <span class=nf>from_csv</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>row</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=s2>"Statistics"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a CSV string (or separate CSV cells) to a Statistics object.</span>
+
+<span class=sd>        :param int n: the number of observations</span>
+<span class=sd>        :param Union[str, Iterable[str]] row: either the single string or</span>
+<span class=sd>            the iterable of separate strings</span>
+<span class=sd>        :return: the :class:`Statistics` instance</span>
+<span class=sd>        :rtype: Statistics</span>
+<span class=sd>        """</span>
+        <span class=n>cells</span> <span class=o>=</span> <span class=n>row</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span> \
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span> <span class=k>else</span> <span class=n>row</span>
+
+        <span class=n>mini</span><span class=p>,</span> <span class=n>med</span><span class=p>,</span> <span class=n>mean</span><span class=p>,</span> <span class=n>geo</span><span class=p>,</span> <span class=n>maxi</span><span class=p>,</span> <span class=n>sd</span> <span class=o>=</span> <span class=n>cells</span>
+        <span class=k>return</span> <span class=n>Statistics</span><span class=p>(</span><span class=n>n</span><span class=p>,</span>
+                          <span class=n>str_to_num</span><span class=p>(</span><span class=n>mini</span><span class=p>),</span>
+                          <span class=n>str_to_num</span><span class=p>(</span><span class=n>med</span><span class=p>),</span>
+                          <span class=n>str_to_num</span><span class=p>(</span><span class=n>mean</span><span class=p>),</span>
+                          <span class=n>str_to_num_or_none</span><span class=p>(</span><span class=n>geo</span><span class=p>),</span>
+                          <span class=n>str_to_num</span><span class=p>(</span><span class=n>maxi</span><span class=p>),</span>
+                          <span class=n>str_to_num</span><span class=p>(</span><span class=n>sd</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=Statistics.getter>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.statistics.Statistics.getter>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span> <span class=nf>getter</span><span class=p>(</span><span class=n>dimension</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=s2>"Statistics"</span><span class=p>],</span>
+                                           <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Produce a function that obtains the given dimension from Statistics.</span>
+
+<span class=sd>        :param dimension: the dimension</span>
+<span class=sd>        :returns: a callable that returns the value corresponding to the</span>
+<span class=sd>            dimension</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=s2>"dimension"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>dimension</span> <span class=ow>in</span> <span class=n>_GETTERS</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>_GETTERS</span><span class=p>[</span><span class=n>dimension</span><span class=p>]</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"unknown dimension </span><span class=si>{</span><span class=n>dimension</span><span class=si>!r}</span><span class=s2>, "</span>
+                         <span class=sa>f</span><span class=s2>"should be one of </span><span class=si>{</span><span class=nb>sorted</span><span class=p>(</span><span class=n>_GETTERS</span><span class=o>.</span><span class=n>keys</span><span class=p>())</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label="main navigation"class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><div id=searchbox role=search style=display:none><h3 id=searchlabel>Quick search</h3><div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div></div><script>document.getElementById(`searchbox`).style.display=`block`</script></div></div><div class=clearer></div></div><div aria-label="related navigation"class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.105 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.statistics</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2024, Thomas Weise.</div>
