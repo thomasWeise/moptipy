@@ -107,8 +107,7 @@ class RBFInterpolation(Algorithm):
         if degree >= 0:
             min_points: Final[int] \
                 = int(comb(degree + dimensions, dimensions, exact=True))
-            if min_points > fes_for_warmup:
-                fes_for_warmup = min_points
+            fes_for_warmup = max(fes_for_warmup, min_points)
 
         #: the vector space
         self._space = space

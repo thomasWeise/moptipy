@@ -347,10 +347,8 @@ class NumberRenderer:
             all_is_none = False
             d2 = try_int(d) if isfinite(d) else d
             if isinstance(d2, int):
-                if d2 < min_finite:
-                    min_finite = d2
-                if d2 > max_finite:
-                    max_finite = d2
+                min_finite = min(min_finite, d2)
+                max_finite = max(max_finite, d2)
                 da = abs(d2)
                 if 0 < da < min_non_zero_abs:
                     min_non_zero_abs = da
@@ -368,12 +366,9 @@ class NumberRenderer:
                         i = s.find(".")
                         if i >= 0:
                             i = len(s) - i - 1
-                            if i > longest_fraction:
-                                longest_fraction = i
-                if d2 < min_finite:
-                    min_finite = d2
-                if d2 > max_finite:
-                    max_finite = d2
+                            longest_fraction = max(longest_fraction, i)
+                min_finite = min(min_finite, d2)
+                max_finite = max(max_finite, d2)
                 da = abs(d2)
                 if 0 < da < min_non_zero_abs:
                     min_non_zero_abs = da

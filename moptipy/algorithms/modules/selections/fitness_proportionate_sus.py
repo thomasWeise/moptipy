@@ -214,10 +214,8 @@ def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
     max_fitness: float = -np.inf  # initialize maximum to -infinity
     min_fitness: float = np.inf  # initialize minimum to infinity
     for v in a:  # get minimum and maximum fitness
-        if v > max_fitness:  # if fitness is bigger than maximum...
-            max_fitness = v  # ...then update the maximum
-        if v < min_fitness:  # if fitness is smaller than minimum...
-            min_fitness = v  # ...then update the minimum
+        max_fitness = max(max_fitness, v)
+        min_fitness = min(min_fitness, v)
 
     if min_fitness >= max_fitness:  # all elements are the same
         for i in range(len(a)):  # pylint: disable=C0200

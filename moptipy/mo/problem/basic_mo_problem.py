@@ -105,8 +105,7 @@ class BasicMOProblem(MOProblem):
                             f" int, but is {lb}.")
                 else:
                     lb = try_int(lb)
-                if lb < min_lower_bound:
-                    min_lower_bound = lb
+                min_lower_bound = min(min_lower_bound, lb)
             else:
                 min_lower_bound = -inf
             lower_bounds.append(lb)
@@ -120,8 +119,7 @@ class BasicMOProblem(MOProblem):
                             f"or int, but is {ub}.")
                 else:
                     ub = try_int(ub)
-                if ub > max_upper_bound:
-                    max_upper_bound = ub
+                max_upper_bound = max(max_upper_bound, ub)
             else:
                 max_upper_bound = inf
             if lb >= ub:

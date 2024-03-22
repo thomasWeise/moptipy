@@ -445,8 +445,7 @@ def try_int_root(value: int, power: int,
             root_base *= i
             value //= div
             int_root = (int_root + i - 1) // i
-            if int_root < end:
-                end = int_root
+            end = min(end, int_root)
         else:
             i += 1
 

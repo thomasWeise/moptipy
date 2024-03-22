@@ -315,8 +315,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                         or (ft >= max_time)
             elif ft > max_time:
                 max_ecdf_is_at_max_time = False
-            if ft > max_time:
-                max_time = ft
+            max_time = max(max_time, ft)
     del source
 
     font_size_0: Final[float] = importance_to_font_size_func(0)

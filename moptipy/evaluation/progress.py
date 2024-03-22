@@ -12,7 +12,7 @@ improves the objective value over time.
 """
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Final
+from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 from pycommons.io.console import logger
@@ -386,6 +386,8 @@ class _InnerLogParser(SetupAndStateParser):
         def aa(splt):  # noqa
             return splt[time_col_idx], splt[f_col_idx]
 
+        time: Iterable[int]
+        f: Iterable[Any]
         time, f = zip(*[[c.strip()
                          for c in aa(line.split(CSV_SEPARATOR))]
                         for line in lines[1:]], strict=True)

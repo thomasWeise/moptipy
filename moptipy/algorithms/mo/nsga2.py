@@ -279,8 +279,7 @@ class NSGA2(Algorithm2, MOAlgorithm):
                 # binary tournament with replacement for first parent
                 p1: _NSGA2Record = pop[ri(pop_size)]
                 palt: _NSGA2Record = pop[ri(pop_size)]
-                if palt < p1:
-                    p1 = palt
+                p1 = min(p1, palt)
 
                 if rd() >= cr:  # mutation: only 1 parent needed
                     op1(random, ofs.x, p1.x)  # do mutation
@@ -293,8 +292,7 @@ class NSGA2(Algorithm2, MOAlgorithm):
                     palt = p1
                     while palt is p1:
                         palt = pop[ri(pop_size)]
-                    if palt < p2:
-                        p2 = palt
+                    p2 = min(p2, palt)
                     # got two parents, now do crossover
                     op2(random, ofs.x, p1.x, p2.x)
                 evaluate(ofs.x, ofs.fs)  # otherwise: evaluate

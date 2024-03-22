@@ -730,8 +730,7 @@ class SetupAndStateParser(ExperimentParser):
         else:
             raise ValueError(f"key {_FULL_KEY_OBJECTIVE!r} missing in file!")
 
-        self.encoding = data[_FULL_KEY_ENCODING] \
-            if _FULL_KEY_ENCODING in data else None
+        self.encoding = data.get(_FULL_KEY_ENCODING)
 
         seed_check = rand_seed_check(int(data[_FULL_KEY_RAND_SEED]))
         if self.rand_seed is None:

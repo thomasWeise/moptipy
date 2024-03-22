@@ -108,8 +108,7 @@ def __is_instance_too_easy(inst: Instance) -> bool:
             if makespan <= goal:
                 num_solved += 1
         sum_makespans += makespan
-        if makespan > max_makespan:
-            max_makespan = makespan
+        max_makespan = max(max_makespan, makespan)
 
     mean_makespan: Final[float] = sum_makespans / n_runs
     mean_threshold: Final[float] = min(goal + 32.0,
@@ -387,8 +386,7 @@ def __optimize_scales(scale_choices: list[list[tuple[int, int]]],
                     diff_cnt += 1
                     d1 = a[1] - b[1]
                 d = sqrt((d0 * d0) + (d1 * d1))
-                if d < dist_min:
-                    dist_min = d
+                dist_min = min(dist_min, d)
                 dist_sum += d
         return dist_min, dist_sum, diff_cnt
 

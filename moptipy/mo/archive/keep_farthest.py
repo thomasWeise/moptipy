@@ -204,8 +204,7 @@ class KeepFarthest(MOArchivePruner):
                 for cmp_idx in range(dist_update_start, selected):
                     cmp: np.ndarray = archive[cmp_idx].fs  # objective vector
                     dst: float = float(norm((cmp - rec) / ma))
-                    if dst < min_dist_rec:  # is this one closer?
-                        min_dist_rec = dst  # remember
+                    min_dist_rec = min(min_dist_rec, dst)
                 min_dists[rec_idx] = min_dist_rec  # remember
                 if min_dist_rec > max_dist:  # keep record with largest
                     max_dist = min_dist_rec  # normalized distance

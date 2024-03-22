@@ -61,10 +61,8 @@ class RankAndIteration(Fitness):
         for rec in p:  # iterate over list p
             rec.fitness = rec.f  # set f as fitness for sorting
             it: int = rec.it  # get iteration index from record
-            if it < min_it:  # update minimum iteration index
-                min_it = it
-            if it > max_it:  # update maximum iteration index
-                max_it = it
+            min_it = min(min_it, it)
+            max_it = max(max_it, it)
         p.sort()  # sort based on objective values
 
         it_range: Final[int] = max_it - min_it + 1  # range of it index

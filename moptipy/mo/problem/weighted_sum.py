@@ -209,10 +209,8 @@ def _make_sum_scalarizer(
             max_sum = inf
             break
 
-        if weight < min_weight:
-            min_weight = weight
-        if weight > max_weight:
-            max_weight = weight
+        min_weight = min(min_weight, weight)
+        max_weight = max(max_weight, weight)
 
         if lower_bounds is not None:
             min_sum += weight * lower_bounds[i]

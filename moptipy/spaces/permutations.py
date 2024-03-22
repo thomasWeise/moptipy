@@ -111,10 +111,8 @@ class Permutations(IntSpace):  # +book
             if not isinstance(i, int):
                 raise type_error(i, "element of base_string", int)
             self.__shape[i] += 1
-            if i < minimum:
-                minimum = i
-            if i > maximum:
-                maximum = i
+            minimum = min(minimum, i)
+            maximum = max(maximum, i)
 
         # checking that the data is not empty
         different: Final[int] = len(self.__shape)

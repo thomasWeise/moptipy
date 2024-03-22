@@ -84,6 +84,7 @@ from importlib import resources  # nosem
 from typing import Final, Iterable, cast
 
 import numpy as np
+from pycommons.io.path import UTF8
 from pycommons.types import check_int_range, type_error
 
 import moptipy.utils.nputils as npu
@@ -480,9 +481,9 @@ Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
         inst_attr: Final[str] = f"__inst_{name}"
         if hasattr(container, inst_attr):
             return cast(Instance, getattr(container, inst_attr))
-        with resources.open_text(package=str(__package__),
-                                 resource="demo.txt" if (name == "demo")
-                                 else "instances.txt") as stream:
+        with resources.files(package=str(__package__)).joinpath(
+                "demo.txt" if (name == "demo")
+                else "instances.txt").open("r", encoding=UTF8) as stream:
             inst: Final[Instance] = Instance.from_stream(
                 name=name, stream=stream)
             setattr(container, inst_attr, inst)

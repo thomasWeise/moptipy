@@ -23,8 +23,9 @@ from scipy.optimize import Bounds  # type: ignore
 
 # isort: off
 # noinspection PyProtectedMember
+# pylint: disable=C0412
 from scipy.optimize._differentialevolution import (  # type: ignore
-    differential_evolution,  # type: ignore
+    differential_evolution,  # type: ignore  # pylint: disable=C0412
 )
 # isort: on
 

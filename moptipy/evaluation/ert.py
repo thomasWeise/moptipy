@@ -317,8 +317,7 @@ class Ert(MultiRun2DData):
                     raise type_error(lb, "computed lower bound", (int, float))
                 if not isfinite(lb):
                     raise ValueError(f"Invalid computed lower bound {lb}.")
-                if lb < lower_bound:
-                    lower_bound = lb
+                lower_bound = min(lower_bound, lb)
             f_list.append(progress.f)
 
         if n <= 0:

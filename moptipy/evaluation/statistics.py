@@ -283,10 +283,8 @@ class Statistics:
                 int_prod *= zz  # and can compute exact products
                 int_sum_sqr += zz * zz
 
-            if e < minimum:
-                minimum = e  # update minimum
-            if e > maximum:
-                maximum = e  # update maximum
+            minimum = min(minimum, e)
+            maximum = max(maximum, e)
 
         if n <= 0:
             raise ValueError("source cannot be empty.")

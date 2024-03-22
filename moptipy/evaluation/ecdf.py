@@ -368,7 +368,7 @@ class Ecdf(MultiRun2DData):
         div: Final[int] = cls._get_div(n, n_insts)
         ll: int = 0
         for t in times:
-            success += 1
+            success += 1  # noqa: SIM113
             if t > time[ll]:
                 time.append(t)
                 ecdf.append(success / div)
