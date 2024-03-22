@@ -195,7 +195,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
                 if ns == s:
                     continue
                 found = True
-                os = namer.get(s, None)
+                os = namer.get(s)
                 if os is not None:
                     if os == ns:
                         continue
