@@ -84,7 +84,7 @@ You can install the newest version of this library from [PyPi](https://pypi.org/
 pip install moptipy
 ```
 
-This will install the latest official release of our package as well as [all dependencies](https://thomasweise.github.io/moptipy/requirements.html).
+This will install the latest official release of our package as well as [all dependencies](https://thomasweise.github.io/moptipy/requirements_txt.html).
 If you want to install the latest source code version from GitHub (which may not yet be officially released), you can do
 
 ```shell
@@ -102,11 +102,11 @@ This may sometimes work better if you are having trouble reaching GitHub via `ht
 
 You can also clone the repository and then run a [`make` build](https://thomasweise.github.io/moptipy/Makefile.html), which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
 This will work only on Linux, though.
-It also installs the [dependencies for building](https://thomasweise.github.io/moptipy/requirements-dev.html), which include, e.g., those for [unit testing and static analysis](#81-unit-tests-and-static-analysis).
+It also installs the [dependencies for building](https://thomasweise.github.io/moptipy/requirements-dev_txt.html), which include, e.g., those for [unit testing and static analysis](#81-unit-tests-and-static-analysis).
 If this build completes successful, you can be sure that [`moptipy`](https://thomasweise.github.io/moptipy) will work properly on your machine.
 
-All dependencies for using and running `moptipy` are listed at [here](https://thomasweise.github.io/moptipy/requirements.html).
-The additional dependencies for a [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html), including unit tests, static analysis, and the generation of documentation are listed [here](https://thomasweise.github.io/moptipy/requirements-dev.html).
+All dependencies for using and running `moptipy` are listed at [here](https://thomasweise.github.io/moptipy/requirements_txt.html).
+The additional dependencies for a [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html), including unit tests, static analysis, and the generation of documentation are listed [here](https://thomasweise.github.io/moptipy/requirements-dev_txt.html).
 
 
 ## 3. How-Tos
@@ -169,7 +169,7 @@ Notice that you *must* always use the instances of `Process` in a [`with` block]
 Once this block is left, the log file will be written.
 If you do not use a `with` block, no log file will be generated.
 
-Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html).
+Let us now look at a concrete example, which is also available as file [examples/single_run_rls_onemax](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax_py.html).
 As example domain, we use [bit strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#module-moptipy.spaces.bitstrings) of length `n = 10` and try to solve the well-known [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem using the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls).
 
 ```python
@@ -290,7 +290,7 @@ We use again the  [bit strings domain](https://thomasweise.github.io/moptipy/mop
 We explore two problems ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and [`LeadingOnes`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones)) of two different sizes each, leading to four problem instances in total.
 We apply the well-known [`RLS`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) as well as the trivial [random sampling](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms.random_sampling).
 
-The code below is available as file [examples/experiment_2_algorithms_4_problems](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html).
+The code below is available as file [examples/experiment_2_algorithms_4_problems](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems_py.html).
 Besides executing the experiment, it also prints the end results obtained from parsing the log files (see [Section 5.2.](#52-end-result-csv-files) for more information).
 
 ```python
@@ -541,7 +541,7 @@ All such sections will be appended at the end of the log files, wrapped in `BEGI
 #### 3.3.3. Applying an Own Algorithm to an Own Problem
 
 The following code combines our [own algorithm](#332-define-a-new-algorithm) and our [own problem type](#331-define-a-new-problem-type) that we discussed in the prior two sections and executes an experiment.
-It is available as file [examples/experiment_own_algorithm_and_problem](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem.html).
+It is available as file [examples/experiment_own_algorithm_and_problem](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem_py.html).
 Notice how we provide functions for generating both the problem instances (here the objective functions) and the algorithm setups exactly as we described in [Section 3.2.](#32-how-to-run-a-series-of-experiments) above.
 
 ```python
@@ -1105,7 +1105,7 @@ The sections are plain texts, the results of the [`to_str`](https://thomasweise.
 #### 5.1.3. Example for Single-Objective Optimization
 
 You can execute the following Python code to obtain an example log file.
-This code is also available in file [examples/log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html):
+This code is also available in file [examples/log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp_py.html):
 
 ```python
 from moptipy.algorithms.so.rls import RLS  # the algorithm we use
@@ -1236,7 +1236,7 @@ END_RESULT_X
 You can execute the following Python code to obtain an example log file for [multi-objective optimization](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.mo_problem).
 Under `moptipy`, every multi-objective problem also specifies a default scalarization, making it and its log files compatible with single-objective optimization.
 The optimization algorithms can, however, perform Pareto optimization, which is fully respected and whose archive of non-dominated solutions are stored in the log files.
-This code is also available in file [examples/mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits.html):
+This code is also available in file [examples/mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits_py.html):
 
 ```python
 from moptipy.algorithms.mo.nsga2 import NSGA2
@@ -1547,7 +1547,7 @@ They are contained in the end results CSV file, though.
 #### 5.2.2. An Example for End Results Files
 
 Let us execute an abridged example experiment, parse all log files, condense their information into an end results statistics file, and then print that file's contents.
-We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html).
+We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp_py.html).
 
 ```python
 from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
@@ -1670,7 +1670,7 @@ Finally, the columns `maxFEs` and `maxTimeMillis`, if specified, include the com
 #### 5.3.2. Example for End Result Statistics Files
 
 We can basically execute the same abridged experiment as in the [previous section](#522-an-example-for-end-results-files), but now take the aggregation of information one step further with the code below.
-This code is also available as file [examples/end_statistics_jssp](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html).
+This code is also available as file [examples/end_statistics_jssp](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp_py.html).
 
 ```python
 from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
@@ -1761,7 +1761,7 @@ where `source_dir` should be the root directory with the experimental data (see 
 
 ### 6.2. Progress Plots
 
-In the file [examples/progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html), you can find some code running a small experiment and creating "progress plots."
+In the file [examples/progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot_py.html), you can find some code running a small experiment and creating "progress plots."
 A progress plot is a diagram that shows how an algorithm improves the solution quality over time.
 The solution quality can be the raw objective value, the objective value scaled by the goal objective value, or the objective value normalized with the goal objective value.
 The time can be measured in objective function evaluations (FEs) or in milliseconds and may be log-scaled or unscaled.
@@ -1778,7 +1778,7 @@ Progress plots are implemented in the module [moptipy.evaluation.plot_progress](
 
 ### 6.3. End Results Plot
 
-In the file [examples/end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html), you can find some code running a small experiment and creating "end results plots."
+In the file [examples/end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot_py.html), you can find some code running a small experiment and creating "end results plots."
 An end results plot is basically a [box plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html) overlay on top of a [violin plot](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html).
 
 Imagine that you conduct multiple runs of one algorithm on one problem instance, let's say 50.
@@ -1813,7 +1813,7 @@ Ofcourse you can also use it to plot raw objective values, or even runtimes if y
 <img alt="Example for an end result plot" src="https://thomasweise.github.io/moptipy/_static/end_results_scaled.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-In the file [end_results_with_limits_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_with_limits_plot.html), you can find an example of the interplay of this type of plots with the "virtual" runtime limits that can be specified when parsing [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult)s.
+In the file [end_results_with_limits_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_with_limits_plot_py.html), you can find an example of the interplay of this type of plots with the "virtual" runtime limits that can be specified when parsing [`moptipy.evaluation.end_results.EndResult`](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult)s.
 Here, we run an RLS on three OneMax instances for 126&nbsp;FEs per run.
 We then plot the result distribution that we get after 16, 32, 64, and 128&nbsp;FEs in different charts inside one figure.
 It can be seen nicely how the end result distribution approaches 0, i.e., the optimum, more and more everytime we double runtime.
@@ -1829,7 +1829,7 @@ The end result plots are implemented in the module [moptipy.evaluation.plot_end_
 
 ### 6.4. ECDF Plots
 
-In the file [examples/ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html), you can find some code running a small experiment and creating "ECDF plots."
+In the file [examples/ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot_py.html), you can find some code running a small experiment and creating "ECDF plots."
 The Empirical Cumulative Distribution Function (ECDF) is a plot that aggregates data over several runs of an optimization algorithm.
 It has the consumed runtime (in FEs or milliseconds) on its horizontal axis and the fraction of runs that succeeded in reaching a specified goal on its vertical axis.
 Therefore, an ECDF curve is a monotonously increasing curve:
@@ -1853,7 +1853,7 @@ ECDF plots are implemented in the module [moptipy.evaluation.plot_ecdf](https://
 
 ### 6.5. Expected Running Time (ERT) Plots
 
-In the file [examples/ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html), you can find some code running a small experiment and creating empirically estimated Expected Running Time (ERT) plots.
+In the file [examples/ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot_py.html), you can find some code running a small experiment and creating empirically estimated Expected Running Time (ERT) plots.
 Basically, it illustrates an estimation of the runtime that it would take in expectation to reach certain objective values.
 The objective values are therefore printed on the horizontal axis and the vertical axis associates an expected running time to them.
 This expectation is estimated based on the idea of iterated runs:
@@ -1885,7 +1885,7 @@ The ERT plots are implemented in the module [moptipy.evaluation.plot_ert](https:
 
 ### 6.6. ERT-ECDF Plots
 
-In the file [examples/ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot.html), you can find some code running a small experiment and creating ERT-ECDF plots.
+In the file [examples/ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot_py.html), you can find some code running a small experiment and creating ERT-ECDF plots.
 These plots combine the concepts of [ERTs](#65-expected-running-time-ert-plots) with [ECDFs](#64-ecdf-plots):
 Their vertical axis shows the fraction of problem instances that can be expected to be solved by an algorithm.
 Their horizontal axis shows the runtime consumed to do so, which is equivalent to the ERT of the algorithm to reach the global optimum.
@@ -1903,7 +1903,7 @@ Like ECDF-plots, the ERT-ECDF plots are implemented in the module [moptipy.evalu
 Often we want to investigate how and algorithm parameter or an instance feature impacts the algorithm performance.
 The function  [plot_end_statistics_over_param](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_end_statistics_over_parameter) can do both:
 
-In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html), it is used to visualize the [`ERT`](#65-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
+In [examples/end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot_py.html), it is used to visualize the [`ERT`](#65-expected-running-time-ert-plots) of a simple [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) over the instance size `n` of the [OneMax problem](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax).
 Basically, the minimization version of the OneMax problem tries to minimize the number of `0`s in a bit string of length `n`.
 Of course, the higher `n`, the longer it will take to solve the problem.
 We apply the RLS several times to the instances of sizes `n` in `1..20`.
@@ -1914,7 +1914,7 @@ All we need to tell our system how it can deduce the value of the feature from a
 <img alt="Example for the ERT of a RLS on OneMax plotted over the instance size n over several OneMax instances." src="https://thomasweise.github.io/moptipy/_static/ert_over_onemax_n.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-In [examples/end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html), on the other hand, we apply the same method to analyze the impact of an algorithm parameter on the performance.
+In [examples/end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot_py.html), on the other hand, we apply the same method to analyze the impact of an algorithm parameter on the performance.
 We again apply an [RLS algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.html#module-moptipy.algorithms.so.rls) algorithm, but this time with a configurable operator, [Op1MoverNflip](https://thomasweise.github.io/moptipy/moptipy.operators.bitstrings.html#module-moptipy.operators.bitstrings.op1_m_over_n_flip), which flips each bit in a string with a probability distributed according to `Bin(m/n)`, where `n` is the total number of bits and `m` is a parameter.
 We apply this algorithm for different values of `m` to two instances of the minimization version of the [LeadingOnes](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.leadingones) problem.
 We plot the mean end result after 128 FEs (on the vertical axis) over the values of `m` (horizontal axis). 
@@ -1928,7 +1928,7 @@ These plots have been implemented in the module [moptipy.evaluation.plot_end_sta
 
 ### 6.8. End Results Table
 
-In the file [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html), you can find some code running a small experiment and creating an "end results table."
+In the file [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table_py.html), you can find some code running a small experiment and creating an "end results table."
 Such a table allows you to display statistics summarizing the performance of your algorithms over several problem instances.
 In their standard configuration, they two parts:
 
@@ -1957,7 +1957,7 @@ In their standard configuration, they two parts:
 For each column of each group (instances in part 1, the complete part 2), the best values are marked in **bold face**.
 
 Tables can be rendered to different formats, such as [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown), [LaTeX](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.latex.LaTeX), and [HTML](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.html.HTML).
-The example [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
+The example [examples/end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table_py.html), for instance, produces the following [Markdown](https://thomasweise.github.io/moptipy/moptipy.utils.html#moptipy.utils.markdown.Markdown) table:
 
 |I|lb(f)|setup|best|mean|sd|mean1|mean(fes)|mean(t)|
 |:--|--:|:--|--:|--:|--:|--:|--:|--:|
@@ -2008,10 +2008,10 @@ The end result tables are implemented in the module [moptipy.evaluation.tabulate
 
 ### 6.9. Testing End Results for Statistically Significant Differences (Table)
 
-In the file [examples/end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html), you can find some code running a small experiment and creating a table of statistical end result tests.
+In the file [examples/end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests_py.html), you can find some code running a small experiment and creating a table of statistical end result tests.
 In such a table, a set of algorithms is compared pairwise on a set of problem instances using the two-tailed Mann-Whitney U test with the Bonferroni correction.
 
-The output in markdown of the table generated in [examples/end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html) looks as follows:
+The output in markdown of the table generated in [examples/end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests_py.html) looks as follows:
 
 |Mann-Whitney U $\alpha$=0.02, $\alpha$'=1.111\*10^-3^|`rls_flip1` vs. `rls_flipB1`|`rls_flip1` vs. `rls_flipB2`|`rls_flipB1` vs. `rls_flipB2`|
 |--:|:-:|:-:|:-:|
@@ -2051,28 +2051,28 @@ The end result comparison tables are implemented in the module [moptipy.evaluati
 
 Here we list the set of examples that are provided in the [moptipy](https://github.com/thomasWeise/moptipy) repository in the folder "[examples](https://github.com/thomasWeise/moptipy/tree/main/examples)".
 
-- [continuous_optimization.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization.html) applies a set of numerical/continuous optimization algorithms to a simple problem and prints their results.
-- [continuous_optimization_with_logging.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization_with_logging.html) is exactly the same example, but this time log files are created and their contents are printed for each run.
-- [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot.html) runs a small experiment on the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem and plots the [ECDF](#64-ecdf-plots).
-- [end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp.html) runs a small experiment with on the Job Shop Scheduling Problem (JSSP) and generates an [end results CSV file](#52-end-result-csv-files).
-- [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot.html) applies two algorithms to the JSSP and creates [plots of end results](#63-end-results-plot). 
-- [end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table.html) runs another small experiment on the JSSP and generates a [table of end results](#68-end-results-table).
-- [end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests.html) runs a small experiment on bit string search spaces and generates a [table with statistical comprisons of end results](#69-testing-end-results-for-statistically-significant-differences-table).
-- [end_results_with_limits_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_with_limits_plot.html) runs a small experiment with one algorithm on three [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and collects the whole algorithm progress in the log files. It then plots [plots of end results](#63-end-results-plot) for different runtime limits.
-- [end_statistics_jssp.py](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp.html) runs a small experiment on the JSSP and generates an [end statistics CSV file](#53-end-result-statistics-csv-files).
-- [end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot.html) solves several [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and plots the ERT over the problem scale, i.e., generates a [performance-over-feature plot](#67-performance-over-algorithm-parameter-or-instance-feature).
-- [end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot.html) applies different settings of an algorithm to LeadingOnes instances and plots their [performance over their parameter setting](#67-performance-over-algorithm-parameter-or-instance-feature).
-- [ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot.html) applies an algorithm to the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and plots the [ERT](#65-expected-running-time-ert-plots) over the solution qualities.
-- [ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot.html) applies one algorithm to several [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and creates an [ERT-ECDF plot](#66-ert-ecdf-plots).
-- [experiment_2_algorithms_4_problems.py](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems.html) shows how to use the [structured experiment API](#32-how-to-run-a-series-of-experiments) and applies two algorithms to four problem instances ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and LeadingOnes).
-- [experiment_own_algorithm_and_problem.py](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem.html) shows how to [implement](#333-applying-an-own-algorithm-to-an-own-problem) some of the core components of our API, namely how a [self-implemented algorithm](#332-define-a-new-algorithm) can be applied to a [self-implemented problem](#331-define-a-new-problem-type).
-- [log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp.html) showcases the [log file structure](#51-log-files) for single-objective optimization.
-- [mo_example.py](https://thomasweise.github.io/moptipy/examples/mo_example.html) is a simple example for multi-objective optimization: we apply multi-objective RLS to a multi-objective version of the JSSP.
-- [mo_example_nsga2.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2.html) the same simple example for multi-objective optimization, but this time using the popular NSGA-II algorithm, which works out better than our multi-objective RLS.
-- [mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits.html) another example of NSGA-II solving a multi-objective optimization problem, this time over the space of the bit strings.
-- The package [`moptipy.examples.jssp`](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html) contains a complete experiment on the Job Shop Scheduling Problem (JSSP) together with its evaluation routines, making up an epxerimental part of the book ["Optimization Algorithms"](https://thomasweise.github.io/oa).
-- [progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot.html) shows how [progress plots](#62-progress-plots) can be generated from a small experiment with the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem and the 1-dimensional Ising model.
-- [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
+- [continuous_optimization.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization_py.html) applies a set of numerical/continuous optimization algorithms to a simple problem and prints their results.
+- [continuous_optimization_with_logging.py](https://thomasweise.github.io/moptipy/examples/continuous_optimization_with_logging_py.html) is exactly the same example, but this time log files are created and their contents are printed for each run.
+- [ecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ecdf_plot_py.html) runs a small experiment on the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem and plots the [ECDF](#64-ecdf-plots).
+- [end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp_py.html) runs a small experiment with on the Job Shop Scheduling Problem (JSSP) and generates an [end results CSV file](#52-end-result-csv-files).
+- [end_results_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_plot_py.html) applies two algorithms to the JSSP and creates [plots of end results](#63-end-results-plot). 
+- [end_results_table.py](https://thomasweise.github.io/moptipy/examples/end_results_table_py.html) runs another small experiment on the JSSP and generates a [table of end results](#68-end-results-table).
+- [end_results_tests.py](https://thomasweise.github.io/moptipy/examples/end_results_tests_py.html) runs a small experiment on bit string search spaces and generates a [table with statistical comprisons of end results](#69-testing-end-results-for-statistically-significant-differences-table).
+- [end_results_with_limits_plot.py](https://thomasweise.github.io/moptipy/examples/end_results_with_limits_plot_py.html) runs a small experiment with one algorithm on three [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and collects the whole algorithm progress in the log files. It then plots [plots of end results](#63-end-results-plot) for different runtime limits.
+- [end_statistics_jssp.py](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp_py.html) runs a small experiment on the JSSP and generates an [end statistics CSV file](#53-end-result-statistics-csv-files).
+- [end_statistics_over_feature_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_feature_plot_py.html) solves several [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and plots the ERT over the problem scale, i.e., generates a [performance-over-feature plot](#67-performance-over-algorithm-parameter-or-instance-feature).
+- [end_statistics_over_param_plot.py](https://thomasweise.github.io/moptipy/examples/end_statistics_over_param_plot_py.html) applies different settings of an algorithm to LeadingOnes instances and plots their [performance over their parameter setting](#67-performance-over-algorithm-parameter-or-instance-feature).
+- [ert_plot.py](https://thomasweise.github.io/moptipy/examples/ert_plot_py.html) applies an algorithm to the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and plots the [ERT](#65-expected-running-time-ert-plots) over the solution qualities.
+- [ertecdf_plot.py](https://thomasweise.github.io/moptipy/examples/ertecdf_plot_py.html) applies one algorithm to several [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) instances and creates an [ERT-ECDF plot](#66-ert-ecdf-plots).
+- [experiment_2_algorithms_4_problems.py](https://thomasweise.github.io/moptipy/examples/experiment_2_algorithms_4_problems_py.html) shows how to use the [structured experiment API](#32-how-to-run-a-series-of-experiments) and applies two algorithms to four problem instances ([`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) and LeadingOnes).
+- [experiment_own_algorithm_and_problem.py](https://thomasweise.github.io/moptipy/examples/experiment_own_algorithm_and_problem_py.html) shows how to [implement](#333-applying-an-own-algorithm-to-an-own-problem) some of the core components of our API, namely how a [self-implemented algorithm](#332-define-a-new-algorithm) can be applied to a [self-implemented problem](#331-define-a-new-problem-type).
+- [log_file_jssp.py](https://thomasweise.github.io/moptipy/examples/log_file_jssp_py.html) showcases the [log file structure](#51-log-files) for single-objective optimization.
+- [mo_example.py](https://thomasweise.github.io/moptipy/examples/mo_example_py.html) is a simple example for multi-objective optimization: we apply multi-objective RLS to a multi-objective version of the JSSP.
+- [mo_example_nsga2.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_py.html) the same simple example for multi-objective optimization, but this time using the popular NSGA-II algorithm, which works out better than our multi-objective RLS.
+- [mo_example_nsga2_bits.py](https://thomasweise.github.io/moptipy/examples/mo_example_nsga2_bits_py.html) another example of NSGA-II solving a multi-objective optimization problem, this time over the space of the bit strings.
+- The package [`moptipy.examples.jssp`](https://thomasweise.github.io/moptipy/moptipy.examples.jssp_py.html) contains a complete experiment on the Job Shop Scheduling Problem (JSSP) together with its evaluation routines, making up an epxerimental part of the book ["Optimization Algorithms"](https://thomasweise.github.io/oa).
+- [progress_plot.py](https://thomasweise.github.io/moptipy/examples/progress_plot_py.html) shows how [progress plots](#62-progress-plots) can be generated from a small experiment with the [`OneMax`](https://thomasweise.github.io/moptipy/moptipy.examples.bitstrings.html#module-moptipy.examples.bitstrings.onemax) problem and the 1-dimensional Ising model.
+- [single_run_rls_onemax.py](https://thomasweise.github.io/moptipy/examples/single_run_rls_onemax_py.html) shows how we can perform a [single run of a single algorithm on a single problem instance](#31-how-to-apply-1-optimization-algorithm-once-to-1-problem-instance).
 
 
 ## 8. More Features
@@ -2166,7 +2166,7 @@ We *always* must maintain high coding and documentation standards from the very 
 While `moptipy` may still be far from achieving these goals, at least we try to get there.
 
 Anyway, you can find our [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html) running all the tests, doing all the static analyses, creating the documentation, and creating and packaging the distribution files [here](https://thomasweise.github.io/moptipy/Makefile.html).
-Besides the [basic `moptipy` dependencies](https://thomasweise.github.io/moptipy/requirements-dev.html), it requires [a set of additional dependencies](https://thomasweise.github.io/moptipy/requirements-dev.html).
+Besides the [basic `moptipy` dependencies](https://thomasweise.github.io/moptipy/requirements-dev_txt.html), it requires [a set of additional dependencies](https://thomasweise.github.io/moptipy/requirements-dev_txt.html).
 These are all automatically installed during the build procedure.
 The build only works under Linux.
 
@@ -2299,8 +2299,8 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 
-Please visit the [contributions guidelines](https://thomasweise.github.io/moptipy/CONTRIBUTING.html) for `moptipy` if you would like to contribute to our package.
-If you have any concerns regarding security, please visit our [security policy](https://thomasweise.github.io/moptipy/SECURITY.html).
+Please visit the [contributions guidelines](https://thomasweise.github.io/moptipy/CONTRIBUTING_md.html) for `moptipy` if you would like to contribute to our package.
+If you have any concerns regarding security, please visit our [security policy](https://thomasweise.github.io/moptipy/SECURITY_md.html).
 
 
 ## 12. Contact
