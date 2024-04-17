@@ -93,6 +93,7 @@ from typing import Callable, Final, Iterable, cast
 import numpy as np
 from numpy.random import Generator
 from pycommons.strings.string_conv import num_to_str
+from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
@@ -109,7 +110,7 @@ SWITCH_TO_MAP_RANGE: Final[int] = 67_108_864
 
 
 def _fea_flat(process: Process, op0: Callable, op1: Callable,
-              lb: int, ub: int) -> None:
+              lb: int, ub: int, log_h_tbl: bool) -> None:
     """
     Apply the (1+1)-FEA to an optimization problem.
 
@@ -118,6 +119,7 @@ def _fea_flat(process: Process, op0: Callable, op1: Callable,
     :param op1: the unary search operator
     :param lb: the lower bound
     :param ub: the upper bound
+    :param log_h_tbl: should we log the H table?
     """
     # Create records for old and new point in the search space.
     best_x = process.create()  # record for best-so-far solution
@@ -146,6 +148,9 @@ def _fea_flat(process: Process, op0: Callable, op1: Callable,
             best_f = new_f  # Store its objective value.
             best_x, new_x = new_x, best_x  # Swap best and new.
 
+    if not log_h_tbl:
+        return  # we are done here
+
     # After we are done, we want to print the H table.
     if h[best_f] == 0:  # Fix the H table for the case that only one
         h[best_f] = 1   # single FE was performed.
@@ -155,13 +160,15 @@ def _fea_flat(process: Process, op0: Callable, op1: Callable,
                lambda i, _lb=lb: str(i + _lb)))
 
 
-def _fea_map(process: Process, op0: Callable, op1: Callable) -> None:
+def _fea_map(process: Process, op0: Callable, op1: Callable,
+             log_h_tbl: bool) -> None:
     """
     Apply the (1+1)-FEA to an optimization problem.
 
     :param process: the black-box process object
     :param op0: the nullary search operator
     :param op1: the unary search operator
+    :param log_h_tbl: should we log the H table?
     """
     # Create records for old and new point in the search space.
     best_x = process.create()  # record for best-so-far solution
@@ -189,6 +196,9 @@ def _fea_map(process: Process, op0: Callable, op1: Callable) -> None:
         if h[new_f] <= h[best_f]:  # frequency of new_f no worse than best_f?
             best_f = new_f  # Store its objective value.
             best_x, new_x = new_x, best_x  # Swap best and new.
+
+    if not log_h_tbl:
+        return
 
 # After we are done, we want to print the H table.
     if h[best_f] == 0:  # Fix the H table for the case that only one
@@ -224,14 +234,19 @@ class FEA1plus1(Algorithm1):
     in module :mod:`~moptipy.algorithms.so.fitnesses.ffa`.
     """
 
-    def __init__(self, op0: Op0, op1: Op1) -> None:
+    def __init__(self, op0: Op0, op1: Op1, log_h_tbl: bool = True) -> None:
         """
         Create the (1+1)-FEA.
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
+        :param log_h_tbl: should we log the H table?
         """
         super().__init__("fea1p1", op0, op1)
+        if not isinstance(log_h_tbl, bool):
+            raise type_error(log_h_tbl, "log_h_tbl", bool)
+        #: True if we should log the H table, False otherwise
+        self.log_h_tbl: Final[bool] = log_h_tbl
 
     def solve(self, process: Process) -> None:
         """
@@ -244,9 +259,10 @@ class FEA1plus1(Algorithm1):
             ub: Final[int | float] = process.upper_bound()
             if isinstance(ub, int) and isinstance(lb, int) \
                     and ((ub - lb) <= SWITCH_TO_MAP_RANGE):
-                _fea_flat(process, self.op0.op0, self.op1.op1, lb, ub)
+                _fea_flat(process, self.op0.op0, self.op1.op1, lb, ub,
+                          self.log_h_tbl)
                 return
-        _fea_map(process, self.op0.op0, self.op1.op1)
+        _fea_map(process, self.op0.op0, self.op1.op1, self.log_h_tbl)
 
 
 def __h_to_str(indices: Iterable[int | float],

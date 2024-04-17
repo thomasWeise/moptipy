@@ -46,10 +46,11 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
 
 #: the dependencies
 __DEPENDENCIES: set[str] | None = {
-    "contourpy", "cycler", "fonttools", "intel-cmplr-lib-rt", "joblib",
-    "kiwisolver", "llvmlite", "matplotlib", "moptipy", "numba", "numpy",
-    "packaging", "pdfo", "Pillow", "psutil", "pyparsing", "python-dateutil",
-    "scikit-learn", "scipy", "six", "threadpoolctl"}
+    "cmaes", "contourpy", "cycler", "fonttools", "intel-cmplr-lib-rt",
+    "joblib", "kiwisolver", "llvmlite", "matplotlib", "moptipy", "numba",
+    "numpy", "packaging", "pdfo", "Pillow", "psutil", "pycommons",
+    "pyparsing", "python-dateutil", "scikit-learn", "scipy", "setuptools",
+    "six", "threadpoolctl"}
 
 
 def is_make_build() -> bool:
@@ -351,6 +352,7 @@ def get_sys_info() -> str:
     session.workingDirectory
     session.ipAddress
     version.Pillow
+    version.cmaes
     version.contourpy
     version.cycler
     version.fonttools
@@ -365,10 +367,12 @@ def get_sys_info() -> str:
     version.packaging
     version.pdfo
     version.psutil
+    version.pycommons
     version.pyparsing
     version.pythondateutil
     version.scikitlearn
     version.scipy
+    version.setuptools
     version.six
     version.threadpoolctl
     hardware.machine

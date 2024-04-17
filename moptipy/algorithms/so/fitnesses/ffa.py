@@ -59,6 +59,7 @@ from typing import Callable, Final, Iterable, cast
 import numpy as np
 from numpy.random import Generator
 from pycommons.strings.string_conv import num_to_str
+from pycommons.types import type_error
 
 from moptipy.algorithms.so.fea1plus1 import SWITCH_TO_MAP_RANGE, log_h
 from moptipy.algorithms.so.fitness import Fitness, FRecord
@@ -75,12 +76,14 @@ SWITCH_TO_OFFSET_LB: Final[int] = 8_388_608
 class FFA(Fitness):
     """The frequency fitness assignment (FFA) process."""
 
-    def __new__(cls, f: Objective) -> "FFA":
+    def __new__(cls, f: Objective, log_h_tbl: bool = True) -> "FFA":
         """
         Create the frequency fitness assignment mapping.
 
         :param f: the objective function
         """
+        if not isinstance(log_h_tbl, bool):
+            raise type_error(log_h_tbl, "log_h_tbl", bool)
         check_objective(f)
         if f.is_always_integer():
             lb: Final[int | float] = f.lower_bound()
@@ -88,10 +91,10 @@ class FFA(Fitness):
             if isinstance(ub, int) and isinstance(lb, int) \
                     and ((ub - lb) <= SWITCH_TO_MAP_RANGE):
                 if 0 <= lb <= SWITCH_TO_OFFSET_LB:
-                    return _IntFFA1.__new__(_IntFFA1, cast(int, ub))
+                    return _IntFFA1.__new__(_IntFFA1, cast(int, ub), log_h_tbl)
                 return _IntFFA2.__new__(_IntFFA2, cast(int, lb),
-                                        cast(int, ub))
-        return _DictFFA.__new__(_DictFFA)
+                                        cast(int, ub), log_h_tbl)
+        return _DictFFA.__new__(_DictFFA, log_h_tbl)
 
     def __str__(self):
         """
@@ -110,19 +113,23 @@ class _IntFFA1(FFA):
     __h: np.ndarray
     #: is this the first iteration?
     __first: bool
+    #: log the h table?
+    __log_h_tbl: bool
 
-    def __new__(cls, ub: int) -> "_IntFFA1":
+    def __new__(cls, ub: int, log_h_tbl: bool = True) -> "_IntFFA1":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA1)
         instance.__h = np.zeros(ub + 1, dtype=DEFAULT_INT)
         instance.__first = True
+        instance.__log_h_tbl = log_h_tbl
         return instance
 
     def log_information_after_run(self, process: Process) -> None:
         """Write the H table."""
-        log_h(process, range(len(self.__h)),
-              cast(Callable[[int | float], int], self.__h.__getitem__),
-              str)
+        if self.__log_h_tbl:
+            log_h(process, range(len(self.__h)),
+                  cast(Callable[[int | float], int], self.__h.__getitem__),
+                  str)
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
@@ -131,7 +138,7 @@ class _IntFFA1(FFA):
         :param p: the list of records
         :param random: ignored
 
-        >>> fit = _IntFFA1(100)
+        >>> fit = _IntFFA1(100, False)
         >>> a = FRecord(None, 1)
         >>> b = FRecord(None, 2)
         >>> c = FRecord(None, 2)
@@ -201,20 +208,24 @@ class _IntFFA2(FFA):
     __lb: int
     #: is this the first iteration?
     __first: bool
+    #: log the h table?
+    __log_h_tbl: bool
 
-    def __new__(cls, lb: int, ub: int) -> "_IntFFA2":
+    def __new__(cls, lb: int, ub: int, log_h_tbl: bool = True) -> "_IntFFA2":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_IntFFA2)
         instance.__h = np.zeros(ub - lb + 1, dtype=DEFAULT_INT)
         instance.__lb = lb
         instance.__first = True
+        instance.__log_h_tbl = log_h_tbl
         return instance
 
     def log_information_after_run(self, process: Process) -> None:
         """Write the H table."""
-        log_h(process, range(len(self.__h)),
-              cast(Callable[[int | float], int], self.__h.__getitem__),
-              lambda i: str(i + self.__lb))
+        if self.__log_h_tbl:
+            log_h(process, range(len(self.__h)),
+                  cast(Callable[[int | float], int], self.__h.__getitem__),
+                  lambda i: str(i + self.__lb))
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
@@ -223,7 +234,7 @@ class _IntFFA2(FFA):
         :param p: the list of records
         :param random: ignored
 
-        >>> fit = _IntFFA2(-10, 100)
+        >>> fit = _IntFFA2(-10, 100, False)
         >>> a = FRecord(None, -1)
         >>> b = FRecord(None, 2)
         >>> c = FRecord(None, 2)
@@ -296,19 +307,23 @@ class _DictFFA(FFA):
     __h: Counter[int | float]
     #: is this the first iteration?
     __first: bool
+    #: log the h table?
+    __log_h_tbl: bool
 
-    def __new__(cls) -> "_DictFFA":
+    def __new__(cls, log_h_tbl: bool = True) -> "_DictFFA":
         """Initialize the pure integer FFA."""
         instance = object.__new__(_DictFFA)
         instance.__h = Counter()
         instance.__first = True
+        instance.__log_h_tbl = log_h_tbl
         return instance
 
     def log_information_after_run(self, process: Process) -> None:
         """Write the H table."""
-        log_h(process, cast(Iterable[int | float], self.__h.keys()),
-              cast(Callable[[int | float], int], self.__h.__getitem__),
-              num_to_str)
+        if self.__log_h_tbl:
+            log_h(process, cast(Iterable[int | float], self.__h.keys()),
+                  cast(Callable[[int | float], int], self.__h.__getitem__),
+                  num_to_str)
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
@@ -317,7 +332,7 @@ class _DictFFA(FFA):
         :param p: the list of records
         :param random: ignored
 
-        >>> fit = _DictFFA()
+        >>> fit = _DictFFA(False)
         >>> a = FRecord(None, -1)
         >>> b = FRecord(None, 2.9)
         >>> c = FRecord(None, 2.9)

@@ -22,7 +22,6 @@ over time.
 """
 
 from math import inf, isfinite, isinf
-from os import listdir
 from typing import Final
 
 from pycommons.io.console import logger
@@ -421,8 +420,7 @@ class LogParser:
 
         do_files = True
         do_dirs = True
-        for subpath in listdir(folder):
-            sub: Path = folder.resolve_inside(subpath)
+        for sub in folder.list_dir():
             if sub.is_file():
                 if do_files and (not self.parse_file(sub)):
                     logger(f"will parse no more files in {folder!r}.")
