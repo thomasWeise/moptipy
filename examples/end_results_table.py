@@ -57,7 +57,7 @@ from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.evaluation.tabulate_end_results import tabulate_end_results
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
@@ -153,7 +153,7 @@ with temp_dir() as td:  # create temporary directory `td`
     # Once we arrived here, the experiment with 3*3*7=63 runs has completed.
 
     data = []  # we will load the data into this list
-    EndResult.from_logs(td, data.append)  # load all end results
+    from_logs(td, data.append)  # load all end results
 
     file = tabulate_end_results(data, dir_name=td)  # create the table
     print(f"\nnow presenting markdown data from file {file!r}.\n")

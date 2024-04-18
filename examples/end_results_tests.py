@@ -42,7 +42,7 @@ from pycommons.io.temp import temp_dir
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.evaluation.tabulate_result_tests import tabulate_result_tests
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
@@ -89,7 +89,7 @@ with temp_dir() as td:  # create temporary directory `td`
 
     # load all the end results
     end_results = []
-    EndResult.from_logs(td, end_results.append)
+    from_logs(td, end_results.append)
 
     # create a markdown table with statistical test results
     file = tabulate_result_tests(end_results, dir_name=td)

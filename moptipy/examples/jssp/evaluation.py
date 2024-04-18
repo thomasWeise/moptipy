@@ -15,6 +15,9 @@ from pycommons.types import type_error
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import TIME_UNIT_FES, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_csv as end_results_from_csv
+from moptipy.evaluation.end_results import from_logs as end_results_from_logs
+from moptipy.evaluation.end_results import to_csv as end_results_to_csv
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.tabulate_end_results import (
     DEFAULT_ALGORITHM_INSTANCE_STATISTICS,
@@ -279,13 +282,13 @@ def compute_end_results(results_dir: str,
 
     source: Final[Path] = directory_path(results_dir)
     logger(f"loading end results from path {source!r}.")
-    EndResult.from_logs(source, results.append)
+    end_results_from_logs(source, results.append)
     if not results:
         raise ValueError(f"Could not find any logs in {source!r}.")
     results.sort()
     logger(f"found {len(results)} log files in path {source!r}, storing "
            f"them in file {results_file!r}.")
-    rf: Path = EndResult.to_csv(results, results_file)
+    rf: Path = end_results_to_csv(results, results_file)
     if rf != results_file:
         raise ValueError(
             f"results file should be {results_file!r}, but is {rf!r}.")
@@ -323,7 +326,7 @@ def get_end_results(
         return True
 
     col: Final[list[EndResult]] = []
-    EndResult.from_csv(file=file, consumer=col.append, filterer=__filter)
+    end_results_from_csv(file=file, consumer=col.append, filterer=__filter)
     if len(col) <= 0:
         raise ValueError(
             f"no end results for instances {insts} and algorithms {algos}.")

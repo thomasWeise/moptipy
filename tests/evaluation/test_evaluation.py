@@ -10,7 +10,12 @@ from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.api import logging
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import (
+    EndResult,
+    from_csv,
+    from_logs,
+    to_csv,
+)
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.ert import Ert, compute_single_ert
 from moptipy.evaluation.progress import Progress
@@ -73,7 +78,7 @@ def test_experiment_jssp() -> None:
                        base_dir=base_dir)
 
         results: list[EndResult] = []
-        EndResult.from_logs(base_dir, results.append)
+        from_logs(base_dir, results.append)
 
         assert len(results) == (4 * 2 * 3)
         results.sort()
@@ -114,10 +119,10 @@ def test_experiment_jssp() -> None:
 
         with temp_file(directory=base_dir,
                        suffix=logging.FILE_SUFFIX) as path:
-            EndResult.to_csv(results=results, file=path)
+            to_csv(results=results, file=path)
 
             results2: list[EndResult] = []
-            EndResult.from_csv(file=path, consumer=results2.append)
+            from_csv(file=path, consumer=results2.append)
 
             assert results == results2
 

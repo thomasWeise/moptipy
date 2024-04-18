@@ -13,7 +13,7 @@ is read is from files and methods that consume the data are invoked. By
 overwriting these methods, we can do useful things with the data.
 
 For example in module :mod:`~moptipy.evaluation.end_results`, the method
-:meth:`~moptipy.evaluation.end_results.EndResult.from_logs` can load
+:meth:`~moptipy.evaluation.end_results.from_logs` can load
 :class:`~moptipy.evaluation.end_results.EndResult` records from the logs
 and the method :meth:`~moptipy.evaluation.progress.Progress.from_logs` in
 module :mod:`~moptipy.evaluation.progress` reads the whole

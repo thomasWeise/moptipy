@@ -43,6 +43,8 @@ from moptipy.evaluation.base import (
     MultiRunData,
 )
 from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_csv as end_results_from_csv
+from moptipy.evaluation.end_results import from_logs as end_results_from_logs
 from moptipy.evaluation.statistics import (
     CSV_COLS,
     EMPTY_CSV_ROW,
@@ -1325,10 +1327,10 @@ if __name__ == "__main__":
     end_results: Final[list[EndResult]] = []
     if src_path.is_file():
         logger(f"{src_path!r} identifies as file, load as end-results csv")
-        EndResult.from_csv(src_path, end_results.append)
+        end_results_from_csv(src_path, end_results.append)
     else:
         logger(f"{src_path!r} identifies as directory, load it as log files")
-        EndResult.from_logs(src_path, end_results.append)
+        end_results_from_logs(src_path, end_results.append)
 
     end_stats: Final[list[EndStatistics]] = []
     EndStatistics.from_end_results(

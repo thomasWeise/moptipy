@@ -29,6 +29,7 @@ from scipy.stats import mannwhitneyu  # type: ignore
 
 from moptipy.api.logging import KEY_BEST_F
 from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import getter as end_result_getter
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.markdown import Markdown
 from moptipy.utils.number_renderer import (
@@ -124,7 +125,7 @@ def tabulate_result_tests(
         use_lang: bool = False,
         p_renderer: NumberRenderer = DEFAULT_NUMBER_RENDERER,
         value_getter: Callable[[EndResult], int | float]
-        = EndResult.getter(KEY_BEST_F)) -> Path:
+        = end_result_getter(KEY_BEST_F)) -> Path:
     r"""
     Tabulate the results of statistical comparisons of end result qualities.
 
@@ -202,7 +203,7 @@ def tabulate_result_tests(
         you let the runs continue until they reach a certain goal quality,
         then you may want to compare the runtimes consumed until that quality
         is reached. Basically, you can use any of the getters provided by
-        :meth:`moptipy.evaluation.end_results.EndResult.getter`, but you must
+        :meth:`moptipy.evaluation.end_results.getter`, but you must
         take care that the comparison makes sense, i.e., compare qualities
         under fixed-budget scenarios (the default behavior) or compare
         runtimes under scenarios with goal qualities - but do not mix up the

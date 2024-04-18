@@ -24,7 +24,7 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.evaluation.plot_end_results import plot_end_results
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -71,13 +71,13 @@ with temp_dir() as td:  # create temporary directory `td`
 # We now collect the end results at different stages, namely at 16 FEs,
 # 32 FEs, 64 FEs, and after the full rumtime = 128 FEs.
     data_16 = []  # results after 16 FEs
-    EndResult.from_logs(td, data_16.append, max_fes=16)  # load end results
+    from_logs(td, data_16.append, max_fes=16)  # load end results
     data_32 = []  # results after 32 FEs
-    EndResult.from_logs(td, data_32.append, max_fes=32)  # load end results
+    from_logs(td, data_32.append, max_fes=32)  # load end results
     data_64 = []  # results after 64 FEs
-    EndResult.from_logs(td, data_64.append, max_fes=64)  # load end results
+    from_logs(td, data_64.append, max_fes=64)  # load end results
     data_128 = []  # results after 128 FEs
-    EndResult.from_logs(td, data_128.append, max_fes=128)  # load end results
+    from_logs(td, data_128.append, max_fes=128)  # load end results
     items = [[16, data_16], [32, data_32], [64, data_64], [128, data_128]]
 
 # We create a multi-figure, i.e., one figure with multiple charts inside.

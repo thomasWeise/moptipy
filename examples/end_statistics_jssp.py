@@ -3,7 +3,7 @@ from pycommons.io.temp import temp_dir  # tool for temp directories
 
 from moptipy.algorithms.so.hill_climber import HillClimber  # second algo
 from moptipy.algorithms.so.rls import RLS  # first algo to test
-from moptipy.evaluation.end_results import EndResult  # the end result record
+from moptipy.evaluation.end_results import from_logs  # the end result record
 from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
@@ -24,7 +24,7 @@ with temp_dir() as td:
         n_runs=4)  # perform 4 runs per algorithm * instance combination
 
     end_results = []  # this list will receive the end results records
-    EndResult.from_logs(td, end_results.append)  # get results from log files
+    from_logs(td, end_results.append)  # get results from log files
 
     end_stats = []  # the list to receive the statistics records
     EndStatistics.from_end_results(  # compute the end result statistics for

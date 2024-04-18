@@ -13,6 +13,7 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import getter as end_result_getter
 from moptipy.utils.lang import Lang
 
 
@@ -136,7 +137,7 @@ def plot_end_results(
         raise type_error(algorithm_namer, "algorithm_namer", call=True)
 
     getter: Final[Callable[[EndResult], int | float]] \
-        = EndResult.getter(dimension)
+        = end_result_getter(dimension)
     logger(f"now plotting end violins for dimension {dimension}.")
 
     if callable(y_axis):

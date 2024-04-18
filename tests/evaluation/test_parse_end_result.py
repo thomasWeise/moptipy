@@ -7,7 +7,7 @@ from pycommons.io.temp import temp_dir
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import EndResult, from_logs
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
@@ -57,7 +57,7 @@ def test_parse_end_result() -> None:
         results: list[EndResult] = []
         for path in [result_file, res_dir_2, res_dir_1, td]:
             results.clear()
-            EndResult.from_logs(path, results.append)
+            from_logs(path, results.append)
             assert len(results) == 1
             __check_record(results[0])
 
@@ -67,6 +67,6 @@ def test_parse_end_result() -> None:
         rename(result_file, result_file_2)
         for path in [result_file_2, res_dir_2, res_dir_1, td]:
             results.clear()
-            EndResult.from_logs(path, results.append)
+            from_logs(path, results.append)
             assert len(results) == 1
             __check_record(results[0])

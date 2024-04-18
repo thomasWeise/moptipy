@@ -298,7 +298,7 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -357,7 +357,7 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=5,  # we will execute 5 runs per setup
                    n_threads=1)  # we use only a single thread here
 
-    EndResult.from_logs(  # parse all log files and print end results
+    from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
 # The temp directory is deleted as soon as we leave the `with` block.
 ```
@@ -550,7 +550,7 @@ from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.api.objective import Objective
 from moptipy.api.process import Process
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.spaces.permutations import Permutations
 from pycommons.io.temp import temp_dir
 
@@ -691,7 +691,7 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=5,  # we will execute 5 runs per setup
                    n_threads=1)  # we use only a single thread here
 
-    EndResult.from_logs(  # parse all log files and print end results
+    from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
 # The temp directory is deleted as soon as we leave the `with` block.
 ```
@@ -1552,7 +1552,7 @@ We can do that with the code below, which is also available as file [examples/en
 ```python
 from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
 from moptipy.algorithms.so.rls import RLS  # first algo to test
-from moptipy.evaluation.end_results import EndResult  # the end result record
+from moptipy.evaluation.end_results import from_logs, to_csv
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
@@ -1574,9 +1574,9 @@ with temp_dir() as td:
         n_threads=1)  # we use only a single thread here
 
     end_results = []  # this list will receive the end results records
-    EndResult.from_logs(td, end_results.append)  # get results from log files
+    from_logs(td, end_results.append)  # get results from log files
 
-    er_csv = EndResult.to_csv(  # store end results to csv file (returns path)
+    er_csv = to_csv(  # store end results to csv file (returns path)
         end_results,  # the list of end results to store
         td.resolve_inside("end_results.txt"))  # path to the file to generate
     print(er_csv.read_all_str())  # read generated file as string and print it
@@ -1675,7 +1675,7 @@ This code is also available as file [examples/end_statistics_jssp](https://thoma
 ```python
 from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
 from moptipy.algorithms.so.rls import RLS  # first algo to test
-from moptipy.evaluation.end_results import EndResult  # the end result record
+from moptipy.evaluation.end_results import from_logs  # the end result records
 from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
@@ -1698,7 +1698,7 @@ with temp_dir() as td:
         n_threads=1)  # we use only a single thread here
 
     end_results = []  # this list will receive the end results records
-    EndResult.from_logs(td, end_results.append)  # get results from log files
+    from_logs(td, end_results.append)  # get results from log files
 
     end_stats = []  # the list to receive the statistics records
     EndStatistics.from_end_results(  # compute the end result statistics for

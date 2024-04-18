@@ -33,7 +33,7 @@ from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -90,6 +90,6 @@ with temp_dir() as td:  # create temporary directory `td`
                            make_random_sampling],  # provide RS run creator
                    n_runs=5)  # we will execute 5 runs per setup
 
-    EndResult.from_logs(  # parse all log files and print end results
+    from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
 # The temp directory is deleted as soon as we leave the `with` block.

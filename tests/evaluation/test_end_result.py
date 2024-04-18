@@ -5,7 +5,7 @@ from typing import Final
 from numpy.random import Generator, default_rng
 from pycommons.io.temp import temp_file
 
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import EndResult, from_csv, to_csv
 
 
 def __test_write_read_end_result(
@@ -61,8 +61,8 @@ def __test_write_read_end_result(
     assert len(results) > 0
     loaded: list[EndResult] = []
     with temp_file() as tf:
-        EndResult.to_csv(results, tf)
-        EndResult.from_csv(tf, loaded.append)
+        to_csv(results, tf)
+        from_csv(tf, loaded.append)
 
     assert len(loaded) > 0
     results.sort()

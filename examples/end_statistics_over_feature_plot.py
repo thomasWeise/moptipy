@@ -39,7 +39,7 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_logs
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.plot_end_statistics_over_parameter import (
     plot_end_statistics_over_param,
@@ -81,7 +81,7 @@ with temp_dir() as td:  # create temporary directory `td`
     # Once we arrived here, the 20*7 = 140 runs have completed.
 
     end_results = []  # we will load the raw data into this list
-    EndResult.from_logs(td, end_results.append)
+    from_logs(td, end_results.append)
 
     end_stats = []  # the end statistics go into this list
     EndStatistics.from_end_results(end_results, end_stats.append)

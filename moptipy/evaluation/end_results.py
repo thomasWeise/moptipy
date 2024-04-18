@@ -19,7 +19,14 @@ from math import inf, isfinite
 from typing import Any, Callable, Final, Iterable, cast
 
 from pycommons.io.console import logger
-from pycommons.io.path import Path, file_path
+from pycommons.io.csv import (
+    CSV_SEPARATOR,
+    SCOPE_SEPARATOR,
+    csv_read,
+    csv_scope,
+    csv_write,
+)
+from pycommons.io.path import Path, file_path, line_writer
 from pycommons.strings.string_conv import (
     int_or_none_to_str,
     num_or_none_to_str,
@@ -61,24 +68,11 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import moptipy_argparser
-from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.math import try_float_div, try_int
 from moptipy.utils.strings import (
     sanitize_names,
 )
-
-#: The internal CSV header, part 1
-_HEADER_1: Final[str] = (f"{KEY_ALGORITHM}{CSV_SEPARATOR}"
-                         f"{KEY_INSTANCE}{CSV_SEPARATOR}"
-                         f"{KEY_OBJECTIVE_FUNCTION}")
-#: The internal CSV header, part 2
-_HEADER_2: Final[str] = (f"{CSV_SEPARATOR}{KEY_RAND_SEED}{CSV_SEPARATOR}"
-                         f"{KEY_BEST_F}{CSV_SEPARATOR}"
-                         f"{KEY_LAST_IMPROVEMENT_FE}{CSV_SEPARATOR}"
-                         f"{KEY_LAST_IMPROVEMENT_TIME_MILLIS}"
-                         f"{CSV_SEPARATOR}"
-                         f"{KEY_TOTAL_FES}{CSV_SEPARATOR}"
-                         f"{KEY_TOTAL_TIME_MILLIS}")
+from moptipy.version import __version__
 
 
 def __get_goal_f(e: "EndResult") -> int | float:
@@ -312,339 +306,494 @@ class EndResult(PerRunData):
             sanitize_names([self.algorithm, self.instance,
                             hex(self.rand_seed)]) + FILE_SUFFIX)
 
-    @staticmethod
-    def getter(dimension: str) -> Callable[["EndResult"], int | float]:
-        """
-        Produce a function that obtains the given dimension from EndResults.
 
-        The following dimensions are supported:
+def getter(dimension: str) -> Callable[["EndResult"], int | float]:
+    """
+    Produce a function that obtains the given dimension from EndResults.
 
-        1. `lastImprovementFE`: :attr:`~EndResult.last_improvement_fe`
-        2. `lastImprovementTimeMillis`:
-            :attr:`~EndResult.last_improvement_time_millis`
-        3. `totalFEs`: :attr:`~EndResult.total_fes`
-        4. `totalTimeMillis`: :attr:`~EndResult.total_time_millis`
-        5. `goalF`: :attr:`~EndResult.goal_f`
-        6.  `plainF`, `bestF`: :attr:`~EndResult.best_f`
-        7. `scaledF`: :attr:`~EndResult.best_f`/:attr:`~EndResult.goal_f`
-        8. `normalizedF`: (:attr:`~EndResult.best_f`-attr:`~EndResult.goal_f`)/
-            :attr:`~EndResult.goal_f`
-        9. `maxFEs`: :attr:`~EndResult.max_fes`
-        10. `maxTimeMillis`: :attr:`~EndResult.max_time_millis`
-        11. `fesPerTimeMilli`:  :attr:`~EndResult.total_fes`
-            /:attr:`~EndResult.total_time_millis`
+    The following dimensions are supported:
 
-        :param dimension: the dimension
-        :returns: a callable that returns the value corresponding to the
-            dimension from its input value, which must be an :class:`EndResult`
-        """
-        if not isinstance(dimension, str):
-            raise type_error(dimension, "dimension", str)
-        if dimension in _GETTERS:
-            return _GETTERS[dimension]
-        raise ValueError(f"unknown dimension {dimension!r}, "
-                         f"should be one of {sorted(_GETTERS.keys())}.")
+    1. `lastImprovementFE`: :attr:`~EndResult.last_improvement_fe`
+    2. `lastImprovementTimeMillis`:
+        :attr:`~EndResult.last_improvement_time_millis`
+    3. `totalFEs`: :attr:`~EndResult.total_fes`
+    4. `totalTimeMillis`: :attr:`~EndResult.total_time_millis`
+    5. `goalF`: :attr:`~EndResult.goal_f`
+    6.  `plainF`, `bestF`: :attr:`~EndResult.best_f`
+    7. `scaledF`: :attr:`~EndResult.best_f`/:attr:`~EndResult.goal_f`
+    8. `normalizedF`: (:attr:`~EndResult.best_f`-attr:`~EndResult.goal_f`)/
+        :attr:`~EndResult.goal_f`
+    9. `maxFEs`: :attr:`~EndResult.max_fes`
+    10. `maxTimeMillis`: :attr:`~EndResult.max_time_millis`
+    11. `fesPerTimeMilli`:  :attr:`~EndResult.total_fes`
+        /:attr:`~EndResult.total_time_millis`
 
-    @staticmethod
-    def from_logs(
-            path: str, consumer: Callable[["EndResult"], Any],
-            max_fes: int | None | Callable[
-                [str, str], int | None] = None,
-            max_time_millis: int | None | Callable[
-                [str, str], int | None] = None,
-            goal_f: int | float | None | Callable[
-                [str, str], int | float | None] = None) -> None:
-        """
-        Parse a given path and pass all end results found to the consumer.
+    :param dimension: the dimension
+    :returns: a callable that returns the value corresponding to the
+        dimension from its input value, which must be an :class:`EndResult`
+    """
+    if not isinstance(dimension, str):
+        raise type_error(dimension, "dimension", str)
+    if dimension in _GETTERS:
+        return _GETTERS[dimension]
+    raise ValueError(f"unknown dimension {dimension!r}, "
+                     f"should be one of {sorted(_GETTERS.keys())}.")
 
-        If `path` identifies a file with suffix `.txt`, then this file is
-        parsed. The appropriate :class:`EndResult` is created and appended to
-        the `collector`. If `path` identifies a directory, then this directory
-        is parsed recursively for each log file found, one record is passed to
-        the `consumer`. As `consumer`, you could pass any `callable` that
-        accepts instances of :class:`EndResult`, e.g., the `append` method of
-        a :class:`list`.
 
-        Via the parameters `max_fes`, `max_time_millis`, and `goal_f`, you can
-        set virtual limits for the objective function evaluations, the maximum
-        runtime, and the objective value. The :class:`EndResult` records will
-        then not represent the actual final state of the runs but be
-        synthesized from the logged progress information. This, of course,
-        requires such information to be present. It will also raise a
-        `ValueError` if the goals are invalid, e.g., if a runtime limit is
-        specified that is before the first logged points.
+def from_logs(
+        path: str, consumer: Callable[["EndResult"], Any],
+        max_fes: int | None | Callable[
+            [str, str], int | None] = None,
+        max_time_millis: int | None | Callable[
+            [str, str], int | None] = None,
+        goal_f: int | float | None | Callable[
+            [str, str], int | float | None] = None) -> None:
+    """
+    Parse a given path and pass all end results found to the consumer.
 
-        There is one caveat when specifying `max_time_millis`: Let's say that
-        the log files only log improvements. Then you might have a log point
-        for 7000 FEs, 1000ms, and f=100. The next log point could be 8000 FEs,
-        1200ms, and f=90. Now if your time limit specified is 1100ms, we know
-        that the end result is f=100 (because f=90 was reached too late) and
-        that the total runtime is 1100ms, as this is the limit you specified
-        and it was also reached. But we do not know the number of consumed
-        FEs. We know you consumed at least 7000 FEs, but you did not consume
-        8000 FEs. It would be wrong to claim that 7000 FEs were consumed,
-        since it could have been more. We therefore set a virtual end point at
-        7999 FEs. In terms of performance metrics such as the
-        :mod:`~moptipy.evaluation.ert`, this would be the most conservative
-        choice in that it does not over-estimate the speed of the algorithm.
-        It can, however, lead to very big deviations from the actual values.
-        For example, if your algorithm quickly converged to a local optimum
-        and there simply is no log point that exceeds the virtual time limit
-        but the original run had a huge FE-based budget while your virtual
-        time limit was small, this could lead to an estimate of millions of
-        FEs taking part within seconds...
+    If `path` identifies a file with suffix `.txt`, then this file is
+    parsed. The appropriate :class:`EndResult` is created and appended to
+    the `collector`. If `path` identifies a directory, then this directory
+    is parsed recursively for each log file found, one record is passed to
+    the `consumer`. As `consumer`, you could pass any `callable` that
+    accepts instances of :class:`EndResult`, e.g., the `append` method of
+    a :class:`list`.
 
-        :param path: the path to parse
-        :param consumer: the consumer
-        :param max_fes: the maximum FEs, a callable to compute the maximum
-            FEs from the algorithm and instance name, or `None` if unspecified
-        :param max_time_millis: the maximum runtime in milliseconds, a
-            callable to compute the maximum runtime from the algorithm and
-            instance name, or `None` if unspecified
-        :param goal_f: the goal objective value, a callable to compute the
-            goal objective value from the algorithm and instance name, or
-            `None` if unspecified
-        """
-        need_goals: bool = False
-        if max_fes is not None:
-            if not callable(max_fes):
-                max_fes = check_int_range(
-                    max_fes, "max_fes", 1, 1_000_000_000_000_000)
+    Via the parameters `max_fes`, `max_time_millis`, and `goal_f`, you can
+    set virtual limits for the objective function evaluations, the maximum
+    runtime, and the objective value. The :class:`EndResult` records will
+    then not represent the actual final state of the runs but be
+    synthesized from the logged progress information. This, of course,
+    requires such information to be present. It will also raise a
+    `ValueError` if the goals are invalid, e.g., if a runtime limit is
+    specified that is before the first logged points.
+
+    There is one caveat when specifying `max_time_millis`: Let's say that
+    the log files only log improvements. Then you might have a log point
+    for 7000 FEs, 1000ms, and f=100. The next log point could be 8000 FEs,
+    1200ms, and f=90. Now if your time limit specified is 1100ms, we know
+    that the end result is f=100 (because f=90 was reached too late) and
+    that the total runtime is 1100ms, as this is the limit you specified
+    and it was also reached. But we do not know the number of consumed
+    FEs. We know you consumed at least 7000 FEs, but you did not consume
+    8000 FEs. It would be wrong to claim that 7000 FEs were consumed,
+    since it could have been more. We therefore set a virtual end point at
+    7999 FEs. In terms of performance metrics such as the
+    :mod:`~moptipy.evaluation.ert`, this would be the most conservative
+    choice in that it does not over-estimate the speed of the algorithm.
+    It can, however, lead to very big deviations from the actual values.
+    For example, if your algorithm quickly converged to a local optimum
+    and there simply is no log point that exceeds the virtual time limit
+    but the original run had a huge FE-based budget while your virtual
+    time limit was small, this could lead to an estimate of millions of
+    FEs taking part within seconds...
+
+    :param path: the path to parse
+    :param consumer: the consumer
+    :param max_fes: the maximum FEs, a callable to compute the maximum
+        FEs from the algorithm and instance name, or `None` if unspecified
+    :param max_time_millis: the maximum runtime in milliseconds, a
+        callable to compute the maximum runtime from the algorithm and
+        instance name, or `None` if unspecified
+    :param goal_f: the goal objective value, a callable to compute the
+        goal objective value from the algorithm and instance name, or
+        `None` if unspecified
+    """
+    need_goals: bool = False
+    if max_fes is not None:
+        if not callable(max_fes):
+            max_fes = check_int_range(
+                max_fes, "max_fes", 1, 1_000_000_000_000_000)
+        need_goals = True
+    if max_time_millis is not None:
+        if not callable(max_time_millis):
+            max_time_millis = check_int_range(
+                max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
+        need_goals = True
+    if goal_f is not None:
+        if callable(goal_f):
             need_goals = True
-        if max_time_millis is not None:
-            if not callable(max_time_millis):
-                max_time_millis = check_int_range(
-                    max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
-            need_goals = True
-        if goal_f is not None:
-            if callable(goal_f):
-                need_goals = True
-            else:
-                if not isinstance(goal_f, int | float):
-                    raise type_error(goal_f, "goal_f", (int, float, None))
-                if isfinite(goal_f):
-                    need_goals = True
-                elif goal_f <= -inf:
-                    goal_f = None
-                else:
-                    raise ValueError(f"goal_f={goal_f} is not permissible.")
-        if need_goals:
-            _InnerProgressLogParser(
-                max_fes, max_time_millis, goal_f, consumer).parse(path)
         else:
-            _InnerLogParser(consumer).parse(path)
+            if not isinstance(goal_f, int | float):
+                raise type_error(goal_f, "goal_f", (int, float, None))
+            if isfinite(goal_f):
+                need_goals = True
+            elif goal_f <= -inf:
+                goal_f = None
+            else:
+                raise ValueError(f"goal_f={goal_f} is not permissible.")
+    if need_goals:
+        __InnerProgressLogParser(
+            max_fes, max_time_millis, goal_f, consumer).parse(path)
+    else:
+        __InnerLogParser(consumer).parse(path)
 
-    @staticmethod
-    def to_csv(results: Iterable["EndResult"], file: str) -> Path:
+
+def to_csv(results: Iterable["EndResult"], file: str) -> Path:
+    """
+    Write a sequence of end results to a file in CSV format.
+
+    :param results: the end results
+    :param file: the path
+    :return: the path of the file that was written
+    """
+    path: Final[Path] = Path(file)
+    logger(f"Writing end results to CSV file {path!r}.")
+    path.up().ensure_dir_exists()
+    with path.open_for_write() as wt:
+        csv_write(data=sorted(results),
+                  consumer=line_writer(wt),
+                  setup=CsvWriter().setup,
+                  get_column_titles=CsvWriter.get_column_titles,
+                  get_row=CsvWriter.get_row,
+                  get_header_comments=CsvWriter.get_header_comments,
+                  get_footer_comments=CsvWriter.get_footer_comments)
+    logger(f"Done writing end results to CSV file {path!r}.")
+    return path
+
+
+def from_csv(file: str, consumer: Callable[["EndResult"], Any],
+             filterer: Callable[["EndResult"], bool]
+             = lambda x: True) -> None:
+    """
+    Parse a given CSV file to get :class:`EndResult` Records.
+
+    :param file: the path to parse
+    :param consumer: the collector, can be the `append` method of a
+        :class:`list`
+    :param filterer: an optional filter function
+    """
+    if not callable(consumer):
+        raise type_error(consumer, "consumer", call=True)
+    path: Final[Path] = file_path(file)
+    logger(f"Now reading CSV file {path!r}.")
+
+    def __cons(r: EndResult, __c=consumer, __f=filterer) -> None:
+        """Consume a record."""
+        if __f(r):
+            __c(r)
+
+    with path.open_for_read() as rd:
+        csv_read(rows=rd,
+                 setup=CsvReader,
+                 parse_row=CsvReader.parse_row,
+                 consumer=__cons)
+
+    logger(f"Done reading CSV file {path!r}.")
+
+
+class CsvWriter:
+    """A class for CSV writing of :class:`EndResult`."""
+
+    def __init__(self, scope: str | None = None) -> None:
         """
-        Write a sequence of end results to a file in CSV format.
+        Initialize the csv writer.
 
-        :param results: the end results
-        :param file: the path
-        :return: the path of the file that was written
+        :param scope: the prefix to be pre-pended to all columns
         """
-        path: Final[Path] = Path(file)
-        logger(f"Writing end results to CSV file {path!r}.")
-        path.up().ensure_dir_exists()
+        #: an optional scope
+        self.__scope: Final[str | None] = (
+            str.strip(scope)) if scope is not None else None
 
-        sorted_results: Final[list[EndResult]] = sorted(results)
-        needs_encoding: bool = False
-        needs_max_fes: bool = False
-        needs_max_ms: bool = False
-        needs_goal_f: bool = False
-        for er in sorted_results:
-            if er.encoding is not None:
-                needs_encoding = True
-            if er.max_fes is not None:
-                needs_max_fes = True
-            if er.max_time_millis is not None:
-                needs_max_ms = True
-            if (er.goal_f is not None) and (isfinite(er.goal_f)):
-                needs_goal_f = True
+        #: has this writer been set up?
+        self.__setup: bool = False
+        #: do we need the encoding?
+        self.__needs_encoding: bool = False
+        #: do we need the max FEs?
+        self.__needs_max_fes: bool = False
+        #: do we need the max millis?
+        self.__needs_max_ms: bool = False
+        #: do we need the goal F?
+        self.__needs_goal_f: bool = False
 
-        with path.open_for_write() as out:
-            write: Final[Callable[[str], int]] = out.write
-            write(_HEADER_1)
-            if needs_encoding:
-                write(f"{CSV_SEPARATOR}{KEY_ENCODING}")
-            write(_HEADER_2)
-            if needs_goal_f:
-                write(f"{CSV_SEPARATOR}{KEY_GOAL_F}")
-            if needs_max_fes:
-                write(f"{CSV_SEPARATOR}{KEY_MAX_FES}")
-            if needs_max_ms:
-                write(f"{CSV_SEPARATOR}{KEY_MAX_TIME_MILLIS}")
-            write("\n")
-
-            for e in results:
-                write(f"{e.algorithm}{CSV_SEPARATOR}"
-                      f"{e.instance}{CSV_SEPARATOR}"
-                      f"{e.objective}")
-                if needs_encoding:
-                    write(CSV_SEPARATOR)
-                    if e.encoding is not None:
-                        write(e.encoding)
-                write(f"{CSV_SEPARATOR}{hex(e.rand_seed)}{CSV_SEPARATOR}"
-                      f"{num_to_str(e.best_f)}{CSV_SEPARATOR}"
-                      f"{e.last_improvement_fe}{CSV_SEPARATOR}"
-                      f"{e.last_improvement_time_millis}{CSV_SEPARATOR}"
-                      f"{e.total_fes}{CSV_SEPARATOR}"
-                      f"{e.total_time_millis}")
-                if needs_goal_f:
-                    write(f"{CSV_SEPARATOR}{num_or_none_to_str(e.goal_f)}")
-                if needs_max_fes:
-                    write(f"{CSV_SEPARATOR}{int_or_none_to_str(e.max_fes)}")
-                if needs_max_ms:
-                    write(f"{CSV_SEPARATOR}"
-                          f"{int_or_none_to_str(e.max_time_millis)}")
-                write("\n")
-
-        logger(f"Done writing end results to CSV file {path!r}.")
-        return path
-
-    @staticmethod
-    def from_csv(file: str, consumer: Callable[["EndResult"], Any],
-                 filterer: Callable[["EndResult"], bool]
-                 = lambda x: True) -> None:
+    def setup(self, data: Iterable[EndResult]) -> "CsvWriter":
         """
-        Parse a given CSV file to get :class:`EndResult` Records.
+        Set up this csv writer based on existing data.
 
-        :param file: the path to parse
-        :param consumer: the collector, can be the `append` method of a
-            :class:`list`
-        :param filterer: an optional filter function
+        :param data: the data to setup with
+        :returns: this writer
         """
-        if not callable(consumer):
-            raise type_error(consumer, "consumer", call=True)
-        path: Final[Path] = file_path(file)
-        logger(f"Now reading CSV file {path!r}.")
+        if self.__setup:
+            raise ValueError("CSV writer has already been set up.")
+        self.__setup = True
 
-        with path.open_for_read() as rd:
-            header = rd.readline()
-            if not isinstance(header, str):
-                raise type_error(header, f"{file!r}[0]", str)
+        no_encoding: bool = True
+        no_max_fes: bool = True
+        no_max_ms: bool = True
+        no_goal_f: bool = True
+        check: int = 4
+        for er in data:
+            if no_encoding and (er.encoding is not None):
+                no_encoding = False
+                self.__needs_encoding = True
+                check -= 1
+                if check <= 0:
+                    return self
+            if no_max_fes and (er.max_fes is not None):
+                self.__needs_max_fes = True
+                no_max_fes = False
+                check -= 1
+                if check <= 0:
+                    return self
+            if no_max_ms and (er.max_time_millis is not None):
+                self.__needs_max_ms = True
+                no_max_ms = False
+                check -= 1
+                if check <= 0:
+                    return self
+            if no_goal_f and (er.goal_f is not None) and (
+                    isfinite(er.goal_f)):
+                self.__needs_goal_f = True
+                no_goal_f = False
+                check -= 1
+                if check <= 0:
+                    return self
+        return self
 
-            idx_algorithm: int = -1
-            idx_instance: int = -1
-            idx_objective: int = -1
-            idx_encoding: int = -1
-            idx_seed: int = -1
-            idx_li_fe: int = -1
-            idx_li_ms: int = -1
-            idx_best_f: int = -1
-            idx_tt_fe: int = -1
-            idx_tt_ms: int = -1
-            idx_goal_f: int = -1
-            idx_max_fes: int = -1
-            idx_max_ms: int = -1
+    def get_column_titles(self, dest: Callable[[str], None]) -> None:
+        """
+        Get the column titles.
 
-            for i, cellstr in enumerate(header.strip().split(CSV_SEPARATOR)):
-                cell = cellstr.strip()
-                if cell == KEY_ALGORITHM:
-                    idx_algorithm = i
-                elif cell == KEY_INSTANCE:
-                    idx_instance = i
-                elif cell == KEY_OBJECTIVE_FUNCTION:
-                    idx_objective = i
-                elif cell == KEY_ENCODING:
-                    idx_encoding = i
-                elif cell == KEY_RAND_SEED:
-                    idx_seed = i
-                elif cell == KEY_LAST_IMPROVEMENT_FE:
-                    idx_li_fe = i
-                elif cell == KEY_LAST_IMPROVEMENT_TIME_MILLIS:
-                    idx_li_ms = i
-                elif cell == KEY_BEST_F:
-                    idx_best_f = i
-                elif cell == KEY_TOTAL_FES:
-                    idx_tt_fe = i
-                elif cell == KEY_TOTAL_TIME_MILLIS:
-                    idx_tt_ms = i
-                elif cell == KEY_GOAL_F:
-                    idx_goal_f = i
-                elif cell == KEY_MAX_FES:
-                    idx_max_fes = i
-                elif cell == KEY_MAX_TIME_MILLIS:
-                    idx_max_ms = i
-                else:
-                    raise ValueError(
-                        f"Unknown key {cell!r} at index {i} in header "
-                        f"{header!r} of file {file!r}.")
+        :param dest: the destination string consumer
+        """
+        p: Final[str] = self.__scope
+        dest(csv_scope(p, KEY_ALGORITHM))
+        dest(csv_scope(p, KEY_INSTANCE))
+        dest(csv_scope(p, KEY_OBJECTIVE_FUNCTION))
+        if self.__needs_encoding:
+            dest(csv_scope(p, KEY_ENCODING))
+        dest(csv_scope(p, KEY_RAND_SEED))
+        dest(csv_scope(p, KEY_BEST_F))
+        dest(csv_scope(p, KEY_LAST_IMPROVEMENT_FE))
+        dest(csv_scope(p, KEY_LAST_IMPROVEMENT_TIME_MILLIS))
+        dest(csv_scope(p, KEY_TOTAL_FES))
+        dest(csv_scope(p, KEY_TOTAL_TIME_MILLIS))
 
-            if idx_algorithm < 0:
-                raise ValueError(
-                    f"Missing key {KEY_ALGORITHM!r} in header "
-                    f"{header!r} of file {file!r}.")
-            if idx_instance < 0:
-                raise ValueError(
-                    f"Missing key {KEY_INSTANCE!r} in header "
-                    f"{header!r} of file {file!r}.")
-            if idx_objective < 0:
-                raise ValueError(
-                    f"Missing key {KEY_OBJECTIVE_FUNCTION!r} in header "
-                    f"{header!r} of file {file!r}.")
-            if idx_seed < 0:
-                raise ValueError(
-                    f"Missing key {KEY_RAND_SEED!r} in "
-                    f"header {header!r} of file {file!r}.")
-            if idx_li_fe < 0:
-                raise ValueError(
-                    f"Missing key {KEY_LAST_IMPROVEMENT_FE!r} in header "
-                    f"{header!r} of file {file!r}.")
-            if idx_li_ms < 0:
-                raise ValueError(
-                    f"Missing key {KEY_LAST_IMPROVEMENT_TIME_MILLIS!r} in "
-                    f"header {header!r} of file {file!r}.")
-            if idx_best_f < 0:
-                raise ValueError(
-                    f"Missing key {KEY_BEST_F!r} in header "
-                    f"{header!r} of file {file!r}.")
-            if idx_tt_fe < 0:
-                raise ValueError(
-                    f"Missing key {KEY_TOTAL_FES!r} in "
-                    f"header {header!r} of file {file!r}.")
-            if idx_tt_ms < 0:
-                raise ValueError(
-                    f"Missing key {KEY_TOTAL_TIME_MILLIS!r} in "
-                    f"header {header!r} of file {file!r}.")
+        if self.__needs_goal_f:
+            dest(csv_scope(p, KEY_GOAL_F))
+        if self.__needs_max_fes:
+            dest(csv_scope(p, KEY_MAX_FES))
+        if self.__needs_max_ms:
+            dest(csv_scope(p, KEY_MAX_TIME_MILLIS))
 
-            while True:
-                lines = rd.readlines(100)
-                if (lines is None) or (len(lines) <= 0):
-                    break
-                for line in lines:
-                    splt = line.strip().split(CSV_SEPARATOR)
-                    encoding: str | None
-                    if idx_encoding < 0:
-                        encoding = None
-                    else:
-                        encoding = splt[idx_encoding].strip()
-                        if len(encoding) <= 0:
-                            encoding = None
-                    er = EndResult(
-                        splt[idx_algorithm].strip(),  # algorithm
-                        splt[idx_instance].strip(),  # instance
-                        splt[idx_objective].strip(),  # objective
-                        encoding,  # encoding
-                        int((splt[idx_seed])[2:], 16),  # rand seed
-                        str_to_num(splt[idx_best_f]),  # best_f
-                        int(splt[idx_li_fe]),  # last_improvement_fe
-                        int(splt[idx_li_ms]),  # last_improvement_time_millis
-                        int(splt[idx_tt_fe]),  # total_fes
-                        int(splt[idx_tt_ms]),  # total_time_millis
-                        None if idx_goal_f < 0 else
-                        str_to_num_or_none(splt[idx_goal_f]),  # goal_f
-                        None if idx_max_fes < 0 else
-                        str_to_int_or_none(splt[idx_max_fes]),  # max_fes
-                        None if idx_max_ms < 0 else
-                        str_to_int_or_none(splt[idx_max_ms]))  # max_time_ms
-                    if filterer(er):
-                        consumer(er)
+    def get_row(self, data: EndResult,
+                dest: Callable[[str], None]) -> None:
+        """
+        Render a single end result record to a CSV row.
 
-        logger(f"Done reading CSV file {path!r}.")
+        :param data: the end result record
+        :param dest: the string consumer
+        """
+        dest(data.algorithm)
+        dest(data.instance)
+        dest(data.objective)
+        if self.__needs_encoding:
+            dest(data.encoding if data.encoding else "")
+        dest(hex(data.rand_seed))
+        dest(num_to_str(data.best_f))
+        dest(str(data.last_improvement_fe))
+        dest(str(data.last_improvement_time_millis))
+        dest(str(data.total_fes))
+        dest(str(data.total_time_millis))
+        if self.__needs_goal_f:
+            dest(num_or_none_to_str(data.goal_f))
+        if self.__needs_max_fes:
+            dest(int_or_none_to_str(data.max_fes))
+        if self.__needs_max_ms:
+            dest(int_or_none_to_str(data.max_time_millis))
+
+    def get_header_comments(self, dest: Callable[[str], None]) -> None:
+        """
+        Get any possible header comments.
+
+        :param dest: the destination
+        """
+        dest("See a description at the footer of the file.")
+
+    def get_footer_comments(self, dest: Callable[[str], None]) -> None:
+        """
+        Get any possible footer comments.
+
+        :param dest: the destination
+        """
+        dest("")
+        scope: Final[str | None] = self.__scope
+        dest("Records describing the end results of single runs ("
+             "single executions) of algorithms applied to optimization "
+             "problems.")
+        dest("These data are generated by the moptipy framework ("
+             "https://thomasweise.github.io/moptipy) and converted to CSV "
+             f"using moptipy version {__version__}.")
+        dest("Each run is characterized by an algorithm setup, a problem "
+             "instance, and a random seed.")
+        if scope:
+            dest("All end result records start with prefix "
+                 f"{scope}{SCOPE_SEPARATOR}.")
+        dest(f"{csv_scope(scope, KEY_ALGORITHM)}: the name of the algorithm "
+             "setup that was used in the run.")
+        dest(f"{csv_scope(scope, KEY_INSTANCE)}: the name of the instance of "
+             "problem instance to which the algorithm was applied.")
+        dest(f"{csv_scope(scope, KEY_OBJECTIVE_FUNCTION)}: the name of the "
+             "objective function (often also called fitness function or cost"
+             " function) that was used to rate the solution quality in the "
+             "run.")
+        if self.__needs_encoding:
+            dest(f"{csv_scope(scope, KEY_ENCODING)}: the name of the encoding"
+                 ", often also called genotype-phenotype mapping, used. In "
+                 "some problems, the search space on which the algorithm works"
+                 " is different from the space of possible solutions. For "
+                 "example, when solving a scheduling problem, maybe our "
+                 "optimization algorithm navigates in the space of "
+                 "permutations, but the solutions are Gantt charts. The "
+                 "encoding is the function that translates the points in the "
+                 "search space (e.g., permutations) to the points in the "
+                 "solution space (e.g., Gantt charts). Nothing if no encoding"
+                 " was used.")
+        dest(f"{csv_scope(scope, KEY_RAND_SEED)}: the value of the seed of "
+             "the random number generator used in the run. Random seeds are"
+             f"in 0..{int((1 << (8 * 8)) - 1)} and the random number "
+             "generators are those from numpy.")
+        dest(f"{csv_scope(scope, KEY_BEST_F)}: the best (smallest) objective "
+             "value ever encountered during the run (regardless whether the "
+             "algorithm later forgot it again or not).")
+        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)}: the objective "
+             "function evaluation (FE) when the last improving move took "
+             "place. 1 FE corresponds to the construction and evaluation "
+             "of one solution. The first FE has index 1. With 'last "
+             "improving move' we mean the last time when a solution was "
+             "discovered that was better than all previous solutions. This "
+             "time / FE index is the one when the solution with objective "
+             f"value {csv_scope(scope, KEY_BEST_F)} was discovered.")
+        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)}: the "
+             f"clock time in milliseconds after the begin of the run when "
+             f"the last improving search move took place.")
+        dest(f"{csv_scope(scope, KEY_TOTAL_FES)}: the total number of "
+             "objective function evaluations (FEs) that were performed "
+             "during the run.")
+        dest(f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}: the clock time "
+             "in milliseconds that has passed between the begin of the "
+             "run and the end of the run.")
+        if self.__needs_goal_f:
+            dest(f"{csv_scope(scope, KEY_GOAL_F)}: the goal objective value: "
+                 "A run will stop as soon as a solution was discovered "
+                 "which has an objective value less than or equal to "
+                 f"{csv_scope(scope, KEY_GOAL_F)}. In other words, as soon "
+                 f"as {csv_scope(scope, KEY_BEST_F)} reaches or dips under "
+                 f"{csv_scope(scope, KEY_GOAL_F)}, the algorithm will stop. "
+                 f"If {csv_scope(scope, KEY_GOAL_F)} is not reached, the run "
+                 "will continue until other budget limits are exhausted. If "
+                 "no goal objective value is specified, this field is empty.")
+        if self.__needs_max_fes:
+            dest(f"{csv_scope(scope, KEY_MAX_FES)}: the maximum number of "
+                 "permissible FEs. As soon as this limit is reached, the "
+                 "run will stop. In other words, "
+                 f"{csv_scope(scope, KEY_TOTAL_FES)} will never be more "
+                 f"than {csv_scope(scope, KEY_MAX_FES)}. A run may stop "
+                 "earlier if some other termination criterion is reached, "
+                 "but never later.")
+        if self.__needs_max_ms:
+            dest(f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: the maximum "
+                 "number of milliseconds of clock time that a run is "
+                 "permitted to use as computational budget before being "
+                 "terminated. This limit is more of a soft limit, as we "
+                 "cannot physically stop a run at arbitrary points without "
+                 "causing mayhem. Thus, it may be that some runs consume "
+                 "slightly more runtime than this limit. But the rule is "
+                 "that the algorithm gets told to stop (via "
+                 "should_terminate() becoming True) as soon as this time "
+                 "has elapsed. But generally, "
+                 f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}<="
+                 f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)} approximately "
+                 "holds.")
 
 
-class _InnerLogParser(SetupAndStateParser):
+class CsvReader:
+    """A csv parser for end results."""
+
+    def __init__(self, columns: dict[str, int]) -> None:
+        """
+        Create a CSV parser for :class:`EndResult`.
+
+        :param columns: the columns
+        """
+        super().__init__()
+        if not isinstance(columns, dict):
+            raise type_error(columns, "columns", dict)
+        self.__idx_algorithm: Final[int] = check_int_range(
+            columns[KEY_ALGORITHM], KEY_ALGORITHM, 0, 1_000_000)
+        self.__idx_instance: Final[int] = check_int_range(
+            columns[KEY_INSTANCE], KEY_INSTANCE, 0, 1_000_000)
+        self.__idx_objective: Final[int] = check_int_range(
+            columns[KEY_OBJECTIVE_FUNCTION], KEY_OBJECTIVE_FUNCTION,
+            0, 1_000_000)
+
+        idx: int | None = columns.get(KEY_ENCODING)
+        self.__idx_encoding = None if idx is None else check_int_range(
+            idx, KEY_ENCODING, 0, 1_000_000)
+
+        self.__idx_seed: Final[int] = check_int_range(
+            columns[KEY_RAND_SEED], KEY_RAND_SEED,
+            0, 1_000_000)
+        self.__idx_li_fe: Final[int] = check_int_range(
+            columns[KEY_LAST_IMPROVEMENT_FE], KEY_LAST_IMPROVEMENT_FE,
+            0, 1_000_000)
+        self.__idx_li_ms: Final[int] = check_int_range(
+            columns[KEY_LAST_IMPROVEMENT_TIME_MILLIS],
+            KEY_LAST_IMPROVEMENT_TIME_MILLIS, 0, 1_000_000)
+        self.__idx_best_f: Final[int] = check_int_range(
+            columns[KEY_BEST_F], KEY_BEST_F,
+            0, 1_000_000)
+        self.__idx_tt_fe: Final[int] = check_int_range(
+            columns[KEY_TOTAL_FES], KEY_TOTAL_FES,
+            0, 1_000_000)
+        self.__idx_tt_ms: Final[int] = check_int_range(
+            columns[KEY_TOTAL_TIME_MILLIS], KEY_TOTAL_TIME_MILLIS,
+            0, 1_000_000)
+
+        idx = columns.get(KEY_GOAL_F)
+        self.__idx_goal_f = None if idx is None else check_int_range(
+            idx, KEY_GOAL_F, 0, 1_000_000)
+        idx = columns.get(KEY_MAX_FES)
+        self.__idx_max_fes = None if idx is None else check_int_range(
+            idx, KEY_MAX_FES, 0, 1_000_000)
+        idx = columns.get(KEY_MAX_TIME_MILLIS)
+        self.__idx_max_ms = None if idx is None else check_int_range(
+            idx, KEY_MAX_TIME_MILLIS, 0, 1_000_000)
+
+    def parse_row(self, data: list[str]) -> EndResult:
+        """
+        Parse a row of data.
+
+        :param data: the data row
+        :return: the end result statistics
+        """
+        encoding: str | None
+        if self.__idx_encoding is None:
+            encoding = None
+        else:
+            encoding = data[self.__idx_encoding]
+            if str.__len__(encoding) <= 0:
+                encoding = None
+        return EndResult(
+            data[self.__idx_algorithm],  # algorithm
+            data[self.__idx_instance],  # instance
+            data[self.__idx_objective],  # objective
+            encoding,  # encoding
+            int((data[self.__idx_seed])[2:], 16),  # rand seed
+            str_to_num(data[self.__idx_best_f]),  # best_f
+            int(data[self.__idx_li_fe]),  # last_improvement_fe
+            int(data[self.__idx_li_ms]),  # last_improvement_time_millis
+            int(data[self.__idx_tt_fe]),  # total_fes
+            int(data[self.__idx_tt_ms]),  # total_time_millis
+            None if self.__idx_goal_f is None else
+            str_to_num_or_none(data[self.__idx_goal_f]),  # goal_f
+            None if self.__idx_max_fes is None else
+            str_to_int_or_none(data[self.__idx_max_fes]),  # max_fes
+            None if self.__idx_max_ms is None else
+            str_to_int_or_none(data[self.__idx_max_ms]))  # max_time_ms
+
+
+class __InnerLogParser(SetupAndStateParser):
     """The internal log parser class."""
 
     def __init__(self, consumer: Callable[[EndResult], Any]):
@@ -682,7 +831,7 @@ def _join_goals(vlimit, vgoal, select):  # noqa
     return select(vlimit, vgoal)
 
 
-class _InnerProgressLogParser(SetupAndStateParser):
+class __InnerProgressLogParser(SetupAndStateParser):
     """The internal log parser class for virtual end results."""
 
     def __init__(
@@ -951,6 +1100,6 @@ if __name__ == "__main__":
     args: Final[argparse.Namespace] = parser.parse_args()
 
     end_results: Final[list[EndResult]] = []
-    EndResult.from_logs(args.source, end_results.append,
-                        args.maxFEs, args.maxTime, args.goalF)
-    EndResult.to_csv(end_results, args.dest)
+    from_logs(args.source, end_results.append,
+              args.maxFEs, args.maxTime, args.goalF)
+    to_csv(end_results, args.dest)
