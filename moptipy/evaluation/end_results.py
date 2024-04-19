@@ -73,92 +73,10 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import moptipy_argparser
-from moptipy.utils.math import try_float_div, try_int
+from moptipy.utils.math import try_float_div, try_int, try_int_div
 from moptipy.utils.strings import (
     sanitize_names,
 )
-
-
-def __get_goal_f(e: "EndResult") -> int | float:
-    """
-    Get the goal_f.
-
-    :param e: the end result
-    :returns: the goal objective value
-    """
-    g = e.goal_f
-    if g is None:
-        raise ValueError(f"goal_f of {e} is None!")
-    if not isfinite(g):
-        raise ValueError(f"goal_f {g} of {e} is not finite!")
-    return g
-
-
-def __get_max_fes(e: "EndResult") -> int | float:
-    """
-    Get the max FEs.
-
-    :param e: the end result
-    :returns: the max fes
-    """
-    g = e.max_fes
-    if g is None:
-        raise ValueError(f"max_fes of {e} is None!")
-    return g
-
-
-def __get_max_time_millis(e: "EndResult") -> int | float:
-    """
-    Get the maximum time in milliseconds.
-
-    :param e: the end result
-    :returns: the maximum time in milliseconds
-    """
-    g = e.max_time_millis
-    if g is None:
-        raise ValueError(f"max_time_millis of {e} is None!")
-    return g
-
-
-def __get_goal_f_for_div(e: "EndResult") -> int | float:
-    """
-    Get the goal_f.
-
-    :param e: the end result
-    :returns: the goal objective value
-    """
-    g = __get_goal_f(e)
-    if g <= 0:
-        raise ValueError(f"goal_f {g} of {e}is not positive!")
-    return g
-
-
-def __get_f_norm(e: "EndResult") -> int | float:
-    """
-    Get the normalized f.
-
-    :param e: the end result
-    :returns: the normalized f
-    """
-    g = __get_goal_f_for_div(e)
-    return try_float_div(e.best_f - g, g)
-
-
-#: A set of getters for accessing variables of the end result
-_GETTERS: Final[dict[str, Callable[["EndResult"], int | float]]] = {
-    KEY_LAST_IMPROVEMENT_FE: lambda e: e.last_improvement_fe,
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS:
-        lambda e: e.last_improvement_time_millis,
-    KEY_TOTAL_FES: lambda e: e.total_fes,
-    KEY_TOTAL_TIME_MILLIS: lambda e: e.total_time_millis,
-    KEY_GOAL_F: __get_goal_f,
-    F_NAME_RAW: lambda e: e.best_f,
-    F_NAME_SCALED: lambda e: try_float_div(e.best_f, __get_goal_f_for_div(e)),
-    F_NAME_NORMALIZED: __get_f_norm,
-    KEY_MAX_FES: __get_max_fes,
-    KEY_MAX_TIME_MILLIS: __get_max_time_millis,
-}
-_GETTERS[KEY_BEST_F] = _GETTERS[F_NAME_RAW]
 
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
@@ -310,8 +228,148 @@ class EndResult(PerRunData):
             sanitize_names([self.algorithm, self.instance,
                             hex(self.rand_seed)]) + FILE_SUFFIX)
 
+    def get_best_f(self) -> int | float:
+        """
+        Get the best objective value reached.
 
-def getter(dimension: str) -> Callable[["EndResult"], int | float]:
+        :returns: the best objective value reached
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.best_f
+
+    def get_last_improvement_fe(self) -> int:
+        """
+        Get the index of the function evaluation when `best_f` was reached.
+
+        :returns: the index of the function evaluation when `best_f` was
+            reached
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.last_improvement_fe
+
+    def get_last_improvement_time_millis(self) -> int:
+        """
+        Get the milliseconds when `best_f` was reached.
+
+        :returns: the milliseconds when `best_f` was reached
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.last_improvement_time_millis
+
+    def get_total_fes(self) -> int:
+        """
+        Get the total number of performed FEs.
+
+        :returns: the total number of performed FEs
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.total_fes
+
+    def get_total_time_millis(self) -> int:
+        """
+        Get the total time consumed by the run.
+
+        :returns: the total time consumed by the run
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.total_time_millis
+
+    def get_goal_f(self) -> int | float | None:
+        """
+        Get the goal objective value, if any.
+
+        :returns: the goal objective value, if any
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.goal_f
+
+    def get_max_fes(self) -> int | None:
+        """
+        Get the maximum number of FEs permissible.
+
+        :returns: the maximum number of FEs permissible
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.max_fes
+
+    def get_max_time_millis(self) -> int | None:
+        """
+        Get the maximum permissible milliseconds permitted.
+
+        :returns: the maximum permissible milliseconds permitted
+        """
+        if not isinstance(self, EndResult):
+            raise type_error(self, "self", EndResult)
+        return self.max_time_millis
+
+    def get_normalized_best_f(self) -> int | float | None:
+        """
+        Get the normalized f.
+
+        :returns: the normalized f
+        """
+        g: Final[int | float | None] = EndResult.get_goal_f(self)
+        if (g is None) or (g <= 0):
+            return None
+        return try_float_div(self.best_f - g, g)
+
+    def get_scaled_best_f(self) -> int | float | None:
+        """
+        Get the normalized f.
+
+        :returns: the normalized f
+        """
+        g: Final[int | float | None] = EndResult.get_goal_f(self)
+        if (g is None) or (g <= 0):
+            return None
+        return try_float_div(self.best_f, g)
+
+    def get_fes_per_time_milli(self) -> int | float:
+        """
+        Get the fes per time milliseconds.
+
+        :returns: the fes per time milliseconds
+        """
+        return try_int_div(EndResult.get_total_fes(self), max(
+            1, EndResult.get_total_time_millis(self)))
+
+
+#: A set of getters for accessing variables of the end result
+__PROPERTIES: Final[Callable[[str], Callable[[
+    EndResult], int | float | None]]] = {
+    KEY_LAST_IMPROVEMENT_FE: EndResult.get_last_improvement_fe,
+    "last improvement FE": EndResult.get_last_improvement_fe,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+        EndResult.get_last_improvement_time_millis,
+    "last improvement ms": EndResult.get_last_improvement_time_millis,
+    KEY_TOTAL_FES: EndResult.get_total_fes,
+    "fes": EndResult.get_total_fes,
+    KEY_TOTAL_TIME_MILLIS: EndResult.get_total_time_millis,
+    "ms": EndResult.get_total_time_millis,
+    KEY_GOAL_F: EndResult.get_goal_f,
+    F_NAME_RAW: EndResult.get_best_f,
+    KEY_BEST_F: EndResult.get_best_f,
+    "f": EndResult.get_best_f,
+    F_NAME_SCALED: EndResult.get_scaled_best_f,
+    "bestFscaled": EndResult.get_scaled_best_f,
+    F_NAME_NORMALIZED: EndResult.get_normalized_best_f,
+    "bestFnormalized": EndResult.get_normalized_best_f,
+    KEY_MAX_FES: EndResult.get_max_fes,
+    "budgetFEs": EndResult.get_max_fes,
+    KEY_MAX_TIME_MILLIS: EndResult.get_max_time_millis,
+    "budgetMS": EndResult.get_max_time_millis,
+    "fesPerTimeMilli": EndResult.get_fes_per_time_milli,
+}.get
+
+
+def getter(dimension: str) -> Callable[[EndResult], int | float | None]:
     """
     Produce a function that obtains the given dimension from EndResults.
 
@@ -336,16 +394,15 @@ def getter(dimension: str) -> Callable[["EndResult"], int | float]:
     :returns: a callable that returns the value corresponding to the
         dimension from its input value, which must be an :class:`EndResult`
     """
-    if not isinstance(dimension, str):
-        raise type_error(dimension, "dimension", str)
-    if dimension in _GETTERS:
-        return _GETTERS[dimension]
-    raise ValueError(f"unknown dimension {dimension!r}, "
-                     f"should be one of {sorted(_GETTERS.keys())}.")
+    result: Callable[[EndResult], int | float] | None = __PROPERTIES(
+        str.strip(dimension))
+    if result is None:
+        raise ValueError(f"Unknown EndResult dimension {dimension!r}.")
+    return result
 
 
 def from_logs(
-        path: str, consumer: Callable[["EndResult"], Any],
+        path: str, consumer: Callable[[EndResult], Any],
         max_fes: int | None | Callable[
             [str, str], int | None] = None,
         max_time_millis: int | None | Callable[
@@ -433,7 +490,7 @@ def from_logs(
         __InnerLogParser(consumer).parse(path)
 
 
-def to_csv(results: Iterable["EndResult"], file: str) -> Path:
+def to_csv(results: Iterable[EndResult], file: str) -> Path:
     """
     Write a sequence of end results to a file in CSV format.
 
@@ -455,8 +512,8 @@ def to_csv(results: Iterable["EndResult"], file: str) -> Path:
     return path
 
 
-def from_csv(file: str, consumer: Callable[["EndResult"], Any],
-             filterer: Callable[["EndResult"], bool]
+def from_csv(file: str, consumer: Callable[[EndResult], Any],
+             filterer: Callable[[EndResult], bool]
              = lambda x: True) -> None:
     """
     Parse a given CSV file to get :class:`EndResult` Records.

@@ -12,10 +12,11 @@ import argparse
 import os.path
 from dataclasses import dataclass
 from math import ceil, inf
-from typing import Any, Callable, Final, Iterable, Union
+from typing import Any, Callable, Final, Iterable, cast
 
 from pycommons.io.console import logger
 from pycommons.io.csv import (
+    SCOPE_SEPARATOR,
     csv_read,
     csv_scope,
     csv_str_or_none,
@@ -23,13 +24,15 @@ from pycommons.io.csv import (
     csv_write,
 )
 from pycommons.io.path import Path, file_path, line_writer
-from pycommons.math.sample_statistics import CsvReader as StatReader
-from pycommons.math.sample_statistics import CsvWriter as StatWriter
 from pycommons.math.sample_statistics import (
+    KEY_MEAN_ARITH,
+    KEY_STDDEV,
     SampleStatistics,
     from_samples,
     from_single_value,
 )
+from pycommons.math.sample_statistics import CsvReader as StatReader
+from pycommons.math.sample_statistics import CsvWriter as StatWriter
 from pycommons.math.sample_statistics import getter as stat_getter
 from pycommons.strings.string_conv import (
     num_or_none_to_str,
@@ -69,7 +72,6 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_results import from_csv as end_results_from_csv
 from moptipy.evaluation.end_results import from_logs as end_results_from_logs
 from moptipy.utils.help import moptipy_argparser
-from moptipy.utils.logger import SCOPE_SEPARATOR
 from moptipy.utils.math import try_int, try_int_div
 from moptipy.version import __version__
 
@@ -85,38 +87,6 @@ KEY_SUCCESS_TIME_MILLIS: Final[str] = "successTimeMillis"
 KEY_ERT_FES: Final[str] = "ertFEs"
 #: The key for the ERT in milliseconds.
 KEY_ERT_TIME_MILLIS: Final[str] = "ertTimeMillis"
-
-#: the internal getters that can work directly
-_GETTERS_0: Final[dict[str, Callable[["EndStatistics"],
-                                     int | float | None]]] = {
-    KEY_N_SUCCESS: lambda s: s.n_success,
-    KEY_ERT_FES: lambda s: s.ert_fes,
-    KEY_ERT_TIME_MILLIS: lambda s: s.ert_time_millis,
-    KEY_GOAL_F: lambda s: s.goal_f if isinstance(s.goal_f,
-                                                 int | float) else None,
-    KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis
-    if isinstance(s.max_time_millis, int | float) else None,
-    KEY_MAX_FES: lambda s: s.max_fes
-    if isinstance(s.max_fes, int | float) else None,
-}
-
-#: the internal getters that access end statistics
-_GETTERS_1: Final[dict[
-    str, Callable[["EndStatistics"],
-                  int | float | SampleStatistics | None]]] = {
-    KEY_LAST_IMPROVEMENT_FE: lambda s: s.last_improvement_fe,
-    KEY_LAST_IMPROVEMENT_TIME_MILLIS:
-        lambda s: s.last_improvement_time_millis,
-    KEY_TOTAL_FES: lambda s: s.total_fes,
-    KEY_TOTAL_TIME_MILLIS: lambda s: s.total_time_millis,
-    F_NAME_RAW: lambda s: s.best_f,
-    F_NAME_SCALED: lambda s: s.best_f_scaled,
-    KEY_MAX_TIME_MILLIS: lambda s: s.max_time_millis,
-    KEY_MAX_FES: lambda s: s.max_fes,
-    KEY_GOAL_F: lambda s: s.goal_f,
-}
-_GETTERS_1[KEY_BEST_F] = _GETTERS_1[F_NAME_RAW]
-_GETTERS_1[KEY_BEST_F_SCALED] = _GETTERS_1[F_NAME_SCALED]
 
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
@@ -490,7 +460,7 @@ class EndStatistics(MultiRunData):
                              (int, SampleStatistics, None))
         object.__setattr__(self, "max_time_millis", max_time_millis)
 
-    def get_n(self) -> int | None:
+    def get_n(self) -> int:
         """
         Get the number of runs.
 
@@ -644,7 +614,7 @@ class EndStatistics(MultiRunData):
         return self.max_time_millis
 
 
-def create(source: Iterable[EndResult]) -> "EndStatistics":
+def create(source: Iterable[EndResult]) -> EndStatistics:
     """
     Create an `EndStatistics` Record from an Iterable of `EndResult`.
 
@@ -779,7 +749,7 @@ def create(source: Iterable[EndResult]) -> "EndStatistics":
 
 
 def from_end_results(source: Iterable[EndResult],
-                     consumer: Callable[["EndStatistics"], Any],
+                     consumer: Callable[[EndStatistics], Any],
                      join_all_algorithms: bool = False,
                      join_all_instances: bool = False,
                      join_all_objectives: bool = False,
@@ -845,9 +815,8 @@ def from_end_results(source: Iterable[EndResult],
         consumer(create(next(iter(sorter.values()))))
 
 
-def to_csv(  # noqa
-        data: Union["EndStatistics", Iterable["EndStatistics"]],  # noqa
-        file: str) -> Path:  # noqa
+def to_csv(data: EndStatistics | Iterable[EndStatistics],
+           file: str) -> Path:
     """
     Store a set of :class:`EndStatistics` in a CSV file.
 
@@ -871,7 +840,7 @@ def to_csv(  # noqa
 
 
 def from_csv(file: str,
-             consumer: Callable[["EndStatistics"], Any]) -> None:
+             consumer: Callable[[EndStatistics], Any]) -> None:
     """
     Parse a CSV file and collect all encountered :class:`EndStatistics`.
 
@@ -891,8 +860,51 @@ def from_csv(file: str,
            f"file {path!r}.")
 
 
-def getter(dimension: str) -> Callable[["EndStatistics"],
-                                       int | float | None]:
+#: the internal getters that can work directly
+__PROPERTIES: Final[Callable[[str], Callable[[
+    EndStatistics], SampleStatistics | int | float | None] | None]] = {
+    KEY_N: EndStatistics.get_n,
+    KEY_N_SUCCESS: EndStatistics.get_n_success,
+    KEY_ERT_FES: EndStatistics.get_ert_fes,
+    KEY_ERT_TIME_MILLIS: EndStatistics.get_ert_time_millis,
+    KEY_GOAL_F: EndStatistics.get_goal_f,
+    KEY_MAX_TIME_MILLIS: EndStatistics.get_max_time_millis,
+    KEY_MAX_FES: EndStatistics.get_max_fes,
+    KEY_BEST_F: EndStatistics.get_best_f,
+    F_NAME_RAW: EndStatistics.get_best_f,
+    KEY_LAST_IMPROVEMENT_FE: EndStatistics.get_last_improvement_fe,
+    "last improvement FE": EndStatistics.get_last_improvement_fe,
+    KEY_LAST_IMPROVEMENT_TIME_MILLIS:
+        EndStatistics.get_last_improvement_time_millis,
+    "last improvement ms": EndStatistics.get_last_improvement_time_millis,
+    KEY_BEST_F_SCALED: EndStatistics.get_best_f_scaled,
+    KEY_SUCCESS_FES: EndStatistics.get_success_fes,
+    KEY_SUCCESS_TIME_MILLIS: EndStatistics.get_success_time_millis,
+    F_NAME_SCALED: EndStatistics.get_best_f_scaled,
+    KEY_TOTAL_FES: EndStatistics.get_total_fes,
+    "fes": EndStatistics.get_total_fes,
+    KEY_TOTAL_TIME_MILLIS: EndStatistics.get_total_time_millis,
+    "ms": EndStatistics.get_total_time_millis,
+    "f": EndStatistics.get_best_f,
+    "budgetFEs": EndStatistics.get_max_fes,
+    "budgetMS": EndStatistics.get_max_time_millis,
+}.get
+
+#: the success keys
+__SUCCESS_KEYS: Final[Callable[[str], bool]] = {
+    KEY_SUCCESS_FES, KEY_SUCCESS_TIME_MILLIS,
+}.__contains__
+
+#: the internal static getters
+__STATIC: Final[dict[str, Callable[[EndStatistics], int | float | None]]] = {
+    KEY_N: EndStatistics.get_n,
+    KEY_N_SUCCESS: EndStatistics.get_n_success,
+    KEY_ERT_FES: EndStatistics.get_ert_fes,
+    KEY_ERT_TIME_MILLIS: EndStatistics.get_ert_time_millis,
+}
+
+
+def getter(dimension: str) -> Callable[[EndStatistics], int | float | None]:
     """
     Create a function that obtains the given dimension from EndStatistics.
 
@@ -900,49 +912,56 @@ def getter(dimension: str) -> Callable[["EndStatistics"],
     :returns: a callable that returns the value corresponding to the
         dimension
     """
-    if not isinstance(dimension, str):
-        raise type_error(dimension, "dimension", str)
-    if dimension in _GETTERS_0:
-        return _GETTERS_0[dimension]
+    dimension = str.strip(dimension)
+    direct: Callable[[EndStatistics], int | float | None] = \
+        __STATIC.get(dimension)
+    if direct is not None:
+        return direct
 
-    ssi: int = dimension.find(SCOPE_SEPARATOR)
-    if ssi <= 0:
-        raise ValueError(f"unknown dimension {dimension!r}.")
-    scope: str = dimension[:ssi]
-    dim: str = dimension[ssi + 1:]
-    if (len(scope) <= 0) or (len(dim) <= 0):
+    names: Final[list[str]] = str.split(str.strip(dimension), SCOPE_SEPARATOR)
+    n_names: Final[int] = list.__len__(names)
+    if not (0 < n_names < 3):
         raise ValueError(
-            f"invalid dimension {dimension!r}, has "
-            f"scope {scope!r} and sub-dimension {dim!r}")
+            f"Invalid name combination {dimension!r} -> {names!r}.")
+    getter_1: Final[Callable[[
+        EndStatistics], int | float | SampleStatistics | None] | None] = \
+        __PROPERTIES(names[0])
+    if getter_1 is None:
+        raise ValueError(f"Invalid dimension {names[0]!r} in {dimension!r}.")
+    getter_2: Final[Callable[[
+        SampleStatistics], int | float | None]] = \
+        stat_getter(names[1] if n_names > 1 else KEY_MEAN_ARITH)
 
-    if scope not in _GETTERS_1:
-        raise ValueError(
-            f"invalid dimension {dimension!r}, has "
-            f"unknown scope {scope!r} and sub-dimension {dim!r}")
+    if getter_2 is stat_getter(KEY_STDDEV):  # it is sd
+        n_prop: Final[Callable[[EndStatistics], int | None]] = \
+            EndStatistics.get_n_success if __SUCCESS_KEYS(
+                names[0]) else EndStatistics.get_n
 
-    l1 = _GETTERS_1[scope]
-
-    if dim != "sd":
-        l2 = stat_getter(dim)
-
-        def __inner_sat(s: EndStatistics, ll1=l1, ll2=l2) \
-                -> int | float | None:
-            a: Final[SampleStatistics] = ll1(s)
-            if a is None:
+        def __combo_sd(
+                data: EndStatistics, __g1=getter_1, __g2=getter_2,
+                __n=n_prop) -> int | float | None:
+            val: int | float | SampleStatistics | None = __g1(data)
+            if val is None:
                 return None
-            if isinstance(a, int | float):
-                return a  # max, min, med, mean = a
-            return ll2(a)  # apply statistics getter
-        return __inner_sat
+            if isinstance(val, int | float):
+                n = __n(data)
+                return None if (n is None) or (n <= 0) else 0
+            return __g2(val)
+        direct = cast(Callable[[EndStatistics], int | float | None],
+                      __combo_sd)
+    else:  # any other form of mean or statistic
 
-    def __inner_sd(s: EndStatistics, ll1=l1) -> int | float | None:
-        a: Final[SampleStatistics] = ll1(s)
-        if a is None:
-            return None
-        if isinstance(a, int | float):
-            return 0  # sd of a single number = 0
-        return a.stddev
-    return __inner_sd
+        def __combo_no_sd(data: EndStatistics,
+                          __g1=getter_1, __g2=getter_2) -> int | float | None:
+            val: int | float | SampleStatistics | None = __g1(data)
+            if (val is None) or (isinstance(val, int | float)):
+                return val
+            return __g2(val)
+        direct = cast(Callable[[EndStatistics], int | float | None],
+                      __combo_no_sd)
+
+    __STATIC[dimension] = direct
+    return direct
 
 
 def _to_csv_writer(
