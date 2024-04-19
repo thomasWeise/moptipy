@@ -5,7 +5,12 @@ from typing import Final
 from numpy.random import Generator, default_rng
 from pycommons.io.temp import temp_file
 
-from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.end_statistics import (
+    EndStatistics,
+    from_csv,
+    from_end_results,
+    to_csv,
+)
 from moptipy.mock.components import Experiment
 from moptipy.mock.end_results import EndResults
 
@@ -27,15 +32,15 @@ def __test_write_read_end_stats(
     end: Final[EndResults] = EndResults.create(experiment, max_fes, max_ms)
     stats: Final[list[EndStatistics]] = []
 
-    EndStatistics.from_end_results(end.results, stats.append,
-                                   join_all_algorithms, join_all_instances,
-                                   join_all_objectives, join_all_encodings)
+    from_end_results(end.results, stats.append,
+                     join_all_algorithms, join_all_instances,
+                     join_all_objectives, join_all_encodings)
     assert len(stats) > 0
     loaded: list[EndStatistics] = []
 
     with temp_file() as tf:
-        EndStatistics.to_csv(stats, tf)
-        EndStatistics.from_csv(tf, loaded.append)
+        to_csv(stats, tf)
+        from_csv(tf, loaded.append)
 
     assert len(loaded) > 0
     stats.sort()

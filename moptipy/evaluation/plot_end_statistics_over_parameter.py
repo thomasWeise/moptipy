@@ -12,6 +12,7 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.end_statistics import getter as end_stat_getter
 from moptipy.evaluation.statistics import KEY_MEAN_GEOM
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang
@@ -209,7 +210,7 @@ def plot_end_statistics_over_param(
     # the getter for the dimension value
     y_getter: Final[Callable[[EndStatistics], int | float]] \
         = cast(Callable[[EndStatistics], int | float],
-               EndStatistics.getter(y_dim))
+               end_stat_getter(y_dim))
     if not callable(y_getter):
         raise type_error(y_getter, "y-getter", call=True)
 

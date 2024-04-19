@@ -1,12 +1,14 @@
 """Some internal helper functions and base classes."""
 
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, Callable, Final
 
 from pycommons.types import check_int_range, type_error
+from pycommons.version import __version__ as pycommons_version
 
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name
+from moptipy.version import __version__ as moptipy_version
 
 #: The key for the total number of runs.
 KEY_N: Final[str] = "n"
@@ -831,3 +833,39 @@ def sort_key(obj: PerRunData | MultiRunData) -> tuple[Any, ...]:
     """
     # noinspection PyProtectedMember
     return obj._tuple()
+
+
+def _csv_motipy_footer(dest: Callable[[str], Any]) -> None:
+    """
+    Print the standard csv footer.
+
+    :param dest: the destination to write to
+    """
+    dest("")
+    dest("This data has been generated with moptipy version "
+         f"{moptipy_version} using pycommons version "
+         f"{pycommons_version}.")
+    dest("You can find moptipy at https://thomasweise.github.io/mopitpy.")
+    dest(
+        "You can find pycommons at https://thomasweise.github.io/pycommons.")
+
+
+#: a description of the algorithm field
+DESC_ALGORITHM: Final[str] = "the name of the algorithm setup that was used."
+#: a description of the instance field
+DESC_INSTANCE: Final[str] = ("the name of the problem instance to which the "
+                             "algorithm was applied.")
+#: a description of the objective function field
+DESC_OBJECTIVE_FUNCTION: Final[str] = \
+    ("the name of the objective function (often also called fitness function "
+     "or cost function) that was used to rate the solution quality.")
+#: a description of the encoding field
+DESC_ENCODING: Final[str] = \
+    ("the name of the encoding, often also called genotype-phenotype mapping"
+     ", used. In some problems, the search space on which the algorithm "
+     "works is different from the space of possible solutions. For example, "
+     "when solving a scheduling problem, maybe our optimization algorithm "
+     "navigates in the space of permutations, but the solutions are Gantt "
+     "charts. The encoding is the function that translates the points in "
+     "the search space (e.g., permutations) to the points in the solution "
+     "space (e.g., Gantt charts). Nothing if no encoding was used.")

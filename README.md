@@ -1550,18 +1550,20 @@ Let us execute an abridged example experiment, parse all log files, condense the
 We can do that with the code below, which is also available as file [examples/end_results_jssp.py](https://thomasweise.github.io/moptipy/examples/end_results_jssp_py.html).
 
 ```python
-from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
+"""Generate an end-results CSV file for an experiment with the JSSP."""
+from pycommons.io.temp import temp_dir  # tool for temp directories
+
+from moptipy.algorithms.so.hill_climber import HillClimber  # second algo
 from moptipy.algorithms.so.rls import RLS  # first algo to test
-from moptipy.evaluation.end_results import from_logs, to_csv
+from moptipy.evaluation.end_results import from_logs, to_csv  # end results
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
-from pycommons.io.temp import temp_dir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
-# For a real experiment, you would put an existing directory path in `td`
-# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
-# and not use the `with` block.
+# For a real experiment, you would put an existing directory path into `td` by
+# doing `from pycommons.io.path import Path; td = Path("mydir")` and not use
+# the `with` block.
 with temp_dir() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
@@ -1570,8 +1572,7 @@ with temp_dir() as td:
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
-        n_runs=4,  # perform 4 runs per algorithm * instance combination
-        n_threads=1)  # we use only a single thread here
+        n_runs=4)  # perform 4 runs per algorithm * instance combination
 
     end_results = []  # this list will receive the end results records
     from_logs(td, end_results.append)  # get results from log files
@@ -1586,31 +1587,42 @@ with temp_dir() as td:
 This will yield something like the following output:
 
 ```text
-algorithm;instance;randSeed;bestF;lastImprovementFE;lastImprovementTimeMillis;totalFEs;totalTimeMillis;goalF;maxFEs;maxTimeMillis
-hc_swap2;la24;0xac5ca7763bbe7138;1233;2349;27;10000;111;935;10000;120000
-hc_swap2;la24;0x23098fe72e435030;1065;9868;109;10000;111;935;10000;120000
-hc_swap2;la24;0xb76a45e4f8b431ae;1118;2130;24;10000;110;935;10000;120000
-hc_swap2;la24;0xb4eab9a0c2193a9e;1111;2594;29;10000;109;935;10000;120000
-hc_swap2;abz7;0x3e96d853a69f369d;826;8335;105;10000;125;656;10000;120000
-hc_swap2;abz7;0x7e986b616543ff9b;850;6788;87;10000;126;656;10000;120000
-hc_swap2;abz7;0xeb6420da7243abbe;804;3798;48;10000;124;656;10000;120000
-hc_swap2;abz7;0xd3de359d5e3982fd;814;4437;55;10000;123;656;10000;120000
-hc_swap2;demo;0xdac201e7da6b455c;205;4;1;10000;118;180;10000;120000
-hc_swap2;demo;0x5a9363100a272f12;200;33;1;10000;111;180;10000;120000
-hc_swap2;demo;0x9ba8fd0486c59354;180;34;1;34;1;180;10000;120000
-hc_swap2;demo;0xd2866f0630434df;185;128;2;10000;105;180;10000;120000
-rls_swap2;la24;0xb76a45e4f8b431ae;1031;5218;58;10000;110;935;10000;120000
-rls_swap2;la24;0xb4eab9a0c2193a9e;1033;7503;83;10000;111;935;10000;120000
-rls_swap2;la24;0xac5ca7763bbe7138;1015;9451;105;10000;112;935;10000;120000
-rls_swap2;la24;0x23098fe72e435030;1026;9114;102;10000;112;935;10000;120000
-rls_swap2;abz7;0x7e986b616543ff9b;767;9935;125;10000;125;656;10000;120000
-rls_swap2;abz7;0xeb6420da7243abbe;756;8005;99;10000;127;656;10000;120000
-rls_swap2;abz7;0xd3de359d5e3982fd;762;9128;112;10000;123;656;10000;120000
-rls_swap2;abz7;0x3e96d853a69f369d;761;9663;123;10000;127;656;10000;120000
-rls_swap2;demo;0xd2866f0630434df;180;63;1;63;1;180;10000;120000
-rls_swap2;demo;0x9ba8fd0486c59354;180;33;1;33;1;180;10000;120000
-rls_swap2;demo;0xdac201e7da6b455c;180;83;2;83;2;180;10000;120000
-rls_swap2;demo;0x5a9363100a272f12;180;84;2;84;2;180;10000;120000
+# Experiment End Results
+# See the description at the bottom of the file.
+algorithm;instance;objective;encoding;randSeed;bestF;lastImprovementFE;lastImprovementTimeMillis;totalFEs;totalTimeMillis;goalF;maxFEs;maxTimeMillis
+hc_swap2;abz7;makespan;operation_based_encoding;0x3e96d853a69f369d;826;8335;56;10000;67;656;10000;300000
+hc_swap2;abz7;makespan;operation_based_encoding;0x7e986b616543ff9b;850;6788;52;10000;88;656;10000;300000
+hc_swap2;abz7;makespan;operation_based_encoding;0xd3de359d5e3982fd;814;4437;50;10000;87;656;10000;300000
+hc_swap2;abz7;makespan;operation_based_encoding;0xeb6420da7243abbe;804;3798;42;10000;111;656;10000;300000
+hc_swap2;demo;makespan;operation_based_encoding;0xd2866f0630434df;185;128;2;10000;66;180;10000;300000
+hc_swap2;demo;makespan;operation_based_encoding;0x5a9363100a272f12;200;33;1;10000;80;180;10000;300000
+hc_swap2;demo;makespan;operation_based_encoding;0x9ba8fd0486c59354;180;34;1;34;1;180;10000;300000
+hc_swap2;demo;makespan;operation_based_encoding;0xdac201e7da6b455c;205;4;1;10000;94;180;10000;300000
+hc_swap2;la24;makespan;operation_based_encoding;0x23098fe72e435030;1065;9868;98;10000;99;935;10000;300000
+hc_swap2;la24;makespan;operation_based_encoding;0xac5ca7763bbe7138;1233;2349;22;10000;97;935;10000;300000
+hc_swap2;la24;makespan;operation_based_encoding;0xb4eab9a0c2193a9e;1111;2594;25;10000;98;935;10000;300000
+hc_swap2;la24;makespan;operation_based_encoding;0xb76a45e4f8b431ae;1118;2130;13;10000;58;935;10000;300000
+rls_swap2;abz7;makespan;operation_based_encoding;0x3e96d853a69f369d;761;9663;92;10000;95;656;10000;300000
+rls_swap2;abz7;makespan;operation_based_encoding;0x7e986b616543ff9b;767;9935;80;10000;80;656;10000;300000
+rls_swap2;abz7;makespan;operation_based_encoding;0xd3de359d5e3982fd;762;9128;77;10000;82;656;10000;300000
+rls_swap2;abz7;makespan;operation_based_encoding;0xeb6420da7243abbe;756;8005;52;10000;64;656;10000;300000
+rls_swap2;demo;makespan;operation_based_encoding;0xd2866f0630434df;180;63;1;63;1;180;10000;300000
+rls_swap2;demo;makespan;operation_based_encoding;0x5a9363100a272f12;180;84;1;84;1;180;10000;300000
+rls_swap2;demo;makespan;operation_based_encoding;0x9ba8fd0486c59354;180;33;1;33;1;180;10000;300000
+rls_swap2;demo;makespan;operation_based_encoding;0xdac201e7da6b455c;180;83;1;83;1;180;10000;300000
+rls_swap2;la24;makespan;operation_based_encoding;0x23098fe72e435030;1026;9114;91;10000;99;935;10000;300000
+rls_swap2;la24;makespan;operation_based_encoding;0xac5ca7763bbe7138;1015;9451;94;10000;99;935;10000;300000
+rls_swap2;la24;makespan;operation_based_encoding;0xb4eab9a0c2193a9e;1033;7503;74;10000;98;935;10000;300000
+rls_swap2;la24;makespan;operation_based_encoding;0xb76a45e4f8b431ae;1031;5218;30;10000;63;935;10000;300000
+# Records describing the end results of single runs (single executions) of algorithms applied to optimization problems.
+# Each run is characterized by an algorithm setup, a problem instance, and a random seed.
+# algorithm: the name of the algorithm setup that was used.
+# instance: the name of the problem instance to which the algorithm was applied.
+# objective: the name of the objective function (often also called fitness function or cost function) that was used to rate the solution quality.
+# encoding: the name of the encoding, often also called genotype-phenotype mapping, used. In some problems, the search space on which the algorithm works is different from the space of possible solutions. For example, when solving a scheduling problem, maybe our optimization algorithm navigates in the space of permutations, but the solutions are Gantt charts. The encoding is the function that translates the points in the search space (e.g., permutations) to the points in the solution space (e.g., Gantt charts). Nothing if no encoding was used.
+# randSeed: the value of the seed of the random number generator used in the run. Random seeds arein 0..18446744073709551615 and the random number generators are those from numpy.
+# bestF: the best (smallest) objective value ever encountered during the run (regardless whether the algorithm later forgot it again or not).
+...
 ```
 
 ### 5.3. End Result Statistics CSV Files
@@ -1673,19 +1685,21 @@ We can basically execute the same abridged experiment as in the [previous sectio
 This code is also available as file [examples/end_statistics_jssp](https://thomasweise.github.io/moptipy/examples/end_statistics_jssp_py.html).
 
 ```python
-from moptipy.algorithms.so.hill_climber import HillClimber  # second algo to test
+"""Get an end-result statistics CSV file for an experiment with the JSSP."""
+from pycommons.io.temp import temp_dir  # tool for temp directories
+
+from moptipy.algorithms.so.hill_climber import HillClimber  # second algo
 from moptipy.algorithms.so.rls import RLS  # first algo to test
-from moptipy.evaluation.end_results import from_logs  # the end result records
-from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
+from moptipy.evaluation.end_results import from_logs  # the end result record
+from moptipy.evaluation.end_statistics import from_end_results, to_csv
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
-from pycommons.io.temp import temp_dir  # tool for temp directories
 
 # We work in a temporary directory, i.e., delete all generated files on exit.
-# For a real experiment, you would put an existing directory path in `td`
-# by doing `from pycommons.io.path import Path; td = directory_path("mydir")`
-# and not use the `with` block.
+# For a real experiment, you would put an existing directory path into `td` by
+# doing `from pycommons.io.path import Path; td = Path("mydir")` and not use
+# the `with` block.
 with temp_dir() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
@@ -1694,18 +1708,17 @@ with temp_dir() as td:
             lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
-        n_runs=4,  # perform 4 runs per algorithm * instance combination
-        n_threads=1)  # we use only a single thread here
+        n_runs=4)  # perform 4 runs per algorithm * instance combination
 
     end_results = []  # this list will receive the end results records
     from_logs(td, end_results.append)  # get results from log files
 
     end_stats = []  # the list to receive the statistics records
-    EndStatistics.from_end_results(  # compute the end result statistics for
-        end_results, end_stats.append)  # each algorithm*instance combination
+    # compute end result statistics for all algorithm+instance combinations
+    from_end_results(end_results, end_stats.append)
 
-    es_csv = EndStatistics.to_csv(  # store the statistics to a CSV file
-        end_stats, td.resolve_inside("end_stats.txt"))
+    # store the statistics to a CSV file
+    es_csv = to_csv(end_stats, td.resolve_inside("end_stats.txt"))
     print(es_csv.read_all_str())  # read and print the file
 # When leaving "while", the temp directory will be deleted
 ```
@@ -1713,13 +1726,17 @@ with temp_dir() as td:
 We will get something like the following output:
 
 ```text
-algorithm;instance;n;bestF.min;bestF.med;bestF.mean;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.med;lastImprovementFE.mean;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.med;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.med;totalFEs.mean;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.med;totalTimeMillis.mean;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;goalF;bestFscaled.min;bestFscaled.med;bestFscaled.mean;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.med;successFEs.mean;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis.min;successTimeMillis.med;successTimeMillis.mean;successTimeMillis.geom;successTimeMillis.max;successTimeMillis.sd;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
-hc_swap2;abz7;4;804;820;823.5;823.3222584158909;850;19.82422760159901;3798;5612.5;5839.5;5556.776850879124;8335;2102.5303010103485;66;98.5;101.75;97.01834939499804;144;35.79920855735966;10000;10000;10000;10000;10000;0;167;173.5;172.75;172.7115064384389;177;4.193248541803041;656;1.225609756097561;1.25;1.2553353658536586;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;;;;;;inf;inf;10000;120000
-hc_swap2;demo;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;33.5;49.75;27.53060177455133;128;53.98996820397903;1;1;1.25;1.189207115002721;2;0.5;34;10000;7508.5;2414.736402766418;10000;4983;1;110.5;83.75;34.271312811950835;113;55.19284373902109;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;0;1;1;1;1;1;0;30034;335;10000;120000
-hc_swap2;la24;4;1065;1114.5;1131.75;1130.1006812239552;1233;71.47668617575012;2130;2471.5;4235.25;3364.07316907124;9868;3759.9463981108383;25;29;48.75;39.12648845297478;112;42.24038352098617;10000;10000;10000;10000;10000;0;112;113;114.25;114.21692606375939;119;3.2015621187164243;935;1.13903743315508;1.1919786096256684;1.210427807486631;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;;;;;;inf;inf;10000;120000
-rls_swap2;abz7;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9395.5;9182.75;9151.751195919433;9935;853.7393727986702;142;158.5;159.75;158.9378939260136;180;18.625699092025155;10000;10000;10000;10000;10000;0;161;177;174;173.8252032648866;181;8.86942313043338;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;;;;;;inf;inf;10000;120000
-rls_swap2;demo;4;180;180;180;180;180;0;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;180;1;1;1;1;1;0;4;33;73;65.75;61.7025293022418;84;23.879907872519105;1;1.5;1.5;1.4142135623730951;2;0.5773502691896257;65.75;1.5;10000;120000
-rls_swap2;la24;4;1015;1028.5;1026.25;1026.2261982741852;1033;8.05708797684788;5218;8308.5;7821.5;7620.464638595248;9451;1932.6562894972642;63;102.5;95.75;93.20406203429836;115;23.90780904502404;10000;10000;10000;10000;10000;0;119;122;121.5;121.488631118727;123;1.9148542155126762;935;1.085561497326203;1.1;1.0975935828877006;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;;;;;;inf;inf;10000;120000
+# Experiment End Results Statistics
+# See the description at the bottom of the file.
+algorithm;instance;objective;encoding;n;bestF.min;bestF.mean;bestF.med;bestF.geom;bestF.max;bestF.sd;lastImprovementFE.min;lastImprovementFE.mean;lastImprovementFE.med;lastImprovementFE.geom;lastImprovementFE.max;lastImprovementFE.sd;lastImprovementTimeMillis.min;lastImprovementTimeMillis.mean;lastImprovementTimeMillis.med;lastImprovementTimeMillis.geom;lastImprovementTimeMillis.max;lastImprovementTimeMillis.sd;totalFEs.min;totalFEs.mean;totalFEs.med;totalFEs.geom;totalFEs.max;totalFEs.sd;totalTimeMillis.min;totalTimeMillis.mean;totalTimeMillis.med;totalTimeMillis.geom;totalTimeMillis.max;totalTimeMillis.sd;goalF;bestFscaled.min;bestFscaled.mean;bestFscaled.med;bestFscaled.geom;bestFscaled.max;bestFscaled.sd;successN;successFEs.min;successFEs.mean;successFEs.med;successFEs.geom;successFEs.max;successFEs.sd;successTimeMillis;ertFEs;ertTimeMillis;maxFEs;maxTimeMillis
+hc_swap2;abz7;makespan;operation_based_encoding;4;804;823.5;820;823.3222584158909;850;19.82422760159901;3798;5839.5;5612.5;5556.776850879124;8335;2102.5303010103485;26;57;54;51.55696256128031;94;28.2724836781867;10000;10000;10000;10000;10000;0;68;92.5;95;90.55441161416107;112;21.486429825977762;656;1.225609756097561;1.2553353658536586;1.25;1.2550644183169068;1.295731707317073;0.030219859148778932;0;;;;;;;;inf;inf;10000;300000
+hc_swap2;demo;makespan;operation_based_encoding;4;180;192.5;192.5;192.22373987227797;205;11.902380714238083;4;49.75;33.5;27.53060177455133;128;53.98996820397903;1;1.25;1;1.189207115002721;2;0.5;34;7508.5;10000;2414.736402766418;10000;4983;1;62.75;76;26.889958060259907;98;45.78482281280556;180;1;1.0694444444444444;1.0694444444444444;1.0679096659571;1.1388888888888888;0.0661243373013227;1;34;34;34;34;34;;1;30034;251;10000;300000
+hc_swap2;la24;makespan;operation_based_encoding;4;1065;1131.75;1114.5;1130.1006812239552;1233;71.47668617575012;2130;4235.25;2471.5;3364.07316907124;9868;3759.9463981108383;14;36;25;28.82037873718377;80;29.888682361946525;10000;10000;10000;10000;10000;0;60;73.5;75.5;72.89589968499726;83;10.661457061146317;935;1.13903743315508;1.210427807486631;1.1919786096256684;1.2086638301860484;1.3187165775401068;0.07644565366390384;0;;;;;;;;inf;inf;10000;300000
+rls_swap2;abz7;makespan;operation_based_encoding;4;756;761.5;761.5;761.4899866748019;767;4.509249752822894;8005;9182.75;9395.5;9151.751195919433;9935;853.7393727986702;62;94.25;100.5;91.66752533729615;114;24.005207768315607;10000;10000;10000;10000;10000;0;68;102.75;114;100.40278492339303;115;23.18584338197197;656;1.1524390243902438;1.1608231707317074;1.1608231707317074;1.1608079065164663;1.1692073170731707;0.006873856330522731;0;;;;;;;;inf;inf;10000;300000
+rls_swap2;demo;makespan;operation_based_encoding;4;180;180;180;180;180;0;33;65.75;73;61.7025293022418;84;23.879907872519105;1;1;1;1;1;0;33;65.75;73;61.7025293022418;84;23.879907872519105;1;1;1;1;1;0;180;1;1;1;1;1;0;4;33;65.75;73;61.7025293022418;84;23.879907872519105;1;65.75;1;10000;300000
+rls_swap2;la24;makespan;operation_based_encoding;4;1015;1026.25;1028.5;1026.2261982741852;1033;8.05708797684788;5218;7821.5;8308.5;7620.464638595248;9451;1932.6562894972642;32;62;61.5;57.75986004802567;93;25.468935326524086;10000;10000;10000;10000;10000;0;58;76.25;72.5;74.35251132261814;102;20.039544239661073;935;1.085561497326203;1.0975935828877006;1.1;1.0975681264964547;1.1048128342245989;0.008617206392350722;0;;;;;;;;inf;inf;10000;300000
+# This file provides statistics about the end results of multiple runs of optimization algorithms on optimization problems.
+...
 ```
 
 

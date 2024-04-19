@@ -4,7 +4,7 @@ from pycommons.io.temp import temp_dir  # tool for temp directories
 from moptipy.algorithms.so.hill_climber import HillClimber  # second algo
 from moptipy.algorithms.so.rls import RLS  # first algo to test
 from moptipy.evaluation.end_results import from_logs  # the end result record
-from moptipy.evaluation.end_statistics import EndStatistics  # statistics rec
+from moptipy.evaluation.end_statistics import from_end_results, to_csv
 from moptipy.examples.jssp.experiment import run_experiment  # JSSP example
 from moptipy.operators.permutations.op0_shuffle import Op0Shuffle  # 0-ary op
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2  # 1-ary op
@@ -27,10 +27,10 @@ with temp_dir() as td:
     from_logs(td, end_results.append)  # get results from log files
 
     end_stats = []  # the list to receive the statistics records
-    EndStatistics.from_end_results(  # compute the end result statistics for
-        end_results, end_stats.append)  # each algorithm*instance combination
+    # compute end result statistics for all algorithm+instance combinations
+    from_end_results(end_results, end_stats.append)
 
-    es_csv = EndStatistics.to_csv(  # store the statistics to a CSV file
-        end_stats, td.resolve_inside("end_stats.txt"))
+    # store the statistics to a CSV file
+    es_csv = to_csv(end_stats, td.resolve_inside("end_stats.txt"))
     print(es_csv.read_all_str())  # read and print the file
 # When leaving "while", the temp directory will be deleted

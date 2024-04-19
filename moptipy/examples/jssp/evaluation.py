@@ -19,6 +19,10 @@ from moptipy.evaluation.end_results import from_csv as end_results_from_csv
 from moptipy.evaluation.end_results import from_logs as end_results_from_logs
 from moptipy.evaluation.end_results import to_csv as end_results_to_csv
 from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.end_statistics import (
+    from_end_results as es_from_end_results,
+)
+from moptipy.evaluation.end_statistics import to_csv as es_to_csv
 from moptipy.evaluation.tabulate_end_results import (
     DEFAULT_ALGORITHM_INSTANCE_STATISTICS,
     DEFAULT_ALGORITHM_SUMMARY_STATISTICS,
@@ -351,12 +355,12 @@ def compute_end_statistics(end_results_file: str,
     if len(results) <= 0:
         raise ValueError("end results cannot be empty")
     stats: Final[list[EndStatistics]] = []
-    EndStatistics.from_end_results(results, stats.append)
+    es_from_end_results(results, stats.append)
     if len(stats) <= 0:
         raise ValueError("end result statistics cannot be empty")
     stats.sort()
 
-    sf: Path = EndStatistics.to_csv(stats, stats_file)
+    sf: Path = es_to_csv(stats, stats_file)
     if sf != stats_file:
         raise ValueError(f"stats file should be {stats_file!r} but is {sf!r}")
     stats_file.enforce_file()

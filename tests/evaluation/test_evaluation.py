@@ -10,13 +10,16 @@ from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.api import logging
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
-from moptipy.evaluation.end_results import (
-    EndResult,
-    from_csv,
-    from_logs,
-    to_csv,
+from moptipy.evaluation.end_results import EndResult
+from moptipy.evaluation.end_results import from_csv as er_from_csv
+from moptipy.evaluation.end_results import from_logs as er_from_logs
+from moptipy.evaluation.end_results import to_csv as er_to_csv
+from moptipy.evaluation.end_statistics import create as es_create
+from moptipy.evaluation.end_statistics import from_csv as es_from_csv
+from moptipy.evaluation.end_statistics import (
+    from_end_results as es_from_end_results,
 )
-from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.end_statistics import to_csv as es_to_csv
 from moptipy.evaluation.ert import Ert, compute_single_ert
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.stat_run import StatRun
@@ -78,7 +81,7 @@ def test_experiment_jssp() -> None:
                        base_dir=base_dir)
 
         results: list[EndResult] = []
-        from_logs(base_dir, results.append)
+        er_from_logs(base_dir, results.append)
 
         assert len(results) == (4 * 2 * 3)
         results.sort()
@@ -119,14 +122,14 @@ def test_experiment_jssp() -> None:
 
         with temp_file(directory=base_dir,
                        suffix=logging.FILE_SUFFIX) as path:
-            to_csv(results=results, file=path)
+            er_to_csv(results=results, file=path)
 
             results2: list[EndResult] = []
-            from_csv(file=path, consumer=results2.append)
+            er_from_csv(file=path, consumer=results2.append)
 
             assert results == results2
 
-        es_hc_a = EndStatistics.create(results[12:16])
+        es_hc_a = es_create(results[12:16])
         assert es_hc_a.instance == "abz8"
         assert es_hc_a.algorithm == "hc_swap2"
         assert es_hc_a.goal_f == 648
@@ -138,7 +141,7 @@ def test_experiment_jssp() -> None:
 
         if "GITHUB_JOB" in environ:
 
-            es_rs_a = EndStatistics.create(results[0:4])
+            es_rs_a = es_create(results[0:4])
             assert es_rs_a.instance == "abz8"
             assert es_rs_a.algorithm == "1rs"
             assert es_rs_a.goal_f == 648
@@ -148,7 +151,7 @@ def test_experiment_jssp() -> None:
             assert es_rs_a.ert_fes > 0
             assert es_rs_a.ert_time_millis > 0
 
-            es_rs_l = EndStatistics.create(results[8:12])
+            es_rs_l = es_create(results[8:12])
             assert es_rs_l.instance == "la24"
             assert es_rs_l.algorithm == "1rs"
             assert es_rs_l.goal_f == 935
@@ -158,7 +161,7 @@ def test_experiment_jssp() -> None:
             assert es_rs_l.ert_fes > 0
             assert es_rs_l.ert_time_millis > 0
 
-            es = EndStatistics.create(results[12:20])
+            es = es_create(results[12:20])
             assert es.instance is None
             assert es.algorithm == "hc_swap2"
             assert es.goal_f.minimum == 648
@@ -170,7 +173,7 @@ def test_experiment_jssp() -> None:
             assert es.ert_fes > 0
             assert es.ert_time_millis > 0
 
-            es_all = EndStatistics.create(results[0:24])
+            es_all = es_create(results[0:24])
             assert es_all.instance is None
             assert es_all.algorithm is None
             assert es_all.goal_f.minimum == 648
@@ -182,7 +185,7 @@ def test_experiment_jssp() -> None:
             assert es_all.ert_fes > 0
             assert es_all.ert_time_millis > 0
 
-            es_rs = EndStatistics.create(results[0:12])
+            es_rs = es_create(results[0:12])
             assert es_rs.instance is None
             assert es_rs.algorithm == "1rs"
             assert es_rs.goal_f.minimum == 648
@@ -194,7 +197,7 @@ def test_experiment_jssp() -> None:
             assert es_rs.ert_fes > 0
             assert es_rs.ert_time_millis > 0
 
-            es_l = EndStatistics.create(results[8:12] + results[20:24])
+            es_l = es_create(results[8:12] + results[20:24])
             assert es_l.instance == "la24"
             assert es_l.algorithm is None
             assert es_l.goal_f == 935
@@ -205,36 +208,35 @@ def test_experiment_jssp() -> None:
             assert es_l.ert_time_millis > 0
 
             es_algos = []
-            EndStatistics.from_end_results(results, es_algos.append,
-                                           join_all_instances=True)
+            es_from_end_results(results, es_algos.append,
+                                join_all_instances=True)
             assert es_algos[0] == es_rs
             assert len(es_algos) == 2
 
             es_insts = []
-            EndStatistics.from_end_results(results, es_insts.append,
-                                           join_all_algorithms=True)
+            es_from_end_results(results, es_insts.append,
+                                join_all_algorithms=True)
             assert es_insts[2] == es_l
             assert len(es_insts) == 3
 
             es_sep = []
-            EndStatistics.from_end_results(results, es_sep.append)
+            es_from_end_results(results, es_sep.append)
             assert es_sep[3] == es_hc_a
             assert es_sep[0] == es_rs_a
             assert es_sep[2] == es_rs_l
             assert len(es_sep) == 6
 
             es_one = []
-            EndStatistics.from_end_results(results, es_one.append,
-                                           True, True)
+            es_from_end_results(results, es_one.append, True, True)
             assert es_one == [es_all]
             assert len(es_one) == 1
 
         with temp_file(directory=base_dir,
                        suffix=logging.FILE_SUFFIX) as f:
             check = [es_hc_a]
-            EndStatistics.to_csv(check, f)
+            es_to_csv(check, f)
             check_2 = []
-            EndStatistics.from_csv(f, check_2.append)
+            es_from_csv(f, check_2.append)
             assert check_2 == check
             assert len(check_2) == 1
 

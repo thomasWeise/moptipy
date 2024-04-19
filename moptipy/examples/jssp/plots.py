@@ -12,7 +12,7 @@ import moptipy.utils.plot_utils as pu
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED, TIME_UNIT_MILLIS
 from moptipy.evaluation.end_results import EndResult
-from moptipy.evaluation.end_statistics import EndStatistics
+from moptipy.evaluation.end_statistics import EndStatistics, from_end_results
 from moptipy.evaluation.plot_end_results import plot_end_results
 from moptipy.evaluation.plot_end_statistics_over_parameter import (
     plot_end_statistics_over_param,
@@ -418,10 +418,10 @@ def plot_end_makespans_over_param(
 
     end_stats: Final[list[EndStatistics]] = []
     if plot_single_instances:
-        EndStatistics.from_end_results(end_results, end_stats.append)
+        from_end_results(end_results, end_stats.append)
     if plot_instance_summary:
-        EndStatistics.from_end_results(end_results, end_stats.append,
-                                       join_all_instances=True)
+        from_end_results(end_results, end_stats.append,
+                         join_all_instances=True)
     if len(end_stats) <= 0:
         raise ValueError("no end statistics records to plot!")
     result: list[Path] = []

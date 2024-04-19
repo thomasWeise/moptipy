@@ -19,6 +19,10 @@ from moptipy.api.logging import (
 from moptipy.evaluation.base import F_NAME_RAW, F_NAME_SCALED
 from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_statistics import KEY_BEST_F_SCALED, EndStatistics
+from moptipy.evaluation.end_statistics import (
+    from_end_results as es_from_end_results,
+)
+from moptipy.evaluation.end_statistics import getter as es_getter
 from moptipy.evaluation.statistics import (
     KEY_MAXIMUM,
     KEY_MEAN_ARITH,
@@ -321,7 +325,7 @@ def __getter(s: str) -> Callable[[EndStatistics], int | float | None]:
     """
     if not isinstance(s, str):
         raise type_error(s, "getter name", str)
-    getter = EndStatistics.getter(s)
+    getter = es_getter(s)
 
     def __fixed(e: EndStatistics, g=getter, n=s) -> int | float | None:
         res = g(e)
@@ -531,7 +535,7 @@ def tabulate_end_results(
 
     # gather the statistics for each algorithm-instance combination
     algo_inst_list: Final[list[EndStatistics]] = []
-    EndStatistics.from_end_results(end_results, algo_inst_list.append)
+    es_from_end_results(end_results, algo_inst_list.append)
     if len(algo_inst_list) <= 0:
         raise ValueError("no algorithm-instance combinations?")
     # get the sorted lists of algorithms and instances
@@ -588,8 +592,7 @@ def tabulate_end_results(
             if es.algorithm in algo_dict:
                 raise ValueError(f"already encountered {es.algorithm}?")
             algo_dict[es.algorithm] = es
-        EndStatistics.from_end_results(end_results, __put,
-                                       join_all_instances=True)
+        es_from_end_results(end_results, __put, join_all_instances=True)
         del __put
     del end_results
     if len(algo_dict) != n_algos:
