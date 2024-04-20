@@ -78,6 +78,63 @@ from moptipy.utils.strings import (
     sanitize_names,
 )
 
+#: a description of the random seed
+DESC_RAND_SEED: Final[str] = (
+    "the value of the seed of the random number generator used in the run. "
+    f"Random seeds are in 0..{int((1 << (8 * 8)) - 1)} and the random "
+    f"number generators are those from numpy.")
+#: the description of best-F
+DESC_BEST_F: Final[str] = (
+    " the best (smallest) objective value ever encountered during the run ("
+    "regardless whether the algorithm later forgot it again or not).")
+#: the description of the last improvement FE
+DESC_LAST_IMPROVEMENT_FE: Final[str] = (
+    "the objective function evaluation (FE) when the last improving move took"
+    " place. 1 FE corresponds to the construction and evaluation "
+    "of one solution. The first FE has index 1. With 'last "
+    "improving move' we mean the last time when a solution was "
+    "discovered that was better than all previous solutions. This "
+    "time / FE index is the one when the solution with objective "
+    f"value {KEY_BEST_F} was discovered.")
+#: the description of the last improvement time milliseconds
+DESC_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = (
+    "the clock time in milliseconds after the begin of the run when "
+    "the last improving search move took place.")
+#: the description of the total FEs
+DESC_TOTAL_FES: Final[str] = (
+    "the total number of objective function evaluations (FEs) that were "
+    "performed during the run.")
+#: the total consumed time in milliseconds
+DESC_TOTAL_TIME_MILLIS: Final[str] = (
+    "the clock time in milliseconds that has passed between the begin of the "
+    "run and the end of the run.")
+#: the description of the goal objective value
+DESC_GOAL_F: Final[str] = (
+    "the goal objective value. A run will stop as soon as a solution was"
+    "discovered which has an objective value less than or equal to "
+    f"{KEY_GOAL_F}. In other words, as soon as {KEY_BEST_F} reaches or dips "
+    f"under {KEY_GOAL_F}, the algorithm will stop. If {KEY_GOAL_F} is not "
+    "reached, the run will continue until other budget limits are exhausted. "
+    "If a lower bound for the objective function is known, this is often used"
+    " as a goal objective value. If o goal objective value is specified, this"
+    " field is empty.")
+#: a description of the budget as the maximum objective function evaluation
+DESC_MAX_FES: Final[str] = (
+    "the maximum number of permissible FEs per run. As soon as this limit is "
+    f"reached, the run will stop. In other words, {KEY_TOTAL_FES} will never "
+    f"be more than {KEY_MAX_FES}. A run may stop earlier if some other "
+    "termination criterion is reached, but never later.")
+#: a description of the budget in terms of maximum runtime
+DESC_MAX_TIME_MILLIS: Final[str] = (
+    "the maximum number of milliseconds of clock time that a run is permitted"
+    " to use as computational budget before being terminated. This limit is "
+    "more of a soft limit, as we cannot physically stop a run at arbitrary "
+    "points without causing mayhem. Thus, it may be that some runs consume "
+    "slightly more runtime than this limit. But the rule is that the "
+    "algorithm gets told to stop (via should_terminate() becoming True) as "
+    f"soon as this time has elapsed. But generally, {KEY_TOTAL_TIME_MILLIS}<="
+    f"{KEY_MAX_TIME_MILLIS} approximately holds.")
+
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
 class EndResult(PerRunData):
@@ -693,62 +750,22 @@ class CsvWriter:
              f" {DESC_OBJECTIVE_FUNCTION}")
         if self.__needs_encoding:
             dest(f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}")
-        dest(f"{csv_scope(scope, KEY_RAND_SEED)}: the value of the seed of "
-             "the random number generator used in the run. Random seeds are"
-             f"in 0..{int((1 << (8 * 8)) - 1)} and the random number "
-             "generators are those from numpy.")
-        dest(f"{csv_scope(scope, KEY_BEST_F)}: the best (smallest) objective "
-             "value ever encountered during the run (regardless whether the "
-             "algorithm later forgot it again or not).")
-        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)}: the objective "
-             "function evaluation (FE) when the last improving move took "
-             "place. 1 FE corresponds to the construction and evaluation "
-             "of one solution. The first FE has index 1. With 'last "
-             "improving move' we mean the last time when a solution was "
-             "discovered that was better than all previous solutions. This "
-             "time / FE index is the one when the solution with objective "
-             f"value {csv_scope(scope, KEY_BEST_F)} was discovered.")
-        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)}: the "
-             f"clock time in milliseconds after the begin of the run when "
-             f"the last improving search move took place.")
-        dest(f"{csv_scope(scope, KEY_TOTAL_FES)}: the total number of "
-             "objective function evaluations (FEs) that were performed "
-             "during the run.")
-        dest(f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}: the clock time "
-             "in milliseconds that has passed between the begin of the "
-             "run and the end of the run.")
+        dest(f"{csv_scope(scope, KEY_RAND_SEED)}: {DESC_RAND_SEED}")
+        dest(f"{csv_scope(scope, KEY_BEST_F)}: {DESC_BEST_F}")
+        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)}: "
+             f"{DESC_LAST_IMPROVEMENT_FE}")
+        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)}: "
+             f"{DESC_LAST_IMPROVEMENT_TIME_MILLIS}")
+        dest(f"{csv_scope(scope, KEY_TOTAL_FES)}: {DESC_TOTAL_FES}")
+        dest(f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}: "
+             f"{DESC_TOTAL_TIME_MILLIS}")
         if self.__needs_goal_f:
-            dest(f"{csv_scope(scope, KEY_GOAL_F)}: the goal objective value: "
-                 "A run will stop as soon as a solution was discovered "
-                 "which has an objective value less than or equal to "
-                 f"{csv_scope(scope, KEY_GOAL_F)}. In other words, as soon "
-                 f"as {csv_scope(scope, KEY_BEST_F)} reaches or dips under "
-                 f"{csv_scope(scope, KEY_GOAL_F)}, the algorithm will stop. "
-                 f"If {csv_scope(scope, KEY_GOAL_F)} is not reached, the run "
-                 "will continue until other budget limits are exhausted. If "
-                 "no goal objective value is specified, this field is empty.")
+            dest(f"{csv_scope(scope, KEY_GOAL_F)}: {DESC_GOAL_F}")
         if self.__needs_max_fes:
-            dest(f"{csv_scope(scope, KEY_MAX_FES)}: the maximum number of "
-                 "permissible FEs. As soon as this limit is reached, the "
-                 "run will stop. In other words, "
-                 f"{csv_scope(scope, KEY_TOTAL_FES)} will never be more "
-                 f"than {csv_scope(scope, KEY_MAX_FES)}. A run may stop "
-                 "earlier if some other termination criterion is reached, "
-                 "but never later.")
+            dest(f"{csv_scope(scope, KEY_MAX_FES)}: {DESC_MAX_FES}")
         if self.__needs_max_ms:
-            dest(f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: the maximum "
-                 "number of milliseconds of clock time that a run is "
-                 "permitted to use as computational budget before being "
-                 "terminated. This limit is more of a soft limit, as we "
-                 "cannot physically stop a run at arbitrary points without "
-                 "causing mayhem. Thus, it may be that some runs consume "
-                 "slightly more runtime than this limit. But the rule is "
-                 "that the algorithm gets told to stop (via "
-                 "should_terminate() becoming True) as soon as this time "
-                 "has elapsed. But generally, "
-                 f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}<="
-                 f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)} approximately "
-                 "holds.")
+            dest(f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: "
+                 f"{DESC_MAX_TIME_MILLIS}")
         _csv_motipy_footer(dest)
 
 
