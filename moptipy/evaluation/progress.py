@@ -16,6 +16,7 @@ from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 from pycommons.io.console import logger
+from pycommons.io.csv import COMMENT_START, CSV_SEPARATOR
 from pycommons.io.path import Path
 from pycommons.strings.string_conv import num_to_str, str_to_num
 from pycommons.types import type_error
@@ -43,8 +44,6 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.logger import (
-    COMMENT_CHAR,
-    CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import is_all_finite, is_np_float, is_np_int
@@ -220,7 +219,7 @@ class Progress(PerRunData):
             write: Final[Callable[[str], int]] = out.write
             if put_header:
                 kv: Final[str] = KEY_VALUE_SEPARATOR
-                cmt: Final[str] = COMMENT_CHAR
+                cmt: Final[str] = COMMENT_START
                 write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
                 write(f"{cmt} {KEY_INSTANCE}{kv}{self.instance}\n")
                 write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}{kv}{self.objective}\n")

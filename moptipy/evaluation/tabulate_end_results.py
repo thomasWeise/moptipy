@@ -3,7 +3,16 @@
 from math import inf, isfinite, isnan, nan
 from typing import Any, Callable, Final, Iterable, cast
 
+from pycommons.io.csv import SCOPE_SEPARATOR
 from pycommons.io.path import Path
+from pycommons.math.sample_statistics import (
+    KEY_MAXIMUM,
+    KEY_MEAN_ARITH,
+    KEY_MEAN_GEOM,
+    KEY_MEDIAN,
+    KEY_MINIMUM,
+    KEY_STDDEV,
+)
 from pycommons.types import type_error
 
 from moptipy.api.logging import (
@@ -23,17 +32,8 @@ from moptipy.evaluation.end_statistics import (
     from_end_results as es_from_end_results,
 )
 from moptipy.evaluation.end_statistics import getter as es_getter
-from moptipy.evaluation.statistics import (
-    KEY_MAXIMUM,
-    KEY_MEAN_ARITH,
-    KEY_MEAN_GEOM,
-    KEY_MEDIAN,
-    KEY_MINIMUM,
-    KEY_STDDEV,
-)
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang
-from moptipy.utils.logger import SCOPE_SEPARATOR
 from moptipy.utils.markdown import Markdown
 from moptipy.utils.number_renderer import (
     DEFAULT_NUMBER_RENDERER,

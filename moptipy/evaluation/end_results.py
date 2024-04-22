@@ -609,7 +609,7 @@ class CsvWriter:
         :param scope: the prefix to be pre-pended to all columns
         """
         #: an optional scope
-        self.__scope: Final[str | None] = (
+        self.scope: Final[str | None] = (
             str.strip(scope)) if scope is not None else None
 
         #: has this writer been set up?
@@ -673,7 +673,7 @@ class CsvWriter:
 
         :param dest: the destination string consumer
         """
-        p: Final[str] = self.__scope
+        p: Final[str] = self.scope
         dest(csv_scope(p, KEY_ALGORITHM))
         dest(csv_scope(p, KEY_INSTANCE))
         dest(csv_scope(p, KEY_OBJECTIVE_FUNCTION))
@@ -735,7 +735,7 @@ class CsvWriter:
         :param dest: the destination
         """
         dest("")
-        scope: Final[str | None] = self.__scope
+        scope: Final[str | None] = self.scope
         dest("Records describing the end results of single runs ("
              "single executions) of algorithms applied to optimization "
              "problems.")

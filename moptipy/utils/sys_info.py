@@ -10,15 +10,14 @@ from datetime import datetime, timezone
 from typing import Final, Iterable, cast
 
 import psutil  # type: ignore
+from pycommons.io.csv import CSV_SEPARATOR, SCOPE_SEPARATOR
 from pycommons.io.path import Path
 from pycommons.types import type_error
 
 import moptipy.version as ver
 from moptipy.api import logging
 from moptipy.utils.logger import (
-    CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
-    SCOPE_SEPARATOR,
     InMemoryLogger,
     KeyValueLogSection,
     Logger,

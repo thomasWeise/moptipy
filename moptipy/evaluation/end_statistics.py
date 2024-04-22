@@ -1012,7 +1012,7 @@ class CsvWriter:
         :param scope: the prefix to be pre-pended to all columns
         """
         #: an optional scope
-        self.__scope: Final[str | None] = (
+        self.scope: Final[str | None] = (
             str.strip(scope)) if scope is not None else None
 
         #: has this writer been set up?
@@ -1109,7 +1109,7 @@ class CsvWriter:
             if checker == 0:
                 break
 
-        scope: Final[str | None] = self.__scope
+        scope: Final[str | None] = self.scope
         self.__goal_f = _to_csv_writer(
             EndStatistics.get_goal_f, EndStatistics.get_n,
             data, csv_scope(scope, KEY_GOAL_F),
@@ -1153,7 +1153,7 @@ class CsvWriter:
 
         :param dest: the destination string consumer
         """
-        p: Final[str] = self.__scope
+        p: Final[str] = self.scope
         if self.__has_algorithm:
             dest(csv_scope(p, KEY_ALGORITHM))
         if self.__has_instance:
@@ -1248,7 +1248,7 @@ class CsvWriter:
         :param dest: the destination
         """
         dest("")
-        scope: Final[str | None] = self.__scope
+        scope: Final[str | None] = self.scope
 
         dest("This file presents statistics gathered over multiple runs "
              "of optimization algorithms applied to problem instances.")

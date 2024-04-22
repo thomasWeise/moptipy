@@ -36,6 +36,7 @@ from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from pycommons.io.console import logger
+from pycommons.io.csv import COMMENT_START, CSV_SEPARATOR
 from pycommons.io.path import Path
 from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
@@ -56,8 +57,6 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.logger import (
-    COMMENT_CHAR,
-    CSV_SEPARATOR,
     KEY_VALUE_SEPARATOR,
 )
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_all_finite
@@ -221,7 +220,7 @@ class Ert(MultiRun2DData):
             write: Callable[[str], int] = out.write
             if put_header:
                 kv: Final[str] = KEY_VALUE_SEPARATOR
-                cmt: Final[str] = COMMENT_CHAR
+                cmt: Final[str] = COMMENT_START
                 if self.algorithm is not None:
                     write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
                 if self.instance is not None:

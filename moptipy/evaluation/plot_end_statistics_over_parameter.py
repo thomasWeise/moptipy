@@ -5,6 +5,8 @@ from typing import Any, Callable, Final, Iterable, cast
 from matplotlib.artist import Artist  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.figure import Figure  # type: ignore
+from pycommons.io.csv import SCOPE_SEPARATOR
+from pycommons.math.sample_statistics import KEY_MEAN_GEOM
 from pycommons.types import type_error
 
 import moptipy.utils.plot_defaults as pd
@@ -13,10 +15,8 @@ from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.base import F_NAME_SCALED
 from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.end_statistics import getter as end_stat_getter
-from moptipy.evaluation.statistics import KEY_MEAN_GEOM
 from moptipy.evaluation.styler import Styler
 from moptipy.utils.lang import Lang
-from moptipy.utils.logger import SCOPE_SEPARATOR
 
 
 def __make_y_label(y_dim: str) -> str:

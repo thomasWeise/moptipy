@@ -37,6 +37,7 @@ from re import sub
 from typing import Any, Callable, Final, Iterable, cast
 
 from pycommons.ds.cache import str_is_new
+from pycommons.io.csv import COMMENT_START, CSV_SEPARATOR
 from pycommons.io.path import Path, line_writer
 from pycommons.strings.string_conv import bool_to_str, float_to_str
 from pycommons.types import type_error
@@ -46,12 +47,6 @@ from moptipy.utils.strings import (
     sanitize_name,
 )
 
-#: the separator used in CSV files to separate columns
-CSV_SEPARATOR: Final[str] = ";"
-#: the character indicating the begin of a comment
-COMMENT_CHAR: Final[str] = "#"
-#: the character separating a scope prefix in a key-value section
-SCOPE_SEPARATOR: Final[str] = "."
 #: the indicator of the start of a log section
 SECTION_START: Final[str] = "BEGIN_"
 #: the indicator of the end of a log section
@@ -183,7 +178,7 @@ class Logger(AbstractContextManager):
         if len(comment) <= 0:
             return
         comment = sub(r"\s+", " ", comment.strip())
-        self._writer(f"{COMMENT_CHAR} {comment}")
+        self._writer(f"{COMMENT_START} {comment}")
 
     def _write(self, text: str) -> None:
         """
@@ -201,9 +196,9 @@ class Logger(AbstractContextManager):
             self._error(f"String {self.__closer!r} "
                         "must not be contained in output")
 
-        if COMMENT_CHAR in text:
+        if COMMENT_START in text:
             raise ValueError(
-                f"{COMMENT_CHAR!r} not permitted in text {text!r}.")
+                f"{COMMENT_START!r} not permitted in text {text!r}.")
         self._writer(text)
 
     def key_values(self, title: str) -> "KeyValueLogSection":

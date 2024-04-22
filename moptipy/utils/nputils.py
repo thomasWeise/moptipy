@@ -6,10 +6,9 @@ from typing import Any, Final, cast
 import numba  # type: ignore
 import numpy as np
 from numpy.random import PCG64, Generator, default_rng
+from pycommons.io.csv import CSV_SEPARATOR
 from pycommons.strings.string_conv import bool_to_str, num_to_str
 from pycommons.types import check_int_range, type_error
-
-from moptipy.utils.logger import CSV_SEPARATOR
 
 #: All the numpy integer types and their ranges in increasing order of size.
 #: The tuple contains alternating signed and unsigned types. It starts with
@@ -632,8 +631,7 @@ def array_to_str(data: np.ndarray) -> str:
     It makes sure to include all the information stored in the array and to
     represent it as compactly as possible.
 
-    If the array has numerical values, it will use the default CSV separator
-    (:const:`~moptipy.utils.logger.CSV_SEPARATOR`).
+    If the array has numerical values, it will use the default CSV separator.
     If the array contains Boolean values, it will use no separator at all.
 
     :param data: the data

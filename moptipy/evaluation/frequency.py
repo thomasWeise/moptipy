@@ -18,6 +18,7 @@ from math import isfinite
 from typing import Any, Callable, Final, Iterable
 
 from pycommons.io.console import logger
+from pycommons.io.csv import CSV_SEPARATOR, SCOPE_SEPARATOR
 from pycommons.io.path import Path
 from pycommons.strings.string_conv import str_to_num
 from pycommons.types import type_error
@@ -37,7 +38,6 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import moptipy_argparser
-from moptipy.utils.logger import CSV_SEPARATOR, SCOPE_SEPARATOR
 
 #: the lower bound of the objective function
 _FULL_KEY_LOWER_BOUND: Final[str] = \

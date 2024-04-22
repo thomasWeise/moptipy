@@ -3,11 +3,12 @@ from typing import Any, Callable
 
 # noinspection PyPackageRequirements
 import pytest
+from pycommons.io.csv import COMMENT_START
 from pycommons.types import type_error
 
 from moptipy.api.space import Space, check_space
 from moptipy.tests.component import validate_component
-from moptipy.utils.logger import COMMENT_CHAR, SECTION_END, SECTION_START
+from moptipy.utils.logger import SECTION_END, SECTION_START
 
 
 def validate_space(
@@ -91,9 +92,9 @@ def validate_space(
     if SECTION_END in strstr:
         raise ValueError(f"space.to_str() must not include "
                          f"{SECTION_END!r}, but is {strstr!r}.")
-    if COMMENT_CHAR in strstr:
+    if COMMENT_START in strstr:
         raise ValueError(f"space.to_str() must not include "
-                         f"{COMMENT_CHAR!r}, but is {strstr!r}.")
+                         f"{COMMENT_START!r}, but is {strstr!r}.")
 
     if not (hasattr(space, "from_str")
             and callable(getattr(space, "from_str"))):

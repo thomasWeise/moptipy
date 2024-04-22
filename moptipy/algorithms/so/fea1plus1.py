@@ -92,13 +92,13 @@ from typing import Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy.random import Generator
+from pycommons.io.csv import CSV_SEPARATOR
 from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm1
 from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
-from moptipy.utils.logger import CSV_SEPARATOR
 from moptipy.utils.nputils import DEFAULT_INT
 
 #: the log section for the frequency table

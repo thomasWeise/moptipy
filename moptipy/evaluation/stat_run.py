@@ -5,9 +5,16 @@ from typing import Any, Callable, Final, Iterable
 
 import numba  # type: ignore
 import numpy as np
+from pycommons.math.sample_statistics import (
+    KEY_MAXIMUM,
+    KEY_MEAN_ARITH,
+    KEY_MEAN_GEOM,
+    KEY_MEDIAN,
+    KEY_MINIMUM,
+    KEY_STDDEV,
+)
 from pycommons.types import type_error
 
-import moptipy.evaluation.statistics as statn
 from moptipy.evaluation.base import MultiRun2DData, MultiRunData, PerRunData
 from moptipy.evaluation.progress import Progress
 from moptipy.utils.nputils import DEFAULT_FLOAT, DEFAULT_INT, is_np_float
@@ -283,17 +290,17 @@ def __stat_quantile_841(data: np.ndarray) -> np.ndarray:
 
 
 #: The statistics key for the minimum
-STAT_MINIMUM: Final[str] = statn.KEY_MINIMUM
+STAT_MINIMUM: Final[str] = KEY_MINIMUM
 #: The statistics key for the median.
-STAT_MEDIAN: Final[str] = statn.KEY_MEDIAN
+STAT_MEDIAN: Final[str] = KEY_MEDIAN
 #: The statistics key for the arithmetic mean.
-STAT_MEAN_ARITH: Final[str] = statn.KEY_MEAN_ARITH
+STAT_MEAN_ARITH: Final[str] = KEY_MEAN_ARITH
 #: The statistics key for the geometric mean.
-STAT_MEAN_GEOM: Final[str] = statn.KEY_MEAN_GEOM
+STAT_MEAN_GEOM: Final[str] = KEY_MEAN_GEOM
 #: The statistics key for the maximum
-STAT_MAXIMUM: Final[str] = statn.KEY_MAXIMUM
+STAT_MAXIMUM: Final[str] = KEY_MAXIMUM
 #: The statistics key for the standard deviation
-STAT_STDDEV: Final[str] = statn.KEY_STDDEV
+STAT_STDDEV: Final[str] = KEY_STDDEV
 #: The key for the arithmetic mean minus the standard deviation.
 STAT_MEAN_MINUS_STDDEV: Final[str] = f"{STAT_MEAN_ARITH}-{STAT_STDDEV}"
 #: The key for the arithmetic mean plus the standard deviation.

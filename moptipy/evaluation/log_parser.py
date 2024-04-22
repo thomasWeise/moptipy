@@ -25,6 +25,7 @@ from math import inf, isfinite, isinf
 from typing import Final
 
 from pycommons.io.console import logger
+from pycommons.io.csv import COMMENT_START, SCOPE_SEPARATOR
 from pycommons.io.path import Path, directory_path, file_path
 from pycommons.strings.string_conv import str_to_num
 from pycommons.types import check_to_int_range
@@ -51,8 +52,6 @@ from moptipy.api.logging import (
 )
 from moptipy.evaluation._utils import _check_max_time_millis
 from moptipy.utils.logger import (
-    COMMENT_CHAR,
-    SCOPE_SEPARATOR,
     SECTION_END,
     SECTION_START,
     parse_key_values,
@@ -309,7 +308,7 @@ class LogParser:
         section: str = ""
         sect_start: Final[str] = SECTION_START
         sect_end: Final[str] = SECTION_END
-        cmt_chr: Final[str] = COMMENT_CHAR
+        cmt_chr: Final[str] = COMMENT_START
 
         index: int = 0
         with file.open_for_read() as handle:
