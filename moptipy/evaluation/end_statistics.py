@@ -1385,63 +1385,84 @@ class CsvReader:
             raise type_error(columns, "columns", dict)
 
         idx: int | None = columns.get(KEY_ALGORITHM)
+        #: the index of the algorithm column, if any
         self.__idx_algorithm: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_ALGORITHM, 0, 1_000_000)
         idx = columns.get(KEY_INSTANCE)
+        #: the index of the instance column, if any
         self.__idx_instance: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_INSTANCE, 0, 1_000_000)
         idx = columns.get(KEY_OBJECTIVE_FUNCTION)
+        #: the index of the objective column, if any
         self.__idx_objective: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_OBJECTIVE_FUNCTION, 0, 1_000_000)
         idx = columns.get(KEY_ENCODING)
+        #: the index of the encoding column, if any
         self.__idx_encoding: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_ENCODING, 0, 1_000_000)
 
+        #: the index of the `N` column, i.e., where the number of runs is
+        #: stored
         self.__idx_n: Final[int] = check_int_range(
             columns[KEY_N], KEY_N, 0, 1_000_000)
 
+        #: the reader for the best-objective-value-reached statistics
         self.__best_f: Final[StatReader] = StatReader(_scope(
             KEY_BEST_F, columns, self.__idx_n))
+        #: the reader for the last improvement FE statistics
         self.__life: Final[StatReader] = StatReader(_scope(
             KEY_LAST_IMPROVEMENT_FE, columns, self.__idx_n))
+        #: the reader for the last improvement millisecond index statistics
         self.__lims: Final[StatReader] = StatReader(_scope(
             KEY_LAST_IMPROVEMENT_TIME_MILLIS, columns, self.__idx_n))
+        #: the reader for the total FEs statistics
         self.__total_fes: Final[StatReader] = StatReader(_scope(
             KEY_TOTAL_FES, columns, self.__idx_n))
+        #: the reader for the total milliseconds consumed statistics
         self.__total_ms: Final[StatReader] = StatReader(_scope(
             KEY_TOTAL_TIME_MILLIS, columns, self.__idx_n))
 
         opti: dict[str, int] | None = _scope(
             KEY_GOAL_F, columns, self.__idx_n)
+        #: the reader for the goal objective value statistics, if any
         self.__goal_f: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
         opti = _scope(KEY_BEST_F_SCALED, columns, self.__idx_n)
+        #: the reader for the best-f / goal-f statistics, if any
         self.__best_f_scaled: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
 
         idx = columns.get(KEY_N_SUCCESS)
+        #: the index of the column where the number of successful runs is
+        #: stored
         self.__idx_n_success: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_N_SUCCESS, 0, 1_000_000)
         opti = None if self.__idx_n_success is None else _scope(
             KEY_SUCCESS_FES, columns, self.__idx_n_success)
+        #: the reader for the success FE data, if any
         self.__success_fes: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
         opti = None if self.__idx_n_success is None else _scope(
             KEY_SUCCESS_TIME_MILLIS, columns, self.__idx_n_success)
+        #: the reader for the success time milliseconds data, if any
         self.__success_time_millis: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
 
         idx = columns.get(KEY_ERT_FES)
+        #: the index of the expected FEs until success
         self.__idx_ert_fes: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_ERT_FES, 0, 1_000_000)
         idx = columns.get(KEY_ERT_TIME_MILLIS)
+        #: the index of the expected milliseconds until success
         self.__idx_ert_time_millis: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_ERT_TIME_MILLIS, 0, 1_000_000)
 
         opti = _scope(KEY_MAX_FES, columns, self.__idx_n)
+        #: the columns with the maximum FE-based budget statistics
         self.__max_fes: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
         opti = _scope(KEY_MAX_TIME_MILLIS, columns, self.__idx_n)
+        #: the columns with the maximum time-based budget statistics
         self.__max_time_millis: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
 

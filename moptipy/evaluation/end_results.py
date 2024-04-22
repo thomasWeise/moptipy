@@ -781,44 +781,58 @@ class CsvReader:
         super().__init__()
         if not isinstance(columns, dict):
             raise type_error(columns, "columns", dict)
+        #: the index of the algorithm column, if any
         self.__idx_algorithm: Final[int] = check_int_range(
             columns[KEY_ALGORITHM], KEY_ALGORITHM, 0, 1_000_000)
+        #: the index of the instance column, if any
         self.__idx_instance: Final[int] = check_int_range(
             columns[KEY_INSTANCE], KEY_INSTANCE, 0, 1_000_000)
+        #: the index of the objective function column, if any
         self.__idx_objective: Final[int] = check_int_range(
             columns[KEY_OBJECTIVE_FUNCTION], KEY_OBJECTIVE_FUNCTION,
             0, 1_000_000)
-
         idx: int | None = columns.get(KEY_ENCODING)
+        #: the index of the encoding column, if any
         self.__idx_encoding = None if idx is None else check_int_range(
             idx, KEY_ENCODING, 0, 1_000_000)
 
+        #: the index of the random seed column
         self.__idx_seed: Final[int] = check_int_range(
             columns[KEY_RAND_SEED], KEY_RAND_SEED,
             0, 1_000_000)
+        #: the column with the last improvement FE
         self.__idx_li_fe: Final[int] = check_int_range(
             columns[KEY_LAST_IMPROVEMENT_FE], KEY_LAST_IMPROVEMENT_FE,
             0, 1_000_000)
+        #: the column with the last improvement time milliseconds
         self.__idx_li_ms: Final[int] = check_int_range(
             columns[KEY_LAST_IMPROVEMENT_TIME_MILLIS],
             KEY_LAST_IMPROVEMENT_TIME_MILLIS, 0, 1_000_000)
+        #: the column with the best obtained objective value
         self.__idx_best_f: Final[int] = check_int_range(
             columns[KEY_BEST_F], KEY_BEST_F,
             0, 1_000_000)
+        #: the column with the total time in FEs
         self.__idx_tt_fe: Final[int] = check_int_range(
             columns[KEY_TOTAL_FES], KEY_TOTAL_FES,
             0, 1_000_000)
+        #: the column with the total time in milliseconds
         self.__idx_tt_ms: Final[int] = check_int_range(
             columns[KEY_TOTAL_TIME_MILLIS], KEY_TOTAL_TIME_MILLIS,
             0, 1_000_000)
 
         idx = columns.get(KEY_GOAL_F)
+        #: the column with the goal objective value, if any
         self.__idx_goal_f = None if idx is None else check_int_range(
             idx, KEY_GOAL_F, 0, 1_000_000)
         idx = columns.get(KEY_MAX_FES)
+        #: the column with the maximum FEs, if any such budget constraint was
+        #: defined
         self.__idx_max_fes = None if idx is None else check_int_range(
             idx, KEY_MAX_FES, 0, 1_000_000)
         idx = columns.get(KEY_MAX_TIME_MILLIS)
+        #: the column with the maximum runtime in milliseconds, if any such
+        #: budget constraint was defined
         self.__idx_max_ms = None if idx is None else check_int_range(
             idx, KEY_MAX_TIME_MILLIS, 0, 1_000_000)
 
