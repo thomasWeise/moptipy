@@ -1403,31 +1403,31 @@ class CsvReader:
 
         #: the index of the `N` column, i.e., where the number of runs is
         #: stored
-        self.__idx_n: Final[int] = check_int_range(
+        self.idx_n: Final[int] = check_int_range(
             columns[KEY_N], KEY_N, 0, 1_000_000)
 
         #: the reader for the best-objective-value-reached statistics
         self.__best_f: Final[StatReader] = StatReader(_scope(
-            KEY_BEST_F, columns, self.__idx_n))
+            KEY_BEST_F, columns, self.idx_n))
         #: the reader for the last improvement FE statistics
         self.__life: Final[StatReader] = StatReader(_scope(
-            KEY_LAST_IMPROVEMENT_FE, columns, self.__idx_n))
+            KEY_LAST_IMPROVEMENT_FE, columns, self.idx_n))
         #: the reader for the last improvement millisecond index statistics
         self.__lims: Final[StatReader] = StatReader(_scope(
-            KEY_LAST_IMPROVEMENT_TIME_MILLIS, columns, self.__idx_n))
+            KEY_LAST_IMPROVEMENT_TIME_MILLIS, columns, self.idx_n))
         #: the reader for the total FEs statistics
         self.__total_fes: Final[StatReader] = StatReader(_scope(
-            KEY_TOTAL_FES, columns, self.__idx_n))
+            KEY_TOTAL_FES, columns, self.idx_n))
         #: the reader for the total milliseconds consumed statistics
         self.__total_ms: Final[StatReader] = StatReader(_scope(
-            KEY_TOTAL_TIME_MILLIS, columns, self.__idx_n))
+            KEY_TOTAL_TIME_MILLIS, columns, self.idx_n))
 
         opti: dict[str, int] | None = _scope(
-            KEY_GOAL_F, columns, self.__idx_n)
+            KEY_GOAL_F, columns, self.idx_n)
         #: the reader for the goal objective value statistics, if any
         self.__goal_f: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
-        opti = _scope(KEY_BEST_F_SCALED, columns, self.__idx_n)
+        opti = _scope(KEY_BEST_F_SCALED, columns, self.idx_n)
         #: the reader for the best-f / goal-f statistics, if any
         self.__best_f_scaled: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
@@ -1457,11 +1457,11 @@ class CsvReader:
         self.__idx_ert_time_millis: Final[int | None] = None if idx is None \
             else check_int_range(idx, KEY_ERT_TIME_MILLIS, 0, 1_000_000)
 
-        opti = _scope(KEY_MAX_FES, columns, self.__idx_n)
+        opti = _scope(KEY_MAX_FES, columns, self.idx_n)
         #: the columns with the maximum FE-based budget statistics
         self.__max_fes: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
-        opti = _scope(KEY_MAX_TIME_MILLIS, columns, self.__idx_n)
+        opti = _scope(KEY_MAX_TIME_MILLIS, columns, self.idx_n)
         #: the columns with the maximum time-based budget statistics
         self.__max_time_millis: Final[StatReader | None] = \
             None if opti is None else StatReader(opti)
@@ -1478,7 +1478,7 @@ class CsvReader:
             instance=csv_str_or_none(data, self.__idx_instance),
             objective=csv_str_or_none(data, self.__idx_objective),
             encoding=csv_str_or_none(data, self.__idx_encoding),
-            n=int(data[self.__idx_n]),
+            n=int(data[self.idx_n]),
             best_f=self.__best_f.parse_row(data),
             last_improvement_fe=self.__life.parse_row(data),
             last_improvement_time_millis=self.__lims.parse_row(data),
