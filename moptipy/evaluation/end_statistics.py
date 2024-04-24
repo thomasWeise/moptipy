@@ -17,8 +17,12 @@ from typing import Any, Callable, Final, Iterable, cast
 from pycommons.io.console import logger
 from pycommons.io.csv import (
     SCOPE_SEPARATOR,
+    csv_column,
+    csv_column_or_none,
     csv_read,
     csv_scope,
+    csv_select_scope,
+    csv_select_scope_or_none,
     csv_str_or_none,
     csv_val_or_none,
     csv_write,
@@ -1348,29 +1352,6 @@ class CsvWriter:
         _csv_motipy_footer(dest)
 
 
-def _scope(scope: str, columns: dict[str, int], n_idx: int) \
-        -> dict[str, int] | None:
-    """
-    Get the columns for a given scope.
-
-    :param scope: the scope
-    :param columns: the existing columns
-    :param n_idx: the n index
-    """
-    use_scope = f"{scope}."
-    sl: Final[int] = str.__len__(use_scope)
-
-    subset: Final[dict[str, int]] = {
-        (k[sl:]): v for k, v in columns.items() if k.startswith(use_scope)}
-    if scope in columns:
-        subset[scope] = columns[scope]
-    if dict.__len__(subset) <= 0:
-        return None
-    if KEY_N not in subset:
-        subset[KEY_N] = n_idx
-    return subset
-
-
 class CsvReader:
     """A csv parser for end results."""
 
@@ -1384,87 +1365,80 @@ class CsvReader:
         if not isinstance(columns, dict):
             raise type_error(columns, "columns", dict)
 
-        idx: int | None = columns.get(KEY_ALGORITHM)
         #: the index of the algorithm column, if any
-        self.__idx_algorithm: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_ALGORITHM, 0, 1_000_000)
-        idx = columns.get(KEY_INSTANCE)
+        self.__idx_algorithm: Final[int | None] = csv_column_or_none(
+            columns, KEY_ALGORITHM)
         #: the index of the instance column, if any
-        self.__idx_instance: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_INSTANCE, 0, 1_000_000)
-        idx = columns.get(KEY_OBJECTIVE_FUNCTION)
+        self.__idx_instance: Final[int | None] = csv_column_or_none(
+            columns, KEY_INSTANCE)
         #: the index of the objective column, if any
-        self.__idx_objective: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_OBJECTIVE_FUNCTION, 0, 1_000_000)
-        idx = columns.get(KEY_ENCODING)
+        self.__idx_objective: Final[int | None] = csv_column_or_none(
+            columns, KEY_OBJECTIVE_FUNCTION)
         #: the index of the encoding column, if any
-        self.__idx_encoding: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_ENCODING, 0, 1_000_000)
+        self.__idx_encoding: Final[int | None] = csv_column_or_none(
+            columns, KEY_ENCODING)
 
         #: the index of the `N` column, i.e., where the number of runs is
         #: stored
-        self.idx_n: Final[int] = check_int_range(
-            columns[KEY_N], KEY_N, 0, 1_000_000)
+        self.idx_n: Final[int] = csv_column(columns, KEY_N, True)
 
+        n_key: Final[tuple[tuple[str, int]]] = ((KEY_N, self.idx_n), )
         #: the reader for the best-objective-value-reached statistics
-        self.__best_f: Final[StatReader] = StatReader(_scope(
-            KEY_BEST_F, columns, self.idx_n))
+        self.__best_f: Final[StatReader] = csv_select_scope(
+            StatReader, columns, KEY_BEST_F, n_key)
         #: the reader for the last improvement FE statistics
-        self.__life: Final[StatReader] = StatReader(_scope(
-            KEY_LAST_IMPROVEMENT_FE, columns, self.idx_n))
+        self.__life: Final[StatReader] = csv_select_scope(
+            StatReader, columns, KEY_LAST_IMPROVEMENT_FE, n_key)
         #: the reader for the last improvement millisecond index statistics
-        self.__lims: Final[StatReader] = StatReader(_scope(
-            KEY_LAST_IMPROVEMENT_TIME_MILLIS, columns, self.idx_n))
+        self.__lims: Final[StatReader] = csv_select_scope(
+            StatReader, columns, KEY_LAST_IMPROVEMENT_TIME_MILLIS, n_key)
         #: the reader for the total FEs statistics
-        self.__total_fes: Final[StatReader] = StatReader(_scope(
-            KEY_TOTAL_FES, columns, self.idx_n))
+        self.__total_fes: Final[StatReader] = csv_select_scope(
+            StatReader, columns, KEY_TOTAL_FES, n_key)
         #: the reader for the total milliseconds consumed statistics
-        self.__total_ms: Final[StatReader] = StatReader(_scope(
-            KEY_TOTAL_TIME_MILLIS, columns, self.idx_n))
+        self.__total_ms: Final[StatReader] = csv_select_scope(
+            StatReader, columns, KEY_TOTAL_TIME_MILLIS, n_key)
 
-        opti: dict[str, int] | None = _scope(
-            KEY_GOAL_F, columns, self.idx_n)
         #: the reader for the goal objective value statistics, if any
-        self.__goal_f: Final[StatReader | None] = \
-            None if opti is None else StatReader(opti)
-        opti = _scope(KEY_BEST_F_SCALED, columns, self.idx_n)
+        self.__goal_f: Final[StatReader | None] = csv_select_scope_or_none(
+            StatReader, columns, KEY_GOAL_F, n_key)
         #: the reader for the best-f / goal-f statistics, if any
         self.__best_f_scaled: Final[StatReader | None] = \
-            None if opti is None else StatReader(opti)
+            csv_select_scope_or_none(
+                StatReader, columns, KEY_BEST_F_SCALED, n_key)
 
-        idx = columns.get(KEY_N_SUCCESS)
         #: the index of the column where the number of successful runs is
         #: stored
-        self.__idx_n_success: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_N_SUCCESS, 0, 1_000_000)
-        opti = None if self.__idx_n_success is None else _scope(
-            KEY_SUCCESS_FES, columns, self.__idx_n_success)
+        self.__idx_n_success: Final[int | None] = csv_column_or_none(
+            columns, KEY_N_SUCCESS)
+        succ_key: Final[tuple[tuple[str, int], ...]] = () \
+            if self.__idx_n_success is None else (
+            (KEY_N, self.__idx_n_success), )
         #: the reader for the success FE data, if any
         self.__success_fes: Final[StatReader | None] = \
-            None if opti is None else StatReader(opti)
-        opti = None if self.__idx_n_success is None else _scope(
-            KEY_SUCCESS_TIME_MILLIS, columns, self.__idx_n_success)
+            None if self.__idx_n_success is None else \
+            csv_select_scope_or_none(
+                StatReader, columns, KEY_SUCCESS_FES, succ_key)
         #: the reader for the success time milliseconds data, if any
         self.__success_time_millis: Final[StatReader | None] = \
-            None if opti is None else StatReader(opti)
+            None if self.__idx_n_success is None else \
+            csv_select_scope_or_none(
+                StatReader, columns, KEY_SUCCESS_TIME_MILLIS, succ_key)
 
-        idx = columns.get(KEY_ERT_FES)
         #: the index of the expected FEs until success
-        self.__idx_ert_fes: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_ERT_FES, 0, 1_000_000)
-        idx = columns.get(KEY_ERT_TIME_MILLIS)
+        self.__idx_ert_fes: Final[int | None] = csv_column_or_none(
+            columns, KEY_ERT_FES)
         #: the index of the expected milliseconds until success
-        self.__idx_ert_time_millis: Final[int | None] = None if idx is None \
-            else check_int_range(idx, KEY_ERT_TIME_MILLIS, 0, 1_000_000)
+        self.__idx_ert_time_millis: Final[int | None] = csv_column_or_none(
+            columns, KEY_ERT_TIME_MILLIS)
 
-        opti = _scope(KEY_MAX_FES, columns, self.idx_n)
         #: the columns with the maximum FE-based budget statistics
-        self.__max_fes: Final[StatReader | None] = \
-            None if opti is None else StatReader(opti)
-        opti = _scope(KEY_MAX_TIME_MILLIS, columns, self.idx_n)
+        self.__max_fes: Final[StatReader | None] = csv_select_scope_or_none(
+            StatReader, columns, KEY_MAX_FES, n_key)
         #: the columns with the maximum time-based budget statistics
         self.__max_time_millis: Final[StatReader | None] = \
-            None if opti is None else StatReader(opti)
+            csv_select_scope_or_none(
+                StatReader, columns, KEY_MAX_TIME_MILLIS, n_key)
 
     def parse_row(self, data: list[str]) -> EndStatistics:
         """
