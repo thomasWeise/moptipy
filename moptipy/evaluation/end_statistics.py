@@ -42,7 +42,12 @@ from pycommons.strings.string_conv import (
     num_or_none_to_str,
     str_to_num,
 )
-from pycommons.types import check_int_range, type_error, type_name_of
+from pycommons.types import (
+    check_int_range,
+    reiterable,
+    type_error,
+    type_name_of,
+)
 
 from moptipy.api.logging import (
     KEY_ALGORITHM,
@@ -839,6 +844,7 @@ def to_csv(data: EndStatistics | Iterable[EndStatistics],
     """
     path: Final[Path] = Path(file)
     logger(f"Writing end result statistics to CSV file {path!r}.")
+    path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
         csv_write(
             data=[data] if isinstance(data, EndStatistics) else sorted(data),
@@ -1084,10 +1090,13 @@ class CsvWriter:
         :returns: this writer
         """
         if self.__setup:
-            raise ValueError("CSV writer has already been set up.")
+            raise ValueError(
+                "EndStatistics CsvWriter has already been set up.")
         self.__setup = True
-        checker: int = 127
 
+        data = reiterable(data)
+
+        checker: int = 127
         for es in data:
             if es.algorithm is not None:
                 self.__has_algorithm = True

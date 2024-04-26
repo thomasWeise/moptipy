@@ -192,6 +192,7 @@ class Ecdf(MultiRun2DData):
         """
         path: Final[Path] = Path(file)
         logger(f"Writing ECDF to CSV file {path!r}.")
+        path.ensure_parent_dir_exists()
 
         with path.open_for_write() as out:
             sep: Final[str] = CSV_SEPARATOR

@@ -37,7 +37,11 @@ from pycommons.strings.string_conv import (
     num_to_str,
     str_to_num,
 )
-from pycommons.types import check_int_range, check_to_int_range, type_error
+from pycommons.types import (
+    check_int_range,
+    check_to_int_range,
+    type_error,
+)
 
 from moptipy.api.logging import (
     FILE_SUFFIX,
@@ -559,6 +563,7 @@ def to_csv(results: Iterable[EndResult], file: str) -> Path:
     """
     path: Final[Path] = Path(file)
     logger(f"Writing end results to CSV file {path!r}.")
+    path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
         csv_write(data=sorted(results),
                   consumer=line_writer(wt),
@@ -633,7 +638,8 @@ class CsvWriter:
         :returns: this writer
         """
         if self.__setup:
-            raise ValueError("CSV writer has already been set up.")
+            raise ValueError(
+                "EndResults CsvWriter has already been set up.")
         self.__setup = True
 
         no_encoding: bool = True
