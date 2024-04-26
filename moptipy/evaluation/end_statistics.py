@@ -604,7 +604,7 @@ class EndStatistics(MultiRunData):
         """
         if not isinstance(self, EndStatistics):
             raise type_error(self, "self", EndStatistics)
-        return self.ert_fes
+        return self.ert_time_millis
 
     def get_max_fes(self) -> SampleStatistics | int | None:
         """
