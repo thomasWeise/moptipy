@@ -28,7 +28,7 @@ __Q159: Final[float] = (1.0 + erf(-1.0 / sqrt(2.0))) / 2.0
 __Q841: Final[float] = (1.0 + erf(1.0 / sqrt(2.0))) / 2.0
 
 
-def _unique_floats_1d(data: list[np.ndarray]) -> np.ndarray:
+def __unique_floats_1d(data: list[np.ndarray]) -> np.ndarray:
     """
     Get all unique values that are >= than the minimum of all arrays.
 
@@ -109,8 +109,9 @@ def __apply_fun(x_unique: np.ndarray,
     return np.column_stack((x_unique[indexes], dest_y[indexes]))
 
 
-def _apply_fun(x_unique: np.ndarray, x_raw: list[np.ndarray],
-               y_raw: list[np.ndarray], stat_func: Callable) -> np.ndarray:
+def __do_apply_fun(x_unique: np.ndarray, x_raw: list[np.ndarray],
+                   y_raw: list[np.ndarray],
+                   stat_func: Callable[[np.ndarray], float]) -> np.ndarray:
     """
     Compute a time-depending statistic.
 
@@ -317,7 +318,7 @@ STAT_Q159: Final[str] = "q159"
 STAT_Q841: Final[str] = "q841"
 
 #: The internal function map.
-_FUNC_MAP: Final[dict[str, Callable]] = {
+_FUNC_MAP: Final[dict[str, Callable[[np.ndarray], float]]] = {
     STAT_MINIMUM: __stat_min,
     STAT_MEDIAN: __stat_median,
     STAT_MEAN_ARITH: __stat_arith_mean,
@@ -388,162 +389,162 @@ class StatRun(MultiRun2DData):
                              f"dtype {stat.dtype}.")
         object.__setattr__(self, "stat", stat)
 
-    @staticmethod
-    def create(source: Iterable[Progress],
-               statistics: str | Iterable[str],
-               consumer: Callable[["StatRun"], Any]) -> None:
-        """
-        Compute statistics from an iterable of `Progress` objects.
 
-        :param source: the progress data
-        :param statistics: the statistics to be computed
-        :param consumer: the consumer for the statistics
-        """
-        if not isinstance(source, Iterable):
-            raise type_error(source, "source", Iterable)
-        if isinstance(statistics, str):
-            statistics = [statistics]
-        if not isinstance(statistics, Iterable):
-            raise type_error(statistics, "statistics", Iterable)
-        if not callable(consumer):
-            raise type_error(consumer, "consumer", call=True)
+def create(source: Iterable[Progress],
+           statistics: str | Iterable[str],
+           consumer: Callable[[StatRun], Any]) -> None:
+    """
+    Compute statistics from an iterable of `Progress` objects.
 
-        algorithm: str | None = None
-        instance: str | None = None
-        objective: str | None = None
-        encoding: str | None = None
-        time_unit: str | None = None
-        f_name: str | None = None
-        time: list[np.ndarray] = []
-        f: list[np.ndarray] = []
-        n: int = 0
+    :param source: the progress data
+    :param statistics: the statistics to be computed
+    :param consumer: the consumer for the statistics
+    """
+    if not isinstance(source, Iterable):
+        raise type_error(source, "source", Iterable)
+    if isinstance(statistics, str):
+        statistics = [statistics]
+    if not isinstance(statistics, Iterable):
+        raise type_error(statistics, "statistics", Iterable)
+    if not callable(consumer):
+        raise type_error(consumer, "consumer", call=True)
 
-        for progress in source:
-            if not isinstance(progress, Progress):
-                raise type_error(progress, "stat run data source", Progress)
-            if n <= 0:
-                algorithm = progress.algorithm
-                instance = progress.instance
-                objective = progress.objective
-                encoding = progress.encoding
-                time_unit = progress.time_unit
-                f_name = progress.f_name
-            else:
-                if algorithm != progress.algorithm:
-                    algorithm = None
-                if instance != progress.instance:
-                    instance = None
-                if objective != progress.objective:
-                    objective = None
-                if encoding != progress.encoding:
-                    encoding = None
-                if time_unit != progress.time_unit:
-                    raise ValueError(
-                        f"Cannot mix time units {time_unit} "
-                        f"and {progress.time_unit}.")
-                if f_name != progress.f_name:
-                    raise ValueError(f"Cannot mix f-names {f_name} "
-                                     f"and {progress.f_name}.")
-            n += 1
-            time.append(progress.time)
-            f.append(progress.f)
+    algorithm: str | None = None
+    instance: str | None = None
+    objective: str | None = None
+    encoding: str | None = None
+    time_unit: str | None = None
+    f_name: str | None = None
+    time: list[np.ndarray] = []
+    f: list[np.ndarray] = []
+    n: int = 0
 
+    for progress in source:
+        if not isinstance(progress, Progress):
+            raise type_error(progress, "stat run data source", Progress)
         if n <= 0:
-            raise ValueError("Did not encounter any progress information.")
-
-        x_unique = _unique_floats_1d(time)
-        if not isinstance(x_unique, np.ndarray):
-            raise type_error(x_unique, "x_unique", np.ndarray)
-        if not is_np_float(x_unique.dtype):
-            raise TypeError(
-                f"x_unique must be floats, but is {x_unique.dtype}.")
-        if (len(x_unique.shape) != 1) or (x_unique.shape[0] <= 0):
-            raise ValueError(
-                f"Invalid shape of unique values {x_unique.shape}.")
-
-        count = 0
-        for name in statistics:
-            if not isinstance(name, str):
-                raise type_error(name, "statistic name", str)
-            if name not in _FUNC_MAP:
-                raise ValueError(f"Unknown statistic name {name!r}.")
-            consumer(StatRun(algorithm, instance, objective, encoding, n,
-                             time_unit, f_name, name,
-                             _apply_fun(x_unique, time, f, _FUNC_MAP[name])))
-            count += 1
-
-        if count <= 0:
-            raise ValueError("No statistic names provided.")
-
-    @staticmethod
-    def from_progress(source: Iterable[Progress],
-                      statistics: str | Iterable[str],
-                      consumer: Callable[["StatRun"], Any],
-                      join_all_algorithms: bool = False,
-                      join_all_instances: bool = False,
-                      join_all_objectives: bool = False,
-                      join_all_encodings: bool = False) -> None:
-        """
-        Aggregate statist runs over a stream of progress data.
-
-        :param source: the stream of progress data
-        :param statistics: the statistics that should be computed per group
-        :param consumer: the destination to which the new stat runs will be
-            passed, can be the `append` method of a :class:`list`
-        :param join_all_algorithms: should the statistics be aggregated
-            over all algorithms
-        :param join_all_instances: should the statistics be aggregated
-            over all algorithms
-        :param join_all_objectives: should the statistics be aggregated over
-            all objective functions?
-        :param join_all_encodings: should the statistics be aggregated over
-            all encodings?
-        """
-        if not isinstance(source, Iterable):
-            raise type_error(source, "source", Iterable)
-        if isinstance(statistics, str):
-            statistics = [statistics]
-        if not isinstance(statistics, Iterable):
-            raise type_error(statistics, "statistics", Iterable)
-        if not callable(consumer):
-            raise type_error(consumer, "consumer", call=True)
-        if not isinstance(join_all_algorithms, bool):
-            raise type_error(join_all_algorithms, "join_all_algorithms", bool)
-        if not isinstance(join_all_instances, bool):
-            raise type_error(join_all_instances, "join_all_instances", bool)
-        if not isinstance(join_all_objectives, bool):
-            raise type_error(join_all_objectives, "join_all_objectives", bool)
-        if not isinstance(join_all_encodings, bool):
-            raise type_error(join_all_encodings, "join_all_encodings", bool)
-
-        sorter: dict[tuple[str, str, str, str, str, str], list[Progress]] = {}
-        for prog in source:
-            if not isinstance(prog, Progress):
-                raise type_error(prog, "progress source", Progress)
-            key = ("" if join_all_algorithms else prog.algorithm,
-                   "" if join_all_instances else prog.instance,
-                   "" if join_all_objectives else prog.objective,
-                   "" if join_all_encodings else (
-                       "" if prog.encoding is None else prog.encoding),
-                   prog.time_unit, prog.f_name)
-
-            if key in sorter:
-                lst = sorter[key]
-            else:
-                lst = []
-                sorter[key] = lst
-            lst.append(prog)
-
-        if len(sorter) <= 0:
-            raise ValueError("source must not be empty")
-
-        if len(sorter) > 1:
-            keys = list(sorter.keys())
-            keys.sort()
-            for key in keys:
-                StatRun.create(sorter[key], statistics, consumer)
+            algorithm = progress.algorithm
+            instance = progress.instance
+            objective = progress.objective
+            encoding = progress.encoding
+            time_unit = progress.time_unit
+            f_name = progress.f_name
         else:
-            StatRun.create(next(iter(sorter.values())), statistics, consumer)
+            if algorithm != progress.algorithm:
+                algorithm = None
+            if instance != progress.instance:
+                instance = None
+            if objective != progress.objective:
+                objective = None
+            if encoding != progress.encoding:
+                encoding = None
+            if time_unit != progress.time_unit:
+                raise ValueError(
+                    f"Cannot mix time units {time_unit} "
+                    f"and {progress.time_unit}.")
+            if f_name != progress.f_name:
+                raise ValueError(f"Cannot mix f-names {f_name} "
+                                 f"and {progress.f_name}.")
+        n += 1
+        time.append(progress.time)
+        f.append(progress.f)
+
+    if n <= 0:
+        raise ValueError("Did not encounter any progress information.")
+
+    x_unique: Final[np.ndarray] = __unique_floats_1d(time)
+    if not isinstance(x_unique, np.ndarray):
+        raise type_error(x_unique, "x_unique", np.ndarray)
+    if not is_np_float(x_unique.dtype):
+        raise TypeError(
+            f"x_unique must be floats, but is {x_unique.dtype}.")
+    if (len(x_unique.shape) != 1) or (x_unique.shape[0] <= 0):
+        raise ValueError(
+            f"Invalid shape of unique values {x_unique.shape}.")
+
+    count = 0
+    for name in statistics:
+        if not isinstance(name, str):
+            raise type_error(name, "statistic name", str)
+        if name not in _FUNC_MAP:
+            raise ValueError(f"Unknown statistic name {name!r}.")
+        consumer(StatRun(algorithm, instance, objective, encoding, n,
+                         time_unit, f_name, name,
+                         __do_apply_fun(x_unique, time, f, _FUNC_MAP[name])))
+        count += 1
+
+    if count <= 0:
+        raise ValueError("No statistic names provided.")
+
+
+def from_progress(source: Iterable[Progress],
+                  statistics: str | Iterable[str],
+                  consumer: Callable[[StatRun], Any],
+                  join_all_algorithms: bool = False,
+                  join_all_instances: bool = False,
+                  join_all_objectives: bool = False,
+                  join_all_encodings: bool = False) -> None:
+    """
+    Aggregate statist runs over a stream of progress data.
+
+    :param source: the stream of progress data
+    :param statistics: the statistics that should be computed per group
+    :param consumer: the destination to which the new stat runs will be
+        passed, can be the `append` method of a :class:`list`
+    :param join_all_algorithms: should the statistics be aggregated
+        over all algorithms
+    :param join_all_instances: should the statistics be aggregated
+        over all algorithms
+    :param join_all_objectives: should the statistics be aggregated over
+        all objective functions?
+    :param join_all_encodings: should the statistics be aggregated over
+        all encodings?
+    """
+    if not isinstance(source, Iterable):
+        raise type_error(source, "source", Iterable)
+    if isinstance(statistics, str):
+        statistics = [statistics]
+    if not isinstance(statistics, Iterable):
+        raise type_error(statistics, "statistics", Iterable)
+    if not callable(consumer):
+        raise type_error(consumer, "consumer", call=True)
+    if not isinstance(join_all_algorithms, bool):
+        raise type_error(join_all_algorithms, "join_all_algorithms", bool)
+    if not isinstance(join_all_instances, bool):
+        raise type_error(join_all_instances, "join_all_instances", bool)
+    if not isinstance(join_all_objectives, bool):
+        raise type_error(join_all_objectives, "join_all_objectives", bool)
+    if not isinstance(join_all_encodings, bool):
+        raise type_error(join_all_encodings, "join_all_encodings", bool)
+
+    sorter: dict[tuple[str, str, str, str, str, str], list[Progress]] = {}
+    for prog in source:
+        if not isinstance(prog, Progress):
+            raise type_error(prog, "progress source", Progress)
+        key = ("" if join_all_algorithms else prog.algorithm,
+               "" if join_all_instances else prog.instance,
+               "" if join_all_objectives else prog.objective,
+               "" if join_all_encodings else (
+                   "" if prog.encoding is None else prog.encoding),
+               prog.time_unit, prog.f_name)
+
+        if key in sorter:
+            lst = sorter[key]
+        else:
+            lst = []
+            sorter[key] = lst
+        lst.append(prog)
+
+    if len(sorter) <= 0:
+        raise ValueError("source must not be empty")
+
+    if len(sorter) > 1:
+        keys = list(sorter.keys())
+        keys.sort()
+        for key in keys:
+            create(sorter[key], statistics, consumer)
+    else:
+        create(next(iter(sorter.values())), statistics, consumer)
 
 
 def get_statistic(obj: PerRunData | MultiRunData) -> str | None:

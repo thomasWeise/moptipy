@@ -181,48 +181,6 @@ class Ecdf(MultiRun2DData):
                 inf if self.goal_f is None else self.goal_f,
                 self.n_insts)
 
-    def to_csv(self, file: str,
-               put_header: bool = True) -> Path:
-        """
-        Store a :class:`Ecdf` record in a CSV file.
-
-        :param file: the file to generate
-        :param put_header: should we put a header with meta-data?
-        :return: the fully resolved file name
-        """
-        path: Final[Path] = Path(file)
-        logger(f"Writing ECDF to CSV file {path!r}.")
-        path.ensure_parent_dir_exists()
-
-        with path.open_for_write() as out:
-            sep: Final[str] = CSV_SEPARATOR
-            write: Final[Callable[[str], int]] = out.write
-            if put_header:
-                kv: Final[str] = KEY_VALUE_SEPARATOR
-                cmt: Final[str] = COMMENT_START
-                if self.algorithm is not None:
-                    write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
-                write(f"{cmt} {KEY_N}{kv}{self.n}\n")
-                write(f"{cmt} {KEY_N_INSTS}{kv}{self.n_insts}\n")
-                write(f"{cmt} {KEY_F_NAME}{kv}{self.f_name}\n")
-                if self.goal_f is not None:
-                    write(f"{cmt} {KEY_GOAL_F}{kv}{self.goal_f}\n")
-                if self.objective is not None:
-                    write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}"
-                          f"{kv}{self.objective}\n")
-                if self.encoding is not None:
-                    write(f"{cmt} {KEY_ENCODING}{kv}{self.encoding}\n")
-
-            write(f"{self._time_key()}{sep}ecdf\n")
-            for v in self.ecdf:
-                out.write(
-                    f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
-
-        logger(f"Done writing ECDF to CSV file {path!r}.")
-
-        path.enforce_file()
-        return path
-
     @staticmethod
     def _compute_times(source: list[Progress],
                        goal: int | float) -> list[float]:
@@ -259,10 +217,11 @@ class Ecdf(MultiRun2DData):
         return n
 
     @classmethod
-    def create(cls: type["Ecdf"],
-               source: Iterable[Progress],
-               goal_f: int | float | Callable | None = None,
-               use_default_goal_f: bool = True) -> "Ecdf":
+    def _create(cls: type["Ecdf"],
+                source: Iterable[Progress],
+                goal_f: int | float | Callable[[
+                    str], int | float] | None = None,
+                use_default_goal_f: bool = True) -> "Ecdf":
         """
         Create one single Ecdf record from an iterable of Progress records.
 
@@ -271,7 +230,6 @@ class Ecdf(MultiRun2DData):
         :param use_default_goal_f: should we use the default lower bounds as
             goals?
         :return: the Ecdf record
-        :rtype: Ecdf
         """
         if not isinstance(source, Iterable):
             raise type_error(source, "source", Iterable)
@@ -384,10 +342,10 @@ class Ecdf(MultiRun2DData):
                    np.column_stack((np.array(time), np.array(ecdf))))
 
     @classmethod
-    def from_progresses(
+    def _from_progresses(
             cls: type["Ecdf"],
             source: Iterable[Progress], consumer: Callable[["Ecdf"], Any],
-            f_goal: int | float | Callable
+            f_goal: int | float | Callable[[str], int | float]
                         | Iterable[int | float | Callable] | None = None,
             join_all_algorithms: bool = False,
             join_all_objectives: bool = False,
@@ -444,7 +402,49 @@ class Ecdf(MultiRun2DData):
         for goal in f_goal:
             use_default_goal = goal is None
             for key in keyz:
-                consumer(cls.create(sorter[key], goal, use_default_goal))
+                consumer(cls._create(sorter[key], goal, use_default_goal))
+
+
+def create(source: Iterable[Progress],
+           goal_f: int | float | Callable[[
+               str], int | float] | None = None,
+           use_default_goal_f: bool = True) -> Ecdf:
+    """
+    Create one single Ecdf record from an iterable of Progress records.
+
+    :param source: the set of progress instances
+    :param goal_f: the goal objective value
+    :param use_default_goal_f: should we use the default lower bounds as
+        goals?
+    :return: the Ecdf record
+    """
+    return Ecdf._create(source, goal_f, use_default_goal_f)
+
+
+def from_progresses(
+        source: Iterable[Progress], consumer: Callable[[Ecdf], Any],
+        f_goal: int | float | Callable[[str], int | float]
+                    | Iterable[int | float | Callable] | None = None,
+        join_all_algorithms: bool = False,
+        join_all_objectives: bool = False,
+        join_all_encodings: bool = False) -> None:
+    """
+    Compute one or multiple ECDFs from a stream of end results.
+
+    :param source: the set of progress instances
+    :param f_goal: one or multiple goal values
+    :param consumer: the destination to which the new records will be
+        passed, can be the `append` method of a :class:`list`
+    :param join_all_algorithms: should the Ecdf be aggregated over all
+        algorithms
+    :param join_all_objectives: should the Ecdf be aggregated over all
+        objective functions
+    :param join_all_encodings: should the Ecdf be aggregated over all
+        encodings
+    """
+    return Ecdf._from_progresses(
+        source, consumer, f_goal, join_all_algorithms,
+        join_all_objectives, join_all_encodings)
 
 
 def get_goal(ecdf: Ecdf) -> int | float | None:
@@ -466,3 +466,49 @@ def goal_to_str(goal_f: int | float | None) -> str:
     """
     return "undefined" if goal_f is None else \
         f"goal: \u2264{num_to_str(goal_f)}"
+
+
+def to_csv(ecdf: Ecdf, file: str,
+           put_header: bool = True) -> Path:
+    """
+    Store a :class:`Ecdf` record in a CSV file.
+
+    :param ecdf: the ecdf
+    :param file: the file to generate
+    :param put_header: should we put a header with meta-data?
+    :return: the fully resolved file name
+    """
+    if not isinstance(ecdf, Ecdf):
+        raise type_error(ecdf, "ecdf", Ecdf)
+    path: Final[Path] = Path(file)
+    logger(f"Writing ECDF to CSV file {path!r}.")
+    path.ensure_parent_dir_exists()
+
+    with path.open_for_write() as out:
+        sep: Final[str] = CSV_SEPARATOR
+        write: Final[Callable[[str], int]] = out.write
+        if put_header:
+            kv: Final[str] = KEY_VALUE_SEPARATOR
+            cmt: Final[str] = COMMENT_START
+            if ecdf.algorithm is not None:
+                write(f"{cmt} {KEY_ALGORITHM}{kv}{ecdf.algorithm}\n")
+            write(f"{cmt} {KEY_N}{kv}{ecdf.n}\n")
+            write(f"{cmt} {KEY_N_INSTS}{kv}{ecdf.n_insts}\n")
+            write(f"{cmt} {KEY_F_NAME}{kv}{ecdf.f_name}\n")
+            if ecdf.goal_f is not None:
+                write(f"{cmt} {KEY_GOAL_F}{kv}{ecdf.goal_f}\n")
+            if ecdf.objective is not None:
+                write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}"
+                      f"{kv}{ecdf.objective}\n")
+            if ecdf.encoding is not None:
+                write(f"{cmt} {KEY_ENCODING}{kv}{ecdf.encoding}\n")
+
+        write(f"{ecdf._time_key()}{sep}ecdf\n")
+        for v in ecdf.ecdf:
+            out.write(
+                f"{num_to_str(v[0])}{sep}{num_to_str(v[1])}\n")
+
+    logger(f"Done writing ECDF to CSV file {path!r}.")
+
+    path.enforce_file()
+    return path

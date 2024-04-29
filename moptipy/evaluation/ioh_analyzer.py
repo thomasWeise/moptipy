@@ -50,7 +50,7 @@ from pycommons.strings.string_conv import float_to_str
 from pycommons.types import check_int_range, type_error
 
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
-from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.progress import Progress, from_logs
 from moptipy.utils.help import moptipy_argparser
 
 
@@ -183,12 +183,9 @@ def moptipy_to_ioh_analyzer(
         else:
             _func[_dim] = [_res]
 
-    Progress.from_logs(source,
-                       consumer=__consume,
-                       time_unit=TIME_UNIT_FES,
-                       f_name=check_f_name(f_name),
-                       f_standard=f_standard,
-                       only_improvements=True)
+    from_logs(source, consumer=__consume, time_unit=TIME_UNIT_FES,
+              f_name=check_f_name(f_name), f_standard=f_standard,
+              only_improvements=True)
 
     if len(data) <= 0:
         raise ValueError("did not find any data!")

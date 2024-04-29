@@ -55,8 +55,9 @@ from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
 from moptipy.evaluation.plot_progress import plot_progress
-from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.progress import from_logs as pr_from_logs
 from moptipy.evaluation.stat_run import StatRun
+from moptipy.evaluation.stat_run import from_progress as sr_from_progress
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
@@ -120,10 +121,10 @@ with temp_dir() as td:  # create temporary directory `td`
     # Once we arrived here, the experiment with 2*2*5 = 20 runs has completed.
 
     data = []  # we will load the data into this list
-    Progress.from_logs(path=td,  # the result directory
-                       consumer=data.append,  # put the data into data
-                       time_unit="FEs",  # time is in FEs (as opposed to "ms")
-                       f_name="plainF")  # use raw, unscaled objective values
+    pr_from_logs(path=td,  # the result directory
+                 consumer=data.append,  # put the data into data
+                 time_unit="FEs",  # time is in FEs (as opposed to "ms")
+                 f_name="plainF")  # use raw, unscaled objective values
 
     # The first plot will contain every single one of the 20 runs.
     # The system will choose different styles for different algorithms
@@ -182,9 +183,9 @@ with temp_dir() as td:  # create temporary directory `td`
     # This function will automatically choose to compute statistics over
     # algorithm*instance combinations unless we tell it otherwise.
     # We tell it to compute the arithmetic means.
-    StatRun.from_progress(source=list(data),  # iterate over _copy_ of data
-                          statistics="mean",  # compute the mean f over FEs
-                          consumer=data.append)  # and store to data list
+    sr_from_progress(source=list(data),  # iterate over _copy_ of data
+                     statistics="mean",  # compute the mean f over FEs
+                     consumer=data.append)  # and store to data list
     fig = create_figure(width=4)  # create a 4"-wide, empty figure
     # We now plot the single runs AND the mean result quality over time into
     # the same diagram. Notice that the system will again automatically choose

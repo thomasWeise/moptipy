@@ -75,7 +75,7 @@ from moptipy.evaluation.base import (
     KEY_N,
     KEY_OBJECTIVE_FUNCTION,
     MultiRunData,
-    _csv_motipy_footer,
+    motipy_footer_bottom_comments,
 )
 from moptipy.evaluation.end_results import (
     DESC_BEST_F,
@@ -1358,7 +1358,17 @@ class CsvWriter:
             self.__max_time_millis.get_footer_comments(dest)
             dest(f"In summary {csv_scope(scope, KEY_MAX_TIME_MILLIS)} is"
                  f" {DESC_MAX_TIME_MILLIS}.")
-        _csv_motipy_footer(dest)
+
+    def get_footer_bottom_comments(self, dest: Callable[[str], None]) -> None:
+        """
+        Get the footer bottom comments.
+
+        :param dest: the destination to write to.
+        """
+        motipy_footer_bottom_comments(
+            self, dest, ("The end statistics data is produced using module "
+                         "moptipy.evaluation.end_statistics."))
+        StatWriter.get_footer_bottom_comments(self.__best_f, dest)
 
 
 class CsvReader:

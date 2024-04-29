@@ -29,9 +29,9 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.ertecdf import ErtEcdf
+from moptipy.evaluation.ertecdf import from_progresses
 from moptipy.evaluation.plot_ecdf import plot_ecdf
-from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.progress import from_logs
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
@@ -72,15 +72,15 @@ with temp_dir() as td:  # create temporary directory `td`
     # Once we arrived here, the experiment with 11*21 = 231 runs has completed.
 
     data = []  # we will load the data into this list
-    Progress.from_logs(path=td,  # the result directory
-                       consumer=data.append,  # put the data into data
-                       time_unit="FEs",  # time is in FEs (as opposed to "ms")
-                       f_name="plainF")  # use raw, unscaled objective values
+    from_logs(path=td,  # the result directory
+              consumer=data.append,  # put the data into data
+              time_unit="FEs",  # time is in FEs (as opposed to "ms")
+              f_name="plainF")  # use raw, unscaled objective values
     ertecdf = []  # we will load the ERT-ECDFs into this list
     # The below function uses the goal objective values from the log files to
     # compute the ERT-ECDF functions. It groups all runs of one algorithm
     # together and then computes the algorithm's overall ECDF.
-    ErtEcdf.from_progresses(data, ertecdf.append, join_all_objectives=True)
+    from_progresses(data, ertecdf.append, join_all_objectives=True)
 
     # Plot the ERT-ECDF functions.
     # This function will automatically pick the labels of the axes and choose

@@ -19,7 +19,9 @@ from moptipy.evaluation.plot_end_statistics_over_parameter import (
 )
 from moptipy.evaluation.plot_progress import plot_progress
 from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.progress import from_logs as pr_from_logs
 from moptipy.evaluation.stat_run import STAT_MEAN_ARITH, StatRun
+from moptipy.evaluation.stat_run import from_progress as sr_from_progress
 from moptipy.examples.jssp.plot_gantt_chart import plot_gantt_chart
 from moptipy.utils.lang import Lang
 from moptipy.utils.plot_defaults import importance_to_font_size
@@ -280,14 +282,14 @@ def plot_progresses(results_dir: str,
     spath: Final[Path] = directory_path(results_dir)
     progresses: Final[list[Progress]] = []
     for algorithm in sorted(algorithms, key=algorithm_sort_key):
-        Progress.from_logs(spath.resolve_inside(algorithm), progresses.append,
-                           time_unit=time_unit, f_name=F_NAME_RAW)
+        pr_from_logs(spath.resolve_inside(algorithm), progresses.append,
+                     time_unit=time_unit, f_name=F_NAME_RAW)
     if len(progresses) <= 0:
         raise ValueError(f"did not find log files in dir {results_dir!r}.")
 
     stat_runs: Final[list[Progress | StatRun]] = []
-    StatRun.from_progress(progresses, STAT_MEAN_ARITH,
-                          stat_runs.append, False, False)
+    sr_from_progress(progresses, STAT_MEAN_ARITH,
+                     stat_runs.append, False, False)
     if len(stat_runs) <= 0:
         raise ValueError(
             f"failed to compile stat runs from dir {results_dir!r}.")

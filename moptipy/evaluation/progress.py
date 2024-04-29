@@ -173,73 +173,78 @@ class Progress(PerRunData):
                 raise type_error(f_standard, "f_standard", (int, float))
         object.__setattr__(self, "f_standard", f_standard)
 
-    @staticmethod
-    def from_logs(path: str,
-                  consumer: Callable[["Progress"], Any],
-                  time_unit: str = TIME_UNIT_FES,
-                  f_name: str = F_NAME_RAW,
-                  f_standard: dict[str, int | float] | None = None,
-                  only_improvements: bool = True) -> None:
-        """
-        Parse a given path and pass all progress data found to the consumer.
 
-        If `path` identifies a file with suffix `.txt`, then this file is
-        parsed. The appropriate :class:`Progress` is created and appended to
-        the `collector`. If `path` identifies a directory, then this directory
-        is parsed recursively for each log file found, one record is passed to
-        the `consumer`. The `consumer` is simply a callable function. You could
-        pass in the `append` method of a :class:`list`.
+def from_logs(path: str,
+              consumer: Callable[[Progress], Any],
+              time_unit: str = TIME_UNIT_FES,
+              f_name: str = F_NAME_RAW,
+              f_standard: dict[str, int | float] | None = None,
+              only_improvements: bool = True) -> None:
+    """
+    Parse a given path and pass all progress data found to the consumer.
 
-        :param path: the path to parse
-        :param consumer: the consumer, can be the `append` method of a
-            :class:`list`
-        :param time_unit: the time unit
-        :param f_name: the objective name
-        :param f_standard: a dictionary mapping instances to standard values
-        :param only_improvements: enforce that f-values should be improving and
-            time values increasing
-        """
-        _InnerLogParser(time_unit, f_name, consumer, f_standard,
-                        only_improvements).parse(path)
+    If `path` identifies a file with suffix `.txt`, then this file is
+    parsed. The appropriate :class:`Progress` is created and appended to
+    the `collector`. If `path` identifies a directory, then this directory
+    is parsed recursively for each log file found, one record is passed to
+    the `consumer`. The `consumer` is simply a callable function. You could
+    pass in the `append` method of a :class:`list`.
 
-    def to_csv(self, file: str,
-               put_header: bool = True) -> str:
-        """
-        Store a :class:`Progress` record in a CSV file.
-
-        :param file: the file to generate
-        :param put_header: should we put a header with meta-data?
-        :return: the fully resolved file name
-        """
-        path: Final[Path] = Path(file)
-        logger(f"Writing progress object to CSV file {path!r}.")
-        path.ensure_parent_dir_exists()
-
-        with path.open_for_write() as out:
-            sep: Final[str] = CSV_SEPARATOR
-            write: Final[Callable[[str], int]] = out.write
-            if put_header:
-                kv: Final[str] = KEY_VALUE_SEPARATOR
-                cmt: Final[str] = COMMENT_START
-                write(f"{cmt} {KEY_ALGORITHM}{kv}{self.algorithm}\n")
-                write(f"{cmt} {KEY_INSTANCE}{kv}{self.instance}\n")
-                write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}{kv}{self.objective}\n")
-                if self.encoding is not None:
-                    write(f"{cmt} {KEY_ENCODING}{kv}{self.objective}\n")
-                write(f"{cmt} {KEY_RAND_SEED}{kv}{hex(self.rand_seed)}\n")
-                if self.f_standard is not None:
-                    write(f"{cmt} {KEY_GOAL_F}{kv}{self.f_standard}\n")
-            write(f"{self.time_unit}{sep}{self.f_name}\n")
-            for i, t in enumerate(self.time):
-                write(f"{t}{sep}{num_to_str(self.f[i])}\n")
-
-        logger(f"Done writing progress object to CSV file {path!r}.")
-
-        path.enforce_file()
-        return path
+    :param path: the path to parse
+    :param consumer: the consumer, can be the `append` method of a
+        :class:`list`
+    :param time_unit: the time unit
+    :param f_name: the objective name
+    :param f_standard: a dictionary mapping instances to standard values
+    :param only_improvements: enforce that f-values should be improving and
+        time values increasing
+    """
+    __InnerLogParser(time_unit, f_name, consumer, f_standard,
+                     only_improvements).parse(path)
 
 
-class _InnerLogParser(SetupAndStateParser):
+def to_csv(progress: Progress, file: str,
+           put_header: bool = True) -> str:
+    """
+    Store a :class:`Progress` record in a CSV file.
+
+    :param file: the file to generate
+    :param put_header: should we put a header with meta-data?
+    :return: the fully resolved file name
+    """
+    if not isinstance(progress, Progress):
+        raise type_error(progress, "progress", Progress)
+    if not isinstance(put_header, bool):
+        raise type_error(put_header, "put_header", bool)
+    path: Final[Path] = Path(file)
+    logger(f"Writing progress object to CSV file {path!r}.")
+    path.ensure_parent_dir_exists()
+
+    with path.open_for_write() as out:
+        sep: Final[str] = CSV_SEPARATOR
+        write: Final[Callable[[str], int]] = out.write
+        if put_header:
+            kv: Final[str] = KEY_VALUE_SEPARATOR
+            cmt: Final[str] = COMMENT_START
+            write(f"{cmt} {KEY_ALGORITHM}{kv}{progress.algorithm}\n")
+            write(f"{cmt} {KEY_INSTANCE}{kv}{progress.instance}\n")
+            write(f"{cmt} {KEY_OBJECTIVE_FUNCTION}{kv}{progress.objective}\n")
+            if progress.encoding is not None:
+                write(f"{cmt} {KEY_ENCODING}{kv}{progress.objective}\n")
+            write(f"{cmt} {KEY_RAND_SEED}{kv}{hex(progress.rand_seed)}\n")
+            if progress.f_standard is not None:
+                write(f"{cmt} {KEY_GOAL_F}{kv}{progress.f_standard}\n")
+        write(f"{progress.time_unit}{sep}{progress.f_name}\n")
+        for i, t in enumerate(progress.time):
+            write(f"{t}{sep}{num_to_str(progress.f[i])}\n")
+
+    logger(f"Done writing progress object to CSV file {path!r}.")
+
+    path.enforce_file()
+    return path
+
+
+class __InnerLogParser(SetupAndStateParser):
     """The internal log parser class."""
 
     def __init__(self, time_unit: str, f_name: str,

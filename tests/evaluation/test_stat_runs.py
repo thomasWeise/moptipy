@@ -5,7 +5,7 @@ import numpy as np
 
 import moptipy.evaluation.progress as prg
 from moptipy.evaluation.progress import Progress
-from moptipy.evaluation.stat_run import StatRun
+from moptipy.evaluation.stat_run import StatRun, create
 
 
 def test_stat_runs() -> None:
@@ -24,7 +24,7 @@ def test_stat_runs() -> None:
                                    True)
 
     collector: Final[list[StatRun]] = []
-    StatRun.create([p0], ["mean"], collector.append)
+    create([p0], ["mean"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]
     assert s.algorithm == algo0
@@ -50,7 +50,7 @@ def test_stat_runs() -> None:
                                    None,
                                    True)
     collector.clear()
-    StatRun.create([p1, p0], ["mean"], collector.append)
+    create([p1, p0], ["mean"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]
     assert s.algorithm == algo0
@@ -70,7 +70,7 @@ def test_stat_runs() -> None:
                                 [90, 0.5 * (40 + 33)]])).all()
 
     collector.clear()
-    StatRun.create([p1, p0], ["max"], collector.append)
+    create([p1, p0], ["max"], collector.append)
     assert len(collector) == 1
     s: StatRun = collector[0]
     assert s.algorithm == algo0

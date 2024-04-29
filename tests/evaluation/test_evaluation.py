@@ -20,9 +20,12 @@ from moptipy.evaluation.end_statistics import (
     from_end_results as es_from_end_results,
 )
 from moptipy.evaluation.end_statistics import to_csv as es_to_csv
-from moptipy.evaluation.ert import Ert, compute_single_ert
+from moptipy.evaluation.ert import compute_single_ert
+from moptipy.evaluation.ert import create as ert_create
 from moptipy.evaluation.progress import Progress
-from moptipy.evaluation.stat_run import StatRun
+from moptipy.evaluation.progress import from_logs as pr_from_logs
+from moptipy.evaluation.stat_run import create as sr_create
+from moptipy.evaluation.stat_run import from_progress as st_from_progress
 from moptipy.examples.jssp.gantt_space import GanttSpace
 from moptipy.examples.jssp.instance import Instance
 from moptipy.examples.jssp.makespan import Makespan
@@ -244,9 +247,9 @@ def test_experiment_jssp() -> None:
         progress_ms_raw = []
         progress_fes_std = []
         progress_ms_nrm = []
-        Progress.from_logs(base_dir, progress_fes_raw.append,
-                           time_unit=bs.TIME_UNIT_FES,
-                           f_name=bs.F_NAME_RAW)
+        pr_from_logs(base_dir, progress_fes_raw.append,
+                     time_unit=bs.TIME_UNIT_FES,
+                     f_name=bs.F_NAME_RAW)
         progress_fes_raw.sort()
         assert len(progress_fes_raw) == 24
         for idx, pr in enumerate(progress_fes_raw):
@@ -258,7 +261,7 @@ def test_experiment_jssp() -> None:
             assert pr.time[-1] >= results[idx].last_improvement_fe
             assert pr.time[-1] <= results[idx].total_fes
 
-        ert = Ert.create(progress_fes_raw)
+        ert = ert_create(progress_fes_raw)
         assert ert.instance is None
         assert ert.algorithm is None
         assert ert.n == 24
@@ -270,9 +273,9 @@ def test_experiment_jssp() -> None:
 
         if "GITHUB_JOB" in environ:
 
-            Progress.from_logs(base_dir, progress_ms_raw.append,
-                               time_unit=bs.TIME_UNIT_MILLIS,
-                               f_name=bs.F_NAME_RAW)
+            pr_from_logs(base_dir, progress_ms_raw.append,
+                         time_unit=bs.TIME_UNIT_MILLIS,
+                         f_name=bs.F_NAME_RAW)
             progress_ms_raw.sort()
             assert len(progress_ms_raw) == 24
             for idx, pr in enumerate(progress_ms_raw):
@@ -284,9 +287,9 @@ def test_experiment_jssp() -> None:
                 assert pr.time[-1] >= results[idx].last_improvement_time_millis
                 assert pr.time[-1] <= results[idx].total_time_millis
 
-            Progress.from_logs(base_dir, progress_fes_std.append,
-                               time_unit=bs.TIME_UNIT_FES,
-                               f_name=bs.F_NAME_SCALED)
+            pr_from_logs(base_dir, progress_fes_std.append,
+                         time_unit=bs.TIME_UNIT_FES,
+                         f_name=bs.F_NAME_SCALED)
             progress_fes_std.sort()
             assert len(progress_fes_std) == 24
             for idx, pr in enumerate(progress_fes_std):
@@ -299,9 +302,9 @@ def test_experiment_jssp() -> None:
                 assert pr.time[-1] <= results[idx].total_fes
                 assert np.array_equal(pr.time, progress_fes_raw[idx].time)
 
-            Progress.from_logs(base_dir, progress_ms_nrm.append,
-                               time_unit=bs.TIME_UNIT_MILLIS,
-                               f_name=bs.F_NAME_NORMALIZED)
+            pr_from_logs(base_dir, progress_ms_nrm.append,
+                         time_unit=bs.TIME_UNIT_MILLIS,
+                         f_name=bs.F_NAME_NORMALIZED)
             assert len(progress_ms_nrm) == 24
             progress_ms_nrm.sort()
             for idx, pr in enumerate(progress_ms_nrm):
@@ -318,9 +321,9 @@ def test_experiment_jssp() -> None:
                       "mean-sd", "mean+sd", "sd",
                       "q10", "q90", "q159", "q841"]
         stat_runs = []
-        StatRun.create(source=progress_fes_raw,
-                       statistics=stat_names,
-                       consumer=stat_runs.append)
+        sr_create(source=progress_fes_raw,
+                  statistics=stat_names,
+                  consumer=stat_runs.append)
         assert len(stat_runs) == len(stat_names)
 
         if "GITHUB_JOB" in environ:
@@ -330,26 +333,18 @@ def test_experiment_jssp() -> None:
             all_progress.extend(progress_fes_std)
 
             stat_runs.clear()
-            StatRun.from_progress(all_progress,
-                                  stat_names,
-                                  stat_runs.append,
-                                  False, False)
+            st_from_progress(all_progress, stat_names, stat_runs.append,
+                             False, False)
             assert len(stat_runs) == len(stat_names) * 3 * 3 * 2
             stat_runs.clear()
-            StatRun.from_progress(all_progress,
-                                  stat_names,
-                                  stat_runs.append,
-                                  True, False)
+            st_from_progress(all_progress, stat_names, stat_runs.append,
+                             True, False)
             assert len(stat_runs) == len(stat_names) * 3 * 3
             stat_runs.clear()
-            StatRun.from_progress(all_progress,
-                                  stat_names,
-                                  stat_runs.append,
-                                  False, True)
+            st_from_progress(all_progress, stat_names, stat_runs.append,
+                             False, True)
             assert len(stat_runs) == len(stat_names) * 3 * 2
             stat_runs.clear()
-            StatRun.from_progress(all_progress,
-                                  stat_names,
-                                  stat_runs.append,
-                                  True, True)
+            st_from_progress(all_progress, stat_names, stat_runs.append,
+                             True, True)
             assert len(stat_runs) == len(stat_names) * 3

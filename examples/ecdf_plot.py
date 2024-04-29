@@ -65,9 +65,9 @@ from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
 from moptipy.api.experiment import run_experiment
 from moptipy.evaluation.axis_ranger import AxisRanger
-from moptipy.evaluation.ecdf import Ecdf
+from moptipy.evaluation.ecdf import from_progresses
 from moptipy.evaluation.plot_ecdf import plot_ecdf
-from moptipy.evaluation.progress import Progress
+from moptipy.evaluation.progress import from_logs
 from moptipy.examples.bitstrings.onemax import OneMax
 from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_flip1 import Op1Flip1
@@ -129,21 +129,21 @@ with temp_dir() as td:  # create temporary directory `td`
     # Once we arrived here, the experiment with 2*1*31 = 62 runs has completed.
 
     data = []  # we will load the data into this list
-    Progress.from_logs(path=td,  # the result directory
-                       consumer=data.append,  # put the data into data
-                       time_unit="FEs",  # time is in FEs (as opposed to "ms")
-                       f_name="plainF")  # use raw, unscaled objective values
-    ecdf = []  # we will load the ECDFs into this list
+    from_logs(path=td,  # the result directory
+              consumer=data.append,  # put the data into data
+              time_unit="FEs",  # time is in FEs (as opposed to "ms")
+              f_name="plainF")  # use raw, unscaled objective values
+    ecdfs = []  # we will load the ECDFs into this list
     # The below function uses the goal objective values from the log files to
     # compute the ECDF functions. It groups all runs of one algorithm together
     # and then computes the algorithm's overall ECDF.
-    Ecdf.from_progresses(data, ecdf.append)
+    from_progresses(data, ecdfs.append)
 
     # Plot the ECDF functions.
     # This function will automatically pick the labels of the axes and choose
     # that the horizontal axis (FEs) be log-scaled.
     fig = create_figure(width=4)  # create an empty, 4"-wide figure
-    plot_ecdf(ecdfs=ecdf,  # plot all the data
+    plot_ecdf(ecdfs=ecdfs,  # plot all the data
               figure=fig)  # into the figure
     # Notice that save_figure returns a list of files that has been generated.
     # You can specify multiple formats, e.g., ("svg", "pdf", "png") and get
@@ -160,7 +160,7 @@ with temp_dir() as td:  # create temporary directory `td`
 
     # Plot the ECDF functions, but this time do not log-scale the x-axis.
     fig = create_figure(width=4)  # create an empty, 4"-wide figure
-    plot_ecdf(ecdfs=ecdf,  # plot all the data
+    plot_ecdf(ecdfs=ecdfs,  # plot all the data
               figure=fig,  # into the figure
               x_axis=AxisRanger.for_axis("FEs", log_scale=False))
     # This time, we save the image only as svg.

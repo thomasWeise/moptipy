@@ -29,6 +29,7 @@ from pycommons.io.csv import (
     csv_str_or_none,
     csv_val_or_none,
     csv_write,
+    pycommons_footer_bottom_comments,
 )
 from pycommons.io.path import Path, file_path, line_writer
 from pycommons.strings.string_conv import (
@@ -75,7 +76,7 @@ from moptipy.evaluation.base import (
     KEY_ENCODING,
     KEY_OBJECTIVE_FUNCTION,
     PerRunData,
-    _csv_motipy_footer,
+    motipy_footer_bottom_comments,
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import moptipy_argparser
@@ -565,13 +566,14 @@ def to_csv(results: Iterable[EndResult], file: str) -> Path:
     logger(f"Writing end results to CSV file {path!r}.")
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
-        csv_write(data=sorted(results),
-                  consumer=line_writer(wt),
-                  setup=CsvWriter().setup,
-                  get_column_titles=CsvWriter.get_column_titles,
-                  get_row=CsvWriter.get_row,
-                  get_header_comments=CsvWriter.get_header_comments,
-                  get_footer_comments=CsvWriter.get_footer_comments)
+        csv_write(
+            data=sorted(results), consumer=line_writer(wt),
+            setup=CsvWriter().setup,
+            get_column_titles=CsvWriter.get_column_titles,
+            get_row=CsvWriter.get_row,
+            get_header_comments=CsvWriter.get_header_comments,
+            get_footer_comments=CsvWriter.get_footer_comments,
+            get_footer_bottom_comments=CsvWriter.get_footer_bottom_comments)
     logger(f"Done writing end results to CSV file {path!r}.")
     return path
 
@@ -774,7 +776,17 @@ class CsvWriter:
         if self.__needs_max_ms:
             dest(f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: "
                  f"{DESC_MAX_TIME_MILLIS}")
-        _csv_motipy_footer(dest)
+
+    def get_footer_bottom_comments(self, dest: Callable[[str], None]) -> None:
+        """
+        Get the footer bottom comments.
+
+        :param dest: the destination to write to.
+        """
+        motipy_footer_bottom_comments(
+            self, dest, ("The end results data is produced using module "
+                         "moptipy.evaluation.end_results."))
+        pycommons_footer_bottom_comments(self, dest)
 
 
 class CsvReader:

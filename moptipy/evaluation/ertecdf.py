@@ -26,6 +26,7 @@ instances that were solved.
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Iterable
 
 from moptipy.evaluation.ecdf import Ecdf
 from moptipy.evaluation.ert import compute_single_ert
@@ -80,3 +81,44 @@ class ErtEcdf(Ecdf):
         """
         del n
         return n_insts
+
+
+def create(source: Iterable[Progress],
+           goal_f: int | float | Callable[[str], int | float] | None = None,
+           use_default_goal_f: bool = True) -> Ecdf:
+    """
+    Create one single Ert-Ecdf record from an iterable of Progress records.
+
+    :param source: the set of progress instances
+    :param goal_f: the goal objective value
+    :param use_default_goal_f: should we use the default lower bounds as
+        goals?
+    :return: the Ert-Ecdf record
+    """
+    return ErtEcdf._create(source, goal_f, use_default_goal_f)
+
+
+def from_progresses(
+        source: Iterable[Progress], consumer: Callable[[Ecdf], Any],
+        f_goal: int | float | Callable[[str], int | float]
+                    | Iterable[int | float | Callable] | None = None,
+        join_all_algorithms: bool = False,
+        join_all_objectives: bool = False,
+        join_all_encodings: bool = False) -> None:
+    """
+    Compute one or multiple Ert-ECDFs from a stream of end results.
+
+    :param source: the set of progress instances
+    :param f_goal: one or multiple goal values
+    :param consumer: the destination to which the new records will be
+        passed, can be the `append` method of a :class:`list`
+    :param join_all_algorithms: should the Ecdf be aggregated over all
+        algorithms
+    :param join_all_objectives: should the Ecdf be aggregated over all
+        objective functions
+    :param join_all_encodings: should the Ecdf be aggregated over all
+        encodings
+    """
+    return ErtEcdf._from_progresses(
+        source, consumer, f_goal, join_all_algorithms,
+        join_all_objectives, join_all_encodings)

@@ -15,7 +15,7 @@ overwriting these methods, we can do useful things with the data.
 For example in module :mod:`~moptipy.evaluation.end_results`, the method
 :meth:`~moptipy.evaluation.end_results.from_logs` can load
 :class:`~moptipy.evaluation.end_results.EndResult` records from the logs
-and the method :meth:`~moptipy.evaluation.progress.Progress.from_logs` in
+and the method :meth:`~moptipy.evaluation.progress.from_logs` in
 module :mod:`~moptipy.evaluation.progress` reads the whole
 :class:`~moptipy.evaluation.progress.Progress` that the algorithms make
 over time.

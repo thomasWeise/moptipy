@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, Callable, Final
 
 from pycommons.types import check_int_range, type_error
-from pycommons.version import __version__ as pycommons_version
 
 from moptipy.utils.nputils import rand_seed_check
 from moptipy.utils.strings import sanitize_name
@@ -835,19 +834,22 @@ def sort_key(obj: PerRunData | MultiRunData) -> tuple[Any, ...]:
     return obj._tuple()
 
 
-def _csv_motipy_footer(dest: Callable[[str], Any]) -> None:
+def motipy_footer_bottom_comments(
+        _: Any, dest: Callable[[str], Any],
+        additional: str | None = None) -> None:
     """
     Print the standard csv footer.
 
+    :param _: the setup object, ignored
+    :param dest: the destination callable
     :param dest: the destination to write to
+    :param additional: any additional output string
     """
-    dest("")
     dest("This data has been generated with moptipy version "
-         f"{moptipy_version} using pycommons version "
-         f"{pycommons_version}.")
+         f"{moptipy_version}.")
+    if (additional is not None) and (str.__len__(additional) > 0):
+        dest(additional)
     dest("You can find moptipy at https://thomasweise.github.io/mopitpy.")
-    dest(
-        "You can find pycommons at https://thomasweise.github.io/pycommons.")
 
 
 #: a description of the algorithm field
