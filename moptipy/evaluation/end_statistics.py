@@ -853,7 +853,8 @@ def to_csv(data: EndStatistics | Iterable[EndStatistics],
             get_column_titles=CsvWriter.get_column_titles,
             get_row=CsvWriter.get_row,
             get_header_comments=CsvWriter.get_header_comments,
-            get_footer_comments=CsvWriter.get_footer_comments)
+            get_footer_comments=CsvWriter.get_footer_comments,
+            get_footer_bottom_comments=CsvWriter.get_footer_bottom_comments)
     logger(f"Done writing end result statistics to CSV file {path!r}.")
     return path
 

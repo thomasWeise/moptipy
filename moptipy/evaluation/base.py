@@ -838,12 +838,23 @@ def motipy_footer_bottom_comments(
         _: Any, dest: Callable[[str], Any],
         additional: str | None = None) -> None:
     """
-    Print the standard csv footer.
+    Print the standard csv footer for moptipy.
 
     :param _: the setup object, ignored
     :param dest: the destination callable
     :param dest: the destination to write to
     :param additional: any additional output string
+
+    >>> def __qpt(s: str):
+    ...     print(s[:49])
+    >>> motipy_footer_bottom_comments(None, __qpt, "bla")
+    This data has been generated with moptipy version
+    bla
+    You can find moptipy at https://thomasweise.githu
+
+    >>> motipy_footer_bottom_comments(None, __qpt, None)
+    This data has been generated with moptipy version
+    You can find moptipy at https://thomasweise.githu
     """
     dest("This data has been generated with moptipy version "
          f"{moptipy_version}.")
