@@ -33,4 +33,4 @@
 #
 
 # pycommons provides lots of utilities
-pycommons[dev] >= 0.8.14
+pycommons[dev] >= 0.8.34

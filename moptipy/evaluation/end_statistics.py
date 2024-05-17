@@ -11,7 +11,7 @@ runs into a record with the most important statistics.
 import argparse
 import os.path
 from dataclasses import dataclass
-from math import ceil, inf
+from math import ceil, inf, isfinite
 from typing import Any, Callable, Final, Iterable, cast
 
 from pycommons.io.console import logger
@@ -1493,6 +1493,90 @@ class CsvReader:
             max_time_millis=StatReader.parse_optional_row(
                 self.__max_time_millis, data),
         )
+
+
+@dataclass(frozen=True, init=False, order=False, eq=False)
+class __PvEndStatistics(EndStatistics):
+    """Aggregated end statistics."""
+
+    pv: int | float
+
+    def __init__(self, es: EndStatistics, pv: int | float):
+        """
+        Create the end statistics of an experiment-setup combination.
+
+        :param es: the original end statistics object
+        :param pv: the parameter value
+        """
+        super().__init__(
+            es.algorithm, es.instance, es.objective, es.encoding, es.n,
+            es.best_f, es.last_improvement_fe,
+            es.last_improvement_time_millis, es.total_fes,
+            es.total_time_millis, es.goal_f, es.best_f_scaled, es.n_success,
+            es.success_fes, es.success_time_millis, es.ert_fes,
+            es.ert_time_millis, es.max_fes, es.max_time_millis)
+        if not isinstance(pv, (int | float)):
+            raise type_error(pv, "pv", (int, float))
+        if not isfinite(pv):
+            raise ValueError(f"got pv={pv}")
+        object.__setattr__(self, "pv", pv)
+
+    def get_param_value(self) -> int | float:
+        """
+        Get the parameter value.
+
+        :return: the parameter value
+        """
+        return self.pv
+
+
+def aggregate_over_parameter(
+        data: Iterable[EndResult],
+        param_value: Callable[[EndResult], int | float],
+        join_all_algorithms: bool = False,
+        join_all_instances: bool = False,
+        join_all_objectives: bool = False,
+        join_all_encodings: bool = False) -> tuple[
+        Callable[[EndStatistics], int | float], Iterable[EndStatistics]]:
+    """
+    Aggregate a stream of data into groups based on a parameter.
+
+    :param data: the source data
+    :param param_value: the function obtaining a parameter value
+    :param join_all_algorithms: should the statistics be aggregated
+        over all algorithms
+    :param join_all_instances: should the statistics be aggregated
+        over all algorithms
+    :param join_all_objectives: should the statistics be aggregated over
+        all objectives?
+    :param join_all_encodings: should statistics be aggregated over all
+        encodings
+    """
+    param_map: Final[dict[int | float, list[EndResult]]] = {}
+    for er in data:
+        pv = param_value(er)
+        if not isinstance(pv, (int | float)):
+            raise type_error(pv, f"param_value{er}", (int, float))
+        if not isfinite(pv):
+            raise ValueError(f"got {pv} = param({er})")
+        if pv in param_map:
+            param_map[pv].append(er)
+        else:
+            param_map[pv] = [er]
+    if dict.__len__(param_map) <= 0:
+        raise ValueError("Did not encounter any data.")
+
+    stats: Final[list[EndStatistics]] = []
+    for pv in sorted(param_map.keys()):
+        def __make(es: EndStatistics, ppv=pv, ss=stats.append) -> None:
+            ss(__PvEndStatistics(es, ppv))
+
+        from_end_results(
+            param_map[pv], cast(Callable[[EndStatistics], None], __make),
+            join_all_algorithms, join_all_instances, join_all_objectives,
+            join_all_encodings)
+    return cast(Callable[[EndStatistics], int | float],
+                __PvEndStatistics.get_param_value), tuple(stats)
 
 
 # Run end-results to stat file if executed as script

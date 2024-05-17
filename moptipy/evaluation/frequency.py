@@ -11,7 +11,6 @@ MSc student at the Institute of Applied Optimization (IAO,
 Big Data (人工智能与大数据学院) of Hefei University (合肥学院).
 """
 import argparse
-import os.path
 from collections import Counter
 from gc import collect
 from math import isfinite
@@ -238,12 +237,12 @@ def number_of_objective_values_to_csv(
            f"in {output_path!r}.")
     logger(f"Lower bounds will{'' if report_lower_bound else ' not'} be "
            "treated as existing objective values.")
-    logger(f"Upper bounds wil {'' if report_upper_bound else ' not'} be "
+    logger(f"Upper bounds will{'' if report_upper_bound else ' not'} be "
            "treated as existing objective values.")
     logger("Goal objective values bounds will"
            f"{'' if report_upper_bound else ' not'} be treated as existing "
            "objective values.")
-    Path(os.path.dirname(output_path)).ensure_dir_exists()
+    output_path.ensure_parent_dir_exists()
     data: Counter[tuple[str, str]] = Counter()
     instances: set[str] = set()
     algorithms: set[str] = set()
@@ -372,6 +371,7 @@ class __InnerLogParser(SetupAndStateParser):
         return True
 
     def parse_dir(self, path: str) -> bool:
+        collect()
         ret: Final[bool] = super().parse_dir(path)
         collect()
         return ret
@@ -398,6 +398,7 @@ class __InnerLogParser(SetupAndStateParser):
             encoding=self.encoding,
             rand_seed=self.rand_seed), counter)
         counter.clear()
+        collect()
 
     def start_section(self, title: str) -> bool:
         if title == SECTION_PROGRESS:
