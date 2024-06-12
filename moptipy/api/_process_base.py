@@ -94,14 +94,19 @@ def _error_1(logger: Logger, title: str, exception_type,
                 exception_value = str.strip(str(exception_value))
                 wt(f"{KEY_EXCEPTION_VALUE}: {exception_value}")
             if traceback:
-                wt(f"{KEY_EXCEPTION_STACK_TRACE}:")
-                sio = StringIO()
+                got: Final[list[str]] = []
+                sio: Final[StringIO] = StringIO()
                 print_tb(traceback, file=sio)
                 for line in str.splitlines(sio.getvalue()):
                     ll: str = str.strip(line)
                     if str.__len__(ll) <= 0:
                         continue
-                    wt(str.replace(ll, ERROR_SECTION_PREFIX, error_repl))
+                    got.append(str.replace(
+                        ll, ERROR_SECTION_PREFIX, error_repl))
+                if list.__len__(got) > 0:
+                    wt(f"{KEY_EXCEPTION_STACK_TRACE}:")
+                    for ll in got:
+                        wt(ll)
 
 
 def _error_2(logger: Logger, title: str, exception: Exception) -> None:
@@ -116,8 +121,7 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     >>> from moptipy.utils.logger import Logger
     >>> def __do_print(s: str) -> None:
     ...     s = str.strip(s)
-    ...     if (str.__len__(s) > 0) and ("File" not in s) and (
-    ...             "/" not in s) and ("k(" not in s):
+    ...     if "~~^~~" not in s:
     ...         print(s)
     >>> ime = Logger("pl", __do_print)
     >>> def k():
@@ -130,6 +134,11 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     exceptionType: ZeroDivisionError
     exceptionValue: division by zero
     exceptionStackTrace:
+    File "<doctest moptipy.api._process_base._error_2[4]>", line 2, in \
+<module>
+    k()
+    File "<doctest moptipy.api._process_base._error_2[3]>", line 2, in k
+    1 / 0
     END_ERROR
     """
     _error_1(logger, title, exception_type=exception,
