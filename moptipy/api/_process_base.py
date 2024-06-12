@@ -97,11 +97,11 @@ def _error_1(logger: Logger, title: str, exception_type,
                 wt(f"{KEY_EXCEPTION_STACK_TRACE}:")
                 sio = StringIO()
                 print_tb(traceback, file=sio)
-                for line in str.splitlines(str.strip(sio.getvalue())):
+                for line in str.splitlines(sio.getvalue()):
                     ll: str = str.strip(line)
                     if str.__len__(ll) <= 0:
                         continue
-                    wt(ll.replace(ERROR_SECTION_PREFIX, error_repl))
+                    wt(str.replace(ll, ERROR_SECTION_PREFIX, error_repl))
 
 
 def _error_2(logger: Logger, title: str, exception: Exception) -> None:
@@ -115,7 +115,9 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
 
     >>> from moptipy.utils.logger import Logger
     >>> def __do_print(s: str) -> None:
-    ...     if ("File" not in s) and ("/" not in s):
+    ...     s = str.strip(s)
+    ...     if (str.__len__(s) > 0) and ("File" not in s) and (
+    ...             "/" not in s) and ("k(" not in s):
     ...         print(s)
     >>> ime = Logger("pl", __do_print)
     >>> def k():
@@ -128,7 +130,6 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     exceptionType: ZeroDivisionError
     exceptionValue: division by zero
     exceptionStackTrace:
-    k()
     END_ERROR
     """
     _error_1(logger, title, exception_type=exception,
