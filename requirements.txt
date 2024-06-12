@@ -25,7 +25,7 @@
 numpy == 1.26.1
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba == 0.58.1
+numba == 0.59.1
 # numba uses intel-cmplr-lib-rt to generate faster compiled code, see
 # https://numba.readthedocs.io/en/stable/user/performance-tips.html
 intel-cmplr-lib-rt == 2023.2.0
