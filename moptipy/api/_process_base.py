@@ -113,8 +113,11 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
         created
     :param exception: the exception
 
-    >>> from moptipy.utils.logger import PrintLogger
-    >>> ime = PrintLogger()
+    >>> from moptipy.utils.logger import Logger
+    >>> def __do_print(s: str) -> None:
+    ...     if "/" not in s:
+    ...         print(s)
+    >>> ime = Logger("pl", __do_print)
     >>> def k():
     ...     1 / 0
     >>> try:
@@ -129,7 +132,6 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
 <module>
     k()
     File "<doctest moptipy.api._process_base._error_2[2]>", line 2, in k
-    1 / 0
     END_ERROR
     """
     _error_1(logger, title, exception_type=exception,
