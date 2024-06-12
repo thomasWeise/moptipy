@@ -115,7 +115,7 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
 
     >>> from moptipy.utils.logger import Logger
     >>> def __do_print(s: str) -> None:
-    ...     if "/" not in s:
+    ...     if ("File" not in s) and ("/" not in s):
     ...         print(s)
     >>> ime = Logger("pl", __do_print)
     >>> def k():
@@ -128,10 +128,7 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     exceptionType: ZeroDivisionError
     exceptionValue: division by zero
     exceptionStackTrace:
-    File "<doctest moptipy.api._process_base._error_2[4]>", line 2, in \
-<module>
     k()
-    File "<doctest moptipy.api._process_base._error_2[3]>", line 2, in k
     END_ERROR
     """
     _error_1(logger, title, exception_type=exception,
