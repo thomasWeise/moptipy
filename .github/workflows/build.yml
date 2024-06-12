@@ -1,0 +1,97 @@
+name: make build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build_python_3_10:
+    runs-on: ubuntu-latest
+    steps:
+# check out the github repository
+    - uses: actions/checkout@v4.1.6
+# set up python
+    - name: set up python "3.10"
+      uses: actions/setup-python@v5.1.0
+      with:
+        python-version: "3.10"
+# execute the actual make build process
+    - name: execute the make build
+      run: make
+# remove moptipy
+    - name: purge local moptipy installation
+      run: |
+        pip uninstall -y moptipy
+# attempt to install it again from github
+    - name: install moptipy from github
+      run: |
+        pip install git+https://github.com/thomasWeise/moptipy.git
+        python -c "import moptipy"
+
+  build_python_3_11:
+    needs: build_python_3_10
+    runs-on: ubuntu-latest
+    steps:
+# check out the github repository
+    - uses: actions/checkout@v4.1.6
+# set up python
+    - name: set up python "3.11"
+      uses: actions/setup-python@v5.1.0
+      with:
+        python-version: "3.11"
+# clean-up
+    - name: clean up
+      run: |
+        rm -rf /home/runner/work/moptipy/moptipy/docs/build/
+        rm -rf /home/runner/work/moptipy/moptipy/dist
+        rm -rf /home/runner/work/moptipy/moptipy/build
+# execute the actual make build process
+    - name: execute the make build
+      run: make
+# remove moptipy
+    - name: purge local moptipy installation
+      run: |
+        pip uninstall -y moptipy
+# attempt to install it again from github
+    - name: install moptipy from github
+      run: |
+        pip install git+https://github.com/thomasWeise/moptipy.git
+        python -c "import moptipy"
+
+  build_python_3_12:
+    needs: build_python_3_11
+    runs-on: ubuntu-latest
+    steps:
+# check out the github repository
+    - uses: actions/checkout@v4.1.6
+# set up python
+    - name: set up python "3.12"
+      uses: actions/setup-python@v5.1.0
+      with:
+        python-version: "3.12"
+# clean-up
+    - name: clean up
+      run: |
+        rm -rf /home/runner/work/moptipy/moptipy/docs/build/
+        rm -rf /home/runner/work/moptipy/moptipy/dist
+        rm -rf /home/runner/work/moptipy/moptipy/build
+# execute the actual make build process
+    - name: execute the make build
+      run: make
+# remove moptipy
+    - name: purge local moptipy installation
+      run: |
+        pip uninstall -y moptipy
+# attempt to install it again from github
+    - name: install moptipy from github
+      run: |
+        pip install git+https://github.com/thomasWeise/moptipy.git
+        python -c "import moptipy"
+# fix urls in documentation
+    - name: fix documentation urls
+      run: |
+        find /home/runner/work/moptipy/moptipy/docs/build/ \( -type d -name .git -prune \) -o -type f -name "*.html" -print0 | xargs -0 sed -i 's/ href=\"_static\// href=\"\/moptipy\/_static\//g'
+        find /home/runner/work/moptipy/moptipy/docs/build/ \( -type d -name .git -prune \) -o -type f -name "*.html" -print0 | xargs -0 sed -i 's/ src=\"_static\// src=\"\/moptipy\/_static\//g'
+        touch /home/runner/work/moptipy/moptipy/docs/build/.nojekyll

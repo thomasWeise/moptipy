@@ -1,0 +1,43 @@
+name: make build
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  pypi-publish:
+    name: upload release to PyPI
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+# check out the github repository
+    - uses: actions/checkout@v4.1.6
+# set up python
+    - name: set up python "3.12"
+      uses: actions/setup-python@v5.1.0
+      with:
+        python-version: "3.12"
+# clean-up
+    - name: clean up
+      run: |
+        rm -rf /home/runner/work/moptipy/moptipy/docs/build/
+        rm -rf /home/runner/work/moptipy/moptipy/dist
+        rm -rf /home/runner/work/moptipy/moptipy/build
+# execute the actual make build process
+    - name: execute the make build
+      run: |
+        make
+        rm -rf /home/runner/work/moptipy/moptipy/dist/*.txt
+        rm -rf /home/runner/work/moptipy/moptipy/dist/*.tar.xz
+# deploy to github pages
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+# deploy to github pages
+    - name: deploy documentation
+      uses: JamesIves/github-pages-deploy-action@65b5dfd4f5bcd3a7403bbc2959c144256167464e
+      with:
+        branch: gh-pages
+        folder: /home/runner/work/moptipy/moptipy/docs/build/
+        single-commit: true
