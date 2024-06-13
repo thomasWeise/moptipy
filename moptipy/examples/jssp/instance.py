@@ -481,7 +481,7 @@ Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
         inst_attr: Final[str] = f"__inst_{name}"
         if hasattr(container, inst_attr):
             return cast(Instance, getattr(container, inst_attr))
-        with resources.files(package=str(__package__)).joinpath(
+        with resources.files(str(__package__)).joinpath(
                 "demo.txt" if (name == "demo")
                 else "instances.txt").open("r", encoding=UTF8) as stream:
             inst: Final[Instance] = Instance.from_stream(
