@@ -89,9 +89,3 @@ jobs:
       run: |
         pip install git+https://github.com/thomasWeise/moptipy.git
         python -c "import moptipy"
-# fix urls in documentation
-    - name: fix documentation urls
-      run: |
-        find /home/runner/work/moptipy/moptipy/docs/build/ \( -type d -name .git -prune \) -o -type f -name "*.html" -print0 | xargs -0 sed -i 's/ href=\"_static\// href=\"\/moptipy\/_static\//g'
-        find /home/runner/work/moptipy/moptipy/docs/build/ \( -type d -name .git -prune \) -o -type f -name "*.html" -print0 | xargs -0 sed -i 's/ src=\"_static\// src=\"\/moptipy\/_static\//g'
-        touch /home/runner/work/moptipy/moptipy/docs/build/.nojekyll

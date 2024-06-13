@@ -31,7 +31,13 @@ jobs:
         make
         rm -rf /home/runner/work/moptipy/moptipy/dist/*.txt
         rm -rf /home/runner/work/moptipy/moptipy/dist/*.tar.xz
-# deploy to github pages
+# fix urls in documentation
+    - name: fix documentation urls
+      run: |
+        find /home/runner/work/moptipy/moptipy/docs/build/ \( -type d -name .git -prune \) -o -type f -name "*.html" -print0 | xargs -0 sed -i 's/ href=\"_static\// href=\"\/moptipy\/_static\//g'
+        find /home/runner/work/moptipy/moptipy/docs/build/ \( -type d -name .git -prune \) -o -type f -name "*.html" -print0 | xargs -0 sed -i 's/ src=\"_static\// src=\"\/moptipy\/_static\//g'
+        touch /home/runner/work/moptipy/moptipy/docs/build/.nojekyll
+# deploy to pypi
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
 # deploy to github pages
