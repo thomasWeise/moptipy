@@ -41,6 +41,7 @@ from time import sleep
 from webbrowser import open_new_tab
 
 from pycommons.io.temp import temp_dir
+from pycommons.processes.caller import is_build
 
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
@@ -55,7 +56,6 @@ from moptipy.operators.bitstrings.op0_random import Op0Random
 from moptipy.operators.bitstrings.op1_m_over_n_flip import Op1MoverNflip
 from moptipy.spaces.bitstrings import BitStrings
 from moptipy.utils.plot_utils import create_figure, save_figure
-from moptipy.utils.sys_info import is_make_build
 
 # We try to solve two LeadingOnes instances.
 problems = [lambda: LeadingOnes(16), lambda: LeadingOnes(24)]
@@ -120,7 +120,7 @@ with temp_dir() as td:  # create temporary directory `td`
 
     # OK, we have now generated and saved the plot in a file.
     # We will open it in the web browser if we are not in a make build.
-    if not is_make_build():
+    if not is_build():
         for file in files:  # for each file we generated
             open_new_tab(f"file://{file}")  # open a browser tab
         sleep(10)  # sleep 10 seconds (enough time for the browser to load)

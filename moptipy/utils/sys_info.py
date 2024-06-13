@@ -7,11 +7,12 @@ import re
 import socket
 import sys
 from datetime import datetime, timezone
-from typing import Final, Iterable, cast
+from typing import Final, Iterable
 
 import psutil  # type: ignore
 from pycommons.io.csv import CSV_SEPARATOR, SCOPE_SEPARATOR
 from pycommons.io.path import Path
+from pycommons.processes.caller import is_build
 from pycommons.types import type_error
 
 import moptipy.version as ver
@@ -52,42 +53,6 @@ __DEPENDENCIES: set[str] | None = {
     "six", "threadpoolctl"}
 
 
-def is_make_build() -> bool:
-    """
-    Check if the program was run inside a `make` build.
-
-    :returns: `True` if this process is executed as part of a `make` build
-        process, `False` otherwise.
-
-    >>> isinstance(is_make_build(), bool)
-    True
-    >>> ns = lambda prc: False if prc is None else (  # noqa: E731
-    ...     "make" in prc.name() or ns(prc.parent()))
-    >>> is_make_build() == ns(psutil.Process(os.getppid()))
-    True
-    """
-    obj: Final[object] = is_make_build
-    key: Final[str] = "_value"
-    if hasattr(obj, key):
-        return cast(bool, getattr(obj, key))
-
-    ret: bool = False
-    with contextlib.suppress(Exception):
-        process: psutil.Process = psutil.Process(os.getppid())
-        while process is not None:
-            name = process.cmdline()[0]
-            if not isinstance(name, str):
-                break
-            name = os.path.basename(name)
-            if (name == "make") or (name.startswith("make.")):
-                ret = True
-                break
-            process = process.parent()
-
-    setattr(obj, key, ret)
-    return ret
-
-
 def add_dependency(dependency: str,
                    ignore_if_make_build: bool = False) -> None:
     """
@@ -122,7 +87,7 @@ def add_dependency(dependency: str,
     if __DEPENDENCIES is None:
         raise ValueError(
             f"Too late. Cannot add dependency {dependency!r} anymore.")
-    if ignore_if_make_build and is_make_build():
+    if ignore_if_make_build and is_build():
         return
     __DEPENDENCIES.add(dependency)
 

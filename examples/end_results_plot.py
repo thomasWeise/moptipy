@@ -28,6 +28,7 @@ from time import sleep
 from webbrowser import open_new_tab
 
 from pycommons.io.temp import temp_dir
+from pycommons.processes.caller import is_build
 
 from moptipy.algorithms.so.hill_climber import HillClimber
 from moptipy.algorithms.so.rls import RLS
@@ -43,7 +44,6 @@ from moptipy.operators.permutations.op0_shuffle import Op0Shuffle
 from moptipy.operators.permutations.op1_swap2 import Op1Swap2
 from moptipy.spaces.permutations import Permutations
 from moptipy.utils.plot_utils import create_figure, save_figure
-from moptipy.utils.sys_info import is_make_build
 
 # The three JSSP instances we want to try to solve:
 problems = [lambda: Instance.from_resource("ft06"),
@@ -150,7 +150,7 @@ with temp_dir() as td:  # create temporary directory `td`
 
     # OK, we have now plotted a set of different end results plots.
     # We will open them in the web browser if we are not in a make build.
-    if not is_make_build():
+    if not is_build():
         for file in files:  # for each file we generated
             open_new_tab(f"file://{file}")  # open a browser tab
         sleep(10)  # sleep 10 seconds (enough time for the browser to load)

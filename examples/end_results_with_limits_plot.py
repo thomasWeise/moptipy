@@ -19,6 +19,7 @@ from time import sleep
 from webbrowser import open_new_tab
 
 from pycommons.io.temp import temp_dir
+from pycommons.processes.caller import is_build
 
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.execution import Execution
@@ -35,7 +36,6 @@ from moptipy.utils.plot_utils import (
     label_box,
     save_figure,
 )
-from moptipy.utils.sys_info import is_make_build
 
 # The three OneMax instances we want to try to solve:
 problems = [lambda: OneMax(10), lambda: OneMax(20), lambda: OneMax(30)]
@@ -103,7 +103,7 @@ with temp_dir() as td:  # create temporary directory `td`
 
 # OK, we have now plotted a set of different end results plots at different
 # times. We will open them in the web browser if we are not in a make build.
-    if not is_make_build():
+    if not is_build():
         for file in files:  # for each file we generated
             open_new_tab(f"file://{file}")  # open a browser tab
         sleep(10)  # sleep 10 seconds (enough time for the browser to load)
