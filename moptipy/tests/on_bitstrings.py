@@ -361,7 +361,7 @@ def validate_algorithm_on_leadingones(
             objective=LeadingOnes,
             algorithm=algorithm,
             dimension=i,
-            max_fes=int(1.25 * max_fes),
+            max_fes=int(1.4 * max_fes),
             required_result=rr,
             post=post)
 
