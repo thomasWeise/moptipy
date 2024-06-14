@@ -472,7 +472,8 @@ def from_logs(
         max_time_millis: int | None | Callable[
             [str, str], int | None] = None,
         goal_f: int | float | None | Callable[
-            [str, str], int | float | None] = None) -> None:
+            [str, str], int | float | None] = None,
+        path_filter: Callable[[Path], bool] | None = None) -> None:
     """
     Parse a given path and pass all end results found to the consumer.
 
@@ -523,6 +524,9 @@ def from_logs(
     :param goal_f: the goal objective value, a callable to compute the
         goal objective value from the algorithm and instance name, or
         `None` if unspecified
+    :param path_filter: a filter allowing us to skip paths or files. If
+        this :class:`Callable` returns `True`, the file or directory is
+        considered for parsing. If it returns `False`, it is skipped.
     """
     need_goals: bool = False
     if max_fes is not None:
@@ -549,9 +553,10 @@ def from_logs(
                 raise ValueError(f"goal_f={goal_f} is not permissible.")
     if need_goals:
         __InnerProgressLogParser(
-            max_fes, max_time_millis, goal_f, consumer).parse(path)
+            max_fes, max_time_millis, goal_f, consumer,
+            path_filter).parse(path)
     else:
-        __InnerLogParser(consumer).parse(path)
+        __InnerLogParser(consumer, path_filter).parse(path)
 
 
 def to_csv(results: Iterable[EndResult], file: str) -> Path:
@@ -865,13 +870,15 @@ class CsvReader:
 class __InnerLogParser(SetupAndStateParser):
     """The internal log parser class."""
 
-    def __init__(self, consumer: Callable[[EndResult], Any]):
+    def __init__(self, consumer: Callable[[EndResult], Any],
+                 path_filter: Callable[[Path], bool] | None = None):
         """
         Create the internal log parser.
 
         :param consumer: the consumer accepting the parsed data
+        :param path_filter: the path filter
         """
-        super().__init__()
+        super().__init__(path_filter)
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[[EndResult], Any]] = consumer
@@ -909,7 +916,8 @@ class __InnerProgressLogParser(SetupAndStateParser):
             max_time_millis: int | None | Callable[[str, str], int | None],
             goal_f: int | float | None | Callable[
                 [str, str], int | float | None],
-            consumer: Callable[[EndResult], Any]):
+            consumer: Callable[[EndResult], Any],
+            path_filter: Callable[[Path], bool] | None = None):
         """
         Create the internal log parser.
 
@@ -918,8 +926,9 @@ class __InnerProgressLogParser(SetupAndStateParser):
         :param max_time_millis: the maximum runtime in milliseconds, or
             `None` if unspecified
         :param goal_f: the goal objective value, or `None` if unspecified
+        :param path_filter: the path filter
         """
-        super().__init__()
+        super().__init__(path_filter=path_filter)
         if not callable(consumer):
             raise type_error(consumer, "consumer", call=True)
         self.__consumer: Final[Callable[[EndResult], Any]] = consumer

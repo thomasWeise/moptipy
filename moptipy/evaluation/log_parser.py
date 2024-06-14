@@ -22,13 +22,13 @@ over time.
 """
 
 from math import inf, isfinite, isinf
-from typing import Final
+from typing import Callable, Final
 
 from pycommons.io.console import logger
 from pycommons.io.csv import COMMENT_START, SCOPE_SEPARATOR
 from pycommons.io.path import Path, directory_path, file_path
 from pycommons.strings.string_conv import str_to_num
-from pycommons.types import check_to_int_range
+from pycommons.types import check_to_int_range, type_error
 
 from moptipy.api.logging import (
     ERROR_SECTION_PREFIX,
@@ -84,6 +84,15 @@ _FULL_KEY_ENCODING: Final[str] = \
     f"{SCOPE_ENCODING}{SCOPE_SEPARATOR}{KEY_NAME}"
 
 
+def _true(_) -> bool:
+    """
+    Get `True` as return value, always.
+
+    :retval `True`: always
+    """
+    return True
+
+
 class LogParser:
     """
     A log parser can parse a log file and separate the sections.
@@ -98,7 +107,8 @@ class LogParser:
                  print_file_start: bool = False,
                  print_file_end: bool = False,
                  print_dir_start: bool = True,
-                 print_dir_end: bool = True):
+                 print_dir_end: bool = True,
+                 path_filter: Callable[[Path], bool] | None = None):
         """
         Initialize the log parser.
 
@@ -108,16 +118,39 @@ class LogParser:
         :param print_file_end: log to stdout when closing a file
         :param print_dir_start: log to stdout when entering a directory
         :param print_dir_end: log to stdout when leaving a directory
+        :param path_filter: a filter allowing us to skip paths or files. If
+            this :class:`Callable` returns `True`, the file or directory is
+            considered for parsing. If it returns `False`, it is skipped.
         """
+        if not isinstance(print_begin_end, bool):
+            raise type_error(print_begin_end, "print_begin_end", bool)
+        if not isinstance(print_file_start, bool):
+            raise type_error(print_file_start, "print_file_start", bool)
+        if not isinstance(print_file_end, bool):
+            raise type_error(print_file_end, "print_file_end", bool)
+        if not isinstance(print_dir_start, bool):
+            raise type_error(print_dir_start, "print_dir_start", bool)
+        if not isinstance(print_dir_end, bool):
+            raise type_error(print_dir_end, "print_dir_end", bool)
+        if path_filter is None:
+            path_filter = _true
+        elif not callable(path_filter):
+            raise type_error(path_filter, "path_filter", call=True)
+        #: print the overall begin and end
         self.__print_begin_end: Final[bool] = print_begin_end
+        #: print when beginning a file
         self.__print_file_start: Final[bool] = print_file_start
+        #: print after finishing a file
         self.__print_file_end: Final[bool] = print_file_end
+        #: print when starting a directory
         self.__print_dir_start: Final[bool] = print_dir_start
+        #: print when leaving a directory
         self.__print_dir_end: Final[bool] = print_dir_end
+        #: the current depth in terms of directories
         self.__depth: int = 0
+        #: the path filter
+        self.__path_filter: Final[Callable[[Path], bool]] = path_filter
 
-    # noinspection PyUnusedLocal
-    # noinspection PyMethodMayBeStatic
     def start_dir(self, path: Path) -> bool:
         """
         Enter a directory to parse all files inside.
@@ -142,8 +175,7 @@ class LogParser:
             be skipped and parsing should continue with the next sibling
             directory
         """
-        del path
-        return True
+        return self.__path_filter(path)
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
@@ -167,8 +199,6 @@ class LogParser:
         del path
         return True
 
-    # noinspection PyUnusedLocal
-    # noinspection PyMethodMayBeStatic
     def start_file(self, path: Path) -> bool:
         """
         Decide whether to start parsing a file.
@@ -186,7 +216,7 @@ class LogParser:
             :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
             return `True`).
         """
-        return path.endswith(FILE_SUFFIX)
+        return path.endswith(FILE_SUFFIX) and self.__path_filter(path)
 
     # noinspection PyMethodMayBeStatic
     def start_section(self, title: str) -> bool:
@@ -475,9 +505,16 @@ class LogParser:
 class ExperimentParser(LogParser):
     """A log parser following our pre-defined experiment structure."""
 
-    def __init__(self):
-        """Initialize the experiment parser."""
-        super().__init__(print_begin_end=True, print_dir_start=True)
+    def __init__(self, path_filter: Callable[[Path], bool] | None = None):
+        """
+        Initialize the experiment parser.
+
+        :param path_filter: a filter allowing us to skip paths or files. If
+            this :class:`Callable` returns `True`, the file or directory is
+            considered for parsing. If it returns `False`, it is skipped.
+        """
+        super().__init__(print_begin_end=True, print_dir_start=True,
+                         path_filter=path_filter)
 
         #: The name of the algorithm to which the current log file belongs.
         self.algorithm: str | None = None
@@ -535,9 +572,15 @@ class SetupAndStateParser(ExperimentParser):
     stores the performance-related information in member variables.
     """
 
-    def __init__(self):
-        """Create the basic data parser."""
-        super().__init__()
+    def __init__(self, path_filter: Callable[[Path], bool] | None = None):
+        """
+        Create the basic data parser.
+
+        :param path_filter: a filter allowing us to skip paths or files. If
+            this :class:`Callable` returns `True`, the file or directory is
+            considered for parsing. If it returns `False`, it is skipped.
+        """
+        super().__init__(path_filter=path_filter)
         #: the total consumed runtime, in objective function evaluations
         self.total_fes: int | None = None
         #: the total consumed runtime in milliseconds
