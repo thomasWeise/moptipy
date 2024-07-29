@@ -142,9 +142,7 @@ class Styler:
         c2 = other.count
         if other.has_none:
             c2 -= 1
-        if c1 > c2:
-            return True
-        return False
+        return c1 > c2
 
     def set_line_color(self, line_color_func: Callable) -> None:
         """

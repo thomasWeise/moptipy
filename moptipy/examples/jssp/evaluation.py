@@ -325,9 +325,7 @@ def get_end_results(
                  else algos) -> bool:
         if (ins is not None) and (not ins(er.instance)):
             return False
-        if (alg is not None) and (not alg(er.algorithm)):
-            return False
-        return True
+        return not ((alg is not None) and (not alg(er.algorithm)))
 
     col: Final[list[EndResult]] = []
     end_results_from_csv(file=file, consumer=col.append, filterer=__filter)
