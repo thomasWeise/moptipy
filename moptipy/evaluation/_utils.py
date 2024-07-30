@@ -32,7 +32,7 @@ def _check_max_time_millis(max_time_millis: int | float,
     """
     if total_fes == 1:
         return
-    div: Final[float] = (total_fes - 2) if total_fes > 1 else 1
+    div: Final[float] = (total_fes - 2) if total_fes > 2 else 1
     permitted_limit: Final[float] = \
         60_000 + ((1 + (1.1 * (max_time_millis / div))) * total_fes)
     if total_time_millis > permitted_limit:
