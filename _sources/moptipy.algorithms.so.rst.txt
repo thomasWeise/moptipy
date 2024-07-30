@@ -1,0 +1,131 @@
+moptipy.algorithms.so package
+=============================
+
+.. automodule:: moptipy.algorithms.so
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.algorithms.so.fitnesses
+   moptipy.algorithms.so.vector
+
+Submodules
+----------
+
+moptipy.algorithms.so.ea module
+-------------------------------
+
+.. automodule:: moptipy.algorithms.so.ea
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.fea1plus1 module
+--------------------------------------
+
+.. automodule:: moptipy.algorithms.so.fea1plus1
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.fitness module
+------------------------------------
+
+.. automodule:: moptipy.algorithms.so.fitness
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.general\_ea module
+----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.general_ea
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.general\_ma module
+----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.general_ma
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.greedy\_2plus1\_ea\_mod module
+----------------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.greedy_2plus1_ea_mod
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.hill\_climber module
+------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.hill_climber
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.hill\_climber\_with\_restarts module
+----------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.hill_climber_with_restarts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.ma module
+-------------------------------
+
+.. automodule:: moptipy.algorithms.so.ma
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.marls module
+----------------------------------
+
+.. automodule:: moptipy.algorithms.so.marls
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.ppa module
+--------------------------------
+
+.. automodule:: moptipy.algorithms.so.ppa
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.record module
+-----------------------------------
+
+.. automodule:: moptipy.algorithms.so.record
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.rls module
+--------------------------------
+
+.. automodule:: moptipy.algorithms.so.rls
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.so.simulated\_annealing module
+-------------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.simulated_annealing
+   :members:
+   :undoc-members:
+   :show-inheritance:

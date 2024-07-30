@@ -1,0 +1,512 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.frequency — moptipy 0.9.113 documentation</title><link href="../../../_static/pygments.css?v=80d5e7a1"rel=stylesheet><link href="../../../_static/bizstyle.css?v=658d757c"rel=stylesheet><script src="../../../_static/documentation_options.js?v=882f3b35"></script><script src="../../../_static/doctools.js?v=9a2dae69"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/frequency.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.113 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.frequency</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.frequency</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Load the encounter frequencies or the set of different objective values.</span>
+
+<span class=sd>This tool can load the different objective values that exist or are</span>
+<span class=sd>encountered by optimization processes. This may be useful for statistical</span>
+<span class=sd>evaluations or fitness landscape analyses.</span>
+
+<span class=sd>This tool is based on code developed by Mr. Tianyu LIANG (梁天宇),</span>
+<span class=sd>MSc student at the Institute of Applied Optimization (IAO,</span>
+<span class=sd>应用优化研究所) of the School of Artificial Intelligence and</span>
+<span class=sd>Big Data (人工智能与大数据学院) of Hefei University (合肥学院).</span>
+<span class=sd>"""</span>
+<span class=kn>import</span> <span class=nn>argparse</span>
+<span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span> <span class=nn>gc</span> <span class=kn>import</span> <span class=n>collect</span>
+<span class=kn>from</span> <span class=nn>math</span> <span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span> <span class=nn>pycommons.io.console</span> <span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span> <span class=nn>pycommons.io.csv</span> <span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>SCOPE_SEPARATOR</span>
+<span class=kn>from</span> <span class=nn>pycommons.io.path</span> <span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span> <span class=nn>pycommons.strings.string_conv</span> <span class=kn>import</span> <span class=n>str_to_num</span>
+<span class=kn>from</span> <span class=nn>pycommons.types</span> <span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span> <span class=nn>moptipy.algorithms.so.fea1plus1</span> <span class=kn>import</span> <span class=n>H_LOG_SECTION</span>
+<span class=kn>from</span> <span class=nn>moptipy.api.logging</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_F_LOWER_BOUND</span><span class=p>,</span>
+    <span class=n>KEY_F_UPPER_BOUND</span><span class=p>,</span>
+    <span class=n>KEY_INSTANCE</span><span class=p>,</span>
+    <span class=n>PROGRESS_CURRENT_F</span><span class=p>,</span>
+    <span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=p>,</span>
+    <span class=n>SECTION_PROGRESS</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span> <span class=nn>moptipy.evaluation.base</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>MultiRunData</span><span class=p>,</span>
+    <span class=n>PerRunData</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span> <span class=nn>moptipy.evaluation.log_parser</span> <span class=kn>import</span> <span class=n>SetupAndStateParser</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.help</span> <span class=kn>import</span> <span class=n>moptipy_argparser</span>
+
+<span class=c1>#: the lower bound of the objective function</span>
+<span class=n>_FULL_KEY_LOWER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_F_LOWER_BOUND</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the upper bound of the objective function</span>
+<span class=n>_FULL_KEY_UPPER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_F_UPPER_BOUND</span><span class=si>}</span><span class=s2>"</span>
+
+
+<div class=viewcode-block id=from_logs>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.frequency.from_logs>[docs]</a>
+<span class=k>def</span> <span class=nf>from_logs</span><span class=p>(</span>
+        <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>PerRunData</span><span class=p>,</span> <span class=n>Counter</span><span class=p>[</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span> <span class=n>Any</span><span class=p>],</span>
+        <span class=n>report_progress</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>report_lower_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_upper_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_h</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>per_instance_known</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>str</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=p>())</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a path, pass all discovered objective values per-run to a consumer.</span>
+
+<span class=sd>    This function parses the log files in a directory recursively. For each</span>
+<span class=sd>    log file, it produces a `Counter` filled with all encountered objective</span>
+<span class=sd>    values and their "pseudo" encounter frequencies. "pseudo" because the</span>
+<span class=sd>    values returned depend very much on how the function is configured.</span>
+
+<span class=sd>    First, if all other parameters are set to `False`, the function passes</span>
+<span class=sd>    a `Counter` to the `consumer` where the best encountered objective value</span>
+<span class=sd>    has frequency `1` and no other data is present.</span>
+<span class=sd>    If `report_progress` is `True`, then each time any objective value is</span>
+<span class=sd>    encountered in the `PROGRESS` section, its counter is incremented by `1`.</span>
+<span class=sd>    If the `PROGRESS` section is present, that it. The best encountered</span>
+<span class=sd>    objective value will have a count of at least one either way.</span>
+<span class=sd>    If `report_goal_f`, `report_lower_bound`, or `report_upper_bound` are</span>
+<span class=sd>    `True`, then it is ensured that the goal objective value of the</span>
+<span class=sd>    optimization process, the lower bound of the objective function, or</span>
+<span class=sd>    the upper bound of the objective function will have a corresponding count</span>
+<span class=sd>    of at least `1` if they are present in the log files (in the `SETUP`</span>
+<span class=sd>    section).</span>
+<span class=sd>    If `report_h` is `True`, then a frequency fitness assignment `H` section</span>
+<span class=sd>    is parsed, if present (see :mod:`~moptipy.algorithms.so.fea1plus1`). Such</span>
+<span class=sd>    a section contains tuples of objective values and encounter frequencies.</span>
+<span class=sd>    These encounter frequencies are added to the counter. This means that if</span>
+<span class=sd>    you set *both* `report_progress` and `report_h` to `True`, you will get</span>
+<span class=sd>    frequencies that are too high.</span>
+<span class=sd>    Finally, the function `per_instance_known` may return a set of known</span>
+<span class=sd>    objective values for a given instance (based on its parameter, the</span>
+<span class=sd>    instance name). Each such objective value will have a frequency of at</span>
+<span class=sd>    least `1`.</span>
+
+<span class=sd>    Generally, if we want the actual encounter frequencies of objective</span>
+<span class=sd>    values, we could log *all FEs* to the log files and set `report_progress`</span>
+<span class=sd>    to `True` and everything else to `False`. Then we get correct encounter</span>
+<span class=sd>    frequencies. Alternatively, if we have a purly FFA-based algorithm (see,</span>
+<span class=sd>    again, :mod:`~moptipy.algorithms.so.fea1plus1`), then we can set</span>
+<span class=sd>    `report_progress` to `True` and everything else to `False` to get a</span>
+<span class=sd>    similar result, but the encounter frequencies then depend on the selection</span>
+<span class=sd>    scheme. Alternatively, if we only care about whether an objective value</span>
+<span class=sd>    was encountered or not, we can simply set both to `True`. Finally, if we</span>
+<span class=sd>    want to get all *possible* objective values, then we may also set</span>
+<span class=sd>    `report_goal_f`, `report_lower_bound`, or `report_upper_bound` to `True`</span>
+<span class=sd>    **if** we are sure that the corresponding objective values do actually</span>
+<span class=sd>    exist (and are not just bounds that can never be reached).</span>
+
+<span class=sd>    :param path: the path to parse</span>
+<span class=sd>    :param consumer: the consumer receiving, for each log file, an instance of</span>
+<span class=sd>        :class:`~moptipy.evaluation.base.PerRunData` identifying the run and</span>
+<span class=sd>        a dictionary with the objective values and lower bounds of their</span>
+<span class=sd>        existence or encounter frequency. Warning: The dictionary will be</span>
+<span class=sd>        cleared and re-used for all files.</span>
+<span class=sd>    :param report_progress: should all values in the `PROGRESS` section be</span>
+<span class=sd>        reported, if such section exists?</span>
+<span class=sd>    :param report_lower_bound: should the lower bound reported, if any lower</span>
+<span class=sd>        bound for the objective function is listed?</span>
+<span class=sd>    :param report_upper_bound: should the upper bound reported, if any upper</span>
+<span class=sd>        bound for the objective function is listed?</span>
+<span class=sd>    :param report_h: should all values in the `H` section be reported, if such</span>
+<span class=sd>        section exists?</span>
+<span class=sd>    :param report_goal_f: should we report the goal objective value, if it is</span>
+<span class=sd>        specified?</span>
+<span class=sd>    :param per_instance_known: a function that returns a set of known</span>
+<span class=sd>        objective values per instance</span>
+<span class=sd>    """</span>
+    <span class=n>__InnerLogParser</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=n>report_progress</span><span class=p>,</span> <span class=n>report_lower_bound</span><span class=p>,</span>
+                     <span class=n>report_upper_bound</span><span class=p>,</span> <span class=n>report_h</span><span class=p>,</span> <span class=n>report_goal_f</span><span class=p>,</span>
+                     <span class=n>per_instance_known</span><span class=p>)</span><span class=o>.</span><span class=n>parse</span><span class=p>(</span><span class=n>path</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=aggregate_from_logs>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.frequency.aggregate_from_logs>[docs]</a>
+<span class=k>def</span> <span class=nf>aggregate_from_logs</span><span class=p>(</span>
+        <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>MultiRunData</span><span class=p>,</span> <span class=n>Counter</span><span class=p>[</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span> <span class=n>Any</span><span class=p>],</span>
+        <span class=n>per_instance</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>per_algorithm_instance</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>report_progress</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>report_lower_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_upper_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_h</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>per_instance_known</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>str</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=p>())</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a path, aggregate all discovered objective values to a consumer.</span>
+
+<span class=sd>    A version of :func:`from_logs` that aggregates results on a per-instance</span>
+<span class=sd>    and/or per-algorithm-instance combination. The basic process of loading</span>
+<span class=sd>    the data is described in :func:`from_logs`.</span>
+
+<span class=sd>    :param path: the path to parse</span>
+<span class=sd>    :param consumer: the consumer receiving the aggregated results</span>
+<span class=sd>    :param per_instance: pass results to the consumer that are aggregated over</span>
+<span class=sd>        all algorithms and setups and runs for a given instance</span>
+<span class=sd>    :param per_algorithm_instance: pass results to the consumer that are</span>
+<span class=sd>        aggregated over all runs and setups for a given algorithm-instance</span>
+<span class=sd>        combination</span>
+<span class=sd>    :param report_progress: see :func:`from_logs`</span>
+<span class=sd>    :param report_lower_bound: see :func:`from_logs`</span>
+<span class=sd>    :param report_upper_bound: see :func:`from_logs`</span>
+<span class=sd>    :param report_h: see :func:`from_logs`</span>
+<span class=sd>    :param report_goal_f: see :func:`from_logs`</span>
+<span class=sd>    :param per_instance_known: see :func:`from_logs`</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>consumer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=s2>"consumer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>per_instance</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>per_instance</span><span class=p>,</span> <span class=s2>"per_instance"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>per_algorithm_instance</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+            <span class=n>per_algorithm_instance</span><span class=p>,</span> <span class=s2>"per_algorithm_instance"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+
+    <span class=n>collection</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=n>runs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>
+
+    <span class=k>def</span> <span class=nf>__consume</span><span class=p>(</span><span class=n>d</span><span class=p>:</span> <span class=n>PerRunData</span><span class=p>,</span> <span class=n>c</span><span class=p>:</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>nonlocal</span> <span class=n>collection</span>
+        <span class=k>nonlocal</span> <span class=n>runs</span>
+        <span class=k>nonlocal</span> <span class=n>per_instance</span>
+        <span class=k>nonlocal</span> <span class=n>per_algorithm_instance</span>
+
+        <span class=n>inst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>d</span><span class=o>.</span><span class=n>instance</span>
+        <span class=n>ai</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>per_instance</span><span class=p>:</span>
+            <span class=n>ai</span> <span class=o>=</span> <span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=s2>""</span><span class=p>)</span>
+            <span class=n>runs</span><span class=p>[</span><span class=n>ai</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>ai</span> <span class=ow>in</span> <span class=n>collection</span><span class=p>:</span>
+                <span class=n>collection</span><span class=p>[</span><span class=n>ai</span><span class=p>]</span> <span class=o>+=</span> <span class=n>c</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>collection</span><span class=p>[</span><span class=n>ai</span><span class=p>]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>(</span><span class=n>c</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>per_algorithm_instance</span><span class=p>:</span>
+            <span class=n>ai</span> <span class=o>=</span> <span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>d</span><span class=o>.</span><span class=n>algorithm</span><span class=p>)</span>
+            <span class=n>runs</span><span class=p>[</span><span class=n>ai</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>ai</span> <span class=ow>in</span> <span class=n>collection</span><span class=p>:</span>
+                <span class=n>collection</span><span class=p>[</span><span class=n>ai</span><span class=p>]</span> <span class=o>+=</span> <span class=n>c</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>collection</span><span class=p>[</span><span class=n>ai</span><span class=p>]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>(</span><span class=n>c</span><span class=p>)</span>
+
+    <span class=n>from_logs</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=n>__consume</span><span class=p>,</span> <span class=n>report_progress</span><span class=p>,</span> <span class=n>report_lower_bound</span><span class=p>,</span>
+              <span class=n>report_upper_bound</span><span class=p>,</span> <span class=n>report_goal_f</span><span class=p>,</span> <span class=n>report_h</span><span class=p>,</span> <span class=n>per_instance_known</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>collection</span><span class=o>.</span><span class=n>keys</span><span class=p>()):</span>
+        <span class=n>val</span> <span class=o>=</span> <span class=n>collection</span><span class=p>[</span><span class=n>key</span><span class=p>]</span>
+        <span class=k>del</span> <span class=n>collection</span><span class=p>[</span><span class=n>key</span><span class=p>]</span>
+        <span class=n>consumer</span><span class=p>(</span><span class=n>MultiRunData</span><span class=p>(</span><span class=n>key</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=k>if</span> <span class=n>key</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=k>else</span> <span class=kc>None</span><span class=p>,</span>
+                              <span class=n>key</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>runs</span><span class=p>[</span><span class=n>key</span><span class=p>]),</span> <span class=n>val</span><span class=p>)</span>
+        <span class=k>del</span> <span class=n>val</span></div>
+
+
+
+<div class=viewcode-block id=number_of_objective_values_to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.frequency.number_of_objective_values_to_csv>[docs]</a>
+<span class=k>def</span> <span class=nf>number_of_objective_values_to_csv</span><span class=p>(</span>
+        <span class=n>input_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>output_file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+        <span class=n>per_instance</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>per_algorithm_instance</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>report_lower_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_upper_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>report_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>per_instance_known</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>str</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=p>())</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Print the number of unique objective values to a CSV file.</span>
+
+<span class=sd>    A version of :func:`aggregate_from_logs` that collects the existing</span>
+<span class=sd>    objective values and prints an overview to a file.</span>
+
+<span class=sd>    :param input_dir: the path to parse</span>
+<span class=sd>    :param output_file: the output file to generate</span>
+<span class=sd>    :param per_instance: pass results to the consumer that are aggregated over</span>
+<span class=sd>        all algorithms and setups and runs for a given instance</span>
+<span class=sd>    :param per_algorithm_instance: pass results to the consumer that are</span>
+<span class=sd>        aggregated over all runs and setups for a given algorithm-instance</span>
+<span class=sd>        combination</span>
+<span class=sd>    :param report_lower_bound: see :func:`from_logs`</span>
+<span class=sd>    :param report_upper_bound: see :func:`from_logs`</span>
+<span class=sd>    :param report_goal_f: see :func:`from_logs`</span>
+<span class=sd>    :param per_instance_known: see :func:`from_logs`</span>
+<span class=sd>    """</span>
+    <span class=n>input_path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>input_dir</span><span class=p>)</span>
+    <span class=n>output_path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>output_file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Collecting number of objective values from </span><span class=si>{</span><span class=n>input_path</span><span class=si>!r}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"in </span><span class=si>{</span><span class=n>output_path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Lower bounds will</span><span class=si>{</span><span class=s1>''</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=n>report_lower_bound</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>' not'</span><span class=si>}</span><span class=s2> be "</span>
+           <span class=s2>"treated as existing objective values."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Upper bounds will</span><span class=si>{</span><span class=s1>''</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=n>report_upper_bound</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>' not'</span><span class=si>}</span><span class=s2> be "</span>
+           <span class=s2>"treated as existing objective values."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=s2>"Goal objective values bounds will"</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=s1>''</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=n>report_upper_bound</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>' not'</span><span class=si>}</span><span class=s2> be treated as existing "</span>
+           <span class=s2>"objective values."</span><span class=p>)</span>
+    <span class=n>output_path</span><span class=o>.</span><span class=n>ensure_parent_dir_exists</span><span class=p>()</span>
+    <span class=n>data</span><span class=p>:</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>algorithms</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+
+    <span class=k>def</span> <span class=nf>__collector</span><span class=p>(</span><span class=n>d</span><span class=p>:</span> <span class=n>MultiRunData</span><span class=p>,</span> <span class=n>c</span><span class=p>:</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>nonlocal</span> <span class=n>data</span>
+        <span class=k>nonlocal</span> <span class=n>instances</span>
+        <span class=k>nonlocal</span> <span class=n>algorithms</span>
+        <span class=n>inst</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+        <span class=k>if</span> <span class=n>d</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>inst</span> <span class=o>=</span> <span class=n>d</span><span class=o>.</span><span class=n>instance</span>
+            <span class=n>instances</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+        <span class=n>algo</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+        <span class=k>if</span> <span class=n>d</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>algo</span> <span class=o>=</span> <span class=n>d</span><span class=o>.</span><span class=n>algorithm</span>
+            <span class=n>algorithms</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>algo</span><span class=p>)</span>
+        <span class=n>data</span><span class=p>[(</span><span class=n>inst</span><span class=p>,</span> <span class=n>algo</span><span class=p>)]</span> <span class=o>+=</span> <span class=nb>len</span><span class=p>(</span><span class=n>c</span><span class=p>)</span>
+
+    <span class=n>aggregate_from_logs</span><span class=p>(</span>
+        <span class=n>input_path</span><span class=p>,</span> <span class=n>__collector</span><span class=p>,</span> <span class=n>per_instance</span><span class=p>,</span> <span class=n>per_algorithm_instance</span><span class=p>,</span>
+        <span class=kc>True</span><span class=p>,</span> <span class=n>report_lower_bound</span><span class=p>,</span> <span class=n>report_upper_bound</span><span class=p>,</span> <span class=n>report_goal_f</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>per_instance_known</span><span class=p>)</span>
+
+    <span class=n>algos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Now writing information gathered for </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>algos</span><span class=p>)</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"algorithms and </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>output_path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>output_path</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>ow</span><span class=p>:</span>
+        <span class=n>wrt</span> <span class=o>=</span> <span class=n>ow</span><span class=o>.</span><span class=n>write</span>
+
+        <span class=c1># write the header</span>
+        <span class=n>wrt</span><span class=p>(</span><span class=n>KEY_INSTANCE</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>algos</span><span class=p>:</span>
+            <span class=n>wrt</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+            <span class=n>wrt</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+        <span class=n>wrt</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+        <span class=n>wrt</span><span class=p>(</span><span class=s2>"all"</span><span class=p>)</span>
+        <span class=n>wrt</span><span class=p>(</span><span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1># write the output</span>
+        <span class=k>for</span> <span class=n>instance</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>instances</span><span class=p>):</span>
+            <span class=n>wrt</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>algos</span><span class=p>:</span>
+                <span class=n>wrt</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+                <span class=n>wrt</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=p>[(</span><span class=n>instance</span><span class=p>,</span> <span class=n>a</span><span class=p>)]))</span>
+            <span class=n>wrt</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+            <span class=n>wrt</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=p>[(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>""</span><span class=p>)]))</span>
+            <span class=n>wrt</span><span class=p>(</span><span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Finished writing </span><span class=si>{</span><span class=n>output_path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+
+<span class=k>class</span> <span class=nc>__InnerLogParser</span><span class=p>(</span><span class=n>SetupAndStateParser</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The internal log parser class for gathering objective values."""</span>
+
+    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>PerRunData</span><span class=p>,</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span> <span class=n>Any</span><span class=p>],</span>
+                 <span class=n>report_progress</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>report_lower_bound</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                 <span class=n>report_upper_bound</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>report_h</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                 <span class=n>report_goal_f</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>per_instance_known</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+                     <span class=nb>str</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the internal log parser.</span>
+
+<span class=sd>        :param consumer: the consumer</span>
+<span class=sd>        :param report_progress: should all values in the `PROGRESS` section be</span>
+<span class=sd>            reported, if such section exists?</span>
+<span class=sd>        :param report_lower_bound: should the lower bound reported, if any</span>
+<span class=sd>            lower bound for the objective function is listed?</span>
+<span class=sd>        :param report_upper_bound: should the upper bound reported, if any</span>
+<span class=sd>            upper bound for the objective function is listed?</span>
+<span class=sd>        :param report_h: should all values in the `H` section be reported, if</span>
+<span class=sd>            such section exists?</span>
+<span class=sd>        :param report_goal_f: should we report the goal objective value, if it</span>
+<span class=sd>            is specified?</span>
+<span class=sd>        :param per_instance_known: a function that returns a set of known</span>
+<span class=sd>            objective values per instance</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>consumer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=s2>"consumer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>report_progress</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>report_progress</span><span class=p>,</span> <span class=s2>"report_progress"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>report_lower_bound</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>report_lower_bound</span><span class=p>,</span> <span class=s2>"report_lower_bound"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>report_upper_bound</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>report_upper_bound</span><span class=p>,</span> <span class=s2>"report_upper_bound"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>report_h</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>report_h</span><span class=p>,</span> <span class=s2>"report_h"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>report_goal_f</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>report_goal_f</span><span class=p>,</span> <span class=s2>"report_goal_f"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>per_instance_known</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                <span class=n>per_instance_known</span><span class=p>,</span> <span class=s2>"per_instance_known"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=c1>#: the consumer</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__consumer</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>PerRunData</span><span class=p>,</span> <span class=n>Counter</span><span class=p>],</span> <span class=n>Any</span><span class=p>]]</span> <span class=o>=</span> <span class=n>consumer</span>
+        <span class=c1>#: report the progress</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__report_progress</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>report_progress</span>
+        <span class=c1>#: report the frequency history</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__report_h</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>report_h</span>
+        <span class=c1>#: report the lower bound, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__report_lower_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>report_lower_bound</span>
+        <span class=c1>#: report the upper bound, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__report_upper_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>report_upper_bound</span>
+        <span class=c1>#: report the goal objective value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__report_goal_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>report_goal_f</span>
+        <span class=c1>#: the per-instance known objective values</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__per_instance_known</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> <span class=n>per_instance_known</span>
+        <span class=c1>#: the internal counter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>
+        <span class=c1>#: the internal state variable</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the internal state variable</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span> <span class=nf>start_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Begin parsing the file identified by `path`.</span>
+
+<span class=sd>        :param path: the path identifying the file</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>start_file</span><span class=p>(</span><span class=n>path</span><span class=p>):</span>
+            <span class=k>return</span> <span class=kc>False</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>=</span> <span class=mi>0</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__report_progress</span> <span class=k>else</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>=</span> <span class=mi>0</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__report_h</span> <span class=k>else</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>return</span> <span class=kc>True</span>
+
+    <span class=k>def</span> <span class=nf>parse_dir</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=n>collect</span><span class=p>()</span>
+        <span class=n>ret</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>parse_dir</span><span class=p>(</span><span class=n>path</span><span class=p>)</span>
+        <span class=n>collect</span><span class=p>()</span>
+        <span class=k>return</span> <span class=n>ret</span>
+
+    <span class=k>def</span> <span class=nf>process</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>counter</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span>
+
+        <span class=c1># report goal objective value, if encountered</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__report_goal_f</span> <span class=ow>and</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span>
+                <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>)):</span>
+            <span class=n>counter</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>counter</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1># add the known values</span>
+        <span class=k>for</span> <span class=n>val</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__per_instance_known</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>val</span><span class=p>):</span>
+                <span class=n>counter</span><span class=p>[</span><span class=n>val</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>counter</span><span class=p>[</span><span class=n>val</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1># add the best objective value</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>):</span>
+            <span class=n>counter</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>counter</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__consumer</span><span class=p>(</span><span class=n>PerRunData</span><span class=p>(</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>instance</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+            <span class=n>objective</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+            <span class=n>encoding</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+            <span class=n>rand_seed</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>),</span> <span class=n>counter</span><span class=p>)</span>
+        <span class=n>counter</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=n>collect</span><span class=p>()</span>
+
+    <span class=k>def</span> <span class=nf>start_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_PROGRESS</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>>=</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Already did section </span><span class=si>{</span><span class=n>title</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>=</span> <span class=mi>2</span>
+                <span class=k>return</span> <span class=kc>False</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>H_LOG_SECTION</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>>=</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Already did section </span><span class=si>{</span><span class=n>title</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>=</span> <span class=mi>2</span>
+                <span class=k>return</span> <span class=kc>False</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>start_section</span><span class=p>(</span><span class=n>title</span><span class=p>)</span>
+
+    <span class=k>def</span> <span class=nf>setup_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse the data from the `setup` section.</span>
+
+<span class=sd>        :param data: the parsed data</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>setup_section</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__report_lower_bound</span> <span class=ow>and</span> <span class=p>(</span><span class=n>_FULL_KEY_LOWER_BOUND</span> <span class=ow>in</span> <span class=n>data</span><span class=p>):</span>
+            <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>str_to_num</span><span class=p>(</span>
+                <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_LOWER_BOUND</span><span class=p>])</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lb</span><span class=p>):</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span><span class=p>[</span><span class=n>lb</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__counter</span><span class=p>[</span><span class=n>lb</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__report_upper_bound</span> <span class=ow>and</span> <span class=p>(</span><span class=n>_FULL_KEY_UPPER_BOUND</span> <span class=ow>in</span> <span class=n>data</span><span class=p>):</span>
+            <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>str_to_num</span><span class=p>(</span>
+                <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_UPPER_BOUND</span><span class=p>])</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub</span><span class=p>):</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span><span class=p>[</span><span class=n>ub</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__counter</span><span class=p>[</span><span class=n>ub</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+
+    <span class=k>def</span> <span class=nf>needs_more_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>((</span><span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span>
+                <span class=ow>or</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>needs_more_lines</span><span class=p>())</span>
+
+    <span class=k>def</span> <span class=nf>lines</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lines</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lines</span><span class=p>,</span> <span class=s2>"lines"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+
+        <span class=n>counter</span><span class=p>:</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state_progress</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=n>columns</span> <span class=o>=</span> <span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)]</span>
+            <span class=n>f_col</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>columns</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>PROGRESS_CURRENT_F</span><span class=p>)</span>
+            <span class=n>counter</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span>
+            <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>[</span><span class=mi>1</span><span class=p>:]:</span>
+                <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>str_to_num</span><span class=p>(</span><span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span>
+                    <span class=n>CSV_SEPARATOR</span><span class=p>)[</span><span class=n>f_col</span><span class=p>])</span>
+                <span class=n>counter</span><span class=p>[</span><span class=n>f</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state_h</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=n>counter</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span>
+            <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>:</span>
+                <span class=n>split</span> <span class=o>=</span> <span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+                <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>split</span><span class=p>),</span> <span class=mi>2</span><span class=p>):</span>
+                    <span class=n>counter</span><span class=p>[</span><span class=n>str_to_num</span><span class=p>(</span><span class=n>split</span><span class=p>[</span><span class=n>i</span><span class=p>])]</span> <span class=o>+=</span> <span class=nb>int</span><span class=p>(</span><span class=n>split</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>])</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>lines</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>needs_more_lines</span><span class=p>()</span>
+
+
+<span class=c1># Print a CSV file</span>
+<span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>"__main__"</span><span class=p>:</span>
+    <span class=n>parser</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>ArgumentParser</span><span class=p>]</span> <span class=o>=</span> <span class=n>moptipy_argparser</span><span class=p>(</span>
+        <span class=vm>__file__</span><span class=p>,</span> <span class=s2>"Collecting the Number of Existing Objective Values."</span><span class=p>,</span>
+        <span class=s2>"Gather all the existing objective values and store them in a "</span>
+        <span class=s2>"CSV-formatted file."</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"source"</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=s2>"./results"</span><span class=p>,</span>
+        <span class=n>help</span><span class=o>=</span><span class=s2>"the location of the experimental results, i.e., the root folder "</span>
+             <span class=s2>"under which to search for log files"</span><span class=p>,</span> <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"dest"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the path to the end results CSV file to be created"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span>
+        <span class=n>default</span><span class=o>=</span><span class=s2>"./evaluation/objective_values.txt"</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"--lb"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"count the lower bound of the "</span>
+                     <span class=s2>"objective as objective value"</span><span class=p>,</span>
+        <span class=n>action</span><span class=o>=</span><span class=s2>"store_true"</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"--ub"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"count the upper bound of the "</span>
+                     <span class=s2>"objective as objective value"</span><span class=p>,</span>
+        <span class=n>action</span><span class=o>=</span><span class=s2>"store_true"</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"--goal"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"count the goal objective value as "</span>
+                       <span class=s2>"existing objective value"</span><span class=p>,</span>
+        <span class=n>action</span><span class=o>=</span><span class=s2>"store_true"</span><span class=p>)</span>
+    <span class=n>args</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>Namespace</span><span class=p>]</span> <span class=o>=</span> <span class=n>parser</span><span class=o>.</span><span class=n>parse_args</span><span class=p>()</span>
+    <span class=n>number_of_objective_values_to_csv</span><span class=p>(</span>
+        <span class=n>args</span><span class=o>.</span><span class=n>source</span><span class=p>,</span> <span class=n>args</span><span class=o>.</span><span class=n>dest</span><span class=p>,</span> <span class=n>per_instance</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=n>per_algorithm_instance</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>report_lower_bound</span><span class=o>=</span><span class=n>args</span><span class=o>.</span><span class=n>lb</span><span class=p>,</span>
+        <span class=n>report_upper_bound</span><span class=o>=</span><span class=n>args</span><span class=o>.</span><span class=n>ub</span><span class=p>,</span> <span class=n>report_goal_f</span><span class=o>=</span><span class=n>args</span><span class=o>.</span><span class=n>goal</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.113 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.frequency</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2024, Thomas Weise.</div>

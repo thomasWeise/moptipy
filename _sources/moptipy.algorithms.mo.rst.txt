@@ -1,0 +1,26 @@
+moptipy.algorithms.mo package
+=============================
+
+.. automodule:: moptipy.algorithms.mo
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+moptipy.algorithms.mo.morls module
+----------------------------------
+
+.. automodule:: moptipy.algorithms.mo.morls
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.algorithms.mo.nsga2 module
+----------------------------------
+
+.. automodule:: moptipy.algorithms.mo.nsga2
+   :members:
+   :undoc-members:
+   :show-inheritance:
