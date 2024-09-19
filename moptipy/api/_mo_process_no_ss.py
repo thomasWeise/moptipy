@@ -310,8 +310,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
 
         header: list[str] = [PROGRESS_FES, PROGRESS_TIME_MILLIS,
                              PROGRESS_CURRENT_F]
-        for i in range(len(cast(np.ndarray, log[0])[3])):
-            header.append(f"{PROGRESS_CURRENT_F}{i}")
+        header.extend(f"{PROGRESS_CURRENT_F}{i}" for i in range(
+            len(cast(np.ndarray, log[0])[3])))
 
         with logger.csv(SECTION_PROGRESS, header) as csv:
             for row in log:

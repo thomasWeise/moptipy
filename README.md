@@ -46,7 +46,7 @@
 
 ## 1. Introduction
 
-[`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.10 that also offers an environment for replicable experiments.
+[`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.12 that also offers an environment for replicable experiments.
 The framework, [algorithm implementations](#41-implemented-algorithms), and the library design are accompanied by the book [Optimization Algorithms](https://thomasweise.github.io/oa/).
 The library is structured with performance, ease-of-use, and generality in mind, but also based on an educational and research perspective.
 It is therefore (hopefully) suitable for practical industrial applications, scientific research, and for students who are just entering the field of metaheuristic optimization.
@@ -2325,7 +2325,7 @@ If you have any concerns regarding security, please visit our [security policy](
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
 Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the
-School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at
+School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd)) at
 [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥大学](http://www.hfuu.edu.cn/)) in
 Hefei, Anhui, China (中国安徽省合肥市) via
 email to [tweise@hfuu.edu.cn](mailto:tweise@hfuu.edu.cn) with CC to [tweise@ustc.edu.cn](mailto:tweise@ustc.edu.cn).

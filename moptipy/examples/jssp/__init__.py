@@ -59,7 +59,7 @@ with repetitions using the :mod:`~moptipy.examples.jssp.ob_encoding`.
 
 def __lang_setup() -> None:
     """Perform the language setup."""
-    from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415
+    from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415  # noqa
 
     # the English language strings
     EN.extend({

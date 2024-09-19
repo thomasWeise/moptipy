@@ -46,9 +46,7 @@ def __run_experiment(base_dir: Path,
                      warmup_fes: int,
                      perform_pre_warmup: bool,
                      pre_warmup_fes: int,
-                     file_lock: AbstractContextManager,
                      stdio_lock: AbstractContextManager,
-                     cache: Callable[[str], bool],
                      thread_id: str,
                      pre_warmup_barrier,
                      on_completion: Callable[[
@@ -63,9 +61,7 @@ def __run_experiment(base_dir: Path,
     :param perform_pre_warmup: should we do one warmup run for each
         instance before we begin with the actual experiments?
     :param pre_warmup_fes: the FEs for the pre-warmup runs
-    :param file_lock: the lock for file operations
     :param stdio_lock: the lock for log output
-    :param cache: the cache
     :param thread_id: the thread id
     :param pre_warmup_barrier: a barrier to wait at after the pre-warmup
     :param on_completion: a function to be called for every completed run,
@@ -75,6 +71,7 @@ def __run_experiment(base_dir: Path,
     """
     random: Final[Generator] = default_rng()
 
+    cache: Final[Callable[[str], bool]] = str_is_new()
     for warmup in ([True, False] if perform_pre_warmup else [False]):
         wss: str
         if warmup:
@@ -125,9 +122,8 @@ def __run_experiment(base_dir: Path,
                             os.path.join(cd, filename + FILE_SUFFIX))
 
                         skip = True
-                        with file_lock:
-                            if cache(log_file):
-                                skip = log_file.ensure_file_exists()
+                        if cache(log_file):
+                            skip = log_file.ensure_file_exists()
                         if skip:
                             continue  # run already done
 
@@ -219,8 +215,7 @@ def __waiting_run_experiment(
         base_dir: Path, experiments: list[list[Callable]],
         n_runs: list[int], perform_warmup: bool, warmup_fes: int,
         perform_pre_warmup: bool, pre_warmup_fes: int,
-        file_lock: AbstractContextManager,
-        stdio_lock: AbstractContextManager, cache: Callable, thread_id: str,
+        stdio_lock: AbstractContextManager, thread_id: str,
         event, pre_warmup_barrier,
         on_completion: Callable[[Any, Path, Process], None]) -> None:
     """Wait until event is set, then run experiment."""
@@ -232,8 +227,8 @@ def __waiting_run_experiment(
     gc.collect()
     __run_experiment(base_dir, experiments, n_runs,
                      perform_warmup, warmup_fes, perform_pre_warmup,
-                     pre_warmup_fes, file_lock, stdio_lock, cache,
-                     thread_id, pre_warmup_barrier, on_completion)
+                     pre_warmup_fes, stdio_lock, thread_id,
+                     pre_warmup_barrier, on_completion)
 
 
 def __no_complete(_: Any, __: Path, ___: Process) -> None:
@@ -373,14 +368,12 @@ def run_experiment(
     for run in n_runs:
         last = check_int_range(run, "n_runs", last + 1)
 
-    cache: Final[Callable[[str], bool]] = str_is_new()
     use_dir: Final[Path] = Path(base_dir)
     use_dir.ensure_dir_exists()
 
     stdio_lock: AbstractContextManager
 
     if n_threads > 1:
-        file_lock: AbstractContextManager = mp.Lock()
         stdio_lock = mp.Lock()
         logger(f"starting experiment with {n_threads} threads "
                f"on {_CPU_LOGICAL_CORES} logical cores, "
@@ -391,6 +384,11 @@ def run_experiment(
         event: Final = mp.Event()
         pre_warmup_barrier: Final = mp.Barrier(n_threads) \
             if perform_pre_warmup else None
+        try:
+            mp.set_start_method("spawn")
+        except RuntimeError as re:
+            logger(f"Got error {re} when trying to call set_start_method.",
+                   lock=stdio_lock)
         processes: Final[list[mp.Process]] = \
             [mp.Process(target=__waiting_run_experiment,
                         args=(use_dir,
@@ -400,9 +398,7 @@ def run_experiment(
                               warmup_fes,
                               perform_pre_warmup,
                               pre_warmup_fes,
-                              file_lock,
                               stdio_lock,
-                              cache,
                               ":" + hex(i)[2:],
                               event,
                               pre_warmup_barrier,
@@ -454,9 +450,7 @@ def run_experiment(
                          warmup_fes=warmup_fes,
                          perform_pre_warmup=perform_pre_warmup,
                          pre_warmup_fes=pre_warmup_fes,
-                         file_lock=nullcontext(),
                          stdio_lock=stdio_lock,
-                         cache=cache,
                          thread_id="",
                          pre_warmup_barrier=None,
                          on_completion=on_completion)

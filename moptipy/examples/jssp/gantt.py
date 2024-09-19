@@ -127,7 +127,7 @@ class _GanttParser(LogParser):
         if self._result is not None:
             raise ValueError("Applied parser to more than one log file?")
         # pylint: disable=C0415,R0401
-        from moptipy.examples.jssp.gantt_space import (
+        from moptipy.examples.jssp.gantt_space import (  # noqa: PLC0415
             GanttSpace,  # pylint: disable=C0415,R0401
         )
 

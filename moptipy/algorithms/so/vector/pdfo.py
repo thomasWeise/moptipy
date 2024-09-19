@@ -33,7 +33,7 @@ import numpy as np
 import pdfo  # type: ignore
 
 # noinspection PyProtectedMember
-from pdfo._bobyqa import bobyqa  # type: ignore
+from pdfo._bobyqa import bobyqa  # type: ignore  # noqa: PLC2701
 from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm0

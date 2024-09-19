@@ -135,8 +135,7 @@ class KeepFarthest(MOArchivePruner):
                             q.clear()
                     if q is not None:
                         q.add(idx)
-                if f > ma[i]:
-                    ma[i] = f
+                ma[i] = max(f, ma[i])
 
         # the number of selected records be 0 at the beginning
         selected: int = 0

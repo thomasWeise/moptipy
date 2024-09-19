@@ -173,7 +173,7 @@ def plot_gantt_chart(
     z_order: int = 0
 
     # print the marker lines
-    for val, _ in marks.items():
+    for val in marks:
         axes.add_artist(Line2D(xdata=(val, val),
                                ydata=(y_min, y_max),
                                color=__LEFT_END_MARK if val <= xmin

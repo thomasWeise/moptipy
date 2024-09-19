@@ -531,13 +531,13 @@ class Algorithm:
                 complexities.append(v)
                 not_allowed.add(v)
 
-        result: list[Algorithm] = []
-        for i in range(n, 0, -1):
-            result.append(Algorithm(
+        result: list[Algorithm] = [
+            Algorithm(
                 name=names.pop(random.integers(i)),
                 strength=strengths.pop(random.integers(i)),
                 jitter=jitters.pop(random.integers(i)),
-                complexity=complexities.pop(random.integers(i))))
+                complexity=complexities.pop(random.integers(i)))
+            for i in range(n, 0, -1)]
         result.sort()
 
         logger(f"finished creating {n} algorithms.")

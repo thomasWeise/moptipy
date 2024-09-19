@@ -28,7 +28,7 @@ jobs:
 # execute the actual make build process
     - name: execute the make build
       run: |
-        make
+        ./make.sh
         rm -rf /home/runner/work/moptipy/moptipy/dist/*.txt
         rm -rf /home/runner/work/moptipy/moptipy/dist/*.tar.xz
 # deploy to pypi

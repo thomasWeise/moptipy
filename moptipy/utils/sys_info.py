@@ -6,7 +6,7 @@ import platform
 import re
 import socket
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Final, Iterable
 
 import psutil  # type: ignore
@@ -203,7 +203,7 @@ def __make_sys_info() -> str:
         with imr.key_values(logging.SECTION_SYS_INFO) as kv:
             with kv.scope(logging.SCOPE_SESSION) as k:
                 __v(k, logging.KEY_SESSION_START,
-                    datetime.now(tz=timezone.utc))
+                    datetime.now(tz=UTC))
                 __v(k, logging.KEY_NODE_NAME, platform.node())
                 proc = psutil.Process()
                 __v(k, logging.KEY_PROCESS_ID, hex(proc.pid))
@@ -230,7 +230,7 @@ def __make_sys_info() -> str:
                     # doesn't even have to be reachable
                     s.connect(("10.255.255.255", 1))
                     ip = s.getsockname()[0]
-                except Exception:
+                except Exception:  # noqa: BLE001
                     ip = "127.0.0.1"
                 finally:
                     s.close()

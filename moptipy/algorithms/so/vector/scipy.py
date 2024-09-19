@@ -24,26 +24,26 @@ from scipy.optimize import Bounds  # type: ignore
 # isort: off
 # noinspection PyProtectedMember
 # pylint: disable=C0412
-from scipy.optimize._differentialevolution import (  # type: ignore
-    differential_evolution,  # type: ignore  # pylint: disable=C0412
+from scipy.optimize._differentialevolution import (  # type: ignore  # noqa
+    differential_evolution,  # type: ignore  # pylint: disable=C0412  # noqa
 )
 # isort: on
 
 from pycommons.types import type_error
 
 # noinspection PyProtectedMember
-from scipy.optimize._optimize import (  # type: ignore
-    _minimize_bfgs,  # type: ignore
-    _minimize_cg,  # type: ignore
-    _minimize_neldermead,  # type: ignore
-    _minimize_powell,  # type: ignore
+from scipy.optimize._optimize import (  # type: ignore  # noqa: PLC2701
+    _minimize_bfgs,  # type: ignore  # noqa: PLC2701
+    _minimize_cg,  # type: ignore  # noqa: PLC2701
+    _minimize_neldermead,  # type: ignore  # noqa: PLC2701
+    _minimize_powell,  # type: ignore  # noqa: PLC2701
 )
 
 # noinspection PyProtectedMember
-from scipy.optimize._slsqp_py import _minimize_slsqp  # type: ignore
+from scipy.optimize._slsqp_py import _minimize_slsqp  # type: ignore  # noqa
 
 # noinspection PyProtectedMember
-from scipy.optimize._tnc import _minimize_tnc  # type: ignore
+from scipy.optimize._tnc import _minimize_tnc  # type: ignore  # noqa: PLC2701
 
 from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.operators import Op0

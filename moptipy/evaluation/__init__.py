@@ -14,12 +14,13 @@ processed to per-algorithm or per-instance statistics using
 
 def __lang_setup() -> None:
     """Perform the internal language setup."""
-    import pycommons.math.sample_statistics as ss  # pylint: disable=C0415
+    # pylint: disable=C0415
+    import pycommons.math.sample_statistics as ss  # noqa
 
-    import moptipy.api.logging as lg  # pylint: disable=C0415
-    import moptipy.evaluation.base as bs  # pylint: disable=C0415
-    import moptipy.evaluation.end_statistics as es  # pylint: disable=C0415
-    from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415
+    import moptipy.api.logging as lg  # pylint: disable=C0415  # noqa
+    import moptipy.evaluation.base as bs  # pylint: disable=C0415  # noqa
+    import moptipy.evaluation.end_statistics as es  # pylint: disable=C0415  # noqa
+    from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415  # noqa
 
     EN.extend({
         "f": "f",

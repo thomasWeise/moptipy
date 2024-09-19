@@ -5,6 +5,8 @@ from os import sched_getaffinity
 from typing import Callable, Final
 
 import numpy as np  # type: ignore
+
+# pylint: disable-next=E0611
 from numpy.random import Generator, RandomState  # type: ignore
 from pycommons.io.console import logger
 from pycommons.types import check_int_range, type_error

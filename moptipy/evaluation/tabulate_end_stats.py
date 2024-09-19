@@ -101,8 +101,7 @@ def tabulate_end_stats(
     best_count: Final[list[int]] = [0] * n_data_cols
     for instance in instances:
         row: list[str] = [instance_name(instance)]
-        for ic in instance_cols:
-            row.append(ic[1](instance))
+        row.extend(ic[1](instance) for ic in instance_cols)
         values: list[int | float | None] = [None] * n_data_cols
         best: list[int | float] = [
             (inf if stat[2] else -inf) for stat in stats]
@@ -146,8 +145,7 @@ def tabulate_end_stats(
         for _ in range(n_algorithms):
             for si in range(n_stats):
                 value = best_count[idx]
-                if value > best[si]:
-                    best[si] = value
+                best[si] = max(value, best[si])
                 idx += 1
 
         # format the best count values
@@ -198,8 +196,7 @@ def tabulate_end_stats(
     footer: list[str] = [r"\hline%", r"\end{tabular}%"]
 
     writer: list[str] = ["l"]
-    for _ in range(n_inst_cols):
-        writer.append("r")
+    writer.extend("r" for _ in range(n_inst_cols))
     writer.extend(["r"] * n_stats * n_algorithms)
     txt: str = "".join(writer)
     header.append(f"\\begin{{tabular}}{{{'|'.join([txt] * n_wrap)}}}%")
@@ -207,11 +204,10 @@ def tabulate_end_stats(
 
     writer.clear()
     writer.append(instance_header)
-    for ic in instance_cols:
-        writer.append(f"\\multicolumn{{1}}{{c}}{{{ic[0]}}}")
-    for algo in algorithms:
-        writer.append(
-            f"\\multicolumn{{{n_stats}}}{{c}}{{{algorithm_name(algo)}}}")
+    writer.extend(f"\\multicolumn{{1}}{{c}}{{{ic[0]}}}"
+                  for ic in instance_cols)
+    writer.extend(f"\\multicolumn{{{n_stats}}}{{c}}{{{algorithm_name(algo)}}}"
+                  for algo in algorithms)
     txt = "&".join(writer)
     if n_wrap > 1:
         writer[-1] = writer[-1].replace("{c}", "{c|}")
@@ -224,11 +220,9 @@ def tabulate_end_stats(
     if n_stats > 1:
         writer.clear()
         writer.append("")
-        for _ in range(n_inst_cols):
-            writer.append("")
-        for _ in range(n_algorithms):
-            for sss in stats:
-                writer.append(f"\\multicolumn{{1}}{{c}}{{{sss[2]}}}")
+        writer.extend("" for _ in range(n_inst_cols))
+        writer.extend(f"\\multicolumn{{1}}{{c}}{{{sss[2]}}}"
+                      for _ in range(n_algorithms) for sss in stats)
         txt = "&".join(writer)
         if n_wrap > 1:
             writer[-1] = writer[-1].replace("{c}", "{c|}")

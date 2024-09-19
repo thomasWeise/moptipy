@@ -261,13 +261,13 @@ class EndResults:
         if max_time_millis is not None:
             check_int_range(
                 max_time_millis, "max_time_millis", 1, 1_000_000_000_000_000)
-        results: list[EndResult] = []
-        for per in experiment.applications:
-            for seed in experiment.seeds_for_instance(per.instance):
-                results.append(end_result(performance=per,
-                                          seed=seed,
-                                          max_fes=max_fes,
-                                          max_time_millis=max_time_millis))
+        results: list[EndResult] = [
+            end_result(performance=per,
+                       seed=seed,
+                       max_fes=max_fes,
+                       max_time_millis=max_time_millis)
+            for per in experiment.applications
+            for seed in experiment.seeds_for_instance(per.instance)]
         results.sort()
 
         res: Final[EndResults] = EndResults(experiment=experiment,

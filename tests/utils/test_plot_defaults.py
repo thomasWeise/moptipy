@@ -12,8 +12,7 @@ from moptipy.utils.plot_defaults import (
 
 def test_distinct_colors() -> None:
     """Test distinct colors."""
-    for n in list({*list(range(1, 34)), 50, 64, 75, 96, 100,
-                   128, 150, 200, 256}):
+    for n in ({*range(1, 34), 50, 64, 75, 96, 100, 128, 150, 200, 256}):
         colors = distinct_colors(n)
         assert isinstance(colors, tuple)
         assert len(colors) == n

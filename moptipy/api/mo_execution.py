@@ -205,7 +205,7 @@ class MOExecution(Execution):
                 search_space.initialize()  # initialize the search space
             algorithm.initialize()  # initialize the algorithm
             algorithm.solve(process)  # apply the algorithm
-        except Exception as be:
+        except Exception as be:  # noqa: BLE001
             # noinspection PyProtectedMember
             process._caught = be
         return process

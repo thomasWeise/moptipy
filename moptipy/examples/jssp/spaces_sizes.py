@@ -515,9 +515,9 @@ def make_gantt_space_size_table(
                 inst_scales[j] = a
                 a = b
 
-    for scale in inst_scales:
-        text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
-                    f"{__long_str(scale[3])}|{__long_str(scale[2])}|")
+    text.extend(
+        f"|{scale[4]}|{scale[0]}|{scale[1]}|{__long_str(scale[3])}|"
+        f"{__long_str(scale[2])}|" for scale in inst_scales)
 
     with file.open_for_write() as wd:
         write_lines(text, wd)
@@ -578,9 +578,8 @@ def make_search_space_size_table(
                 inst_scales[i] = b
                 inst_scales[j] = a
                 a = b
-    for scale in inst_scales:
-        text.append(f"|{scale[4]}|{scale[0]}|{scale[1]}|"
-                    f"{__long_str(scale[2])}|{__long_str(scale[3])}|")
+    text.extend(f"|{scale[4]}|{scale[0]}|{scale[1]}|{__long_str(scale[2])}|"
+                f"{__long_str(scale[3])}|" for scale in inst_scales)
 
     with file.open_for_write() as wd:
         write_lines(text, wd)
