@@ -384,25 +384,25 @@ def run_experiment(
         event: Final = mp.Event()
         pre_warmup_barrier: Final = mp.Barrier(n_threads) \
             if perform_pre_warmup else None
-        try:
-            mp.set_start_method("spawn")
-        except RuntimeError as re:
-            logger(f"Got error {re} when trying to call set_start_method.",
-                   lock=stdio_lock)
+
+        # We must eventually switch from "fork" to "spawn".
+        # However, "spawn" does not permit lambda.
+        # And we always use lambdas to create instances and algorithms.
+        ctx: Final = mp.get_context("fork")
         processes: Final[list[mp.Process]] = \
-            [mp.Process(target=__waiting_run_experiment,
-                        args=(use_dir,
-                              experiments.copy(),
-                              n_runs,
-                              perform_warmup,
-                              warmup_fes,
-                              perform_pre_warmup,
-                              pre_warmup_fes,
-                              stdio_lock,
-                              ":" + hex(i)[2:],
-                              event,
-                              pre_warmup_barrier,
-                              on_completion))
+            [cast(mp.Process, ctx.Process(target=__waiting_run_experiment,
+                                          args=(use_dir,
+                                                experiments.copy(),
+                                                n_runs,
+                                                perform_warmup,
+                                                warmup_fes,
+                                                perform_pre_warmup,
+                                                pre_warmup_fes,
+                                                stdio_lock,
+                                                ":" + hex(i)[2:],
+                                                event,
+                                                pre_warmup_barrier,
+                                                on_completion)))
              for i in range(n_threads)]
 
         for i, p in enumerate(processes):

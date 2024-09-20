@@ -1,7 +1,7 @@
 """The multi-objective algorithm execution API."""
 
 from math import isfinite
-from typing import Final, TypeVar, cast
+from typing import Final, Self, cast
 
 from pycommons.types import check_int_range
 
@@ -11,7 +11,7 @@ from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api._mo_process_ss_log import _MOProcessSSLog
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
-from moptipy.api.execution import Execution, TExecution
+from moptipy.api.execution import Execution
 from moptipy.api.mo_archive import MOArchivePruner, check_mo_archive_pruner
 from moptipy.api.mo_problem import (
     MOProblem,
@@ -28,9 +28,6 @@ from moptipy.api.process import (
 from moptipy.api.space import Space, check_space
 from moptipy.mo.archive.keep_farthest import KeepFarthest
 from moptipy.utils.nputils import rand_seed_check
-
-#: The execution type variable for returning `Self`.
-TMOExecution = TypeVar("TMOExecution", bound="MOExecution")
 
 
 class MOExecution(Execution):
@@ -52,7 +49,7 @@ class MOExecution(Execution):
         #: the archive pruning strategy
         self._archive_pruner: MOArchivePruner | None = None
 
-    def set_archive_max_size(self: TMOExecution, size: int) -> TMOExecution:
+    def set_archive_max_size(self, size: int) -> Self:
         """
         Set the upper limit for the archive size (after pruning).
 
@@ -76,8 +73,8 @@ class MOExecution(Execution):
         self._archive_max_size = size
         return self
 
-    def set_archive_pruning_limit(self: TMOExecution,
-                                  limit: int) -> TMOExecution:
+    def set_archive_pruning_limit(self,
+                                  limit: int) -> Self:
         """
         Set the size limit of the archive above which pruning is performed.
 
@@ -96,8 +93,8 @@ class MOExecution(Execution):
         self._archive_prune_limit = limit
         return self
 
-    def set_archive_pruner(self: TMOExecution,
-                           pruner: MOArchivePruner) -> TMOExecution:
+    def set_archive_pruner(self,
+                           pruner: MOArchivePruner) -> Self:
         """
         Set the pruning strategy for downsizing the archive.
 
@@ -107,8 +104,7 @@ class MOExecution(Execution):
         self._archive_pruner = check_mo_archive_pruner(pruner)
         return self
 
-    def set_objective(self: TExecution,
-                      objective: Objective) -> TExecution:
+    def set_objective(self, objective: Objective) -> Self:
         """
         Set the objective function in form of a multi-objective problem.
 

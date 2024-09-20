@@ -39,7 +39,7 @@ def _check_max_time_millis(max_time_millis: int | float,
         raise ValueError(
             f"If max_time_millis is {max_time_millis} and "
             f"total_fes is {total_fes}, then total_time_millis must "
-            f"not be more than {permitted_limit}, but is"
+            f"not be more than {permitted_limit}, but is "
             f"{total_time_millis}.")
 
 

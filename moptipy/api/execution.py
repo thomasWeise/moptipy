@@ -1,6 +1,6 @@
 """The algorithm execution API."""
 from math import isfinite
-from typing import Any, Final, TypeVar
+from typing import Any, Final, Self
 
 from pycommons.io.path import Path
 from pycommons.types import type_error
@@ -62,10 +62,6 @@ def _check_log_file(log_file: Any, none_is_ok: bool = True) -> Path | None:
     return Path(log_file)
 
 
-#: The execution type variable for returning `Self`.
-TExecution = TypeVar("TExecution", bound="Execution")
-
-
 class Execution:
     """
     Define all the components of an experiment and then execute it.
@@ -95,7 +91,7 @@ class Execution:
         self._log_improvements: bool = False
         self._log_all_fes: bool = False
 
-    def set_algorithm(self: TExecution, algorithm: Algorithm) -> TExecution:
+    def set_algorithm(self, algorithm: Algorithm) -> Self:
         """
         Set the algorithm to be used for this experiment.
 
@@ -105,8 +101,8 @@ class Execution:
         self._algorithm = check_algorithm(algorithm)
         return self
 
-    def set_solution_space(self: TExecution, solution_space: Space) \
-            -> TExecution:
+    def set_solution_space(self, solution_space: Space) \
+            -> Self:
         """
         Set the solution space to be used for this experiment.
 
@@ -119,7 +115,7 @@ class Execution:
         self._solution_space = check_space(solution_space)
         return self
 
-    def set_objective(self: TExecution, objective: Objective) -> TExecution:
+    def set_objective(self, objective: Objective) -> Self:
         """
         Set the objective function to be used for this experiment.
 
@@ -136,8 +132,8 @@ class Execution:
         self._objective = check_objective(objective)
         return self
 
-    def set_search_space(self: TExecution, search_space: Space | None) \
-            -> TExecution:
+    def set_search_space(self, search_space: Space | None) \
+            -> Self:
         """
         Set the search space to be used for this experiment.
 
@@ -150,8 +146,8 @@ class Execution:
         self._search_space = check_space(search_space, none_is_ok=True)
         return self
 
-    def set_encoding(self: TExecution, encoding: Encoding | None) \
-            -> TExecution:
+    def set_encoding(self, encoding: Encoding | None) \
+            -> Self:
         """
         Set the encoding to be used for this experiment.
 
@@ -164,7 +160,7 @@ class Execution:
         self._encoding = check_encoding(encoding, none_is_ok=True)
         return self
 
-    def set_rand_seed(self: TExecution, rand_seed: int | None) -> TExecution:
+    def set_rand_seed(self, rand_seed: int | None) -> Self:
         """
         Set the seed to be used for initializing the random number generator.
 
@@ -175,8 +171,8 @@ class Execution:
             else rand_seed_check(rand_seed)
         return self
 
-    def set_max_fes(self: TExecution, max_fes: int,  # +book
-                    force_override: bool = False) -> TExecution:
+    def set_max_fes(self, max_fes: int,  # +book
+                    force_override: bool = False) -> Self:
         """
         Set the maximum FEs.
 
@@ -196,8 +192,8 @@ class Execution:
         self._max_fes = max_fes
         return self
 
-    def set_max_time_millis(self: TExecution, max_time_millis: int,
-                            force_override: bool = False) -> TExecution:
+    def set_max_time_millis(self, max_time_millis: int,
+                            force_override: bool = False) -> Self:
         """
         Set the maximum time in milliseconds.
 
@@ -218,7 +214,7 @@ class Execution:
         self._max_time_millis = max_time_millis
         return self
 
-    def set_goal_f(self: TExecution, goal_f: int | float) -> TExecution:
+    def set_goal_f(self, goal_f: int | float) -> Self:
         """
         Set the goal objective value after which the process can stop.
 
@@ -234,7 +230,7 @@ class Execution:
         self._goal_f = goal_f
         return self
 
-    def set_log_file(self: TExecution, log_file: str | None) -> TExecution:
+    def set_log_file(self, log_file: str | None) -> Self:
         """
         Set the log file to write to.
 
@@ -252,8 +248,8 @@ class Execution:
         self._log_file = _check_log_file(log_file, True)
         return self
 
-    def set_log_improvements(self: TExecution,
-                             log_improvements: bool = True) -> TExecution:
+    def set_log_improvements(self,
+                             log_improvements: bool = True) -> Self:
         """
         Set whether improvements should be logged.
 
@@ -269,8 +265,8 @@ class Execution:
         self._log_improvements = log_improvements
         return self
 
-    def set_log_all_fes(self: TExecution,
-                        log_all_fes: bool = True) -> TExecution:
+    def set_log_all_fes(self,
+                        log_all_fes: bool = True) -> Self:
         """
         Set whether all objective function evaluations (FEs) should be logged.
 
