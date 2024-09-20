@@ -75,5 +75,4 @@ echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now trying to install pycommons."
 "$pythonInterpreter" -m pip install --no-input --timeout 360 --retries 100 -v "$currentDir"
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Successfully installed pycommons."
 
-
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): We have finished the build process."

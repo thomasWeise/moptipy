@@ -39,7 +39,7 @@ psutil == 6.0.0
 
 # pycommons offers many of the tools and utilities used in moptipy that are
 # not related to optimization.
-pycommons == 0.8.43
+pycommons == 0.8.44
 
 # scikit-learn is used to obtain some clusters of JSSP instances for our
 # experiments.

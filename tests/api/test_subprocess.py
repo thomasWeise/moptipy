@@ -74,7 +74,8 @@ class MyAlgorithm1(Algorithm2):
             fes = z.get_consumed_fes()
             assert fes > 0
             assert (fnew == 0) or (fes == 100)
-            assert (fnew >= 0) and (fes <= 100)
+            assert fnew >= 0
+            assert fes <= 100
             assert z.has_best()
             z.get_copy_of_best_x(x1)
         assert process.has_best()
@@ -106,7 +107,8 @@ class MyAlgorithm1(Algorithm2):
                 fes2 = z.get_consumed_fes()
                 assert fes2 > 0
                 assert (fnew2 == 0) or (fes2 == 100)
-                assert (fnew2 >= 0) and (fes2 <= 100)
+                assert fnew2 >= 0
+                assert fes2 <= 100
                 assert fnew2 <= fnew
                 assert fes2 + get_remaining_fes(z) == 100
 
@@ -131,7 +133,8 @@ def test_from_start_for_fes_with_drift() -> None:
         assert p.has_best()
         assert p.get_best_f() >= 0
         assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 200)
-        assert (p.get_best_f() >= 0) and (p.get_consumed_fes() <= 200)
+        assert p.get_best_f() >= 0
+        assert p.get_consumed_fes() <= 200
 
 
 class MyAlgorithm2(Algorithm2):
@@ -185,9 +188,11 @@ def test_without_should_terminate() -> None:
         assert p.has_best()
         assert p.get_best_f() >= 0
         assert (p.get_best_f() == 0) or (p.get_consumed_fes() == 100)
-        assert (p.get_best_f() >= 0) and (p.get_consumed_fes() <= 100)
+        assert p.get_best_f() >= 0
+        assert p.get_consumed_fes() <= 100
         assert (p.get_best_f() == 0) or (get_remaining_fes(p) == 0)
-        assert (p.get_best_f() >= 0) and (get_remaining_fes(p) >= 0)
+        assert p.get_best_f() >= 0
+        assert get_remaining_fes(p) >= 0
 
 
 class _OneMaxRegAlgo(Algorithm0):
