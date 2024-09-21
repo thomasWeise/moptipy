@@ -216,21 +216,19 @@ def run_experiment(
         raise type_error(perform_pre_warmup, "perform_pre_warmup", bool)
     check_int_range(warmup_fes, "warmup_fes", 1, 1_000_000)
     check_int_range(pre_warmup_fes, "pre_warmup_fes", 1, 1_000_000)
+
     instances = list(instances)
-    if len(instances) <= 0:
+    if list.__len__(instances) <= 0:
         raise ValueError("Instance enumeration is empty.")
     for instance in instances:
         if not callable(instance):
             raise type_error(instance, "all instances", call=True)
 
-    sysinfo_check: str = get_sys_info()
-    if not isinstance(sysinfo_check, str):
-        raise type_error(sysinfo_check, "system information", str)
-    if len(sysinfo_check) <= 0:
-        raise ValueError(f"invalid system info {sysinfo_check!r}!")
+    if str.__len__(get_sys_info()) <= 0:
+        raise ValueError("empty system info?")
 
     setups = list(setups)
-    if len(setups) <= 0:
+    if list.__len__(setups) <= 0:
         raise ValueError("Setup enumeration is empty.")
     for setup in setups:
         if not callable(setup):
@@ -242,10 +240,12 @@ def run_experiment(
     del instances
     del setups
 
-    if len(experiments) <= 0:
+    if list.__len__(experiments) <= 0:
         raise ValueError("No experiments found?")
 
     n_runs = [n_runs] if isinstance(n_runs, int) else list(n_runs)
+    if list.__len__(n_runs) <= 0:
+        raise ValueError("No number of runs provided?")
     last = 0
     for run in n_runs:
         last = check_int_range(run, "n_runs", last + 1)

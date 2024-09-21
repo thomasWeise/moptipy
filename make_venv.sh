@@ -43,4 +43,4 @@ done
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Printing the list of installed packages."
 "$PYTHON_INTERPRETER" -m pip freeze
 
-echo "$(date +'%0Y-%0m-%0d %0R:%0S'): We have finished the build process."
+echo "$(date +'%0Y-%0m-%0d %0R:%0S'): We have finished the environment making process."

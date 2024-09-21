@@ -6,6 +6,7 @@ import platform
 import re
 import socket
 import sys
+from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Final, Iterable
 
@@ -13,7 +14,6 @@ import psutil  # type: ignore
 from pycommons.io.csv import CSV_SEPARATOR, SCOPE_SEPARATOR
 from pycommons.io.path import Path
 from pycommons.processes.caller import is_build
-from pycommons.types import type_error
 
 import moptipy.version as ver
 from moptipy.api import logging
@@ -79,9 +79,7 @@ def add_dependency(dependency: str,
         information has already been accessed before and modifying it now is
         not permissible.
     """
-    if not isinstance(dependency, str):
-        raise type_error(dependency, "dependency", str)
-    if (len(dependency) <= 0) or (dependency != dependency.strip())\
+    if (str.__len__(dependency) <= 0) or (dependency != str.strip(dependency))\
             or (" " in dependency):
         raise ValueError(f"Invalid dependency string {dependency!r}.")
     if __DEPENDENCIES is None:
@@ -117,9 +115,9 @@ def __make_sys_info() -> str:
         """
         if value is None:
             return
-        value = " ".join([ts.strip() for ts in
-                          str(value).strip().split("\n")]).strip()
-        if len(value) <= 0:
+        value = str.strip(" ".join([str.strip(ts) for ts in
+                                    str.strip(str(value)).split("\n")]))
+        if str.__len__(value) <= 0:
             return
         sec.key_value(key, value)
 
@@ -241,8 +239,12 @@ def __make_sys_info() -> str:
                     if package == "moptipy":
                         __v(k, "moptipy", ver.__version__)
                     else:
-                        __v(k, package.replace("-", ""),
-                            ilm.version(package).strip())
+                        use_v: str | None = None
+                        with suppress(BaseException):
+                            use_v = str.strip(ilm.version(package))
+                        if (use_v is None) or (str.__len__(use_v) <= 0):
+                            use_v = "notFound"
+                        __v(k, package.replace("-", ""), use_v)
 
             with kv.scope(logging.SCOPE_HARDWARE) as k:
                 __v(k, logging.KEY_HW_MACHINE, platform.machine())
