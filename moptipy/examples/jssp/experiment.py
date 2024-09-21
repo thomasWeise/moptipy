@@ -76,8 +76,7 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                    instances: Iterable[str] = INSTANCES,
                    n_runs: int = EXPERIMENT_RUNS,
                    max_time: int | None = EXPERIMENT_RUNTIME_MS,
-                   max_fes: int | None = None,
-                   n_threads: int | None = None) -> None:
+                   max_fes: int | None = None) -> None:
     """
     Run the experiment.
 
@@ -90,7 +89,6 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
     :param n_runs: the number of runs
     :param max_time: the maximum runtime in milliseconds
     :param max_fes: the maximum runtime in FEs
-    :param n_threads: the number of threads
     """
     # The initial parameter validity checks.
     if not isinstance(base_dir, str):
@@ -165,8 +163,6 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
                                "warmup_fes": 20,
                                "perform_pre_warmup": True,
                                "pre_warmup_fes": 20}
-    if n_threads is not None:
-        ikwargs["n_threads"] = n_threads
 
     ex.run_experiment(**ikwargs)  # invoke the actual experiment
 
@@ -180,9 +176,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "dest", help="the directory where the results should be stored",
         type=Path, default="./results", nargs="?")
-    parser.add_argument(
-        "threads", help="the number of threads to use for the experiment",
-        type=int, default=ex.Parallelism.ACCURATE_TIME_MEASUREMENTS,
-        nargs="?")
     args: Final[argparse.Namespace] = parser.parse_args()
-    run_experiment(base_dir=args.dest, n_threads=args.threads)
+    run_experiment(base_dir=args.dest)

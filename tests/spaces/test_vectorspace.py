@@ -29,7 +29,7 @@ def test_vector_space_1() -> None:
     assert a.dtype == space.dtype
     assert space.to_str(space.create()) == "0;0;0;0;0;0;0;0;0;0;0;0"
 
-    for i in range(len(a)):
+    for i in range(len(a)):  # pylint: disable=C0200
         a[i] = 1.0 / (i + 1.0)
     b = space.create()
     assert not space.is_equal(a, b)
@@ -88,7 +88,7 @@ def test_vector_space_2() -> None:
     assert len(a) == 3
     assert a.dtype == space.dtype
 
-    for i in range(len(a)):
+    for i in range(len(a)):  # pylint: disable=C0200
         a[i] = space.lower_bound[i] + 0.1
     b = space.create()
     assert not space.is_equal(a, b)
@@ -149,7 +149,7 @@ def test_vector_space_3() -> None:
     assert len(a) == 3
     assert a.dtype == space.dtype
 
-    for i in range(len(a)):
+    for i in range(len(a)):  # pylint: disable=C0200
         a[i] = space.lower_bound[i] + 0.1
 
     assert space.to_str(a) == "-0.9;-0.9;-0.9"

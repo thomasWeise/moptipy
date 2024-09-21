@@ -56,18 +56,13 @@ def algo_2(inst: Instance) -> Execution:
     return ex
 
 
-def __test_experiment_jssp_with_threads(n_threads: int | None) -> None:
-    """
-    Run the JSSP test experiment.
-
-    :param n_threads: the number of threads
-    """
+def test_experiment_jssp() -> None:
+    """Run the JSSP test experiment."""
     with temp_dir() as base_dir:
         run_experiment(instances=instances,
                        setups=[algo_1, algo_2],
                        n_runs=10,
                        base_dir=base_dir,
-                       n_threads=3,
                        perform_warmup=False)
 
         algos = listdir(base_dir)
@@ -95,17 +90,10 @@ def __test_experiment_jssp_with_threads(n_threads: int | None) -> None:
                     assert pt.isfile(rp)
                     assert pt.getsize(rp) > 10
 
-        if n_threads is None:
-            run_experiment(instances=instances,
-                           setups=[algo_1, algo_2],
-                           n_runs=10,
-                           base_dir=base_dir)
-        else:
-            run_experiment(instances=instances,
-                           setups=[algo_1, algo_2],
-                           n_runs=10,
-                           base_dir=base_dir,
-                           n_threads=n_threads)
+        run_experiment(instances=instances,
+                       setups=[algo_1, algo_2],
+                       n_runs=10,
+                       base_dir=base_dir)
 
         algos = listdir(base_dir)
         assert len(algos) == 2
@@ -131,32 +119,3 @@ def __test_experiment_jssp_with_threads(n_threads: int | None) -> None:
                     rp = pt.join(ip, run)
                     assert pt.isfile(rp)
                     assert pt.getsize(rp) > 10
-
-
-def test_experiment_jssp() -> None:
-    """Run the JSSP test experiment."""
-    __test_experiment_jssp_with_threads(None)
-
-
-def test_experiment_jssp_1_thread() -> None:
-    """Run the JSSP test experiment using a single thread."""
-    __test_experiment_jssp_with_threads(1)
-
-
-def test_experiment_jssp_2_threads() -> None:
-    """Run the JSSP test experiment using 2 threads."""
-    __test_experiment_jssp_with_threads(2)
-
-
-def test_experiment_jssp_after_sysinfo() -> None:
-    """Run the JSSP test experiment after reading the system information."""
-    import moptipy.utils.sys_info as s  # pylint: disable=C0415  # noqa
-    assert str.__len__(s.get_sys_info()) > 10
-    __test_experiment_jssp_with_threads(None)
-
-
-def test_experiment_jssp_after_sysinfo_1_thread() -> None:
-    """Run the JSSP test experiment after reading the system information."""
-    import moptipy.utils.sys_info as s  # pylint: disable=C0415  # noqa
-    assert str.__len__(s.get_sys_info()) > 10
-    __test_experiment_jssp_with_threads(1)

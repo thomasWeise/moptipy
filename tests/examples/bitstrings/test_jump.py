@@ -51,7 +51,8 @@ def test_jump() -> None:
                 is_deterministic=True,
                 lower_bound_threshold=0,
                 upper_bound_threshold=n + k - 1,
-                must_be_equal_to=lambda x, nn=n, kk=k: _jump(x, nn, kk))
+                must_be_equal_to=lambda x, nn=n, kk=k:  # type: ignore
+                _jump(x, nn, kk))
 
             assert f.evaluate(opt) == 0
             assert f.evaluate(worst) == n + k - 1

@@ -3,7 +3,7 @@
 from typing import Final
 
 from numpy.random import default_rng
-from scipy.special import comb
+from scipy.special import comb  # type: ignore
 
 from moptipy.algorithms.so.vector.cmaes_lib import CMAES
 from moptipy.algorithms.so.vector.surrogate.rbf_interpolation import (

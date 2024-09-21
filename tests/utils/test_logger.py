@@ -3,7 +3,7 @@ import csv
 from os.path import exists, isfile
 
 # noinspection PyPackageRequirements
-import yaml
+import yaml  # type: ignore
 from pycommons.io.temp import temp_file
 
 from moptipy.utils.logger import FileLogger
@@ -29,7 +29,7 @@ def test_log_files() -> None:
             with log.csv("D", ["o", "p", "q"]) as xsv:
                 xsv.row([-341, 42, 3])
                 xsv.row([4, 52, 12])
-        with open(path) as file:
+        with open(path, encoding="UTF8") as file:
             result = file.read().splitlines()
         assert result == ["BEGIN_A",  # 0
                           "x;y",  # 1

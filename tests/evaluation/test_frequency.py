@@ -155,7 +155,8 @@ def test_frequency() -> None:
         assert key.encoding is None
         assert key.rand_seed == exa.seed
         assert key.objective == "tourLength"
-        keys = tuple(sorted(value.keys(), reverse=True))
+        keys: list[int | float] | tuple[int | float, ...] = tuple(
+            sorted(value.keys(), reverse=True))
         assert keys == exa.progress
         assert all(value[k] == 1 for k in keys)
         data.clear()
@@ -278,7 +279,7 @@ def test_frequency() -> None:
         assert key.encoding is None
         assert key.rand_seed == exa.seed
         assert key.objective == "tourLength"
-        expc: dict[int, int] = Counter(exa.all_h) + Counter(exa.progress)
+        expc = Counter(exa.all_h) + Counter(exa.progress)
         expc[exa.lb] = 1
         expc[exa.ub] = 1
         expc[exa.goal] = 1

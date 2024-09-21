@@ -43,7 +43,7 @@ def test_parse_end_result() -> None:
                     .set_solution_space(BitStrings(om.n))
                     .set_algorithm(RLS(Op0Random(), Op1Flip1()))
                     .set_max_fes(20).set_objective(om)],
-            n_runs=1, n_threads=1,
+            n_runs=1,
             perform_warmup=False, perform_pre_warmup=False)
         assert rd == td
         res_dir_1 = td.resolve_inside("rls_flip1")

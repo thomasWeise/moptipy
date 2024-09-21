@@ -16,15 +16,10 @@ https://thomasweise.github.io/moptipy/#log-file-sections.
 """
 import copy
 import gc
-import multiprocessing as mp
 import os.path
-import platform
-from contextlib import AbstractContextManager, nullcontext
-from enum import IntEnum
-from math import ceil
+from os import getpid
 from typing import Any, Callable, Final, Iterable, Sequence, cast
 
-import psutil  # type: ignore
 from numpy.random import Generator, default_rng
 from pycommons.ds.cache import str_is_new
 from pycommons.io.console import logger
@@ -36,19 +31,17 @@ from moptipy.api.logging import FILE_SUFFIX
 from moptipy.api.process import Process
 from moptipy.utils.nputils import rand_seeds_from_str
 from moptipy.utils.strings import sanitize_name, sanitize_names
-from moptipy.utils.sys_info import get_sys_info, update_sys_info_cpu_affinity
+from moptipy.utils.sys_info import get_sys_info
 
 
 def __run_experiment(base_dir: Path,
                      experiments: list[list[Callable]],
                      n_runs: list[int],
+                     thread_id: str,
                      perform_warmup: bool,
                      warmup_fes: int,
                      perform_pre_warmup: bool,
                      pre_warmup_fes: int,
-                     stdio_lock: AbstractContextManager,
-                     thread_id: str,
-                     pre_warmup_barrier,
                      on_completion: Callable[[
                          Any, Path, Process], None]) -> None:
     """
@@ -56,21 +49,19 @@ def __run_experiment(base_dir: Path,
 
     :param base_dir: the base directory
     :param experiments: the stream of experiment setups
+    :param n_runs: the list of runs
+    :param thread_id: the thread id
     :param perform_warmup: should we perform a warm-up per instance?
     :param warmup_fes: the number of the FEs for the warm-up runs
     :param perform_pre_warmup: should we do one warmup run for each
         instance before we begin with the actual experiments?
     :param pre_warmup_fes: the FEs for the pre-warmup runs
-    :param stdio_lock: the lock for log output
-    :param thread_id: the thread id
-    :param pre_warmup_barrier: a barrier to wait at after the pre-warmup
     :param on_completion: a function to be called for every completed run,
         receiving the instance, the path to the log file (before it is
         created) and the :class:`~moptipy.api.process.Process` of the run
         as parameters
     """
     random: Final[Generator] = default_rng()
-
     cache: Final[Callable[[str], bool]] = str_is_new()
     for warmup in ([True, False] if perform_pre_warmup else [False]):
         wss: str
@@ -82,12 +73,10 @@ def __run_experiment(base_dir: Path,
                 gc.collect()  # do full garbage collection after pre-warmups
                 gc.collect()  # one more, to be double-safe
                 gc.freeze()  # whatever survived now, keep it permanently
-                if pre_warmup_barrier:
-                    logger(
-                        "reached pre-warmup barrier.", thread_id, stdio_lock)
-                    pre_warmup_barrier.wait()  # wait for all threads
 
         for runs in ([1] if warmup else n_runs):  # for each number of runs
+            if not warmup:
+                logger(f"now doing {runs} runs.", thread_id)
             random.shuffle(cast(Sequence, experiments))  # shuffle experiments
 
             for setup in experiments:  # for each setup
@@ -138,8 +127,7 @@ def __run_experiment(base_dir: Path,
                         cpy.set_log_file(None)
                         cpy.set_log_improvements(False)
                         cpy.set_log_all_fes(False)
-                        logger(
-                            f"{wss} for {filename!r}.", thread_id, stdio_lock)
+                        logger(f"{wss} for {filename!r}.", thread_id)
                         with cpy.execute():
                             pass
                         del cpy
@@ -148,87 +136,9 @@ def __run_experiment(base_dir: Path,
                         continue
 
                     exp.set_log_file(log_file)
-                    logger(filename, thread_id, stdio_lock)
+                    logger(filename, thread_id)
                     with exp.execute() as process:  # run the experiment
                         on_completion(instance, cast(Path, log_file), process)
-
-
-#: the number of logical CPU cores
-_CPU_LOGICAL_CORES: Final[int] = psutil.cpu_count(logical=True)
-#: the number of phyiscal CPU cores
-_CPU_PHYSICAL_CORES: Final[int] = psutil.cpu_count(logical=False)
-#: the logical cores per physical core
-_CPU_LOGICAL_PER_PHYSICAL: Final[int] = \
-    max(1, int(ceil(_CPU_LOGICAL_CORES / _CPU_PHYSICAL_CORES)))
-
-
-class Parallelism(IntEnum):
-    """
-    An enumeration of parallel thread counts.
-
-    The `value` of each element of this enumeration equal the number of
-    threads that would be used. Thus, the values are different on
-    different systems. Currently, only Linux is supported for parallelism.
-    For all other systems, you need to manually start the program as often
-    as you want it to run in parallel. On other systems, all values of this
-    enumeration are `1`.
-
-    >>> Parallelism.SINGLE_THREAD.value
-    1
-    """
-
-    #: use only a single thread
-    SINGLE_THREAD = 1
-    #: Use as many threads as accurate time measurement permits. This equals
-    #: to using one logical core on each physical core and leaving one
-    #: physical core unoccupied (but always using at least one thread,
-    #: obviously). If you have four physical cores with two logical cores
-    #: each, this would mean using three threads on Linux.
-    #: On Windows, parallelism is not supported yet, so this would equal using
-    #: only one core on Windows.
-    ACCURATE_TIME_MEASUREMENTS = max(1, _CPU_PHYSICAL_CORES - 1) \
-        if "Linux" in platform.system() else 1
-    #: Use all but one logical core. This *will* mess up time measurements but
-    #: should produce the maximum performance while not impeding the system of
-    #: doing stuff like garbage collection or other bookkeeping and overhead
-    #: tasks. This is the most reasonable option if you want to execute one
-    #: experiment as quickly as possible. If you have four physical cores with
-    #: two logical cores each, this would mean using seven threads on Linux.
-    #: On Windows, parallelism is not supported yet, so this would equal using
-    #: only one core on Windows.
-    PERFORMANCE = max(1, _CPU_LOGICAL_CORES - 1) \
-        if "Linux" in platform.system() else 1
-    #: Use every single logical core available, which may mess up your system.
-    #: We run the experiment as quickly as possible, but the system may not be
-    #: usable while the experiment is running. Background tasks like garbage
-    #: collection, moving the mouse course, accepting user input, or network
-    #: communication may come to a halt. Seriously, why would you use this?
-    #: If you have four physical cores with  two logical cores each, this would
-    #: mean using eight threads on Linux.
-    #: On Windows, parallelism is not supported yet, so this would equal using
-    #: only one core on Windows.
-    RECKLESS = max(1, _CPU_LOGICAL_CORES) \
-        if "Linux" in platform.system() else 1
-
-
-def __waiting_run_experiment(
-        base_dir: Path, experiments: list[list[Callable]],
-        n_runs: list[int], perform_warmup: bool, warmup_fes: int,
-        perform_pre_warmup: bool, pre_warmup_fes: int,
-        stdio_lock: AbstractContextManager, thread_id: str,
-        event, pre_warmup_barrier,
-        on_completion: Callable[[Any, Path, Process], None]) -> None:
-    """Wait until event is set, then run experiment."""
-    logger("waiting for start signal", thread_id, stdio_lock)
-    if not event.wait():
-        raise ValueError("Wait terminated unexpectedly.")
-    logger("got start signal, beginning experiment", thread_id, stdio_lock)
-    update_sys_info_cpu_affinity()
-    gc.collect()
-    __run_experiment(base_dir, experiments, n_runs,
-                     perform_warmup, warmup_fes, perform_pre_warmup,
-                     pre_warmup_fes, stdio_lock, thread_id,
-                     pre_warmup_barrier, on_completion)
 
 
 def __no_complete(_: Any, __: Path, ___: Process) -> None:
@@ -239,7 +149,6 @@ def run_experiment(
         base_dir: str, instances: Iterable[Callable[[], Any]],
         setups: Iterable[Callable[[Any], Execution]],
         n_runs: int | Iterable[int] = 11,
-        n_threads: int = Parallelism.ACCURATE_TIME_MEASUREMENTS,
         perform_warmup: bool = True, warmup_fes: int = 20,
         perform_pre_warmup: bool = True, pre_warmup_fes: int = 20,
         on_completion: Callable[[Any, Path, Process], None] = __no_complete) \
@@ -258,17 +167,6 @@ def run_experiment(
     exactly the same file structure (give and take clock-time dependent
     issues, which obviously cannot be controlled in a deterministic fashion).
 
-    This function will use `n_threads` separate processes to parallelize the
-    whole experiment (if you do not specify `n_threads`, it will be chosen
-    automatically).
-
-    Note for Windows users: The parallelization will not work under Windows.
-    However, you can achieve *almost* the same effect and performance as for
-    `n_threads=N` if you set `n_threads=1` and simply start the program `N`
-    times separately (in separate terminals and in parallel). Of course, all
-    `N` processes must have the same `base_dir` parameter. They will then
-    automatically share the workload.
-
     :param base_dir: the base directory where to store the results
     :param instances: an iterable of callables, each of which should return an
         object representing a problem instance, whose `__str__` representation
@@ -277,21 +175,6 @@ def run_experiment(
         returned by instances) as input and producing an
         :class:`moptipy.api.execution.Execution` as output
     :param n_runs: the number of runs per algorithm-instance combination
-    :param n_threads: the number of parallel threads of execution to use.
-        This parameter only works under Linux! It should be set to 1 under all
-        other operating systems. Under Linux, by default, we will use the
-        number of physical cores - 1 processes.
-        The default value for `n_threads` is computed in \
-:py:const:`~moptipy.api.experiment.Parallelism.ACCURATE_TIME_MEASUREMENTS`,
-        which will be different for different machines(!).
-        We will try to distribute the threads over different logical and
-        physical cores to minimize their interactions. If n_threads is less
-        or equal the number of physical cores, then multiple logical cores
-        will be assigned to each process.
-        If less threads than the number of physical cores are spawned, we will
-        leave one physical core unoccupied. This core may be used by the
-        operating system or other processes for their work, thus reducing
-        interference of the os with our experiments.
     :param perform_warmup: should we perform a warm-up for each instance?
         If this parameter is `True`, then before the very first run of a
         thread on an instance, we will execute the algorithm for just a few
@@ -333,7 +216,6 @@ def run_experiment(
         raise type_error(perform_pre_warmup, "perform_pre_warmup", bool)
     check_int_range(warmup_fes, "warmup_fes", 1, 1_000_000)
     check_int_range(pre_warmup_fes, "pre_warmup_fes", 1, 1_000_000)
-    check_int_range(n_threads, "n_threads", 1, 16384)
     instances = list(instances)
     if len(instances) <= 0:
         raise ValueError("Instance enumeration is empty.")
@@ -371,89 +253,16 @@ def run_experiment(
     use_dir: Final[Path] = Path(base_dir)
     use_dir.ensure_dir_exists()
 
-    stdio_lock: AbstractContextManager
-
-    if n_threads > 1:
-        stdio_lock = mp.Lock()
-        logger(f"starting experiment with {n_threads} threads "
-               f"on {_CPU_LOGICAL_CORES} logical cores, "
-               f"{_CPU_PHYSICAL_CORES} physical cores (i.e.,"
-               f" {_CPU_LOGICAL_PER_PHYSICAL} logical cores per physical "
-               "core).", "", stdio_lock)
-
-        event: Final = mp.Event()
-        pre_warmup_barrier: Final = mp.Barrier(n_threads) \
-            if perform_pre_warmup else None
-
-        # We must eventually switch from "fork" to "spawn".
-        # However, "spawn" does not permit lambda.
-        # And we always use lambdas to create instances and algorithms.
-        ctx: Final = mp.get_context("fork")
-        processes: Final[list[mp.Process]] = \
-            [cast(mp.Process, ctx.Process(target=__waiting_run_experiment,
-                                          args=(use_dir,
-                                                experiments.copy(),
-                                                n_runs,
-                                                perform_warmup,
-                                                warmup_fes,
-                                                perform_pre_warmup,
-                                                pre_warmup_fes,
-                                                stdio_lock,
-                                                ":" + hex(i)[2:],
-                                                event,
-                                                pre_warmup_barrier,
-                                                on_completion)))
-             for i in range(n_threads)]
-
-        for i, p in enumerate(processes):
-            p.start()
-            logger(f"started processes {hex(i)[2:]} in waiting state.",
-                   "", stdio_lock)
-
-        # try to distribute the load evenly over all cores
-        n_cpus: int = _CPU_PHYSICAL_CORES
-        core_ofs: int = 0
-        if n_threads < n_cpus:
-            n_cpus -= 1
-            core_ofs = _CPU_LOGICAL_PER_PHYSICAL
-        n_cores: Final[int] = n_cpus * _CPU_LOGICAL_PER_PHYSICAL
-        n_cores_per_thread: Final[int] = max(1, n_cores // n_threads)
-
-        last_core: int = 0
-        for i, p in enumerate(processes):
-            pid: int = int(p.pid)
-            aff: list[int] = []
-            for _ in range(n_cores_per_thread):
-                aff.append(int((last_core + core_ofs) % _CPU_LOGICAL_CORES))
-                last_core += 1
-            psutil.Process(pid).cpu_affinity(aff)
-            logger(f"set affinity of processes {hex(i)[2:]} with "
-                   f"pid {pid} ({hex(pid)}) to {aff}.", "", stdio_lock)
-        logger("now releasing lock and starting all processes.",
-               "", stdio_lock)
-        event.set()
-        for i, p in enumerate(processes):
-            p.join()
-            logger(f"processes {hex(i)[2:]} has finished.", "", stdio_lock)
-
-    else:
-        logger(f"starting experiment with single thread "
-               f"on {_CPU_LOGICAL_CORES} logical cores, "
-               f"{_CPU_PHYSICAL_CORES} physical cores (i.e.,"
-               f" {_CPU_LOGICAL_PER_PHYSICAL} logical cores per physical "
-               "core).")
-        stdio_lock = nullcontext()
-        __run_experiment(base_dir=use_dir,
-                         experiments=experiments,
-                         n_runs=n_runs,
-                         perform_warmup=perform_warmup,
-                         warmup_fes=warmup_fes,
-                         perform_pre_warmup=perform_pre_warmup,
-                         pre_warmup_fes=pre_warmup_fes,
-                         stdio_lock=stdio_lock,
-                         thread_id="",
-                         pre_warmup_barrier=None,
-                         on_completion=on_completion)
-
-    logger("finished experiment.", "", stdio_lock)
+    thread_id: Final[str] = f"{getpid():x}"
+    logger("beginning experiment execution.", thread_id)
+    __run_experiment(base_dir=use_dir,
+                     experiments=experiments,
+                     n_runs=n_runs,
+                     thread_id=thread_id,
+                     perform_warmup=perform_warmup,
+                     warmup_fes=warmup_fes,
+                     perform_pre_warmup=perform_pre_warmup,
+                     pre_warmup_fes=pre_warmup_fes,
+                     on_completion=on_completion)
+    logger("finished experiment execution.", thread_id)
     return use_dir

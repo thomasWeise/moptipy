@@ -13,7 +13,7 @@ from moptipy.tests.on_bitstrings import validate_fitness_on_bitstrings
 def test_ffa_on_bit_strings() -> None:
     """Test the frequency fitness assignment process on bit strings."""
     validate_fitness_on_bitstrings(
-        fitness=lambda f: FFA(f),
+        fitness=FFA,
         class_needed="moptipy.algorithms.so.fitnesses.ffa._IntFFA1")
 
 
@@ -23,7 +23,9 @@ def test_ffa_on_bit_strings_2() -> None:
     def prepare(f: Objective) -> Objective:
         random: Final[Generator] = default_rng()
         olb = f.lower_bound()
+        assert isinstance(olb, int)
         oub = f.upper_bound()
+        assert isinstance(oub, int)
         while True:
             lb = int(random.integers(-SWITCH_TO_MAP_RANGE,
                                      SWITCH_TO_MAP_RANGE))
@@ -39,7 +41,7 @@ def test_ffa_on_bit_strings_2() -> None:
         return f
 
     validate_fitness_on_bitstrings(
-        fitness=lambda f: FFA(f),
+        fitness=FFA,
         class_needed="moptipy.algorithms.so.fitnesses.ffa._IntFFA2",
         prepare_objective=prepare)
 
@@ -49,8 +51,10 @@ def test_ffa_on_bit_strings_3() -> None:
 
     def prepare(f: Objective) -> Objective:
         random: Final[Generator] = default_rng()
-        lb = olb = f.lower_bound()
+        olb = f.lower_bound()
+        assert isinstance(olb, int)
         oub = f.upper_bound()
+        assert isinstance(oub, int)
         choice: Final[int] = random.integers(1, 4)
 
         if choice in (1, 3):
@@ -64,17 +68,17 @@ def test_ffa_on_bit_strings_3() -> None:
             f.lower_bound = lambda _l=lb: _l  # type: ignore
             f.upper_bound = lambda _u=ub: _u  # type: ignore
             ofe = f.evaluate
-            f.evaluate = \
-                lambda x, _l=lb - olb, _o=ofe: _o(x) + _l  # type: ignore
+            f.evaluate = lambda x, _l=lb - olb, _o=ofe: (  # type: ignore
+                _o(x) + _l)
 
         if choice in (2, 3):
-            f.is_always_integer = lambda: False
+            f.is_always_integer = lambda: False  # type: ignore
             ofe2 = f.evaluate
             f.evaluate = lambda x, _of=ofe2: float(_of(x))  # type: ignore
 
         return f
 
     validate_fitness_on_bitstrings(
-        fitness=lambda f: FFA(f),
+        fitness=FFA,
         class_needed="moptipy.algorithms.so.fitnesses.ffa._DictFFA",
         prepare_objective=prepare)

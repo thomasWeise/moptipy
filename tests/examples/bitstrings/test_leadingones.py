@@ -36,7 +36,7 @@ def test_leadingones() -> None:
         is_deterministic=True,
         lower_bound_threshold=0,
         upper_bound_threshold=space.dimension,
-        must_be_equal_to=lambda xx, dim=space.dimension:
+        must_be_equal_to=lambda xx, dim=space.dimension:  # type: ignore
         _leadingones(xx, dim))
 
     space = BitStrings(2)

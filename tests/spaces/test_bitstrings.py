@@ -21,7 +21,7 @@ def test_bit_strings() -> None:
     assert a.dtype == np.dtype(np.bool_)
     assert all(not b for b in a)
 
-    for i in range(len(a)):
+    for i in range(len(a)):  # pylint: disable=C0200
         a[i] = (i & 1) == 0
     b = f.create()
     assert not f.is_equal(a, b)

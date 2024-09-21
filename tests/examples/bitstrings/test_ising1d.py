@@ -35,7 +35,8 @@ def test_ising1d() -> None:
         is_deterministic=True,
         lower_bound_threshold=0,
         upper_bound_threshold=space.dimension,
-        must_be_equal_to=lambda xx, dim=space.dimension: _ising1d(xx, dim))
+        must_be_equal_to=lambda xx, dim=space.dimension:  # type: ignore
+        _ising1d(xx, dim))
 
     space = BitStrings(2)
     f = Ising1d(2)

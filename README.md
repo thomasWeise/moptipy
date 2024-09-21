@@ -268,10 +268,6 @@ Additionally, you provide a sequence of callables (functions or lambdas), each o
 You also provide the number of runs to be executed per "setup" * "instance" combination and a base directory path identifying the directory where one log file should be written for each run.
 
 `moptipy` also supports [parallel and distributed experiments](#83-parallel-and-distributed-experiments). 
-Under Linux, you can specify the number `n_threads` of parallel processes to use, unless you want the system to automatically decide this.
-(*Parallelization currently only works under Linux.*
-If you have Windows or Mac, you can just start the program several times independently in parallel to achieve a similar effect.)
-This is discussed [here](#83-parallel-and-distributed-experiments).
 
 All of this is passed to the function [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) in module [`moptipy.api.experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment).
 
@@ -354,8 +350,7 @@ with temp_dir() as td:  # create temporary directory `td`
                    instances=problems,  # define the problem instances
                    setups=[make_rls,  # provide RLS run creator
                            make_random_sampling],  # provide RS run creator
-                   n_runs=5,  # we will execute 5 runs per setup
-                   n_threads=1)  # we use only a single thread here
+                   n_runs=5)  # we will execute 5 runs per setup
 
     from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
@@ -407,9 +402,7 @@ rls_flip1 on leadingones_10: 0
 rls_flip1 on leadingones_10: 0
 ```
 
-When you invoke [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment)  and not specify `n_threads = 1`, the system will automatically determine a suitable number of processes to launch in order to execute the runs of the experiment in parallel.
-Under Windows or MacOS, you should always specify `n_threads = 1` because this sort of parallelism doesn't work there.
-But you can simply launch the main process several times in the same folder to achieve the same effect.
+You can simply launch the main process several times in parallel in the same folder to achieve parallelism.
 Actually, you can also execute experiments in a *distributed* fashion like this:
 All you have to do is to share the folder for the log files among all computer nodes.
 Then, in this shared folder, execute the experiment on each node.
@@ -688,9 +681,7 @@ with temp_dir() as td:  # create temporary directory `td`
     run_experiment(base_dir=td,  # set the base directory for log files
                    instances=problems,  # define the problem instances
                    setups=[make_execution],  # creator for our algorithm
-                   n_runs=5,  # we will execute 5 runs per setup
-                   n_threads=1)  # we use only a single thread here
-
+                   n_runs=5)  # we will execute 5 runs per setup
     from_logs(  # parse all log files and print end results
         td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
 # The temp directory is deleted as soon as we leave the `with` block.
@@ -1127,8 +1118,7 @@ with temp_dir() as td:  # create temp directory
             # an algorithm is created via a lambda
             lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],
         instances=("demo",),  # use the demo JSSP instance
-        n_runs=1,  # perform exactly one run
-        n_threads=1)  # use exactly one thread
+        n_runs=1)  # perform exactly one run
     # The random seed is automatically generated based on the instance name.
     print(td.resolve_inside(  # so we know algorithm, instance, and seed
         "rls_swap2/demo/rls_swap2_demo_0x5a9363100a272f12.txt")
@@ -2227,12 +2217,6 @@ Before doing a run, the system will create the corresponding (empty) log file.
 This means that you could launch the experiment program twice in parallel.
 Each process would then do about half of the runs, because it will skip the runs for which the log files have been created by the other process.
 (It also means that if your experiment crashes, you can simply delete all zero-sized files and start again to continue it.)
-
-Under Linux, [`run_experiment`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.experiment.run_experiment) supports the parameter `n_threads`.
-Here you can set the number of processes to launch.
-It will take on a reasonable system-dependent default values based on your CPU and automatically parallelize the runs.
-On all other operating systems, `n_threads=1` by default.
-There, you can simply start the program running the experiment multiple times.
 
 You can achieve distributed experiment executing by simply sharing the folder for the log files between the machines.
 If you use a shared root folder for experiments and launch the same experiment on multiple machines, they will automatically distribute the work load amongst each other using this very (and therefore very robust) simple system.

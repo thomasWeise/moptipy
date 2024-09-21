@@ -27,7 +27,7 @@ rm -rf build
 rm -rf dist
 rm -rf docs/build
 rm -rf docs/source/*.rst
-rm -rf pycommons.egg-info
+rm -rf moptipy.egg-info
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Done cleaning up old files."
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): We setup a virtual environment in a temp directory."
@@ -38,12 +38,18 @@ python3 -m venv --upgrade-deps --copies "$venvDir"
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Activating virtual environment in '$venvDir'."
 source "$venvDir/bin/activate"
 
-pythonInterpreter="$venvDir/bin/python3"
-echo "$(date +'%0Y-%0m-%0d %0R:%0S'): pythonInterpreter='$pythonInterpreter'."
+export PYTHON_INTERPRETER="$venvDir/bin/python3"
+oldPythonPath="${PYTHONPATH:-}"
+if [ -n "$oldPythonPath" ]; then
+  export PYTHONPATH="$currentDir:$oldPythonPath"
+else
+  export PYTHONPATH="$currentDir"
+fi
+echo "$(date +'%0Y-%0m-%0d %0R:%0S'): PYTHONPATH='$PYTHONPATH', PYTHON_INTERPRETER='$PYTHON_INTERPRETER'."
 
 cycle=1
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Installing requirements."
-while ! ("$pythonInterpreter" -m pip install --no-input --default-timeout=300 --timeout=300 --retries=100 -r requirements-dev.txt && "$pythonInterpreter" -m pip install --no-input --default-timeout=300 --timeout=300 --retries=100 -r requirements.txt); do
+while ! ("$PYTHON_INTERPRETER" -m pip install --no-input --default-timeout=300 --timeout=300 --retries=100 -r requirements.txt && "$PYTHON_INTERPRETER" -m pip install --no-input --default-timeout=300 --timeout=300 --retries=100 -r requirements-dev.txt) ; do
     cycle=$((cycle+1))
     if (("$cycle" > 100)) ; then
         echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Something odd is happening: We have performed $cycle cycles of pip install and all failed. That's too many. Let's quit."
@@ -53,26 +59,27 @@ while ! ("$pythonInterpreter" -m pip install --no-input --default-timeout=300 --
 done
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Printing the list of installed packages."
-pip freeze
+"$PYTHON_INTERPRETER" -m pip freeze
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now performing unit tests."
-"$pythonInterpreter" -m pycommons.dev.building.run_tests --package moptipy
+"$PYTHON_INTERPRETER" -m pycommons.dev.building.run_tests --package moptipy
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Finished running unit tests."
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now performing static analysis."
-"$pythonInterpreter" -m pycommons.dev.building.static_analysis --package moptipy
+"$PYTHON_INTERPRETER" -m pycommons.dev.building.static_analysis --package moptipy
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Done: All static checks passed."
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now building documentation."
-"$pythonInterpreter" -m pycommons.dev.building.make_documentation --root "$currentDir" --package moptipy
+"$PYTHON_INTERPRETER" -m pycommons.dev.building.make_documentation --root "$currentDir" --package moptipy
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Done building documentation."
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now building source distribution file."
-"$pythonInterpreter" -m pycommons.dev.building.make_dist --root "$currentDir" --package moptipy
+"$PYTHON_INTERPRETER" -m pycommons.dev.building.make_dist --root "$currentDir" --package moptipy
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Successfully finished building source distribution."
 
-echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now trying to install pycommons."
-"$pythonInterpreter" -m pip install --no-input --timeout 360 --retries 100 -v "$currentDir"
-echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Successfully installed pycommons."
+echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Now trying to install moptipy."
+"$PYTHON_INTERPRETER" -m pip install --no-input --timeout 360 --retries 100 -v "$currentDir"
+echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Successfully installed moptipy."
+
 
 echo "$(date +'%0Y-%0m-%0d %0R:%0S'): We have finished the build process."

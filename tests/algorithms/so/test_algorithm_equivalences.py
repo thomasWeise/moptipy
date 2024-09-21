@@ -166,9 +166,9 @@ def test_general_ea_equals_ea() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: __EAC(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: __EAC(  # type: ignore
                 op0, op1, op2, mx, lx, bx),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx),
         ])
 
@@ -206,9 +206,9 @@ def test_general_ea_under_order_preserving_fitnesses() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=__SDirect()),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=Rank()),
         ])
 
@@ -225,23 +225,23 @@ def test_general_ea_under_order_preserving_fitnesses_and_tournament() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=__SDirect(),
                 survival=TournamentWithReplacement()),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=Rank(),
                 survival=TournamentWithReplacement()),
         ])
     for _ in range(3):
-        mu: int = int(random.integers(2, 10))
-        lambda_: int = int(random.integers(1, 10))
-        br: float = float(random.uniform(0.1, 0.9))
+        mu = int(random.integers(2, 10))
+        lambda_ = int(random.integers(1, 10))
+        br = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=__SDirect(),
                 survival=TournamentWithoutReplacement()),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(
+            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=Rank(),
                 survival=TournamentWithoutReplacement()),
         ])
@@ -259,10 +259,10 @@ def test_ma_with_rls_vs_marls() -> None:
         ls_fes: int = int(random.integers(1, 16))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MA(
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MA(  # type: ignore
                 op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MARLS(
-                op0, op1, op2, mx, lx, lsf),
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes:  # type: ignore
+            MARLS(op0, op1, op2, mx, lx, lsf),
         ])
 
 
@@ -348,8 +348,8 @@ def test_general_ma_equals_ma() -> None:
         ls_fes: int = int(random.integers(1, 16))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: __MA(
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: __MA(  # type: ignore
                 op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: GeneralMA(
-                op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
+            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes:  # type: ignore
+            GeneralMA(op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
         ])

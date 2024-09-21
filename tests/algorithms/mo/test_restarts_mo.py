@@ -92,7 +92,7 @@ def test_restarted_morls_on_jssp() -> None:
     """Validate the restarted MO-RLS on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               problem: MOProblem) -> __MORLS:
+               problem: MOProblem) -> MOAlgorithm:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(problem, MOProblem)

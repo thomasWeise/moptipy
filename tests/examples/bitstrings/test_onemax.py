@@ -34,7 +34,8 @@ def test_onemax() -> None:
         is_deterministic=True,
         lower_bound_threshold=0,
         upper_bound_threshold=space.dimension,
-        must_be_equal_to=lambda xx, dim=space.dimension: _onemax(xx, dim))
+        must_be_equal_to=lambda xx, dim=space.dimension:  # type: ignore
+        _onemax(xx, dim))
 
     space = BitStrings(2)
     f = OneMax(2)

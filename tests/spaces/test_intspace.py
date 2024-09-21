@@ -28,12 +28,12 @@ def test_int_space() -> None:
     assert a.dtype == f.dtype
     assert all(a == 3)
 
-    for i in range(len(a)):
+    for i in range(len(a)):  # pylint: disable=C0200
         a[i] = i
     with raises(ValueError):
         f.validate(a)
 
-    for i in range(len(a)):
+    for i in range(len(a)):  # pylint: disable=C0200
         a[i] = int(f.min_value + (i % (f.max_value - f.min_value)))
     f.validate(a)
 

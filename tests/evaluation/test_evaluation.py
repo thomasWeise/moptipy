@@ -1,8 +1,8 @@
 """Test the execution of an experiment and parsing the log files the JSSP."""
-from os import environ
-
 import numpy as np
 from pycommons.io.temp import temp_dir, temp_file
+from pycommons.math.sample_statistics import SampleStatistics
+from pycommons.processes.caller import is_ci_run
 
 import moptipy.evaluation.base as bs
 from moptipy.algorithms.single_random_sample import SingleRandomSample
@@ -14,6 +14,7 @@ from moptipy.evaluation.end_results import EndResult
 from moptipy.evaluation.end_results import from_csv as er_from_csv
 from moptipy.evaluation.end_results import from_logs as er_from_logs
 from moptipy.evaluation.end_results import to_csv as er_to_csv
+from moptipy.evaluation.end_statistics import EndStatistics
 from moptipy.evaluation.end_statistics import create as es_create
 from moptipy.evaluation.end_statistics import from_csv as es_from_csv
 from moptipy.evaluation.end_statistics import (
@@ -24,6 +25,7 @@ from moptipy.evaluation.ert import compute_single_ert
 from moptipy.evaluation.ert import create as ert_create
 from moptipy.evaluation.progress import Progress
 from moptipy.evaluation.progress import from_logs as pr_from_logs
+from moptipy.evaluation.stat_run import StatRun
 from moptipy.evaluation.stat_run import create as sr_create
 from moptipy.evaluation.stat_run import from_progress as st_from_progress
 from moptipy.examples.jssp.gantt_space import GanttSpace
@@ -142,8 +144,7 @@ def test_experiment_jssp() -> None:
         assert es_hc_a.ert_fes > 0
         assert es_hc_a.ert_time_millis > 0
 
-        if "GITHUB_JOB" in environ:
-
+        if is_ci_run():
             es_rs_a = es_create(results[0:4])
             assert es_rs_a.instance == "abz8"
             assert es_rs_a.algorithm == "1rs"
@@ -167,6 +168,7 @@ def test_experiment_jssp() -> None:
             es = es_create(results[12:20])
             assert es.instance is None
             assert es.algorithm == "hc_swap2"
+            assert isinstance(es.goal_f, SampleStatistics)
             assert es.goal_f.minimum == 648
             assert es.goal_f.maximum == 4380
             assert es.best_f.minimum >= 648
@@ -179,6 +181,7 @@ def test_experiment_jssp() -> None:
             es_all = es_create(results[0:24])
             assert es_all.instance is None
             assert es_all.algorithm is None
+            assert isinstance(es_all.goal_f, SampleStatistics)
             assert es_all.goal_f.minimum == 648
             assert es_all.goal_f.maximum == 4380
             assert es_all.best_f.minimum >= 648
@@ -191,6 +194,7 @@ def test_experiment_jssp() -> None:
             es_rs = es_create(results[0:12])
             assert es_rs.instance is None
             assert es_rs.algorithm == "1rs"
+            assert isinstance(es_rs.goal_f, SampleStatistics)
             assert es_rs.goal_f.minimum == 648
             assert es_rs.goal_f.maximum == 4380
             assert es_rs.best_f.minimum >= 648
@@ -210,43 +214,43 @@ def test_experiment_jssp() -> None:
             assert es_l.ert_fes > 0
             assert es_l.ert_time_millis > 0
 
-            es_algos = []
+            es_algos: list[EndStatistics] = []
             es_from_end_results(results, es_algos.append,
                                 join_all_instances=True)
             assert es_algos[0] == es_rs
             assert len(es_algos) == 2
 
-            es_insts = []
+            es_insts: list[EndStatistics] = []
             es_from_end_results(results, es_insts.append,
                                 join_all_algorithms=True)
             assert es_insts[2] == es_l
             assert len(es_insts) == 3
 
-            es_sep = []
+            es_sep: list[EndStatistics] = []
             es_from_end_results(results, es_sep.append)
             assert es_sep[3] == es_hc_a
             assert es_sep[0] == es_rs_a
             assert es_sep[2] == es_rs_l
             assert len(es_sep) == 6
 
-            es_one = []
+            es_one: list[EndStatistics] = []
             es_from_end_results(results, es_one.append, True, True)
             assert es_one == [es_all]
             assert len(es_one) == 1
 
         with temp_file(directory=base_dir,
                        suffix=logging.FILE_SUFFIX) as f:
-            check = [es_hc_a]
+            check: list[EndStatistics] = [es_hc_a]
             es_to_csv(check, f)
-            check_2 = []
+            check_2: list[EndStatistics] = []
             es_from_csv(f, check_2.append)
             assert check_2 == check
             assert len(check_2) == 1
 
-        progress_fes_raw = []
-        progress_ms_raw = []
-        progress_fes_std = []
-        progress_ms_nrm = []
+        progress_fes_raw: list[Progress] = []
+        progress_ms_raw: list[Progress] = []
+        progress_fes_std: list[Progress] = []
+        progress_ms_nrm: list[Progress] = []
         pr_from_logs(base_dir, progress_fes_raw.append,
                      time_unit=bs.TIME_UNIT_FES,
                      f_name=bs.F_NAME_RAW)
@@ -271,8 +275,7 @@ def test_experiment_jssp() -> None:
         for i, x in enumerate(ert.ert[:, 0]):
             assert compute_single_ert(progress_fes_raw, x) == ert.ert[i, 1]
 
-        if "GITHUB_JOB" in environ:
-
+        if is_ci_run():
             pr_from_logs(base_dir, progress_ms_raw.append,
                          time_unit=bs.TIME_UNIT_MILLIS,
                          f_name=bs.F_NAME_RAW)
@@ -320,13 +323,13 @@ def test_experiment_jssp() -> None:
         stat_names = ["min", "med", "mean", "geom", "max",
                       "mean-sd", "mean+sd", "sd",
                       "q10", "q90", "q159", "q841"]
-        stat_runs = []
+        stat_runs: list[StatRun] = []
         sr_create(source=progress_fes_raw,
                   statistics=stat_names,
                   consumer=stat_runs.append)
         assert len(stat_runs) == len(stat_names)
 
-        if "GITHUB_JOB" in environ:
+        if is_ci_run():
             all_progress = []
             all_progress.extend(progress_ms_raw)
             all_progress.extend(progress_fes_raw)

@@ -52,7 +52,7 @@ def test_stat_runs() -> None:
     collector.clear()
     create([p1, p0], ["mean"], collector.append)
     assert len(collector) == 1
-    s: StatRun = collector[0]
+    s = collector[0]
     assert s.algorithm == algo0
     assert s.instance == inst0
     assert s.time_unit == tu
@@ -72,7 +72,7 @@ def test_stat_runs() -> None:
     collector.clear()
     create([p1, p0], ["max"], collector.append)
     assert len(collector) == 1
-    s: StatRun = collector[0]
+    s = collector[0]
     assert s.algorithm == algo0
     assert s.instance == inst0
     assert s.time_unit == tu

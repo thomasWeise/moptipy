@@ -34,7 +34,8 @@ def test_zeromax() -> None:
         is_deterministic=True,
         lower_bound_threshold=0,
         upper_bound_threshold=space.dimension,
-        must_be_equal_to=lambda xx, dim=space.dimension: _zeromax(xx, dim))
+        must_be_equal_to=lambda xx, dim=space.dimension:  # type: ignore
+        _zeromax(xx, dim))
 
     space = BitStrings(2)
     f = ZeroMax(2)

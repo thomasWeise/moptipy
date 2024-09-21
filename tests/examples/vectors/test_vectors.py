@@ -33,7 +33,7 @@ def random_vector(random: Generator, x: np.ndarray,
     :param max_value: the maximal x value
     :returns: the array `x`
     """
-    for i in range(len(x)):
+    for i in range(len(x)):  # pylint: disable=C0200
         x[i] = random.uniform(min_value, max_value)
     return x
 
@@ -54,14 +54,14 @@ def test_sphere() -> None:
     validate_objective(
         objective=f,
         solution_space=space,
-        make_solution_space_element_valid=lambda
+        make_solution_space_element_valid=lambda  # type: ignore
         r, xx, xmi=float(space.lower_bound[0]),
         xma=float(space.upper_bound[0]):
         random_vector(r, xx, xmi, xma),
         is_deterministic=True,
         lower_bound_threshold=0,
         upper_bound_threshold=inf,
-        must_be_equal_to=lambda x, uub=ub: _sphere(x, uub))
+        must_be_equal_to=lambda x, uub=ub: _sphere(x, uub))  # type: ignore
 
 
 def test_ackley() -> None:
@@ -75,7 +75,7 @@ def test_ackley() -> None:
     validate_objective(
         objective=f,
         solution_space=space,
-        make_solution_space_element_valid=lambda
+        make_solution_space_element_valid=lambda  # type: ignore
         r, xx, xmi=float(space.lower_bound[0]),
         xma=float(space.upper_bound[0]):
         random_vector(r, xx, xmi, xma),

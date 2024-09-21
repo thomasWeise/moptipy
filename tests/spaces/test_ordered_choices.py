@@ -108,10 +108,10 @@ def test_ordered_choices() -> None:
 def test_invalid_ordered_choices() -> None:
     """Check that invalid ordered choices correctly throw errors."""
     with raises(TypeError):
-        OrderedChoices("123")
+        OrderedChoices("123")  # type: ignore
 
     with raises(TypeError):
-        OrderedChoices([[1, 2], ["x"]])
+        OrderedChoices([[1, 2], ["x"]])  # type: ignore
 
     with raises(ValueError):
         OrderedChoices([[1]])

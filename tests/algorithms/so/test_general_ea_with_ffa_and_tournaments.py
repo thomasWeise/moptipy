@@ -88,7 +88,7 @@ def test_general_ea_naming() -> None:
     ea: GeneralEA = GeneralEA(op0, op1, op2, 10, 5, 0.5)
     assert str(ea) == f"generalEa_10_5_0d5_{n2}_{n1}"
 
-    ea: GeneralEA = GeneralEA(op0, op1, op2, 10, 5, 0.5, ffa)
+    ea = GeneralEA(op0, op1, op2, 10, 5, 0.5, ffa)
     assert str(ea) == f"generalEa_ffa_10_5_0d5_{n2}_{n1}"
 
     ea = GeneralEA(op0, op1, op2, 10, 5, 0.0)

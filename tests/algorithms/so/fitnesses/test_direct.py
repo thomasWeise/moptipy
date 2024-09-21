@@ -34,7 +34,7 @@ def test_direct_on_random() -> None:
                         return _r.integers(-100, 100)
                     return _r.normal()
             else:
-                def __f(_=rand, v=def_val) -> int | float:
+                def __f(_=rand, v=def_val) -> int | float:  # type: ignore
                     return v
 
             for _j in range(i + 1):
