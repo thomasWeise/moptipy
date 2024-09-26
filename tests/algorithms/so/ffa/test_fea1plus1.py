@@ -1,7 +1,7 @@
 """Test the (1+1)-FEA."""
 from pycommons.io.temp import temp_file
 
-from moptipy.algorithms.so.fea1plus1 import FEA1plus1
+from moptipy.algorithms.so.ffa.fea1plus1 import FEA1plus1
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.examples.bitstrings.onemax import OneMax

@@ -203,7 +203,7 @@ def tabulate_end_stats(
     header.append(r"\hline%")
 
     writer.clear()
-    writer.append(instance_header)
+    writer.append(instance_header)  # noqa: PIE799
     writer.extend(f"\\multicolumn{{1}}{{c}}{{{ic[0]}}}"
                   for ic in instance_cols)
     writer.extend(f"\\multicolumn{{{n_stats}}}{{c}}{{{algorithm_name(algo)}}}"

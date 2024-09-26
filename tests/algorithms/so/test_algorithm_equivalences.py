@@ -26,10 +26,10 @@ from moptipy.algorithms.modules.selections.tournament_without_repl import (
 )
 from moptipy.algorithms.random_sampling import RandomSampling
 from moptipy.algorithms.so.ea import EA
-from moptipy.algorithms.so.fea1plus1 import FEA1plus1
+from moptipy.algorithms.so.ffa.fea1plus1 import FEA1plus1
+from moptipy.algorithms.so.ffa.ffa_fitness import FFA
 from moptipy.algorithms.so.fitness import FRecord
 from moptipy.algorithms.so.fitnesses.direct import Direct
-from moptipy.algorithms.so.fitnesses.ffa import FFA
 from moptipy.algorithms.so.fitnesses.rank import Rank
 from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.algorithms.so.general_ma import GeneralMA

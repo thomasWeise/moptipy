@@ -22,7 +22,7 @@ from pycommons.io.path import Path
 from pycommons.strings.string_conv import str_to_num
 from pycommons.types import type_error
 
-from moptipy.algorithms.so.fea1plus1 import H_LOG_SECTION
+from moptipy.algorithms.so.ffa.fea1plus1 import H_LOG_SECTION
 from moptipy.api.logging import (
     KEY_F_LOWER_BOUND,
     KEY_F_UPPER_BOUND,

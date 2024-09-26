@@ -6,7 +6,7 @@ from numpy.random import Generator, default_rng
 from pycommons.io.temp import temp_file
 from pycommons.types import type_name_of
 
-from moptipy.algorithms.so.fea1plus1 import FEA1plus1
+from moptipy.algorithms.so.ffa.fea1plus1 import FEA1plus1
 from moptipy.algorithms.so.hill_climber_with_restarts import (
     HillClimberWithRestarts,
 )

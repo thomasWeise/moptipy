@@ -6,7 +6,7 @@ from numpy.random import Generator, default_rng
 from moptipy.algorithms.modules.selections.tournament_with_repl import (
     TournamentWithReplacement,
 )
-from moptipy.algorithms.so.fitnesses.ffa import FFA
+from moptipy.algorithms.so.ffa.ffa_fitness import FFA
 from moptipy.algorithms.so.general_ea import GeneralEA
 from moptipy.api.objective import Objective
 from moptipy.examples.bitstrings.onemax import OneMax

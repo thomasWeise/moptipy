@@ -4,8 +4,8 @@ from typing import Final
 
 from numpy.random import Generator, default_rng
 
-from moptipy.algorithms.so.fea1plus1 import SWITCH_TO_MAP_RANGE
-from moptipy.algorithms.so.fitnesses.ffa import FFA, SWITCH_TO_OFFSET_LB
+from moptipy.algorithms.so.ffa.fea1plus1 import SWITCH_TO_MAP_RANGE
+from moptipy.algorithms.so.ffa.ffa_fitness import FFA, SWITCH_TO_OFFSET_LB
 from moptipy.api.objective import Objective
 from moptipy.tests.on_bitstrings import validate_fitness_on_bitstrings
 
@@ -14,7 +14,7 @@ def test_ffa_on_bit_strings() -> None:
     """Test the frequency fitness assignment process on bit strings."""
     validate_fitness_on_bitstrings(
         fitness=FFA,
-        class_needed="moptipy.algorithms.so.fitnesses.ffa._IntFFA1")
+        class_needed="moptipy.algorithms.so.ffa.ffa_fitness._IntFFA1")
 
 
 def test_ffa_on_bit_strings_2() -> None:
@@ -42,7 +42,7 @@ def test_ffa_on_bit_strings_2() -> None:
 
     validate_fitness_on_bitstrings(
         fitness=FFA,
-        class_needed="moptipy.algorithms.so.fitnesses.ffa._IntFFA2",
+        class_needed="moptipy.algorithms.so.ffa.ffa_fitness._IntFFA2",
         prepare_objective=prepare)
 
 
@@ -80,5 +80,5 @@ def test_ffa_on_bit_strings_3() -> None:
 
     validate_fitness_on_bitstrings(
         fitness=FFA,
-        class_needed="moptipy.algorithms.so.fitnesses.ffa._DictFFA",
+        class_needed="moptipy.algorithms.so.ffa.ffa_fitness._DictFFA",
         prepare_objective=prepare)

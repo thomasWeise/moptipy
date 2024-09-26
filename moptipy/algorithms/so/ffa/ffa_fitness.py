@@ -61,7 +61,7 @@ from numpy.random import Generator
 from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
 
-from moptipy.algorithms.so.fea1plus1 import SWITCH_TO_MAP_RANGE, log_h
+from moptipy.algorithms.so.ffa.fea1plus1 import SWITCH_TO_MAP_RANGE, log_h
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import Process

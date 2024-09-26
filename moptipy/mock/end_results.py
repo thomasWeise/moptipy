@@ -140,7 +140,7 @@ def end_result(performance: BasePerformance, seed: int,
         last_improvement_time = int(random.normal(
             loc=total_time * fact, scale=total_time * 0.05 * jitter))
 
-    res: Final[EndResult] = EndResult(
+    return EndResult(
         algorithm=performance.algorithm.name,
         instance=performance.instance.name,
         objective="f", encoding="e",
@@ -153,7 +153,6 @@ def end_result(performance: BasePerformance, seed: int,
         goal_f=performance.instance.best,
         max_fes=max_fes,
         max_time_millis=max_time_millis)
-    return res
 
 
 @dataclass(frozen=True, init=False, order=True)
