@@ -85,6 +85,10 @@ FFA is also implemented as a fitness assignment process
    July 6-11, 2014, Beijing, China. Los Alamitos, CA, USA: IEEE Computer
    Society Press. ISBN: 978-1-4799-1488-3.
    https://dx.doi.org/10.1109/CEC.2014.6900292
+7. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Sarah Louise
+   Thomson, and Thomas Weise. Addressing the Traveling Salesperson Problem
+   with Frequency Fitness Assignment and Hybrid Algorithms. *Soft Computing.*
+   2024. https://dx.doi.org/10.1007/s00500-024-09718-8
 """
 from collections import Counter
 from typing import Callable, Final
@@ -125,7 +129,7 @@ class FEA1plus1(Algorithm1):
     in module :mod:`~moptipy.algorithms.so.ffa.ffa_fitness`.
     """
 
-    def __init__(self, op0: Op0, op1: Op1, log_h_tbl: bool = True) -> None:
+    def __init__(self, op0: Op0, op1: Op1, log_h_tbl: bool = False) -> None:
         """
         Create the (1+1)-FEA.
 
@@ -146,7 +150,7 @@ class FEA1plus1(Algorithm1):
         :param process: the black-box process object
         """
         # Create records for old and new point in the search space.
-        best_x = process.create()  # record for best-so-far solution
+        cur_x = process.create()  # record for current solution
         new_x = process.create()  # record for new solution
 
         # Obtain the random number generator.
@@ -161,25 +165,25 @@ class FEA1plus1(Algorithm1):
         h, ofs = create_h(process)  # Allocate the h-table
 
         # Start at a random point in the search space and evaluate it.
-        op0(random, best_x)  # Create 1 solution randomly and
-        best_f: int | float = evaluate(best_x) + ofs  # evaluate it.
+        op0(random, cur_x)  # Create 1 solution randomly and
+        cur_f: int | float = evaluate(cur_x) + ofs  # evaluate it.
 
         while not should_terminate():  # Until we need to quit...
-            op1(random, new_x, best_x)  # new_x = neighbor of best_x
+            op1(random, new_x, cur_x)  # new_x = neighbor of cur_x
             new_f: int | float = evaluate(new_x) + ofs
 
             h[new_f] += 1  # type: ignore  # Increase the frequency
-            h[best_f] += 1  # type: ignore  # of new_f and best_f.
-            if h[new_f] <= h[best_f]:  # type: ignore
-                best_f = new_f  # Store its objective value.
-                best_x, new_x = new_x, best_x  # Swap best and new.
+            h[cur_f] += 1  # type: ignore  # of new_f and cur_f.
+            if h[new_f] <= h[cur_f]:  # type: ignore
+                cur_f = new_f  # Store its objective value.
+                cur_x, new_x = new_x, cur_x  # Swap best and new.
 
         if not self.log_h_tbl:
             return  # we are done here
 
         # After we are done, we want to print the H-table.
-        if h[best_f] == 0:  # type: ignore  # Fix the H-table for the case
+        if h[cur_f] == 0:  # type: ignore  # Fix the H-table for the case
             h = Counter()   # that only one FE was performed: In this case,
-            h[best_f] = 1  # make Counter with only a single 1 value inside.
+            h[cur_f] = 1  # make Counter with only a single 1 value inside.
 
         log_h(process, h, ofs)  # log the H-table

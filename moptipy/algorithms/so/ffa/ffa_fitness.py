@@ -70,7 +70,7 @@ SWITCH_TO_OFFSET_LB: Final[int] = 8_388_608
 class FFA(Fitness):
     """The frequency fitness assignment (FFA) process."""
 
-    def __init__(self, f: Objective, log_h_tbl: bool = True) -> None:
+    def __init__(self, f: Objective, log_h_tbl: bool = False) -> None:
         """
         Create the frequency fitness assignment mapping.
 
