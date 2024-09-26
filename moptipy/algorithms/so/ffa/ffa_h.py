@@ -65,7 +65,7 @@ def clear_h(h: np.ndarray | Counter[int | float]) -> None:
     """
     if isinstance(h, np.ndarray):
         h.fill(0)
-    elif isinstance(h, Counter):
+    elif isinstance(h, dict):
         h.clear()
     else:
         raise type_error(h, "h", (np.ndarray, Counter))
@@ -85,7 +85,8 @@ def h_to_str(
     '2;1;;7;;4;7;9'
     >>> h_to_str(hl, -1)
     '3;1;;7;;4;8;9'
-    >>> hd = Counter({1: 5, 4: 7, 3: 6, 2: 9})
+    >>> hd = Counter((1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3,
+    ...               3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2))
     >>> h_to_str(hd, 0)
     '1;5;;9;;6;;7'
     >>> try:
@@ -103,7 +104,7 @@ def h_to_str(
     >>> h_to_str(hx, 0)
     '10;4;12;234;45;2314;89;111;;1'
     """
-    if not isinstance(h, np.ndarray | Counter):
+    if not isinstance(h, np.ndarray | dict):
         raise type_error(h, "h", (np.ndarray, Counter))
     if not isinstance(offset, int):
         raise type_error(offset, "offset", int)
