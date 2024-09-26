@@ -112,8 +112,5 @@ def test_h_log() -> None:
 
         lines = tf.read_all_str().splitlines()
         assert lines[-1] == "END_H"
-        vals = [int(s) for s in lines[-2].split(";")]
-        assert len(vals) % 2 == 0
-        assert lines[-2] == "3;2;4;3;5;4;6;4;7;2;8;2;9;1"
-        assert all(i >= 0 for i in vals)
+        assert lines[-2] == "3;2;;3;;4;;4;;2;;2;;1"
         assert lines[-3] == "BEGIN_H"

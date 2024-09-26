@@ -22,7 +22,7 @@ from pycommons.io.path import Path
 from pycommons.strings.string_conv import str_to_num
 from pycommons.types import type_error
 
-from moptipy.algorithms.so.ffa.fea1plus1 import H_LOG_SECTION
+from moptipy.algorithms.so.ffa.ffa_h import H_LOG_SECTION
 from moptipy.api.logging import (
     KEY_F_LOWER_BOUND,
     KEY_F_UPPER_BOUND,
@@ -461,8 +461,15 @@ class __InnerLogParser(SetupAndStateParser):
             counter = self.__counter
             for line in lines:
                 split = line.split(CSV_SEPARATOR)
+                prev_f: int | float = -1
                 for i in range(0, len(split), 2):
-                    counter[str_to_num(split[i])] += int(split[i + 1])
+                    cis = split[i]
+                    if str.__len__(cis) <= 0:
+                        cur_f = prev_f + 1
+                    else:
+                        cur_f = str_to_num(cis)
+                    prev_f = cur_f
+                    counter[cur_f] += int(split[i + 1])
         else:
             return super().lines(lines)
 

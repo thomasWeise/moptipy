@@ -51,22 +51,16 @@ the frequency values are not updated.
    Society Press. ISBN: 978-1-4799-1488-3.
    https://dx.doi.org/10.1109/CEC.2014.6900292
 """
+from typing import Final
 
-
-from collections import Counter
-from typing import Callable, Final, Iterable, cast
-
-import numpy as np
 from numpy.random import Generator
-from pycommons.strings.string_conv import num_to_str
-from pycommons.types import type_error
+from pycommons.types import type_error, type_name_of
 
-from moptipy.algorithms.so.ffa.fea1plus1 import SWITCH_TO_MAP_RANGE, log_h
+from moptipy.algorithms.so.ffa.ffa_h import clear_h, create_h, log_h
 from moptipy.algorithms.so.fitness import Fitness, FRecord
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.nputils import DEFAULT_INT
 
 #: The lower bound at which we switch to an offset-based backing array for
 #: the frequency table H.
@@ -76,25 +70,25 @@ SWITCH_TO_OFFSET_LB: Final[int] = 8_388_608
 class FFA(Fitness):
     """The frequency fitness assignment (FFA) process."""
 
-    def __new__(cls, f: Objective, log_h_tbl: bool = True) -> "FFA":
+    def __init__(self, f: Objective, log_h_tbl: bool = True) -> None:
         """
         Create the frequency fitness assignment mapping.
 
         :param f: the objective function
         """
+        super().__init__()
         if not isinstance(log_h_tbl, bool):
             raise type_error(log_h_tbl, "log_h_tbl", bool)
         check_objective(f)
-        if f.is_always_integer():
-            lb: Final[int | float] = f.lower_bound()
-            ub: Final[int | float] = f.upper_bound()
-            if isinstance(ub, int) and isinstance(lb, int) \
-                    and ((ub - lb) <= SWITCH_TO_MAP_RANGE):
-                if 0 <= lb <= SWITCH_TO_OFFSET_LB:
-                    return _IntFFA1.__new__(_IntFFA1, cast(int, ub), log_h_tbl)
-                return _IntFFA2.__new__(_IntFFA2, cast(int, lb),
-                                        cast(int, ub), log_h_tbl)
-        return _DictFFA.__new__(_DictFFA, log_h_tbl)
+        h, ofs = create_h(f)
+        #: the internal H-table
+        self.__h: Final = h
+        #: the offset
+        self.__ofs: Final[int] = ofs
+        #: should we log the H-table?
+        self.__log_h_tbl = log_h_tbl
+        #: are we in the very first iteration?
+        self.__first: bool = True
 
     def __str__(self):
         """
@@ -105,31 +99,10 @@ class FFA(Fitness):
         """
         return "ffa"
 
-
-class _IntFFA1(FFA):
-    """The internal FFA-based class."""
-
-    #: the internal frequency table
-    __h: np.ndarray
-    #: is this the first iteration?
-    __first: bool
-    #: log the h table?
-    __log_h_tbl: bool
-
-    def __new__(cls, ub: int, log_h_tbl: bool = True) -> "_IntFFA1":
-        """Initialize the pure integer FFA."""
-        instance = object.__new__(_IntFFA1)
-        instance.__h = np.zeros(ub + 1, dtype=DEFAULT_INT)
-        instance.__first = True
-        instance.__log_h_tbl = log_h_tbl
-        return instance
-
     def log_information_after_run(self, process: Process) -> None:
         """Write the H table."""
         if self.__log_h_tbl:
-            log_h(process, range(len(self.__h)),
-                  cast(Callable[[int | float], int], self.__h.__getitem__),
-                  str)
+            log_h(process, self.__h, self.__ofs)
 
     def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
         """
@@ -138,7 +111,8 @@ class _IntFFA1(FFA):
         :param p: the list of records
         :param random: ignored
 
-        >>> fit = _IntFFA1(100, False)
+        >>> from moptipy.examples.bitstrings.onemax import OneMax
+        >>> fit = FFA(OneMax(200))
         >>> a = FRecord(None, 1)
         >>> b = FRecord(None, 2)
         >>> c = FRecord(None, 2)
@@ -156,7 +130,9 @@ class _IntFFA1(FFA):
         >>> assert c.fitness == 4
         >>> assert d.fitness == 2
         """
-        h: Final[np.ndarray] = self.__h
+        h: Final = self.__h
+        ofs: Final[int] = self.__ofs
+
         min_it = max_it = p[0].it  # the minimum and maximum iteration index
         for r in p:
             it: int = r.it  # get iteration index from record
@@ -177,10 +153,10 @@ class _IntFFA1(FFA):
                 r.fitness = 0
             return
         for r in p:
-            h[r.f] += 1  # type: ignore
+            h[r.f + ofs] += 1  # type: ignore
         it_range: Final[int] = max_it - min_it + 1  # range of it index
         for r in p:
-            r.fitness = ((int(h[r.f]) * it_range)  # type: ignore
+            r.fitness = ((int(h[r.f + ofs]) * it_range)  # type: ignore
                          + max_it - r.it)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
@@ -190,195 +166,11 @@ class _IntFFA1(FFA):
         :param logger: the logger for the parameters
         """
         super().log_parameters_to(logger)
-        logger.key_value("ub", len(self.__h) - 1)
+        logger.key_value("ofs", self.__ofs)
+        logger.key_value("hType", type_name_of(self.__h))
 
     def initialize(self) -> None:
         """Initialize the algorithm."""
         super().initialize()
-        self.__h.fill(0)
-        self.__first = True
-
-
-class _IntFFA2(FFA):
-    """The internal FFA-based class."""
-
-    #: the internal frequency table
-    __h: np.ndarray
-    #: the lower bound
-    __lb: int
-    #: is this the first iteration?
-    __first: bool
-    #: log the h table?
-    __log_h_tbl: bool
-
-    def __new__(cls, lb: int, ub: int, log_h_tbl: bool = True) -> "_IntFFA2":
-        """Initialize the pure integer FFA."""
-        instance = object.__new__(_IntFFA2)
-        instance.__h = np.zeros(ub - lb + 1, dtype=DEFAULT_INT)
-        instance.__lb = lb
-        instance.__first = True
-        instance.__log_h_tbl = log_h_tbl
-        return instance
-
-    def log_information_after_run(self, process: Process) -> None:
-        """Write the H table."""
-        if self.__log_h_tbl:
-            log_h(process, range(len(self.__h)),
-                  cast(Callable[[int | float], int], self.__h.__getitem__),
-                  lambda i: str(i + self.__lb))
-
-    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
-        """
-        Assign the frequency fitness.
-
-        :param p: the list of records
-        :param random: ignored
-
-        >>> fit = _IntFFA2(-10, 100, False)
-        >>> a = FRecord(None, -1)
-        >>> b = FRecord(None, 2)
-        >>> c = FRecord(None, 2)
-        >>> d = FRecord(None, 3)
-        >>> from numpy.random import default_rng
-        >>> rand = default_rng()
-        >>> fit.assign_fitness([a, b, c, d], rand)
-        >>> assert a.fitness == 1
-        >>> assert b.fitness == 2
-        >>> assert c.fitness == 2
-        >>> assert d.fitness == 1
-        >>> from numpy.random import default_rng
-        >>> rand = default_rng()
-        >>> fit.assign_fitness([a, b, c, d], rand)
-        >>> assert a.fitness == 2
-        >>> assert b.fitness == 4
-        >>> assert c.fitness == 4
-        >>> assert d.fitness == 2
-        """
-        h: Final[np.ndarray] = self.__h
-        lb: Final[int] = self.__lb
-
-        min_it = max_it = p[0].it  # the minimum and maximum iteration index
-        for r in p:
-            it: int = r.it  # get iteration index from record
-            if it < min_it:  # update minimum iteration index
-                min_it = it
-            elif it > max_it:  # update maximum iteration index
-                max_it = it
-# Compatibility with (1+1) FEA: In first generation with a population size of
-# 1, all elements get the same fitness zero. Otherwise, we would count the
-# very first solution in the next fitness assignment step again.
-# This creates a small incompatibility between FFA with mu=1 and FFA with m>1.
-# This incompatibility is not nice, but it is the only way to ensure that the
-# (1+1) FEA and the GeneralEA with EA and mu=1, lambda=1 are identical.
-        first = self.__first
-        self.__first = False
-        if first and (max_it <= 0) and (len(p) <= 1):
-            for r in p:  # same fitness: 0
-                r.fitness = 0
-            return
-        for r in p:
-            h[r.f - lb] += 1  # type: ignore
-        it_range: Final[int] = max_it - min_it + 1  # range of it index
-        for r in p:
-            r.fitness = ((int(h[r.f - lb]) * it_range)  # type: ignore
-                         + max_it - r.it)
-
-    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
-        """
-        Log all parameters of this component as key-value pairs.
-
-        :param logger: the logger for the parameters
-        """
-        super().log_parameters_to(logger)
-        logger.key_value("lb", self.__lb)
-        logger.key_value("ub", len(self.__h) + self.__lb - 1)
-
-    def initialize(self) -> None:
-        """Initialize the algorithm."""
-        super().initialize()
-        self.__h.fill(0)
-        self.__first = True
-
-
-class _DictFFA(FFA):
-    """The internal FFA dict-based class."""
-
-    #: the internal frequency table
-    __h: Counter[int | float]
-    #: is this the first iteration?
-    __first: bool
-    #: log the h table?
-    __log_h_tbl: bool
-
-    def __new__(cls, log_h_tbl: bool = True) -> "_DictFFA":
-        """Initialize the pure integer FFA."""
-        instance = object.__new__(_DictFFA)
-        instance.__h = Counter()
-        instance.__first = True
-        instance.__log_h_tbl = log_h_tbl
-        return instance
-
-    def log_information_after_run(self, process: Process) -> None:
-        """Write the H table."""
-        if self.__log_h_tbl:
-            log_h(process, cast(Iterable[int | float], self.__h.keys()),
-                  cast(Callable[[int | float], int], self.__h.__getitem__),
-                  num_to_str)
-
-    def assign_fitness(self, p: list[FRecord], random: Generator) -> None:
-        """
-        Assign the frequency fitness.
-
-        :param p: the list of records
-        :param random: ignored
-
-        >>> fit = _DictFFA(False)
-        >>> a = FRecord(None, -1)
-        >>> b = FRecord(None, 2.9)
-        >>> c = FRecord(None, 2.9)
-        >>> d = FRecord(None, 3)
-        >>> from numpy.random import default_rng
-        >>> rand = default_rng()
-        >>> fit.assign_fitness([a, b, c, d], rand)
-        >>> assert a.fitness == 1
-        >>> assert b.fitness == 2
-        >>> assert c.fitness == 2
-        >>> assert d.fitness == 1
-        >>> fit.assign_fitness([a, b, c, d], rand)
-        >>> assert a.fitness == 2
-        >>> assert b.fitness == 4
-        >>> assert c.fitness == 4
-        >>> assert d.fitness == 2
-        """
-        h: Final[Counter[int | float]] = self.__h
-
-        min_it = max_it = p[0].it  # the minimum and maximum iteration index
-        for r in p:
-            it: int = r.it  # get iteration index from record
-            if it < min_it:  # update minimum iteration index
-                min_it = it
-            elif it > max_it:  # update maximum iteration index
-                max_it = it
-# Compatibility with (1+1) FEA: In first generation with a population size of
-# 1, all elements get the same fitness zero. Otherwise, we would count the
-# very first solution in the next fitness assignment step again.
-# This creates a small incompatibility between FFA with mu=1 and FFA with m>1.
-# This incompatibility is not nice, but it is the only way to ensure that the
-# (1+1) FEA and the GeneralEA with EA and mu=1, lambda=1 are identical.
-        first = self.__first
-        self.__first = False
-        if first and (max_it <= 0) and (len(p) <= 1):
-            for r in p:  # same fitness: 0
-                r.fitness = 0
-            return
-        for r in p:
-            h[r.f] += 1
-        it_range: Final[int] = max_it - min_it + 1  # range of it index
-        for r in p:
-            r.fitness = (h[r.f] * it_range) + max_it - r.it
-
-    def initialize(self) -> None:
-        """Initialize the algorithm."""
-        super().initialize()
-        self.__h.clear()
+        clear_h(self.__h)
         self.__first = True
