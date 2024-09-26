@@ -28,7 +28,7 @@ Processes have been implemented so far:
   is newer, then the newer one will receive the better fitness. This is done
   by accessing the iteration counter
   (:attr:`~moptipy.algorithms.so.record.Record.it`) of the solution records.
-- :class:`~moptipy.algorithms.so.fitnesses.ffa.FFA` performs the Frequency
+- :class:`~moptipy.algorithms.so.ffa.ffa_fitness.FFA` performs the Frequency
   Fitness Assignment which is suitable for problems with few different
   objective values and large computational budgets.
 
