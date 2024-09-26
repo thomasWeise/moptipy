@@ -29,7 +29,7 @@ def test_process_no_ss_log_log() -> None:
     dim: int = int(random.integers(5, 12))
     space: Space = BitStrings(dim)
     objective: Objective = Trap(dim)
-    algorithm: Algorithm = FEA1plus1(Op0Random(), Op1Flip1())
+    algorithm: Algorithm = FEA1plus1(Op0Random(), Op1Flip1(), True)
 
     with temp_file() as tf:
         assert exists(tf)
