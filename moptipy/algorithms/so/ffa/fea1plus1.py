@@ -53,7 +53,7 @@ high.
 
 FFA is also implemented as a fitness assignment process
 (:mod:`~moptipy.algorithms.so.fitness`) in module
-:mod:`~moptipy.algorithms.so.fitnesses.ffa`.
+:mod:`~moptipy.algorithms.so.ffa.ffa_fitness`.
 
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
    Assignment: Making Optimization Algorithms Invariant under Bijective
@@ -231,7 +231,7 @@ class FEA1plus1(Algorithm1):
     away from each other. A more general version is available as a fitness
     assignment process (:mod:`~moptipy.algorithms.so.fitness`) that can
     be plugged into a general EA (:mod:`~moptipy.algorithms.so.general_ea`)
-    in module :mod:`~moptipy.algorithms.so.fitnesses.ffa`.
+    in module :mod:`~moptipy.algorithms.so.ffa.ffa_fitness`.
     """
 
     def __init__(self, op0: Op0, op1: Op1, log_h_tbl: bool = True) -> None:

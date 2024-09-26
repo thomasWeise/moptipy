@@ -78,8 +78,9 @@ def from_logs(
     of at least `1` if they are present in the log files (in the `SETUP`
     section).
     If `report_h` is `True`, then a frequency fitness assignment `H` section
-    is parsed, if present (see :mod:`~moptipy.algorithms.so.fea1plus1`). Such
-    a section contains tuples of objective values and encounter frequencies.
+    is parsed, if present (see :mod:`~moptipy.algorithms.so.ffa.fea1plus1`).
+    Such a section contains tuples of objective values and encounter
+    frequencies.
     These encounter frequencies are added to the counter. This means that if
     you set *both* `report_progress` and `report_h` to `True`, you will get
     frequencies that are too high.
@@ -92,7 +93,7 @@ def from_logs(
     values, we could log *all FEs* to the log files and set `report_progress`
     to `True` and everything else to `False`. Then we get correct encounter
     frequencies. Alternatively, if we have a purly FFA-based algorithm (see,
-    again, :mod:`~moptipy.algorithms.so.fea1plus1`), then we can set
+    again, :mod:`~moptipy.algorithms.so.ffa.fea1plus1`), then we can set
     `report_progress` to `True` and everything else to `False` to get a
     similar result, but the encounter frequencies then depend on the selection
     scheme. Alternatively, if we only care about whether an objective value

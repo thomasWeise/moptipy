@@ -13,7 +13,7 @@ into the fitness.
 This index is used to break ties, in which case newer solutions are preferred.
 
 This can make the EA with FFA compatible with the
-:class:`moptipy.algorithms.so.fea1plus1.FEA1plus1` if "best" selection
+:class:`moptipy.algorithms.so.ffa.fea1plus1.FEA1plus1` if "best" selection
 (:class:`moptipy.algorithms.modules.selections.best.Best`) is used
 at mu=lambda=1.
 To facilitate this, there is one special case in the FFA fitness assignment:
