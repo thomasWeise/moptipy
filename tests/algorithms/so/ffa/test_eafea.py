@@ -1,4 +1,4 @@
-"""Test the (1+1)-FEA."""
+"""Test the EAFEA."""
 from pycommons.io.temp import temp_file
 
 from moptipy.algorithms.so.ffa.eafea import EAFEA
