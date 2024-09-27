@@ -22,7 +22,7 @@ class EAFEAC(Algorithm1):
         :param op1: the unary search operator
         :param log_h_tbl: should we log the H table?
         """
-        super().__init__("eafeaB", op0, op1)
+        super().__init__("eafeaC", op0, op1)
         if not isinstance(log_h_tbl, bool):
             raise type_error(log_h_tbl, "log_h_tbl", bool)
         #: True if we should log the H table, False otherwise
