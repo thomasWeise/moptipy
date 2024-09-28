@@ -88,8 +88,8 @@ class EAFEAC(Algorithm1):
                         ea_no_lt_moves += 1  # Increase non-improved counter.
                     x_ea, x_new = x_new, x_ea  # Accept new solution.
                     y_ea = y_new  # Store objective value.
-                else:  # The move was wose than current solution.
-                    ea_no_lt_moves += 1  # Increase non-improved counter.
+                else:  # The move was worse than the current solution.
+                    ea_no_lt_moves += 1  # Increase non-improvement counter.
 
                 if ea_no_lt_moves >= ea_max_no_lt_moves:  # Toggle: EA to FEA.
                     ea_no_lt_moves = 0  # Reset non-improving move counter.
