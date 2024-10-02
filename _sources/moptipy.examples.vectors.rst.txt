@@ -1,0 +1,26 @@
+moptipy.examples.vectors package
+================================
+
+.. automodule:: moptipy.examples.vectors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+moptipy.examples.vectors.ackley module
+--------------------------------------
+
+.. automodule:: moptipy.examples.vectors.ackley
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.vectors.sphere module
+--------------------------------------
+
+.. automodule:: moptipy.examples.vectors.sphere
+   :members:
+   :undoc-members:
+   :show-inheritance:
