@@ -253,7 +253,7 @@ def run_experiment(
     use_dir: Final[Path] = Path(base_dir)
     use_dir.ensure_dir_exists()
 
-    thread_id: Final[str] = f"{getpid():x}"
+    thread_id: Final[str] = f"@{getpid():x}"
     logger("beginning experiment execution.", thread_id)
     __run_experiment(base_dir=use_dir,
                      experiments=experiments,

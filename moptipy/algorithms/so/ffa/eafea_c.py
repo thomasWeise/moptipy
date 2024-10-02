@@ -30,7 +30,7 @@ class EAFEAC(Algorithm1):
 
     def solve(self, process: Process) -> None:
         """
-        Apply the EAFEA-B to an optimization problem.
+        Apply the EAFEA-C to an optimization problem.
 
         :param process: the black-box process object
         """
