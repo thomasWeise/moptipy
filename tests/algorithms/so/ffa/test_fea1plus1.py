@@ -115,5 +115,5 @@ def test_h_log() -> None:
 
         lines = tf.read_all_str().splitlines()
         assert lines[-1] == "END_H"
-        assert lines[-2] == "3;2;;3;;4;;4;;2;;2;;1"
+        assert lines[-2] == "3;2;;3;;4;;4;;2;;2;;"
         assert lines[-3] == "BEGIN_H"

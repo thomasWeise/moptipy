@@ -82,9 +82,9 @@ def h_to_str(
 
     >>> hl = np.array([0, 0, 1, 7, 4, 0, 0, 9, 0])
     >>> h_to_str(hl, 0)
-    '2;1;;7;;4;7;9'
+    '2;;;7;;4;7;9'
     >>> h_to_str(hl, -1)
-    '3;1;;7;;4;8;9'
+    '3;;;7;;4;8;9'
     >>> hd = Counter((1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3,
     ...               3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2))
     >>> h_to_str(hd, 0)
@@ -102,7 +102,7 @@ def h_to_str(
     >>> hx[90] = 1
     >>> hx[45] = 2314
     >>> h_to_str(hx, 0)
-    '10;4;12;234;45;2314;89;111;;1'
+    '10;4;12;234;45;2314;89;111;;'
     """
     if not isinstance(h, np.ndarray | dict):
         raise type_error(h, "h", (np.ndarray, Counter))
@@ -134,7 +134,8 @@ def h_to_str(
                 write(str(use_index))
             old_index = use_index  # step the index
             write(csep)  # write separator to frequency counter
-            write(str(value))  # write the frequency
+            if value > 1:
+                write(str(value))  # write the frequency
         res: Final[str] = out.getvalue()  # get the final string
 
     if str.__len__(res) <= 0:

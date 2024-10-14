@@ -13,6 +13,7 @@ Big Data (人工智能与大数据学院) of Hefei University (合肥学院).
 import argparse
 from collections import Counter
 from gc import collect
+from itertools import batched
 from math import isfinite
 from typing import Any, Callable, Final, Iterable
 
@@ -20,6 +21,7 @@ from pycommons.io.console import logger
 from pycommons.io.csv import CSV_SEPARATOR, SCOPE_SEPARATOR
 from pycommons.io.path import Path
 from pycommons.strings.string_conv import str_to_num
+from pycommons.strings.tools import split_str
 from pycommons.types import type_error
 
 from moptipy.algorithms.so.ffa.ffa_h import H_LOG_SECTION
@@ -460,16 +462,16 @@ class __InnerLogParser(SetupAndStateParser):
             self.__state_h = 2
             counter = self.__counter
             for line in lines:
-                split = line.split(CSV_SEPARATOR)
                 prev_f: int | float = -1
-                for i in range(0, len(split), 2):
-                    cis = split[i]
-                    if str.__len__(cis) <= 0:
+                for cur_idx_s, cur_h_s in batched(map(
+                        str.strip, split_str(line, CSV_SEPARATOR)), 2):
+                    if str.__len__(cur_idx_s) <= 0:
                         cur_f = prev_f + 1
                     else:
-                        cur_f = str_to_num(cis)
+                        cur_f = str_to_num(cur_idx_s)
                     prev_f = cur_f
-                    counter[cur_f] += int(split[i + 1])
+                    counter[cur_f] += (
+                        int(cur_h_s) if str.__len__(cur_h_s) > 0 else 1)
         else:
             return super().lines(lines)
 
