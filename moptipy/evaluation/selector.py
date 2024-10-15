@@ -1,5 +1,5 @@
 """
-A tool for selecting data.
+A tool for selecting a consistent subset of data from partial experiments.
 
 When we have partial experimental data, maybe collected from experiments that
 are still ongoing, we want to still evaluate them in some consistent way. The
@@ -21,6 +21,19 @@ from moptipy.evaluation.base import PerRunData
 
 #: the type variable for the selector routine
 T = TypeVar("T", bound=PerRunData)
+
+#: the algorithm key
+KEY_ALGORITHM: Final[int] = 0
+#: the instance key
+KEY_INSTANCE: Final[int] = KEY_ALGORITHM + 1
+#: the encoding key
+KEY_ENCODING: Final[int] = KEY_INSTANCE + 1
+#: the objective key
+KEY_OBJECTIVE: Final[int] = KEY_ENCODING + 1
+#: the seed key
+KEY_SEED: Final[int] = KEY_OBJECTIVE + 1
+#: the number of keys
+TOTAL_KEYS: Final[int] = KEY_SEED + 1
 
 
 def __data_tup(d: PerRunData) -> tuple[str, str, str, str, tuple[str, int]]:
@@ -61,6 +74,36 @@ def __score_dec(scores: tuple[Counter, ...], key: tuple[Any, ...]) -> None:
             del scores[i][k]
             if z < 0:
                 raise ValueError("Got negative score?")
+
+
+def __ret(source: list, expected: int, log: bool) -> list:
+    """
+    Prepare a source list for return.
+
+    :param source: the list
+    :param expected: the number of expected records
+    :param log: shall we log information
+    :returns: the result
+    """
+    for i, er in enumerate(source):
+        source[i] = er[1]
+    if list.__len__(source) != expected:
+        raise ValueError("Inconsistent list length!")
+    if log:
+        logger(f"Now returning {expected} records of data.")
+    return source  # type: ignore
+
+
+def __scorer_tired(
+        d: tuple, scores: tuple[Counter, ...]) -> list[int]:
+    """
+    Score based on the tired score.
+
+    :param d: the tuple to score
+    :param scores: the scores
+    :returns: the score
+    """
+    return sorted(scores[i][t] for i, t in enumerate(d))
 
 
 def select_consistent(data: Iterable[T], log: bool = True) -> list[T]:
@@ -137,7 +180,7 @@ def select_consistent(data: Iterable[T], log: bool = True) -> list[T]:
     ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,
     ...     a2i1o1e1s1, a2i1o1e1s2,
     ...     a2i2o1e1s2))))
-    ['a1/i2/o1/e1/1', 'a1/i2/o1/e1/2', 'a1/i2/o1/e1/3']
+    ['a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2']
 
     >>> list(map(__p, select_consistent((
     ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,
@@ -204,41 +247,45 @@ but is int, namely '234'.
     source.sort(key=lambda x: x[0])
     count: int = list.__len__(source)
     if log:
-        logger(f"Found {count} records of data.")
+        logger(f"Found {source} records of data.")
 
     set_l: Final[int] = set.__len__({x[0] for x in source})
     if set_l != count:
         raise ValueError(
             f"Found {count} records but only {set_l} different keys!")
 
-    changed: bool = True
-
     # Compute the scores: count how often each algorithm, instance,
     # objective, encoding, and (instance, seed) combination are
     # encountered.
     key_tuple_len: Final[int] = tuple.__len__(source[0][0])
-    if key_tuple_len != 5:
+    if key_tuple_len != TOTAL_KEYS:
         raise ValueError("Unexpected error!")
+
     scores: tuple[Counter, ...] = tuple(
         Counter() for _ in range(key_tuple_len))
+
+    # compute the original item scores
+    for sc in scores:
+        sc.clear()
     for er in source:
         __score_inc(scores, er[0])
 
+    changed: bool = True
     while changed:
         changed = False
 
         # Find the setups with maximum and minimum scores.
-        min_score: int = -1
-        max_score: int = -1
+        min_score: Any = None
+        max_score: Any = None
         for er in source:
-            score: int = 1
-            for i, t in enumerate(er[0]):
-                score *= scores[i][t]
+            score = __scorer_tired(er[0], scores)
             er[2] = score
-            min_score = score if min_score < 0 else min(score, min_score)
-            max_score = max(score, max_score)
+            if (min_score is None) or (min_score > score):
+                min_score = score
+            if (max_score is None) or (max_score < score):
+                max_score = score
 
-        if min_score < max_score:  # At least some setups have lower scores.
+        if min_score < max_score:  # Some setups have lower scores.
             del_count: int = 0  # We will delete them.
             for i in range(count - 1, -1, -1):
                 er = source[i]
@@ -253,9 +300,10 @@ but is int, namely '234'.
             if new_count != (count - del_count):
                 raise ValueError("List inconsistent after deletion?")
             if log:
-                logger(f"Deleted {del_count} of the {count} records because "
-                       f"their score was {min_score} while the maximum score "
-                       f"was {max_score}. Retained {new_count} records.")
+                logger(
+                    f"Deleted {del_count} of the {count} records because "
+                    f"their score was {min_score} while the maximum score"
+                    f" was {max_score}. Retained {new_count} records.")
             count = new_count
             changed = True
             continue
@@ -275,7 +323,7 @@ but is int, namely '234'.
         # Compute the different values for everything except the seeds.
         keys: tuple[int, ...] = tuple(
             v for v, s in enumerate(scores)
-            if (v < (key_tuple_len - 1)) and (len(s) > 1))
+            if (v != KEY_SEED) and (len(s) > 1))
 
         if tuple.__len__(keys) > 1:
             if log:
@@ -284,10 +332,10 @@ but is int, namely '234'.
             # Only if there are different values in at least one tuple
             # dimension, we need to check for strange situations.
 
-            # For each of (instance, algorithm, encoding, objective), we must
-            # have the same number of other records.
-            # If not, then we have some strange symmetric situation that needs
-            # to be solved.
+            # For each of (instance, algorithm, encoding, objective), we
+            # must have the same number of other records.
+            # If not, then we have some strange symmetric situation that
+            # needs to be solved.
             per_value: dict[Any, set[Any]] = {}
             last: set[Any] | None = None
             for key in keys:
@@ -306,8 +354,8 @@ but is int, namely '234'.
                         break
                 per_value.clear()
 
-                # We just need to delete one random element. This will break
-                # the symmetry
+                # We just need to delete one random element. This will
+                # break the symmetry
                 if changed:
                     if log:
                         logger(f"Deleting one of the {count} elements to "
@@ -329,11 +377,11 @@ but is int, namely '234'.
             logger("No inconsistencies in algorithm/instance/objective/"
                    "encoding possible.")
 
-        # If we get here, the only problem left could be if algorithms have
-        # different seeds for the same instances. We thus need to check that
-        # for each instance, all the seeds are the same.
-        # Notice that such inconsistencies can only occur if different seeds
-        # occurred exactly as same as often.
+        # If we get here, the only problem left could be if algorithms
+        # have different seeds for the same instances. We thus need to
+        # check that for each instance, all the seeds are the same.
+        # Notice that such inconsistencies can only occur if different
+        # seeds occurred exactly as same as often.
         if log:
             logger("No checking for inconsistencies in instance seeds.")
         seeds: dict[str, dict[tuple[str, str, str], set[int]]] = {}
@@ -363,8 +411,9 @@ but is int, namely '234'.
                         if er[1].instance == instance:
                             if log:
                                 logger(
-                                    f"Deleting one of the {count} elements to"
-                                    f" break an erroneous seed symmetry.")
+                                    f"Deleting one of the {count} "
+                                    "elements to break an erroneous seed "
+                                    "symmetry.")
                             del source[i]
                             __score_dec(scores, er[0])
                             count -= 1
@@ -376,16 +425,9 @@ but is int, namely '234'.
             if changed:  # leave instance checking loop
                 break
         del seeds
-        # There should not be any problems left, but we need to check again.
+        # There should not be any problems left, but we need to check
+        # again.
 
     # We are finally finished. The scores are no longer needed.
     del scores
-
-    for i, er in enumerate(source):
-        source[i] = er[1]
-    if list.__len__(source) != count:
-        raise ValueError("Inconsistent list length!")
-
-    if log:
-        logger(f"Now returning {count} records of data.")
-    return source  # type: ignore
+    return __ret(source, count, log)
