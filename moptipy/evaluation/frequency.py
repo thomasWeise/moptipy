@@ -8,7 +8,7 @@ evaluations or fitness landscape analyses.
 This tool is based on code developed by Mr. Tianyu LIANG (梁天宇),
 MSc student at the Institute of Applied Optimization (IAO,
 应用优化研究所) of the School of Artificial Intelligence and
-Big Data (人工智能与大数据学院) of Hefei University (合肥学院).
+Big Data (人工智能与大数据学院) of Hefei University (合肥大学).
 """
 import argparse
 from collections import Counter
