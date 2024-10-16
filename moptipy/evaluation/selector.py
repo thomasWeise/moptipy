@@ -9,6 +9,13 @@ on the instances using the same seeds. The function :func:`select_consistent`
 offered by this module provides the functionality to make such a selection.
 It may be a bit slow, but hopefully it will pick the largest possible
 consistent sub-selection or, at least, get close to it.
+
+The current method to select the data is rather heuristic. It is based on
+iteratively deleting those data elements whose configuration elements appear
+the least often. This is computed in absolute terms. I actually think
+normalizing this score should be better, but seemingly using the absolute raw
+score creates larger consistent datasets. So for now, this is how we will do
+it.
 """
 
 from collections import Counter
@@ -247,7 +254,7 @@ but is int, namely '234'.
     source.sort(key=lambda x: x[0])
     count: int = list.__len__(source)
     if log:
-        logger(f"Found {source} records of data.")
+        logger(f"Found {count} records of data.")
 
     set_l: Final[int] = set.__len__({x[0] for x in source})
     if set_l != count:
