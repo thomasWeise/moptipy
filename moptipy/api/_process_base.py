@@ -535,8 +535,15 @@ class _ProcessBase(Process):
                 f"{self._current_best_f}!")  # noqa
         if not isfinite(ff):
             raise ValueError(  # noqa
-                f"Reproduced the objective value {ff} of the best "
-                "solution, but it is not finite?")  # noqa
+                f"The objective value {ff} of "  # noqa
+                "the best solution is not finite?")
+        lb: Final[int | float] = self.__objective.lower_bound()
+        ub: Final[int | float] = self.__objective.upper_bound()
+        if not (lb <= ff <= ub):
+            raise ValueError(  # noqa
+                f"The objective value {ff} of "  # noqa
+                "the best solution is not within the lower and "
+                f"upper bound, i.e., [{lb}, {ub}]?")  # noqa
 
     def has_log(self) -> bool:
         """
