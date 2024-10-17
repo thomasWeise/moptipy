@@ -1,0 +1,118 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.bitstring_problem — moptipy 0.9.128 documentation</title><link href="../../../../_static/pygments.css?v=80d5e7a1"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=3114f29c"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/bitstring_problem.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.128 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.bitstring_problem</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.bitstring_problem</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A base class for bitstring-based problems."""</span>
+
+<span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span> <span class=nn>pycommons.types</span> <span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span> <span class=nn>moptipy.api.objective</span> <span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span> <span class=nn>moptipy.spaces.bitstrings</span> <span class=kn>import</span> <span class=n>BitStrings</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.logger</span> <span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<div class=viewcode-block id=BitStringProblem>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem>[docs]</a>
+<span class=k>class</span> <span class=nc>BitStringProblem</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A base class for problems defined over bit strings.</span>
+
+<span class=sd>    This base class has a set of default behaviors. It has an attribute</span>
+<span class=sd>    :attr:`n` denoting the lengths of the accepted bit strings. Its</span>
+<span class=sd>    :meth:`lower_bound` returns `0` and its :meth:`upper_bound` returns</span>
+<span class=sd>    :attr:`n`. :meth:`is_always_integer` returns `True`.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the bitstring objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=c1>#: the length of the bit strings</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+
+<div class=viewcode-block id=BitStringProblem.lower_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.lower_bound>[docs]</a>
+    <span class=k>def</span> <span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the bit string based problem.</span>
+
+<span class=sd>        :return: 0</span>
+
+<span class=sd>        >>> print(BitStringProblem(10).lower_bound())</span>
+<span class=sd>        0</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>0</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.upper_bound>[docs]</a>
+    <span class=k>def</span> <span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the bit string based problem.</span>
+
+<span class=sd>        :return: the length of the bit string</span>
+
+<span class=sd>        >>> print(BitStringProblem(7).upper_bound())</span>
+<span class=sd>        7</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.is_always_integer>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.is_always_integer>[docs]</a>
+    <span class=k>def</span> <span class=nf>is_always_integer</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return `True` if the `evaluate` function always returns an `int`.</span>
+
+<span class=sd>        This pre-defined function for bit-string based problems will always</span>
+<span class=sd>        return `True`.</span>
+
+<span class=sd>        :retval True: always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.space>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.space>[docs]</a>
+    <span class=k>def</span> <span class=nf>space</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>BitStrings</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a proper search space for this problem.</span>
+
+<span class=sd>        :returns: an instance of</span>
+<span class=sd>            :class:`~moptipy.spaces.bitstrings.BitStrings` for bit strings of</span>
+<span class=sd>            length :attr:`n`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>BitStrings</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.log_parameters_to>[docs]</a>
+    <span class=k>def</span> <span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         BitStringProblem(5).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: BitStringProblem'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'lowerBound: 0'</span>
+<span class=sd>        >>> text[4]</span>
+<span class=sd>        'upperBound: 5'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'n: 5'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        7</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"n"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.128 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.bitstring_problem</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2024, Thomas Weise.</div>
