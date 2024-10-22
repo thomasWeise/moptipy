@@ -45,7 +45,6 @@ from pycommons.types import (
 )
 
 from moptipy.api.logging import (
-    FILE_SUFFIX,
     KEY_ALGORITHM,
     KEY_BEST_F,
     KEY_GOAL_F,
@@ -81,9 +80,6 @@ from moptipy.evaluation.base import (
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import moptipy_argparser
 from moptipy.utils.math import try_float_div, try_int, try_int_div
-from moptipy.utils.strings import (
-    sanitize_names,
-)
 
 #: a description of the random seed
 DESC_RAND_SEED: Final[str] = (
@@ -276,21 +272,6 @@ class EndResult(PerRunData):
         :return: `True` if and only if `best_f<=goal_f`
         """
         return False if self.goal_f is None else self.best_f <= self.goal_f
-
-    def path_to_file(self, base_dir: str) -> Path:
-        """
-        Get the path that would correspond to the log file of this end result.
-
-        Obtain a path that would correspond to the log file of this end
-        result, resolved from a base directory `base_dir`.
-
-        :param base_dir: the base directory
-        :returns: the path to a file corresponding to the end result record
-        """
-        return Path(base_dir).resolve_inside(
-            self.algorithm).resolve_inside(self.instance).resolve_inside(
-            sanitize_names([self.algorithm, self.instance,
-                            hex(self.rand_seed)]) + FILE_SUFFIX)
 
     def get_best_f(self) -> int | float:
         """

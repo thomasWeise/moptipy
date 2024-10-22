@@ -226,20 +226,20 @@ def select_consistent(data: Iterable[T], log: bool = True) -> list[T]:
     ...     select_consistent(1)
     ... except TypeError as te:
     ...     print(te)
-    data should be an instance of typing.Iterable but is int, namely '1'.
+    data should be an instance of typing.Iterable but is int, namely 1.
 
     >>> try:
     ...     select_consistent((a2i1o1e1s2, a2i1o1e1s3), 3)
     ... except TypeError as te:
     ...     print(te)
-    log should be an instance of bool but is int, namely '3'.
+    log should be an instance of bool but is int, namely 3.
 
     >>> try:
     ...     select_consistent({234})
     ... except TypeError as te:
     ...     print(te)
     dataElement should be an instance of moptipy.evaluation.base.PerRunData \
-but is int, namely '234'.
+but is int, namely 234.
     """
     if not isinstance(data, Iterable):
         raise type_error(data, "data", Iterable)

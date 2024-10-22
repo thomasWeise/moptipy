@@ -151,7 +151,7 @@ def int_range_to_dtype(min_value: int, max_value: int,
     ...     int_range_to_dtype(-1.0, (2 ** 64) - 1)
     ... except TypeError as e:
     ...     print(e)
-    min_value should be an instance of int but is float, namely '-1.0'.
+    min_value should be an instance of int but is float, namely -1.0.
     >>> try:
     ...     int_range_to_dtype(-1, 'a')
     ... except TypeError as e:
@@ -291,18 +291,18 @@ namely 'x'.
     ... except TypeError as v:
     ...     print(v)
     finite lower_bound of always_int should be an instance of int but is \
-float, namely '1.0'.
+float, namely 1.0.
     >>> try:
     ...     dtype_for_data(True, 0, 2.0)
     ... except TypeError as v:
     ...     print(v)
     finite upper_bound of always_int should be an instance of int but is \
-float, namely '2.0'.
+float, namely 2.0.
     >>> try:
     ...     dtype_for_data(3, 0, 2)
     ... except TypeError as v:
     ...     print(v)
-    always_int should be an instance of bool but is int, namely '3'.
+    always_int should be an instance of bool but is int, namely 3.
     """
     if not isinstance(always_int, bool):
         raise type_error(always_int, "always_int", bool)
@@ -423,7 +423,7 @@ def rand_seed_check(rand_seed: Any) -> int:
     ...     rand_seed_check(1.2)
     ... except TypeError as te:
     ...     print(te)
-    rand_seed should be an instance of int but is float, namely '1.2'.
+    rand_seed should be an instance of int but is float, namely 1.2.
     """
     return check_int_range(rand_seed, "rand_seed",
                            __MIN_RAND_SEED, __MAX_RAND_SEED)
@@ -608,7 +608,7 @@ def np_to_py_number(number: Any) -> int | float:
     ... except TypeError as te:
     ...    print(te)
     number should be an instance of any in {float, int, numpy.floating, \
-numpy.integer} but is numpy.complex64, namely '(1+0j)'.
+numpy.integer} but is numpy.complex64.
     """
     if isinstance(number, int):
         return number

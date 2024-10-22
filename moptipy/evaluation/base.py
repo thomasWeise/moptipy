@@ -3,10 +3,15 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Final
 
+from pycommons.io.path import Path
 from pycommons.types import check_int_range, type_error
 
+from moptipy.api.logging import FILE_SUFFIX
 from moptipy.utils.nputils import rand_seed_check
-from moptipy.utils.strings import sanitize_name
+from moptipy.utils.strings import (
+    sanitize_name,
+    sanitize_names,
+)
 from moptipy.version import __version__ as moptipy_version
 
 #: The key for the total number of runs.
@@ -44,7 +49,7 @@ def check_time_unit(time_unit: Any) -> str:
     ...     check_time_unit(1)
     ... except TypeError as te:
     ...     print(te)
-    time_unit should be an instance of str but is int, namely '1'.
+    time_unit should be an instance of str but is int, namely 1.
     >>> try:
     ...     check_time_unit("blabedibla")
     ... except ValueError as ve:
@@ -77,7 +82,7 @@ def check_f_name(f_name: Any) -> str:
     ...     check_f_name(1.0)
     ... except TypeError as te:
     ...     print(te)
-    f_name should be an instance of str but is float, namely '1.0'.
+    f_name should be an instance of str but is float, namely 1.0.
     >>> try:
     ...     check_f_name("oops")
     ... except ValueError as ve:
@@ -128,7 +133,7 @@ def _set_name(dest: object, name: str, what: str,
     ...     _set_name(t, 1, "algorithm")
     ... except TypeError as te:
     ...     print(te)
-    algorithm name should be an instance of str but is int, namely '1'.
+    algorithm name should be an instance of str but is int, namely 1.
     >>> t.algorithm
     'bla'
     >>> try:
@@ -433,7 +438,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData(3, "i", "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    algorithm name should be an instance of str but is int, namely '3'.
+    algorithm name should be an instance of str but is int, namely 3.
     >>> try:
     ...     PerRunData("@1 2", "i", "f", "e", 234)
     ... except ValueError as ve:
@@ -443,7 +448,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData("x", 3.2, "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    instance name should be an instance of str but is float, namely '3.2'.
+    instance name should be an instance of str but is float, namely 3.2.
     >>> try:
     ...     PerRunData("x", "sdf i", "f", "e", 234)
     ... except ValueError as ve:
@@ -453,7 +458,7 @@ class PerRunData(EvaluationDataElement):
     ...     PerRunData("a", "i", True, "e", 234)
     ... except TypeError as te:
     ...     print(te)
-    objective name should be an instance of str but is bool, namely 'True'.
+    objective name should be an instance of str but is bool, namely True.
     >>> try:
     ...     PerRunData("x", "i", "d-f", "e", 234)
     ... except ValueError as ve:
@@ -464,7 +469,7 @@ class PerRunData(EvaluationDataElement):
     ... except TypeError as te:
     ...     print(te)
     encoding name should be an instance of any in {None, str} but is float, \
-namely '54.2'.
+namely 54.2.
     >>> try:
     ...     PerRunData("y", "i", "f", "x  x", 234)
     ... except ValueError as ve:
@@ -474,7 +479,7 @@ namely '54.2'.
     ...     PerRunData("x", "i", "f", "e", 3.3)
     ... except TypeError as te:
     ...     print(te)
-    rand_seed should be an instance of int but is float, namely '3.3'.
+    rand_seed should be an instance of int but is float, namely 3.3.
     >>> try:
     ...     PerRunData("x", "i", "f", "e", -234)
     ... except ValueError as ve:
@@ -527,6 +532,21 @@ namely '54.2'.
                 "" if self.encoding is None else self.encoding, 1,
                 self.rand_seed)
 
+    def path_to_file(self, base_dir: str) -> Path:
+        """
+        Get the path that would correspond to the log file of this end result.
+
+        Obtain a path that would correspond to the log file of this end
+        result, resolved from a base directory `base_dir`.
+
+        :param base_dir: the base directory
+        :returns: the path to a file corresponding to the end result record
+        """
+        return Path(base_dir).resolve_inside(
+            self.algorithm).resolve_inside(self.instance).resolve_inside(
+            sanitize_names([self.algorithm, self.instance,
+                            hex(self.rand_seed)]) + FILE_SUFFIX)
+
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
 class MultiRunData(EvaluationDataElement):
@@ -564,7 +584,7 @@ class MultiRunData(EvaluationDataElement):
     ... except TypeError as te:
     ...     print(te)
     algorithm name should be an instance of any in {None, str} but is int, \
-namely '1'.
+namely 1.
     >>> try:
     ...     MultiRunData("x x", "i", "f", "e", 234)
     ... except ValueError as ve:
@@ -575,7 +595,7 @@ namely '1'.
     ... except TypeError as te:
     ...     print(te)
     instance name should be an instance of any in {None, str} but is float, \
-namely '5.5'.
+namely 5.5.
     >>> try:
     ...     MultiRunData("x", "a-i", "f", "e", 234)
     ... except ValueError as ve:
@@ -586,7 +606,7 @@ namely '5.5'.
     ... except TypeError as te:
     ...     print(te)
     objective name should be an instance of any in {None, str} but is bool, \
-namely 'True'.
+namely True.
     >>> try:
     ...     MultiRunData("xx", "i", "d'@f", "e", 234)
     ... except ValueError as ve:
@@ -597,7 +617,7 @@ namely 'True'.
     ... except TypeError as te:
     ...     print(te)
     encoding name should be an instance of any in {None, str} but is float, \
-namely '-9.4'.
+namely -9.4.
     >>> try:
     ...     MultiRunData("xx", "i", "f", "e-{a", 234)
     ... except ValueError as ve:
@@ -607,7 +627,7 @@ namely '-9.4'.
     ...     MultiRunData("x", "i", "f", "e", -1.234)
     ... except TypeError as te:
     ...     print(te)
-    n should be an instance of int but is float, namely '-1.234'.
+    n should be an instance of int but is float, namely -1.234.
     >>> try:
     ...     MultiRunData("xx", "i", "f", "e", 1_000_000_000_000_000_000_000)
     ... except ValueError as ve:
@@ -698,7 +718,7 @@ class MultiRun2DData(MultiRunData):
     ...                    3, F_NAME_SCALED)
     ... except TypeError as te:
     ...     print(te)
-    time_unit should be an instance of str but is int, namely '3'.
+    time_unit should be an instance of str but is int, namely 3.
     >>> try:
     ...     MultiRun2DData("a", "i", "f", None, 3,
     ...                    "sdfjsdf", F_NAME_SCALED)
@@ -710,7 +730,7 @@ class MultiRun2DData(MultiRunData):
     ...                    TIME_UNIT_FES, True)
     ... except TypeError as te:
     ...     print(te)
-    f_name should be an instance of str but is bool, namely 'True'.
+    f_name should be an instance of str but is bool, namely True.
     >>> try:
     ...     MultiRun2DData("a", "i", "f", None, 3,
     ...                    TIME_UNIT_FES, "blablue")

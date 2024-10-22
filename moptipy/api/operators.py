@@ -246,7 +246,7 @@ but is str, namely 'A'.
     ... except TypeError as te:
     ...     print(te)
     op1 should be an instance of moptipy.api.operators.Op1WithStepSize \
-but is moptipy.api.operators.Op1, namely 'Op1'.
+but is moptipy.api.operators.Op1.
     >>> try:
     ...     check_op1_with_step_size(None)
     ... except TypeError as te:
