@@ -1,16 +1,17 @@
 """
-A Hybrid EA-FEA Algorithm: the `EAFEA-C`.
+A Hybrid EA-FEA Algorithm: the `EAFEA-N`.
 
 This hybrid algorithm has the following features:
 
-- The new solution of the FEA strand is copied to the EA strand if it has an
-  H-value which is not worse than the H-value of the current solution.
+- The new solution of the FEA strand is always copied to the EA strand.
 - The new solution of the EA strand is copied over to the FEA strand if it is
-  better than the current solution of the EA strand.
+  better than the current solution of the FEA strand.
 - The H-table is updated by both strands.
 - The FEA strand always toggles back to the EA strand.
-- The EA strand toggles to the FEA strand if it did not improve for a time
-  limit that is incremented by one whenever a toggle was made.
+- The EA strand toggles to the FEA strand if it did not improve for a certain,
+  increasing `time limit`.
+- Every time the EA strand toggles over to the FEA strand, `time_limit` is
+  incremented by 1.
 """
 from collections import Counter
 from typing import Callable, Final
@@ -24,18 +25,18 @@ from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 
 
-class EAFEAC(Algorithm1):
-    """An implementation of the EAFEA-C."""
+class EAFEAN(Algorithm1):
+    """An implementation of the EAFEA-N."""
 
     def __init__(self, op0: Op0, op1: Op1, log_h_tbl: bool = False) -> None:
         """
-        Create the EAFEA-C.
+        Create the EAFEA-N.
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
         :param log_h_tbl: should we log the H table?
         """
-        super().__init__("eafeaC", op0, op1)
+        super().__init__("eafeaN", op0, op1)
         if not isinstance(log_h_tbl, bool):
             raise type_error(log_h_tbl, "log_h_tbl", bool)
         #: True if we should log the H table, False otherwise
@@ -43,7 +44,7 @@ class EAFEAC(Algorithm1):
 
     def solve(self, process: Process) -> None:
         """
-        Apply the EAFEA-C to an optimization problem.
+        Apply the EAFEA-N to an optimization problem.
 
         :param process: the black-box process object
         """
@@ -82,30 +83,33 @@ class EAFEAC(Algorithm1):
 
             if use_ffa:  # The FEA branch uses FFA.
                 use_ffa = False  # Always toggle use from FFA to EA.
+                ea_no_lt_moves = 0  # Reset the EA no-improv move counter.
 
                 h[y_fea] += 1  # type: ignore  # Update H for FEA solution.
                 if h[y_new] <= h[y_fea]:  # type: ignore  # FEA acceptance.
                     xcopy(x_ea, x_new)  # Copy solution also to EA.
                     x_fea, x_new = x_new, x_fea
-                    y_fea = y_ea = y_new
+                    y_fea = y_new
+                else:  # FEA does not accept, but we always copy to the EA,
+                    x_ea, x_new = x_new, x_ea  # so we quickly swap here.
+                y_ea = y_new  # we always copy the solution over to the EA
 
             else:  # EA or RLS branch performs local search.
                 h[y_ea] += 1  # type: ignore  # Update H in *both* branches.
 
-                if y_new <= y_ea:  # The acceptance criterion of RLS / EA.
-                    if y_new < y_ea:  # Check if we did an actual improvement.
-                        ea_no_lt_moves = 0  # non-improving moves counter = 0.
-                        xcopy(x_fea, x_new)  # Copy solution over to FEA.
-                        y_fea = y_new  # And store the objective value.
-                    else:  # The move was *not* an improvement:
-                        ea_no_lt_moves += 1  # Increase non-improved counter.
-                    x_ea, x_new = x_new, x_ea  # Accept new solution.
-                    y_ea = y_new  # Store objective value.
-                else:  # The move was worse than the current solution.
-                    ea_no_lt_moves += 1  # Increase non-improvement counter.
+                if y_new < y_fea:  # Is new solution better than the FEA one?
+                    xcopy(x_fea, x_new)  # Copy solution over to FEA.
+                    y_fea = y_new  # And store the objective value.
 
+                if y_new <= y_ea:  # The acceptance criterion of RLS / EA.
+                    x_ea, x_new = x_new, x_ea  # Accept new solution.
+                    y_new, y_ea = y_ea, y_new  # Swap values (for line below).
+                    if y_new > y_ea:  # Check if we did an actual improvement.
+                        ea_no_lt_moves = 0  # non-improving moves counter = 0.
+                        continue  # We can jump to the next iteration.
+
+                ea_no_lt_moves += 1  # Increase non-improved counter.
                 if ea_no_lt_moves >= ea_max_no_lt_moves:  # Toggle: EA to FEA.
-                    ea_no_lt_moves = 0  # Reset non-improving move counter.
                     ea_max_no_lt_moves += 1  # Increment limit by one.
                     use_ffa = True  # Toggle to FFA.
 

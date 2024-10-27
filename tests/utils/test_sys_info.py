@@ -47,7 +47,7 @@ def __check_sys_info() -> None:
     assert "version.numba" in values
     assert "version.numpy" in values
     assert "version.packaging" in values
-    assert "version.Pillow" in values
+    assert "version.pillow" in values
     assert "version.psutil" in values
     assert "version.pyparsing" in values
     assert "version.pythondateutil" in values

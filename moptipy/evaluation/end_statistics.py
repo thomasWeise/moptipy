@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from math import ceil, inf, isfinite
 from typing import Any, Callable, Final, Iterable, cast
 
+from pycommons.ds.sequences import reiterable
 from pycommons.io.console import logger
 from pycommons.io.csv import (
     SCOPE_SEPARATOR,
@@ -44,7 +45,6 @@ from pycommons.strings.string_conv import (
 )
 from pycommons.types import (
     check_int_range,
-    reiterable,
     type_error,
     type_name_of,
 )

@@ -1,7 +1,7 @@
-"""Test the EAFEA-B."""
+"""Test the EAFEA-N."""
 from pycommons.io.temp import temp_file
 
-from moptipy.algorithms.so.ffa.eafea_b import EAFEAB
+from moptipy.algorithms.so.ffa.eafea_n import EAFEAN
 from moptipy.api.execution import Execution
 from moptipy.api.objective import Objective
 from moptipy.examples.bitstrings.onemax import OneMax
@@ -30,64 +30,64 @@ def __ub() -> int:
     return 1_000_000_000_000_000
 
 
-def test_eafeab_on_jssp() -> None:
-    """Validate the EAFEA-B on the JSSP."""
+def test_eafean_on_jssp() -> None:
+    """Validate the EAFEA-N on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
-               objective: Objective) -> EAFEAB:
+               objective: Objective) -> EAFEAN:
         assert isinstance(instance, Instance)
         assert isinstance(search_space, Permutations)
         assert isinstance(objective, Objective)
-        return EAFEAB(Op0Shuffle(search_space), Op1Swap2(), False)
+        return EAFEAN(Op0Shuffle(search_space), Op1Swap2(), False)
 
     validate_algorithm_on_jssp(create)
 
 
-def test_eafeab_on_onemax() -> None:
-    """Validate the EAFEA-B on the OneMax problem."""
+def test_eafean_on_onemax() -> None:
+    """Validate the EAFEA-N on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective) -> EAFEAB:
+    def create(bs: BitStrings, objective: Objective) -> EAFEAN:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
-        return EAFEAB(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
+        return EAFEAN(Op0Random(), Op1MoverNflip(bs.dimension, 1, True),
                       False)
 
     validate_algorithm_on_onemax(create)
 
 
-def test_eafeab_on_onemax_with_large_range() -> None:
-    """Validate the EAFEA-B on the OneMax problem."""
+def test_eafean_on_onemax_with_large_range() -> None:
+    """Validate the EAFEA-N on the OneMax problem."""
 
-    def create(bs: BitStrings, objective: Objective) -> EAFEAB:
+    def create(bs: BitStrings, objective: Objective) -> EAFEAN:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         objective.lower_bound = __lb  # type: ignore
         objective.upper_bound = __ub  # type: ignore
-        return EAFEAB(Op0Random(), Op1MoverNflip(bs.dimension, 1, True), True)
+        return EAFEAN(Op0Random(), Op1MoverNflip(bs.dimension, 1, True), True)
 
     validate_algorithm_on_onemax(create)
 
 
-def test_eafeab_on_leadingones() -> None:
-    """Validate the EAFEA-B on the LeadingOnes problem."""
+def test_eafean_on_leadingones() -> None:
+    """Validate the EAFEA-N on the LeadingOnes problem."""
 
-    def create(bs: BitStrings, objective: Objective) -> EAFEAB:
+    def create(bs: BitStrings, objective: Objective) -> EAFEAN:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
-        return EAFEAB(Op0Random(), Op1MoverNflip(bs.dimension, 1, True), True)
+        return EAFEAN(Op0Random(), Op1MoverNflip(bs.dimension, 1, True), True)
 
     validate_algorithm_on_leadingones(create)
 
 
-def test_eafeab_on_leadingones_large_range() -> None:
-    """Validate the EAFEA-B on the LeadingOnes problem with larger bounds."""
+def test_eafean_on_leadingones_large_range() -> None:
+    """Validate the EAFEA-N on the LeadingOnes problem with larger bounds."""
 
-    def create(bs: BitStrings, objective: Objective) -> EAFEAB:
+    def create(bs: BitStrings, objective: Objective) -> EAFEAN:
         assert isinstance(bs, BitStrings)
         assert isinstance(objective, Objective)
         objective.lower_bound = __lb  # type: ignore
         objective.upper_bound = __ub  # type: ignore
-        return EAFEAB(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
+        return EAFEAN(Op0Random(), Op1MoverNflip(bs.dimension, 1, True))
 
     validate_algorithm_on_leadingones(create)
 
@@ -97,7 +97,7 @@ def test_h_log() -> None:
     n = 10
     space = BitStrings(n)
     problem = OneMax(n)
-    algorithm = EAFEAB(Op0Random(), Op1Flip1(), True)
+    algorithm = EAFEAN(Op0Random(), Op1Flip1(), True)
 
     with temp_file() as tf:
         ex = Execution()
@@ -113,5 +113,5 @@ def test_h_log() -> None:
 
         lines = tf.read_all_str().splitlines()
         assert lines[-1] == "END_H"
-        assert lines[-2] == "4;4;;4"
+        assert lines[-2] == "4;6;;9;;3"
         assert lines[-3] == "BEGIN_H"

@@ -33,7 +33,7 @@ class EAFEA(Algorithm1):
         if not isinstance(log_h_tbl, bool):
             raise type_error(log_h_tbl, "log_h_tbl", bool)
         #: True if we should log the H table, False otherwise
-        self.log_h_tbl: Final[bool] = log_h_tbl
+        self.__log_h_tbl: Final[bool] = log_h_tbl
 
     def solve(self, process: Process) -> None:
         """
@@ -79,7 +79,7 @@ class EAFEA(Algorithm1):
                 y_c = y_n
                 x_c, x_n = x_n, x_c
 
-        if not self.log_h_tbl:
+        if not self.__log_h_tbl:
             return  # we are done here
 
         # After we are done, we want to print the H-table.

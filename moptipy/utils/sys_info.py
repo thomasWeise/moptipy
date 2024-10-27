@@ -48,7 +48,7 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
 __DEPENDENCIES: set[str] | None = {
     "cmaes", "contourpy", "cycler", "fonttools", "intel-cmplr-lib-rt",
     "joblib", "kiwisolver", "llvmlite", "matplotlib", "moptipy", "numba",
-    "numpy", "packaging", "pdfo", "Pillow", "psutil", "pycommons",
+    "numpy", "packaging", "pdfo", "pillow", "psutil", "pycommons",
     "pyparsing", "python-dateutil", "scikit-learn", "scipy", "setuptools",
     "six", "threadpoolctl"}
 
@@ -317,7 +317,6 @@ def get_sys_info() -> str:
     session.commandLine
     session.workingDirectory
     session.ipAddress
-    version.Pillow
     version.cmaes
     version.contourpy
     version.cycler
@@ -332,6 +331,7 @@ def get_sys_info() -> str:
     version.numpy
     version.packaging
     version.pdfo
+    version.pillow
     version.psutil
     version.pycommons
     version.pyparsing

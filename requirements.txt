@@ -28,7 +28,7 @@ numpy == 1.26.4
 numba == 0.60.0
 # numba uses intel-cmplr-lib-rt to generate faster compiled code, see
 # https://numba.readthedocs.io/en/stable/user/performance-tips.html
-intel-cmplr-lib-rt == 2024.2.1
+intel-cmplr-lib-rt == 2025.0.0
 
 # matplotlib is used to create plots in the evaluation procedures.
 matplotlib == 3.9.2
@@ -39,7 +39,7 @@ psutil == 6.0.0
 
 # pycommons offers many of the tools and utilities used in moptipy that are
 # not related to optimization.
-pycommons == 0.8.54
+pycommons == 0.8.56
 
 # scikit-learn is used to obtain some clusters of JSSP instances for our
 # experiments.

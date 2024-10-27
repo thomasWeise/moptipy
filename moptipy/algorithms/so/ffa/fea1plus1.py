@@ -141,7 +141,7 @@ class FEA1plus1(Algorithm1):
         if not isinstance(log_h_tbl, bool):
             raise type_error(log_h_tbl, "log_h_tbl", bool)
         #: True if we should log the H table, False otherwise
-        self.log_h_tbl: Final[bool] = log_h_tbl
+        self.__log_h_tbl: Final[bool] = log_h_tbl
 
     def solve(self, process: Process) -> None:
         """
@@ -178,7 +178,7 @@ class FEA1plus1(Algorithm1):
                 cur_f = new_f  # Store its objective value.
                 cur_x, new_x = new_x, cur_x  # Swap best and new.
 
-        if not self.log_h_tbl:
+        if not self.__log_h_tbl:
             return  # we are done here
 
         # After we are done, we want to print the H-table.

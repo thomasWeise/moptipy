@@ -30,8 +30,8 @@ def __ub() -> int:
     return 1_000_000_000_000_000
 
 
-def test_fea1plus1_on_jssp() -> None:
-    """Validate the (1+1)-FEA on the JSSP."""
+def test_eafea_on_jssp() -> None:
+    """Validate the EAFEA on the JSSP."""
 
     def create(instance: Instance, search_space: Permutations,
                objective: Objective) -> EAFEA:
@@ -43,8 +43,8 @@ def test_fea1plus1_on_jssp() -> None:
     validate_algorithm_on_jssp(create)
 
 
-def test_fea1plus1_on_onemax() -> None:
-    """Validate the (1+1)-FEA on the OneMax problem."""
+def test_eafea_on_onemax() -> None:
+    """Validate the EAFEA on the OneMax problem."""
 
     def create(bs: BitStrings, objective: Objective) -> EAFEA:
         assert isinstance(bs, BitStrings)
@@ -54,8 +54,8 @@ def test_fea1plus1_on_onemax() -> None:
     validate_algorithm_on_onemax(create)
 
 
-def test_fea1plus1_on_onemax_with_large_range() -> None:
-    """Validate the (1+1)-FEA on the OneMax problem."""
+def test_eafea_on_onemax_with_large_range() -> None:
+    """Validate the EAFEA on the OneMax problem."""
 
     def create(bs: BitStrings, objective: Objective) -> EAFEA:
         assert isinstance(bs, BitStrings)
@@ -67,8 +67,8 @@ def test_fea1plus1_on_onemax_with_large_range() -> None:
     validate_algorithm_on_onemax(create)
 
 
-def test_fea1plus1_on_leadingones() -> None:
-    """Validate the (1+1)-FEA on the LeadingOnes problem."""
+def test_eafea_on_leadingones() -> None:
+    """Validate the EAFEA on the LeadingOnes problem."""
 
     def create(bs: BitStrings, objective: Objective) -> EAFEA:
         assert isinstance(bs, BitStrings)
@@ -78,8 +78,8 @@ def test_fea1plus1_on_leadingones() -> None:
     validate_algorithm_on_leadingones(create)
 
 
-def test_fea1plus1_on_leadingones_large_range() -> None:
-    """Validate the (1+1)-FEA on the LeadingOnes problem with larger bounds."""
+def test_eafea_on_leadingones_large_range() -> None:
+    """Validate the EAFEA on the LeadingOnes problem with larger bounds."""
 
     def create(bs: BitStrings, objective: Objective) -> EAFEA:
         assert isinstance(bs, BitStrings)
