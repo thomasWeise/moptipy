@@ -10,12 +10,12 @@ offered by this module provides the functionality to make such a selection.
 It may be a bit slow, but hopefully it will pick the largest possible
 consistent sub-selection or, at least, get close to it.
 
-The current method to select the data is rather heuristic. It is based on
-iteratively deleting those data elements whose configuration elements appear
-the least often. This is computed in absolute terms. I actually think
-normalizing this score should be better, but seemingly using the absolute raw
-score creates larger consistent datasets. So for now, this is how we will do
-it.
+The current method to select the data is rather heuristic. It always begins
+with the full set of data and aims to delete the element that will cause the
+least other deletions down the road, until we arrive in a consistent state.
+I strongly suspect that doing this perfectly would be NP-hard, so we cannot
+implement this. Instead, we use different heuristics and then pick the best
+result.
 """
 
 from collections import Counter
@@ -452,6 +452,14 @@ but is int, namely 234.
             if log:
                 logger(f"All setups now have the same score {max_score} under"
                        f" {scorer_name!r}.")
+            if count <= best_length:
+                if log:
+                    logger(f"We now only have {count} setups, which means we "
+                           "cannot get better than the current best set with "
+                           f"{best_length} setups, so we quit after score-"
+                           f"based cleaning under {scorer_name!r}.")
+                count = -1
+                break
 
             # If we get here, all elements have the same score.
             # This means that we are basically done.
@@ -521,6 +529,15 @@ but is int, namely 234.
             elif log:
                 logger("No inconsistencies in algorithm/instance/objective/"
                        f"encoding possible under {scorer_name!r}.")
+            if count <= best_length:
+                if log:
+                    logger(f"We now only have {count} setups, which means we "
+                           "cannot get better than the current best set with "
+                           f"{best_length} setups, so we quit after algorithm"
+                           "/instance/objective/encoding cleaning under "
+                           f"{scorer_name!r}.")
+                count = -1
+                break
 
             # If we get here, the only problem left could be if algorithms
             # have different seeds for the same instances. We thus need to
@@ -597,13 +614,23 @@ but is int, namely 234.
                         f"Seeds inconsistent under {scorer_name!r}.")
             del must_delete_from_insts
 
-            if (not changed) and log:
-                logger(f"No seed inconsistencies under {scorer_name!r}.")
             del seeds
+            if changed:
+                if count <= best_length:
+                    if log:
+                        logger(f"We now only have {count} setups, which "
+                               "means we cannot get better than the current "
+                               f"best set with {best_length} setups, so we "
+                               "quit after seed-based cleaning under "
+                               f"{scorer_name!r}.")
+                    count = -1
+                    break
+            elif log:
+                logger(f"No seed inconsistencies under {scorer_name!r}.")
             # There should not be any problems left, but we need to check
-            # again.
+            # again if something has changed.
 
-        if count < 0:
+        if count <= 0:
             continue  # We can do nothing here
 
         if count > best_length:
