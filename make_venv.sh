@@ -35,7 +35,7 @@ while ! (timeout --kill-after=60m 58m "$PYTHON_INTERPRETER" -m pip install --no-
     cycle=$((cycle+1))
     if (("$cycle" > 100)) ; then
         echo "$(date +'%0Y-%0m-%0d %0R:%0S'): Something odd is happening: We have performed $cycle cycles of pip install and all failed. That's too many. Let's quit."
-        exit 2
+        exit 2  # A non-zero exit code indicates failure.
     fi
     echo "$(date +'%0Y-%0m-%0d %0R:%0S'): pip install failed, we will try again."
 done
