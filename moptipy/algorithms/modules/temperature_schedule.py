@@ -18,9 +18,10 @@ zero-based for simplicity reason, meanings that the first objective function
 evaluation is at index `0`.
 """
 
-from math import e, inf, isfinite, log, nextafter
+from math import e, isfinite, log
 from typing import Final
 
+from pycommons.math.int_math import try_int
 from pycommons.strings.enforce import enforce_non_empty_str_without_ws
 from pycommons.types import check_int_range, type_error
 
@@ -277,35 +278,33 @@ class LogarithmicSchedule(TemperatureSchedule):
                 f"{num_to_str_for_name(self.epsilon)}")
 
 
-#: the default maximum range
-_DEFAULT_MAX_RANGE: Final[float] = inf
-
-#: the default minimum range
-_DEFAULT_MIN_RANGE: Final[float] = nextafter(0.0, _DEFAULT_MAX_RANGE)
-
-
-class ExponentialScheduleBasedOnRange(ExponentialSchedule):
+class ExponentialScheduleBasedOnBounds(ExponentialSchedule):
     """
     An exponential schedule configured based on the objective's range.
 
     This exponential schedule takes an objective function as parameter.
     It uses the lower and the upper bound of this function, `LB` and `UB`,
     to select a start and end temperature based on the provided fractions.
-    Here, we set `R = UB - LB`.
-    Roughly, the start temperature will be `R * start_range_frac` and
+    Here, we set `W = lb_sum_weight * LB + ub_sum_weight * UB`.
+    If we set `lb_sum_weight = -1` and `ub_sum_weight = 1`, then `W` will be
+    the range of the objective function.
+    If we set `lb_sum_weight = 1` and `ub_sum_weight = 0`, then we base the
+    temperature setup entirely on the lower bound.
+    If we set `lb_sum_weight = 0` and `ub_sum_weight = 1`, then we base the
+    temperature setup entirely on the upper bound.
+    Roughly, the start temperature will be `W * start_range_frac` and
     the end temperature, to be reached after `n_steps` FEs, will be
-    `R * end_range_frac`.
-    If one of `UB` or `LB` is not provided, we use `R = max(1, abs(other))`.
-    If neither is provided, we set `R = 1`.
+    `W * end_range_frac`.
     Since sometimes the upper and lower bound may be excessivly large, we
-    can provide limits for `R` in form of `min_range` and `max_range`.
+    can provide limits for `W` in form of `min_bound_sum` and `max_bound_sum`.
     This will then override any other computation.
     Notice that it is expected that `tau == 0` when the temperature function
     is first called. It is expected that `tau == n_range - 1` when it is
     called for the last time.
 
     >>> from moptipy.examples.bitstrings.onemax import OneMax
-    >>> es = ExponentialScheduleBasedOnRange(OneMax(10), 0.01, 0.0001, 10**8)
+    >>> es = ExponentialScheduleBasedOnBounds(
+    ...     OneMax(10), -1, 1, 0.01, 0.0001, 10**8)
     >>> es.temperature(0)
     0.1
     >>> es.temperature(1)
@@ -315,8 +314,8 @@ class ExponentialScheduleBasedOnRange(ExponentialSchedule):
     >>> es.temperature(10**8)
     0.0009999999569324865
 
-    >>> es = ExponentialScheduleBasedOnRange(
-    ...         OneMax(10), 0.01, 0.0001, 10**8, max_range=5)
+    >>> es = ExponentialScheduleBasedOnBounds(
+    ...         OneMax(10), -1, 1, 0.01, 0.0001, 10**8, max_bound_sum=5)
     >>> es.temperature(0)
     0.05
     >>> es.temperature(1)
@@ -327,117 +326,138 @@ class ExponentialScheduleBasedOnRange(ExponentialSchedule):
     0.0004999999784662432
 
     >>> try:
-    ...     ExponentialScheduleBasedOnRange(1, 0.01, 0.0001, 10**8)
+    ...     ExponentialScheduleBasedOnBounds(1, 0.01, 0.0001, 10**8)
     ... except TypeError as te:
     ...     print(te)
     objective function should be an instance of moptipy.api.objective.\
 Objective but is int, namely 1.
 
     >>> try:
-    ...     ExponentialScheduleBasedOnRange(OneMax(10), 12.0, 0.0001, 10**8)
+    ...     ExponentialScheduleBasedOnBounds(
+    ...         OneMax(10), -1, 1, -1.0, 0.0001, 10**8)
     ... except ValueError as ve:
     ...     print(ve)
-    Invalid fraction range 12.0, 0.0001.
+    Invalid bound sum factors [-1.0, 0.0001].
 
     >>> try:
-    ...     ExponentialScheduleBasedOnRange(OneMax(10), 0.9, 0.0001, 1)
+    ...     ExponentialScheduleBasedOnBounds(
+    ...         OneMax(10), -1, 1, 0.9, 0.0001, 1)
     ... except ValueError as ve:
     ...     print(ve)
     n_steps=1 is invalid, must be in 2..1000000000000000.
     """
 
-    def __init__(self, f: Objective, start_range_frac: float,
-                 end_range_frac: float, n_steps: int,
-                 min_range: int | float = _DEFAULT_MIN_RANGE,
-                 max_range: int | float = _DEFAULT_MAX_RANGE) -> None:
+    def __init__(self, f: Objective,
+                 lb_sum_weight: int | float = -1,
+                 ub_sum_weight: int | float = 1,
+                 start_factor: float = 1e-3,
+                 end_factor: float = 1e-7,
+                 n_steps: int = 1_000_000,
+                 min_bound_sum: int | float = 1e-20,
+                 max_bound_sum: int | float = 1e20) -> None:
         """
         Initialize the range-based exponential schedule.
 
         :param f: the objective function whose range we will use
-        :param start_range_frac: the starting fraction of the range to use for
-            the temperature
-        :param end_range_frac: the end fraction of the range to use for the
-            temperature
+        :param lb_sum_weight: the weight of the lower bound in the bound sum
+        :param ub_sum_weight: the weight of the upper bound in the bound sum
+        :parma start_factor: the factor multiplied with the bound sum to get
+            the starting temperature
+        :parm end_factor: the factor multiplied with the bound sum to get
+            the end temperature
         :param n_steps: the number of steps until the end range should be
             reached
+        :param min_bound_sum: a lower limit for the weighted sum of the bounds
+        :param max_bound_sum: an upper limit for the weighted sum of the bounds
         """
         f = check_objective(f)
-        if not isinstance(start_range_frac, float):
-            raise type_error(start_range_frac, "start_range_frac", float)
-        if not isinstance(end_range_frac, float):
-            raise type_error(end_range_frac, "end_range_frac", float)
-        if not (isfinite(start_range_frac) and isfinite(end_range_frac) and (
-                1 >= start_range_frac > end_range_frac >= 0)):
-            raise ValueError("Invalid fraction range "
-                             f"{start_range_frac}, {end_range_frac}.")
-        if not isinstance(max_range, int | float):
-            raise type_error(max_range, "max_range", (int, float))
-        if not isinstance(min_range, int | float):
-            raise type_error(min_range, "min_range", (int, float))
-        if not (0 < min_range < max_range):
-            raise ValueError(
-                f"Invalid range delimiters {min_range}, {max_range}.")
-        #: the start objective range fraction
-        self.start_range_frac: Final[float] = start_range_frac
-        #: the end objective range fraction
-        self.end_range_frac: Final[float] = end_range_frac
-        #: the minimum objective range
-        self.min_range: Final[int | float] = min_range
-        #: the maximum objective range
-        self.max_range: Final[int | float] = max_range
+        if not isinstance(lb_sum_weight, int | float):
+            raise type_error(lb_sum_weight, "lb_sum_weight", (int, float))
+        if not isinstance(ub_sum_weight, int | float):
+            raise type_error(ub_sum_weight, "ub_sum_weight", (int, float))
+        if not isinstance(start_factor, float):
+            raise type_error(start_factor, "start_factor", float)
+        if not isinstance(end_factor, float):
+            raise type_error(end_factor, "end_factor", float)
+        if not isinstance(min_bound_sum, int | float):
+            raise type_error(min_bound_sum, "min_bound_sum", (int, float))
+        if not isinstance(max_bound_sum, int | float):
+            raise type_error(max_bound_sum, "max_bound_sum", (int, float))
+
+        if not (isfinite(min_bound_sum) and isfinite(max_bound_sum) and (
+                0 < min_bound_sum < max_bound_sum)):
+            raise ValueError(f"Invalid bound sum limits [{min_bound_sum}"
+                             f", {max_bound_sum}].")
+        if not (isfinite(start_factor) and isfinite(end_factor) and (
+                0.0 < end_factor < start_factor < 1e50)):
+            raise ValueError(f"Invalid bound sum factors [{start_factor}"
+                             f", {end_factor}].")
+        if not (isfinite(lb_sum_weight) and isfinite(ub_sum_weight)):
+            raise ValueError(f"Invalid bound sum weights [{lb_sum_weight}"
+                             f", {ub_sum_weight}].")
         #: the number of steps that we will perform until reaching the end
         #: range fraction temperature
-        self.n_steps: Final[int] = check_int_range(
+        self.__n_steps: Final[int] = check_int_range(
             n_steps, "n_steps", 2, 1_000_000_000_000_000)
 
-        #: the name of the objective function used
-        self.used_objective: Final[str] = enforce_non_empty_str_without_ws(
-            str(f))
+        lb_sum_weight = try_int(lb_sum_weight)
+        #: the sum weight for the lower bound
+        self.__lb_sum_weight: Final[int | float] = lb_sum_weight
+        ub_sum_weight = try_int(ub_sum_weight)
+        #: the sum weight for the upper bound
+        self.__ub_sum_weight: Final[int | float] = ub_sum_weight
+        #: the start temperature bound sum factor
+        self.__start_factor: Final[float] = start_factor
+        #: the end temperature bound sum factor
+        self.__end_factor: Final[float] = end_factor
+        min_bound_sum = try_int(min_bound_sum)
+        #: the minimum value for the bound sum
+        self.__min_bound_sum: Final[int | float] = min_bound_sum
+        max_bound_sum = try_int(max_bound_sum)
+        #: the maximum value for the bound sum
+        self.__max_bound_sum: Final[int | float] = max_bound_sum
 
+        #: the name of the objective function used
+        self.__used_objective: Final[str] = enforce_non_empty_str_without_ws(
+            str(f))
         flb: Final[float | int] = f.lower_bound()
         fub: Final[float | int] = f.upper_bound()
-        f_range: float | int = 1
-
-        if isfinite(flb):
-            if isfinite(fub):
-                if flb >= fub:
-                    raise ValueError(
-                        "objective function lower bound >= upper bound: "
-                        f"{flb}, {fub}?")
-                f_range = fub - flb
-                if not isfinite(f_range) or (f_range <= 0):
-                    raise ValueError(
-                        f"Invalid bound range: {fub} - {flb} = {f_range}")
-            else:
-                f_range = max(abs(flb), 1)
-        elif isfinite(fub):
-            f_range = max(abs(fub), 1)
-        f_range = min(max_range, max(min_range, f_range))
-
-        #: the upper bound used for the objective range computation
-        self.f_upper_bound: Final[int | float] = fub
-        #: the lower bound used for the objective range computation
-        self.f_lower_bound: Final[int | float] = flb
-        #: The range of the objective function as used for the temperature
-        #: computation.
-        self.f_range: Final[int | float] = f_range
-
-        #: the start temperature
-        t0: Final[float] = start_range_frac * f_range
-        te: Final[float] = end_range_frac * f_range
-        if not (isfinite(t0) and isfinite(te) and (t0 > te)):
+        if flb > fub:
             raise ValueError(
-                f"Invalid range {start_range_frac}, {end_range_frac}, "
-                f"{f_range} leading to temperatures {t0}, {te}.")
+                f"Objective function lower bound {flb} > upper bound {fub}?")
+
+        #: the lower bound of the objective value
+        self.__f_lower_bound: Final[int | float] = flb
+        #: the upper bound for the objective value
+        self.__f_upper_bound: Final[int | float] = fub
+
+        bound_sum: Final[float | int] = try_int(max(min_bound_sum, min(
+            max_bound_sum,
+            (flb * lb_sum_weight if lb_sum_weight != 0 else 0) + (
+                fub * ub_sum_weight if ub_sum_weight != 0 else 0))))
+        if not (isfinite(bound_sum) and (
+                min_bound_sum <= bound_sum <= max_bound_sum)):
+            raise ValueError(
+                f"Invalid bound sum {bound_sum} resulting from bounds [{flb}"
+                f", {fub}] and weights {lb_sum_weight}, {ub_sum_weight}.")
+        #: the bound sum
+        self.__f_bound_sum: Final[int | float] = bound_sum
+
+        t0: Final[float] = start_factor * bound_sum
+        te: Final[float] = end_factor * bound_sum
+        if not (isfinite(t0) and isfinite(te) and (0 < te < t0 < 1e100)):
+            raise ValueError(
+                f"Invalid setup {start_factor}, {end_factor}, "
+                f"{bound_sum} leading to temperatures {t0}, {te}.")
         #: the end temperature
-        self.te: Final[float] = te
+        self.__te: Final[float] = te
 
         epsilon: Final[float] = 1 - (te / t0) ** (1 / (n_steps - 1))
         if not (isfinite(epsilon) and (0 < epsilon < 1) and (
                 0 < (1 - epsilon) < 1)):
             raise ValueError(
-                f"Invalid computed epsilon {epsilon} resulting from range "
-                f"{start_range_frac}, {end_range_frac}, {f_range} leading "
+                f"Invalid computed epsilon {epsilon} resulting from setup "
+                f"{start_factor}, {end_factor}, {bound_sum} leading "
                 f"to temperatures {t0}, {te}.")
         super().__init__(t0, epsilon)
 
@@ -451,29 +471,37 @@ Objective but is int, namely 1.
         >>> from moptipy.examples.bitstrings.onemax import OneMax
         >>> with InMemoryLogger() as l:
         ...     with l.key_values("C") as kv:
-        ...         ExponentialScheduleBasedOnRange(
-        ...             OneMax(10), 0.1, 0.01, 10**8).log_parameters_to(kv)
+        ...         ExponentialScheduleBasedOnBounds(
+        ...             OneMax(10), -1, 1, 0.01, 0.0001).log_parameters_to(kv)
         ...     text = l.get_log()
         >>> text[1]
-        'name: expR0d1_0d01'
+        'name: expRm1_1_0d01_0d0001_1em20_1e20'
         >>> text[3]
-        'T0: 1'
-        >>> text[4]
-        'e: 2.3025850892643973e-8'
+        'T0: 0.1'
+        >>> text[5]
+        'e: 4.6051641873212645e-6'
+        >>> text[7]
+        'nSteps: 1000000'
+        >>> text[8]
+        'lbSumWeight: -1'
+        >>> text[9]
+        'ubSumWeight: 1'
         >>> len(text)
-        21
+        25
         """
         super().log_parameters_to(logger)
-        logger.key_value("startRangeFrac", self.start_range_frac)
-        logger.key_value("endRangeFrac", self.end_range_frac)
-        logger.key_value("maxRange", self.max_range)
-        logger.key_value("minRange", self.min_range)
-        logger.key_value("usedObjective", self.used_objective)
-        logger.key_value("fLb", self.f_lower_bound)
-        logger.key_value("fUb", self.f_upper_bound)
-        logger.key_value("nSteps", self.n_steps)
-        logger.key_value("fRange", self.f_range)
-        logger.key_value("te", self.te)
+        logger.key_value("nSteps", self.__n_steps)
+        logger.key_value("lbSumWeight", self.__lb_sum_weight)
+        logger.key_value("ubSumWeight", self.__ub_sum_weight)
+        logger.key_value("startFactor", self.__start_factor)
+        logger.key_value("endFactor", self.__end_factor)
+        logger.key_value("minBoundSum", self.__min_bound_sum)
+        logger.key_value("maxBoundSum", self.__max_bound_sum)
+        logger.key_value("f", self.__used_objective)
+        logger.key_value("fLB", self.__f_lower_bound)
+        logger.key_value("fUB", self.__f_upper_bound)
+        logger.key_value("boundSum", self.__f_bound_sum)
+        logger.key_value("Tend", self.__te)
 
     def __str__(self) -> str:
         """
@@ -482,16 +510,9 @@ Objective but is int, namely 1.
         :returns: the name of this schedule
 
         >>> from moptipy.examples.bitstrings.onemax import OneMax
-        >>> ExponentialScheduleBasedOnRange(OneMax(10), 0.01, 0.0001, 10**8)
-        expR0d01_0d0001
+        >>> ExponentialScheduleBasedOnBounds(OneMax(10), -1, 1, 0.01, 0.0001)
+        expRm1_1_0d01_0d0001_1em20_1e20
         """
-        base: Final[str] = (
-            f"expR{num_to_str_for_name(self.start_range_frac)}_"
-            f"{num_to_str_for_name(self.end_range_frac)}")
-        if (self.min_range != _DEFAULT_MIN_RANGE) or (
-                self.max_range != _DEFAULT_MAX_RANGE):
-            if self.min_range == _DEFAULT_MIN_RANGE:
-                return f"{base}_{num_to_str_for_name(self.max_range)}"
-            return (f"{base}_{num_to_str_for_name(self.min_range)}_"
-                    f"{num_to_str_for_name(self.max_range)}")
-        return base
+        return "expR" + "_".join(map(num_to_str_for_name, (
+            self.__lb_sum_weight, self.__ub_sum_weight, self.__start_factor,
+            self.__end_factor, self.__min_bound_sum, self.__max_bound_sum)))
