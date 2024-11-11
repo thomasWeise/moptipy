@@ -35,6 +35,10 @@ algorithm benchmarking. These instances are provided via
    Benchmarking Discrete Optimization Heuristics with IOHprofiler. *Applied
    Soft Computing* 88:106027, March 2020,
    doi: https://doi.org/10.1016/j.asoc.2019.106027.
+5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
+   Fitness Assignment: Optimization without Bias for Good Solutions can be
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
+   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
 """
 
 from array import array
@@ -468,7 +472,7 @@ class WModel(BitStringProblem):
 
         :return: the length of the bit string
 
-        >>> print(WModel(7, 6, 4, 4).upper_bound())
+        >>> WModel(7, 6, 4, 4).upper_bound()
         7
         """
         return self.nopt

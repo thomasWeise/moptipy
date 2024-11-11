@@ -1,8 +1,11 @@
 """
 The Jump problem.
 
-The jump problem is basically OneMax, but with a deceptive region of k bit
+The Jump problem is basically OneMax, but with a deceptive region of `k` bit
 flips before the optimum.
+The optimal objective value is 0, which is reached if all bits are `True`.
+The worst objective value is `n + k - 1`, which is reached if exactly one
+bit is `False`.
 
 1. Stefan Droste, Thomas Jansen, and Ingo Wegener. On the Analysis of the
    (1+1) Evolutionary Algorithm. *Theoretical Computer Science.*
@@ -19,16 +22,24 @@ flips before the optimum.
    doi: https://doi.org/10.1007/s11047-021-09841-7.
    Also: arXiv:1805.10902v2 [cs.DS] 21 Nov 2018.
    https://arxiv.org/abs/1805.10902
+4. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
+   Assignment: Making Optimization Algorithms Invariant under Bijective
+   Transformations of the Objective Function Value. *IEEE Transactions on
+   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at
+   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.
+   https://dx.doi.org/10.1109/TEVC.2020.3032090
+5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
+   Fitness Assignment: Optimization without Bias for Good Solutions can be
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
+   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
 """
 
 from typing import Final
 
 import numba  # type: ignore
 import numpy as np
-from pycommons.types import check_int_range
 
-from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
-from moptipy.utils.logger import KeyValueLogSection
+from moptipy.examples.bitstrings.bitstring_problem import BitStringNKProblem
 
 
 @numba.njit(nogil=True, cache=True)
@@ -40,42 +51,725 @@ def jump(x: np.ndarray, k: int) -> int:
     :param k: the k parameter
     :return: jump value
 
-    >>> print(jump(np.array([False, False, False, False, False, False]), 2))
+    >>> jump(np.array([False, False, False, False, False, False]), 2)
     6
-    >>> print(jump(np.array([False, False, False, False, True, False]), 2))
+    >>> jump(np.array([False, False, False, False, True, False]), 2)
     5
-    >>> print(jump(np.array([False, True, True, False, False, False]), 2))
+    >>> jump(np.array([False, True, True, False, False, False]), 2)
     4
-    >>> print(jump(np.array([True, False, True, False, True, False]), 2))
+    >>> jump(np.array([True, False, True, False, True, False]), 2)
     3
-    >>> print(jump(np.array([True, False, True, False, True, True]), 2))
+    >>> jump(np.array([True, False, True, False, True, True]), 2)
     2
-    >>> print(jump(np.array([True, True, True, True, True, False]), 2))
+    >>> jump(np.array([True, True, True, True, True, False]), 2)
     7
-    >>> print(jump(np.array([True, True, True, True, True, True]), 2))
+    >>> jump(np.array([True, True, True, True, True, True]), 2)
+    0
+
+    # n = 6, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0]), 2)
+    6
+
+    # n = 6, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 1, 0, 0]), 2)
+    5
+
+    # n = 6, k = 2, and 2 true bits
+    >>> jump(np.array([0, 0, 1, 0, 0, 1]), 2)
+    4
+
+    # n = 6, k = 2, and 3 true bits
+    >>> jump(np.array([1, 1, 1, 0, 0, 0]), 2)
+    3
+
+    # n = 6, k = 2, and 4 true bits
+    >>> jump(np.array([1, 0, 0, 1, 1, 1]), 2)
+    2
+
+    # n = 6, k = 2, and 5 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 1]), 2)
+    7
+
+    # n = 6, k = 2, and 6 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 7, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0]), 2)
+    7
+
+    # n = 7, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 1, 0, 0, 0]), 2)
+    6
+
+    # n = 7, k = 2, and 2 true bits
+    >>> jump(np.array([0, 0, 1, 0, 1, 0, 0]), 2)
+    5
+
+    # n = 7, k = 2, and 3 true bits
+    >>> jump(np.array([1, 1, 0, 1, 0, 0, 0]), 2)
+    4
+
+    # n = 7, k = 2, and 4 true bits
+    >>> jump(np.array([0, 1, 0, 1, 1, 1, 0]), 2)
+    3
+
+    # n = 7, k = 2, and 5 true bits
+    >>> jump(np.array([1, 0, 1, 1, 0, 1, 1]), 2)
+    2
+
+    # n = 7, k = 2, and 6 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1]), 2)
+    8
+
+    # n = 7, k = 2, and 7 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 8, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    8
+
+    # n = 8, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 1, 0]), 2)
+    7
+
+    # n = 8, k = 2, and 2 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 1, 1]), 2)
+    6
+
+    # n = 8, k = 2, and 3 true bits
+    >>> jump(np.array([0, 0, 1, 0, 0, 0, 1, 1]), 2)
+    5
+
+    # n = 8, k = 2, and 4 true bits
+    >>> jump(np.array([0, 0, 0, 1, 1, 1, 0, 1]), 2)
+    4
+
+    # n = 8, k = 2, and 5 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 0, 0]), 2)
+    3
+
+    # n = 8, k = 2, and 6 true bits
+    >>> jump(np.array([1, 1, 1, 0, 1, 1, 1, 0]), 2)
+    2
+
+    # n = 8, k = 2, and 7 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1, 1]), 2)
+    9
+
+    # n = 8, k = 2, and 8 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 8, k = 3, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0]), 3)
+    8
+
+    # n = 8, k = 3, and 1 true bit
+    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0]), 3)
+    7
+
+    # n = 8, k = 3, and 2 true bits
+    >>> jump(np.array([0, 0, 0, 0, 1, 0, 0, 1]), 3)
+    6
+
+    # n = 8, k = 3, and 3 true bits
+    >>> jump(np.array([0, 0, 0, 1, 1, 1, 0, 0]), 3)
+    5
+
+    # n = 8, k = 3, and 4 true bits
+    >>> jump(np.array([0, 1, 0, 0, 1, 1, 1, 0]), 3)
+    4
+
+    # n = 8, k = 3, and 5 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 0, 0, 1]), 3)
+    3
+
+    # n = 8, k = 3, and 6 true bits
+    >>> jump(np.array([1, 0, 1, 0, 1, 1, 1, 1]), 3)
+    9
+
+    # n = 8, k = 3, and 7 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 1]), 3)
+    10
+
+    # n = 8, k = 3, and 8 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    0
+
+    # n = 9, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    9
+
+    # n = 9, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]), 2)
+    8
+
+    # n = 9, k = 2, and 2 true bits
+    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 0, 1]), 2)
+    7
+
+    # n = 9, k = 2, and 3 true bits
+    >>> jump(np.array([0, 0, 0, 1, 0, 0, 1, 0, 1]), 2)
+    6
+
+    # n = 9, k = 2, and 4 true bits
+    >>> jump(np.array([1, 0, 0, 0, 1, 0, 0, 1, 1]), 2)
+    5
+
+    # n = 9, k = 2, and 5 true bits
+    >>> jump(np.array([0, 0, 0, 1, 1, 0, 1, 1, 1]), 2)
+    4
+
+    # n = 9, k = 2, and 6 true bits
+    >>> jump(np.array([1, 1, 0, 1, 0, 1, 1, 1, 0]), 2)
+    3
+
+    # n = 9, k = 2, and 7 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 1, 0, 1, 1]), 2)
+    2
+
+    # n = 9, k = 2, and 8 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1]), 2)
+    10
+
+    # n = 9, k = 2, and 9 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 9, k = 3, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)
+    9
+
+    # n = 9, k = 3, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]), 3)
+    8
+
+    # n = 9, k = 3, and 2 true bits
+    >>> jump(np.array([0, 0, 1, 0, 1, 0, 0, 0, 0]), 3)
+    7
+
+    # n = 9, k = 3, and 3 true bits
+    >>> jump(np.array([0, 1, 0, 1, 1, 0, 0, 0, 0]), 3)
+    6
+
+    # n = 9, k = 3, and 4 true bits
+    >>> jump(np.array([0, 1, 1, 0, 1, 0, 0, 1, 0]), 3)
+    5
+
+    # n = 9, k = 3, and 5 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1]), 3)
+    4
+
+    # n = 9, k = 3, and 6 true bits
+    >>> jump(np.array([0, 0, 1, 1, 1, 1, 1, 0, 1]), 3)
+    3
+
+    # n = 9, k = 3, and 7 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 0]), 3)
+    10
+
+    # n = 9, k = 3, and 8 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    11
+
+    # n = 9, k = 3, and 9 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    0
+
+    # n = 10, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    10
+
+    # n = 10, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0]), 2)
+    9
+
+    # n = 10, k = 2, and 2 true bits
+    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 1]), 2)
+    8
+
+    # n = 10, k = 2, and 3 true bits
+    >>> jump(np.array([0, 1, 0, 0, 1, 0, 0, 0, 0, 1]), 2)
+    7
+
+    # n = 10, k = 2, and 4 true bits
+    >>> jump(np.array([0, 0, 1, 0, 1, 0, 1, 0, 0, 1]), 2)
+    6
+
+    # n = 10, k = 2, and 5 true bits
+    >>> jump(np.array([1, 0, 1, 1, 0, 1, 1, 0, 0, 0]), 2)
+    5
+
+    # n = 10, k = 2, and 6 true bits
+    >>> jump(np.array([1, 1, 0, 1, 1, 0, 0, 0, 1, 1]), 2)
+    4
+
+    # n = 10, k = 2, and 7 true bits
+    >>> jump(np.array([1, 0, 1, 0, 1, 0, 1, 1, 1, 1]), 2)
+    3
+
+    # n = 10, k = 2, and 8 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 0, 1, 1]), 2)
+    2
+
+    # n = 10, k = 2, and 9 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    11
+
+    # n = 10, k = 2, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 10, k = 3, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)
+    10
+
+    # n = 10, k = 3, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 3)
+    9
+
+    # n = 10, k = 3, and 2 true bits
+    >>> jump(np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 3)
+    8
+
+    # n = 10, k = 3, and 3 true bits
+    >>> jump(np.array([0, 1, 0, 1, 0, 0, 1, 0, 0, 0]), 3)
+    7
+
+    # n = 10, k = 3, and 4 true bits
+    >>> jump(np.array([0, 0, 1, 0, 1, 1, 0, 0, 1, 0]), 3)
+    6
+
+    # n = 10, k = 3, and 5 true bits
+    >>> jump(np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 1]), 3)
+    5
+
+    # n = 10, k = 3, and 6 true bits
+    >>> jump(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 1]), 3)
+    4
+
+    # n = 10, k = 3, and 7 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 0, 0, 1, 1]), 3)
+    3
+
+    # n = 10, k = 3, and 8 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 3)
+    11
+
+    # n = 10, k = 3, and 9 true bits
+    >>> jump(np.array([1, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 3)
+    12
+
+    # n = 10, k = 3, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    0
+
+    # n = 10, k = 4, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)
+    10
+
+    # n = 10, k = 4, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 4)
+    9
+
+    # n = 10, k = 4, and 2 true bits
+    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0, 1, 0]), 4)
+    8
+
+    # n = 10, k = 4, and 3 true bits
+    >>> jump(np.array([1, 0, 1, 0, 0, 1, 0, 0, 0, 0]), 4)
+    7
+
+    # n = 10, k = 4, and 4 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1]), 4)
+    6
+
+    # n = 10, k = 4, and 5 true bits
+    >>> jump(np.array([0, 1, 1, 0, 1, 0, 1, 0, 1, 0]), 4)
+    5
+
+    # n = 10, k = 4, and 6 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 1, 0, 0, 1, 0]), 4)
+    4
+
+    # n = 10, k = 4, and 7 true bits
+    >>> jump(np.array([0, 1, 1, 1, 0, 1, 1, 1, 1, 0]), 4)
+    11
+
+    # n = 10, k = 4, and 8 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 1, 1, 1]), 4)
+    12
+
+    # n = 10, k = 4, and 9 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 4)
+    13
+
+    # n = 10, k = 4, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)
+    0
+
+    # n = 11, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    11
+
+    # n = 11, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    10
+
+    # n = 11, k = 2, and 2 true bits
+    >>> jump(np.array([0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]), 2)
+    9
+
+    # n = 11, k = 2, and 3 true bits
+    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0]), 2)
+    8
+
+    # n = 11, k = 2, and 4 true bits
+    >>> jump(np.array([1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0]), 2)
+    7
+
+    # n = 11, k = 2, and 5 true bits
+    >>> jump(np.array([1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1]), 2)
+    6
+
+    # n = 11, k = 2, and 6 true bits
+    >>> jump(np.array([1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0]), 2)
+    5
+
+    # n = 11, k = 2, and 7 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0]), 2)
+    4
+
+    # n = 11, k = 2, and 8 true bits
+    >>> jump(np.array([1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0]), 2)
+    3
+
+    # n = 11, k = 2, and 9 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1]), 2)
+    2
+
+    # n = 11, k = 2, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 2)
+    12
+
+    # n = 11, k = 2, and 11 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 11, k = 3, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)
+    11
+
+    # n = 11, k = 3, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]), 3)
+    10
+
+    # n = 11, k = 3, and 2 true bits
+    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 3)
+    9
+
+    # n = 11, k = 3, and 3 true bits
+    >>> jump(np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]), 3)
+    8
+
+    # n = 11, k = 3, and 4 true bits
+    >>> jump(np.array([1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1]), 3)
+    7
+
+    # n = 11, k = 3, and 5 true bits
+    >>> jump(np.array([1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0]), 3)
+    6
+
+    # n = 11, k = 3, and 6 true bits
+    >>> jump(np.array([0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1]), 3)
+    5
+
+    # n = 11, k = 3, and 7 true bits
+    >>> jump(np.array([0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0]), 3)
+    4
+
+    # n = 11, k = 3, and 8 true bits
+    >>> jump(np.array([0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1]), 3)
+    3
+
+    # n = 11, k = 3, and 9 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 3)
+    12
+
+    # n = 11, k = 3, and 10 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    13
+
+    # n = 11, k = 3, and 11 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    0
+
+    # n = 11, k = 4, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)
+    11
+
+    # n = 11, k = 4, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 4)
+    10
+
+    # n = 11, k = 4, and 2 true bits
+    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 4)
+    9
+
+    # n = 11, k = 4, and 3 true bits
+    >>> jump(np.array([0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1]), 4)
+    8
+
+    # n = 11, k = 4, and 4 true bits
+    >>> jump(np.array([1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1]), 4)
+    7
+
+    # n = 11, k = 4, and 5 true bits
+    >>> jump(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0]), 4)
+    6
+
+    # n = 11, k = 4, and 6 true bits
+    >>> jump(np.array([0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1]), 4)
+    5
+
+    # n = 11, k = 4, and 7 true bits
+    >>> jump(np.array([1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1]), 4)
+    4
+
+    # n = 11, k = 4, and 8 true bits
+    >>> jump(np.array([1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1]), 4)
+    12
+
+    # n = 11, k = 4, and 9 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]), 4)
+    13
+
+    # n = 11, k = 4, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]), 4)
+    14
+
+    # n = 11, k = 4, and 11 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)
+    0
+
+    # n = 12, k = 2, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    12
+
+    # n = 12, k = 2, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 2)
+    11
+
+    # n = 12, k = 2, and 2 true bits
+    >>> jump(np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)
+    10
+
+    # n = 12, k = 2, and 3 true bits
+    >>> jump(np.array([0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0]), 2)
+    9
+
+    # n = 12, k = 2, and 4 true bits
+    >>> jump(np.array([1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 2)
+    8
+
+    # n = 12, k = 2, and 5 true bits
+    >>> jump(np.array([1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1]), 2)
+    7
+
+    # n = 12, k = 2, and 6 true bits
+    >>> jump(np.array([1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0]), 2)
+    6
+
+    # n = 12, k = 2, and 7 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0]), 2)
+    5
+
+    # n = 12, k = 2, and 8 true bits
+    >>> jump(np.array([1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1]), 2)
+    4
+
+    # n = 12, k = 2, and 9 true bits
+    >>> jump(np.array([1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1]), 2)
+    3
+
+    # n = 12, k = 2, and 10 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1]), 2)
+    2
+
+    # n = 12, k = 2, and 11 true bits
+    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    13
+
+    # n = 12, k = 2, and 12 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)
+    0
+
+    # n = 12, k = 3, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)
+    12
+
+    # n = 12, k = 3, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 3)
+    11
+
+    # n = 12, k = 3, and 2 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0]), 3)
+    10
+
+    # n = 12, k = 3, and 3 true bits
+    >>> jump(np.array([1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1]), 3)
+    9
+
+    # n = 12, k = 3, and 4 true bits
+    >>> jump(np.array([0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0]), 3)
+    8
+
+    # n = 12, k = 3, and 5 true bits
+    >>> jump(np.array([0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0]), 3)
+    7
+
+    # n = 12, k = 3, and 6 true bits
+    >>> jump(np.array([0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1]), 3)
+    6
+
+    # n = 12, k = 3, and 7 true bits
+    >>> jump(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1]), 3)
+    5
+
+    # n = 12, k = 3, and 8 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1]), 3)
+    4
+
+    # n = 12, k = 3, and 9 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0]), 3)
+    3
+
+    # n = 12, k = 3, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1]), 3)
+    13
+
+    # n = 12, k = 3, and 11 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1]), 3)
+    14
+
+    # n = 12, k = 3, and 12 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)
+    0
+
+    # n = 12, k = 4, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)
+    12
+
+    # n = 12, k = 4, and 1 true bit
+    >>> jump(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]), 4)
+    11
+
+    # n = 12, k = 4, and 2 true bits
+    >>> jump(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 4)
+    10
+
+    # n = 12, k = 4, and 3 true bits
+    >>> jump(np.array([1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]), 4)
+    9
+
+    # n = 12, k = 4, and 4 true bits
+    >>> jump(np.array([1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0]), 4)
+    8
+
+    # n = 12, k = 4, and 5 true bits
+    >>> jump(np.array([0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0]), 4)
+    7
+
+    # n = 12, k = 4, and 6 true bits
+    >>> jump(np.array([0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0]), 4)
+    6
+
+    # n = 12, k = 4, and 7 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1]), 4)
+    5
+
+    # n = 12, k = 4, and 8 true bits
+    >>> jump(np.array([0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1]), 4)
+    4
+
+    # n = 12, k = 4, and 9 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1]), 4)
+    13
+
+    # n = 12, k = 4, and 10 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0]), 4)
+    14
+
+    # n = 12, k = 4, and 11 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1]), 4)
+    15
+
+    # n = 12, k = 4, and 12 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)
+    0
+
+    # n = 12, k = 5, and 0 true bits
+    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 5)
+    12
+
+    # n = 12, k = 5, and 1 true bit
+    >>> jump(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 5)
+    11
+
+    # n = 12, k = 5, and 2 true bits
+    >>> jump(np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 5)
+    10
+
+    # n = 12, k = 5, and 3 true bits
+    >>> jump(np.array([0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0]), 5)
+    9
+
+    # n = 12, k = 5, and 4 true bits
+    >>> jump(np.array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1]), 5)
+    8
+
+    # n = 12, k = 5, and 5 true bits
+    >>> jump(np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0]), 5)
+    7
+
+    # n = 12, k = 5, and 6 true bits
+    >>> jump(np.array([0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0]), 5)
+    6
+
+    # n = 12, k = 5, and 7 true bits
+    >>> jump(np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]), 5)
+    5
+
+    # n = 12, k = 5, and 8 true bits
+    >>> jump(np.array([0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 5)
+    13
+
+    # n = 12, k = 5, and 9 true bits
+    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1]), 5)
+    14
+
+    # n = 12, k = 5, and 10 true bits
+    >>> jump(np.array([1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 5)
+    15
+
+    # n = 12, k = 5, and 11 true bits
+    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 5)
+    16
+
+    # n = 12, k = 5, and 12 true bits
+    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 5)
     0
     """
-    res: Final[int] = x.sum()
+    res: Final[int] = int(x.sum())
     n: Final[int] = len(x)
     nmk: Final[int] = n - k
-    if (res >= n) or (res <= nmk):
-        return int(n - res)
-    return int(k + res)
+    return n - res if (res >= n) or (res <= nmk) else k + res
 
 
-class Jump(BitStringProblem):
+class Jump(BitStringNKProblem):
     """Compute the Jump problem."""
-
-    def __init__(self, n: int, k: int) -> None:  # +book
-        """
-        Initialize the jump objective function.
-
-        :param n: the dimension of the problem
-        :param k: the jump length
-        """
-        super().__init__(n)
-        #: the jump width
-        self.k: Final[int] = check_int_range(k, "k", 2, (n >> 1) - 1)
 
     def __str__(self) -> str:
         """
@@ -83,7 +777,7 @@ class Jump(BitStringProblem):
 
         :return: `jump_` + length of string + `_` + k
 
-        >>> print(Jump(13, 4))
+        >>> Jump(13, 4)
         jump_13_4
         """
         return f"jump_{self.n}_{self.k}"
@@ -97,40 +791,13 @@ class Jump(BitStringProblem):
         """
         return jump(x, self.k)
 
-    def log_parameters_to(self, logger: KeyValueLogSection) -> None:
-        """
-        Log all parameters of this component as key-value pairs.
-
-        :param logger: the logger for the parameters
-
-        >>> from moptipy.utils.logger import InMemoryLogger
-        >>> with InMemoryLogger() as l:
-        ...     with l.key_values("C") as kv:
-        ...         Jump(23, 7).log_parameters_to(kv)
-        ...     text = l.get_log()
-        >>> text[1]
-        'name: jump_23_7'
-        >>> text[3]
-        'lowerBound: 0'
-        >>> text[4]
-        'upperBound: 29'
-        >>> text[5]
-        'n: 23'
-        >>> text[6]
-        'k: 7'
-        >>> len(text)
-        8
-        """
-        super().log_parameters_to(logger)
-        logger.key_value("k", self.k)
-
     def upper_bound(self) -> int:
         """
         Get the upper bound of the jump problem.
 
-        :return: the length of the bit string
+        :return: the length of the bit string + the length of the jump - 1
 
-        >>> print(Jump(15, 4).upper_bound())
+        >>> Jump(15, 4).upper_bound()
         18
         """
         return self.n + self.k - 1

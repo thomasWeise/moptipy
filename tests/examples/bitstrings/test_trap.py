@@ -18,9 +18,9 @@ def _trap(x: np.ndarray, dim: int) -> int:
             s += 1
     if (s < 0) or (s > dim):
         raise ValueError(f"x={x}, len(x)={len(x)}, dim={dim}, trap(x)={s}!")
-    if s == dim:
+    if s == 0:
         return 0
-    return s + 1
+    return dim - s + 1
 
 
 def test_trap() -> None:
