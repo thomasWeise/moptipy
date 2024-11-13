@@ -63,8 +63,9 @@ FFA is also implemented as a fitness assignment process
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 2. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 3. Thomas Weise, Mingxu Wan, Ke Tang, Pu Wang, Alexandre Devert, and Xin
    Yao. Frequency Fitness Assignment. *IEEE Transactions on Evolutionary
    Computation (IEEE-EC),* 18(2):226-243, April 2014.

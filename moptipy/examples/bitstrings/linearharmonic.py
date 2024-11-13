@@ -17,8 +17,9 @@ are `False`.
    doi: https://doi.org/10.1016/S0304-3975(01)00182-7
 3. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
@@ -28,6 +29,8 @@ Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
 """
+
+from typing import Callable, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -758,6 +761,40 @@ class LinearHarmonic(BitStringProblem):
         :return: 'linearharmonic_' + n value
 
         >>> print(LinearHarmonic(8))
-        linearharmonic_8
+        linharm_8
         """
-        return f"linearharmonic_{self.n}"
+        return f"linharm_{self.n}"
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 2, scale_max: int = 333) \
+            -> Iterator[Callable[[], "LinearHarmonic"]]:
+        """
+        Get the 78 default instances of the :class:`LinearHarmonic` problem.
+
+        :param scale_min: the minimum permitted scale, by default `2`
+        :param scale_max: the maximum permitted scale, by default `333`
+        :returns: a sequence of default :class:`LinearHarmonic` instances
+
+        >>> len(list(LinearHarmonic.default_instances()))
+        78
+
+        >>> [x() for x in LinearHarmonic.default_instances()]
+        [linharm_2, linharm_3, linharm_4, linharm_5, linharm_6, linharm_7, \
+linharm_8, linharm_9, linharm_10, linharm_11, linharm_12, linharm_13, \
+linharm_14, linharm_15, linharm_16, linharm_17, linharm_18, linharm_19, \
+linharm_20, linharm_21, linharm_22, linharm_23, linharm_24, linharm_25, \
+linharm_26, linharm_27, linharm_28, linharm_29, linharm_30, linharm_31, \
+linharm_32, linharm_33, linharm_36, linharm_40, linharm_41, linharm_42, \
+linharm_44, linharm_48, linharm_49, linharm_50, linharm_55, linharm_59, \
+linharm_60, linharm_64, linharm_66, linharm_70, linharm_77, linharm_79, \
+linharm_80, linharm_81, linharm_85, linharm_88, linharm_90, linharm_96, \
+linharm_99, linharm_100, linharm_107, linharm_111, linharm_121, linharm_125, \
+linharm_128, linharm_144, linharm_149, linharm_169, linharm_170, \
+linharm_192, linharm_196, linharm_199, linharm_200, linharm_222, \
+linharm_225, linharm_243, linharm_256, linharm_269, linharm_289, linharm_300, \
+linharm_324, linharm_333]
+        """
+        return cast(Iterator[Callable[[], "LinearHarmonic"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))

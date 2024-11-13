@@ -20,8 +20,9 @@ The worst possible objective value is `2*n`.
    doi: https://doi.org/10.1016/j.asoc.2019.106027.
 3. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
@@ -31,7 +32,7 @@ Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
 """
-from typing import Final
+from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -807,3 +808,25 @@ class Ising2d(SquareBitStringProblem):
         ising2d_16
         """
         return f"ising2d_{self.n}"
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 2, scale_max: int = 100) \
+            -> Iterator[Callable[[], "Ising2d"]]:
+        """
+        Get the 56 default instances of the :class:`Ising2d` problem.
+
+        :param scale_min: the minimum permitted scale, by default `2`
+        :param scale_max: the maximum permitted scale, by default `100`
+        :returns: a sequence of default :class:`Ising2d` instances
+
+        >>> len(list(Ising2d.default_instances()))
+        9
+
+        >>> [x() for x in Ising2d.default_instances()]
+        [ising2d_4, ising2d_9, ising2d_16, ising2d_25, ising2d_36, \
+ising2d_49, ising2d_64, ising2d_81, ising2d_100]
+        """
+        return cast(Iterator[Callable[[], "Ising2d"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))

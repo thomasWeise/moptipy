@@ -22,10 +22,11 @@ is reached by the strings with exactly one `True` bit.
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 4. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 """
-from typing import Final
+from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -710,3 +711,33 @@ class Trap(BitStringProblem):
         trap_33
         """
         return f"trap_{self.n}"
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 3, scale_max: int = 333) \
+            -> Iterator[Callable[[], "Trap"]]:
+        """
+        Get the 77 default instances of the :class:`Trap` problem.
+
+        :param scale_min: the minimum permitted scale, by default `3`
+        :param scale_max: the maximum permitted scale, by default `333`
+        :returns: a sequence of default :class:`Trap` instances
+
+        >>> len(list(Trap.default_instances()))
+        77
+
+        >>> [x() for x in Trap.default_instances()]
+        [trap_3, trap_4, trap_5, trap_6, trap_7, trap_8, trap_9, trap_10, \
+trap_11, trap_12, trap_13, trap_14, trap_15, trap_16, trap_17, trap_18, \
+trap_19, trap_20, trap_21, trap_22, trap_23, trap_24, trap_25, trap_26, \
+trap_27, trap_28, trap_29, trap_30, trap_31, trap_32, trap_33, trap_36, \
+trap_40, trap_41, trap_42, trap_44, trap_48, trap_49, trap_50, trap_55, \
+trap_59, trap_60, trap_64, trap_66, trap_70, trap_77, trap_79, trap_80, \
+trap_81, trap_85, trap_88, trap_90, trap_96, trap_99, trap_100, trap_107, \
+trap_111, trap_121, trap_125, trap_128, trap_144, trap_149, trap_169, \
+trap_170, trap_192, trap_196, trap_199, trap_200, trap_222, trap_225, \
+trap_243, trap_256, trap_269, trap_289, trap_300, trap_324, trap_333]
+        """
+        return cast(Iterator[Callable[[], "Trap"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))

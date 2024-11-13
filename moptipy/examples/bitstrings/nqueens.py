@@ -27,8 +27,9 @@ The worst case is if a queen is placed on every single field, i.e., if we have
    doi: https://doi.org/10.1016/j.asoc.2019.106027
 2. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
@@ -38,7 +39,7 @@ Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
 """
-from typing import Final
+from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -918,3 +919,25 @@ class NQueens(SquareBitStringProblem):
         """
         k: Final[int] = self.k
         return (((((k - 2) * 4) + 1) * k) + 3) * k
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 16, scale_max: int = 144) \
+            -> Iterator[Callable[[], "NQueens"]]:
+        """
+        Get the 9 default instances of the :class:`NQueens` problem.
+
+        :param scale_min: the minimum permitted scale, by default `16`
+        :param scale_max: the maximum permitted scale, by default `144`
+        :returns: a sequence of default :class:`NQueens` instances
+
+        >>> len(list(NQueens.default_instances()))
+        9
+
+        >>> [x() for x in NQueens.default_instances()]
+        [nqueens_16, nqueens_25, nqueens_36, nqueens_49, nqueens_64, \
+nqueens_81, nqueens_100, nqueens_121, nqueens_144]
+        """
+        return cast(Iterator[Callable[[], "NQueens"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))

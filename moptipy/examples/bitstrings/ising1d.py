@@ -20,9 +20,12 @@ is 0, the worst-possible one is `n`.
    http://gpbib.cs.ucl.ac.uk/gecco2002/GA013.pdf
 4. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 """
+
+from typing import Callable, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -711,3 +714,33 @@ class Ising1d(BitStringProblem):
         ising1d_5
         """
         return f"ising1d_{self.n}"
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 2, scale_max: int = 100) \
+            -> Iterator[Callable[[], "Ising1d"]]:
+        """
+        Get the 56 default instances of the :class:`Ising1d` problem.
+
+        :param scale_min: the minimum permitted scale, by default `2`
+        :param scale_max: the maximum permitted scale, by default `100`
+        :returns: a sequence of default :class:`Ising1d` instances
+
+        >>> len(list(Ising1d.default_instances()))
+        56
+
+        >>> [x() for x in Ising1d.default_instances()]
+        [ising1d_2, ising1d_3, ising1d_4, ising1d_5, ising1d_6, ising1d_7, \
+ising1d_8, ising1d_9, ising1d_10, ising1d_11, ising1d_12, ising1d_13, \
+ising1d_14, ising1d_15, ising1d_16, ising1d_17, ising1d_18, ising1d_19, \
+ising1d_20, ising1d_21, ising1d_22, ising1d_23, ising1d_24, ising1d_25, \
+ising1d_26, ising1d_27, ising1d_28, ising1d_29, ising1d_30, ising1d_31, \
+ising1d_32, ising1d_33, ising1d_36, ising1d_40, ising1d_41, ising1d_42, \
+ising1d_44, ising1d_48, ising1d_49, ising1d_50, ising1d_55, ising1d_59, \
+ising1d_60, ising1d_64, ising1d_66, ising1d_70, ising1d_77, ising1d_79, \
+ising1d_80, ising1d_81, ising1d_85, ising1d_88, ising1d_90, ising1d_96, \
+ising1d_99, ising1d_100]
+        """
+        return cast(Iterator[Callable[[], "Ising1d"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))

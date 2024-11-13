@@ -17,8 +17,9 @@ are `True`. The worst objective value `n`, is reached if all bits are `False`.
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 3. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
@@ -27,6 +28,36 @@ Intelligence and Big Data (人工智能与大数据学院) at
 Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
+
+>>> len(list(Plateau.default_instances()))
+122
+
+>>> [x() for x in Plateau.default_instances()]
+[plateau_6_2, plateau_7_2, plateau_8_2, plateau_8_3, plateau_9_2, \
+plateau_9_3, plateau_10_2, plateau_10_3, plateau_10_4, plateau_11_2, \
+plateau_11_3, plateau_11_4, plateau_12_2, plateau_12_3, plateau_12_4, \
+plateau_12_5, plateau_13_2, plateau_13_3, plateau_13_4, plateau_13_5, \
+plateau_14_2, plateau_14_3, plateau_14_4, plateau_14_6, plateau_15_2, \
+plateau_15_3, plateau_15_4, plateau_15_6, plateau_16_2, plateau_16_4, \
+plateau_16_5, plateau_16_7, plateau_17_2, plateau_17_4, plateau_17_5, \
+plateau_17_7, plateau_18_2, plateau_18_4, plateau_18_6, plateau_18_8, \
+plateau_19_2, plateau_19_4, plateau_19_6, plateau_19_8, plateau_20_2, \
+plateau_20_3, plateau_20_4, plateau_20_5, plateau_20_7, plateau_20_9, \
+plateau_21_2, plateau_21_3, plateau_21_4, plateau_21_5, plateau_21_7, \
+plateau_21_9, plateau_22_2, plateau_22_3, plateau_22_4, plateau_22_5, \
+plateau_22_7, plateau_22_10, plateau_23_2, plateau_23_3, plateau_23_4, \
+plateau_23_5, plateau_23_7, plateau_23_10, plateau_24_2, plateau_24_3, \
+plateau_24_4, plateau_24_6, plateau_24_8, plateau_24_11, plateau_25_2, \
+plateau_25_3, plateau_25_5, plateau_25_6, plateau_25_8, plateau_25_11, \
+plateau_26_2, plateau_26_3, plateau_26_5, plateau_26_6, plateau_26_9, \
+plateau_26_12, plateau_27_2, plateau_27_3, plateau_27_5, plateau_27_6, \
+plateau_27_9, plateau_27_12, plateau_28_2, plateau_28_4, plateau_28_5, \
+plateau_28_7, plateau_28_10, plateau_28_13, plateau_29_2, plateau_29_4, \
+plateau_29_5, plateau_29_7, plateau_29_10, plateau_29_13, plateau_30_2, \
+plateau_30_4, plateau_30_5, plateau_30_7, plateau_30_10, plateau_30_14, \
+plateau_31_2, plateau_31_4, plateau_31_5, plateau_31_7, plateau_31_10, \
+plateau_31_14, plateau_32_2, plateau_32_4, plateau_32_5, plateau_32_8, \
+plateau_32_11, plateau_32_15]
 """
 
 from typing import Final

@@ -37,13 +37,14 @@ algorithm benchmarking. These instances are provided via
    doi: https://doi.org/10.1016/j.asoc.2019.106027.
 5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 """
 
 from array import array
 from math import sqrt
-from typing import Callable, Final, Iterable, cast
+from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -540,20 +541,38 @@ class WModel(BitStringProblem):
         logger.key_value("gamma1", self.gamma1)
         logger.key_value("gammaPrime", self.gamma_prime)
 
-    @staticmethod
-    def default_instances() -> Iterable[Callable[[], "WModel"]]:
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 16, scale_max: int = 256) \
+            -> Iterator[Callable[[], "WModel"]]:
         """
         Get the 19 default instances of the W-Model.
 
+        :param scale_min: the minimum permitted scale
+        :param scale_max: the maximum permitted scale
         :returns: an `Iterable` that can provide callables constructing the
             19 default instances of the W-Model
 
         >>> len(list(WModel.default_instances()))
         19
+
+        >>> [x() for x in WModel.default_instances()]
+        [wmodel_1, wmodel_2, wmodel_3, wmodel_4, wmodel_5, wmodel_6, \
+wmodel_7, wmodel_8, wmodel_9, wmodel_10, wmodel_11, wmodel_12, \
+wmodel_13, wmodel_14, wmodel_15, wmodel_16, wmodel_17, wmodel_18, \
+wmodel_19]
+
+        >>> len(list(WModel.default_instances(scale_max=200)))
+        18
+
+        >>> len(list(WModel.default_instances(scale_min=40)))
+        14
         """
+        check_int_range(scale_max, "scale_max", check_int_range(
+            scale_min, "scale_min", 1, 1_000_000_000) + 1, 1_000_000_000)
         return (cast(Callable[[], "WModel"],
                      lambda a=iid, b=z[0], c=z[1], d=z[2], g=z[3]:
-                     WModel(b, c, d, g, f"wmodel{a + 1}"))
+                     WModel(b, c, d, g, f"wmodel_{a + 1}"))
                 for iid, z in enumerate([
                     (10, 2, 6, 10), (10, 2, 6, 18), (16, 1, 5, 72),
                     (16, 3, 9, 72), (25, 1, 23, 90), (32, 1, 2, 397),
@@ -561,4 +580,4 @@ class WModel(BitStringProblem):
                     (50, 1, 36, 245), (50, 2, 21, 256), (50, 3, 16, 613),
                     (64, 2, 32, 256), (64, 3, 21, 16), (64, 3, 21, 256),
                     (64, 3, 21, 403), (64, 4, 52, 2), (75, 1, 60, 16),
-                    (75, 2, 32, 4)]))
+                    (75, 2, 32, 4)]) if scale_min <= z[0] * z[1] <= scale_max)

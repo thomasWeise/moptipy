@@ -42,10 +42,11 @@ is `n`.
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 9. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 """
-from typing import Final
+from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -728,3 +729,64 @@ class LeadingOnes(BitStringProblem):
         leadingones_10
         """
         return f"leadingones_{self.n}"
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 2, scale_max: int = 4096) \
+            -> Iterator[Callable[[], "LeadingOnes"]]:
+        """
+        Get the 163 default instances of the :class:`LeadingOnes` problem.
+
+        :param scale_min: the minimum permitted scale, by default `2`
+        :param scale_max: the maximum permitted scale, by default `4096`
+        :returns: a sequence of default :class:`LeadingOnes` instances
+
+        >>> len(list(LeadingOnes.default_instances()))
+        163
+
+        >>> [x() for x in LeadingOnes.default_instances()]
+        [leadingones_2, leadingones_3, leadingones_4, leadingones_5, \
+leadingones_6, leadingones_7, leadingones_8, leadingones_9, leadingones_10, \
+leadingones_11, leadingones_12, leadingones_13, leadingones_14, \
+leadingones_15, leadingones_16, leadingones_17, leadingones_18, \
+leadingones_19, leadingones_20, leadingones_21, leadingones_22, \
+leadingones_23, leadingones_24, leadingones_25, leadingones_26, \
+leadingones_27, leadingones_28, leadingones_29, leadingones_30, \
+leadingones_31, leadingones_32, leadingones_33, leadingones_36, \
+leadingones_40, leadingones_41, leadingones_42, leadingones_44, \
+leadingones_48, leadingones_49, leadingones_50, leadingones_55, \
+leadingones_59, leadingones_60, leadingones_64, leadingones_66, \
+leadingones_70, leadingones_77, leadingones_79, leadingones_80, \
+leadingones_81, leadingones_85, leadingones_88, leadingones_90, \
+leadingones_96, leadingones_99, leadingones_100, leadingones_107, \
+leadingones_111, leadingones_121, leadingones_125, leadingones_128, \
+leadingones_144, leadingones_149, leadingones_169, leadingones_170, \
+leadingones_192, leadingones_196, leadingones_199, leadingones_200, \
+leadingones_222, leadingones_225, leadingones_243, leadingones_256, \
+leadingones_269, leadingones_289, leadingones_300, leadingones_324, \
+leadingones_333, leadingones_341, leadingones_343, leadingones_359, \
+leadingones_361, leadingones_384, leadingones_400, leadingones_441, \
+leadingones_444, leadingones_479, leadingones_484, leadingones_500, \
+leadingones_512, leadingones_529, leadingones_555, leadingones_576, \
+leadingones_600, leadingones_625, leadingones_641, leadingones_666, \
+leadingones_676, leadingones_682, leadingones_700, leadingones_729, \
+leadingones_768, leadingones_777, leadingones_784, leadingones_800, \
+leadingones_841, leadingones_857, leadingones_888, leadingones_900, \
+leadingones_961, leadingones_999, leadingones_1000, leadingones_1024, \
+leadingones_1089, leadingones_1111, leadingones_1151, leadingones_1156, \
+leadingones_1225, leadingones_1296, leadingones_1365, leadingones_1369, \
+leadingones_1444, leadingones_1521, leadingones_1536, leadingones_1543, \
+leadingones_1600, leadingones_1681, leadingones_1764, leadingones_1849, \
+leadingones_1936, leadingones_2000, leadingones_2025, leadingones_2048, \
+leadingones_2063, leadingones_2116, leadingones_2187, leadingones_2209, \
+leadingones_2222, leadingones_2304, leadingones_2401, leadingones_2500, \
+leadingones_2601, leadingones_2704, leadingones_2730, leadingones_2753, \
+leadingones_2809, leadingones_2916, leadingones_3000, leadingones_3025, \
+leadingones_3072, leadingones_3125, leadingones_3136, leadingones_3249, \
+leadingones_3333, leadingones_3364, leadingones_3481, leadingones_3600, \
+leadingones_3671, leadingones_3721, leadingones_3844, leadingones_3969, \
+leadingones_4000, leadingones_4096]
+        """
+        return cast(Iterator[Callable[[], "LeadingOnes"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))

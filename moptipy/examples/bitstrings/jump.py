@@ -30,8 +30,33 @@ bit is `False`.
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
+
+>>> len(list(Jump.default_instances()))
+122
+
+>>> [x() for x in Jump.default_instances()]
+[jump_6_2, jump_7_2, jump_8_2, jump_8_3, jump_9_2, jump_9_3, jump_10_2, \
+jump_10_3, jump_10_4, jump_11_2, jump_11_3, jump_11_4, jump_12_2, jump_12_3, \
+jump_12_4, jump_12_5, jump_13_2, jump_13_3, jump_13_4, jump_13_5, jump_14_2, \
+jump_14_3, jump_14_4, jump_14_6, jump_15_2, jump_15_3, jump_15_4, jump_15_6, \
+jump_16_2, jump_16_4, jump_16_5, jump_16_7, jump_17_2, jump_17_4, jump_17_5, \
+jump_17_7, jump_18_2, jump_18_4, jump_18_6, jump_18_8, jump_19_2, jump_19_4, \
+jump_19_6, jump_19_8, jump_20_2, jump_20_3, jump_20_4, jump_20_5, jump_20_7, \
+jump_20_9, jump_21_2, jump_21_3, jump_21_4, jump_21_5, jump_21_7, jump_21_9, \
+jump_22_2, jump_22_3, jump_22_4, jump_22_5, jump_22_7, jump_22_10, \
+jump_23_2, jump_23_3, jump_23_4, jump_23_5, jump_23_7, jump_23_10, \
+jump_24_2, jump_24_3, jump_24_4, jump_24_6, jump_24_8, jump_24_11, \
+jump_25_2, jump_25_3, jump_25_5, jump_25_6, jump_25_8, jump_25_11, \
+jump_26_2, jump_26_3, jump_26_5, jump_26_6, jump_26_9, jump_26_12, \
+jump_27_2, jump_27_3, jump_27_5, jump_27_6, jump_27_9, jump_27_12, \
+jump_28_2, jump_28_4, jump_28_5, jump_28_7, jump_28_10, jump_28_13, \
+jump_29_2, jump_29_4, jump_29_5, jump_29_7, jump_29_10, jump_29_13, \
+jump_30_2, jump_30_4, jump_30_5, jump_30_7, jump_30_10, jump_30_14, \
+jump_31_2, jump_31_4, jump_31_5, jump_31_7, jump_31_10, jump_31_14, \
+jump_32_2, jump_32_4, jump_32_5, jump_32_8, jump_32_11, jump_32_15]
 """
 
 from typing import Final

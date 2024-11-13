@@ -33,8 +33,9 @@ runtime in expectation, leading to a total expected runtime in
    https://dx.doi.org/10.1109/TEVC.2020.3032090
 5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
-   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*. 2022.
-   Early Access. https://dx.doi.org/10.1109/TEVC.2022.3191698
+   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.
+   27(4):980-992. August 2023.
+   doi: https://doi.org/10.1109/TEVC.2022.3191698
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
@@ -44,7 +45,7 @@ Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
 """
-from typing import Final
+from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -754,3 +755,35 @@ class TwoMax(BitStringProblem):
         3
         """
         return (self.n // 2) + 1
+
+    @classmethod
+    def default_instances(
+            cls: type, scale_min: int = 3, scale_max: int = 333) \
+            -> Iterator[Callable[[], "TwoMax"]]:
+        """
+        Get the 77 default instances of the :class:`TwoMax` problem.
+
+        :param scale_min: the minimum permitted scale, by default `3`
+        :param scale_max: the maximum permitted scale, by default `333`
+        :returns: a sequence of default :class:`TwoMax` instances
+
+        >>> len(list(TwoMax.default_instances()))
+        77
+
+        >>> [x() for x in TwoMax.default_instances()]
+        [twomax_3, twomax_4, twomax_5, twomax_6, twomax_7, twomax_8, \
+twomax_9, twomax_10, twomax_11, twomax_12, twomax_13, twomax_14, twomax_15, \
+twomax_16, twomax_17, twomax_18, twomax_19, twomax_20, twomax_21, twomax_22, \
+twomax_23, twomax_24, twomax_25, twomax_26, twomax_27, twomax_28, twomax_29, \
+twomax_30, twomax_31, twomax_32, twomax_33, twomax_36, twomax_40, twomax_41, \
+twomax_42, twomax_44, twomax_48, twomax_49, twomax_50, twomax_55, twomax_59, \
+twomax_60, twomax_64, twomax_66, twomax_70, twomax_77, twomax_79, twomax_80, \
+twomax_81, twomax_85, twomax_88, twomax_90, twomax_96, twomax_99, \
+twomax_100, twomax_107, twomax_111, twomax_121, twomax_125, twomax_128, \
+twomax_144, twomax_149, twomax_169, twomax_170, twomax_192, twomax_196, \
+twomax_199, twomax_200, twomax_222, twomax_225, twomax_243, twomax_256, \
+twomax_269, twomax_289, twomax_300, twomax_324, twomax_333]
+        """
+        return cast(Iterator[Callable[[], "TwoMax"]],
+                    super().default_instances(  # type: ignore
+                        scale_min, scale_max))
