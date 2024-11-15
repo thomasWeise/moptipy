@@ -62,7 +62,7 @@ def __test_write_read_end_result(
     loaded: list[EndResult] = []
     with temp_file() as tf:
         to_csv(results, tf)
-        from_csv(tf, loaded.append)
+        loaded.extend(from_csv(tf))
 
     assert len(loaded) > 0
     results.sort()

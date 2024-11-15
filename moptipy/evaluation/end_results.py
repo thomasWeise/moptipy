@@ -16,7 +16,7 @@ plotting the end result distribution via
 import argparse
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Final, Iterable, cast
+from typing import Any, Callable, Final, Generator, Iterable, cast
 
 from pycommons.io.console import logger
 from pycommons.io.csv import (
@@ -552,21 +552,23 @@ def to_csv(results: Iterable[EndResult], file: str) -> Path:
     logger(f"Writing end results to CSV file {path!r}.")
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
-        csv_write(
-            data=sorted(results), consumer=line_writer(wt),
-            setup=CsvWriter().setup,
-            get_column_titles=CsvWriter.get_column_titles,
-            get_row=CsvWriter.get_row,
-            get_header_comments=CsvWriter.get_header_comments,
-            get_footer_comments=CsvWriter.get_footer_comments,
-            get_footer_bottom_comments=CsvWriter.get_footer_bottom_comments)
+        consumer: Final[Callable[[str], None]] = line_writer(wt)
+        for r in csv_write(
+                data=sorted(results),
+                setup=CsvWriter().setup,
+                column_titles=CsvWriter.get_column_titles,
+                get_row=CsvWriter.get_row,
+                header_comments=CsvWriter.get_header_comments,
+                footer_comments=CsvWriter.get_footer_comments,
+                footer_bottom_comments=CsvWriter.get_footer_bottom_comments):
+            consumer(r)
     logger(f"Done writing end results to CSV file {path!r}.")
     return path
 
 
-def from_csv(file: str, consumer: Callable[[EndResult], Any],
+def from_csv(file: str,
              filterer: Callable[[EndResult], bool]
-             = lambda x: True) -> None:
+             = lambda x: True) -> Generator[EndResult, None, None]:
     """
     Parse a given CSV file to get :class:`EndResult` Records.
 
@@ -575,22 +577,14 @@ def from_csv(file: str, consumer: Callable[[EndResult], Any],
         :class:`list`
     :param filterer: an optional filter function
     """
-    if not callable(consumer):
-        raise type_error(consumer, "consumer", call=True)
     path: Final[Path] = file_path(file)
     logger(f"Now reading CSV file {path!r}.")
-
-    def __cons(r: EndResult, __c=consumer, __f=filterer) -> None:
-        """Consume a record."""
-        if __f(r):
-            __c(r)
-
     with path.open_for_read() as rd:
-        csv_read(rows=rd,
-                 setup=CsvReader,
-                 parse_row=CsvReader.parse_row,
-                 consumer=__cons)
-
+        for r in csv_read(rows=rd,
+                          setup=CsvReader,
+                          parse_row=CsvReader.parse_row):
+            if filterer(r):
+                yield r
     logger(f"Done reading CSV file {path!r}.")
 
 
@@ -663,116 +657,115 @@ class CsvWriter:
                     return self
         return self
 
-    def get_column_titles(self, dest: Callable[[str], None]) -> None:
+    def get_column_titles(self) -> Iterable[str]:
         """
         Get the column titles.
 
-        :param dest: the destination string consumer
+        :returns: the column titles
         """
         p: Final[str] = self.scope
-        dest(csv_scope(p, KEY_ALGORITHM))
-        dest(csv_scope(p, KEY_INSTANCE))
-        dest(csv_scope(p, KEY_OBJECTIVE_FUNCTION))
+        data: list[str] = [
+            KEY_ALGORITHM, KEY_INSTANCE, KEY_OBJECTIVE_FUNCTION]
         if self.__needs_encoding:
-            dest(csv_scope(p, KEY_ENCODING))
-        dest(csv_scope(p, KEY_RAND_SEED))
-        dest(csv_scope(p, KEY_BEST_F))
-        dest(csv_scope(p, KEY_LAST_IMPROVEMENT_FE))
-        dest(csv_scope(p, KEY_LAST_IMPROVEMENT_TIME_MILLIS))
-        dest(csv_scope(p, KEY_TOTAL_FES))
-        dest(csv_scope(p, KEY_TOTAL_TIME_MILLIS))
+            data.append(KEY_ENCODING)
+        data.append(KEY_RAND_SEED)
+        data.append(KEY_BEST_F)
+        data.append(KEY_LAST_IMPROVEMENT_FE)
+        data.append(KEY_LAST_IMPROVEMENT_TIME_MILLIS)
+        data.append(KEY_TOTAL_FES)
+        data.append(KEY_TOTAL_TIME_MILLIS)
 
         if self.__needs_goal_f:
-            dest(csv_scope(p, KEY_GOAL_F))
+            data.append(KEY_GOAL_F)
         if self.__needs_max_fes:
-            dest(csv_scope(p, KEY_MAX_FES))
+            data.append(KEY_MAX_FES)
         if self.__needs_max_ms:
-            dest(csv_scope(p, KEY_MAX_TIME_MILLIS))
+            data.append(KEY_MAX_TIME_MILLIS)
+        return (csv_scope(p, q) for q in data)
 
-    def get_row(self, data: EndResult,
-                dest: Callable[[str], None]) -> None:
+    def get_row(self, data: EndResult) -> Iterable[str]:
         """
         Render a single end result record to a CSV row.
 
         :param data: the end result record
-        :param dest: the string consumer
+        :returns: the row iterator
         """
-        dest(data.algorithm)
-        dest(data.instance)
-        dest(data.objective)
+        yield data.algorithm
+        yield data.instance
+        yield data.objective
         if self.__needs_encoding:
-            dest(data.encoding if data.encoding else "")
-        dest(hex(data.rand_seed))
-        dest(num_to_str(data.best_f))
-        dest(str(data.last_improvement_fe))
-        dest(str(data.last_improvement_time_millis))
-        dest(str(data.total_fes))
-        dest(str(data.total_time_millis))
+            yield data.encoding if data.encoding else ""
+        yield hex(data.rand_seed)
+        yield num_to_str(data.best_f)
+        yield str(data.last_improvement_fe)
+        yield str(data.last_improvement_time_millis)
+        yield str(data.total_fes)
+        yield str(data.total_time_millis)
         if self.__needs_goal_f:
-            dest(num_or_none_to_str(data.goal_f))
+            yield num_or_none_to_str(data.goal_f)
         if self.__needs_max_fes:
-            dest(int_or_none_to_str(data.max_fes))
+            yield int_or_none_to_str(data.max_fes)
         if self.__needs_max_ms:
-            dest(int_or_none_to_str(data.max_time_millis))
+            yield int_or_none_to_str(data.max_time_millis)
 
-    def get_header_comments(self, dest: Callable[[str], None]) -> None:
+    def get_header_comments(self) -> Iterable[str]:
         """
         Get any possible header comments.
 
-        :param dest: the destination
+        :returns: the header comments
         """
-        dest("Experiment End Results")
-        dest("See the description at the bottom of the file.")
+        return ("Experiment End Results",
+                "See the description at the bottom of the file.")
 
-    def get_footer_comments(self, dest: Callable[[str], None]) -> None:
+    def get_footer_comments(self) -> Iterable[str]:
         """
         Get any possible footer comments.
 
-        :param dest: the destination
+        :returns: the footer comments
         """
-        dest("")
+        yield ""
         scope: Final[str | None] = self.scope
-        dest("Records describing the end results of single runs ("
-             "single executions) of algorithms applied to optimization "
-             "problems.")
-        dest("Each run is characterized by an algorithm setup, a problem "
-             "instance, and a random seed.")
+        yield ("Records describing the end results of single runs ("
+               "single executions) of algorithms applied to optimization "
+               "problems.")
+        yield ("Each run is characterized by an algorithm setup, a problem "
+               "instance, and a random seed.")
         if scope:
-            dest("All end result records start with prefix "
-                 f"{scope}{SCOPE_SEPARATOR}.")
-        dest(f"{csv_scope(scope, KEY_ALGORITHM)}: {DESC_ALGORITHM}")
-        dest(f"{csv_scope(scope, KEY_INSTANCE)}: {DESC_INSTANCE}")
-        dest(f"{csv_scope(scope, KEY_OBJECTIVE_FUNCTION)}:"
-             f" {DESC_OBJECTIVE_FUNCTION}")
+            yield ("All end result records start with prefix "
+                   f"{scope}{SCOPE_SEPARATOR}.")
+        yield f"{csv_scope(scope, KEY_ALGORITHM)}: {DESC_ALGORITHM}"
+        yield f"{csv_scope(scope, KEY_INSTANCE)}: {DESC_INSTANCE}"
+        yield (f"{csv_scope(scope, KEY_OBJECTIVE_FUNCTION)}:"
+               f" {DESC_OBJECTIVE_FUNCTION}")
         if self.__needs_encoding:
-            dest(f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}")
-        dest(f"{csv_scope(scope, KEY_RAND_SEED)}: {DESC_RAND_SEED}")
-        dest(f"{csv_scope(scope, KEY_BEST_F)}: {DESC_BEST_F}")
-        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)}: "
-             f"{DESC_LAST_IMPROVEMENT_FE}")
-        dest(f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)}: "
-             f"{DESC_LAST_IMPROVEMENT_TIME_MILLIS}")
-        dest(f"{csv_scope(scope, KEY_TOTAL_FES)}: {DESC_TOTAL_FES}")
-        dest(f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}: "
-             f"{DESC_TOTAL_TIME_MILLIS}")
+            yield (f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}")
+        yield f"{csv_scope(scope, KEY_RAND_SEED)}: {DESC_RAND_SEED}"
+        yield f"{csv_scope(scope, KEY_BEST_F)}: {DESC_BEST_F}"
+        yield (f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)}: "
+               f"{DESC_LAST_IMPROVEMENT_FE}")
+        yield (f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)}: "
+               f"{DESC_LAST_IMPROVEMENT_TIME_MILLIS}")
+        yield f"{csv_scope(scope, KEY_TOTAL_FES)}: {DESC_TOTAL_FES}"
+        yield (f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)}: "
+               f"{DESC_TOTAL_TIME_MILLIS}")
         if self.__needs_goal_f:
-            dest(f"{csv_scope(scope, KEY_GOAL_F)}: {DESC_GOAL_F}")
+            yield f"{csv_scope(scope, KEY_GOAL_F)}: {DESC_GOAL_F}"
         if self.__needs_max_fes:
-            dest(f"{csv_scope(scope, KEY_MAX_FES)}: {DESC_MAX_FES}")
+            yield f"{csv_scope(scope, KEY_MAX_FES)}: {DESC_MAX_FES}"
         if self.__needs_max_ms:
-            dest(f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: "
-                 f"{DESC_MAX_TIME_MILLIS}")
+            yield (f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: "
+                   f"{DESC_MAX_TIME_MILLIS}")
 
-    def get_footer_bottom_comments(self, dest: Callable[[str], None]) -> None:
+    def get_footer_bottom_comments(self) -> Iterable[str]:
         """
         Get the footer bottom comments.
 
-        :param dest: the destination to write to.
+        :returns: the footer comments
         """
-        motipy_footer_bottom_comments(
-            self, dest, ("The end results data is produced using module "
-                         "moptipy.evaluation.end_results."))
-        pycommons_footer_bottom_comments(self, dest)
+        yield from motipy_footer_bottom_comments(
+            self, ("The end results data is produced using module "
+                   "moptipy.evaluation.end_results."))
+        yield from pycommons_footer_bottom_comments(self)
 
 
 class CsvReader:

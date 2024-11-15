@@ -681,7 +681,7 @@ def onemax(x: np.ndarray) -> int:
 class OneMax(BitStringProblem):
     """Maximize the number of ones in a bit string."""
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the onemax objective function.
 

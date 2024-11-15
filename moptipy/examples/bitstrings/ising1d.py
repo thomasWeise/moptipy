@@ -690,7 +690,7 @@ def ising1d(x: np.ndarray) -> int:
 class Ising1d(BitStringProblem):
     """The one-dimensional Ising problem."""
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the one-dimensional Ising problem.
 

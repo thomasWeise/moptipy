@@ -130,7 +130,7 @@ def test_experiment_jssp() -> None:
             er_to_csv(results=results, file=path)
 
             results2: list[EndResult] = []
-            er_from_csv(file=path, consumer=results2.append)
+            results2.extend(er_from_csv(file=path))
 
             assert results == results2
 
@@ -243,7 +243,7 @@ def test_experiment_jssp() -> None:
             check: list[EndStatistics] = [es_hc_a]
             es_to_csv(check, f)
             check_2: list[EndStatistics] = []
-            es_from_csv(f, check_2.append)
+            check_2.extend(es_from_csv(f))
             assert check_2 == check
             assert len(check_2) == 1
 

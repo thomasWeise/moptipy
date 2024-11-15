@@ -1,7 +1,7 @@
 """Some internal helper functions and base classes."""
 
 from dataclasses import dataclass
-from typing import Any, Callable, Final
+from typing import Any, Final, Iterable
 
 from pycommons.io.path import Path
 from pycommons.types import check_int_range, type_error
@@ -855,32 +855,31 @@ def sort_key(obj: PerRunData | MultiRunData) -> tuple[Any, ...]:
 
 
 def motipy_footer_bottom_comments(
-        _: Any, dest: Callable[[str], Any],
-        additional: str | None = None) -> None:
+        _: Any, additional: str | None = None) -> Iterable[str]:
     """
     Print the standard csv footer for moptipy.
 
     :param _: the setup object, ignored
     :param dest: the destination callable
-    :param dest: the destination to write to
     :param additional: any additional output string
+    :returns: the iterable with the footer comments
 
-    >>> def __qpt(s: str):
+    >>> for s in motipy_footer_bottom_comments(None, "bla"):
     ...     print(s[:49])
-    >>> motipy_footer_bottom_comments(None, __qpt, "bla")
     This data has been generated with moptipy version
     bla
     You can find moptipy at https://thomasweise.githu
 
-    >>> motipy_footer_bottom_comments(None, __qpt, None)
+    >>> for s in motipy_footer_bottom_comments(None, None):
+    ...     print(s[:49])
     This data has been generated with moptipy version
     You can find moptipy at https://thomasweise.githu
     """
-    dest("This data has been generated with moptipy version "
-         f"{moptipy_version}.")
+    yield ("This data has been generated with moptipy version "
+           f"{moptipy_version}.")
     if (additional is not None) and (str.__len__(additional) > 0):
-        dest(additional)
-    dest("You can find moptipy at https://thomasweise.github.io/mopitpy.")
+        yield additional
+    yield "You can find moptipy at https://thomasweise.github.io/mopitpy."
 
 
 #: a description of the algorithm field

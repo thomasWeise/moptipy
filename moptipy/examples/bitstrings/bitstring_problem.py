@@ -271,7 +271,7 @@ class BitStringProblem(Objective):
     n should be an instance of int but is str, namely 'a'.
     """
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the bitstring objective function.
 
@@ -560,7 +560,7 @@ class BitStringNKProblem(BitStringProblem):
     k should be an instance of int but is str, namely 'x'.
     """
 
-    def __init__(self, n: int, k: int) -> None:  # +book
+    def __init__(self, n: int, k: int) -> None:
         """
         Initialize the n-k objective function.
 

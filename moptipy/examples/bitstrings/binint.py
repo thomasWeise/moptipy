@@ -91,7 +91,7 @@ def binint(x: np.ndarray) -> int:
 class BinInt(BitStringProblem):
     """Maximize the binary value of a bit string."""
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the binint objective function.
 

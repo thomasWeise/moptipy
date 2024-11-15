@@ -717,7 +717,7 @@ def twomax(x: np.ndarray) -> int:
 class TwoMax(BitStringProblem):
     """The TwoMax benchmark problem."""
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the twomax objective function.
 

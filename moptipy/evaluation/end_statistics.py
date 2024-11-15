@@ -12,7 +12,7 @@ import argparse
 import os.path
 from dataclasses import dataclass
 from math import ceil, inf, isfinite
-from typing import Any, Callable, Final, Iterable, cast
+from typing import Any, Callable, Final, Iterable, Iterator, cast
 
 from pycommons.ds.sequences import reiterable
 from pycommons.io.console import logger
@@ -846,36 +846,35 @@ def to_csv(data: EndStatistics | Iterable[EndStatistics],
     logger(f"Writing end result statistics to CSV file {path!r}.")
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
-        csv_write(
-            data=[data] if isinstance(data, EndStatistics) else sorted(data),
-            consumer=line_writer(wt),
-            setup=CsvWriter().setup,
-            get_column_titles=CsvWriter.get_column_titles,
-            get_row=CsvWriter.get_row,
-            get_header_comments=CsvWriter.get_header_comments,
-            get_footer_comments=CsvWriter.get_footer_comments,
-            get_footer_bottom_comments=CsvWriter.get_footer_bottom_comments)
+        consumer: Final[Callable[[str], None]] = line_writer(wt)
+        for r in csv_write(
+                data=[data] if isinstance(
+                    data, EndStatistics) else sorted(data),
+                setup=CsvWriter().setup,
+                column_titles=CsvWriter.get_column_titles,
+                get_row=CsvWriter.get_row,
+                header_comments=CsvWriter.get_header_comments,
+                footer_comments=CsvWriter.get_footer_comments,
+                footer_bottom_comments=CsvWriter.get_footer_bottom_comments):
+            consumer(r)
+
     logger(f"Done writing end result statistics to CSV file {path!r}.")
     return path
 
 
-def from_csv(file: str,
-             consumer: Callable[[EndStatistics], Any]) -> None:
+def from_csv(file: str) -> Iterator[EndStatistics]:
     """
     Parse a CSV file and collect all encountered :class:`EndStatistics`.
 
     :param file: the file to parse
-    :param consumer: the consumer to receive all the parsed instances of
-        :class:`~moptipy.evaluation.end_statistics.EndStatistics`, can be
-        the `append` method of a :class:`list`
+    :returns: the iterator with the results
     """
     path: Final[Path] = file_path(file)
     logger(f"Begin reading end result statistics from CSV file {path!r}.")
     with path.open_for_read() as rd:
-        csv_read(rows=rd,
-                 setup=CsvReader,
-                 parse_row=CsvReader.parse_row,
-                 consumer=consumer)
+        yield from csv_read(rows=rd,
+                            setup=CsvReader,
+                            parse_row=CsvReader.parse_row)
     logger("Finished reading end result statistics from CSV "
            f"file {path!r}.")
 
@@ -1161,215 +1160,216 @@ class CsvWriter:
 
         return self
 
-    def get_column_titles(self, dest: Callable[[str], None]) -> None:
+    def get_column_titles(self) -> Iterator[str]:
         """
         Get the column titles.
 
-        :param dest: the destination string consumer
+        :returns: the column titles
         """
         p: Final[str] = self.scope
         if self.__has_algorithm:
-            dest(csv_scope(p, KEY_ALGORITHM))
+            yield csv_scope(p, KEY_ALGORITHM)
         if self.__has_instance:
-            dest(csv_scope(p, KEY_INSTANCE))
+            yield csv_scope(p, KEY_INSTANCE)
         if self.__has_objective:
-            dest(csv_scope(p, KEY_OBJECTIVE_FUNCTION))
+            yield csv_scope(p, KEY_OBJECTIVE_FUNCTION)
         if self.__has_encoding:
-            dest(csv_scope(p, KEY_ENCODING))
-        dest(csv_scope(p, KEY_N))
-        self.__best_f.get_column_titles(dest)
-        self.__life.get_column_titles(dest)
-        self.__lims.get_column_titles(dest)
-        self.__total_fes.get_column_titles(dest)
-        self.__total_ms.get_column_titles(dest)
+            yield csv_scope(p, KEY_ENCODING)
+        yield csv_scope(p, KEY_N)
+        yield from self.__best_f.get_column_titles()
+        yield from self.__life.get_column_titles()
+        yield from self.__lims.get_column_titles()
+        yield from self.__total_fes.get_column_titles()
+        yield from self.__total_ms.get_column_titles()
         if self.__goal_f is not None:
-            self.__goal_f.get_column_titles(dest)
+            yield from self.__goal_f.get_column_titles()
         if self.__best_f_scaled is not None:
-            self.__best_f_scaled.get_column_titles(dest)
+            yield from self.__best_f_scaled.get_column_titles()
         if self.__has_n_success:
-            dest(csv_scope(p, KEY_N_SUCCESS))
+            yield csv_scope(p, KEY_N_SUCCESS)
         if self.__success_fes is not None:
-            self.__success_fes.get_column_titles(dest)
+            yield from self.__success_fes.get_column_titles()
         if self.__success_time_millis is not None:
-            self.__success_time_millis.get_column_titles(dest)
+            yield from self.__success_time_millis.get_column_titles()
         if self.__has_ert_fes:
-            dest(csv_scope(p, KEY_ERT_FES))
+            yield csv_scope(p, KEY_ERT_FES)
         if self.__has_ert_time_millis:
-            dest(csv_scope(p, KEY_ERT_TIME_MILLIS))
+            yield csv_scope(p, KEY_ERT_TIME_MILLIS)
         if self.__max_fes is not None:
-            self.__max_fes.get_column_titles(dest)
+            yield from self.__max_fes.get_column_titles()
         if self.__max_time_millis is not None:
-            self.__max_time_millis.get_column_titles(dest)
+            yield from self.__max_time_millis.get_column_titles()
 
-    def get_row(self, data: EndStatistics,
-                dest: Callable[[str], None]) -> None:
+    def get_row(self, data: EndStatistics) -> Iterable[str]:
         """
         Render a single end result record to a CSV row.
 
         :param data: the end result record
-        :param dest: the string consumer
+        :returns: the row strings
         """
         if self.__has_algorithm:
-            dest("" if data.algorithm is None else data.algorithm)
+            yield "" if data.algorithm is None else data.algorithm
         if self.__has_instance:
-            dest("" if data.instance is None else data.instance)
+            yield "" if data.instance is None else data.instance
         if self.__has_objective:
-            dest("" if data.objective is None else data.objective)
+            yield "" if data.objective is None else data.objective
         if self.__has_encoding:
-            dest("" if data.encoding is None else data.encoding)
-        dest(str(data.n))
-        self.__best_f.get_row(data.best_f, dest)
-        self.__life.get_row(data.last_improvement_fe, dest)
-        self.__lims.get_row(data.last_improvement_time_millis, dest)
-        self.__total_fes.get_row(data.total_fes, dest)
-        self.__total_ms.get_row(data.total_time_millis, dest)
+            yield "" if data.encoding is None else data.encoding
+        yield str(data.n)
+        yield from self.__best_f.get_row(data.best_f)
+        yield from self.__life.get_row(data.last_improvement_fe)
+        yield from self.__lims.get_row(data.last_improvement_time_millis)
+        yield from self.__total_fes.get_row(data.total_fes)
+        yield from self.__total_ms.get_row(data.total_time_millis)
         if self.__goal_f is not None:
-            self.__goal_f.get_optional_row(data.goal_f, dest, data.n)
+            yield from self.__goal_f.get_optional_row(data.goal_f, data.n)
         if self.__best_f_scaled is not None:
-            self.__best_f_scaled.get_optional_row(
-                data.best_f_scaled, dest, data.n)
+            yield from self.__best_f_scaled.get_optional_row(
+                data.best_f_scaled, data.n)
         if self.__has_n_success:
-            dest(str(data.n_success))
+            yield str(data.n_success)
         if self.__success_fes is not None:
-            self.__success_fes.get_optional_row(
-                data.success_fes, dest, data.n_success)
+            yield from self.__success_fes.get_optional_row(
+                data.success_fes, data.n_success)
         if self.__success_time_millis is not None:
-            self.__success_time_millis.get_optional_row(
-                data.success_time_millis, dest, data.n_success)
+            yield from self.__success_time_millis.get_optional_row(
+                data.success_time_millis, data.n_success)
         if self.__has_ert_fes:
-            dest(num_or_none_to_str(data.ert_fes))
+            yield num_or_none_to_str(data.ert_fes)
         if self.__has_ert_time_millis:
-            dest(num_or_none_to_str(data.ert_time_millis))
+            yield num_or_none_to_str(data.ert_time_millis)
         if self.__max_fes is not None:
-            self.__max_fes.get_optional_row(data.max_fes, dest, data.n)
+            yield from self.__max_fes.get_optional_row(data.max_fes, data.n)
         if self.__max_time_millis is not None:
-            self.__max_time_millis.get_optional_row(
-                data.max_time_millis, dest, data.n)
+            yield from self.__max_time_millis.get_optional_row(
+                data.max_time_millis, data.n)
 
-    def get_header_comments(self, dest: Callable[[str], None]) -> None:
+    def get_header_comments(self) -> Iterable[str]:
         """
         Get any possible header comments.
 
-        :param dest: the destination
+        :returns: the header comments
         """
-        dest("Experiment End Results Statistics")
-        dest("See the description at the bottom of the file.")
+        return ("Experiment End Results Statistics",
+                "See the description at the bottom of the file.")
 
-    def get_footer_comments(self, dest: Callable[[str], None]) -> None:
+    def get_footer_comments(self) -> Iterable[str]:
         """
         Get any possible footer comments.
 
         :param dest: the destination
         """
-        dest("")
+        yield ""
         scope: Final[str | None] = self.scope
 
-        dest("This file presents statistics gathered over multiple runs "
-             "of optimization algorithms applied to problem instances.")
+        yield ("This file presents statistics gathered over multiple runs "
+               "of optimization algorithms applied to problem instances.")
         if scope:
-            dest("All end result statistics records start with prefix "
-                 f"{scope}{SCOPE_SEPARATOR}.")
+            yield ("All end result statistics records start with prefix "
+                   f"{scope}{SCOPE_SEPARATOR}.")
         if self.__has_algorithm:
-            dest(f"{csv_scope(scope, KEY_ALGORITHM)}: {DESC_ALGORITHM}")
+            yield f"{csv_scope(scope, KEY_ALGORITHM)}: {DESC_ALGORITHM}"
         if self.__has_instance:
-            dest(f"{csv_scope(scope, KEY_INSTANCE)}: {DESC_INSTANCE}")
+            yield f"{csv_scope(scope, KEY_INSTANCE)}: {DESC_INSTANCE}"
         if self.__has_objective:
-            dest(f"{csv_scope(scope, KEY_OBJECTIVE_FUNCTION)}:"
-                 f" {DESC_OBJECTIVE_FUNCTION}")
+            yield (f"{csv_scope(scope, KEY_OBJECTIVE_FUNCTION)}:"
+                   f" {DESC_OBJECTIVE_FUNCTION}")
         if self.__has_encoding:
-            dest(f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}")
-        dest(f"{csv_scope(scope, KEY_N)}: the number of runs that were "
-             f"performed for the given setup.")
+            yield f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}"
+        yield (f"{csv_scope(scope, KEY_N)}: the number of runs that were "
+               f"performed for the given setup.")
 
-        self.__best_f.get_footer_comments(dest)
-        dest(f"In summary {csv_scope(scope, KEY_BEST_F)} is {DESC_BEST_F}.")
+        yield from self.__best_f.get_footer_comments()
+        yield f"In summary {csv_scope(scope, KEY_BEST_F)} is {DESC_BEST_F}."
 
-        self.__life.get_footer_comments(dest)
-        dest(f"In summary {csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)} "
-             f"is {DESC_LAST_IMPROVEMENT_FE}.")
+        yield from self.__life.get_footer_comments()
+        yield (f"In summary {csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)} "
+               f"is {DESC_LAST_IMPROVEMENT_FE}.")
 
-        self.__lims.get_footer_comments(dest)
-        dest("In summary "
-             f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)} "
-             f"is {DESC_LAST_IMPROVEMENT_TIME_MILLIS}.")
+        yield from self.__lims.get_footer_comments()
+        yield ("In summary "
+               f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS)} "
+               f"is {DESC_LAST_IMPROVEMENT_TIME_MILLIS}.")
 
-        self.__total_fes.get_footer_comments(dest)
-        dest(f"In summary {csv_scope(scope, KEY_TOTAL_FES)} "
-             f"is {DESC_TOTAL_FES}.")
+        yield from self.__total_fes.get_footer_comments()
+        yield (f"In summary {csv_scope(scope, KEY_TOTAL_FES)} "
+               f"is {DESC_TOTAL_FES}.")
 
-        self.__total_ms.get_footer_comments(dest)
-        dest(f"In summary {csv_scope(scope, KEY_TOTAL_TIME_MILLIS)} "
-             f"is {DESC_TOTAL_TIME_MILLIS}.")
+        yield from self.__total_ms.get_footer_comments()
+        yield (f"In summary {csv_scope(scope, KEY_TOTAL_TIME_MILLIS)} "
+               f"is {DESC_TOTAL_TIME_MILLIS}.")
 
         if self.__goal_f is not None:
-            self.__goal_f.get_footer_comments(dest)
-            dest(f"In summary {csv_scope(scope, KEY_GOAL_F)} is"
-                 f" {DESC_GOAL_F}.")
+            yield from self.__goal_f.get_footer_comments()
+            yield (f"In summary {csv_scope(scope, KEY_GOAL_F)} is"
+                   f" {DESC_GOAL_F}.")
 
         if self.__best_f_scaled is not None:
-            self.__best_f_scaled.get_footer_comments(dest)
-            dest(f"In summary {csv_scope(scope, KEY_BEST_F_SCALED)} describes"
-                 " the best objective value reached ("
-                 f"{csv_scope(scope, KEY_BEST_F)}) divided by the goal "
-                 f"objective value ({csv_scope(scope, KEY_GOAL_F)}).")
+            yield from self.__best_f_scaled.get_footer_comments()
+            yield (f"In summary {csv_scope(scope, KEY_BEST_F_SCALED)} "
+                   "describes the best objective value reached ("
+                   f"{csv_scope(scope, KEY_BEST_F)}) divided by the goal "
+                   f"objective value ({csv_scope(scope, KEY_GOAL_F)}).")
 
         if self.__has_n_success:
-            dest(f"{csv_scope(scope, KEY_N_SUCCESS)} is the number of runs "
-                 "that reached goal objective value "
-                 f"{csv_scope(scope, KEY_GOAL_F)}. Obviously, "
-                 f"0<={csv_scope(scope, KEY_N_SUCCESS)}<="
-                 f"{csv_scope(scope, KEY_N)}.")
+            yield (f"{csv_scope(scope, KEY_N_SUCCESS)} is the number of "
+                   "runs that reached goal objective value "
+                   f"{csv_scope(scope, KEY_GOAL_F)}. Obviously, "
+                   f"0<={csv_scope(scope, KEY_N_SUCCESS)}<="
+                   f"{csv_scope(scope, KEY_N)}.")
         if self.__success_fes is not None:
-            self.__success_fes.get_footer_comments(dest)
-            dest(f"{csv_scope(scope, KEY_SUCCESS_FES)} offers statistics "
-                 "about the number of FEs that the 0<="
-                 f"{csv_scope(scope, KEY_N_SUCCESS)}<="
-                 f"{csv_scope(scope, KEY_N)} successful runs needed to reach "
-                 f"the goal objective value {csv_scope(scope, KEY_GOAL_F)}.")
+            yield from self.__success_fes.get_footer_comments()
+            yield (f"{csv_scope(scope, KEY_SUCCESS_FES)} offers statistics "
+                   "about the number of FEs that the 0<="
+                   f"{csv_scope(scope, KEY_N_SUCCESS)}<="
+                   f"{csv_scope(scope, KEY_N)} successful runs needed to "
+                   "reach the goal objective value "
+                   f"{csv_scope(scope, KEY_GOAL_F)}.")
 
         if self.__success_time_millis is not None:
-            self.__success_fes.get_footer_comments(dest)
-            dest(f"{csv_scope(scope, KEY_SUCCESS_TIME_MILLIS)} offers "
-                 "statistics about the number of milliseconds of clock time "
-                 f"that the 0<={csv_scope(scope, KEY_N_SUCCESS)}<="
-                 f"{csv_scope(scope, KEY_N)} successful runs needed to reach "
-                 f"the goal objective value {csv_scope(scope, KEY_GOAL_F)}.")
+            yield from self.__success_fes.get_footer_comments()
+            yield (f"{csv_scope(scope, KEY_SUCCESS_TIME_MILLIS)} offers "
+                   "statistics about the number of milliseconds of clock time"
+                   f" that the 0<={csv_scope(scope, KEY_N_SUCCESS)}<="
+                   f"{csv_scope(scope, KEY_N)} successful runs needed to "
+                   "reach the goal objective value "
+                   f"{csv_scope(scope, KEY_GOAL_F)}.")
 
         if self.__has_ert_fes:
-            dest(f"{csv_scope(scope, KEY_ERT_FES)} is the empirical estimate"
-                 " of the number of FEs to solve the problem. It can be "
-                 "approximated by dividing the sum of "
-                 f"{csv_scope(scope, KEY_TOTAL_FES)} over all runs by the "
-                 f"number {csv_scope(scope, KEY_N_SUCCESS)} of successful "
-                 "runs.")
+            yield (f"{csv_scope(scope, KEY_ERT_FES)} is the empirical "
+                   "estimate of the number of FEs to solve the problem. It "
+                   "can be approximated by dividing the sum of "
+                   f"{csv_scope(scope, KEY_TOTAL_FES)} over all runs by the "
+                   f"number {csv_scope(scope, KEY_N_SUCCESS)} of successful "
+                   "runs.")
 
         if self.__has_ert_time_millis:
-            dest(f"{csv_scope(scope, KEY_ERT_TIME_MILLIS)} is the empirical "
-                 "estimate of the number of FEs to solve the problem. It can "
-                 "be approximated by dividing the sum of "
-                 f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)} over all runs by"
-                 f" the number {csv_scope(scope, KEY_N_SUCCESS)} of "
-                 "successful runs.")
+            yield (f"{csv_scope(scope, KEY_ERT_TIME_MILLIS)} is the empirical"
+                   " estimate of the number of FEs to solve the problem. It "
+                   "can be approximated by dividing the sum of "
+                   f"{csv_scope(scope, KEY_TOTAL_TIME_MILLIS)} over all runs "
+                   f"by the number {csv_scope(scope, KEY_N_SUCCESS)} of "
+                   "successful runs.")
 
         if self.__max_fes is not None:
-            self.__max_fes.get_footer_comments(dest)
-            dest(f"In summary {csv_scope(scope, KEY_MAX_FES)} is"
-                 f" {DESC_MAX_FES}.")
+            yield from self.__max_fes.get_footer_comments()
+            yield (f"In summary {csv_scope(scope, KEY_MAX_FES)} is"
+                   f" {DESC_MAX_FES}.")
         if self.__max_time_millis is not None:
-            self.__max_time_millis.get_footer_comments(dest)
-            dest(f"In summary {csv_scope(scope, KEY_MAX_TIME_MILLIS)} is"
-                 f" {DESC_MAX_TIME_MILLIS}.")
+            yield from self.__max_time_millis.get_footer_comments()
+            yield (f"In summary {csv_scope(scope, KEY_MAX_TIME_MILLIS)} is"
+                   f" {DESC_MAX_TIME_MILLIS}.")
 
-    def get_footer_bottom_comments(self, dest: Callable[[str], None]) -> None:
+    def get_footer_bottom_comments(self) -> Iterable[str]:
         """
         Get the footer bottom comments.
 
-        :param dest: the destination to write to.
+        :returns: the footer comments
         """
-        motipy_footer_bottom_comments(
-            self, dest, ("The end statistics data is produced using module "
-                         "moptipy.evaluation.end_statistics."))
-        StatWriter.get_footer_bottom_comments(self.__best_f, dest)
+        yield from motipy_footer_bottom_comments(
+            self, ("The end statistics data is produced using module "
+                   "moptipy.evaluation.end_statistics."))
+        yield from StatWriter.get_footer_bottom_comments(self.__best_f)
 
 
 class CsvReader:

@@ -35,11 +35,11 @@ matplotlib == 3.9.2
 
 # psutil is used for getting information about the system configuration which
 # is stored in the log files (see moptipy.utils.sys_info.py).
-psutil == 6.0.0
+psutil == 6.1.0
 
 # pycommons offers many of the tools and utilities used in moptipy that are
 # not related to optimization.
-pycommons == 0.8.57
+pycommons == 0.8.58
 
 # scikit-learn is used to obtain some clusters of JSSP instances for our
 # experiments.

@@ -40,7 +40,7 @@ def __test_write_read_end_stats(
 
     with temp_file() as tf:
         to_csv(stats, tf)
-        from_csv(tf, loaded.append)
+        loaded.extend(from_csv(tf))
 
     assert len(loaded) > 0
     stats.sort()

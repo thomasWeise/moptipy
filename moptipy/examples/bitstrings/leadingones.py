@@ -705,7 +705,7 @@ def leadingones(x: np.ndarray) -> int:
 class LeadingOnes(BitStringProblem):
     """Maximize the number of leading ones in a bit string."""
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the leading ones objective function.
 

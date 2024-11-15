@@ -687,7 +687,7 @@ def trap(x: np.ndarray) -> int:
 class Trap(BitStringProblem):
     """The trap problem."""
 
-    def __init__(self, n: int) -> None:  # +book
+    def __init__(self, n: int) -> None:
         """
         Initialize the trap objective function.
 

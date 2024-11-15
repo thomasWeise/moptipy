@@ -42,10 +42,14 @@ The following benchmark problems are provided:
 11. The :mod:`~moptipy.examples.bitstrings.nqueens`, where the goal is to
     place `k` queens on a `k * k`-sized chess board such that no queen can
     beat any other queen.
-12. The :mod:`~moptipy.examples.bitstrings.w_model`, a benchmark
+12. The :mod:`~moptipy.examples.bitstrings.labs`, where the goal is to
+    find a sequence with low autocorrelation and, thus, high merit factor.
+    This problem is different from the others, because here, only for low
+    values of `n`, the optimal solutions are actually known.
+13. The :mod:`~moptipy.examples.bitstrings.w_model`, a benchmark
     problem with tunable epistasis, uniform neutrality, and
     ruggedness/deceptiveness.
-13. The :mod:`~moptipy.examples.bitstrings.zeromax` problem, where the
+14. The :mod:`~moptipy.examples.bitstrings.zeromax` problem, where the
     goal is to find a bit string with the maximum number of zeros. This is the
     opposite of the OneMax problem.
 
@@ -65,6 +69,7 @@ from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
 from moptipy.examples.bitstrings.ising1d import Ising1d
 from moptipy.examples.bitstrings.ising2d import Ising2d
 from moptipy.examples.bitstrings.jump import Jump
+from moptipy.examples.bitstrings.labs import LABS
 from moptipy.examples.bitstrings.leadingones import LeadingOnes
 from moptipy.examples.bitstrings.linearharmonic import LinearHarmonic
 from moptipy.examples.bitstrings.nqueens import NQueens
@@ -90,7 +95,7 @@ def default_instances(
         benchmark instances
 
     >>> len(list(default_instances()))
-    963
+    1009
     """
     return chain(
         BinInt.default_instances(*class_scales(BinInt)),  # type: ignore
@@ -106,4 +111,5 @@ def default_instances(
         Plateau.default_instances(*class_scales(Plateau)),  # type: ignore
         Trap.default_instances(*class_scales(Trap)),  # type: ignore
         TwoMax.default_instances(*class_scales(TwoMax)),  # type: ignore
+        LABS.default_instances(*class_scales(LABS)),  # type: ignore
         WModel.default_instances(*class_scales(WModel)))  # type: ignore

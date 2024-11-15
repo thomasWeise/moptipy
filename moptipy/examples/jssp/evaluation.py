@@ -307,7 +307,7 @@ def get_end_results(
         algos: None | set[str] | Callable[[str], bool] = None) \
         -> list[EndResult]:
     """
-    Get a specific set of end results..
+    Get a specific set of end results.
 
     :param file: the end results file
     :param insts: only these instances will be included if this parameter is
@@ -327,8 +327,8 @@ def get_end_results(
             return False
         return not ((alg is not None) and (not alg(er.algorithm)))
 
-    col: Final[list[EndResult]] = []
-    end_results_from_csv(file=file, consumer=col.append, filterer=__filter)
+    col: Final[list[EndResult]] = list(end_results_from_csv(
+        file=file, filterer=__filter))
     if len(col) <= 0:
         raise ValueError(
             f"no end results for instances {insts} and algorithms {algos}.")
