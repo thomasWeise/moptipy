@@ -1,0 +1,705 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.instance_selector — moptipy 0.9.136 documentation</title><link href="../../../../_static/pygments.css?v=80d5e7a1"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=19b90503"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/instance_selector.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.136 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.instance_selector</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.instance_selector</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Code for selecting interesting instances for smaller-scale experiments."""</span>
+<span class=kn>import</span> <span class=nn>multiprocessing</span> <span class=k>as</span> <span class=nn>mp</span>
+<span class=kn>from</span> <span class=nn>math</span> <span class=kn>import</span> <span class=n>ceil</span><span class=p>,</span> <span class=n>factorial</span><span class=p>,</span> <span class=n>inf</span><span class=p>,</span> <span class=n>log2</span><span class=p>,</span> <span class=n>sqrt</span>
+<span class=kn>from</span> <span class=nn>os</span> <span class=kn>import</span> <span class=n>sched_getaffinity</span>
+<span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>  <span class=c1># type: ignore</span>
+
+<span class=c1># pylint: disable-next=E0611</span>
+<span class=kn>from</span> <span class=nn>numpy.random</span> <span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>RandomState</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span> <span class=nn>pycommons.io.console</span> <span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span> <span class=nn>pycommons.types</span> <span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+<span class=kn>from</span> <span class=nn>sklearn.cluster</span> <span class=kn>import</span> <span class=n>SpectralClustering</span>  <span class=c1># type: ignore</span>
+
+<span class=kn>from</span> <span class=nn>moptipy.algorithms.so.rls</span> <span class=kn>import</span> <span class=n>RLS</span>
+<span class=kn>from</span> <span class=nn>moptipy.api.execution</span> <span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span> <span class=nn>moptipy.examples.jssp.gantt_space</span> <span class=kn>import</span> <span class=n>GanttSpace</span>
+<span class=kn>from</span> <span class=nn>moptipy.examples.jssp.instance</span> <span class=kn>import</span> <span class=n>Instance</span>
+<span class=kn>from</span> <span class=nn>moptipy.examples.jssp.makespan</span> <span class=kn>import</span> <span class=n>Makespan</span>
+<span class=kn>from</span> <span class=nn>moptipy.examples.jssp.ob_encoding</span> <span class=kn>import</span> <span class=n>OperationBasedEncoding</span>
+<span class=kn>from</span> <span class=nn>moptipy.operators.permutations.op0_shuffle</span> <span class=kn>import</span> <span class=n>Op0Shuffle</span>
+<span class=kn>from</span> <span class=nn>moptipy.operators.permutations.op1_swap2</span> <span class=kn>import</span> <span class=n>Op1Swap2</span>
+<span class=kn>from</span> <span class=nn>moptipy.spaces.permutations</span> <span class=kn>import</span> <span class=n>Permutations</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.nputils</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DEFAULT_FLOAT</span><span class=p>,</span>
+    <span class=n>DEFAULT_INT</span><span class=p>,</span>
+    <span class=n>rand_generator</span><span class=p>,</span>
+    <span class=n>rand_seeds_from_str</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<span class=k>def</span> <span class=nf>__can_solve_instance</span><span class=p>(</span><span class=n>inst</span><span class=p>:</span> <span class=n>Instance</span><span class=p>,</span> <span class=n>seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                         <span class=n>queue</span><span class=p>:</span> <span class=n>mp</span><span class=o>.</span><span class=n>Queue</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Execute one run of a RLS for 2.1min on the instance, return makespan.</span>
+
+<span class=sd>    :param inst: the jssp instance to check</span>
+<span class=sd>    :param seed: the seed of this run</span>
+<span class=sd>    :param queue: the queue for the return values</span>
+<span class=sd>    """</span>
+    <span class=n>x_space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Permutations</span><span class=p>]</span> <span class=o>=</span> <span class=n>Permutations</span><span class=o>.</span><span class=n>with_repetitions</span><span class=p>(</span>
+        <span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+    <span class=n>y_space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>GanttSpace</span><span class=p>]</span> <span class=o>=</span> <span class=n>GanttSpace</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=n>g</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>OperationBasedEncoding</span><span class=p>]</span> <span class=o>=</span> <span class=n>OperationBasedEncoding</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=n>o0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Op0Shuffle</span><span class=p>]</span> <span class=o>=</span> <span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>x_space</span><span class=p>)</span>
+    <span class=n>o1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Op1Swap2</span><span class=p>]</span> <span class=o>=</span> <span class=n>Op1Swap2</span><span class=p>()</span>
+    <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Makespan</span><span class=p>]</span> <span class=o>=</span> <span class=n>Makespan</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=n>a</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>RLS</span><span class=p>]</span> <span class=o>=</span> <span class=n>RLS</span><span class=p>(</span><span class=n>o0</span><span class=p>,</span> <span class=n>o1</span><span class=p>)</span>
+    <span class=n>goal</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span>
+
+    <span class=n>ex</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Execution</span><span class=p>]</span> <span class=o>=</span> <span class=n>Execution</span><span class=p>()</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_search_space</span><span class=p>(</span><span class=n>x_space</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_solution_space</span><span class=p>(</span><span class=n>y_space</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_encoding</span><span class=p>(</span><span class=n>g</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_algorithm</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_max_time_millis</span><span class=p>(</span><span class=mi>126_000</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_goal_f</span><span class=p>(</span><span class=n>goal</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_rand_seed</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>ex</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span> <span class=k>as</span> <span class=n>process</span><span class=p>:</span>
+        <span class=n>queue</span><span class=o>.</span><span class=n>put</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>())</span>
+
+
+<span class=k>def</span> <span class=nf>__is_instance_too_easy</span><span class=p>(</span><span class=n>inst</span><span class=p>:</span> <span class=n>Instance</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check if an instance is too easy to be of any interest.</span>
+
+<span class=sd>    We perform 16 runs of a (1+1)-EA on an instance, granting 2.1 minutes</span>
+<span class=sd>    of runtime to each of them. An instance is considered as easy if one of</span>
+<span class=sd>    the following conditions is fulfilled:</span>
+
+<span class=sd>    - it is solved often enough (lower bound reached often)</span>
+<span class=sd>    - there are not enough different results</span>
+<span class=sd>    - the mean result is too close to the lower bound</span>
+<span class=sd>    - the worst result is not far enough from the lower bound</span>
+<span class=sd>    - the worst result is too close to the best result</span>
+
+<span class=sd>    If any of these conditions hold, we consider the instance as too easy to</span>
+<span class=sd>    be of any interest for our educational experiment.</span>
+
+<span class=sd>    :param inst: the jssp instance to check</span>
+<span class=sd>    :returns: `True` if the instance is too easy to be interesting</span>
+<span class=sd>    """</span>
+    <span class=n>n_runs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>16</span>
+    <span class=n>seeds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>rand_seeds_from_str</span><span class=p>(</span><span class=n>string</span><span class=o>=</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=p>,</span>
+                                                  <span class=n>n_seeds</span><span class=o>=</span><span class=n>n_runs</span><span class=p>)</span>
+    <span class=n>queue</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>mp</span><span class=o>.</span><span class=n>Queue</span><span class=p>]</span> <span class=o>=</span> <span class=n>mp</span><span class=o>.</span><span class=n>Queue</span><span class=p>()</span>
+
+    <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>seeds</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>processes</span> <span class=o>=</span> <span class=p>[</span><span class=n>mp</span><span class=o>.</span><span class=n>Process</span><span class=p>(</span><span class=n>target</span><span class=o>=</span><span class=n>__can_solve_instance</span><span class=p>,</span>
+                                <span class=n>args</span><span class=o>=</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>seeds</span><span class=o>.</span><span class=n>pop</span><span class=p>(),</span> <span class=n>queue</span><span class=p>))</span>
+                     <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>seeds</span><span class=p>),</span> <span class=n>__DEFAULT_N_THREADS</span><span class=p>))]</span>
+        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>processes</span><span class=p>:</span>
+            <span class=n>p</span><span class=o>.</span><span class=n>start</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>processes</span><span class=p>:</span>
+            <span class=n>p</span><span class=o>.</span><span class=n>join</span><span class=p>()</span>
+
+    <span class=n>goal</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span>
+    <span class=n>num_solved</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>diff</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>min_makespan</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span> <span class=o><<</span> <span class=mi>62</span>
+    <span class=n>sum_makespans</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>max_makespan</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_runs</span><span class=p>):</span>
+        <span class=n>makespan</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>queue</span><span class=o>.</span><span class=n>get</span><span class=p>()</span>
+        <span class=n>diff</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>makespan</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>makespan</span> <span class=o><=</span> <span class=n>min_makespan</span><span class=p>:</span>
+            <span class=n>min_makespan</span> <span class=o>=</span> <span class=n>makespan</span>
+            <span class=k>if</span> <span class=n>makespan</span> <span class=o><=</span> <span class=n>goal</span><span class=p>:</span>
+                <span class=n>num_solved</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>sum_makespans</span> <span class=o>+=</span> <span class=n>makespan</span>
+        <span class=n>max_makespan</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_makespan</span><span class=p>,</span> <span class=n>makespan</span><span class=p>)</span>
+
+    <span class=n>mean_makespan</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>sum_makespans</span> <span class=o>/</span> <span class=n>n_runs</span>
+    <span class=n>mean_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>goal</span> <span class=o>+</span> <span class=mf>32.0</span><span class=p>,</span>
+                                       <span class=nb>max</span><span class=p>(</span><span class=mf>1.01</span> <span class=o>*</span> <span class=n>goal</span><span class=p>,</span> <span class=n>goal</span> <span class=o>+</span> <span class=mi>3</span><span class=p>))</span>
+    <span class=n>max_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>goal</span> <span class=o>+</span> <span class=mf>64.0</span><span class=p>,</span>
+                                      <span class=nb>max</span><span class=p>(</span><span class=mf>1.02</span> <span class=o>*</span> <span class=n>goal</span><span class=p>,</span> <span class=n>goal</span> <span class=o>+</span> <span class=mi>5</span><span class=p>))</span>
+    <span class=n>min_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_makespan</span> <span class=o>+</span> <span class=mf>48.0</span><span class=p>,</span>
+                                      <span class=nb>max</span><span class=p>(</span><span class=mf>1.015</span> <span class=o>*</span> <span class=n>min_makespan</span><span class=p>,</span>
+                                          <span class=n>min_makespan</span> <span class=o>+</span> <span class=mi>4</span><span class=p>))</span>
+    <span class=n>n_diff</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>diff</span><span class=p>)</span>
+    <span class=n>diff_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=n>ceil</span><span class=p>(</span><span class=n>log2</span><span class=p>(</span><span class=n>n_runs</span><span class=p>))))</span>
+    <span class=n>solved_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>ceil</span><span class=p>(</span><span class=n>n_runs</span> <span class=o>/</span> <span class=mi>3</span><span class=p>))</span>
+
+    <span class=n>result</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>num_solved</span> <span class=o>>=</span> <span class=n>solved_threshold</span><span class=p>)</span> \
+        <span class=ow>or</span> <span class=p>(</span><span class=n>mean_makespan</span> <span class=o><</span> <span class=n>mean_threshold</span><span class=p>)</span> \
+        <span class=ow>or</span> <span class=p>(</span><span class=n>max_makespan</span> <span class=o><</span> <span class=n>max_threshold</span><span class=p>)</span> \
+        <span class=ow>or</span> <span class=p>(</span><span class=n>min_threshold</span> <span class=o>></span> <span class=n>max_makespan</span><span class=p>)</span> \
+        <span class=ow>or</span> <span class=p>(</span><span class=n>n_diff</span> <span class=o><=</span> <span class=n>diff_threshold</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> is </span><span class=si>{</span><span class=s1>'easy'</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=n>result</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>'hard'</span><span class=si>}</span><span class=s2>, "</span>
+           <span class=sa>f</span><span class=s2>"since </span><span class=si>{</span><span class=n>n_runs</span><span class=si>}</span><span class=s2> runs of the (1+1)-EA had </span><span class=si>{</span><span class=n>n_diff</span><span class=si>}</span><span class=s2> different "</span>
+           <span class=sa>f</span><span class=s2>"results (threshold </span><span class=si>{</span><span class=n>diff_threshold</span><span class=si>}</span><span class=s2>), a best result of "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>min_makespan</span><span class=si>}</span><span class=s2>, a mean result of </span><span class=si>{</span><span class=n>mean_makespan</span><span class=si>}</span><span class=s2> (threshold: "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>mean_threshold</span><span class=si>}</span><span class=s2>), a worst result of </span><span class=si>{</span><span class=n>max_makespan</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"(thresholds: </span><span class=si>{</span><span class=n>max_threshold</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>min_threshold</span><span class=si>}</span><span class=s2>), and "</span>
+           <span class=sa>f</span><span class=s2>"reached the makespan lower bound (</span><span class=si>{</span><span class=n>goal</span><span class=si>}</span><span class=s2>) </span><span class=si>{</span><span class=n>num_solved</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"times (threshold: </span><span class=si>{</span><span class=n>solved_threshold</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span>
+
+
+<span class=c1>#: The default number of threads to be used</span>
+<span class=n>__DEFAULT_N_THREADS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>sched_getaffinity</span><span class=p>(</span><span class=mi>0</span><span class=p>)),</span> <span class=mi>128</span><span class=p>))</span>
+
+
+<div class=viewcode-block id=compute_instances_that_are_too_easy>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance_selector.compute_instances_that_are_too_easy>[docs]</a>
+<span class=k>def</span> <span class=nf>compute_instances_that_are_too_easy</span><span class=p>()</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the set of instances that are too easy to be of any interest.</span>
+
+<span class=sd>    For our educational experiments, we need instances that are not always</span>
+<span class=sd>    solved to optimality by simple algorithms. Otherwise, for example, the</span>
+<span class=sd>    box plots of the end results will collapse to single lines. Then, it</span>
+<span class=sd>    will also be impossible to really say which algorithm performs best on</span>
+<span class=sd>    the instance.</span>
+<span class=sd>    See the documentation of `__is_instance_too_easy` for the conditions that</span>
+<span class=sd>    lead to the rejection of an instance</span>
+
+<span class=sd>    :returns: the tuple of instance names that should not be included in</span>
+<span class=sd>        the experiment</span>
+<span class=sd>    """</span>
+    <span class=n>logger</span><span class=p>(</span><span class=s2>"We now test the instances whether they are too easy."</span><span class=p>)</span>
+    <span class=n>easy</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>inst_name</span> <span class=ow>in</span> <span class=n>Instance</span><span class=o>.</span><span class=n>list_resources</span><span class=p>():</span>
+        <span class=k>if</span> <span class=n>__is_instance_too_easy</span><span class=p>(</span><span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>inst_name</span><span class=p>)):</span>
+            <span class=n>easy</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inst_name</span><span class=p>)</span>
+    <span class=n>easy</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Finished the test, found </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>easy</span><span class=p>)</span><span class=si>}</span><span class=s2> easy instances: </span><span class=si>{</span><span class=n>easy</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>easy</span><span class=p>)</span></div>
+
+
+
+<span class=c1>#: This is the set of instances that are too easy to be interesting and shall</span>
+<span class=c1>#: therefore be skipped from our experiments.</span>
+<span class=c1>#: For a documentation about what constitutes 'too easy', see</span>
+<span class=c1>#: :func:`compute_instances_that_are_too_easy`</span>
+<span class=n>__TOO_EASY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=p>{</span><span class=s2>"demo"</span><span class=p>,</span> <span class=s2>"dmu21"</span><span class=p>,</span> <span class=s2>"dmu22"</span><span class=p>,</span> <span class=s2>"dmu24"</span><span class=p>,</span> <span class=s2>"dmu25"</span><span class=p>,</span> <span class=s2>"dmu31"</span><span class=p>,</span> <span class=s2>"dmu32"</span><span class=p>,</span> <span class=s2>"dmu33"</span><span class=p>,</span>
+     <span class=s2>"dmu34"</span><span class=p>,</span> <span class=s2>"dmu35"</span><span class=p>,</span> <span class=s2>"ft06"</span><span class=p>,</span> <span class=s2>"ft20"</span><span class=p>,</span> <span class=s2>"la01"</span><span class=p>,</span> <span class=s2>"la02"</span><span class=p>,</span> <span class=s2>"la03"</span><span class=p>,</span> <span class=s2>"la04"</span><span class=p>,</span>
+     <span class=s2>"la05"</span><span class=p>,</span> <span class=s2>"la06"</span><span class=p>,</span> <span class=s2>"la07"</span><span class=p>,</span> <span class=s2>"la08"</span><span class=p>,</span> <span class=s2>"la09"</span><span class=p>,</span> <span class=s2>"la10"</span><span class=p>,</span> <span class=s2>"la11"</span><span class=p>,</span> <span class=s2>"la12"</span><span class=p>,</span> <span class=s2>"la13"</span><span class=p>,</span>
+     <span class=s2>"la14"</span><span class=p>,</span> <span class=s2>"la15"</span><span class=p>,</span> <span class=s2>"la17"</span><span class=p>,</span> <span class=s2>"la18"</span><span class=p>,</span> <span class=s2>"la23"</span><span class=p>,</span> <span class=s2>"la26"</span><span class=p>,</span> <span class=s2>"la28"</span><span class=p>,</span> <span class=s2>"la30"</span><span class=p>,</span> <span class=s2>"la31"</span><span class=p>,</span>
+     <span class=s2>"la32"</span><span class=p>,</span> <span class=s2>"la33"</span><span class=p>,</span> <span class=s2>"la34"</span><span class=p>,</span> <span class=s2>"la35"</span><span class=p>,</span> <span class=s2>"swv16"</span><span class=p>,</span> <span class=s2>"swv17"</span><span class=p>,</span> <span class=s2>"swv18"</span><span class=p>,</span> <span class=s2>"swv19"</span><span class=p>,</span>
+     <span class=s2>"swv20"</span><span class=p>,</span> <span class=s2>"ta51"</span><span class=p>,</span> <span class=s2>"ta52"</span><span class=p>,</span> <span class=s2>"ta53"</span><span class=p>,</span> <span class=s2>"ta54"</span><span class=p>,</span> <span class=s2>"ta55"</span><span class=p>,</span> <span class=s2>"ta56"</span><span class=p>,</span> <span class=s2>"ta57"</span><span class=p>,</span> <span class=s2>"ta58"</span><span class=p>,</span>
+     <span class=s2>"ta59"</span><span class=p>,</span> <span class=s2>"ta60"</span><span class=p>,</span> <span class=s2>"ta61"</span><span class=p>,</span> <span class=s2>"ta63"</span><span class=p>,</span> <span class=s2>"ta68"</span><span class=p>,</span> <span class=s2>"ta69"</span><span class=p>,</span> <span class=s2>"ta71"</span><span class=p>,</span> <span class=s2>"ta72"</span><span class=p>,</span> <span class=s2>"ta73"</span><span class=p>,</span>
+     <span class=s2>"ta74"</span><span class=p>,</span> <span class=s2>"ta75"</span><span class=p>,</span> <span class=s2>"ta76"</span><span class=p>,</span> <span class=s2>"ta77"</span><span class=p>,</span> <span class=s2>"ta78"</span><span class=p>,</span> <span class=s2>"ta79"</span><span class=p>,</span> <span class=s2>"ta80"</span><span class=p>}</span>
+
+
+<span class=k>def</span> <span class=nf>__get_instances</span><span class=p>()</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Instance</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the instances.</span>
+
+<span class=sd>    :return: a tuple of instances</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=p>[</span><span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=k>for</span> <span class=n>name</span> <span class=ow>in</span>
+            <span class=n>Instance</span><span class=o>.</span><span class=n>list_resources</span><span class=p>()</span> <span class=k>if</span> <span class=n>name</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>__TOO_EASY</span><span class=p>]</span>
+
+
+<span class=k>def</span> <span class=nf>__optimize_clusters</span><span class=p>(</span><span class=n>cluster_groups</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span>
+                        <span class=n>n_groups</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                        <span class=n>extreme_groups</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span>
+                                                          <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span>
+                        <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Try to find optimal cluster-to-group assignments.</span>
+
+<span class=sd>    We perform hill climbing with restarts.</span>
+
+<span class=sd>    :param cluster_groups: the groups per cluster</span>
+<span class=sd>    :param n_groups: the number of groups</span>
+<span class=sd>    :param extreme_groups: the extreme groups</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :return: the selected groups</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>cluster_groups</span><span class=p>)</span>
+    <span class=n>current</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+    <span class=n>current_f</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>]</span>
+    <span class=n>best</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+    <span class=n>best_f</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>]</span>
+    <span class=n>total_best</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+    <span class=n>total_best_f</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+    <span class=n>run_last_improved</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=n>run_current</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>run_max_none_improved</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>4</span>
+    <span class=n>step_max_none_improved</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>((</span><span class=mi>2</span> <span class=o>+</span> <span class=p>(</span><span class=n>n_groups</span> <span class=o>*</span> <span class=n>n</span><span class=p>))</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+
+    <span class=n>done</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_groups</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>  <span class=c1># noqa</span>
+    <span class=n>extremes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>  <span class=c1># noqa</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Beginning to optimize the assignment of </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>cluster_groups</span><span class=p>)</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"clusters to </span><span class=si>{</span><span class=n>n_groups</span><span class=si>}</span><span class=s2> groups. The minimum groups are "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>extreme_groups</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>, the maximum groups are </span><span class=si>{</span><span class=n>extreme_groups</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span>
+           <span class=sa>f</span><span class=s2>" We permit </span><span class=si>{</span><span class=n>run_max_none_improved</span><span class=si>}</span><span class=s2> runs without improvement "</span>
+           <span class=sa>f</span><span class=s2>"before termination and </span><span class=si>{</span><span class=n>step_max_none_improved</span><span class=si>}</span><span class=s2> FEs without "</span>
+           <span class=s2>"improvement before stopping a run."</span><span class=p>)</span>
+
+    <span class=k>def</span> <span class=nf>__f</span><span class=p>(</span><span class=n>sol</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the quality: The internal objective function.</span>
+
+<span class=sd>        We maximize five things:</span>
+<span class=sd>        First, we maximize the number of group assignments that allow us to</span>
+<span class=sd>        include the extreme instances in the result. These are the smallest</span>
+<span class=sd>        and largest-scale instances.</span>
+<span class=sd>        Second, we maximize the number of instance sets covered.</span>
+<span class=sd>        Third, we maximize the minimum number of usages of the instance sets.</span>
+<span class=sd>        Fourth, we minimize the maximum number of usages of the instance sets</span>
+<span class=sd>        with the goal to balance the usages evenly over different sets.</span>
+<span class=sd>        Fifth, we minimize the standard deviation of the instance set usages,</span>
+<span class=sd>        again with the goal to balance the usages evenly over different sets.</span>
+
+<span class=sd>        :param sol: the solution</span>
+<span class=sd>        :return: the objective values</span>
+<span class=sd>        """</span>
+        <span class=k>nonlocal</span> <span class=n>done</span>  <span class=c1># the number of uses per set</span>
+        <span class=k>nonlocal</span> <span class=n>extreme_groups</span>  <span class=c1># the tuple-tuple with the extreme groups</span>
+        <span class=k>nonlocal</span> <span class=n>extremes</span>  <span class=c1># the extreme groups already picked</span>
+
+        <span class=c1># first, we count how often each group has been used</span>
+        <span class=n>done</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>group</span> <span class=ow>in</span> <span class=n>sol</span><span class=p>:</span>
+            <span class=n>done</span><span class=p>[</span><span class=n>group</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=c1># second, we check which cluster-to-group assignment permits</span>
+        <span class=c1># using an extreme instance</span>
+        <span class=n>extremes</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>groups</span> <span class=ow>in</span> <span class=n>extreme_groups</span><span class=p>:</span>
+            <span class=k>for</span> <span class=n>group</span> <span class=ow>in</span> <span class=n>groups</span><span class=p>:</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>sol</span><span class=p>[</span><span class=n>group</span><span class=p>[</span><span class=mi>0</span><span class=p>]]</span> <span class=o>==</span> <span class=n>group</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span> <span class=ow>and</span> <span class=p>(</span><span class=n>group</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>extremes</span><span class=p>):</span>
+                    <span class=n>extremes</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>group</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+                    <span class=k>break</span>
+        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>extremes</span><span class=p>),</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>done</span> <span class=o>></span> <span class=mi>0</span><span class=p>)),</span> <span class=n>done</span><span class=o>.</span><span class=n>min</span><span class=p>(),</span> \
+            <span class=o>-</span><span class=n>done</span><span class=o>.</span><span class=n>max</span><span class=p>(),</span> <span class=o>-</span><span class=n>np</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>done</span><span class=p>)</span>
+
+    <span class=c1># The outer loop: the restarts of the hill climber.</span>
+    <span class=c1># We continue to execute runs until a given number of successive runs did</span>
+    <span class=c1># not improve the overall best solutions. Then we stop.</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>run_current</span> <span class=o>-</span> <span class=n>run_last_improved</span><span class=p>)</span> <span class=o><=</span> <span class=n>run_max_none_improved</span><span class=p>:</span>
+        <span class=n>run_current</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=c1># generate an initial best solution</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+            <span class=n>cg</span> <span class=o>=</span> <span class=n>cluster_groups</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=n>best</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>cg</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>cg</span><span class=p>))]</span>
+        <span class=n>best_f</span> <span class=o>=</span> <span class=n>__f</span><span class=p>(</span><span class=n>best</span><span class=p>)</span>  <span class=c1># compute quality</span>
+        <span class=n>use_f</span> <span class=o>=</span> <span class=n>best_f</span>
+
+        <span class=k>if</span> <span class=n>best_f</span> <span class=o>></span> <span class=n>total_best_f</span><span class=p>:</span>  <span class=c1># accept solution if it is better</span>
+            <span class=n>total_best_f</span> <span class=o>=</span> <span class=n>best_f</span>
+            <span class=n>run_last_improved</span> <span class=o>=</span> <span class=n>run_current</span>  <span class=c1># new global best</span>
+            <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>total_best</span><span class=p>,</span> <span class=n>best</span><span class=p>)</span>
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"New global best </span><span class=si>{</span><span class=nb>tuple</span><span class=p>(</span><span class=n>best</span><span class=p>)</span><span class=si>}</span><span class=s2> with quality "</span>
+                   <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>best_f</span><span class=si>}</span><span class=s2> found in run </span><span class=si>{</span><span class=n>run_current</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Run </span><span class=si>{</span><span class=n>run_current</span><span class=si>}</span><span class=s2> starts with quality </span><span class=si>{</span><span class=n>best_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># local search step</span>
+        <span class=c1># We continue the local search until a given number of successive</span>
+        <span class=c1># steps did not yield any improvement. Then we terminate the run.</span>
+        <span class=n>step_current</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>step_last_improved</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=k>while</span> <span class=p>(</span><span class=n>step_current</span> <span class=o>-</span> <span class=n>step_last_improved</span><span class=p>)</span> <span class=o><=</span> <span class=n>step_max_none_improved</span><span class=p>:</span>
+            <span class=n>step_current</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>current</span><span class=p>,</span> <span class=n>best</span><span class=p>)</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># perform at least one move</span>
+                <span class=n>i</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+                <span class=n>cg</span> <span class=o>=</span> <span class=n>cluster_groups</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                <span class=n>lcg</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>cg</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>lcg</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># perform the search move</span>
+                    <span class=n>new_v</span> <span class=o>=</span> <span class=n>cg</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>lcg</span><span class=p>)]</span>
+                    <span class=k>if</span> <span class=n>new_v</span> <span class=o>!=</span> <span class=n>best</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                        <span class=n>current</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>new_v</span>
+                        <span class=k>break</span>
+                <span class=c1># 50/50 chance to perform more moves</span>
+                <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+
+            <span class=n>current_f</span> <span class=o>=</span> <span class=n>__f</span><span class=p>(</span><span class=n>current</span><span class=p>)</span>  <span class=c1># evaluate quality</span>
+            <span class=c1># accept if better or with small probability</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>current_f</span> <span class=o>>=</span> <span class=n>use_f</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>50</span><span class=p>)</span> <span class=o><</span> <span class=mi>1</span><span class=p>):</span>
+                <span class=n>use_f</span> <span class=o>=</span> <span class=n>current_f</span>
+                <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>current</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>current_f</span> <span class=o>></span> <span class=n>best_f</span><span class=p>:</span>
+                    <span class=n>best_f</span> <span class=o>=</span> <span class=n>current_f</span>
+                    <span class=n>step_last_improved</span> <span class=o>=</span> <span class=n>step_current</span>
+                    <span class=k>if</span> <span class=n>current_f</span> <span class=o>></span> <span class=n>total_best_f</span><span class=p>:</span>  <span class=c1># new optimum</span>
+                        <span class=n>total_best_f</span> <span class=o>=</span> <span class=n>current_f</span>
+                        <span class=n>run_last_improved</span> <span class=o>=</span> <span class=n>run_current</span>
+                        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>total_best</span><span class=p>,</span> <span class=n>current</span><span class=p>)</span>
+                        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"New global best </span><span class=si>{</span><span class=nb>tuple</span><span class=p>(</span><span class=n>best</span><span class=p>)</span><span class=si>}</span><span class=s2> with quality"</span>
+                               <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>total_best_f</span><span class=si>}</span><span class=s2> found in run </span><span class=si>{</span><span class=n>run_current</span><span class=si>}</span><span class=s2> "</span>
+                               <span class=sa>f</span><span class=s2>"after </span><span class=si>{</span><span class=n>step_current</span><span class=si>}</span><span class=s2> FEs."</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Run </span><span class=si>{</span><span class=n>run_current</span><span class=si>}</span><span class=s2> finished with quality </span><span class=si>{</span><span class=n>best_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>result</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>total_best</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Finished after </span><span class=si>{</span><span class=n>run_current</span><span class=si>}</span><span class=s2> runs with solution </span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2> of "</span>
+           <span class=sa>f</span><span class=s2>"quality </span><span class=si>{</span><span class=n>total_best_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span>
+
+
+<span class=k>def</span> <span class=nf>__optimize_scales</span><span class=p>(</span><span class=n>scale_choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]],</span>
+                      <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Pick a diverse scale choice.</span>
+
+<span class=sd>    :param scale_choices: the scale choices we have per group</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :returns: one chosen scale per group</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>scale_choices</span><span class=p>)</span>
+
+    <span class=n>x_total_best</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>n</span>
+    <span class=n>opt_idx</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># the relevant indexes</span>
+    <span class=n>opt_sum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>choices</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>scale_choices</span><span class=p>):</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>choices</span><span class=p>)</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>opt_sum</span> <span class=o>+=</span> <span class=nb>len</span><span class=p>(</span><span class=n>choices</span><span class=p>)</span>
+            <span class=n>opt_idx</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>idx</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>choices</span><span class=p>)))</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>opt_idx</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>x_total_best</span>
+
+    <span class=k>def</span> <span class=nf>__f</span><span class=p>(</span><span class=n>xx</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the quality of a suggestion, bigger is better.</span>
+
+<span class=sd>        :param xx: the candidate solution</span>
+<span class=sd>        :returns: a tuple with minimum distance, distance sum, and</span>
+<span class=sd>            difference count</span>
+<span class=sd>        """</span>
+        <span class=n>dist_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>dist_sum</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>diff_cnt</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>nonlocal</span> <span class=n>scale_choices</span>
+        <span class=k>nonlocal</span> <span class=n>n</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+            <span class=n>a</span> <span class=o>=</span> <span class=n>scale_choices</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>xx</span><span class=p>[</span><span class=n>i</span><span class=p>]]</span>
+            <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span><span class=p>):</span>
+                <span class=n>b</span> <span class=o>=</span> <span class=n>scale_choices</span><span class=p>[</span><span class=n>j</span><span class=p>][</span><span class=n>xx</span><span class=p>[</span><span class=n>j</span><span class=p>]]</span>
+                <span class=k>if</span> <span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>b</span><span class=p>[</span><span class=mi>0</span><span class=p>]:</span>
+                    <span class=n>d0</span> <span class=o>=</span> <span class=mi>0</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>diff_cnt</span> <span class=o>+=</span> <span class=mi>1</span>
+                    <span class=n>d0</span> <span class=o>=</span> <span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>-</span> <span class=n>b</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+                <span class=k>if</span> <span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=n>b</span><span class=p>[</span><span class=mi>1</span><span class=p>]:</span>
+                    <span class=n>d1</span> <span class=o>=</span> <span class=mi>0</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>diff_cnt</span> <span class=o>+=</span> <span class=mi>1</span>
+                    <span class=n>d1</span> <span class=o>=</span> <span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>b</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+                <span class=n>d</span> <span class=o>=</span> <span class=n>sqrt</span><span class=p>((</span><span class=n>d0</span> <span class=o>*</span> <span class=n>d0</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span><span class=n>d1</span> <span class=o>*</span> <span class=n>d1</span><span class=p>))</span>
+                <span class=n>dist_min</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>dist_min</span><span class=p>,</span> <span class=n>d</span><span class=p>)</span>
+                <span class=n>dist_sum</span> <span class=o>+=</span> <span class=n>d</span>
+        <span class=k>return</span> <span class=n>dist_min</span><span class=p>,</span> <span class=n>dist_sum</span><span class=p>,</span> <span class=n>diff_cnt</span>
+
+    <span class=n>f_total_best</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>__f</span><span class=p>(</span><span class=n>x_total_best</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"The following index-choices tuple exist: </span><span class=si>{</span><span class=n>opt_idx</span><span class=si>}</span><span class=s2> and "</span>
+           <span class=sa>f</span><span class=s2>"the initial choice is </span><span class=si>{</span><span class=n>x_total_best</span><span class=si>}</span><span class=s2> at quality </span><span class=si>{</span><span class=n>f_total_best</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>x_cur_best</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>n</span>
+    <span class=n>x_cur</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>n</span>
+
+    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>opt_sum</span> <span class=o>**</span> <span class=mf>2.35</span><span class=p>)):</span>
+        <span class=k>for</span> <span class=n>ii</span><span class=p>,</span> <span class=n>sc</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>scale_choices</span><span class=p>):</span>
+            <span class=n>x_cur_best</span><span class=p>[</span><span class=n>ii</span><span class=p>]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>sc</span><span class=p>))</span>
+        <span class=n>f_cur_best</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>__f</span><span class=p>(</span><span class=n>x_cur_best</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>f_cur_best</span> <span class=o>></span> <span class=n>f_total_best</span><span class=p>:</span>
+            <span class=n>f_total_best</span> <span class=o>=</span> <span class=n>f_cur_best</span>
+            <span class=n>x_total_best</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>x_total_best</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>x_cur_best</span><span class=p>)</span>
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Improved to </span><span class=si>{</span><span class=n>x_total_best</span><span class=si>}</span><span class=s2> at quality </span><span class=si>{</span><span class=n>f_total_best</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>opt_sum</span> <span class=o>**</span> <span class=mf>2.35</span><span class=p>)):</span>
+            <span class=n>idx</span><span class=p>,</span> <span class=n>choicen</span> <span class=o>=</span> <span class=n>opt_idx</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>opt_idx</span><span class=p>))]</span>
+            <span class=n>old</span> <span class=o>=</span> <span class=n>x_cur</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+            <span class=k>while</span> <span class=n>old</span> <span class=o>==</span> <span class=n>x_cur</span><span class=p>[</span><span class=n>idx</span><span class=p>]:</span>
+                <span class=n>x_cur</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>choicen</span><span class=p>)</span>
+            <span class=n>f_cur</span> <span class=o>=</span> <span class=n>__f</span><span class=p>(</span><span class=n>x_cur</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>f_cur</span> <span class=o>>=</span> <span class=n>f_cur_best</span><span class=p>:</span>
+                <span class=n>f_cur_best</span> <span class=o>=</span> <span class=n>f_cur</span>
+                <span class=n>x_cur_best</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                <span class=n>x_cur_best</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>x_cur</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>f_cur_best</span> <span class=o>></span> <span class=n>f_total_best</span><span class=p>:</span>
+                    <span class=n>f_total_best</span> <span class=o>=</span> <span class=n>f_cur_best</span>
+                    <span class=n>x_total_best</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                    <span class=n>x_total_best</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>x_cur_best</span><span class=p>)</span>
+                    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Improved to </span><span class=si>{</span><span class=n>x_total_best</span><span class=si>}</span><span class=s2> "</span>
+                           <span class=sa>f</span><span class=s2>"at quality </span><span class=si>{</span><span class=n>f_total_best</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>x_total_best</span>
+
+
+<span class=k>def</span> <span class=nf>__scale</span><span class=p>(</span><span class=n>jobs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the scale of a JSSP instance.</span>
+
+<span class=sd>    :param jobs: the jobs</span>
+<span class=sd>    :param machines: the machines</span>
+<span class=sd>    :returns: the scale</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>factorial</span><span class=p>(</span><span class=n>jobs</span><span class=p>)</span> <span class=o>**</span> <span class=n>machines</span>
+
+
+<div class=viewcode-block id=propose_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance_selector.propose_instances>[docs]</a>
+<span class=k>def</span> <span class=nf>propose_instances</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                      <span class=n>get_instances</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=n>__get_instances</span><span class=p>)</span> <span class=o>-></span> \
+        <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Propose a set of instances to be used for our experiment.</span>
+
+<span class=sd>    This function is used to obtain the instances chosen for the JSSP</span>
+<span class=sd>    experiment. You can also use it for other experiments, by using your own</span>
+<span class=sd>    instance source and/or for selecting more or less JSSP instances.</span>
+
+<span class=sd>    Basically, it will accept a function `get_instances`, which must produce</span>
+<span class=sd>    a sequence of Instance objects. Each instance has a name (e.g., `dmu14`)</span>
+<span class=sd>    and a group, where the group is the name without any numerical suffix</span>
+<span class=sd>    (e.g., `dmu`). This function will then select `n` instances from the</span>
+<span class=sd>    instance set with the goal to maximize the diversity of the instances, to</span>
+<span class=sd>    include instances from as many groups as possible, and to include one</span>
+<span class=sd>    instance of the smallest and one of the largest scale.</span>
+<span class=sd>    The diversity is measured in terms of the numbers of jobs and machines,</span>
+<span class=sd>    the instance scale, the minimum and maximum operation length, the</span>
+<span class=sd>    standard deviation of the mean operation lengths over the jobs, the</span>
+<span class=sd>    makespan bounds, and so on.</span>
+
+<span class=sd>    First, features are computed for each instance. Second, the instances are</span>
+<span class=sd>    clustered into `n` clusters. Third, we try to pick groups for each cluster</span>
+<span class=sd>    such that a) the minimum and maximum-scale instances can be included and</span>
+<span class=sd>    b) that instances from as many groups as possible are picked. Third, we</span>
+<span class=sd>    then randomly pick one instance for each cluster from the selected group</span>
+<span class=sd>    (while trying to pick the minimum and maximum-scale instances). Finally,</span>
+<span class=sd>    the chosen instance names are listed as sorted tuple and returned.</span>
+
+<span class=sd>    :param n: the number of instances to be proposed</span>
+<span class=sd>    :param get_instances: a function returning an</span>
+<span class=sd>        iterable of instances.</span>
+<span class=sd>    :return: a tuple with the instance names</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>get_instances</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>get_instances</span><span class=p>,</span> <span class=s2>"get_instances"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=n>instances</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>get_instances</span><span class=p>())</span>
+    <span class=n>n_instances</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_instances</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No instance returned by get_instance."</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                <span class=n>i</span><span class=p>,</span> <span class=s2>"value in list returned by get_instances"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_instances</span> <span class=o><=</span> <span class=n>n</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>n_instances</span> <span class=o>==</span> <span class=n>n</span><span class=p>:</span>  <span class=c1># nothing to do here</span>
+            <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>([</span><span class=n>inst</span><span class=o>.</span><span class=n>get_name</span><span class=p>()</span> <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>]))</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> instances requested, but only "</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>n_instances</span><span class=si>}</span><span class=s2> available."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We will pick </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> instances out of </span><span class=si>{</span><span class=n>n_instances</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand_generator</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>  <span class=c1># the random number generator</span>
+    <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span>
+
+    <span class=n>inst_names</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>([</span>  <span class=c1># get the instance names</span>
+        <span class=n>inst</span><span class=o>.</span><span class=n>get_name</span><span class=p>()</span> <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>])</span>
+    <span class=n>inst_sizes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span>\
+        <span class=p>[(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span> <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>]</span>
+
+    <span class=c1># the group to which the instances belong</span>
+    <span class=n>rm</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>maketrans</span><span class=p>(</span><span class=s2>""</span><span class=p>,</span> <span class=s2>""</span><span class=p>,</span> <span class=s2>"0123456789"</span><span class=p>)</span>
+    <span class=n>inst_groups</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>([</span>  <span class=c1># get the instance groups</span>
+        <span class=n>inst</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=n>rm</span><span class=p>)</span> <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>inst_names</span><span class=p>])</span>
+
+    <span class=c1># create bi-directional mapping between group names and integer IDs</span>
+    <span class=n>group_ids</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=n>id_groups</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>group</span> <span class=ow>in</span> <span class=n>inst_groups</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>group</span> <span class=ow>in</span> <span class=n>group_ids</span><span class=p>:</span>
+            <span class=k>continue</span>
+        <span class=n>gid</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>group_ids</span><span class=p>)</span>
+        <span class=n>group_ids</span><span class=p>[</span><span class=n>group</span><span class=p>]</span> <span class=o>=</span> <span class=n>gid</span>
+        <span class=n>id_groups</span><span class=p>[</span><span class=n>gid</span><span class=p>]</span> <span class=o>=</span> <span class=n>group</span>
+    <span class=n>n_groups</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>group_ids</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"The </span><span class=si>{</span><span class=n>n_instances</span><span class=si>}</span><span class=s2> instances belong to the </span><span class=si>{</span><span class=n>n_groups</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"groups </span><span class=si>{</span><span class=nb>sorted</span><span class=p>(</span><span class=n>group_ids</span><span class=o>.</span><span class=n>keys</span><span class=p>())</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=c1># compute the feature matrix</span>
+    <span class=n>base_features</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>9</span>
+    <span class=n>features</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>),</span> <span class=n>base_features</span> <span class=o>+</span> <span class=n>n_groups</span><span class=p>),</span>
+                        <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+    <span class=n>min_scale_val</span> <span class=o>=</span> <span class=n>inf</span>
+    <span class=n>min_scale_inst</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>max_scale_val</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+    <span class=n>max_scale_inst</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>inst</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>instances</span><span class=p>):</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>jobs</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>jobs</span> <span class=o>/</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span>
+        <span class=n>scale</span> <span class=o>=</span> <span class=n>__scale</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>scale</span> <span class=o><=</span> <span class=n>min_scale_val</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>scale</span> <span class=o><</span> <span class=n>min_scale_val</span><span class=p>:</span>
+                <span class=n>min_scale_val</span> <span class=o>=</span> <span class=n>scale</span>
+                <span class=n>min_scale_inst</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>min_scale_inst</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>scale</span> <span class=o>>=</span> <span class=n>max_scale_val</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>scale</span> <span class=o>></span> <span class=n>max_scale_val</span><span class=p>:</span>
+                <span class=n>max_scale_inst</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                <span class=n>max_scale_val</span> <span class=o>=</span> <span class=n>scale</span>
+            <span class=n>max_scale_inst</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>3</span><span class=p>]</span> <span class=o>=</span> <span class=n>log2</span><span class=p>(</span><span class=n>log2</span><span class=p>(</span><span class=n>scale</span><span class=p>))</span>
+        <span class=n>m</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>matrix</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>::</span><span class=mi>2</span><span class=p>]</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>4</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>m</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>))</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>5</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>min</span><span class=p>(</span><span class=n>m</span><span class=p>)</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>6</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=n>m</span><span class=p>)</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>7</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=mi>8</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span> <span class=o>/</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span>
+        <span class=n>features</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=n>base_features</span> <span class=o>+</span> <span class=n>group_ids</span><span class=p>[</span><span class=n>inst_groups</span><span class=p>[</span><span class=n>i</span><span class=p>]]]</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>del</span> <span class=n>instances</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We computed </span><span class=si>{</span><span class=n>base_features</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>n_groups</span><span class=si>}</span><span class=s2> features for each "</span>
+           <span class=sa>f</span><span class=s2>"instance, namely </span><span class=si>{</span><span class=n>base_features</span><span class=si>}</span><span class=s2> features and </span><span class=si>{</span><span class=n>n_groups</span><span class=si>}</span><span class=s2>"</span>
+           <span class=sa>f</span><span class=s2>" group features. The instances with the smallest scale "</span>
+           <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>min_scale_val</span><span class=si>}</span><span class=s2> are </span><span class=si>{</span><span class=p>[</span><span class=n>inst_names</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=ow>in</span><span class=w> </span><span class=n>min_scale_inst</span><span class=p>]</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>" (encoded as </span><span class=si>{</span><span class=n>min_scale_inst</span><span class=si>}</span><span class=s2>) and those of the largest scale "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>max_scale_val</span><span class=si>}</span><span class=s2> are </span><span class=si>{</span><span class=p>[</span><span class=n>inst_names</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=ow>in</span><span class=w> </span><span class=n>max_scale_inst</span><span class=p>]</span><span class=si>}</span><span class=s2> "</span>
+           <span class=sa>f</span><span class=s2>"(encoded as </span><span class=si>{</span><span class=n>max_scale_inst</span><span class=si>}</span><span class=s2>). Now we will cluster the "</span>
+           <span class=sa>f</span><span class=s2>"instances."</span><span class=p>)</span>
+
+    <span class=c1># standardize feature columns</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>base_features</span><span class=p>):</span>
+        <span class=n>features</span><span class=p>[:,</span> <span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>features</span><span class=p>[:,</span> <span class=n>i</span><span class=p>]</span> <span class=o>-</span> <span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>features</span><span class=p>[:,</span> <span class=n>i</span><span class=p>]))</span> \
+            <span class=o>/</span> <span class=n>np</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>features</span><span class=p>[:,</span> <span class=n>i</span><span class=p>])</span>
+
+    <span class=c1># so now we have the following things:</span>
+    <span class=c1># 1. a list `instances` of instance names</span>
+    <span class=c1># 2. the list `instance_groups` with the corresponding groups</span>
+    <span class=c1># 3. set `groups` with the group names</span>
+    <span class=c1># 4. the matrix `features` with instance features</span>
+    <span class=c1># 5. the bi-directional mapping between instance groups and group IDs</span>
+    <span class=c1># 6. the instance/group indexes for the smallest and largest-scale</span>
+    <span class=c1>#    instances</span>
+
+    <span class=c1># now we cluster the instances</span>
+    <span class=n>model</span> <span class=o>=</span> <span class=n>SpectralClustering</span><span class=p>(</span><span class=n>n_clusters</span><span class=o>=</span><span class=n>n</span><span class=p>,</span>
+                               <span class=n>n_init</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span>
+                               <span class=n>random_state</span><span class=o>=</span><span class=n>RandomState</span><span class=p>(</span>
+                                   <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=mi>32</span><span class=p>)))</span>
+    <span class=n>clusters</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>fit_predict</span><span class=p>(</span><span class=n>features</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>clusters</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n_instances</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Invalid number </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>clusters</span><span class=p>)</span><span class=si>}</span><span class=s2> of cluster "</span>
+            <span class=sa>f</span><span class=s2>"assignments to </span><span class=si>{</span><span class=n>n_instances</span><span class=si>}</span><span class=s2> instances."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>clusters</span><span class=p>)</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=n>clusters</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Expected </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> clusters, but got "</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>max</span><span class=p>(</span><span class=n>clusters</span><span class=p>)</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=nb>min</span><span class=p>(</span><span class=n>clusters</span><span class=p>)</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Found clusters </span><span class=si>{</span><span class=n>clusters</span><span class=si>}</span><span class=s2>. The minimum instances are in"</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=p>[</span><span class=n>clusters</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=ow>in</span><span class=w> </span><span class=n>min_scale_inst</span><span class=p>]</span><span class=si>}</span><span class=s2>. The maximum instances "</span>
+           <span class=sa>f</span><span class=s2>"are in </span><span class=si>{</span><span class=p>[</span><span class=n>clusters</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=ow>in</span><span class=w> </span><span class=n>max_scale_inst</span><span class=p>]</span><span class=si>}</span><span class=s2>. now assigning"</span>
+           <span class=sa>f</span><span class=s2>"clusters to groups."</span><span class=p>)</span>
+
+    <span class=c1># find which groups belong to which cluster</span>
+    <span class=n>cluster_groups</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>([</span>
+        <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>({</span><span class=n>group_ids</span><span class=p>[</span><span class=n>inst_groups</span><span class=p>[</span><span class=n>j</span><span class=p>]]</span>
+                      <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=n>clusters</span> <span class=o>==</span> <span class=n>i</span><span class=p>)[</span><span class=mi>0</span><span class=p>]}))</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"The groups available per cluster are </span><span class=si>{</span><span class=n>cluster_groups</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=c1># Now we need to pick the extreme groups.</span>
+    <span class=n>extreme_groups</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span>
+        <span class=p>{(</span><span class=n>clusters</span><span class=p>[</span><span class=n>xx</span><span class=p>],</span> <span class=n>group_ids</span><span class=p>[</span><span class=n>inst_groups</span><span class=p>[</span><span class=n>xx</span><span class=p>]])</span> <span class=k>for</span> <span class=n>xx</span> <span class=ow>in</span> <span class=n>ex</span><span class=p>}))</span>
+        <span class=k>for</span> <span class=n>ex</span> <span class=ow>in</span> <span class=p>[</span><span class=n>min_scale_inst</span><span class=p>,</span> <span class=n>max_scale_inst</span><span class=p>])</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"The extreme groups are </span><span class=si>{</span><span class=n>extreme_groups</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=c1># With this method, we choose one instance group for each cluster.</span>
+    <span class=n>chosen_groups</span> <span class=o>=</span> <span class=n>__optimize_clusters</span><span class=p>(</span><span class=n>cluster_groups</span><span class=o>=</span><span class=n>cluster_groups</span><span class=p>,</span>
+                                        <span class=n>extreme_groups</span><span class=o>=</span><span class=n>extreme_groups</span><span class=p>,</span>
+                                        <span class=n>n_groups</span><span class=o>=</span><span class=n>n_groups</span><span class=p>,</span>
+                                        <span class=n>random</span><span class=o>=</span><span class=n>random</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"The instance groups </span><span class=si>{</span><span class=n>chosen_groups</span><span class=si>}</span><span class=s2> were chosen for the"</span>
+           <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> clusters."</span><span class=p>)</span>
+
+    <span class=c1># OK, we have picked one instance group per cluster.</span>
+    <span class=c1># Now we need to pick the instance scales from these groups.</span>
+    <span class=c1># The goal is to now select instances with (jobs, machines) settings as</span>
+    <span class=c1># diverse as possible, while adhering to the selected instance groups.</span>
+    <span class=c1># For example, a selected group may be of the family "la", but there</span>
+    <span class=c1># might be instances of different (job, machines) settings in the cluster</span>
+    <span class=c1># for this group.</span>
+    <span class=c1># In this case, we want to pick those which do not already occur in other</span>
+    <span class=c1># clusters.</span>
+    <span class=c1># If we can, we will pick the instances with the minimum and the maximum</span>
+    <span class=c1># scales.</span>
+    <span class=c1># In a first step, we find out</span>
+    <span class=n>needs_min_scale</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=n>needs_max_scale</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=n>scale_choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>inst_choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+        <span class=n>elements</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=n>clusters</span> <span class=o>==</span> <span class=n>i</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=n>sgroup</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>id_groups</span><span class=p>[</span><span class=n>chosen_groups</span><span class=p>[</span><span class=n>i</span><span class=p>]]</span>
+        <span class=n>possibility</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>elements</span>
+                                 <span class=k>if</span> <span class=n>inst_groups</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>==</span> <span class=n>sgroup</span><span class=p>}</span>
+        <span class=n>cur_scale_choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>scale_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>cur_scale_choices</span><span class=p>)</span>
+        <span class=n>cur_inst_choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>inst_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>cur_inst_choices</span><span class=p>)</span>
+        <span class=n>can_skip</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+
+        <span class=k>if</span> <span class=n>needs_min_scale</span><span class=p>:</span>
+            <span class=n>test</span> <span class=o>=</span> <span class=n>possibility</span><span class=o>.</span><span class=n>intersection</span><span class=p>(</span><span class=n>min_scale_inst</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>test</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Choosing from groups </span><span class=si>{</span><span class=p>[</span><span class=n>inst_names</span><span class=p>[</span><span class=n>t</span><span class=p>]</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>t</span><span class=w> </span><span class=ow>in</span><span class=w> </span><span class=n>test</span><span class=p>]</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"for cluster </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> to facilitate minimum-scale instance."</span><span class=p>)</span>
+                <span class=n>sel</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>test</span><span class=p>)</span>
+                <span class=n>seli</span> <span class=o>=</span> <span class=n>sel</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>sel</span><span class=p>))]</span>
+                <span class=n>possibility</span> <span class=o>=</span> <span class=p>{</span><span class=n>seli</span><span class=p>}</span>
+                <span class=n>cur_scale_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inst_sizes</span><span class=p>[</span><span class=n>seli</span><span class=p>])</span>
+                <span class=n>cur_inst_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inst_names</span><span class=p>[</span><span class=n>seli</span><span class=p>])</span>
+                <span class=n>can_skip</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=n>needs_min_scale</span> <span class=o>=</span> <span class=kc>False</span>
+
+        <span class=k>if</span> <span class=n>needs_max_scale</span><span class=p>:</span>
+            <span class=n>test</span> <span class=o>=</span> <span class=n>possibility</span><span class=o>.</span><span class=n>intersection</span><span class=p>(</span><span class=n>max_scale_inst</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>test</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Choosing from groups </span><span class=si>{</span><span class=p>[</span><span class=n>inst_names</span><span class=p>[</span><span class=n>t</span><span class=p>]</span><span class=w> </span><span class=k>for</span><span class=w> </span><span class=n>t</span><span class=w> </span><span class=ow>in</span><span class=w> </span><span class=n>test</span><span class=p>]</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"for cluster </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> to facilitate maximum-scale instance."</span><span class=p>)</span>
+                <span class=n>needs_max_scale</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=k>if</span> <span class=n>can_skip</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=n>sel</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>test</span><span class=p>)</span>
+                <span class=n>seli</span> <span class=o>=</span> <span class=n>sel</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>sel</span><span class=p>))]</span>
+                <span class=n>cur_scale_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inst_sizes</span><span class=p>[</span><span class=n>seli</span><span class=p>])</span>
+                <span class=n>cur_inst_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inst_names</span><span class=p>[</span><span class=n>seli</span><span class=p>])</span>
+                <span class=k>continue</span>
+        <span class=k>if</span> <span class=n>can_skip</span><span class=p>:</span>
+            <span class=k>continue</span>
+
+        <span class=n>scales</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+        <span class=n>sel</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>possibility</span><span class=p>)</span>
+        <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>sel</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>ii</span> <span class=ow>in</span> <span class=n>sel</span><span class=p>:</span>
+            <span class=n>tup</span> <span class=o>=</span> <span class=n>inst_sizes</span><span class=p>[</span><span class=n>ii</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>tup</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>scales</span><span class=p>:</span>
+                <span class=n>scales</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>tup</span><span class=p>)</span>
+                <span class=n>cur_inst_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inst_names</span><span class=p>[</span><span class=n>ii</span><span class=p>])</span>
+                <span class=n>cur_scale_choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tup</span><span class=p>)</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Got the scale choices </span><span class=si>{</span><span class=n>scale_choices</span><span class=si>}</span><span class=s2> resulting from the "</span>
+           <span class=sa>f</span><span class=s2>"possible instances </span><span class=si>{</span><span class=n>inst_choices</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=c1># do the actual scale optimization</span>
+    <span class=n>final_sel</span> <span class=o>=</span> <span class=n>__optimize_scales</span><span class=p>(</span><span class=n>scale_choices</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+
+    <span class=n>res_tmp</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]]</span> <span class=o>=</span> \
+        <span class=p>[(</span><span class=n>__scale</span><span class=p>(</span><span class=n>scale_choices</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>k</span><span class=p>][</span><span class=mi>0</span><span class=p>],</span> <span class=n>scale_choices</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>k</span><span class=p>][</span><span class=mi>1</span><span class=p>]),</span>
+          <span class=n>inst_choices</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>k</span><span class=p>])</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>final_sel</span><span class=p>)]</span>
+    <span class=n>res_tmp</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=n>result</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=n>sey</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=k>for</span> <span class=n>sey</span> <span class=ow>in</span> <span class=n>res_tmp</span><span class=p>]</span>
+
+    <span class=c1># Finally, we sort and finalize the set of chosen instances.</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Found final instance selection </span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>result</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.136 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.instance_selector</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2024, Thomas Weise.</div>

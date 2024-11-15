@@ -1,0 +1,50 @@
+moptipy.mock package
+====================
+
+.. automodule:: moptipy.mock
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+moptipy.mock.components module
+------------------------------
+
+.. automodule:: moptipy.mock.components
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.mock.end\_results module
+--------------------------------
+
+.. automodule:: moptipy.mock.end_results
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.mock.mo\_problem module
+-------------------------------
+
+.. automodule:: moptipy.mock.mo_problem
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.mock.objective module
+-----------------------------
+
+.. automodule:: moptipy.mock.objective
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.mock.utils module
+-------------------------
+
+.. automodule:: moptipy.mock.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:

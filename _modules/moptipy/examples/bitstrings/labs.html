@@ -1,0 +1,2071 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.labs — moptipy 0.9.136 documentation</title><link href="../../../../_static/pygments.css?v=80d5e7a1"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=19b90503"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/labs.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.136 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.labs</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.labs</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The ow Autocorrelation Binary Sequence problem.</span>
+
+<span class=sd>The autocorrelations of a bit string `x` are defined as</span>
+
+<span class=sd>`C_k(x) = sum(i = 0, n - k - 1, 1 if x[i] == x[i + k] else -1)`</span>
+
+<span class=sd>The energy of the bit string, which is equivalent to the objective value of</span>
+<span class=sd>this benchmark problem, is then:</span>
+
+<span class=sd>`E(x) = sum(k = 1, n - 1, C_k(x) ** 2)`</span>
+
+<span class=sd>The low-autocorrelation binary sequence (LABS) problem is to find a minimum</span>
+<span class=sd>autocorrelated bit string is equivalent to minimizing `E`. We use the energy</span>
+<span class=sd>directly as objective function. Others who define LABS as a maximization</span>
+<span class=sd>problem try to maximize the merit factor `F` instead, which is equivalent to</span>
+<span class=sd>minimizing the energy:</span>
+
+<span class=sd>`F(x) = n² / (n * E(X))`</span>
+
+<span class=sd>This problem is different than the other bit-string based problems, because we</span>
+<span class=sd>only know the optimal solutions for few, smaller instances. For larger</span>
+<span class=sd>instances, we only have lower bounds of the energy.</span>
+
+<span class=sd>1. Carola Doerr and Furong Ye and Naama Horesh and Hao Wang and Ofer M. Shir</span>
+<span class=sd>   and Thomas Bäck. Benchmarking Discrete Optimization Heuristics with</span>
+<span class=sd>   IOHprofiler. Applied Soft Computing 88:106027, March 2020,</span>
+<span class=sd>   doi: https://doi.org/10.1016/j.asoc.2019.106027.</span>
+<span class=sd>2. Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary Sequences.</span>
+<span class=sd>   arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016</span>
+<span class=sd>   https://arxiv.org/pdf/1512.02475</span>
+<span class=sd>3. Burkhard Militzer, Michele Zamparelli, and Dieter Beule. Evolutionary</span>
+<span class=sd>   Search for Low Autocorrelated Binary Sequences. IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation. 2(1):34-39}. 1998.</span>
+<span class=sd>   doi: https://doi.org/10.1109/4235.728212</span>
+<span class=sd>4. Wai Ho Mow and Ke-Lin Du. New Evolutionary Search for Long Low</span>
+<span class=sd>   Autocorrelation Binary Sequences. IEEE Transactions on Aerospace and</span>
+<span class=sd>   Electronic Systems. 51(1):290-303. January 2015.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TAES.2014.130518</span>
+<span class=sd>5. Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation Binary</span>
+<span class=sd>   Sequences: On Improved Merit Factors and Runtime Predictions to Achieve</span>
+<span class=sd>   Them. arXiv:1406.5301v6 [cs.DS] 6 May 2017. See [6] below.</span>
+<span class=sd>   https://arxiv.org/pdf/1406.5301</span>
+<span class=sd>6. Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation Binary</span>
+<span class=sd>   Sequences: On Improved Merit Factors and Runtime Predictions to Achieve</span>
+<span class=sd>   Them. Applied Soft Computing. 56:262-285, July 2017.</span>
+<span class=sd>   doi: https://doi.org/10.1016/j.asoc.2017.02.024</span>
+
+<span class=sd>This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),</span>
+<span class=sd>a Master's student at the Institute of Applied Optimization</span>
+<span class=sd>(应用优化研究所, http://iao.hfuu.edu.cn) of the School of Artificial</span>
+<span class=sd>Intelligence and Big Data (人工智能与大数据学院) at</span>
+<span class=sd>Hefei University (合肥大学) in</span>
+<span class=sd>Hefei, Anhui, China (中国安徽省合肥市) under the supervision of</span>
+<span class=sd>Prof. Dr. Thomas Weise (汤卫思教授).</span>
+<span class=sd>"""</span>
+<span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span> <span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+<span class=kn>from</span> <span class=nn>pycommons.ds.sequences</span> <span class=kn>import</span> <span class=n>merge_sorted_and_return_unique</span>
+<span class=kn>from</span> <span class=nn>pycommons.types</span> <span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span> <span class=nn>moptipy.examples.bitstrings.bitstring_problem</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>BitStringProblem</span><span class=p>,</span>
+    <span class=n>default_scale_sequence</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=labs>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.labs.labs>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span> <span class=nf>labs</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Calculate the objective value of the LABS problem.</span>
+
+<span class=sd>    :param x: the flat numpy array representing the bitstring</span>
+<span class=sd>    :return: the LABS objective</span>
+
+<span class=sd>    # N = 3, E = 1, FN = 4.50000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # N = 3, E = 1, FN = 4.50000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # N = 4, E = 2, FN = 4.00000</span>
+<span class=sd>    >>> labs(np.array([0, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # N = 4, E = 2, FN = 4.00000</span>
+<span class=sd>    >>> labs(np.array([1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # N = 5, E = 2, FN = 6.25000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # N = 5, E = 2, FN = 6.25000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([0, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([0, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 6, E = 7, FN = 2.57143</span>
+<span class=sd>    >>> labs(np.array([1, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # N = 7, E = 3, FN = 8.16667</span>
+<span class=sd>    >>> labs(np.array([0, 1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # N = 7, E = 3, FN = 8.16667</span>
+<span class=sd>    >>> labs(np.array([1, 0, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # N = 8, E = 8, FN = 4.00000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # N = 8, E = 8, FN = 4.00000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # N = 8, E = 8, FN = 4.00000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # N = 8, E = 8, FN = 4.00000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 9, E = 12, FN = 3.37500</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 10, E = 13, FN = 3.84615</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # N = 11, E = 5, FN = 12.10000</span>
+<span class=sd>    >>> labs(np.array([0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # N = 11, E = 5, FN = 12.10000</span>
+<span class=sd>    >>> labs(np.array([1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # N = 12, E = 10, FN = 7.20000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # N = 12, E = 10, FN = 7.20000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # N = 12, E = 10, FN = 7.20000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # N = 12, E = 10, FN = 7.20000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # N = 13, E = 6, FN = 14.08333</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # N = 13, E = 6, FN = 14.08333</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 14, E = 19, FN = 5.15789</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # N = 15, E = 15, FN = 7.50000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # N = 15, E = 15, FN = 7.50000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # N = 15, E = 15, FN = 7.50000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # N = 15, E = 15, FN = 7.50000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 16, E = 24, FN = 5.33333</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 17, E = 32, FN = 4.51562</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # N = 18, E = 25, FN = 6.48000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    25</span>
+
+<span class=sd>    # N = 18, E = 25, FN = 6.48000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    25</span>
+
+<span class=sd>    # N = 18, E = 25, FN = 6.48000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    25</span>
+
+<span class=sd>    # N = 18, E = 25, FN = 6.48000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    25</span>
+
+<span class=sd>    # N = 19, E = 29, FN = 6.22414</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     1]))</span>
+<span class=sd>    29</span>
+
+<span class=sd>    # N = 19, E = 29, FN = 6.22414</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    29</span>
+
+<span class=sd>    # N = 20, E = 26, FN = 7.69231</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...     0, 1]))</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # N = 20, E = 26, FN = 7.69231</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...     1, 0]))</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # N = 21, E = 26, FN = 8.48077</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0]))</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # N = 21, E = 26, FN = 8.48077</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1]))</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # N = 22, E = 39, FN = 6.20513</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0]))</span>
+<span class=sd>    39</span>
+
+<span class=sd>    # N = 22, E = 39, FN = 6.20513</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1]))</span>
+<span class=sd>    39</span>
+
+<span class=sd>    # N = 22, E = 39, FN = 6.20513</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 1]))</span>
+<span class=sd>    39</span>
+
+<span class=sd>    # N = 22, E = 39, FN = 6.20513</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 0]))</span>
+<span class=sd>    39</span>
+
+<span class=sd>    # N = 22, E = 39, FN = 6.20513</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1]))</span>
+<span class=sd>    39</span>
+
+<span class=sd>    # N = 22, E = 39, FN = 6.20513</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0]))</span>
+<span class=sd>    39</span>
+
+<span class=sd>    # N = 23, E = 47, FN = 5.62766</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 1]))</span>
+<span class=sd>    47</span>
+
+<span class=sd>    # N = 23, E = 47, FN = 5.62766</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 0]))</span>
+<span class=sd>    47</span>
+
+<span class=sd>    # N = 23, E = 47, FN = 5.62766</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0]))</span>
+<span class=sd>    47</span>
+
+<span class=sd>    # N = 23, E = 47, FN = 5.62766</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1]))</span>
+<span class=sd>    47</span>
+
+<span class=sd>    # N = 23, E = 47, FN = 5.62766</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 1]))</span>
+<span class=sd>    47</span>
+
+<span class=sd>    # N = 23, E = 47, FN = 5.62766</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 0]))</span>
+<span class=sd>    47</span>
+
+<span class=sd>    # N = 24, E = 36, FN = 8.00000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # N = 24, E = 36, FN = 8.00000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # N = 25, E = 36, FN = 8.68056</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # N = 25, E = 36, FN = 8.68056</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # N = 26, E = 45, FN = 7.51111</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    45</span>
+
+<span class=sd>    # N = 26, E = 45, FN = 7.51111</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    45</span>
+
+<span class=sd>    # N = 26, E = 45, FN = 7.51111</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    45</span>
+
+<span class=sd>    # N = 26, E = 45, FN = 7.51111</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    45</span>
+
+<span class=sd>    # N = 26, E = 45, FN = 7.51111</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    45</span>
+
+<span class=sd>    # N = 26, E = 45, FN = 7.51111</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    45</span>
+
+<span class=sd>    # N = 27, E = 37, FN = 9.85135</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    37</span>
+
+<span class=sd>    # N = 27, E = 37, FN = 9.85135</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    37</span>
+
+<span class=sd>    # N = 28, E = 50, FN = 7.84000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    50</span>
+
+<span class=sd>    # N = 28, E = 50, FN = 7.84000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    50</span>
+
+<span class=sd>    # N = 29, E = 62, FN = 6.78226</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    62</span>
+
+<span class=sd>    # N = 29, E = 62, FN = 6.78226</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    62</span>
+
+<span class=sd>    # N = 29, E = 62, FN = 6.78226</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    62</span>
+
+<span class=sd>    # N = 29, E = 62, FN = 6.78226</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    62</span>
+
+<span class=sd>    # N = 30, E = 59, FN = 7.62712</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    59</span>
+
+<span class=sd>    # N = 30, E = 59, FN = 7.62712</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    59</span>
+
+<span class=sd>    # N = 30, E = 59, FN = 7.62712</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    59</span>
+
+<span class=sd>    # N = 30, E = 59, FN = 7.62712</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    59</span>
+
+<span class=sd>    # N = 31, E = 67, FN = 7.17164</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    67</span>
+
+<span class=sd>    # N = 31, E = 67, FN = 7.17164</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    67</span>
+
+<span class=sd>    # N = 32, E = 64, FN = 8.00000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    64</span>
+
+<span class=sd>    # N = 32, E = 64, FN = 8.00000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    64</span>
+
+<span class=sd>    # N = 33, E = 64, FN = 8.50781</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    64</span>
+
+<span class=sd>    # N = 33, E = 64, FN = 8.50781</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    64</span>
+
+<span class=sd>    # N = 34, E = 65, FN = 8.89231</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    65</span>
+
+<span class=sd>    # N = 34, E = 65, FN = 8.89231</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    65</span>
+
+<span class=sd>    # N = 35, E = 73, FN = 8.39041</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    73</span>
+
+<span class=sd>    # N = 35, E = 73, FN = 8.39041</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    73</span>
+
+<span class=sd>    # N = 36, E = 82, FN = 7.90244</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    82</span>
+
+<span class=sd>    # N = 36, E = 82, FN = 7.90244</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    82</span>
+
+<span class=sd>    # N = 37, E = 86, FN = 7.95930</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    86</span>
+
+<span class=sd>    # N = 37, E = 86, FN = 7.95930</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    86</span>
+
+<span class=sd>    # N = 38, E = 87, FN = 8.29885</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    87</span>
+
+<span class=sd>    # N = 38, E = 87, FN = 8.29885</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    87</span>
+
+<span class=sd>    # N = 39, E = 99, FN = 7.68182</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    99</span>
+
+<span class=sd>    # N = 39, E = 99, FN = 7.68182</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    99</span>
+
+<span class=sd>    # N = 39, E = 99, FN = 7.68182</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    99</span>
+
+<span class=sd>    # N = 39, E = 99, FN = 7.68182</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    99</span>
+
+<span class=sd>    # N = 40, E = 108, FN = 7.40741</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1]))</span>
+<span class=sd>    108</span>
+
+<span class=sd>    # N = 40, E = 108, FN = 7.40741</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    108</span>
+
+<span class=sd>    # N = 41, E = 108, FN = 7.78241</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0]))</span>
+<span class=sd>    108</span>
+
+<span class=sd>    # N = 41, E = 108, FN = 7.78241</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1]))</span>
+<span class=sd>    108</span>
+
+<span class=sd>    # N = 42, E = 101, FN = 8.73267</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0]))</span>
+<span class=sd>    101</span>
+
+<span class=sd>    # N = 42, E = 101, FN = 8.73267</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1]))</span>
+<span class=sd>    101</span>
+
+<span class=sd>    # N = 43, E = 109, FN = 8.48165</span>
+<span class=sd>    >>> labs(np.array([0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 1, 1]))</span>
+<span class=sd>    109</span>
+
+<span class=sd>    # N = 43, E = 109, FN = 8.48165</span>
+<span class=sd>    >>> labs(np.array([1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 0, 0]))</span>
+<span class=sd>    109</span>
+
+<span class=sd>    # N = 44, E = 122, FN = 7.93443</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1]))</span>
+<span class=sd>    122</span>
+
+<span class=sd>    # N = 44, E = 122, FN = 7.93443</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0]))</span>
+<span class=sd>    122</span>
+
+<span class=sd>    # N = 45, E = 118, FN = 8.58051</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    118</span>
+
+<span class=sd>    # N = 45, E = 118, FN = 8.58051</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    118</span>
+
+<span class=sd>    # N = 46, E = 131, FN = 8.07634</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    131</span>
+
+<span class=sd>    # N = 46, E = 131, FN = 8.07634</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    131</span>
+
+<span class=sd>    # N = 46, E = 131, FN = 8.07634</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    131</span>
+
+<span class=sd>    # N = 46, E = 131, FN = 8.07634</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    131</span>
+
+<span class=sd>    # N = 46, E = 131, FN = 8.07634</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    131</span>
+
+<span class=sd>    # N = 46, E = 131, FN = 8.07634</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    131</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 47, E = 135, FN = 8.18148</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    135</span>
+
+<span class=sd>    # N = 48, E = 140, FN = 8.22857</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    140</span>
+
+<span class=sd>    # N = 48, E = 140, FN = 8.22857</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    140</span>
+
+<span class=sd>    # N = 49, E = 136, FN = 8.82721</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 1, 1, 0, 1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    136</span>
+
+<span class=sd>    # N = 49, E = 136, FN = 8.82721</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 0, 0, 1, 0, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    136</span>
+
+<span class=sd>    # N = 49, E = 136, FN = 8.82721</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    136</span>
+
+<span class=sd>    # N = 49, E = 136, FN = 8.82721</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    136</span>
+
+<span class=sd>    # N = 50, E = 153, FN = 8.16993</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 50, E = 153, FN = 8.16993</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 50, E = 153, FN = 8.16993</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 50, E = 153, FN = 8.16993</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 50, E = 153, FN = 8.16993</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 50, E = 153, FN = 8.16993</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 51, E = 153, FN = 8.50000</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 51, E = 153, FN = 8.50000</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    153</span>
+
+<span class=sd>    # N = 52, E = 166, FN = 8.14458</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    166</span>
+
+<span class=sd>    # N = 52, E = 166, FN = 8.14458</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    166</span>
+
+<span class=sd>    # N = 53, E = 170, FN = 8.26176</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    170</span>
+
+<span class=sd>    # N = 53, E = 170, FN = 8.26176</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    170</span>
+
+<span class=sd>    # N = 53, E = 170, FN = 8.26176</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    170</span>
+
+<span class=sd>    # N = 53, E = 170, FN = 8.26176</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    170</span>
+
+<span class=sd>    # N = 54, E = 175, FN = 8.33143</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    175</span>
+
+<span class=sd>    # N = 54, E = 175, FN = 8.33143</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    175</span>
+
+<span class=sd>    # N = 55, E = 171, FN = 8.84503</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    171</span>
+
+<span class=sd>    # N = 55, E = 171, FN = 8.84503</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    171</span>
+
+<span class=sd>    # N = 55, E = 171, FN = 8.84503</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    171</span>
+
+<span class=sd>    # N = 55, E = 171, FN = 8.84503</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    171</span>
+
+<span class=sd>    # N = 56, E = 192, FN = 8.16667</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    192</span>
+
+<span class=sd>    # N = 56, E = 192, FN = 8.16667</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    192</span>
+
+<span class=sd>    # N = 57, E = 188, FN = 8.64096</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    188</span>
+
+<span class=sd>    # N = 57, E = 188, FN = 8.64096</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    188</span>
+
+<span class=sd>    # N = 58, E = 197, FN = 8.53807</span>
+<span class=sd>    >>> labs(np.array([0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    197</span>
+
+<span class=sd>    # N = 58, E = 197, FN = 8.53807</span>
+<span class=sd>    >>> labs(np.array([1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    197</span>
+
+<span class=sd>    # N = 59, E = 205, FN = 8.49024</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...     1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    205</span>
+
+<span class=sd>    # N = 59, E = 205, FN = 8.49024</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...     0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    205</span>
+
+<span class=sd>    # N = 59, E = 205, FN = 8.49024</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    205</span>
+
+<span class=sd>    # N = 59, E = 205, FN = 8.49024</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    205</span>
+
+<span class=sd>    # N = 60, E = 218, FN = 8.25688</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    218</span>
+
+<span class=sd>    # N = 60, E = 218, FN = 8.25688</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    218</span>
+
+<span class=sd>    # N = 60, E = 218, FN = 8.25688</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    218</span>
+
+<span class=sd>    # N = 60, E = 218, FN = 8.25688</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    218</span>
+
+<span class=sd>    # N = 61, E = 226, FN = 8.23230</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...     1]))</span>
+<span class=sd>    226</span>
+
+<span class=sd>    # N = 61, E = 226, FN = 8.23230</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    226</span>
+
+<span class=sd>    # N = 62, E = 235, FN = 8.17872</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1]))</span>
+<span class=sd>    235</span>
+
+<span class=sd>    # N = 62, E = 235, FN = 8.17872</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0]))</span>
+<span class=sd>    235</span>
+
+<span class=sd>    # N = 62, E = 235, FN = 8.17872</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1]))</span>
+<span class=sd>    235</span>
+
+<span class=sd>    # N = 62, E = 235, FN = 8.17872</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0]))</span>
+<span class=sd>    235</span>
+
+<span class=sd>    # N = 63, E = 207, FN = 9.58696</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0]))</span>
+<span class=sd>    207</span>
+
+<span class=sd>    # N = 63, E = 207, FN = 9.58696</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1]))</span>
+<span class=sd>    207</span>
+
+<span class=sd>    # N = 64, E = 208, FN = 9.84615</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 0]))</span>
+<span class=sd>    208</span>
+
+<span class=sd>    # N = 64, E = 208, FN = 9.84615</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 1]))</span>
+<span class=sd>    208</span>
+
+<span class=sd>    # N = 65, E = 240, FN = 8.80208</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...     0, 0, 1, 0, 0]))</span>
+<span class=sd>    240</span>
+
+<span class=sd>    # N = 65, E = 240, FN = 8.80208</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...     1, 1, 0, 1, 1]))</span>
+<span class=sd>    240</span>
+
+<span class=sd>    # N = 66, E = 257, FN = 8.47471</span>
+<span class=sd>    >>> labs(np.array([0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...     0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    257</span>
+
+<span class=sd>    # N = 66, E = 257, FN = 8.47471</span>
+<span class=sd>    >>> labs(np.array([1, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...     1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    257</span>
+
+<span class=sd>    # N = 3, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # N = 4, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1]))</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # N = 5, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1]))</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # N = 6, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    55</span>
+
+<span class=sd>    # N = 7, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    91</span>
+
+<span class=sd>    # N = 8, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    140</span>
+
+<span class=sd>    # N = 9, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    204</span>
+
+<span class=sd>    # N = 10, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    285</span>
+
+<span class=sd>    # N = 11, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    385</span>
+
+<span class=sd>    # N = 12, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    506</span>
+
+<span class=sd>    # N = 13, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    650</span>
+
+<span class=sd>    # N = 14, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    819</span>
+
+<span class=sd>    # N = 15, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1015</span>
+
+<span class=sd>    # N = 16, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1240</span>
+
+<span class=sd>    # N = 17, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    1496</span>
+
+<span class=sd>    # N = 18, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    1785</span>
+
+<span class=sd>    # N = 19, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    2109</span>
+
+<span class=sd>    # N = 20, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0]))</span>
+<span class=sd>    2470</span>
+
+<span class=sd>    # N = 21, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1]))</span>
+<span class=sd>    2870</span>
+
+<span class=sd>    # N = 22, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1]))</span>
+<span class=sd>    3311</span>
+
+<span class=sd>    # N = 23, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1]))</span>
+<span class=sd>    3795</span>
+
+<span class=sd>    # N = 24, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    4324</span>
+
+<span class=sd>    # N = 25, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    4900</span>
+
+<span class=sd>    # N = 26, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    5525</span>
+
+<span class=sd>    # N = 27, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    6201</span>
+
+<span class=sd>    # N = 28, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    6930</span>
+
+<span class=sd>    # N = 29, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    7714</span>
+
+<span class=sd>    # N = 30, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    8555</span>
+
+<span class=sd>    # N = 31, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    9455</span>
+
+<span class=sd>    # N = 32, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    10416</span>
+
+<span class=sd>    # N = 33, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    11440</span>
+
+<span class=sd>    # N = 34, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    12529</span>
+
+<span class=sd>    # N = 35, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    13685</span>
+
+<span class=sd>    # N = 36, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    14910</span>
+
+<span class=sd>    # N = 37, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    16206</span>
+
+<span class=sd>    # N = 38, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    17575</span>
+
+<span class=sd>    # N = 39, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    19019</span>
+
+<span class=sd>    # N = 40, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    20540</span>
+
+<span class=sd>    # N = 41, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0]))</span>
+<span class=sd>    22140</span>
+
+<span class=sd>    # N = 42, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1]))</span>
+<span class=sd>    23821</span>
+
+<span class=sd>    # N = 43, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1]))</span>
+<span class=sd>    25585</span>
+
+<span class=sd>    # N = 44, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0]))</span>
+<span class=sd>    27434</span>
+
+<span class=sd>    # N = 45, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    29370</span>
+
+<span class=sd>    # N = 46, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    31395</span>
+
+<span class=sd>    # N = 47, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    33511</span>
+
+<span class=sd>    # N = 48, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    35720</span>
+
+<span class=sd>    # N = 49, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    38024</span>
+
+<span class=sd>    # N = 50, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    40425</span>
+
+<span class=sd>    # N = 51, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    42925</span>
+
+<span class=sd>    # N = 52, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    45526</span>
+
+<span class=sd>    # N = 53, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    48230</span>
+
+<span class=sd>    # N = 54, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    51039</span>
+
+<span class=sd>    # N = 55, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    53955</span>
+
+<span class=sd>    # N = 56, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    56980</span>
+
+<span class=sd>    # N = 57, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    60116</span>
+
+<span class=sd>    # N = 58, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    63365</span>
+
+<span class=sd>    # N = 59, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    66729</span>
+
+<span class=sd>    # N = 60, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    70210</span>
+
+<span class=sd>    # N = 61, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    73810</span>
+
+<span class=sd>    # N = 62, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1]))</span>
+<span class=sd>    77531</span>
+
+<span class=sd>    # N = 63, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1]))</span>
+<span class=sd>    81375</span>
+
+<span class=sd>    # N = 64, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1]))</span>
+<span class=sd>    85344</span>
+
+<span class=sd>    # N = 65, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1]))</span>
+<span class=sd>    89440</span>
+
+<span class=sd>    # N = 66, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    93665</span>
+
+<span class=sd>    # N = 67, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    98021</span>
+
+<span class=sd>    # N = 68, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    102510</span>
+
+<span class=sd>    # N = 69, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    107134</span>
+
+<span class=sd>    # N = 70, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    111895</span>
+
+<span class=sd>    # N = 71, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    116795</span>
+
+<span class=sd>    # N = 72, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    121836</span>
+
+<span class=sd>    # N = 73, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    127020</span>
+
+<span class=sd>    # N = 74, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    132349</span>
+
+<span class=sd>    # N = 75, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    137825</span>
+
+<span class=sd>    # N = 76, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    143450</span>
+
+<span class=sd>    # N = 77, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    149226</span>
+
+<span class=sd>    # N = 78, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    155155</span>
+
+<span class=sd>    # N = 79, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    161239</span>
+
+<span class=sd>    # N = 80, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    167480</span>
+
+<span class=sd>    # N = 81, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    173880</span>
+
+<span class=sd>    # N = 82, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0]))</span>
+<span class=sd>    180441</span>
+
+<span class=sd>    # N = 83, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0]))</span>
+<span class=sd>    187165</span>
+
+<span class=sd>    # N = 84, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0]))</span>
+<span class=sd>    194054</span>
+
+<span class=sd>    # N = 85, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0]))</span>
+<span class=sd>    201110</span>
+
+<span class=sd>    # N = 86, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1]))</span>
+<span class=sd>    208335</span>
+
+<span class=sd>    # N = 87, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    215731</span>
+
+<span class=sd>    # N = 88, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    223300</span>
+
+<span class=sd>    # N = 89, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    231044</span>
+
+<span class=sd>    # N = 90, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    238965</span>
+
+<span class=sd>    # N = 91, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    247065</span>
+
+<span class=sd>    # N = 92, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    255346</span>
+
+<span class=sd>    # N = 93, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    263810</span>
+
+<span class=sd>    # N = 94, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    272459</span>
+
+<span class=sd>    # N = 95, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    281295</span>
+
+<span class=sd>    # N = 96, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    290320</span>
+
+<span class=sd>    # N = 97, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    299536</span>
+
+<span class=sd>    # N = 98, all bits are False</span>
+<span class=sd>    >>> labs(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    308945</span>
+
+<span class=sd>    # N = 99, all bits are True</span>
+<span class=sd>    >>> labs(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    318549</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># Get the length of the bit string.</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>n</span><span class=p>):</span>
+        <span class=n>sqr</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span> <span class=o>-</span> <span class=n>k</span><span class=p>):</span>
+            <span class=n>sqr</span> <span class=o>+=</span> <span class=mi>1</span> <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>==</span> <span class=n>x</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=n>k</span><span class=p>]</span> <span class=k>else</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>result</span> <span class=o>+=</span> <span class=n>sqr</span> <span class=o>*</span> <span class=n>sqr</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<span class=c1>#: The lower bounds of the LABS problem, i.e., the objective values of the</span>
+<span class=c1>#: known global optima also used in the unit tests of the :func:`labs`</span>
+<span class=c1>#: function. We use the data from</span>
+<span class=c1>#:</span>
+<span class=c1>#: Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary Sequences.</span>
+<span class=c1>#: arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016</span>
+<span class=c1>#: https://arxiv.org/pdf/1512.02475</span>
+<span class=n>_LBS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=mi>3</span><span class=p>:</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>4</span><span class=p>:</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>5</span><span class=p>:</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>6</span><span class=p>:</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>7</span><span class=p>:</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>8</span><span class=p>:</span> <span class=mi>8</span><span class=p>,</span> <span class=mi>9</span><span class=p>:</span> <span class=mi>12</span><span class=p>,</span> <span class=mi>10</span><span class=p>:</span> <span class=mi>13</span><span class=p>,</span> <span class=mi>11</span><span class=p>:</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>12</span><span class=p>:</span> <span class=mi>10</span><span class=p>,</span> <span class=mi>13</span><span class=p>:</span> <span class=mi>6</span><span class=p>,</span>
+    <span class=mi>14</span><span class=p>:</span> <span class=mi>19</span><span class=p>,</span> <span class=mi>15</span><span class=p>:</span> <span class=mi>15</span><span class=p>,</span> <span class=mi>16</span><span class=p>:</span> <span class=mi>24</span><span class=p>,</span> <span class=mi>17</span><span class=p>:</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>18</span><span class=p>:</span> <span class=mi>25</span><span class=p>,</span> <span class=mi>19</span><span class=p>:</span> <span class=mi>29</span><span class=p>,</span> <span class=mi>20</span><span class=p>:</span> <span class=mi>26</span><span class=p>,</span> <span class=mi>21</span><span class=p>:</span> <span class=mi>26</span><span class=p>,</span> <span class=mi>22</span><span class=p>:</span> <span class=mi>39</span><span class=p>,</span>
+    <span class=mi>23</span><span class=p>:</span> <span class=mi>47</span><span class=p>,</span> <span class=mi>24</span><span class=p>:</span> <span class=mi>36</span><span class=p>,</span> <span class=mi>25</span><span class=p>:</span> <span class=mi>36</span><span class=p>,</span> <span class=mi>26</span><span class=p>:</span> <span class=mi>45</span><span class=p>,</span> <span class=mi>27</span><span class=p>:</span> <span class=mi>37</span><span class=p>,</span> <span class=mi>28</span><span class=p>:</span> <span class=mi>50</span><span class=p>,</span> <span class=mi>29</span><span class=p>:</span> <span class=mi>62</span><span class=p>,</span> <span class=mi>30</span><span class=p>:</span> <span class=mi>59</span><span class=p>,</span> <span class=mi>31</span><span class=p>:</span> <span class=mi>67</span><span class=p>,</span>
+    <span class=mi>32</span><span class=p>:</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>33</span><span class=p>:</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>34</span><span class=p>:</span> <span class=mi>65</span><span class=p>,</span> <span class=mi>35</span><span class=p>:</span> <span class=mi>73</span><span class=p>,</span> <span class=mi>36</span><span class=p>:</span> <span class=mi>82</span><span class=p>,</span> <span class=mi>37</span><span class=p>:</span> <span class=mi>86</span><span class=p>,</span> <span class=mi>38</span><span class=p>:</span> <span class=mi>87</span><span class=p>,</span> <span class=mi>39</span><span class=p>:</span> <span class=mi>99</span><span class=p>,</span> <span class=mi>40</span><span class=p>:</span> <span class=mi>108</span><span class=p>,</span>
+    <span class=mi>41</span><span class=p>:</span> <span class=mi>108</span><span class=p>,</span> <span class=mi>42</span><span class=p>:</span> <span class=mi>101</span><span class=p>,</span> <span class=mi>43</span><span class=p>:</span> <span class=mi>109</span><span class=p>,</span> <span class=mi>44</span><span class=p>:</span> <span class=mi>122</span><span class=p>,</span> <span class=mi>45</span><span class=p>:</span> <span class=mi>118</span><span class=p>,</span> <span class=mi>46</span><span class=p>:</span> <span class=mi>131</span><span class=p>,</span> <span class=mi>47</span><span class=p>:</span> <span class=mi>135</span><span class=p>,</span> <span class=mi>48</span><span class=p>:</span> <span class=mi>140</span><span class=p>,</span>
+    <span class=mi>49</span><span class=p>:</span> <span class=mi>136</span><span class=p>,</span> <span class=mi>50</span><span class=p>:</span> <span class=mi>153</span><span class=p>,</span> <span class=mi>51</span><span class=p>:</span> <span class=mi>153</span><span class=p>,</span> <span class=mi>52</span><span class=p>:</span> <span class=mi>166</span><span class=p>,</span> <span class=mi>53</span><span class=p>:</span> <span class=mi>170</span><span class=p>,</span> <span class=mi>54</span><span class=p>:</span> <span class=mi>175</span><span class=p>,</span> <span class=mi>55</span><span class=p>:</span> <span class=mi>171</span><span class=p>,</span> <span class=mi>56</span><span class=p>:</span> <span class=mi>192</span><span class=p>,</span>
+    <span class=mi>57</span><span class=p>:</span> <span class=mi>188</span><span class=p>,</span> <span class=mi>58</span><span class=p>:</span> <span class=mi>197</span><span class=p>,</span> <span class=mi>59</span><span class=p>:</span> <span class=mi>205</span><span class=p>,</span> <span class=mi>60</span><span class=p>:</span> <span class=mi>218</span><span class=p>,</span> <span class=mi>61</span><span class=p>:</span> <span class=mi>226</span><span class=p>,</span> <span class=mi>62</span><span class=p>:</span> <span class=mi>235</span><span class=p>,</span> <span class=mi>63</span><span class=p>:</span> <span class=mi>207</span><span class=p>,</span> <span class=mi>64</span><span class=p>:</span> <span class=mi>208</span><span class=p>,</span>
+    <span class=mi>65</span><span class=p>:</span> <span class=mi>240</span><span class=p>,</span> <span class=mi>66</span><span class=p>:</span> <span class=mi>257</span><span class=p>}</span>
+
+
+<div class=viewcode-block id=is_labs_objective_value_optimal>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.labs.is_labs_objective_value_optimal>[docs]</a>
+<span class=k>def</span> <span class=nf>is_labs_objective_value_optimal</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether a given objective value is optimal on the LABS problem.</span>
+
+<span class=sd>    We use the lower and upper bound of the LABS problem to check whether a</span>
+<span class=sd>    given objective value can be optimal. We also use the objective values of</span>
+<span class=sd>    the known global optima from</span>
+
+<span class=sd>    Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary Sequences.</span>
+<span class=sd>    arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016</span>
+<span class=sd>    https://arxiv.org/pdf/1512.02475</span>
+
+<span class=sd>    :param n: the scale of the problem</span>
+<span class=sd>    :param f: the objective value</span>
+<span class=sd>    :returns: `True` if the objective value `f` is optimal, `False` if it</span>
+<span class=sd>        cannot be optimal, and `None` if the situation is unclear</span>
+<span class=sd>    :raises TypeError: if `n` or `f` are not integers</span>
+<span class=sd>    :raises ValueError: if `n` or `f` are invalid integer values</span>
+
+<span class=sd>    >>> print(is_labs_objective_value_optimal(49, 136))</span>
+<span class=sd>    True</span>
+
+<span class=sd>    >>> print(is_labs_objective_value_optimal(49, 137))</span>
+<span class=sd>    False</span>
+
+<span class=sd>    >>> print(is_labs_objective_value_optimal(100, 50))</span>
+<span class=sd>    True</span>
+
+<span class=sd>    >>> print(is_labs_objective_value_optimal(100, 51))</span>
+<span class=sd>    None</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     is_labs_objective_value_optimal("x", 3)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    n should be an instance of int but is str, namely 'x'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     is_labs_objective_value_optimal(7, "3")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    f should be an instance of int but is str, namely '3'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     is_labs_objective_value_optimal(0, 0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=0 is invalid, must be in 3..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     is_labs_objective_value_optimal(3, 0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    f=0 is invalid, must be in 1..5.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     is_labs_objective_value_optimal(3, 234240)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    f=234240 is invalid, must be in 1..5.</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>3</span><span class=p>)</span>
+    <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>n</span> <span class=o>//</span> <span class=mi>2</span>
+    <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=p>((</span><span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>n</span> <span class=o>*</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span> <span class=o>//</span> <span class=mi>6</span>
+    <span class=k>if</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=s2>"f"</span><span class=p>,</span> <span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>)</span> <span class=o><=</span> <span class=n>lb</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>True</span>
+    <span class=k>if</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>_LBS</span><span class=p>:</span>  <span class=c1># We know the optimum, so if it is not it, we can stop.</span>
+        <span class=n>lb</span> <span class=o>=</span> <span class=n>_LBS</span><span class=p>[</span><span class=n>n</span><span class=p>]</span>
+        <span class=k>return</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=s2>"f"</span><span class=p>,</span> <span class=n>lb</span><span class=p>)</span> <span class=o><=</span> <span class=n>lb</span>
+    <span class=k>if</span> <span class=n>f</span> <span class=o>>=</span> <span class=n>ub</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>False</span>
+    <span class=k>return</span> <span class=kc>None</span></div>
+
+
+
+<div class=viewcode-block id=LABS>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.labs.LABS>[docs]</a>
+<span class=k>class</span> <span class=nc>LABS</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The Low-Autocorrelation Sequence Problem."""</span>
+
+    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the LABS objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>3</span><span class=p>))</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>labs</span>  <span class=c1># type: ignore</span>
+
+<div class=viewcode-block id=LABS.lower_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.labs.LABS.lower_bound>[docs]</a>
+    <span class=k>def</span> <span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the LABS problem.</span>
+
+<span class=sd>        The minimum amount of energy that a sequence could possibly have.</span>
+<span class=sd>        For each correlation length `k`, this is `(n - k) % 2`.</span>
+<span class=sd>        In total, this is just equivalent to `n // 2`.</span>
+
+<span class=sd>        For some instances of :class:`LABS`, the global optima are known.</span>
+<span class=sd>        For these instances, we return the objective values of these optima,</span>
+<span class=sd>        which obviously are `>= n // 2`.</span>
+
+<span class=sd>        :return: the lower bound of the :class:`LABS` problem</span>
+
+<span class=sd>        >>> LABS(16).lower_bound()</span>
+<span class=sd>        24</span>
+
+<span class=sd>        >>> LABS(61).lower_bound()</span>
+<span class=sd>        226</span>
+
+<span class=sd>        >>> LABS(200).lower_bound()</span>
+<span class=sd>        100</span>
+
+<span class=sd>        >>> LABS(124200).lower_bound()</span>
+<span class=sd>        62100</span>
+<span class=sd>        """</span>
+        <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span>
+        <span class=k>if</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>_LBS</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>_LBS</span><span class=p>[</span><span class=n>n</span><span class=p>]</span>
+        <span class=k>return</span> <span class=n>n</span> <span class=o>//</span> <span class=mi>2</span></div>
+
+
+<div class=viewcode-block id=LABS.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.labs.LABS.upper_bound>[docs]</a>
+    <span class=k>def</span> <span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the :class:`LABS` problem.</span>
+
+<span class=sd>        The energy of a sequence where all bits are the same is the highest.</span>
+<span class=sd>        This means that each correlation basically produces its length to the</span>
+<span class=sd>        square as contribution to the result. The upper bound then is the sum</span>
+<span class=sd>        of all of these squares from `1..(n-1)`.</span>
+
+<span class=sd>        :return: the upper bound of LABS</span>
+
+<span class=sd>        >>> LABS(16).upper_bound()</span>
+<span class=sd>        1240</span>
+
+<span class=sd>        >>> LABS(63).upper_bound()</span>
+<span class=sd>        81375</span>
+
+<span class=sd>        >>> LABS(200).upper_bound()</span>
+<span class=sd>        2646700</span>
+
+<span class=sd>        >>> LABS(12316).upper_bound()</span>
+<span class=sd>        622636950290</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>((</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span> <span class=o>*</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span> <span class=o>//</span> <span class=mi>6</span></div>
+
+
+    <span class=k>def</span> <span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the LABS objective function.</span>
+
+<span class=sd>        :return: labs_ + length of string</span>
+
+<span class=sd>        >>> LABS(16)</span>
+<span class=sd>        labs_16</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"labs_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=LABS.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.labs.LABS.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span> <span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>625</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"LABS"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the default instances of the :class:`LABS` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `3`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `625`</span>
+<span class=sd>        :returns: a sequence of default :class:`LABS` instances</span>
+
+<span class=sd>        >>> len(list(LABS.default_instances()))</span>
+<span class=sd>        46</span>
+
+<span class=sd>        >>> [x() for x in LABS.default_instances()]</span>
+<span class=sd>        [labs_3, labs_4, labs_5, labs_6, labs_7, labs_8, labs_9, labs_10, \</span>
+<span class=sd>labs_11, labs_12, labs_13, labs_14, labs_15, labs_16, labs_17, labs_18, \</span>
+<span class=sd>labs_19, labs_20, labs_21, labs_22, labs_23, labs_24, labs_25, labs_26, \</span>
+<span class=sd>labs_27, labs_28, labs_29, labs_30, labs_31, labs_32, labs_33, labs_36, \</span>
+<span class=sd>labs_40, labs_41, labs_42, labs_44, labs_48, labs_49, labs_50, labs_55, \</span>
+<span class=sd>labs_59, labs_60, labs_64, labs_66, labs_100, labs_625]</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>scale_max</span><span class=p>,</span> <span class=s2>"scale_max"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>scale_min</span><span class=p>,</span> <span class=s2>"scale_min"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"LABS"</span><span class=p>],</span> <span class=k>lambda</span> <span class=n>__i</span><span class=o>=</span><span class=n>i</span><span class=p>:</span> <span class=bp>cls</span><span class=p>(</span><span class=n>__i</span><span class=p>))</span>
+                <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>merge_sorted_and_return_unique</span><span class=p>((</span>
+                    <span class=mi>16</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>100</span><span class=p>,</span> <span class=mi>625</span><span class=p>),</span> <span class=p>(</span><span class=n>j</span> <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=n>default_scale_sequence</span><span class=p>(</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>)</span> <span class=k>if</span> <span class=n>j</span> <span class=ow>in</span> <span class=n>_LBS</span><span class=p>))</span>
+                <span class=k>if</span> <span class=n>scale_min</span> <span class=o><=</span> <span class=n>i</span> <span class=o><=</span> <span class=n>scale_max</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.136 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.labs</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2024, Thomas Weise.</div>
