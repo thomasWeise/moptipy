@@ -1014,9 +1014,8 @@ class CsvWriter(CsvWriterBase[EndStatistics]):
         :param scope: the prefix to be pre-pended to all columns
         :param data: the data to write
         """
-        super().__init__(data, scope)
-
         data = reiterable(data)
+        super().__init__(data, scope)
         checker: int = 127
         has_algorithm: bool = False
         has_instance: bool = False

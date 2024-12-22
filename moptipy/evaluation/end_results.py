@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from math import inf, isfinite
 from typing import Any, Callable, Final, Generator, Iterable, cast
 
+from pycommons.ds.sequences import reiterable
 from pycommons.io.console import logger
 from pycommons.io.csv import (
     CSV_SEPARATOR,
@@ -590,6 +591,7 @@ class CsvWriter(CsvWriterBase):
         :param data: the data
         :param scope: the prefix to be pre-pended to all columns
         """
+        data = reiterable(data)
         super().__init__(data, scope)
         no_encoding: bool = True
         no_max_fes: bool = True
