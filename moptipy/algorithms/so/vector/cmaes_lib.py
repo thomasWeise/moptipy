@@ -142,7 +142,7 @@ class CMAES(Algorithm):
 
         # we create and directly run the CMA-ES algorithm
         _run_cma(CMA(mean=mean, sigma=sigma, bounds=bounds,
-                     seed=process.get_random().integers(0, 4294967296)),
+                     seed=int(process.get_random().integers(0, 4294967296))),
                  f, should_terminate, [])
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
@@ -212,7 +212,8 @@ class SepCMAES(CMAES):
 
         # we create and directly run the CMA-ES algorithm
         _run_cma(SepCMA(mean=mean, sigma=sigma, bounds=bounds,
-                        seed=process.get_random().integers(0, 4294967296)),
+                        seed=int(process.get_random().integers(
+                            0, 4294967296))),
                  f, should_terminate, [])
 
     def __str__(self):
@@ -292,7 +293,7 @@ class BiPopCMAES(CMAES):
         random: Generator = process.get_random()
 
         # create the initial CMA-ES setup
-        seed: int = random.integers(0, 4294967296)
+        seed: int = int(random.integers(0, 4294967296))
         cma = CMA(mean=mean, sigma=sigma, bounds=bounds, seed=seed)
 
         solutions: list[tuple[np.ndarray, int | float]] = []
@@ -334,7 +335,7 @@ class BiPopCMAES(CMAES):
                 pop_size = initial_pop_size * (2 ** large_pop_restarts)
 
             # Create the new CMA-ES instance.
-            seed = random.integers(0, 4294967296)
+            seed = int(random.integers(0, 4294967296))
             cma = CMA(mean=mean, sigma=sigma, bounds=bounds,
                       population_size=pop_size,
                       seed=seed)
