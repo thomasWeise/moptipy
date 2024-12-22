@@ -1,0 +1,130 @@
+moptipy.examples.bitstrings package
+===================================
+
+.. automodule:: moptipy.examples.bitstrings
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+moptipy.examples.bitstrings.binint module
+-----------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.binint
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.bitstring\_problem module
+-----------------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.bitstring_problem
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.ising1d module
+------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.ising1d
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.ising2d module
+------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.ising2d
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.jump module
+---------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.jump
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.labs module
+---------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.labs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.leadingones module
+----------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.leadingones
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.linearharmonic module
+-------------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.linearharmonic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.nqueens module
+------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.nqueens
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.onemax module
+-----------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.onemax
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.plateau module
+------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.plateau
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.trap module
+---------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.trap
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.twomax module
+-----------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.twomax
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.w\_model module
+-------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.w_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+moptipy.examples.bitstrings.zeromax module
+------------------------------------------
+
+.. automodule:: moptipy.examples.bitstrings.zeromax
+   :members:
+   :undoc-members:
+   :show-inheritance:
