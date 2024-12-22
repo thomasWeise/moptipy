@@ -24,13 +24,13 @@ from pycommons.io.csv import (
     SCOPE_SEPARATOR,
     csv_column,
     csv_column_or_none,
-    csv_read,
     csv_scope,
     csv_str_or_none,
     csv_val_or_none,
-    csv_write,
     pycommons_footer_bottom_comments,
 )
+from pycommons.io.csv import CsvReader as CsvReaderBase
+from pycommons.io.csv import CsvWriter as CsvWriterBase
 from pycommons.io.path import Path, file_path, line_writer
 from pycommons.strings.string_conv import (
     int_or_none_to_str,
@@ -553,14 +553,7 @@ def to_csv(results: Iterable[EndResult], file: str) -> Path:
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
         consumer: Final[Callable[[str], None]] = line_writer(wt)
-        for r in csv_write(
-                data=sorted(results),
-                setup=CsvWriter().setup,
-                column_titles=CsvWriter.get_column_titles,
-                get_row=CsvWriter.get_row,
-                header_comments=CsvWriter.get_header_comments,
-                footer_comments=CsvWriter.get_footer_comments,
-                footer_bottom_comments=CsvWriter.get_footer_bottom_comments):
+        for r in CsvWriter.write(results):
             consumer(r)
     logger(f"Done writing end results to CSV file {path!r}.")
     return path
@@ -580,50 +573,24 @@ def from_csv(file: str,
     path: Final[Path] = file_path(file)
     logger(f"Now reading CSV file {path!r}.")
     with path.open_for_read() as rd:
-        for r in csv_read(rows=rd,
-                          setup=CsvReader,
-                          parse_row=CsvReader.parse_row):
+        for r in CsvReader.read(rd):
             if filterer(r):
                 yield r
     logger(f"Done reading CSV file {path!r}.")
 
 
-class CsvWriter:
+class CsvWriter(CsvWriterBase):
     """A class for CSV writing of :class:`EndResult`."""
 
-    def __init__(self, scope: str | None = None) -> None:
+    def __init__(self, data: Iterable[EndResult],
+                 scope: str | None = None) -> None:
         """
         Initialize the csv writer.
 
+        :param data: the data
         :param scope: the prefix to be pre-pended to all columns
         """
-        #: an optional scope
-        self.scope: Final[str | None] = (
-            str.strip(scope)) if scope is not None else None
-
-        #: has this writer been set up?
-        self.__setup: bool = False
-        #: do we need the encoding?
-        self.__needs_encoding: bool = False
-        #: do we need the max FEs?
-        self.__needs_max_fes: bool = False
-        #: do we need the max millis?
-        self.__needs_max_ms: bool = False
-        #: do we need the goal F?
-        self.__needs_goal_f: bool = False
-
-    def setup(self, data: Iterable[EndResult]) -> "CsvWriter":
-        """
-        Set up this csv writer based on existing data.
-
-        :param data: the data to setup with
-        :returns: this writer
-        """
-        if self.__setup:
-            raise ValueError(
-                "EndResults CsvWriter has already been set up.")
-        self.__setup = True
-
+        super().__init__(data, scope)
         no_encoding: bool = True
         no_max_fes: bool = True
         no_max_ms: bool = True
@@ -632,30 +599,33 @@ class CsvWriter:
         for er in data:
             if no_encoding and (er.encoding is not None):
                 no_encoding = False
-                self.__needs_encoding = True
                 check -= 1
                 if check <= 0:
-                    return self
+                    break
             if no_max_fes and (er.max_fes is not None):
-                self.__needs_max_fes = True
                 no_max_fes = False
                 check -= 1
                 if check <= 0:
-                    return self
+                    break
             if no_max_ms and (er.max_time_millis is not None):
-                self.__needs_max_ms = True
                 no_max_ms = False
                 check -= 1
                 if check <= 0:
-                    return self
+                    break
             if no_goal_f and (er.goal_f is not None) and (
                     isfinite(er.goal_f)):
-                self.__needs_goal_f = True
                 no_goal_f = False
                 check -= 1
                 if check <= 0:
-                    return self
-        return self
+                    break
+        #: do we need the encoding?
+        self.__needs_encoding: Final[bool] = not no_encoding
+        #: do we need the max FEs?
+        self.__needs_max_fes: Final[bool] = not no_max_fes
+        #: do we need the max millis?
+        self.__needs_max_ms: Final[bool] = not no_max_ms
+        #: do we need the goal F?
+        self.__needs_goal_f: Final[bool] = not no_goal_f
 
     def get_column_titles(self) -> Iterable[str]:
         """
@@ -768,7 +738,7 @@ class CsvWriter:
         yield from pycommons_footer_bottom_comments(self)
 
 
-class CsvReader:
+class CsvReader(CsvReaderBase):
     """A csv parser for end results."""
 
     def __init__(self, columns: dict[str, int]) -> None:
@@ -777,9 +747,7 @@ class CsvReader:
 
         :param columns: the columns
         """
-        super().__init__()
-        if not isinstance(columns, dict):
-            raise type_error(columns, "columns", dict)
+        super().__init__(columns)
         #: the index of the algorithm column, if any
         self.__idx_algorithm: Final[int] = csv_column(columns, KEY_ALGORITHM)
         #: the index of the instance column, if any

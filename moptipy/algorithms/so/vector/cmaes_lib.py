@@ -42,7 +42,7 @@ from typing import Callable, Final
 import numpy as np
 from cmaes import CMA, SepCMA  # type: ignore
 from numpy.random import Generator
-from pycommons.strings.string_conv import num_to_str
+from pycommons.strings.string_conv import bool_or_num_to_str
 from pycommons.types import type_error
 
 from moptipy.api.algorithm import Algorithm
@@ -309,7 +309,8 @@ class BiPopCMAES(CMAES):
             if restarts is not None:
                 restarts.append((process.get_consumed_fes(),
                                  process.get_consumed_time_millis(),
-                                 cma.population_size, seed, is_small_pop))
+                                 int(cma.population_size), seed,
+                                 is_small_pop))
             fes = _run_cma(cma, f, should_terminate, solutions,
                            cma.should_stop)
             if fes < 0:  # this means that should_terminate became True
@@ -342,9 +343,8 @@ class BiPopCMAES(CMAES):
             log: Final[list[str]] = [
                 f"fes{CSV_SEPARATOR}timeMillis{CSV_SEPARATOR}popSize"
                 f"{CSV_SEPARATOR}seed{CSV_SEPARATOR}isSmall"]
-            for row in restarts:
-                log.append(CSV_SEPARATOR.join(map(
-                    num_to_str, (x for x in row))))
+            log.extend(CSV_SEPARATOR.join(map(
+                bool_or_num_to_str, row)) for row in restarts)
             del restarts
             process.add_log_section("CMA_RESTARTS", "\n".join(log))
             del log

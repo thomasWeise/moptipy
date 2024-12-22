@@ -90,6 +90,6 @@ class Op1MoverNflip(Op1):
         """
         Get the name of this unary operator.
 
-        :return: "m_over_n_flip"
+        :return: "fileB" + m + "n" if none-is-ok else ""
         """
         return f"flipB{self.__m}{'n' if self.__none_is_ok else ''}"

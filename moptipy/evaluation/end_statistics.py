@@ -20,14 +20,14 @@ from pycommons.io.csv import (
     SCOPE_SEPARATOR,
     csv_column,
     csv_column_or_none,
-    csv_read,
     csv_scope,
     csv_select_scope,
     csv_select_scope_or_none,
     csv_str_or_none,
     csv_val_or_none,
-    csv_write,
 )
+from pycommons.io.csv import CsvReader as CsvReaderBase
+from pycommons.io.csv import CsvWriter as CsvWriterBase
 from pycommons.io.path import Path, file_path, line_writer
 from pycommons.math.sample_statistics import (
     KEY_MEAN_ARITH,
@@ -847,15 +847,8 @@ def to_csv(data: EndStatistics | Iterable[EndStatistics],
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
         consumer: Final[Callable[[str], None]] = line_writer(wt)
-        for r in csv_write(
-                data=[data] if isinstance(
-                    data, EndStatistics) else sorted(data),
-                setup=CsvWriter().setup,
-                column_titles=CsvWriter.get_column_titles,
-                get_row=CsvWriter.get_row,
-                header_comments=CsvWriter.get_header_comments,
-                footer_comments=CsvWriter.get_footer_comments,
-                footer_bottom_comments=CsvWriter.get_footer_bottom_comments):
+        for r in CsvWriter.write(
+                (data, ) if isinstance(data, EndStatistics) else data):
             consumer(r)
 
     logger(f"Done writing end result statistics to CSV file {path!r}.")
@@ -872,9 +865,7 @@ def from_csv(file: str) -> Iterator[EndStatistics]:
     path: Final[Path] = file_path(file)
     logger(f"Begin reading end result statistics from CSV file {path!r}.")
     with path.open_for_read() as rd:
-        yield from csv_read(rows=rd,
-                            setup=CsvReader,
-                            parse_row=CsvReader.parse_row)
+        yield from CsvReader.read(rows=rd)
     logger("Finished reading end result statistics from CSV "
            f"file {path!r}.")
 
@@ -984,19 +975,19 @@ def getter(dimension: str) -> Callable[[EndStatistics], int | float | None]:
 
 
 def _to_csv_writer(
+        data: Iterable[EndStatistics],
         get_func: Callable[
             [EndStatistics], SampleStatistics | int | float | None],
         n_func: Callable[[EndStatistics], int],
-        data: Iterable[EndStatistics],
         scope: str | None = None,
         what_short: str | None = None,
         what_long: str | None = None) -> StatWriter | None:
     """
     Get a CSV Writer for the given data subset.
 
+    :param data: the data iterator
     :param get_func: the getter for the value
     :param n_func: the n-getter
-    :param data: the data iterator
     :param scope: the scope to use
     :param what_short: the short description
     :param what_long: the long description
@@ -1007,158 +998,133 @@ def _to_csv_writer(
         if v[0] is not None]
     if list.__len__(refined) <= 0:
         return None
-    return StatWriter(scope=scope, n_not_needed=True, what_short=what_short,
-                      what_long=what_long).setup((
-                          from_single_value(v, n) for v, n in refined))
+    return StatWriter(data=(from_single_value(v, n) for v, n in refined),
+                      scope=scope, n_not_needed=True, what_short=what_short,
+                      what_long=what_long)
 
 
-class CsvWriter:
+class CsvWriter(CsvWriterBase[EndStatistics]):
     """A class for CSV writing of :class:`EndStatistics`."""
 
-    def __init__(self, scope: str | None = None) -> None:
+    def __init__(self, data: Iterable[EndStatistics],
+                 scope: str | None = None) -> None:
         """
         Initialize the csv writer.
 
         :param scope: the prefix to be pre-pended to all columns
+        :param data: the data to write
         """
-        #: an optional scope
-        self.scope: Final[str | None] = (
-            str.strip(scope)) if scope is not None else None
-
-        #: has this writer been set up?
-        self.__setup: bool = False
-        #: do we put the algorithm column?
-        self.__has_algorithm: bool = False
-        #: do we put the instance column?
-        self.__has_instance: bool = False
-        #: do we put the objective column?
-        self.__has_objective: bool = False
-        #: do we put the encoding column?
-        self.__has_encoding: bool = False
-        #: do we put the goal_f column?
-        self.__goal_f: StatWriter | None = None
-        #: the best objective value reached
-        self.__best_f: Final[StatWriter] = StatWriter(
-            csv_scope(scope, KEY_BEST_F), True, KEY_BEST_F,
-            "the best objective value reached per run")
-        #: the FE when the last improvement happened
-        self.__life: Final[StatWriter] = StatWriter(
-            csv_scope(scope, KEY_LAST_IMPROVEMENT_FE), True,
-            KEY_LAST_IMPROVEMENT_FE,
-            "the FE when the last improvement happened in a run",
-        )
-        #: the milliseconds when the last improvement happened
-        self.__lims: Final[StatWriter] = StatWriter(
-            csv_scope(scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS), True,
-            KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-            "the millisecond when the last improvement happened in a run",
-        )
-        #: the total FEs
-        self.__total_fes: Final[StatWriter] = StatWriter(
-            csv_scope(scope, KEY_TOTAL_FES), True,
-            KEY_TOTAL_FES,
-            "the total FEs consumed by the runs",
-        )
-        #: the total milliseconds
-        self.__total_ms: Final[StatWriter] = StatWriter(
-            csv_scope(scope, KEY_TOTAL_TIME_MILLIS), True,
-            KEY_TOTAL_TIME_MILLIS,
-            "the total millisecond consumed by a run",
-        )
-        #: do we put the best-f-scaled column?
-        self.__best_f_scaled: StatWriter | None = None
-        #: do we put the n_success column?
-        self.__has_n_success: bool = False
-        #: do we put the success fes column?
-        self.__success_fes: StatWriter | None = None
-        #: do we put the success time millis column?
-        self.__success_time_millis: StatWriter | None = None
-        #: do we put the ert-fes column?
-        self.__has_ert_fes: bool = False
-        #: do we put the ert time millis column?
-        self.__has_ert_time_millis: bool = False
-        #: do we put the max-fes column?
-        self.__max_fes: StatWriter | None = None
-        #: do we put the max time millis column?
-        self.__max_time_millis: StatWriter | None = None
-
-    def setup(self, data: Iterable[EndStatistics]) -> "CsvWriter":
-        """
-        Set up this csv writer based on existing data.
-
-        :param data: the data to setup with
-        :returns: this writer
-        """
-        if self.__setup:
-            raise ValueError(
-                "EndStatistics CsvWriter has already been set up.")
-        self.__setup = True
+        super().__init__(data, scope)
 
         data = reiterable(data)
-
         checker: int = 127
+        has_algorithm: bool = False
+        has_instance: bool = False
+        has_objective: bool = False
+        has_encoding: bool = False
+        has_n_success: bool = False
+        has_ert_fes: bool = False
+        has_ert_time_millis: bool = False
         for es in data:
             if es.algorithm is not None:
-                self.__has_algorithm = True
+                has_algorithm = True
                 checker &= ~1
             if es.instance is not None:
-                self.__has_instance = True
+                has_instance = True
                 checker &= ~2
             if es.objective is not None:
-                self.__has_objective = True
+                has_objective = True
                 checker &= ~4
             if es.encoding is not None:
-                self.__has_encoding = True
+                has_encoding = True
                 checker &= ~8
             if es.n_success is not None:
-                self.__has_n_success = True
+                has_n_success = True
                 checker &= ~16
             if es.ert_fes is not None:
-                self.__has_ert_fes = True
+                has_ert_fes = True
                 checker &= ~32
             if es.ert_time_millis is not None:
-                self.__has_ert_time_millis = True
+                has_ert_time_millis = True
                 checker &= ~64
             if checker == 0:
                 break
 
-        scope: Final[str | None] = self.scope
-        self.__goal_f = _to_csv_writer(
-            EndStatistics.get_goal_f, EndStatistics.get_n,
-            data, csv_scope(scope, KEY_GOAL_F),
-            KEY_GOAL_F,
+        #: do we put the algorithm column?
+        self.__has_algorithm: Final[bool] = has_algorithm
+        #: do we put the instance column?
+        self.__has_instance: Final[bool] = has_instance
+        #: do we put the objective column?
+        self.__has_objective: Final[bool] = has_objective
+        #: do we put the encoding column?
+        self.__has_encoding: Final[bool] = has_encoding
+        #: do we put the n_success column?
+        self.__has_n_success: Final[bool] = has_n_success
+        #: do we put the ert-fes column?
+        self.__has_ert_fes: Final[bool] = has_ert_fes
+        #: do we put the ert time millis column?
+        self.__has_ert_time_millis: Final[bool] = has_ert_time_millis
+
+        self.__goal_f: Final[StatWriter | None] = _to_csv_writer(
+            data, EndStatistics.get_goal_f, EndStatistics.get_n,
+            csv_scope(scope, KEY_GOAL_F), KEY_GOAL_F,
             "the goal objective value after which the runs can stop")
-        self.__best_f_scaled = _to_csv_writer(
-            EndStatistics.get_best_f_scaled, EndStatistics.get_n,
-            data, csv_scope(scope, KEY_BEST_F_SCALED), KEY_BEST_F_SCALED,
+        self.__best_f_scaled: Final[StatWriter | None] = _to_csv_writer(
+            data, EndStatistics.get_best_f_scaled, EndStatistics.get_n,
+            csv_scope(scope, KEY_BEST_F_SCALED), KEY_BEST_F_SCALED,
             f"best objective value reached ({KEY_BEST_F}), divided by"
             f" the goal objective value ({KEY_GOAL_F})")
-        self.__success_fes = _to_csv_writer(
-            EndStatistics.get_success_fes, EndStatistics.get_n_success,
-            data, csv_scope(scope, KEY_SUCCESS_FES), KEY_SUCCESS_FES,
+        self.__success_fes: Final[StatWriter | None] = _to_csv_writer(
+            data, EndStatistics.get_success_fes, EndStatistics.get_n_success,
+            csv_scope(scope, KEY_SUCCESS_FES), KEY_SUCCESS_FES,
             f"the FEs needed to reach {KEY_GOAL_F} for the successful runs")
-        self.__success_time_millis = _to_csv_writer(
-            EndStatistics.get_success_time_millis,
-            EndStatistics.get_n_success, data, csv_scope(
+        self.__success_time_millis: Final[StatWriter | None] = _to_csv_writer(
+            data, EndStatistics.get_success_time_millis,
+            EndStatistics.get_n_success, csv_scope(
                 scope, KEY_SUCCESS_TIME_MILLIS), KEY_SUCCESS_TIME_MILLIS,
             f"the milliseconds needed to reach {KEY_GOAL_F} for the "
             "successful runs")
-        self.__max_fes = _to_csv_writer(
-            EndStatistics.get_max_fes, EndStatistics.get_n,
-            data, csv_scope(scope, KEY_MAX_FES), KEY_MAX_FES,
+        self.__max_fes: Final[StatWriter | None] = _to_csv_writer(
+            data, EndStatistics.get_max_fes, EndStatistics.get_n,
+            csv_scope(scope, KEY_MAX_FES), KEY_MAX_FES,
             "the maximum number of FEs in the computational budget")
-        self.__max_time_millis = _to_csv_writer(
-            EndStatistics.get_max_time_millis, EndStatistics.get_n,
-            data, csv_scope(scope, KEY_MAX_TIME_MILLIS), KEY_MAX_TIME_MILLIS,
+        self.__max_time_millis: Final[StatWriter | None] = _to_csv_writer(
+            data, EndStatistics.get_max_time_millis, EndStatistics.get_n,
+            csv_scope(scope, KEY_MAX_TIME_MILLIS), KEY_MAX_TIME_MILLIS,
             "the maximum milliseconds per run in the computational budget")
-        self.__best_f.setup(map(EndStatistics.get_best_f, data))
-        self.__life.setup(map(EndStatistics.get_last_improvement_fe, data))
-        self.__lims.setup(map(
-            EndStatistics.get_last_improvement_time_millis, data))
-        self.__total_fes.setup(map(EndStatistics.get_total_fes, data))
-        self.__total_ms.setup(map(EndStatistics.get_total_time_millis, data))
 
-        return self
+        #: the best objective value reached
+        self.__best_f: Final[StatWriter] = StatWriter(
+            data=map(EndStatistics.get_best_f, data),
+            scope=csv_scope(scope, KEY_BEST_F),
+            n_not_needed=True, what_short=KEY_BEST_F,
+            what_long="the best objective value reached per run")
+        #: the FE when the last improvement happened
+        self.__life: Final[StatWriter] = StatWriter(
+            data=map(EndStatistics.get_last_improvement_fe, data),
+            scope=csv_scope(scope, KEY_LAST_IMPROVEMENT_FE),
+            n_not_needed=True, what_short=KEY_LAST_IMPROVEMENT_FE,
+            what_long="the FE when the last improvement happened in a run")
+        #: the milliseconds when the last improvement happened
+        self.__lims: Final[StatWriter] = StatWriter(
+            data=map(EndStatistics.get_last_improvement_time_millis, data),
+            scope=csv_scope(
+                scope, KEY_LAST_IMPROVEMENT_TIME_MILLIS),
+            n_not_needed=True, what_short=KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+            what_long="the millisecond when the last "
+                      "improvement happened in a run")
+        #: the total FEs
+        self.__total_fes: Final[StatWriter] = StatWriter(
+            data=map(EndStatistics.get_total_fes, data),
+            scope=csv_scope(scope, KEY_TOTAL_FES),
+            n_not_needed=True, what_short=KEY_TOTAL_FES,
+            what_long="the total FEs consumed by the runs")
+        #: the total milliseconds
+        self.__total_ms: Final[StatWriter] = StatWriter(
+            data=map(EndStatistics.get_total_time_millis, data),
+            scope=csv_scope(scope, KEY_TOTAL_TIME_MILLIS),
+            n_not_needed=True, what_short=KEY_TOTAL_TIME_MILLIS,
+            what_long="the total millisecond consumed by a run")
 
     def get_column_titles(self) -> Iterator[str]:
         """
@@ -1372,7 +1338,7 @@ class CsvWriter:
         yield from StatWriter.get_footer_bottom_comments(self.__best_f)
 
 
-class CsvReader:
+class CsvReader(CsvReaderBase[EndStatistics]):
     """A csv parser for end results."""
 
     def __init__(self, columns: dict[str, int]) -> None:
@@ -1381,10 +1347,7 @@ class CsvReader:
 
         :param columns: the columns
         """
-        super().__init__()
-        if not isinstance(columns, dict):
-            raise type_error(columns, "columns", dict)
-
+        super().__init__(columns)
         #: the index of the algorithm column, if any
         self.__idx_algorithm: Final[int | None] = csv_column_or_none(
             columns, KEY_ALGORITHM)
@@ -1499,6 +1462,7 @@ class CsvReader:
 class __PvEndStatistics(EndStatistics):
     """Aggregated end statistics."""
 
+    #: the value of the parameter over which it is aggregated
     pv: int | float
 
     def __init__(self, es: EndStatistics, pv: int | float):
@@ -1518,7 +1482,7 @@ class __PvEndStatistics(EndStatistics):
         if not isinstance(pv, (int | float)):
             raise type_error(pv, "pv", (int, float))
         if not isfinite(pv):
-            raise ValueError(f"got pv={pv}")
+            raise ValueError(f"got {pv=}")
         object.__setattr__(self, "pv", pv)
 
     def get_param_value(self) -> int | float:
