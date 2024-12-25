@@ -1,0 +1,262 @@
+<!doctype html><html data-content_root=../../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.vector.surrogate.rbf_interpolation — moptipy 0.9.140 documentation</title><link href="../../../../../../_static/pygments.css?v=80d5e7a1"rel=stylesheet><link href="../../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../../_static/documentation_options.js?v=9356264a"></script><script src="../../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/vector/surrogate/rbf_interpolation.html rel=canonical><link href=../../../../../../genindex.html rel=index title=Index><link href=../../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../../index.html>moptipy 0.9.140 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.vector.surrogate.rbf_interpolation</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.vector.surrogate.rbf_interpolation</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A meta-algorithm for model-assisted optimization using SciPy's Interpolation.</span>
+
+<span class=sd>This algorithm wraps another numerical optimization algorithm `A` and proceeds</span>
+<span class=sd>in two stages.</span>
+<span class=sd>First, it samples and evaluates a set of initial points during the warmup</span>
+<span class=sd>phase. These points are directly sampled by `A` on the original process, the</span>
+<span class=sd>meta-algorithm just collects them.</span>
+
+<span class=sd>Then, in the second stage, for each iteration, a model is constructed from</span>
+<span class=sd>all previously sampled and evaluated points. The model is used for</span>
+<span class=sd>interpolating the actual objective function.</span>
+<span class=sd>In each step, the inner algorithm `A` is applied to this model. It strictly</span>
+<span class=sd>works on the model and does not invoke the original objective. Instead, we</span>
+<span class=sd>maintain the best point that `A` has sampled on the model based on the modeled</span>
+<span class=sd>objective function. This best point is then evaluated on the actual objective</span>
+<span class=sd>function. Together with its actual objective value, it is added to the set of</span>
+<span class=sd>evaluated points. In the next step, a new model will be constructed based on</span>
+<span class=sd>all the points we have now. This model is then the basis for the next</span>
+<span class=sd>"simulated" run of `A`, and so on.</span>
+
+<span class=sd>Thus, in the second stage, each execution of `A` on the model problem yields</span>
+<span class=sd>one new point that is actually evaluated. The new point is used to create a</span>
+<span class=sd>better model, and so on. If the models reflect the actual objective function</span>
+<span class=sd>well, this may allow us to achieve better overall solution qualities or to</span>
+<span class=sd>reduce the number of actual objective function evaluations to reach certain</span>
+<span class=sd>goals.</span>
+
+<span class=sd>However, this only works if a) we will not do too many actual objective</span>
+<span class=sd>function evaluations (FEs) overall, as the memory requirement grows</span>
+<span class=sd>quadratically with the number of FEs and b) if the dimensionality of the</span>
+<span class=sd>problem is not too high, as the number of points needed to create a reasonably</span>
+<span class=sd>accurate model rises with the dimensions of the search space.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span> <span class=nn>math</span> <span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+<span class=kn>from</span> <span class=nn>pycommons.types</span> <span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+<span class=kn>from</span> <span class=nn>scipy.interpolate</span> <span class=kn>import</span> <span class=n>RBFInterpolator</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span> <span class=nn>scipy.special</span> <span class=kn>import</span> <span class=n>comb</span>  <span class=c1># type: ignore</span>
+
+<span class=kn>from</span> <span class=nn>moptipy.algorithms.so.vector.surrogate._processes</span> <span class=kn>import</span> <span class=p>(</span>
+    <span class=n>_SurrogateApply</span><span class=p>,</span>
+    <span class=n>_SurrogateWarmup</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span> <span class=nn>moptipy.api.algorithm</span> <span class=kn>import</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>check_algorithm</span>
+<span class=kn>from</span> <span class=nn>moptipy.api.process</span> <span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span> <span class=nn>moptipy.spaces.vectorspace</span> <span class=kn>import</span> <span class=n>VectorSpace</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.logger</span> <span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.nputils</span> <span class=kn>import</span> <span class=n>DEFAULT_FLOAT</span>
+<span class=kn>from</span> <span class=nn>moptipy.utils.strings</span> <span class=kn>import</span> <span class=n>num_to_str_for_name</span><span class=p>,</span> <span class=n>sanitize_names</span>
+
+<span class=c1>#: the permitted RBF kernels</span>
+<span class=n>_RBF_KERNELS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=s2>"linear"</span><span class=p>:</span> <span class=s2>"l"</span><span class=p>,</span>
+    <span class=s2>"thin_plate_spline"</span><span class=p>:</span> <span class=s2>"tps"</span><span class=p>,</span>
+    <span class=s2>"cubic"</span><span class=p>:</span> <span class=s2>"c"</span><span class=p>,</span>
+    <span class=s2>"quintic"</span><span class=p>:</span> <span class=s2>"q"</span><span class=p>,</span>
+<span class=p>}</span>
+
+
+<div class=viewcode-block id=RBFInterpolation>
+<a class=viewcode-back href=../../../../../../moptipy.algorithms.so.vector.surrogate.html#moptipy.algorithms.so.vector.surrogate.rbf_interpolation.RBFInterpolation>[docs]</a>
+<span class=k>class</span> <span class=nc>RBFInterpolation</span><span class=p>(</span><span class=n>Algorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A meta algorithm using an RBF-interpolation based surrogate model.</span>
+
+<span class=sd>    This algorithm uses :class:`scipy.interpolate.RBFInterpolator` as</span>
+<span class=sd>    interpolator surrogate model.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>,</span>
+                 <span class=n>inner</span><span class=p>:</span> <span class=n>Algorithm</span><span class=p>,</span>
+                 <span class=n>fes_for_warmup</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>fes_per_interpolation</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>kernel</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"thin_plate_spline"</span><span class=p>,</span>
+                 <span class=n>degree</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span>
+                 <span class=n>name</span><span class=o>=</span><span class=s2>"RBF"</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create an interpolation-based surrogate algorithm.</span>
+
+<span class=sd>        :param name: the base name of this algorithm</span>
+<span class=sd>        :param inner: the algorithm to be applied in the inner optimization</span>
+<span class=sd>            loop</span>
+<span class=sd>        :param fes_for_warmup: the number of objective function evaluations to</span>
+<span class=sd>            be spent on the initial warmup period</span>
+<span class=sd>        :param fes_per_interpolation: the number of FEs to be performed</span>
+<span class=sd>            for each interpolation run</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>kernel</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>kernel</span><span class=p>,</span> <span class=s2>"kernel"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>kernel</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>_RBF_KERNELS</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"kernel=</span><span class=si>{</span><span class=n>kernel</span><span class=si>!r}</span><span class=s2> not permitted, must be one "</span>
+                <span class=sa>f</span><span class=s2>"of </span><span class=si>{</span><span class=n>_RBF_KERNELS</span><span class=o>.</span><span class=n>keys</span><span class=p>()</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>degree</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>degree</span><span class=p>,</span> <span class=s2>"degree"</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>20</span><span class=p>)</span>
+        <span class=n>dimensions</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>space</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=s2>"space.dimensions"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>10_000</span><span class=p>)</span>
+        <span class=n>fes_for_warmup</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>fes_for_warmup</span><span class=p>,</span> <span class=s2>"fes_for_warmup"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>degree</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>min_points</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> \
+                <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>comb</span><span class=p>(</span><span class=n>degree</span> <span class=o>+</span> <span class=n>dimensions</span><span class=p>,</span> <span class=n>dimensions</span><span class=p>,</span> <span class=n>exact</span><span class=o>=</span><span class=kc>True</span><span class=p>))</span>
+            <span class=n>fes_for_warmup</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>fes_for_warmup</span><span class=p>,</span> <span class=n>min_points</span><span class=p>)</span>
+
+        <span class=c1>#: the vector space</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_space</span> <span class=o>=</span> <span class=n>space</span>
+        <span class=c1>#: the inner algorithm</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__inner</span> <span class=o>=</span> <span class=n>check_algorithm</span><span class=p>(</span><span class=n>inner</span><span class=p>)</span>
+        <span class=c1>#: the warmup FEs</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__warmup_fes</span> <span class=o>=</span> <span class=n>fes_for_warmup</span>
+        <span class=c1>#: the FEs per interpolation run</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__interpolation_fes</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>fes_per_interpolation</span><span class=p>,</span> <span class=s2>"fes_per_interpolation"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+            <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+        <span class=c1>#: the name of this surrogate assisted</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__name</span> <span class=o>=</span> <span class=n>sanitize_names</span><span class=p>((</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>_RBF_KERNELS</span><span class=p>[</span><span class=n>kernel</span><span class=p>]</span><span class=si>}{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=n>degree</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+            <span class=nb>str</span><span class=p>(</span><span class=n>fes_for_warmup</span><span class=p>),</span> <span class=nb>str</span><span class=p>(</span><span class=n>fes_per_interpolation</span><span class=p>),</span> <span class=nb>str</span><span class=p>(</span><span class=n>inner</span><span class=p>)))</span>
+        <span class=c1>#: the kernel name</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__kernel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>kernel</span>
+        <span class=c1>#: the degree</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__degree</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>degree</span>
+
+    <span class=k>def</span> <span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this surrogate-assisted algorithm.</span>
+
+<span class=sd>        :returns: the name of this surrogate assisted algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__name</span>
+
+<div class=viewcode-block id=RBFInterpolation.log_parameters_to>
+<a class=viewcode-back href=../../../../../../moptipy.algorithms.so.vector.surrogate.html#moptipy.algorithms.so.vector.surrogate.rbf_interpolation.RBFInterpolation.log_parameters_to>[docs]</a>
+    <span class=k>def</span> <span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this surrogate-assisted algorithm.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"warmupFEs"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__warmup_fes</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"interpolationFEs"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__interpolation_fes</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"kernel"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__kernel</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"degree"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__degree</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"inner"</span><span class=p>)</span> <span class=k>as</span> <span class=n>inner</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__inner</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>inner</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"space"</span><span class=p>)</span> <span class=k>as</span> <span class=n>space</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_space</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>space</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=RBFInterpolation.solve>
+<a class=viewcode-back href=../../../../../../moptipy.algorithms.so.vector.surrogate.html#moptipy.algorithms.so.vector.surrogate.rbf_interpolation.RBFInterpolation.solve>[docs]</a>
+    <span class=k>def</span> <span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the surrogate-assisted optimization method to the given process.</span>
+
+<span class=sd>        :param process: the process to solve</span>
+<span class=sd>        """</span>
+        <span class=c1># fast calls</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>inner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Process</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__inner</span><span class=o>.</span><span class=n>solve</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>
+        <span class=n>init</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__inner</span><span class=o>.</span><span class=n>initialize</span>
+        <span class=n>uniform</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span>
+            <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span><span class=o>.</span><span class=n>uniform</span>
+        <span class=n>empty</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>],</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span>
+
+        <span class=c1># constants</span>
+        <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_space</span><span class=o>.</span><span class=n>lower_bound</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_space</span><span class=o>.</span><span class=n>upper_bound</span>
+        <span class=n>dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_space</span><span class=o>.</span><span class=n>dimension</span>
+        <span class=n>dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_space</span><span class=o>.</span><span class=n>dtype</span>
+        <span class=n>run_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__interpolation_fes</span>
+        <span class=n>kernel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__kernel</span>
+        <span class=n>degree</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__degree</span>
+
+<span class=c1># the containers for the points that we have sampled</span>
+        <span class=n>x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># the points that were sampled so far</span>
+        <span class=n>z</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># their objective values</span>
+
+<span class=c1># Perform the initial warm-up process. Here, the inner algorithm will directly</span>
+<span class=c1># be applied to the original problem. All the points that it samples are</span>
+<span class=c1># collected and will later be used to construct the model.</span>
+        <span class=k>with</span> <span class=n>_SurrogateWarmup</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__warmup_fes</span><span class=p>,</span>
+                              <span class=n>x</span><span class=o>.</span><span class=n>append</span><span class=p>,</span> <span class=n>z</span><span class=o>.</span><span class=n>append</span><span class=p>)</span> <span class=k>as</span> <span class=n>p2</span><span class=p>:</span>
+            <span class=n>p2</span><span class=o>.</span><span class=n>_fes_left</span> <span class=o>=</span> <span class=n>p2</span><span class=o>.</span><span class=n>max_fes</span>  <span class=c1># type: ignore # store the budget</span>
+            <span class=n>p2</span><span class=o>.</span><span class=n>_terminated</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># type: ignore # not terminated yet</span>
+            <span class=n>init</span><span class=p>()</span>  <span class=c1># initialize the inner algorithm</span>
+            <span class=n>inner</span><span class=p>(</span><span class=n>p2</span><span class=p>)</span>  <span class=c1># apply the inner algorithm to the real model</span>
+        <span class=k>del</span> <span class=n>p2</span>
+
+<span class=c1># Now, we have collected self.__warmup_fes points from the search space.</span>
+
+        <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>
+            <span class=k>return</span>
+
+<span class=c1># We can now perform the optimization on the model. The model is constructed</span>
+<span class=c1># based on all points in the search space that were sampled and evaluated with</span>
+<span class=c1># the actual objective function. In each iteration, we apply the inner</span>
+<span class=c1># algorithm to the model from scratch. After it has terminated, then take the</span>
+<span class=c1># best point it found (based on the modeled objective function) and evaluate</span>
+<span class=c1># it with the actual objective function. This point and its objective value</span>
+<span class=c1># are then added to the internal list and used, together with all previous</span>
+<span class=c1># points, to construct the model for the next iteration.</span>
+        <span class=n>model</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>_SurrogateApply</span><span class=p>]</span> <span class=o>=</span> <span class=n>_SurrogateApply</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>run_fes</span><span class=p>)</span>
+
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+                <span class=c1># We always begin by building the surrogate model anew.</span>
+                <span class=c1># However, this may sometimes fail. Maybe a parameter matrix</span>
+                <span class=c1># becomes singular or whatever.</span>
+                <span class=k>try</span><span class=p>:</span>
+                    <span class=n>f</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+                        <span class=n>RBFInterpolator</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>DEFAULT_FLOAT</span><span class=p>),</span>
+                                        <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>z</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>DEFAULT_FLOAT</span><span class=p>),</span>
+                                        <span class=n>kernel</span><span class=o>=</span><span class=n>kernel</span><span class=p>,</span>
+                                        <span class=n>degree</span><span class=o>=</span><span class=n>degree</span><span class=p>)</span>
+                    <span class=k>break</span>  <span class=c1># success: quit innermost loop</span>
+                <span class=k>except</span><span class=p>:</span>  <span class=c1># noqa # pylint: disable=[W0702]</span>
+                    <span class=c1># If we get here, the model construction has failed.</span>
+                    <span class=c1># This means that the points that we have collected are</span>
+                    <span class=c1># somehow insufficient.</span>
+                    <span class=c1># We try to fix this by sampling one additional point</span>
+                    <span class=c1># uniformly at random and evaluate it.</span>
+                    <span class=c1># If this does not exhaust the FEs that we have, we can</span>
+                    <span class=c1># then try again.</span>
+                    <span class=n>tmp</span> <span class=o>=</span> <span class=n>uniform</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>,</span> <span class=n>dim</span><span class=p>)</span>
+                    <span class=n>x</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>  <span class=c1># add random point to list of points</span>
+                    <span class=n>z</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>evaluate</span><span class=p>(</span><span class=n>tmp</span><span class=p>))</span>  <span class=c1># and its objective value</span>
+                    <span class=k>if</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># did we exhaust budget?</span>
+                        <span class=k>return</span>  <span class=c1># yes ... so we return</span>
+
+            <span class=n>model</span><span class=o>.</span><span class=n>_fes_left</span> <span class=o>=</span> <span class=n>run_fes</span>  <span class=c1># assign the budget for the run</span>
+            <span class=n>model</span><span class=o>.</span><span class=n>_terminated</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># the run has not terminated</span>
+            <span class=n>model</span><span class=o>.</span><span class=n>_evaluate</span> <span class=o>=</span> <span class=n>f</span>  <span class=c1># forward evaluation to the model</span>
+            <span class=n>model</span><span class=o>.</span><span class=n>_best_f</span> <span class=o>=</span> <span class=n>inf</span>  <span class=c1># no best-so-far solution exists yet</span>
+            <span class=n>init</span><span class=p>()</span>  <span class=c1># initialize the inner algorithm</span>
+            <span class=n>inner</span><span class=p>(</span><span class=n>model</span><span class=p>)</span>  <span class=c1># apply the inner algorithm to the model</span>
+            <span class=n>tmp</span> <span class=o>=</span> <span class=n>empty</span><span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>  <span class=c1># allocate holder for result</span>
+            <span class=n>model</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>  <span class=c1># get best solution</span>
+            <span class=n>z2</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>  <span class=c1># evaluate it on the actual problem</span>
+            <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we quit?</span>
+                <span class=k>return</span>  <span class=c1># yes, so we return</span>
+            <span class=n>x</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>  <span class=c1># add the best solution to the list of points</span>
+            <span class=n>z</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>z2</span><span class=p>)</span>  <span class=c1># and also add the objective value</span>
+            <span class=k>del</span> <span class=n>f</span>  <span class=c1># dispose old model</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../../index.html>moptipy 0.9.140 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.vector.surrogate.rbf_interpolation</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2024, Thomas Weise.</div>

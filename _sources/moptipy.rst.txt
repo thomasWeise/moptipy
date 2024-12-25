@@ -1,0 +1,35 @@
+moptipy package
+===============
+
+.. automodule:: moptipy
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.algorithms
+   moptipy.api
+   moptipy.evaluation
+   moptipy.examples
+   moptipy.mo
+   moptipy.mock
+   moptipy.operators
+   moptipy.spaces
+   moptipy.tests
+   moptipy.utils
+
+Submodules
+----------
+
+moptipy.version module
+----------------------
+
+.. automodule:: moptipy.version
+   :members:
+   :undoc-members:
+   :show-inheritance:
