@@ -12,7 +12,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 def test_labs() -> None:
     """Test the labs objective function."""
     random: Final[Generator] = default_rng()
-    space: BitStrings = BitStrings(int(random.integers(2, 32)))
+    space: BitStrings = BitStrings(int(random.integers(3, 32)))
     f: LABS = LABS(space.dimension)
 
     validate_objective(

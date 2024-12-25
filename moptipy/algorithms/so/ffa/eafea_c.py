@@ -1,7 +1,10 @@
 """
 A Hybrid EA-FEA Algorithm: the `EAFEA-C`.
 
-This hybrid algorithm has the following features:
+The algorithm has two branches: (1) the EA branch, which performs randomized
+local search (RLS), which is in some contexts also called (1+1) EA. (2) the
+FEA branch, which performs RLS but uses frequency fitness assignment (FFA)
+as optimization criterion. This hybrid algorithm has the following features:
 
 - The new solution of the FEA strand is copied to the EA strand if it has an
   H-value which is not worse than the H-value of the current solution.

@@ -249,7 +249,7 @@ def plot_end_results(
     violin_width: Final[float] = 3 / 4
     z_order += 1
     violins: Final[dict[str, Any]] = axes.violinplot(
-        dataset=plot_data, positions=bar_positions, vert=True,
+        dataset=plot_data, positions=bar_positions, orientation="vertical",
         widths=violin_width, showmeans=False, showextrema=False,
         showmedians=False)
 
@@ -277,13 +277,15 @@ def plot_end_results(
     z_order += 1
     boxes_bg: Final[dict[str, Any]] = axes.boxplot(
         x=plot_data, positions=bar_positions, widths=violin_width,
-        showmeans=True, patch_artist=False, notch=True, vert=True,
-        whis=(5.0, 95.0), manage_ticks=False, zorder=z_order)
+        showmeans=True, patch_artist=False, notch=True,
+        orientation="vertical", whis=(5.0, 95.0), manage_ticks=False,
+        zorder=z_order)
     z_order += 1
     boxes_fg: Final[dict[str, Any]] = axes.boxplot(
         x=plot_data, positions=bar_positions, widths=violin_width,
-        showmeans=True, patch_artist=False, notch=True, vert=True,
-        whis=(5.0, 95.0), manage_ticks=False, zorder=z_order)
+        showmeans=True, patch_artist=False, notch=True,
+        orientation="vertical", whis=(5.0, 95.0), manage_ticks=False,
+        zorder=z_order)
 
     for tkey in ("cmeans", "cmins", "cmaxes", "cbars", "cmedians",
                  "cquantiles"):

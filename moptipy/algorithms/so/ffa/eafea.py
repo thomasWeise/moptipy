@@ -1,6 +1,12 @@
 """
 The EAFEA is hybrid of the (1+1)FEA and the (1+1)EA without Solution Transfer.
 
+The algorithm has two branches: (1) the EA branch, which performs randomized
+local search (RLS), which is in some contexts also called (1+1) EA. (2) the
+FEA branch, which performs RLS but uses frequency fitness assignment (FFA)
+as optimization criterion. No flow of information takes place between the two
+branches.
+
 1. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency
    Fitness Assignment: Optimization without Bias for Good Solutions can be
    Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.

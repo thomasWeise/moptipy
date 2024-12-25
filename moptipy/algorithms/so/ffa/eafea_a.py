@@ -1,8 +1,14 @@
 """
 The EAFEA-A is hybrid of the (1+1)FEA and the (1+1)EA with Solution Transfer.
 
-The solution is transferred from the FEA branch to the EA branch if its
-H-value is 1, i.e., if it represents a completely new objective value.
+The algorithm combines frequency fitness assignment based local search, i.e.,
+the FEA, with randomized local search (RLS, also called (1+1) EA in some
+contexts). Both algorithms get assigned alternating objective function
+evaluations (FEs). The FEA branch remains unchanged, it is never disturbed and
+no information flows from the RLS branch over to it. However, solutions are
+copied from time to time from the FEA branch to the RLS branch. The solution
+is transferred from the FEA branch to the EA branch if its H-value is 1, i.e.,
+if it represents a completely new objective value.
 
 1. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Sarah Louise
    Thomson, and Thomas Weise. Addressing the Traveling Salesperson Problem
