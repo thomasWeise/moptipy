@@ -70,17 +70,17 @@ def swap_2(random: Generator, dest: np.ndarray,  # +book
     >>> swap_2(rand, out, xx)
     >>> print(out)
     [0 1 2 3 4 5 6 9 8 7]
-    >>> sum(out != xx)
+    >>> int(sum(out != xx))
     2
     >>> swap_2(rand, out, xx)
     >>> print(out)
     [0 1 7 3 4 5 6 2 8 9]
-    >>> sum(out != xx)
+    >>> int(sum(out != xx))
     2
     >>> swap_2(rand, out, xx)
     >>> print(out)
     [0 1 2 3 4 8 6 7 5 9]
-    >>> sum(out != xx)
+    >>> int(sum(out != xx))
     2
     """
     # start book

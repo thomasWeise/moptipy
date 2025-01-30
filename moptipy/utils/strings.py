@@ -156,12 +156,7 @@ def sanitize_name(name: str) -> str:
     name = sub(__PATTERN_MULTIPLE_WHITESPACE, PART_SEPARATOR, name)
     name = __replace_double("_", name)
 
-    if name.startswith("_"):
-        name = name[1:]
-
-    if name.endswith("_"):
-        name = name[:len(name) - 1]
-
+    name = name.removeprefix("_").removesuffix("_")
     if len(name) <= 0:
         raise ValueError(
             f"Sanitized name must not become empty, but {orig_name!r} does.")

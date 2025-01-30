@@ -171,6 +171,7 @@ def compute_makespan_lower_bound(machines: int,
         jobtime: int = 0  # the job time sum
         for i in range(machines):  # iterate over all operations
             machine, time = matrix[jobidx, i]  # get operation data
+            time = int(time)
             if usedmachines[i]:  # machine already used??? -> error  # -lb
                 raise ValueError(  # -lb
                     f"Machine {machine} occurs more than once.")  # -lb
@@ -186,22 +187,23 @@ def compute_makespan_lower_bound(machines: int,
         jobremaining = jobtime  # iterate backwards to get end idle times
         for i in range(machines - 1, -1, -1):  # second iteration round
             machine, time = matrix[jobidx, i]  # get machine for operation
+            time = int(time)
             machine_end_idle[machine] = min(  # update by computing...
                 machine_end_idle[machine],  # the time that the job...
-                jobtime - jobremaining)  # needs _after_ operation
+                int(jobtime) - int(jobremaining))  # needs _after_ operation
             jobremaining -= time  # and update the remaining job time
 
         if not all(usedmachines):  # all machines have been used?  # -lb
             raise ValueError("Some machines not used in a job.")  # -lb
 
     # get the maximum of the per-machine sums of the idle and work times
-    machines_bound = (machine_start_idle + machine_end_idle
-                      + machinetimes).max()
+    machines_bound = int(max(map(int, machine_start_idle + machine_end_idle
+                                 + machinetimes)))
     if machines_bound <= 0:  # -lb
         raise ValueError("Computed machine bound cannot be <= , "  # -lb
                          f"but is {machines_bound}.")  # -lb
     # get the longest time any job needs in total
-    jobs_bound = jobtimes.max()
+    jobs_bound = int(max(map(int, jobtimes)))
     if jobs_bound <= 0:  # -lb
         raise ValueError(  # -lb
             f"Computed jobs bound cannot be <= , but is {jobs_bound}.")  # -lb
@@ -299,7 +301,7 @@ class Instance(Component, np.ndarray):
                 f"{str(matrix.dtype)!r} in instance {name!r}.")
         # ... some computations ...
         ms_lower_bound = compute_makespan_lower_bound(machines, jobs, matrix)
-        ms_upper_bound = int(matrix[:, :, 1].sum())  # sum of all job times
+        ms_upper_bound = int(sum(map(int, matrix[:, :, 1].flatten())))
         if ms_upper_bound < ms_lower_bound:
             raise ValueError(
                 f"Computed makespan upper bound {ms_upper_bound} must not "
@@ -310,9 +312,10 @@ class Instance(Component, np.ndarray):
             check_int_range(
                 makespan_lower_bound, "makespan lower bound",
                 max(0, ms_lower_bound), ms_upper_bound)
+        maxmat: Final[int] = int(matrix.max())
         obj: Final[Instance] = super().__new__(
             Instance, use_shape, int_range_to_dtype(
-                min_value=0, max_value=int(matrix.max())))
+                min_value=0, max_value=max(ms_upper_bound, maxmat)))
         np.copyto(obj, matrix, casting="safe")
         #: the name of the instance
         obj.name = use_name
@@ -347,7 +350,7 @@ class Instance(Component, np.ndarray):
         ...     print(repr('@'.join(l.get_log())))
         'BEGIN_I@name: abz8@class: moptipy.examples.jssp.instance.\
 Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
-@makespanUpperBound: 7586@dtype: b@END_I'
+@makespanUpperBound: 7586@dtype: h@END_I'
         """
         super().log_parameters_to(logger)
         logger.key_value(MACHINES, self.machines)
@@ -393,7 +396,8 @@ Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
                 "JSSP matrix must contain value larger than minimum "
                 f"{min_value}, but maximum is {max_value}.")
 
-        dtype = int_range_to_dtype(min_value=min_value, max_value=max_value)
+        dtype = int_range_to_dtype(min_value=min_value, max_value=max_value,
+                                   force_unsigned=True)
         if dtype != matrix.dtype:
             matrix = matrix.astype(dtype)
 

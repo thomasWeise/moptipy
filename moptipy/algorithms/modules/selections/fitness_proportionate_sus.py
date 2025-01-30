@@ -196,7 +196,7 @@ def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
     >>> import numpy as nn
     >>> ar = nn.array([1, 2, 3, 4], float)
     >>> _make_cum_sum(ar, 0)
-    >>> list(map(str, ar))
+    >>> list(map(str, map(float, ar)))
     ['3.0', '5.0', '6.0', '6.0']
     >>> ar = nn.array([1, 2, 3, 4], float)
     >>> min_prob = 0.01
@@ -204,11 +204,11 @@ def _make_cum_sum(a: np.ndarray, offset_mul: float) -> None:
     >>> _make_cum_sum(ar, offset_mult)
     >>> list(map(str, ar))
     ['3.0625', '5.125', '6.1875', '6.25']
-    >>> (ar[-1] - ar[-2]) / ar[-1]  # compute prob of 4 being selected
+    >>> float((ar[-1] - ar[-2]) / ar[-1])  # compute prob of 4 being selected
     0.01
     >>> ar.fill(12)
     >>> _make_cum_sum(ar, 0.01)
-    >>> list(map(str, ar))
+    >>> list(map(str, map(float, ar)))
     ['1.0', '2.0', '3.0', '4.0']
     """
     max_fitness: float = -np.inf  # initialize maximum to -infinity

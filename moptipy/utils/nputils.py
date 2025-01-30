@@ -86,7 +86,8 @@ def is_np_float(dtype: np.dtype) -> bool:
 
 
 def int_range_to_dtype(min_value: int, max_value: int,
-                       force_signed: bool = False) -> np.dtype:
+                       force_signed: bool = False,
+                       force_unsigned: bool = False) -> np.dtype:
     """
     Convert an integer range to an appropriate numpy data type.
 
@@ -98,6 +99,7 @@ def int_range_to_dtype(min_value: int, max_value: int,
     :param min_value: the minimum value
     :param max_value: the maximum value
     :param force_signed: enforce signed types
+    :param force_unsigned: enforce unsigned types
     :return: the numpy integer range
     :raises TypeError: if the parameters are not integers
     :raises ValueError: if the range is invalid, i.e., if `min_value` exceeds
@@ -129,6 +131,12 @@ def int_range_to_dtype(min_value: int, max_value: int,
     uint64
     >>> print(int_range_to_dtype(0, (2 ** 64) - 1))
     uint64
+    >>> print(int_range_to_dtype(0, (2 ** 7) - 1))
+    int8
+    >>> print(int_range_to_dtype(0, (2 ** 7) - 1, force_unsigned=True))
+    uint8
+    >>> print(int_range_to_dtype(0, 32767, force_unsigned=True))
+    uint16
     >>> try:
     ...     int_range_to_dtype(0, (2 ** 64) - 1, True)
     ... except ValueError as e:
@@ -157,11 +165,42 @@ def int_range_to_dtype(min_value: int, max_value: int,
     ... except TypeError as e:
     ...     print(e)
     max_value should be an instance of int but is str, namely 'a'.
+    >>> try:
+    ...     int_range_to_dtype(0, 1, 1)
+    ... except TypeError as te:
+    ...     print(te)
+    force_signed should be an instance of bool but is int, namely 1.
+    >>> try:
+    ...     int_range_to_dtype(0, 1, force_unsigned=3)
+    ... except TypeError as te:
+    ...     print(te)
+    force_unsigned should be an instance of bool but is int, namely 3.
+    >>> try:
+    ...     int_range_to_dtype(0, 1, True, True)
+    ... except ValueError as ve:
+    ...     print(ve)
+    force_signed and force_unsigned cannot both be True.
+    >>> try:
+    ...     int_range_to_dtype(-1, 1, force_unsigned=True)
+    ... except ValueError as ve:
+    ...     print(ve)
+    min_value=-1 and force_unsigned=True is not permitted.
     """
     if not isinstance(min_value, int):
         raise type_error(min_value, "min_value", int)
     if not isinstance(max_value, int):
         raise type_error(max_value, "max_value", int)
+    if not isinstance(force_signed, bool):
+        raise type_error(force_signed, "force_signed", bool)
+    if not isinstance(force_unsigned, bool):
+        raise type_error(force_unsigned, "force_unsigned", bool)
+    if force_unsigned:
+        if force_signed:
+            raise ValueError(
+                "force_signed and force_unsigned cannot both be True.")
+        if min_value < 0:
+            raise ValueError(f"min_value={min_value} and force_unsigned="
+                             "True is not permitted.")
     if min_value > max_value:
         raise ValueError(
             f"min_value must be <= max_value, but min_value={min_value} "
@@ -171,6 +210,8 @@ def int_range_to_dtype(min_value: int, max_value: int,
         else min_value
     for t in __INTS_AND_RANGES:
         if (use_min_value >= t[1]) and (max_value <= t[2]):
+            if force_unsigned and (t[1] < 0):
+                continue
             return t[0]
 
     if (min_value >= 0) and (not force_signed):

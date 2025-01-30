@@ -50,10 +50,13 @@ from moptipy.utils.logger import KeyValueLogSection
 #: of version 1.24.0 and above. It will crash with an exception.
 #: So for this case, we will later just invoke a single random sample and
 #: exit. See https://github.com/pdfo/pdfo/issues/55
+#: pdf with version 2.2 is also incompatible with numpy 2.0 and above.
+#: See https://github.com/pdfo/pdfo/issues/112
 _CANNOT_DO_PDFO: Final[bool] = \
     hasattr(np, "__version__") and hasattr(pdfo, "__version__") \
-    and (list(map(int, np.__version__.split("."))) >= [1, 24])\
-    and (list(map(int, pdfo.__version__.split("."))) <= [1, 3])
+    and (((list(map(int, np.__version__.split("."))) >= [1, 24])
+          and (list(map(int, pdfo.__version__.split("."))) <= [1, 3]))
+         or (list(map(int, np.__version__.split("."))) >= [2]))
 
 
 class BOBYQA(Algorithm0):

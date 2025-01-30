@@ -44,7 +44,7 @@ def _check_max_time_millis(max_time_millis: int | float,
 
 
 @numba.njit(nogil=True)
-def _get_goal_reach_index(f: np.ndarray, goal_f: int | float):  # noqa
+def _get_goal_reach_index(f: np.ndarray, goal_f: int | float) -> int:  # noqa
     """
     Compute the offset from the end of `f` when `goal_f` was reached.
 
@@ -56,13 +56,13 @@ def _get_goal_reach_index(f: np.ndarray, goal_f: int | float):  # noqa
     >>> ft = np.array([10, 9, 8, 5, 3, 2, 1])
     >>> _get_goal_reach_index(ft, 11)
     0
-    >>> ft[_get_goal_reach_index(ft, 11)]
+    >>> int(ft[_get_goal_reach_index(ft, 11)])
     10
     >>> _get_goal_reach_index(ft, 10)
     0
     >>> _get_goal_reach_index(ft, 9)
     1
-    >>> ft[_get_goal_reach_index(ft, 6)]
+    >>> int(ft[_get_goal_reach_index(ft, 6)])
     5
     >>> _get_goal_reach_index(ft, 1)
     6
