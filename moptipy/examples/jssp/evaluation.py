@@ -282,11 +282,10 @@ def compute_end_results(results_dir: str,
     results_file: Final[Path] = dest.resolve_inside("end_results.txt")
     if results_file.is_file():
         return results_file
-    results: Final[list[EndResult]] = []
 
     source: Final[Path] = directory_path(results_dir)
     logger(f"loading end results from path {source!r}.")
-    end_results_from_logs(source, results.append)
+    results: Final[list[EndResult]] = list(end_results_from_logs(source))
     if not results:
         raise ValueError(f"Could not find any logs in {source!r}.")
     results.sort()

@@ -21,12 +21,13 @@ module :mod:`~moptipy.evaluation.progress` reads the whole
 over time.
 """
 
+from contextlib import suppress
 from math import inf, isfinite, isinf
-from typing import Callable, Final
+from typing import Callable, Final, TypeVar
 
-from pycommons.io.console import logger
 from pycommons.io.csv import COMMENT_START, SCOPE_SEPARATOR
-from pycommons.io.path import Path, directory_path, file_path
+from pycommons.io.parser import Parser
+from pycommons.io.path import Path
 from pycommons.strings.string_conv import str_to_num
 from pycommons.types import check_to_int_range, type_error
 
@@ -93,7 +94,11 @@ def _true(_) -> bool:
     return True
 
 
-class LogParser:
+#: the type variable for data to be read from the directories
+T = TypeVar("T")
+
+
+class LogParser[T](Parser[T]):
     """
     A log parser can parse a log file and separate the sections.
 
@@ -102,121 +107,49 @@ class LogParser:
     parse directories.
     """
 
-    def __init__(self,
-                 print_begin_end: bool = True,
-                 print_file_start: bool = False,
-                 print_file_end: bool = False,
-                 print_dir_start: bool = True,
-                 print_dir_end: bool = True,
-                 path_filter: Callable[[Path], bool] | None = None):
+    def __init__(self, path_filter: Callable[[Path], bool] | None = None):
         """
         Initialize the log parser.
 
-        :param print_begin_end: log to stdout when starting and ending
-            a recursive directory parsing process
-        :param print_file_start: log to stdout when opening a file
-        :param print_file_end: log to stdout when closing a file
-        :param print_dir_start: log to stdout when entering a directory
-        :param print_dir_end: log to stdout when leaving a directory
         :param path_filter: a filter allowing us to skip paths or files. If
             this :class:`Callable` returns `True`, the file or directory is
             considered for parsing. If it returns `False`, it is skipped.
         """
-        if not isinstance(print_begin_end, bool):
-            raise type_error(print_begin_end, "print_begin_end", bool)
-        if not isinstance(print_file_start, bool):
-            raise type_error(print_file_start, "print_file_start", bool)
-        if not isinstance(print_file_end, bool):
-            raise type_error(print_file_end, "print_file_end", bool)
-        if not isinstance(print_dir_start, bool):
-            raise type_error(print_dir_start, "print_dir_start", bool)
-        if not isinstance(print_dir_end, bool):
-            raise type_error(print_dir_end, "print_dir_end", bool)
         if path_filter is None:
             path_filter = _true
         elif not callable(path_filter):
             raise type_error(path_filter, "path_filter", call=True)
-        #: print the overall begin and end
-        self.__print_begin_end: Final[bool] = print_begin_end
-        #: print when beginning a file
-        self.__print_file_start: Final[bool] = print_file_start
-        #: print after finishing a file
-        self.__print_file_end: Final[bool] = print_file_end
-        #: print when starting a directory
-        self.__print_dir_start: Final[bool] = print_dir_start
-        #: print when leaving a directory
-        self.__print_dir_end: Final[bool] = print_dir_end
         #: the current depth in terms of directories
         self.__depth: int = 0
         #: the path filter
         self.__path_filter: Final[Callable[[Path], bool]] = path_filter
 
-    def start_dir(self, path: Path) -> bool:
+    def start_list_dir(self, root: Path, current: Path) -> tuple[bool, bool]:
         """
-        Enter a directory to parse all files inside.
+        Decide whether to enter a directory to parse all files inside.
 
-        This method is called by
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`.
-        If it returns `True`, every sub-directory inside of it will be passed
-        to :meth:`~moptipy.evaluation.log_parser.LogParser.start_dir`
-        and every file will be passed to
-        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file`.
-        Only if `True` is returned,
-        :meth:`~moptipy.evaluation.log_parser.LogParser.end_dir` will be
-        invoked and its return value will be the return value of
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`. If `False`
-        is returned, then
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir` will return
-        immediately and return `True`.
-
-        :param path: the path of the directory
-        :return: `True` if all the files and sub-directories inside the
-            directory should be processed, `False` if this directory should
-            be skipped and parsing should continue with the next sibling
-            directory
+        :param root: the root directory
+        :param current: the path of the directory
+        :return: a tuple with two `True` values if all the sub-directories and
+            files inside the directory should be processed, two `False` values
+            if this directory should be skipped and parsing should continue
+            with the next sibling directory
         """
-        return self.__path_filter(path)
+        should: Final[bool] = self.__path_filter(current)
+        return should, should
 
-    # noinspection PyUnusedLocal
-    # noinspection PyMethodMayBeStatic
-    def end_dir(self, path: Path) -> bool:
-        """
-        Enter a directory to parse all files inside.
-
-        This method is called by
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`.
-        If it returns `True`, every sub-directory inside of it will be passed
-        to :meth:`~moptipy.evaluation.log_parser.LogParser.start_dir`
-        and every file will be passed to
-        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file`.
-
-        :param path: the path of the directory
-        :return: `True` if all the files and sub-directories inside the
-            directory should be processed, `False` if this directory should
-            be skipped and parsing should continue with the next sibling
-            directory
-        """
-        del path
-        return True
-
-    def start_file(self, path: Path) -> bool:
+    def start_parse_file(self, root: Path, current: Path) -> bool:
         """
         Decide whether to start parsing a file.
 
-        This method is called by
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file`. If it
-        returns `True`, then we will open and parse the file. If it returns
-        `False`, then the fill will not be parsed and
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` will
-        return `True` immediately.
-
-        :param path: the file path
+        :param root: the root path
+        :param current: the file path
         :return: `True` if the file should be parsed, `False` if it should be
             skipped (and
             :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
             return `True`).
         """
-        return path.endswith(FILE_SUFFIX) and self.__path_filter(path)
+        return current.endswith(FILE_SUFFIX) and self.__path_filter(current)
 
     # noinspection PyMethodMayBeStatic
     def start_section(self, title: str) -> bool:
@@ -227,8 +160,7 @@ class LogParser:
         section `title` will be read and together passed to
         :meth:`~moptipy.evaluation.log_parser.LogParser.lines`.
         If this method returns `False`, then the section will be skipped
-        and we fast-forward to the next section, if any, or to the call
-        of :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`.
+        and we fast-forward to the next section, if any.
 
         :param title: the section title
         :return: `True` if the section data should be loaded and passed to
@@ -253,83 +185,39 @@ class LogParser:
         from whitespace and comments, empty lines are omitted.
         If this method returns `True`, we will continue parsing the file and
         move to the next section, if any, or directly to the end of the file
-        parsing process (and call
-        :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`) if there is
-        no more section in the file.
+        parsing process.
 
         :param lines: the lines to consume
         :return: `True` if further parsing is necessary and the next section
             should be fed to
             :meth:`~moptipy.evaluation.log_parser.LogParser.start_section`,
-            `False` if the parsing
-            process can be terminated, in which case we will fast-forward to
-            :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`
+            `False` if the parsing process can be terminated`
         """
         del lines
         return True
 
-    # noinspection PyMethodMayBeStatic
-    def end_file(self) -> bool:
+    def before_get_result(self) -> None:
+        """Initialize the result construction: *before* `get_result`."""
+
+    def after_get_result(self) -> None:
+        """Cleanup after result construction: *after* `get_result`."""
+
+    def get_result(self) -> T | None:
         """
-        End a file.
+        Get the result of the file parsing process.
 
-        This method is invoked when we have reached the end of the current
-        file. Its return value, `True` or `False`, will then be returned
-        by :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file`, which
-        is the entry point for the file parsing process.
-
-        :return: the return value to be returned by
-            :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file`
+        :returns: the result of the file parsin process, or `None`
         """
-        return True
+        return None
 
-    def parse_file(self, path: str) -> bool:
+    def parse_file(self, root: Path, current: Path) -> T | None:
         """
         Parse the contents of a file.
 
-        This method first calls the function
-        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file` to see
-        whether the file should be parsed. If
-        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file` returns
-        `True`, then the file is parsed. If
-        :meth:`~moptipy.evaluation.log_parser.LogParser.start_file` returns
-        `False`, then this method returns `False` directly.
-        If the file is parsed, then
-        :meth:`~moptipy.evaluation.log_parser.LogParser.start_section` will
-        be invoked for each section (until the parsing is finished) and
-        :meth:`~moptipy.evaluation.log_parser.LogParser.lines` for
-        each section content (if requested). At the end,
-        :meth:`~moptipy.evaluation.log_parser.LogParser.end_file` is invoked.
-
-        This method can either be called directly or is called by
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir`. In the
-        latter case, if
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` returned
-        `True`, the next file in the current directory will be parsed. If it
-        returns `False`, then no file located in the current directory will be
-        parsed, while other directories and/or sub-directories will still be
-        processed.
-
-        :param path: the file to parse
-        :return: the return value received from invoking
-            :meth:`~moptipy.evaluation.log_parser.LogParser.end_file`
+        :param root: the root path
+        :param current: the file to parse
+        :return: the return value received from invoking `get_result`
         """
-        file: Final[Path] = file_path(path)
-
-        retval: bool
-        try:
-            retval = self.start_file(file)
-        except Exception as be:
-            raise ValueError(f"Error when starting file {file!r}") from be
-
-        if retval:
-            if self.__print_file_start:
-                logger(f"parsing file {file!r}.")
-        else:
-            if self.__print_file_start:
-                logger(f"skipping file {file!r}.")
-            return True
-
         lines: list[str] = []
         buffer: list[str] = []
         state: int = 0
@@ -341,7 +229,7 @@ class LogParser:
         cmt_chr: Final[str] = COMMENT_START
 
         index: int = 0
-        with file.open_for_read() as handle:
+        with (current.open_for_read() as handle):
             while True:
 
                 # get the next line
@@ -350,11 +238,11 @@ class LogParser:
                         buffer = handle.readlines(128)
                     except Exception as be:
                         raise ValueError(
-                            f"Error when reading lines from file {file!r} "
+                            f"Error when reading lines from file {current!r} "
                             f"while in section {section!r}."
                             if state == 1 else
-                            f"Error when reading lines from file {file!r}.") \
-                            from be
+                            "Error when reading lines from file "
+                            f"{current!r}.") from be
                     if (buffer is None) or (len(buffer) <= 0):
                         break
                     index = 0
@@ -377,12 +265,12 @@ class LogParser:
                     if not cur.startswith(sect_start):
                         raise ValueError("Line should start with "
                                          f"{sect_start!r} but is "
-                                         f"{orig_cur!r} in file {file!r}.")
+                                         f"{orig_cur!r} in file {current!r}.")
                     section = cur[len(sect_start):]
                     if len(section) <= 0:
                         raise ValueError(
                             "Section title cannot be empty in "
-                            f"{file!r}, but encountered {orig_cur!r}.")
+                            f"{current!r}, but encountered {orig_cur!r}.")
                     state = 1
                     sec_end = sect_end + section
                     wants_section = self.start_section(section)
@@ -395,7 +283,8 @@ class LogParser:
                             except Exception as be:
                                 raise ValueError(
                                     "Error when processing section "
-                                    f"{section!r} in file {file!r}.") from be
+                                    f"{section!r} in file {current!r}.") \
+                                    from be
                             lines.clear()
                             if not do_next:
                                 break
@@ -403,106 +292,18 @@ class LogParser:
                         lines.append(cur)
 
         if state == 0:
-            raise ValueError(f"Log file {file!r} contains no section.")
+            raise ValueError(f"Log file {current!r} contains no section.")
         if state == 1:
-            raise ValueError(f"Log file {file!r} ended before"
+            raise ValueError(f"Log file {current!r} ended before"
                              f"encountering {sec_end!r}.")
-
         try:
-            retval = self.end_file()
-        except Exception as be:
-            raise ValueError("Error when ending section parsing "
-                             f"of file {file!r}.") from be
-        if self.__print_file_end:
-            logger(f"finished parsing file {file!r}.")
-        return retval
-
-    def parse_dir(self, path: str) -> bool:
-        """
-        Recursively parse the given directory.
-
-        :param path: the path to the directory
-        :return: `True` either if
-            :meth:`~moptipy.evaluation.log_parser.LogParser.start_dir`
-            returned `False` or
-            :meth:`~moptipy.evaluation.log_parser.LogParser.end_dir` returned
-            `True`, `False` otherwise
-        """
-        folder: Final[Path] = directory_path(path)
-
-        if self.__depth <= 0:
-            if self.__depth == 0:
-                if self.__print_begin_end:
-                    logger("beginning recursive parsing of "
-                           f"directory {folder!r}.")
-            else:
-                raise ValueError(
-                    f"Depth must be >= 0, but is {self.__depth}??")
-        self.__depth += 1
-
-        if not self.start_dir(folder):
-            if self.__print_dir_start:
-                logger(f"skipping directory {folder!r}.")
-            return True
-        if self.__print_dir_start:
-            logger(f"entering directory {folder!r}.")
-
-        do_files = True
-        do_dirs = True
-        for sub in folder.list_dir():
-            if sub.is_file():
-                if do_files and (not self.parse_file(sub)):
-                    logger(f"will parse no more files in {folder!r}.")
-                    if not do_dirs:
-                        break
-                    do_files = False
-            elif sub.is_dir() and do_dirs and (not self.parse_dir(sub)):
-                logger("will parse no more sub-directories "
-                       f"of {folder!r}.")
-                if not do_files:
-                    break
-                do_dirs = False
-
-        retval = self.end_dir(folder)
-        if self.__print_dir_end:
-            logger(f"finished parsing directory {folder!r}.")
-
-        self.__depth -= 1
-        if self.__depth <= 0:
-            if self.__depth == 0:
-                if self.__print_begin_end:
-                    logger(f"finished recursive parsing of "
-                           f"directory {folder!r}.")
-            else:
-                raise ValueError(
-                    f"Depth must be >= 0, but is {self.__depth}??")
-
-        return retval
-
-    def parse(self, path: str) -> bool:
-        """
-        Parse either a directory or a file.
-
-        If `path` identifies a file,
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` is invoked
-        and its result is returned. If `path` identifies a directory, then
-        :meth:`~moptipy.evaluation.log_parser.LogParser.parse_dir` is invoked
-        and its result is returned.
-
-        :param path: a path identifying either a directory or a file.
-        :return: the result of the appropriate parsing routing
-        :raises ValueError: if `path` does not identify a directory or file
-        """
-        npath = Path(path)
-        if npath.is_file():
-            return self.parse_file(npath)
-        if npath.is_dir():
-            return self.parse_dir(npath)
-        raise ValueError(
-            f"Path {npath} is neither a file nor a directory?")
+            self.before_get_result()
+            return self.get_result()
+        finally:
+            self.after_get_result()
 
 
-class ExperimentParser(LogParser):
+class ExperimentParser[T](LogParser[T]):
     """A log parser following our pre-defined experiment structure."""
 
     def __init__(self, path_filter: Callable[[Path], bool] | None = None):
@@ -513,58 +314,63 @@ class ExperimentParser(LogParser):
             this :class:`Callable` returns `True`, the file or directory is
             considered for parsing. If it returns `False`, it is skipped.
         """
-        super().__init__(print_begin_end=True, print_dir_start=True,
-                         path_filter=path_filter)
+        super().__init__(path_filter=path_filter)
 
         #: The name of the algorithm to which the current log file belongs.
         self.algorithm: str | None = None
-
         #: The name of the instance to which the current log file belongs.
         self.instance: str | None = None
-
         #: The random seed of the current log file.
         self.rand_seed: int | None = None
 
-    def start_file(self, path: Path) -> bool:
+    def start_parse_file(self, root: Path, current: Path) -> bool:
         """
         Decide whether to start parsing a file and setup meta-data.
 
-        :param path: the file path
+        :param root: the root path
+        :param current: the file path
         :return: `True` if the file should be parsed, `False` if it should be
             skipped (and
             :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
             return `True`).
         """
-        if not super().start_file(path):
+        if not super().start_parse_file(root, current):
             return False
 
-        inst_dir: Final[Path] = path.up()
-        algo_dir: Final[Path] = inst_dir.up()
+        self.algorithm = None
+        self.instance = None
+        self.rand_seed = None
+        stop: bool = True
+        with suppress(Exception):
+            inst_dir: Final[Path] = current.up()
+            algo_dir: Final[Path] = inst_dir.up()
+            stop = not (algo_dir.contains(inst_dir)
+                        and inst_dir.contains(current))
+        if stop:
+            return False
         self.instance = sanitize_name(inst_dir.basename())
         self.algorithm = sanitize_name(algo_dir.basename())
-
         start = (f"{self.algorithm}{PART_SEPARATOR}"
                  f"{self.instance}{PART_SEPARATOR}0x")
-        base = path.basename()
+        base = current.basename()
         if (not base.startswith(start)) and \
                 (not base.casefold().startswith(start.casefold())):
             # case-insensitive comparison needed because of Windows
             raise ValueError(
-                f"File name of {path!r} should start with {start!r}.")
+                f"File name of {current!r} should start with {start!r}.")
         self.rand_seed = rand_seed_check(int(
             base[len(start):(-len(FILE_SUFFIX))], base=16))
-
         return True
 
-    def end_file(self) -> bool:
+    def after_get_result(self) -> None:
         """Finalize parsing a file."""
         self.rand_seed = None
         self.algorithm = None
         self.instance = None
-        return super().end_file()
+        return super().after_get_result()
 
 
-class SetupAndStateParser(ExperimentParser):
+class SetupAndStateParser[T](ExperimentParser[T]):
     """
     A log parser which loads and processes the basic data from the logs.
 
@@ -580,7 +386,7 @@ class SetupAndStateParser(ExperimentParser):
             this :class:`Callable` returns `True`, the file or directory is
             considered for parsing. If it returns `False`, it is skipped.
         """
-        super().__init__(path_filter=path_filter)
+        super().__init__(path_filter)
         #: the total consumed runtime, in objective function evaluations
         self.total_fes: int | None = None
         #: the total consumed runtime in milliseconds
@@ -607,36 +413,21 @@ class SetupAndStateParser(ExperimentParser):
         #: state section, 4=in setup section, 8=in state section
         self.__state: int = 0
 
-    def start_file(self, path: Path) -> bool:
+    def start_parse_file(self, root: Path, current: Path) -> bool:
         """
         Begin parsing the file identified by `path`.
 
-        :param path: the path identifying the file
+        :param root: the root path
+        :param current: the path identifying the file
         """
-        if not super().start_file(path):
+        if not super().start_parse_file(root, current):
             return False
         if self.__state != 0:
-            raise ValueError(f"Illegal state when trying to parse {path}.")
+            raise ValueError(f"Illegal state when trying to parse {current}.")
         return True
 
-    def process(self) -> None:
-        """
-        Process the result of the log parsing.
-
-        This function is invoked by :meth:`end_file` if the end of the parsing
-        process is reached. By now, all the data should have been loaded and it
-        can be passed on to wherever it should be passed to.
-        """
-
-    def end_file(self) -> bool:
-        """
-        Finalize parsing a file and invoke the :meth:`process` method.
-
-        This method invokes the :meth:`process` method to process the parsed
-        data.
-
-        :returns: `True` if parsing should be continued, `False` otherwise
-        """
+    def before_get_result(self) -> None:
+        """Check the state before `get_result` is called."""
         # perform sanity checks
         if self.__state != 3:
             raise ValueError(
@@ -661,7 +452,9 @@ class SetupAndStateParser(ExperimentParser):
             raise ValueError("last_improvement_fe is missing.")
         if self.last_improvement_time_millis is None:
             raise ValueError("last_improvement_time_millis is missing.")
-        self.process()  # invoke the handler
+
+    def after_get_result(self) -> None:
+        """Finalize the state *after* `get_result`."""
         # now clear the data
         self.total_fes = None
         self.total_time_millis = None
@@ -674,7 +467,7 @@ class SetupAndStateParser(ExperimentParser):
         self.objective = None
         self.encoding = None
         self.__state = 0
-        return super().end_file()
+        return super().after_get_result()
 
     def needs_more_lines(self) -> bool:
         """

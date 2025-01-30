@@ -54,10 +54,9 @@ def test_parse_end_result() -> None:
             "rls_flip1_onemax_10_0xe9e54b4d4ce12b5a.txt")
         result_file.enforce_file()
 
-        results: list[EndResult] = []
+        results: list[EndResult]
         for path in [result_file, res_dir_2, res_dir_1, td]:
-            results.clear()
-            from_logs(path, results.append)
+            results = list(from_logs(path))
             assert len(results) == 1
             __check_record(results[0])
 
@@ -66,7 +65,6 @@ def test_parse_end_result() -> None:
             "rLs_Flip1_oneMax_10_0xe9e54b4d4ce12b5a.txt")
         rename(result_file, result_file_2)
         for path in [result_file_2, res_dir_2, res_dir_1, td]:
-            results.clear()
-            from_logs(path, results.append)
+            results = list(from_logs(path))
             assert len(results) == 1
             __check_record(results[0])

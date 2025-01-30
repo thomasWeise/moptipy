@@ -50,7 +50,7 @@ from pycommons.strings.string_conv import float_to_str
 from pycommons.types import check_int_range, type_error
 
 from moptipy.evaluation.base import F_NAME_RAW, TIME_UNIT_FES, check_f_name
-from moptipy.evaluation.progress import Progress, from_logs
+from moptipy.evaluation.progress import from_logs
 from moptipy.utils.help import moptipy_argparser
 
 
@@ -150,42 +150,34 @@ def moptipy_to_ioh_analyzer(
     data: Final[dict[str, dict[str, dict[int, list[
         tuple[int, np.ndarray, np.ndarray]]]]]] = {}
 
-    # this consumer collects all the data in a structured fashion
-    def __consume(progress: Progress) -> None:
-        nonlocal data  # noqa
-        nonlocal inst_name_to_func_id
-        nonlocal inst_name_to_dimension
-        nonlocal inst_name_to_inst_id
-
-        _algo: dict[str, dict[int, list[tuple[int, np.ndarray, np.ndarray]]]]
+    for progress in from_logs(
+            source, time_unit=TIME_UNIT_FES, f_name=check_f_name(f_name),
+            f_standard=f_standard, only_improvements=True):
+        algo: dict[str, dict[int, list[tuple[int, np.ndarray, np.ndarray]]]]
         if progress.algorithm in data:
-            _algo = data[progress.algorithm]
+            algo = data[progress.algorithm]
         else:
-            data[progress.algorithm] = _algo = {}
-        _func_id: Final[str] = inst_name_to_func_id(progress.instance)
-        if not isinstance(_func_id, str):
-            raise type_error(_func_id, "function id", str)
-        if (len(_func_id) <= 0) or ("_" in _func_id):
-            raise ValueError(f"invalid function id {_func_id!r}.")
-        _func: dict[int, list[tuple[int, np.ndarray, np.ndarray]]]
-        if _func_id in _algo:
-            _func = _algo[_func_id]
+            data[progress.algorithm] = algo = {}
+        func_id: str = inst_name_to_func_id(progress.instance)
+        if not isinstance(func_id, str):
+            raise type_error(func_id, "function id", str)
+        if (len(func_id) <= 0) or ("_" in func_id):
+            raise ValueError(f"invalid function id {func_id!r}.")
+        func: dict[int, list[tuple[int, np.ndarray, np.ndarray]]]
+        if func_id in algo:
+            func = algo[func_id]
         else:
-            _algo[_func_id] = _func = {}
-        _dim: Final[int] = check_int_range(
+            algo[func_id] = func = {}
+        dim: int = check_int_range(
             inst_name_to_dimension(progress.instance), "dimension", 1)
-        _iid: Final[int] = check_int_range(
+        iid: int = check_int_range(
             inst_name_to_inst_id(progress.instance), "instance id", 1)
-        _res: Final[tuple[int, np.ndarray, np.ndarray]] = \
-            (_iid, progress.time, progress.f)
-        if _dim in _func:
-            _func[_dim].append(_res)
+        res: tuple[int, np.ndarray, np.ndarray] = (
+            iid, progress.time, progress.f)
+        if dim in func:
+            func[dim].append(res)
         else:
-            _func[_dim] = [_res]
-
-    from_logs(source, consumer=__consume, time_unit=TIME_UNIT_FES,
-              f_name=check_f_name(f_name), f_standard=f_standard,
-              only_improvements=True)
+            func[dim] = [res]
 
     if len(data) <= 0:
         raise ValueError("did not find any data!")

@@ -152,8 +152,7 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=7)  # we will execute 31 runs per setup
     # Once we arrived here, the experiment with 3*3*7=63 runs has completed.
 
-    data = []  # we will load the data into this list
-    from_logs(td, data.append)  # load all end results
+    data = list(from_logs(td))  # we will load the data into this list
 
     file = tabulate_end_results(data, dir_name=td)  # create the table
     print(f"\nnow presenting markdown data from file {file!r}.\n")

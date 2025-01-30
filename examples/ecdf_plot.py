@@ -128,11 +128,8 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=31)  # we will execute 31 runs per setup
     # Once we arrived here, the experiment with 2*1*31 = 62 runs has completed.
 
-    data = []  # we will load the data into this list
-    from_logs(path=td,  # the result directory
-              consumer=data.append,  # put the data into data
-              time_unit="FEs",  # time is in FEs (as opposed to "ms")
-              f_name="plainF")  # use raw, unscaled objective values
+    data = list(from_logs(  # load the data
+        path=td, time_unit="FEs", f_name="plainF"))
     ecdfs = []  # we will load the ECDFs into this list
     # The below function uses the goal objective values from the log files to
     # compute the ECDF functions. It groups all runs of one algorithm together

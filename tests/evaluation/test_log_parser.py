@@ -1,5 +1,6 @@
 """Test the sections parser."""
 
+from pycommons.io.path import Path
 from pycommons.io.temp import temp_file
 
 from moptipy.api import logging
@@ -7,16 +8,19 @@ from moptipy.evaluation.log_parser import LogParser
 from moptipy.utils.logger import FileLogger
 
 
-class _TestParser(LogParser):
-    def __init__(self, path: str):
+class _TestParser(LogParser[bool]):
+    def __init__(self, path: Path):
         super().__init__()
         self.__state = 0
         self.__path = path
 
-    def start_file(self, path: str) -> bool:
+    def start_parse_file(self, root: Path, current: Path) -> bool:
         assert self.__state == 0
-        assert path == self.__path
+        assert current == self.__path
         self.__state = 1
+        return True
+
+    def get_result(self) -> bool:
         return True
 
     def start_section(self, title: str) -> bool:
@@ -53,12 +57,11 @@ class _TestParser(LogParser):
             return False
         raise AssertionError("Should never get here.")
 
-    def end_file(self) -> bool:
+    def end_parse_file(self, root: Path, _: Path) -> None:
         assert self.__state == 8
         assert isinstance(self.__path, str)
         self.__path = None
         self.__state = 0
-        return True
 
 
 def test_sections_parser() -> None:
@@ -77,5 +80,5 @@ def test_sections_parser() -> None:
                 kv.key_value("m", "n")
             with logger.key_values("SKIP2") as skip:
                 skip.key_value("x", "y")
-        parser = _TestParser(str(tf))
-        assert parser.parse_file(str(tf))
+        parser = _TestParser(tf)
+        assert all(parser.parse(str(tf)))

@@ -282,8 +282,8 @@ def plot_progresses(results_dir: str,
     spath: Final[Path] = directory_path(results_dir)
     progresses: Final[list[Progress]] = []
     for algorithm in sorted(algorithms, key=algorithm_sort_key):
-        pr_from_logs(spath.resolve_inside(algorithm), progresses.append,
-                     time_unit=time_unit, f_name=F_NAME_RAW)
+        progresses.extend(pr_from_logs(spath.resolve_inside(
+            algorithm), time_unit=time_unit, f_name=F_NAME_RAW))
     if len(progresses) <= 0:
         raise ValueError(f"did not find log files in dir {results_dir!r}.")
 

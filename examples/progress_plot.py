@@ -120,11 +120,10 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=5)  # we will execute 5 runs per setup
     # Once we arrived here, the experiment with 2*2*5 = 20 runs has completed.
 
-    data = []  # we will load the data into this list
-    pr_from_logs(path=td,  # the result directory
-                 consumer=data.append,  # put the data into data
-                 time_unit="FEs",  # time is in FEs (as opposed to "ms")
-                 f_name="plainF")  # use raw, unscaled objective values
+    data = list(pr_from_logs(  # we will load the data into this list
+        path=td,  # the result directory
+        time_unit="FEs",  # time is in FEs (as opposed to "ms")
+        f_name="plainF"))  # use raw, unscaled objective values
 
     # The first plot will contain every single one of the 20 runs.
     # The system will choose different styles for different algorithms

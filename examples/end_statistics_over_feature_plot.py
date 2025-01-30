@@ -80,8 +80,7 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=7)  # we will execute 7 runs per setup
     # Once we arrived here, the 20*7 = 140 runs have completed.
 
-    end_results = []  # we will load the raw data into this list
-    from_logs(td, end_results.append)
+    end_results = list(from_logs(td))  # load results
 
     end_stats = []  # the end statistics go into this list
     from_end_results(end_results, end_stats.append)

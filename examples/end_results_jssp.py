@@ -22,11 +22,8 @@ with temp_dir() as td:
         max_fes=10000,  # we grant 10000 FEs per run
         n_runs=4)  # perform 4 runs per algorithm * instance combination
 
-    end_results = []  # this list will receive the end results records
-    from_logs(td, end_results.append)  # get results from log files
-
+    data = list(from_logs(td))  # load end results
     er_csv = to_csv(  # store end results to csv file (returns path)
-        end_results,  # the list of end results to store
-        td.resolve_inside("end_results.txt"))  # path to the file to generate
+        data, td.resolve_inside("end_results.txt"))  # path to output file
     print(er_csv.read_all_str())  # read generated file as string and print it
 # When leaving "while", the temp directory will be deleted

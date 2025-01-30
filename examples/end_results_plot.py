@@ -106,8 +106,7 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=31)  # we will execute 31 runs per setup
     # Once we arrived here, the experiment with 2*3*31=186 runs has completed.
 
-    data = []  # we will load the data into this list
-    from_logs(td, data.append)  # load all end results
+    data = list(from_logs(td))  # we will load the data into this list
 
     # Plot the end results in a scaled fashion: All objective values are
     # divided by the lower bound. Therefore, 1 is optimal.

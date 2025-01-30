@@ -16,7 +16,7 @@ plotting the end result distribution via
 import argparse
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Final, Generator, Iterable, cast
+from typing import Any, Callable, Final, Generator, Iterable, TypeVar, cast
 
 from pycommons.ds.sequences import reiterable
 from pycommons.io.console import logger
@@ -447,100 +447,6 @@ def getter(dimension: str) -> Callable[[EndResult], int | float | None]:
     return result
 
 
-def from_logs(
-        path: str, consumer: Callable[[EndResult], Any],
-        max_fes: int | None | Callable[
-            [str, str], int | None] = None,
-        max_time_millis: int | None | Callable[
-            [str, str], int | None] = None,
-        goal_f: int | float | None | Callable[
-            [str, str], int | float | None] = None,
-        path_filter: Callable[[Path], bool] | None = None) -> None:
-    """
-    Parse a given path and pass all end results found to the consumer.
-
-    If `path` identifies a file with suffix `.txt`, then this file is
-    parsed. The appropriate :class:`EndResult` is created and appended to
-    the `collector`. If `path` identifies a directory, then this directory
-    is parsed recursively for each log file found, one record is passed to
-    the `consumer`. As `consumer`, you could pass any `callable` that
-    accepts instances of :class:`EndResult`, e.g., the `append` method of
-    a :class:`list`.
-
-    Via the parameters `max_fes`, `max_time_millis`, and `goal_f`, you can
-    set virtual limits for the objective function evaluations, the maximum
-    runtime, and the objective value. The :class:`EndResult` records will
-    then not represent the actual final state of the runs but be
-    synthesized from the logged progress information. This, of course,
-    requires such information to be present. It will also raise a
-    `ValueError` if the goals are invalid, e.g., if a runtime limit is
-    specified that is before the first logged points.
-
-    There is one caveat when specifying `max_time_millis`: Let's say that
-    the log files only log improvements. Then you might have a log point
-    for 7000 FEs, 1000ms, and f=100. The next log point could be 8000 FEs,
-    1200ms, and f=90. Now if your time limit specified is 1100ms, we know
-    that the end result is f=100 (because f=90 was reached too late) and
-    that the total runtime is 1100ms, as this is the limit you specified
-    and it was also reached. But we do not know the number of consumed
-    FEs. We know you consumed at least 7000 FEs, but you did not consume
-    8000 FEs. It would be wrong to claim that 7000 FEs were consumed,
-    since it could have been more. We therefore set a virtual end point at
-    7999 FEs. In terms of performance metrics such as the
-    :mod:`~moptipy.evaluation.ert`, this would be the most conservative
-    choice in that it does not over-estimate the speed of the algorithm.
-    It can, however, lead to very big deviations from the actual values.
-    For example, if your algorithm quickly converged to a local optimum
-    and there simply is no log point that exceeds the virtual time limit
-    but the original run had a huge FE-based budget while your virtual
-    time limit was small, this could lead to an estimate of millions of
-    FEs taking part within seconds...
-
-    :param path: the path to parse
-    :param consumer: the consumer
-    :param max_fes: the maximum FEs, a callable to compute the maximum
-        FEs from the algorithm and instance name, or `None` if unspecified
-    :param max_time_millis: the maximum runtime in milliseconds, a
-        callable to compute the maximum runtime from the algorithm and
-        instance name, or `None` if unspecified
-    :param goal_f: the goal objective value, a callable to compute the
-        goal objective value from the algorithm and instance name, or
-        `None` if unspecified
-    :param path_filter: a filter allowing us to skip paths or files. If
-        this :class:`Callable` returns `True`, the file or directory is
-        considered for parsing. If it returns `False`, it is skipped.
-    """
-    need_goals: bool = False
-    if max_fes is not None:
-        if not callable(max_fes):
-            max_fes = check_int_range(
-                max_fes, "max_fes", 1, 1_000_000_000_000_000)
-        need_goals = True
-    if max_time_millis is not None:
-        if not callable(max_time_millis):
-            max_time_millis = check_int_range(
-                max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
-        need_goals = True
-    if goal_f is not None:
-        if callable(goal_f):
-            need_goals = True
-        else:
-            if not isinstance(goal_f, int | float):
-                raise type_error(goal_f, "goal_f", (int, float, None))
-            if isfinite(goal_f):
-                need_goals = True
-            elif goal_f <= -inf:
-                goal_f = None
-            else:
-                raise ValueError(f"goal_f={goal_f} is not permissible.")
-    if need_goals:
-        __InnerProgressLogParser(
-            max_fes, max_time_millis, goal_f, consumer,
-            path_filter).parse(path)
-    else:
-        __InnerLogParser(consumer, path_filter).parse(path)
-
-
 def to_csv(results: Iterable[EndResult], file: str) -> Path:
     """
     Write a sequence of end results to a file in CSV format.
@@ -567,8 +473,6 @@ def from_csv(file: str,
     Parse a given CSV file to get :class:`EndResult` Records.
 
     :param file: the path to parse
-    :param consumer: the collector, can be the `append` method of a
-        :class:`list`
     :param filterer: an optional filter function
     """
     path: Final[Path] = file_path(file)
@@ -710,7 +614,7 @@ class CsvWriter(CsvWriterBase):
         yield (f"{csv_scope(scope, KEY_OBJECTIVE_FUNCTION)}:"
                f" {DESC_OBJECTIVE_FUNCTION}")
         if self.__needs_encoding:
-            yield (f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}")
+            yield f"{csv_scope(scope, KEY_ENCODING)}: {DESC_ENCODING}"
         yield f"{csv_scope(scope, KEY_RAND_SEED)}: {DESC_RAND_SEED}"
         yield f"{csv_scope(scope, KEY_BEST_F)}: {DESC_BEST_F}"
         yield (f"{csv_scope(scope, KEY_LAST_IMPROVEMENT_FE)}: "
@@ -811,36 +715,32 @@ class CsvReader(CsvReaderBase):
             csv_val_or_none(data, self.__idx_max_ms, int))  # max_time_ms
 
 
-class __InnerLogParser(SetupAndStateParser):
+#: the type variable for data to be read from the directories
+T = TypeVar("T", bound=EndResult)
+
+
+class EndResultLogParser[T](SetupAndStateParser[T]):
     """The internal log parser class."""
 
-    def __init__(self, consumer: Callable[[EndResult], Any],
-                 path_filter: Callable[[Path], bool] | None = None):
+    def get_result(self) -> T:
         """
-        Create the internal log parser.
+        Get the parsing result.
 
-        :param consumer: the consumer accepting the parsed data
-        :param path_filter: the path filter
+        :returns: the :class:`EndResult` instance
         """
-        super().__init__(path_filter)
-        if not callable(consumer):
-            raise type_error(consumer, "consumer", call=True)
-        self.__consumer: Final[Callable[[EndResult], Any]] = consumer
-
-    def process(self) -> None:
-        self.__consumer(EndResult(self.algorithm,
-                                  self.instance,
-                                  self.objective,
-                                  self.encoding,
-                                  self.rand_seed,
-                                  self.best_f,
-                                  self.last_improvement_fe,
-                                  self.last_improvement_time_millis,
-                                  self.total_fes,
-                                  self.total_time_millis,
-                                  self.goal_f,
-                                  self.max_fes,
-                                  self.max_time_millis))
+        return cast(T, EndResult(self.algorithm,
+                                 self.instance,
+                                 self.objective,
+                                 self.encoding,
+                                 self.rand_seed,
+                                 self.best_f,
+                                 self.last_improvement_fe,
+                                 self.last_improvement_time_millis,
+                                 self.total_fes,
+                                 self.total_time_millis,
+                                 self.goal_f,
+                                 self.max_fes,
+                                 self.max_time_millis))
 
 
 def _join_goals(vlimit, vgoal, select):  # noqa
@@ -851,7 +751,7 @@ def _join_goals(vlimit, vgoal, select):  # noqa
     return select(vlimit, vgoal)
 
 
-class __InnerProgressLogParser(SetupAndStateParser):
+class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
     """The internal log parser class for virtual end results."""
 
     def __init__(
@@ -860,23 +760,17 @@ class __InnerProgressLogParser(SetupAndStateParser):
             max_time_millis: int | None | Callable[[str, str], int | None],
             goal_f: int | float | None | Callable[
                 [str, str], int | float | None],
-            consumer: Callable[[EndResult], Any],
             path_filter: Callable[[Path], bool] | None = None):
         """
         Create the internal log parser.
 
-        :param consumer: the consumer
         :param max_fes: the maximum FEs, or `None` if unspecified
         :param max_time_millis: the maximum runtime in milliseconds, or
             `None` if unspecified
         :param goal_f: the goal objective value, or `None` if unspecified
         :param path_filter: the path filter
         """
-        super().__init__(path_filter=path_filter)
-        if not callable(consumer):
-            raise type_error(consumer, "consumer", call=True)
-        self.__consumer: Final[Callable[[EndResult], Any]] = consumer
-
+        super().__init__(path_filter)
         self.__src_limit_ms: Final[
             int | None | Callable[[str, str], int | None]] = max_time_millis
         self.__src_limit_fes: Final[
@@ -900,19 +794,20 @@ class __InnerProgressLogParser(SetupAndStateParser):
         self.__hit_goal: bool = False
         self.__state: int = 0
 
-    def end_file(self) -> bool:
+    def before_get_result(self) -> None:
+        """Before we get the result."""
         if self.__state != 2:
             raise ValueError(
                 "Illegal state, log file must have a "
                 f"{SECTION_PROGRESS!r} section.")
         self.__state = 0
-        return super().end_file()
+        return super().before_get_result()
 
-    def process(self) -> None:
-        hit_goal = self.__hit_goal
+    def get_result(self) -> EndResult:
+        __hit_goal = self.__hit_goal
         stop_fes: int = self.__stop_fes
         stop_ms: int = self.__stop_ms
-        if not hit_goal:
+        if not __hit_goal:
             stop_ms = max(stop_ms, cast(int, min(
                 self.total_time_millis, self.__limit_ms)))
             ul_fes = self.total_fes
@@ -921,7 +816,7 @@ class __InnerProgressLogParser(SetupAndStateParser):
             stop_fes = max(stop_fes, cast(int, min(
                 ul_fes, self.__limit_fes)))
 
-        self.__consumer(EndResult(
+        return EndResult(
             algorithm=self.algorithm,
             instance=self.instance,
             objective=self.objective,
@@ -935,7 +830,10 @@ class __InnerProgressLogParser(SetupAndStateParser):
             goal_f=_join_goals(self.__limit_f_n, self.goal_f, max),
             max_fes=_join_goals(self.__limit_fes_n, self.max_fes, min),
             max_time_millis=_join_goals(
-                self.__limit_ms_n, self.max_time_millis, min)))
+                self.__limit_ms_n, self.max_time_millis, min))
+
+    def after_get_result(self) -> None:
+        """Cleanup."""
         self.__stop_fes = None
         self.__stop_ms = None
         self.__stop_f = None
@@ -948,9 +846,10 @@ class __InnerProgressLogParser(SetupAndStateParser):
         self.__limit_f_n = None
         self.__limit_f = -inf
         self.__hit_goal = False
+        super().after_get_result()
 
-    def start_file(self, path: Path) -> bool:
-        if super().start_file(path):
+    def start_parse_file(self, root: Path, current: Path) -> bool:
+        if super().start_parse_file(root, current):
             if (self.algorithm is None) or (self.instance is None):
                 raise ValueError(
                     f"Invalid state: algorithm={self.algorithm!r}, "
@@ -966,7 +865,7 @@ class __InnerProgressLogParser(SetupAndStateParser):
             time = self.__src_limit_ms(self.algorithm, self.instance) \
                 if callable(self.__src_limit_ms) else self.__src_limit_ms
             self.__limit_ms_n = None if time is None else \
-                check_int_range(time, "limit_ms", 1, 1_000_000_000_000)
+                check_int_range(time, "__limit_ms", 1, 1_000_000_000_000)
             self.__limit_ms = inf if self.__limit_ms_n is None \
                 else self.__limit_ms_n
 
@@ -1028,7 +927,7 @@ class __InnerProgressLogParser(SetupAndStateParser):
         stop_li_fe: int | None = None
         stop_li_ms: int | None = None
         limit_fes: Final[int | float] = self.__limit_fes
-        limit_ms: Final[int | float] = self.__limit_ms
+        __limit_ms: Final[int | float] = self.__limit_ms
         limit_f: Final[int | float] = self.__limit_f
 
         for line in lines[1:]:
@@ -1038,7 +937,7 @@ class __InnerProgressLogParser(SetupAndStateParser):
             current_ms = check_to_int_range(
                 values[ms_col], "ms", current_ms, 1_000_000_000_00)
             f: int | float = str_to_num(values[f_col])
-            if (current_fes <= limit_fes) and (current_ms <= limit_ms):
+            if (current_fes <= limit_fes) and (current_ms <= __limit_ms):
                 if f < current_f:  # can only update best within budget
                     current_f = f
                     current_li_fe = current_fes
@@ -1048,7 +947,7 @@ class __InnerProgressLogParser(SetupAndStateParser):
                 stop_f = current_f
                 stop_li_fe = current_li_fe
                 stop_li_ms = current_li_ms
-            if (current_fes >= limit_fes) or (current_ms >= limit_ms) or \
+            if (current_fes >= limit_fes) or (current_ms >= __limit_ms) or \
                     (current_f <= limit_f):
                 self.__hit_goal = True
                 break  # we can stop parsing the stuff
@@ -1064,13 +963,13 @@ class __InnerProgressLogParser(SetupAndStateParser):
         if current_fes >= limit_fes:
             stop_fes = max(stop_fes, min(
                 cast(int, limit_fes), current_fes))
-        elif current_ms > limit_ms:
+        elif current_ms > __limit_ms:
             stop_fes = max(stop_fes, current_fes - 1)
         else:
             stop_fes = max(stop_fes, current_fes)
 
-        if current_ms >= limit_ms:
-            stop_ms = max(stop_ms, min(cast(int, limit_ms), current_ms))
+        if current_ms >= __limit_ms:
+            stop_ms = max(stop_ms, min(cast(int, __limit_ms), current_ms))
         else:
             stop_ms = max(stop_ms, current_ms)
 
@@ -1080,6 +979,94 @@ class __InnerProgressLogParser(SetupAndStateParser):
         self.__stop_li_fe = stop_li_fe
         self.__stop_li_ms = stop_li_ms
         return self.needs_more_lines()
+
+
+def from_logs(
+        path: str, max_fes: int | None | Callable[
+            [str, str], int | None] = None,
+        max_time_millis: int | None | Callable[
+            [str, str], int | None] = None,
+        goal_f: int | float | None | Callable[
+            [str, str], int | float | None] = None,
+        path_filter: Callable[[Path], bool] | None = None) \
+        -> Generator[EndResult, None, None]:
+    """
+    Parse a given path and yield all end results found.
+
+    If `path` identifies a file with suffix `.txt`, then this file is
+    parsed. The appropriate :class:`EndResult` is created and yielded.
+    If `path` identifies a directory, then this directory is parsed
+    recursively for each log file found, one record is yielded.
+
+    Via the parameters `max_fes`, `max_time_millis`, and `goal_f`, you can
+    set virtual limits for the objective function evaluations, the maximum
+    runtime, and the objective value. The :class:`EndResult` records will
+    then not represent the actual final state of the runs but be
+    synthesized from the logged progress information. This, of course,
+    requires such information to be present. It will also raise a
+    `ValueError` if the goals are invalid, e.g., if a runtime limit is
+    specified that is before the first logged points.
+
+    There is one caveat when specifying `max_time_millis`: Let's say that
+    the log files only log improvements. Then you might have a log point
+    for 7000 FEs, 1000ms, and f=100. The next log point could be 8000 FEs,
+    1200ms, and f=90. Now if your time limit specified is 1100ms, we know
+    that the end result is f=100 (because f=90 was reached too late) and
+    that the total runtime is 1100ms, as this is the limit you specified
+    and it was also reached. But we do not know the number of consumed
+    FEs. We know you consumed at least 7000 FEs, but you did not consume
+    8000 FEs. It would be wrong to claim that 7000 FEs were consumed,
+    since it could have been more. We therefore set a virtual end point at
+    7999 FEs. In terms of performance metrics such as the
+    :mod:`~moptipy.evaluation.ert`, this would be the most conservative
+    choice in that it does not over-estimate the speed of the algorithm.
+    It can, however, lead to very big deviations from the actual values.
+    For example, if your algorithm quickly converged to a local optimum
+    and there simply is no log point that exceeds the virtual time limit
+    but the original run had a huge FE-based budget while your virtual
+    time limit was small, this could lead to an estimate of millions of
+    FEs taking part within seconds...
+
+    :param path: the path to parse
+    :param max_fes: the maximum FEs, a callable to compute the maximum
+        FEs from the algorithm and instance name, or `None` if unspecified
+    :param max_time_millis: the maximum runtime in milliseconds, a
+        callable to compute the maximum runtime from the algorithm and
+        instance name, or `None` if unspecified
+    :param goal_f: the goal objective value, a callable to compute the
+        goal objective value from the algorithm and instance name, or
+        `None` if unspecified
+    :param path_filter: a filter allowing us to skip paths or files. If
+        this :class:`Callable` returns `True`, the file or directory is
+        considered for parsing. If it returns `False`, it is skipped.
+    """
+    need_goals: bool = False
+    if max_fes is not None:
+        if not callable(max_fes):
+            max_fes = check_int_range(
+                max_fes, "max_fes", 1, 1_000_000_000_000_000)
+        need_goals = True
+    if max_time_millis is not None:
+        if not callable(max_time_millis):
+            max_time_millis = check_int_range(
+                max_time_millis, "max_time_millis", 1, 1_000_000_000_000)
+        need_goals = True
+    if goal_f is not None:
+        if callable(goal_f):
+            need_goals = True
+        else:
+            if not isinstance(goal_f, int | float):
+                raise type_error(goal_f, "goal_f", (int, float, None))
+            if isfinite(goal_f):
+                need_goals = True
+            elif goal_f <= -inf:
+                goal_f = None
+            else:
+                raise ValueError(f"goal_f={goal_f} is not permissible.")
+    if need_goals:
+        return __EndResultProgressLogParser(
+            max_fes, max_time_millis, goal_f, path_filter).parse(path)
+    return EndResultLogParser(path_filter).parse(path)
 
 
 # Run log files to end results if executed as script
@@ -1121,7 +1108,5 @@ if __name__ == "__main__":
         type=str_to_num, nargs="?", default=None)
     args: Final[argparse.Namespace] = parser.parse_args()
 
-    end_results: Final[list[EndResult]] = []
-    from_logs(args.source, end_results.append,
-              args.maxFEs, args.maxTime, args.goalF)
-    to_csv(end_results, args.dest)
+    to_csv(from_logs(args.source, args.maxFEs, args.maxTime, args.goalF),
+           args.dest)

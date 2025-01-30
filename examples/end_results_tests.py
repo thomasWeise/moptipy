@@ -87,9 +87,7 @@ with temp_dir() as td:  # create temporary directory `td`
                 lambda p: rls(p, Op1MoverNflip(p.n, 2)),  # flip bits at p=2/n
                 ], n_runs=21)  # conduct 21 independent runs per setup
 
-    # load all the end results
-    end_results = []
-    from_logs(td, end_results.append)
+    end_results = list(from_logs(td))  # we will load the data into this list
 
     # create a markdown table with statistical test results
     file = tabulate_result_tests(end_results, dir_name=td)

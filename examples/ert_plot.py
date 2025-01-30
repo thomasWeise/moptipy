@@ -110,11 +110,8 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=21)  # we will execute 71 runs per setup
     # Once we arrived here, the experiment with 2*1*31 = 62 runs has completed.
 
-    data = []  # we will load the data into this list
-    from_logs(path=td,  # the result directory
-              consumer=data.append,  # put the data into data
-              time_unit="FEs",  # time is in FEs (as opposed to "ms")
-              f_name="plainF")  # use raw, unscaled objective values
+    data = list(from_logs(  # load the data
+        path=td, time_unit="FEs", f_name="plainF"))
     ert = []  # we will load the ERT into this list
     # The below function groups all runs of one algorithm and instance
     # together and then computes the ERT.

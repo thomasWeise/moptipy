@@ -1590,13 +1590,13 @@ if __name__ == "__main__":
     args: Final[argparse.Namespace] = parser.parse_args()
 
     src_path: Final[Path] = args.source
-    end_results: Final[list[EndResult]] = []
+    end_results: list[EndResult]
     if src_path.is_file():
         logger(f"{src_path!r} identifies as file, load as end-results csv")
-        end_results_from_csv(src_path, end_results.append)
+        end_results = list(end_results_from_csv(src_path))
     else:
         logger(f"{src_path!r} identifies as directory, load it as log files")
-        end_results_from_logs(src_path, end_results.append)
+        end_results = list(end_results_from_logs(src_path))
 
     end_stats: Final[list[EndStatistics]] = []
     from_end_results(

@@ -23,8 +23,7 @@ with temp_dir() as td:
         max_fes=10000,  # we grant 10000 FEs per run
         n_runs=4)  # perform 4 runs per algorithm * instance combination
 
-    end_results = []  # this list will receive the end results records
-    from_logs(td, end_results.append)  # get results from log files
+    end_results = list(from_logs(td))  # get results from log files
 
     end_stats = []  # the list to receive the statistics records
     # compute end result statistics for all algorithm+instance combinations

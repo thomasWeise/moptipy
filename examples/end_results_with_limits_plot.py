@@ -70,14 +70,10 @@ with temp_dir() as td:  # create temporary directory `td`
 
 # We now collect the end results at different stages, namely at 16 FEs,
 # 32 FEs, 64 FEs, and after the full rumtime = 128 FEs.
-    data_16 = []  # results after 16 FEs
-    from_logs(td, data_16.append, max_fes=16)  # load end results
-    data_32 = []  # results after 32 FEs
-    from_logs(td, data_32.append, max_fes=32)  # load end results
-    data_64 = []  # results after 64 FEs
-    from_logs(td, data_64.append, max_fes=64)  # load end results
-    data_128 = []  # results after 128 FEs
-    from_logs(td, data_128.append, max_fes=128)  # load end results
+    data_16 = list(from_logs(td, max_fes=16))  # results after 16 FEs
+    data_32 = list(from_logs(td, max_fes=32))  # results after 16 FEs
+    data_64 = list(from_logs(td, max_fes=64))  # results after 16 FEs
+    data_128 = list(from_logs(td, max_fes=128))  # results after 16 FEs
     items = [[16, data_16], [32, data_32], [64, data_64], [128, data_128]]
 
 # We create a multi-figure, i.e., one figure with multiple charts inside.

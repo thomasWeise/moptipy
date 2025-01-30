@@ -71,11 +71,8 @@ with temp_dir() as td:  # create temporary directory `td`
                    n_runs=21)  # we will execute 21 runs per setup
     # Once we arrived here, the experiment with 11*21 = 231 runs has completed.
 
-    data = []  # we will load the data into this list
-    from_logs(path=td,  # the result directory
-              consumer=data.append,  # put the data into data
-              time_unit="FEs",  # time is in FEs (as opposed to "ms")
-              f_name="plainF")  # use raw, unscaled objective values
+    data = list(from_logs(  # load the data
+        path=td, time_unit="FEs", f_name="plainF"))
     ertecdf = []  # we will load the ERT-ECDFs into this list
     # The below function uses the goal objective values from the log files to
     # compute the ERT-ECDF functions. It groups all runs of one algorithm

@@ -85,9 +85,7 @@ def test_experiment_jssp() -> None:
                        n_runs=4,
                        base_dir=base_dir)
 
-        results: list[EndResult] = []
-        er_from_logs(base_dir, results.append)
-
+        results: list[EndResult] = list(er_from_logs(base_dir))
         assert len(results) == (4 * 2 * 3)
         results.sort()
 
@@ -247,13 +245,8 @@ def test_experiment_jssp() -> None:
             assert check_2 == check
             assert len(check_2) == 1
 
-        progress_fes_raw: list[Progress] = []
-        progress_ms_raw: list[Progress] = []
-        progress_fes_std: list[Progress] = []
-        progress_ms_nrm: list[Progress] = []
-        pr_from_logs(base_dir, progress_fes_raw.append,
-                     time_unit=bs.TIME_UNIT_FES,
-                     f_name=bs.F_NAME_RAW)
+        progress_fes_raw: list[Progress] = list(pr_from_logs(
+            base_dir, time_unit=bs.TIME_UNIT_FES, f_name=bs.F_NAME_RAW))
         progress_fes_raw.sort()
         assert len(progress_fes_raw) == 24
         for idx, pr in enumerate(progress_fes_raw):
@@ -276,9 +269,8 @@ def test_experiment_jssp() -> None:
             assert compute_single_ert(progress_fes_raw, x) == ert.ert[i, 1]
 
         if is_ci_run():
-            pr_from_logs(base_dir, progress_ms_raw.append,
-                         time_unit=bs.TIME_UNIT_MILLIS,
-                         f_name=bs.F_NAME_RAW)
+            progress_ms_raw: list[Progress] = list(pr_from_logs(
+                base_dir, time_unit=bs.TIME_UNIT_MILLIS, f_name=bs.F_NAME_RAW))
             progress_ms_raw.sort()
             assert len(progress_ms_raw) == 24
             for idx, pr in enumerate(progress_ms_raw):
@@ -290,9 +282,8 @@ def test_experiment_jssp() -> None:
                 assert pr.time[-1] >= results[idx].last_improvement_time_millis
                 assert pr.time[-1] <= results[idx].total_time_millis
 
-            pr_from_logs(base_dir, progress_fes_std.append,
-                         time_unit=bs.TIME_UNIT_FES,
-                         f_name=bs.F_NAME_SCALED)
+            progress_fes_std: list[Progress] = list(pr_from_logs(
+                base_dir, time_unit=bs.TIME_UNIT_FES, f_name=bs.F_NAME_SCALED))
             progress_fes_std.sort()
             assert len(progress_fes_std) == 24
             for idx, pr in enumerate(progress_fes_std):
@@ -305,9 +296,9 @@ def test_experiment_jssp() -> None:
                 assert pr.time[-1] <= results[idx].total_fes
                 assert np.array_equal(pr.time, progress_fes_raw[idx].time)
 
-            pr_from_logs(base_dir, progress_ms_nrm.append,
-                         time_unit=bs.TIME_UNIT_MILLIS,
-                         f_name=bs.F_NAME_NORMALIZED)
+            progress_ms_nrm: list[Progress] = list(pr_from_logs(
+                base_dir, time_unit=bs.TIME_UNIT_MILLIS,
+                f_name=bs.F_NAME_NORMALIZED))
             assert len(progress_ms_nrm) == 24
             progress_ms_nrm.sort()
             for idx, pr in enumerate(progress_ms_nrm):

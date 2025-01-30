@@ -352,8 +352,8 @@ with temp_dir() as td:  # create temporary directory `td`
                            make_random_sampling],  # provide RS run creator
                    n_runs=5)  # we will execute 5 runs per setup
 
-    from_logs(  # parse all log files and print end results
-        td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
+    for er in from_logs(td):  # parse all log files and print end results
+        print(f"{er.algorithm} on {er.instance}: {er.best_f}")
 # The temp directory is deleted as soon as we leave the `with` block.
 ```
 
@@ -682,8 +682,8 @@ with temp_dir() as td:  # create temporary directory `td`
                    instances=problems,  # define the problem instances
                    setups=[make_execution],  # creator for our algorithm
                    n_runs=5)  # we will execute 5 runs per setup
-    from_logs(  # parse all log files and print end results
-        td, lambda er: print(f"{er.algorithm} on {er.instance}: {er.best_f}"))
+    for er in from_logs(td):  # parse all log files and print end results
+        print(f"{er.algorithm} on {er.instance}: {er.best_f}")
 # The temp directory is deleted as soon as we leave the `with` block.
 ```
 
@@ -1564,12 +1564,9 @@ with temp_dir() as td:
         max_fes=10000,  # we grant 10000 FEs per run
         n_runs=4)  # perform 4 runs per algorithm * instance combination
 
-    end_results = []  # this list will receive the end results records
-    from_logs(td, end_results.append)  # get results from log files
-
+    data = list(from_logs(td))  # load end results
     er_csv = to_csv(  # store end results to csv file (returns path)
-        end_results,  # the list of end results to store
-        td.resolve_inside("end_results.txt"))  # path to the file to generate
+        data, td.resolve_inside("end_results.txt"))  # path to output file
     print(er_csv.read_all_str())  # read generated file as string and print it
 # When leaving "while", the temp directory will be deleted
 ```
@@ -1700,8 +1697,7 @@ with temp_dir() as td:
         max_fes=10000,  # we grant 10000 FEs per run
         n_runs=4)  # perform 4 runs per algorithm * instance combination
 
-    end_results = []  # this list will receive the end results records
-    from_logs(td, end_results.append)  # get results from log files
+    end_results = list(from_logs(td))  # get results from log files
 
     end_stats = []  # the list to receive the statistics records
     # compute end result statistics for all algorithm+instance combinations

@@ -12,7 +12,7 @@ improves the objective value over time.
 """
 from dataclasses import dataclass
 from math import inf, isfinite
-from typing import Any, Callable, Final, Iterable
+from typing import Any, Callable, Final, Generator, Iterable
 
 import numpy as np
 from pycommons.io.console import logger
@@ -174,35 +174,6 @@ class Progress(PerRunData):
         object.__setattr__(self, "f_standard", f_standard)
 
 
-def from_logs(path: str,
-              consumer: Callable[[Progress], Any],
-              time_unit: str = TIME_UNIT_FES,
-              f_name: str = F_NAME_RAW,
-              f_standard: dict[str, int | float] | None = None,
-              only_improvements: bool = True) -> None:
-    """
-    Parse a given path and pass all progress data found to the consumer.
-
-    If `path` identifies a file with suffix `.txt`, then this file is
-    parsed. The appropriate :class:`Progress` is created and appended to
-    the `collector`. If `path` identifies a directory, then this directory
-    is parsed recursively for each log file found, one record is passed to
-    the `consumer`. The `consumer` is simply a callable function. You could
-    pass in the `append` method of a :class:`list`.
-
-    :param path: the path to parse
-    :param consumer: the consumer, can be the `append` method of a
-        :class:`list`
-    :param time_unit: the time unit
-    :param f_name: the objective name
-    :param f_standard: a dictionary mapping instances to standard values
-    :param only_improvements: enforce that f-values should be improving and
-        time values increasing
-    """
-    __InnerLogParser(time_unit, f_name, consumer, f_standard,
-                     only_improvements).parse(path)
-
-
 def to_csv(progress: Progress, file: str,
            put_header: bool = True) -> str:
     """
@@ -244,11 +215,10 @@ def to_csv(progress: Progress, file: str,
     return path
 
 
-class __InnerLogParser(SetupAndStateParser):
+class __InnerLogParser(SetupAndStateParser[Progress]):
     """The internal log parser class."""
 
     def __init__(self, time_unit: str, f_name: str,
-                 consumer: Callable[[Progress], Any],
                  f_standard: dict[str, int | float] | None = None,
                  only_improvements: bool = True):
         """
@@ -256,15 +226,11 @@ class __InnerLogParser(SetupAndStateParser):
 
         :param time_unit: the time unit
         :param f_name: the objective name
-        :param consumer: the consumer
         :param f_standard: a dictionary mapping instances to standard values
         :param only_improvements: enforce that f-values should be improving
             and time values increasing
         """
         super().__init__()
-        if not callable(consumer):
-            raise type_error(consumer, "consumer", call=True)
-        self.__consumer: Final[Callable[[Progress], Any]] = consumer
         self.__time_unit = check_time_unit(time_unit)
         self.__f_name = check_f_name(f_name)
         self.__last_fe: int | None = None
@@ -279,7 +245,7 @@ class __InnerLogParser(SetupAndStateParser):
             = f_standard
         self.__state: int = 0
 
-    def end_file(self) -> bool:
+    def before_get_result(self) -> None:
         if self.__state != 2:
             raise ValueError(
                 "Illegal state, log file must have a "
@@ -289,9 +255,9 @@ class __InnerLogParser(SetupAndStateParser):
         if not self.__t_collector:
             raise ValueError("time-collector cannot be empty.")
         self.__state = 0
-        return super().end_file()
+        return super().before_get_result()
 
-    def process(self) -> None:
+    def get_result(self) -> Progress:
         f_standard: int | float | None = None
         if (self.__f_standard is not None) and \
                 (self.instance in self.__f_standard):
@@ -327,19 +293,23 @@ class __InnerLogParser(SetupAndStateParser):
                            for f in self.__f_collector])
         self.__f_collector.clear()
 
-        self.__consumer(Progress(self.algorithm,
-                                 self.instance,
-                                 self.objective,
-                                 self.encoding,
-                                 self.rand_seed,
-                                 np.array(self.__t_collector),
-                                 self.__time_unit,
-                                 ff,
-                                 self.__f_name,
-                                 f_standard,
-                                 self.__only_improvements))
+        return Progress(self.algorithm,
+                        self.instance,
+                        self.objective,
+                        self.encoding,
+                        self.rand_seed,
+                        np.array(self.__t_collector),
+                        self.__time_unit,
+                        ff,
+                        self.__f_name,
+                        f_standard,
+                        self.__only_improvements)
+
+    def after_get_result(self) -> None:
+        """Clean up."""
         self.__t_collector.clear()
         self.__last_fe = None
+        super().after_get_result()
 
     def start_section(self, title: str) -> bool:
         if title == SECTION_PROGRESS:
@@ -424,3 +394,28 @@ class __InnerLogParser(SetupAndStateParser):
 
         self.__state = 2
         return self.needs_more_lines()
+
+
+def from_logs(path: str,
+              time_unit: str = TIME_UNIT_FES,
+              f_name: str = F_NAME_RAW,
+              f_standard: dict[str, int | float] | None = None,
+              only_improvements: bool = True) \
+        -> Generator[Progress, None, None]:
+    """
+    Parse a given path and pass yield all progress data found.
+
+    If `path` identifies a file with suffix `.txt`, then this file is
+    parsed. The appropriate :class:`Progress` is created. If `path` identifies
+    a directory, then this directory is parsed recursively for each log file
+    found, one record is returned.
+
+    :param path: the path to parse
+    :param time_unit: the time unit
+    :param f_name: the objective name
+    :param f_standard: a dictionary mapping instances to standard values
+    :param only_improvements: enforce that f-values should be improving and
+        time values increasing
+    """
+    return __InnerLogParser(time_unit, f_name, f_standard,
+                            only_improvements).parse(path)

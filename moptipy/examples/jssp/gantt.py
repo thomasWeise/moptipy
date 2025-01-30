@@ -54,15 +54,10 @@ class Gantt(np.ndarray):
         :returns: the Gantt chart
         """
         parser: Final[_GanttParser] = _GanttParser(instance)
-        parser.parse_file(file)
-        # noinspection PyProtectedMember
-        res = parser._result
-        if res is None:
-            raise ValueError("Failed to load Gantt chart.")
-        return res
+        return next(parser.parse(file))
 
 
-class _GanttParser(LogParser):
+class _GanttParser(LogParser[Gantt]):
     """The log parser for loading Gantt charts."""
 
     def __init__(self, instance: Instance | None = None):
@@ -118,19 +113,29 @@ class _GanttParser(LogParser):
             raise ValueError("Should not be in section?")
         return (self.__instance is None) or (self.__gantt_str is None)
 
-    def end_file(self) -> bool:
+    def before_get_result(self) -> None:
         """End the file."""
+        super().before_get_result()
         if self.__gantt_str is None:
             raise ValueError(f"Section {SECTION_RESULT_Y} missing!")
         if self.__instance is None:
             raise ValueError(f"Section {SECTION_SETUP} missing or empty!")
         if self._result is not None:
             raise ValueError("Applied parser to more than one log file?")
+
+    def get_result(self) -> Gantt:
+        """
+        Get the result.
+
+        :returns: the Gantt chart
+        """
         # pylint: disable=C0415,R0401
         from moptipy.examples.jssp.gantt_space import (  # noqa: PLC0415
             GanttSpace,  # pylint: disable=C0415,R0401
         )
+        return GanttSpace(self.__instance).from_str(self.__gantt_str)
 
-        self._result = GanttSpace(self.__instance).from_str(self.__gantt_str)
+    def after_get_result(self) -> None:
+        """Cleanup."""
         self.__gantt_str = None
-        return False
+        super().after_get_result()
