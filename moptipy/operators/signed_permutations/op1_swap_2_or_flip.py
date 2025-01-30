@@ -7,14 +7,14 @@ is defined in :mod:`~moptipy.operators.permutations.op1_swap2`.
 """
 from typing import Callable, Final
 
-# = import numba  # type: ignore
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 
 from moptipy.api.operators import Op1
 
 
-# Temporary fix for https://github.com/numba/numba/issues/9103
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
 def swap_2_or_flip(random: Generator, dest: np.ndarray,
                    x: np.ndarray) -> None:
     """

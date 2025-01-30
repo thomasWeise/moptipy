@@ -46,7 +46,6 @@ from moptipy.utils.nputils import DEFAULT_BOOL
 
 
 @numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
-# start book
 def _op2_gap(r: np.ndarray, dest: np.ndarray,
              x0: np.ndarray, x1: np.ndarray,
              x0_done: np.ndarray, x1_done: np.ndarray) -> None:
@@ -90,10 +89,8 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
             x1i = x1i + 1  # value in x1
 
     dest[desti] = x0[x0i]  # = x1[x1i]: the final missing value
-# end book
 
 
-# start book
 class Op2GeneralizedAlternatingPosition(Op2):
     """A binary operator trying to preserve the value sequence."""
 
@@ -109,7 +106,6 @@ class Op2GeneralizedAlternatingPosition(Op2):
         """
         _op2_gap(random.integers(low=2, high=None, size=len(dest) - 1),
                  dest, x0, x1, self.__x0_done, self.__x1_done)
-    # end book
 
     def __init__(self, space: Permutations) -> None:
         """

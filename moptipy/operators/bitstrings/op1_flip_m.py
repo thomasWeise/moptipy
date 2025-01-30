@@ -80,9 +80,8 @@ class Op1FlipM(Op1WithStepSize):
         """
         np.copyto(dest, x)  # copy source to destination
         n: Final[int] = len(dest)  # get the number of bits
-        flips: Final[np.ndarray] = random.choice(  # choose the bits
-            n, exponential_step_size(step_size, 1, n), False)
-        dest[flips] ^= True  # flip the selected bits via xor
+        dest[random.choice(n, exponential_step_size(
+            step_size, 1, n), False)] ^= True  # flip the selected bits via xor
 
     def __str__(self) -> str:
         """

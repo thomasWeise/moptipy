@@ -35,8 +35,9 @@ used `OX2`.
    13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.
    https://doi.org/10.1023/A:1006529012972
 """
-from typing import Callable, Final
+from typing import Final
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 from pycommons.types import type_error
@@ -50,7 +51,60 @@ from moptipy.utils.nputils import (
 )
 
 
-# start book
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def _op2_ox2(indices: np.ndarray,
+             x1_done: np.ndarray,
+             random: Generator, dest: np.ndarray,
+             x0: np.ndarray, x1: np.ndarray) -> None:
+    """
+    Apply the order-based crossover from `x0` and `x1` to `dest`.
+
+    :param indices: the indices
+    :param x1_done: the elements of x1 that are done
+    :param random: the random number generator
+    :param dest: the array to receive the result
+    :param x0: the first existing point in the search space
+    :param x1: the second existing point in the search space
+    """
+    x1_done.fill(False)  # all values in x1 are available
+    length: Final[int] = len(indices)  # get length of string
+    copy_from_x0: int  # the end index of copying from x0
+    value: int  # the current value to be written to dest
+
+    # start book
+    while True:  # sample the number of values to copy from x0
+        copy_from_x0 = random.binomial(length, 0.5)  # p=0.5 for each value
+        if 1 < copy_from_x0 < (length - 1):  # ensure difference by
+            break  # copying at least two values from each parent
+    copy_from_x0 = length - copy_from_x0  # compute end index-index
+
+    i: int = length  # the index into indices we iterate over
+    mode: bool = True  # mode: True = copy from x0, False = from x1
+    x1i: int = 0  # the index of the next unused value from x1
+    while True:  # loop until we are finished
+        index_i: int = random.integers(0, i)  # pick a random index-index
+        index: int = indices[index_i]  # load the actual index
+        i = i - 1  # reduce the number of values
+        indices[i], indices[index_i] = index, indices[i]  # swap
+
+        if mode:  # copy from x0 to dest
+            dest[index] = value = x0[index]  # get and store value
+            for x1j in range(x1i, length):  # mark as used
+                if (x1[x1j] == value) and (not x1_done[x1j]):
+                    x1_done[x1j] = True  # mark value as used
+                    break  # exit inner loop
+            if copy_from_x0 == i:  # are we done with copying?
+                mode = False  # set mode to load from x1
+                x1i = 0  # reset x1 index
+        else:  # go to next iteration
+            dest[index] = x1[x1i]  # and store it in dest
+            if i == 0:  # check if we are done
+                return  # ok, we are finished
+            x1i = x1i + 1  # and move on to the next value
+        while x1_done[x1i]:  # step x1i to next unused value
+            x1i = x1i + 1  # increment
+
+
 class Op2OrderBased(Op2):
     """The order-based crossover operator."""
 
@@ -64,49 +118,7 @@ class Op2OrderBased(Op2):
         :param x0: the first existing point in the search space
         :param x1: the second existing point in the search space
         """
-        # end book
-        indices: Final[np.ndarray] = self.__indices
-        x1_done: Final[np.ndarray] = self.__x1_done
-        x1_done.fill(False)  # all values in x1 are available
-        rint: Final[Callable[[int], int]] = random.integers
-        rbin: Final[Callable[[int, float], int]] = random.binomial
-        length: Final[int] = len(indices)  # get length of string
-        copy_from_x0: int  # the end index of copying from x0
-        value: int  # the current value to be written to dest
-
-        # start book
-        while True:  # sample the number of values to copy from x0
-            copy_from_x0 = rbin(length, 0.5)  # p=0.5 for each value
-            if 1 < copy_from_x0 < (length - 1):  # ensure difference by
-                break  # copying at least two values from each parent
-        copy_from_x0 = length - copy_from_x0  # compute end index-index
-
-        i: int = length  # the index into indices we iterate over
-        mode: bool = True  # mode: True = copy from x0, False = from x1
-        x1i: int = 0  # the index of the next unused value from x1
-        while True:  # loop until we are finished
-            index_i: int = rint(i)  # pick a random index-index
-            index: int = indices[index_i]  # load the actual index
-            i = i - 1  # reduce the number of values
-            indices[i], indices[index_i] = index, indices[i]  # swap
-
-            if mode:  # copy from x0 to dest
-                dest[index] = value = x0[index]  # get and store value
-                for x1j in range(x1i, length):  # mark as used
-                    if (x1[x1j] == value) and (not x1_done[x1j]):
-                        x1_done[x1j] = True  # mark value as used
-                        break  # exit inner loop
-                if copy_from_x0 == i:  # are we done with copying?
-                    mode = False  # set mode to load from x1
-                    x1i = 0  # reset x1 index
-            else:  # go to next iteration
-                dest[index] = x1[x1i]  # and store it in dest
-                if i == 0:  # check if we are done
-                    return  # ok, we are finished
-                x1i = x1i + 1  # and move on to the next value
-            while x1_done[x1i]:  # step x1i to next unused value
-                x1i = x1i + 1  # increment
-    # end book
+        _op2_ox2(self.__indices, self.__x1_done, random, dest, x0, x1)
 
     def __init__(self, space: Permutations) -> None:
         """

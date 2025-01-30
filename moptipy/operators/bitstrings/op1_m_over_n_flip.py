@@ -1,6 +1,7 @@
 """A unary operator flipping each bit with probability m/n."""
-from typing import Callable, Final
+from typing import Final
 
+import numba  # type: ignore
 import numpy as np
 from numpy.random import Generator
 from pycommons.types import check_int_range, type_error
@@ -10,6 +11,46 @@ from moptipy.utils.nputils import (
     fill_in_canonical_permutation,
     int_range_to_dtype,
 )
+
+
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def _op1_movern(m: int, none_is_ok: bool, permutation: np.ndarray,
+                random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
+    """
+    Copy `x` into `dest` and flip each bit with probability m/n.
+
+    This method will first copy `x` to `dest`. Then it will flip each bit
+    in `dest` with probability `m/n`, where `n` is the length of `dest`.
+    Regardless of the probability, at least one bit will always be
+    flipped if self.at_least_1 is True.
+
+    :param m: the value of m
+    :param none_is_ok: is it OK to flip nothing?
+    :param permutation: the internal permutation
+    :param random: the random number generator
+    :param dest: the destination array to receive the new point
+    :param x: the existing point in the search space
+    """
+    dest[:] = x[:]  # copy source to destination
+    length: Final[int] = len(dest)  # get n
+    p: Final[float] = m / length  # probability to flip bit
+
+    flips: int  # the number of bits to flip
+    while True:
+        flips = random.binomial(length, p)  # get the number of bits to flip
+        if flips > 0:
+            break  # we will flip some bit
+        if none_is_ok:
+            return  # we will flip no bit
+
+    i: int = length
+    end: Final[int] = length - flips
+    while i > end:  # we iterate from i=length down to end=length-flips
+        k = random.integers(0, i)  # index of next bit index in permutation
+        i -= 1  # decrease i
+        idx = permutation[k]  # get index of bit to flip and move to end
+        permutation[i], permutation[k] = idx, permutation[i]
+        dest[idx] = not dest[idx]  # flip bit
 
 
 class Op1MoverNflip(Op1):
@@ -61,30 +102,8 @@ class Op1MoverNflip(Op1):
         :param dest: the destination array to receive the new point
         :param x: the existing point in the search space
         """
-        np.copyto(dest, x)  # copy source to destination
-        length: Final[int] = len(dest)  # get n
-        p: Final[float] = self.__m / length  # probability to flip bit
-        none_is_ok: Final[bool] = self.__none_is_ok
-
-        flips: int  # the number of bits to flip
-        rbi: Final[Callable[[int, float], int]] = random.binomial
-        while True:
-            flips = rbi(length, p)  # compute the number of bits to flip
-            if flips > 0:
-                break  # we will flip some bit
-            if none_is_ok:
-                return  # we will flip no bit
-
-        permutation: Final[np.ndarray] = self.__permutation
-        i: int = length
-        end: Final[int] = length - flips
-        ri: Final[Callable[[int], int]] = random.integers
-        while i > end:  # we iterate from i=length down to end=length-flips
-            k = ri(i)  # get index of next bit index in permutation
-            i -= 1  # decrease i
-            idx = permutation[k]  # get index of bit to flip and move to end
-            permutation[i], permutation[k] = idx, permutation[i]
-            dest[idx] = not dest[idx]  # flip bit
+        _op1_movern(self.__m, self.__none_is_ok, self.__permutation,
+                    random, dest, x)
 
     def __str__(self) -> str:
         """
