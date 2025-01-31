@@ -2,6 +2,7 @@
 from typing import Final
 
 import numpy as np
+from pycommons.io.path import Path
 from pycommons.types import type_error
 
 from moptipy.api.logging import SECTION_RESULT_Y, SECTION_SETUP
@@ -53,8 +54,7 @@ class Gantt(np.ndarray):
             we try to load it from the resources
         :returns: the Gantt chart
         """
-        parser: Final[_GanttParser] = _GanttParser(instance)
-        return next(parser.parse(file))
+        return _GanttParser(instance).parse_file(file)
 
 
 class _GanttParser(LogParser[Gantt]):
@@ -79,9 +79,9 @@ class _GanttParser(LogParser[Gantt]):
         #: the result Gantt chart
         self._result: Gantt | None = None
 
-    def start_section(self, title: str) -> bool:
+    def _start_section(self, title: str) -> bool:
         """Start a section."""
-        super().start_section(title)
+        super()._start_section(title)
         self.__sec_mode = 0
         if title == SECTION_SETUP:
             if self.__instance is None:
@@ -93,7 +93,7 @@ class _GanttParser(LogParser[Gantt]):
             return True
         return False
 
-    def lines(self, lines: list[str]) -> bool:
+    def _lines(self, lines: list[str]) -> bool:
         """Parse the lines."""
         if self.__sec_mode == 1:
             if self.__instance is not None:
@@ -113,29 +113,22 @@ class _GanttParser(LogParser[Gantt]):
             raise ValueError("Should not be in section?")
         return (self.__instance is None) or (self.__gantt_str is None)
 
-    def before_get_result(self) -> None:
+    def _parse_file(self, file: Path) -> Gantt:
         """End the file."""
-        super().before_get_result()
+        super()._parse_file(file)
         if self.__gantt_str is None:
             raise ValueError(f"Section {SECTION_RESULT_Y} missing!")
         if self.__instance is None:
             raise ValueError(f"Section {SECTION_SETUP} missing or empty!")
         if self._result is not None:
             raise ValueError("Applied parser to more than one log file?")
-
-    def get_result(self) -> Gantt:
-        """
-        Get the result.
-
-        :returns: the Gantt chart
-        """
         # pylint: disable=C0415,R0401
         from moptipy.examples.jssp.gantt_space import (  # noqa: PLC0415
             GanttSpace,  # pylint: disable=C0415,R0401
         )
         return GanttSpace(self.__instance).from_str(self.__gantt_str)
 
-    def after_get_result(self) -> None:
+    def _end_parse_file(self, file: Path) -> None:
         """Cleanup."""
         self.__gantt_str = None
-        super().after_get_result()
+        super()._end_parse_file(file)

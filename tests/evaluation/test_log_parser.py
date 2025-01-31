@@ -14,16 +14,17 @@ class _TestParser(LogParser[bool]):
         self.__state = 0
         self.__path = path
 
-    def start_parse_file(self, root: Path, current: Path) -> bool:
+    def _should_parse_file(self, file: Path) -> bool:
         assert self.__state == 0
-        assert current == self.__path
+        assert file == self.__path
         self.__state = 1
         return True
 
-    def get_result(self) -> bool:
+    def _parse_file(self, file: Path) -> bool:
+        super()._parse_file(file)
         return True
 
-    def start_section(self, title: str) -> bool:
+    def _start_section(self, title: str) -> bool:
         if self.__state == 1:
             assert title == "TEXT"
             self.__state = 2
@@ -42,7 +43,7 @@ class _TestParser(LogParser[bool]):
             return True
         raise AssertionError("Should never get here.")
 
-    def lines(self, lines: list[str]) -> bool:
+    def _lines(self, lines: list[str]) -> bool:
         if self.__state == 2:
             assert lines == ["a", "b", "c"]
             self.__state = 3
@@ -57,9 +58,10 @@ class _TestParser(LogParser[bool]):
             return False
         raise AssertionError("Should never get here.")
 
-    def end_parse_file(self, root: Path, _: Path) -> None:
+    def _end_parse_file(self, file: Path) -> None:
         assert self.__state == 8
         assert isinstance(self.__path, str)
+        assert file == self.__path
         self.__path = None
         self.__state = 0
 

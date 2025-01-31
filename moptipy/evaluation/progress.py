@@ -245,7 +245,8 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
             = f_standard
         self.__state: int = 0
 
-    def before_get_result(self) -> None:
+    def _parse_file(self, file: Path) -> Progress | None:
+        super()._parse_file(file)
         if self.__state != 2:
             raise ValueError(
                 "Illegal state, log file must have a "
@@ -255,9 +256,7 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
         if not self.__t_collector:
             raise ValueError("time-collector cannot be empty.")
         self.__state = 0
-        return super().before_get_result()
 
-    def get_result(self) -> Progress:
         f_standard: int | float | None = None
         if (self.__f_standard is not None) and \
                 (self.instance in self.__f_standard):
@@ -267,7 +266,6 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
         if (self.__f_name != F_NAME_RAW) and (f_standard is None):
             raise ValueError(f"f_standard cannot be {f_standard} if f_name "
                              f"is {self.__f_name}.")
-
         tt = self.total_time_millis if (self.__time_unit == TIME_UNIT_MILLIS) \
             else self.total_fes
         if tt < self.__t_collector[-1]:
@@ -305,28 +303,28 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
                         f_standard,
                         self.__only_improvements)
 
-    def after_get_result(self) -> None:
+    def _end_parse_file(self, file: Path) -> None:
         """Clean up."""
         self.__t_collector.clear()
         self.__last_fe = None
-        super().after_get_result()
+        super()._end_parse_file(file)
 
-    def start_section(self, title: str) -> bool:
+    def _start_section(self, title: str) -> bool:
         if title == SECTION_PROGRESS:
             if self.__state != 0:
                 raise ValueError(f"Already did section {title}.")
             self.__state = 1
             return True
-        return super().start_section(title)
+        return super()._start_section(title)
 
-    def needs_more_lines(self) -> bool:
-        return (self.__state < 2) or super().needs_more_lines()
+    def _needs_more_lines(self) -> bool:
+        return (self.__state < 2) or super()._needs_more_lines()
 
-    def lines(self, lines: list[str]) -> bool:
+    def _lines(self, lines: list[str]) -> bool:
         if not isinstance(lines, list):
             raise type_error(lines, "lines", list)
         if self.__state != 1:
-            return super().lines(lines)
+            return super()._lines(lines)
         n_rows = len(lines)
         if n_rows < 2:
             raise ValueError("lines must contain at least two elements,"
@@ -393,7 +391,7 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
             raise ValueError(f"Last FE cannot be {self.__last_fe}.")
 
         self.__state = 2
-        return self.needs_more_lines()
+        return self._needs_more_lines()
 
 
 def from_logs(path: str,

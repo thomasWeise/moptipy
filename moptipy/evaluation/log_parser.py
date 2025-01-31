@@ -124,35 +124,33 @@ class LogParser[T](Parser[T]):
         #: the path filter
         self.__path_filter: Final[Callable[[Path], bool]] = path_filter
 
-    def start_list_dir(self, root: Path, current: Path) -> tuple[bool, bool]:
+    def _should_list_directory(self, directory: Path) -> tuple[bool, bool]:
         """
         Decide whether to enter a directory to parse all files inside.
 
-        :param root: the root directory
-        :param current: the path of the directory
+        :param directory: the path of the directory
         :return: a tuple with two `True` values if all the sub-directories and
             files inside the directory should be processed, two `False` values
             if this directory should be skipped and parsing should continue
             with the next sibling directory
         """
-        should: Final[bool] = self.__path_filter(current)
+        should: Final[bool] = self.__path_filter(directory)
         return should, should
 
-    def start_parse_file(self, root: Path, current: Path) -> bool:
+    def _should_parse_file(self, file: Path) -> bool:
         """
         Decide whether to start parsing a file.
 
-        :param root: the root path
-        :param current: the file path
+        :param file: the file path
         :return: `True` if the file should be parsed, `False` if it should be
             skipped (and
             :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
             return `True`).
         """
-        return current.endswith(FILE_SUFFIX) and self.__path_filter(current)
+        return file.endswith(FILE_SUFFIX) and self.__path_filter(file)
 
     # noinspection PyMethodMayBeStatic
-    def start_section(self, title: str) -> bool:
+    def _start_section(self, title: str) -> bool:
         """
         Start a section.
 
@@ -176,7 +174,7 @@ class LogParser[T](Parser[T]):
 
     # noinspection PyUnusedLocal
     # noinspection PyMethodMayBeStatic
-    def lines(self, lines: list[str]) -> bool:
+    def _lines(self, lines: list[str]) -> bool:
         """
         Consume all the lines from a section.
 
@@ -196,26 +194,11 @@ class LogParser[T](Parser[T]):
         del lines
         return True
 
-    def before_get_result(self) -> None:
-        """Initialize the result construction: *before* `get_result`."""
-
-    def after_get_result(self) -> None:
-        """Cleanup after result construction: *after* `get_result`."""
-
-    def get_result(self) -> T | None:
-        """
-        Get the result of the file parsing process.
-
-        :returns: the result of the file parsin process, or `None`
-        """
-        return None
-
-    def parse_file(self, root: Path, current: Path) -> T | None:
+    def _parse_file(self, file: Path) -> T | None:  # pylint: disable=R1711
         """
         Parse the contents of a file.
 
-        :param root: the root path
-        :param current: the file to parse
+        :param file: the file to parse
         :return: the return value received from invoking `get_result`
         """
         lines: list[str] = []
@@ -229,7 +212,7 @@ class LogParser[T](Parser[T]):
         cmt_chr: Final[str] = COMMENT_START
 
         index: int = 0
-        with (current.open_for_read() as handle):
+        with (file.open_for_read() as handle):
             while True:
 
                 # get the next line
@@ -238,11 +221,11 @@ class LogParser[T](Parser[T]):
                         buffer = handle.readlines(128)
                     except Exception as be:
                         raise ValueError(
-                            f"Error when reading lines from file {current!r} "
+                            f"Error when reading lines from file {file!r} "
                             f"while in section {section!r}."
                             if state == 1 else
                             "Error when reading lines from file "
-                            f"{current!r}.") from be
+                            f"{file!r}.") from be
                     if (buffer is None) or (len(buffer) <= 0):
                         break
                     index = 0
@@ -265,25 +248,25 @@ class LogParser[T](Parser[T]):
                     if not cur.startswith(sect_start):
                         raise ValueError("Line should start with "
                                          f"{sect_start!r} but is "
-                                         f"{orig_cur!r} in file {current!r}.")
+                                         f"{orig_cur!r} in file {file!r}.")
                     section = cur[len(sect_start):]
                     if len(section) <= 0:
                         raise ValueError(
                             "Section title cannot be empty in "
-                            f"{current!r}, but encountered {orig_cur!r}.")
+                            f"{file!r}, but encountered {orig_cur!r}.")
                     state = 1
                     sec_end = sect_end + section
-                    wants_section = self.start_section(section)
+                    wants_section = self._start_section(section)
                 elif state == 1:
                     if cur == sec_end:
                         state = 2
                         if wants_section:
                             try:
-                                do_next = self.lines(lines)
+                                do_next = self._lines(lines)
                             except Exception as be:
                                 raise ValueError(
                                     "Error when processing section "
-                                    f"{section!r} in file {current!r}.") \
+                                    f"{section!r} in file {file!r}.") \
                                     from be
                             lines.clear()
                             if not do_next:
@@ -292,15 +275,15 @@ class LogParser[T](Parser[T]):
                         lines.append(cur)
 
         if state == 0:
-            raise ValueError(f"Log file {current!r} contains no section.")
+            raise ValueError(f"Log file {file!r} contains no section.")
         if state == 1:
-            raise ValueError(f"Log file {current!r} ended before"
+            raise ValueError(f"Log file {file!r} ended before"
                              f"encountering {sec_end!r}.")
-        try:
-            self.before_get_result()
-            return self.get_result()
-        finally:
-            self.after_get_result()
+        return None  # pylint: disable=R1711
+
+
+#: the start for random seeds
+_SEED_START: Final[str] = f"{PART_SEPARATOR}0x"
 
 
 class ExperimentParser[T](LogParser[T]):
@@ -322,52 +305,91 @@ class ExperimentParser[T](LogParser[T]):
         self.instance: str | None = None
         #: The random seed of the current log file.
         self.rand_seed: int | None = None
+        #: the file basename
+        self.__file_base_name: str | None = None
 
-    def start_parse_file(self, root: Path, current: Path) -> bool:
+    def _start_parse_file(self, file: Path) -> None:
         """
-        Decide whether to start parsing a file and setup meta-data.
+        Start parsing the file.
 
-        :param root: the root path
-        :param current: the file path
-        :return: `True` if the file should be parsed, `False` if it should be
-            skipped (and
-            :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should
-            return `True`).
+        This function sets up best guesses about the instance name, the
+        algorithm name, and the random seed based on the file name.
+
+        :param file: the file to parse
         """
-        if not super().start_parse_file(root, current):
-            return False
+        super()._start_parse_file(file)
+        inst_name_suggestion: str | None = None
+        algo_name_suggestion: str | None = None
+        with (suppress(Exception)):
+            inst_dir: Final[Path] = file.up()
+            inst_name_suggestion = inst_dir.basename()
+            if sanitize_name(inst_name_suggestion) != inst_name_suggestion:
+                inst_name_suggestion = None
+            else:
+                algo_dir: Final[Path] = inst_dir.up()
+                algo_name_suggestion = algo_dir.basename()
+                if sanitize_name(algo_name_suggestion) \
+                        != algo_name_suggestion:
+                    algo_name_suggestion = None
 
+        fbn: Final[str] = file.basename()
+        self.__file_base_name = fbn
+
+        seed_start: int = fbn.rfind(_SEED_START)
+        seed_end: int = str.__len__(fbn) - len(FILE_SUFFIX)
+        if (seed_start > 0) and (seed_end > (seed_start + 3)):
+            try:
+                self.rand_seed = rand_seed_check(int(
+                    fbn[seed_start + 3:seed_end], base=16))
+            except Exception:  # noqa
+                seed_start = -1
+        if (seed_start > 0) and (inst_name_suggestion is not None):
+            if algo_name_suggestion is not None:
+                start: str = (f"{algo_name_suggestion}{PART_SEPARATOR}"
+                              f"{inst_name_suggestion}{_SEED_START}")
+                if fbn.casefold().startswith(start.casefold()):
+                    self.instance = inst_name_suggestion
+                    self.algorithm = algo_name_suggestion
+            else:
+                start = f"{PART_SEPARATOR}{inst_name_suggestion}{_SEED_START}"
+                if start.casefold() in fbn.casefold():
+                    self.instance = inst_name_suggestion
+
+    def _parse_file(self, file: Path) -> T | None:
+        """
+        Parse the file contents.
+
+        :param file: the file to parse
+        :returns: nothing
+        """
+        res: Final[T | None] = super()._parse_file(file)
+
+        if (self.algorithm is not None) and (self.rand_seed is not None) and (
+                self.instance is None):
+            bn: Final[str] = self.__file_base_name
+            alcf: str = f"{self.algorithm.casefold()}{PART_SEPARATOR}"
+            if bn.casefold().startswith(alcf):
+                inst_end: Final[int] = bn.rfind(_SEED_START)
+                anl: Final[int] = str.__len__(alcf)
+                if inst_end > anl:
+                    inst: str = bn[anl:inst_end]
+                    if sanitize_name(inst) == inst:
+                        self.instance = inst
+            self.instance = "unknown"
+
+        return res
+
+    def _end_parse_file(self, file: Path) -> None:
+        """
+        Finalize parsing a file.
+
+        :param file: the file
+        """
+        self.rand_seed = None
         self.algorithm = None
         self.instance = None
-        self.rand_seed = None
-        stop: bool = True
-        with suppress(Exception):
-            inst_dir: Final[Path] = current.up()
-            algo_dir: Final[Path] = inst_dir.up()
-            stop = not (algo_dir.contains(inst_dir)
-                        and inst_dir.contains(current))
-        if stop:
-            return False
-        self.instance = sanitize_name(inst_dir.basename())
-        self.algorithm = sanitize_name(algo_dir.basename())
-        start = (f"{self.algorithm}{PART_SEPARATOR}"
-                 f"{self.instance}{PART_SEPARATOR}0x")
-        base = current.basename()
-        if (not base.startswith(start)) and \
-                (not base.casefold().startswith(start.casefold())):
-            # case-insensitive comparison needed because of Windows
-            raise ValueError(
-                f"File name of {current!r} should start with {start!r}.")
-        self.rand_seed = rand_seed_check(int(
-            base[len(start):(-len(FILE_SUFFIX))], base=16))
-        return True
-
-    def after_get_result(self) -> None:
-        """Finalize parsing a file."""
-        self.rand_seed = None
-        self.algorithm = None
-        self.instance = None
-        return super().after_get_result()
+        self.__file_base_name = None
+        super()._end_parse_file(file)
 
 
 class SetupAndStateParser[T](ExperimentParser[T]):
@@ -413,22 +435,26 @@ class SetupAndStateParser[T](ExperimentParser[T]):
         #: state section, 4=in setup section, 8=in state section
         self.__state: int = 0
 
-    def start_parse_file(self, root: Path, current: Path) -> bool:
+    def _should_parse_file(self, file: Path) -> bool:
         """
         Begin parsing the file identified by `path`.
 
-        :param root: the root path
-        :param current: the path identifying the file
+        :param file: the path identifying the file
         """
-        if not super().start_parse_file(root, current):
+        if not super()._should_parse_file(file):
             return False
         if self.__state != 0:
-            raise ValueError(f"Illegal state when trying to parse {current}.")
+            raise ValueError(f"Illegal state when trying to parse {file}.")
         return True
 
-    def before_get_result(self) -> None:
-        """Check the state before `get_result` is called."""
-        # perform sanity checks
+    def _parse_file(self, file: Path) -> T | None:
+        """
+        Parse the file.
+
+        :param file: the file
+        :returns: the parsed object
+        """
+        res: Final[T | None] = super()._parse_file(file)
         if self.__state != 3:
             raise ValueError(
                 "Illegal state, log file must have both a "
@@ -452,10 +478,14 @@ class SetupAndStateParser[T](ExperimentParser[T]):
             raise ValueError("last_improvement_fe is missing.")
         if self.last_improvement_time_millis is None:
             raise ValueError("last_improvement_time_millis is missing.")
+        return res
 
-    def after_get_result(self) -> None:
-        """Finalize the state *after* `get_result`."""
-        # now clear the data
+    def _end_parse_file(self, file: Path) -> None:
+        """
+        Finalize the state *after* parsing.
+
+        :param file: the file to parse
+        """
         self.total_fes = None
         self.total_time_millis = None
         self.best_f = None
@@ -467,9 +497,9 @@ class SetupAndStateParser[T](ExperimentParser[T]):
         self.objective = None
         self.encoding = None
         self.__state = 0
-        return super().after_get_result()
+        return super()._end_parse_file(file)
 
-    def needs_more_lines(self) -> bool:
+    def _needs_more_lines(self) -> bool:
         """
         Check whether we need to process more lines.
 
@@ -482,7 +512,7 @@ class SetupAndStateParser[T](ExperimentParser[T]):
         """
         return self.__state != 3
 
-    def lines(self, lines: list[str]) -> bool:
+    def _lines(self, lines: list[str]) -> bool:
         """
         Process the lines loaded from a section.
 
@@ -494,12 +524,12 @@ class SetupAndStateParser[T](ExperimentParser[T]):
         :returns: `True` if parsing should be continued, `False` otherwise
         """
         if (self.__state & 4) != 0:
-            self.setup_section(parse_key_values(lines))
+            self._setup_section(parse_key_values(lines))
         elif (self.__state & 8) != 0:
-            self.state_section(lines)
-        return self.needs_more_lines()
+            self._state_section(lines)
+        return self._needs_more_lines()
 
-    def start_section(self, title: str) -> bool:
+    def _start_section(self, title: str) -> bool:
         """
         Begin a section.
 
@@ -507,7 +537,7 @@ class SetupAndStateParser[T](ExperimentParser[T]):
         :returns: `True` if the text of the section should be processed,
             `False` otherwise
         """
-        super().start_section(title)
+        super()._start_section(title)
         if title == SECTION_SETUP:
             if (self.__state & 1) != 0:
                 raise ValueError(f"Already did section {title!r}.")
@@ -520,7 +550,7 @@ class SetupAndStateParser[T](ExperimentParser[T]):
             return True
         return False
 
-    def setup_section(self, data: dict[str, str]) -> None:
+    def _setup_section(self, data: dict[str, str]) -> None:
         """
         Parse the data from the `setup` section.
 
@@ -546,7 +576,9 @@ class SetupAndStateParser[T](ExperimentParser[T]):
                 1_000_000_000_000)
         if _FULL_KEY_ALGORITHM in data:
             a = data[_FULL_KEY_ALGORITHM]
-            if a != self.algorithm:
+            if self.algorithm is None:
+                self.algorithm = a
+            elif a != self.algorithm:
                 # this error may occur under windows due to case-insensitive
                 # file names
                 if a.casefold() == self.algorithm.casefold():
@@ -575,7 +607,7 @@ class SetupAndStateParser[T](ExperimentParser[T]):
 
         self.__state = (self.__state | 1) & (~4)
 
-    def state_section(self, lines: list[str]) -> None:
+    def _state_section(self, lines: list[str]) -> None:
         """
         Process the data of the final state section.
 

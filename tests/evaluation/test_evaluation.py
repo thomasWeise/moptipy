@@ -212,27 +212,24 @@ def test_experiment_jssp() -> None:
             assert es_l.ert_fes > 0
             assert es_l.ert_time_millis > 0
 
-            es_algos: list[EndStatistics] = []
-            es_from_end_results(results, es_algos.append,
-                                join_all_instances=True)
+            es_algos: list[EndStatistics] = list(es_from_end_results(
+                results, join_all_instances=True))
             assert es_algos[0] == es_rs
             assert len(es_algos) == 2
 
-            es_insts: list[EndStatistics] = []
-            es_from_end_results(results, es_insts.append,
-                                join_all_algorithms=True)
+            es_insts: list[EndStatistics] = list(es_from_end_results(
+                results, join_all_algorithms=True))
             assert es_insts[2] == es_l
             assert len(es_insts) == 3
 
-            es_sep: list[EndStatistics] = []
-            es_from_end_results(results, es_sep.append)
+            es_sep: list[EndStatistics] = list(es_from_end_results(results))
             assert es_sep[3] == es_hc_a
             assert es_sep[0] == es_rs_a
             assert es_sep[2] == es_rs_l
             assert len(es_sep) == 6
 
-            es_one: list[EndStatistics] = []
-            es_from_end_results(results, es_one.append, True, True)
+            es_one: list[EndStatistics] = list(es_from_end_results(
+                results, True, True))
             assert es_one == [es_all]
             assert len(es_one) == 1
 
@@ -240,8 +237,7 @@ def test_experiment_jssp() -> None:
                        suffix=logging.FILE_SUFFIX) as f:
             check: list[EndStatistics] = [es_hc_a]
             es_to_csv(check, f)
-            check_2: list[EndStatistics] = []
-            check_2.extend(es_from_csv(f))
+            check_2: list[EndStatistics] = list(es_from_csv(f))
             assert check_2 == check
             assert len(check_2) == 1
 

@@ -351,8 +351,7 @@ def compute_end_statistics(end_results_file: str,
     results: Final[list[EndResult]] = get_end_results(end_results_file)
     if len(results) <= 0:
         raise ValueError("end results cannot be empty")
-    stats: Final[list[EndStatistics]] = []
-    es_from_end_results(results, stats.append)
+    stats: Final[list[EndStatistics]] = list(es_from_end_results(results))
     if len(stats) <= 0:
         raise ValueError("end result statistics cannot be empty")
     stats.sort()

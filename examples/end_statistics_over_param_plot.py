@@ -37,6 +37,7 @@ parameter value. E.g., `rls_flipB10` means `m=10`. So we can get the value
 of `m` as `int(name[9:])` and the base name of the algorithm as `name[9:]`,
 i.e., `rls_flipB` in our example.
 """
+from itertools import chain
 from time import sleep
 from webbrowser import open_new_tab
 
@@ -95,11 +96,10 @@ with temp_dir() as td:  # create temporary directory `td`
 
     end_results = list(from_logs(td))  # load results
 
-    end_stats = []  # the end statistics go into this list
-    from_end_results(end_results, end_stats.append)
-    from_end_results(  # over all instances summary
-        end_results, end_stats.append, join_all_instances=True,
-        join_all_objectives=True)
+    end_stats = list(chain(  # Compute two sets of end statistics
+        from_end_results(end_results),  # One per algorithm-instance combo
+        from_end_results(  # and one on a per-algorithm basis.
+            end_results, join_all_instances=True, join_all_objectives=True)))
 
     files = []  # the collection of files
 

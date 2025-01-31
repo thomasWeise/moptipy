@@ -32,7 +32,7 @@ from pycommons.io.csv import (
 )
 from pycommons.io.csv import CsvReader as CsvReaderBase
 from pycommons.io.csv import CsvWriter as CsvWriterBase
-from pycommons.io.path import Path, file_path, line_writer
+from pycommons.io.path import Path, file_path, write_lines
 from pycommons.strings.string_conv import (
     int_or_none_to_str,
     num_or_none_to_str,
@@ -459,9 +459,7 @@ def to_csv(results: Iterable[EndResult], file: str) -> Path:
     logger(f"Writing end results to CSV file {path!r}.")
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
-        consumer: Final[Callable[[str], None]] = line_writer(wt)
-        for r in CsvWriter.write(results):
-            consumer(r)
+        write_lines(CsvWriter.write(results), wt)
     logger(f"Done writing end results to CSV file {path!r}.")
     return path
 
@@ -722,12 +720,13 @@ T = TypeVar("T", bound=EndResult)
 class EndResultLogParser[T](SetupAndStateParser[T]):
     """The internal log parser class."""
 
-    def get_result(self) -> T:
+    def _parse_file(self, file: Path) -> T:
         """
         Get the parsing result.
 
         :returns: the :class:`EndResult` instance
         """
+        super()._parse_file(file)
         return cast(T, EndResult(self.algorithm,
                                  self.instance,
                                  self.objective,
@@ -794,16 +793,13 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
         self.__hit_goal: bool = False
         self.__state: int = 0
 
-    def before_get_result(self) -> None:
-        """Before we get the result."""
+    def _parse_file(self, file: Path) -> EndResult:
+        super()._parse_file(file)
         if self.__state != 2:
             raise ValueError(
                 "Illegal state, log file must have a "
                 f"{SECTION_PROGRESS!r} section.")
         self.__state = 0
-        return super().before_get_result()
-
-    def get_result(self) -> EndResult:
         __hit_goal = self.__hit_goal
         stop_fes: int = self.__stop_fes
         stop_ms: int = self.__stop_ms
@@ -832,8 +828,12 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
             max_time_millis=_join_goals(
                 self.__limit_ms_n, self.max_time_millis, min))
 
-    def after_get_result(self) -> None:
-        """Cleanup."""
+    def _end_parse_file(self, file: Path) -> None:
+        """
+        Cleanup.
+
+        :param file: the file that was parsed.
+        """
         self.__stop_fes = None
         self.__stop_ms = None
         self.__stop_f = None
@@ -846,65 +846,63 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
         self.__limit_f_n = None
         self.__limit_f = -inf
         self.__hit_goal = False
-        super().after_get_result()
+        super()._end_parse_file(file)
 
-    def start_parse_file(self, root: Path, current: Path) -> bool:
-        if super().start_parse_file(root, current):
-            if (self.algorithm is None) or (self.instance is None):
-                raise ValueError(
-                    f"Invalid state: algorithm={self.algorithm!r}, "
-                    f"instance={self.instance!r}.")
+    def _start_parse_file(self, file: Path) -> None:
+        super()._start_parse_file(file)
+        a: Final[str | None] = self.algorithm
+        i: Final[str | None] = self.instance
 
-            fes = self.__src_limit_fes(self.algorithm, self.instance) \
-                if callable(self.__src_limit_fes) else self.__src_limit_fes
-            self.__limit_fes_n = None if fes is None else \
-                check_int_range(fes, "limit_fes", 1, 1_000_000_000_000_000)
-            self.__limit_fes = inf if self.__limit_fes_n is None \
-                else self.__limit_fes_n
+        fes = self.__src_limit_fes(a, i) if (a and i and callable(
+            self.__src_limit_fes)) else (
+            self.__src_limit_fes if isinstance(self.__src_limit_fes, int)
+            else None)
+        self.__limit_fes_n = None if fes is None else \
+            check_int_range(fes, "limit_fes", 1, 1_000_000_000_000_000)
+        self.__limit_fes = inf if self.__limit_fes_n is None \
+            else self.__limit_fes_n
 
-            time = self.__src_limit_ms(self.algorithm, self.instance) \
-                if callable(self.__src_limit_ms) else self.__src_limit_ms
-            self.__limit_ms_n = None if time is None else \
-                check_int_range(time, "__limit_ms", 1, 1_000_000_000_000)
-            self.__limit_ms = inf if self.__limit_ms_n is None \
-                else self.__limit_ms_n
+        time = self.__src_limit_ms(a, i) if (a and i and callable(
+            self.__src_limit_ms)) else (
+            self.__src_limit_ms if isinstance(self.__src_limit_ms, int)
+            else None)
+        self.__limit_ms_n = None if time is None else \
+            check_int_range(time, "__limit_ms", 1, 1_000_000_000_000)
+        self.__limit_ms = inf if self.__limit_ms_n is None \
+            else self.__limit_ms_n
 
-            self.__limit_f_n = self.__src_limit_f(
-                self.algorithm, self.instance) \
-                if callable(self.__src_limit_f) else self.__src_limit_f
-            if self.__limit_f_n is not None:
-                if not isinstance(self.__limit_f_n, int | float):
-                    raise type_error(self.__limit_f_n, "limit_f", (
-                        int, float))
-                if not isfinite(self.__limit_f_n):
-                    if self.__limit_f_n <= -inf:
-                        self.__limit_f_n = None
-                    else:
-                        raise ValueError(
-                            f"invalid limit f={self.__limit_f_n} for "
-                            f"{self.algorithm} on {self.instance}")
-            self.__limit_f = -inf if self.__limit_f_n is None \
-                else self.__limit_f_n
-            return True
-        return False
+        self.__limit_f_n = self.__src_limit_f(a, i) if (a and i and callable(
+            self.__src_limit_f)) else (
+            self.__src_limit_f if isinstance(self.__src_limit_f, int | float)
+            else None)
+        if self.__limit_f_n is not None:
+            if not isinstance(self.__limit_f_n, int | float):
+                raise type_error(self.__limit_f_n, "limit_f", (
+                    int, float))
+            if not isfinite(self.__limit_f_n):
+                if self.__limit_f_n <= -inf:
+                    self.__limit_f_n = None
+                else:
+                    raise ValueError(
+                        f"invalid limit f={self.__limit_f_n} for "
+                        f"{self.algorithm} on {self.instance}")
+        self.__limit_f = -inf if self.__limit_f_n is None \
+            else self.__limit_f_n
 
-    def start_section(self, title: str) -> bool:
+    def _start_section(self, title: str) -> bool:
         if title == SECTION_PROGRESS:
             if self.__state != 0:
                 raise ValueError(f"Already did section {title}.")
             self.__state = 1
             return True
-        return super().start_section(title)
+        return super()._start_section(title)
 
-    def needs_more_lines(self) -> bool:
-        return (self.__state < 2) or super().needs_more_lines()
+    def _needs_more_lines(self) -> bool:
+        return (self.__state < 2) or super()._needs_more_lines()
 
-    def lines(self, lines: list[str]) -> bool:
-        if not isinstance(lines, list):
-            raise type_error(lines, "lines", list)
-
+    def _lines(self, lines: list[str]) -> bool:
         if self.__state != 1:
-            return super().lines(lines)
+            return super()._lines(lines)
         self.__state = 2
 
         n_rows = len(lines)
@@ -978,7 +976,7 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
         self.__stop_f = stop_f
         self.__stop_li_fe = stop_li_fe
         self.__stop_li_ms = stop_li_ms
-        return self.needs_more_lines()
+        return self._needs_more_lines()
 
 
 def from_logs(

@@ -12,7 +12,7 @@ import argparse
 import os.path
 from dataclasses import dataclass
 from math import ceil, inf, isfinite
-from typing import Any, Callable, Final, Iterable, Iterator, cast
+from typing import Callable, Final, Generator, Iterable, Iterator, cast
 
 from pycommons.ds.sequences import reiterable
 from pycommons.io.console import logger
@@ -28,7 +28,7 @@ from pycommons.io.csv import (
 )
 from pycommons.io.csv import CsvReader as CsvReaderBase
 from pycommons.io.csv import CsvWriter as CsvWriterBase
-from pycommons.io.path import Path, file_path, line_writer
+from pycommons.io.path import Path, file_path, write_lines
 from pycommons.math.sample_statistics import (
     KEY_MEAN_ARITH,
     KEY_STDDEV,
@@ -767,17 +767,15 @@ def create(source: Iterable[EndResult]) -> EndStatistics:
 
 
 def from_end_results(source: Iterable[EndResult],
-                     consumer: Callable[[EndStatistics], Any],
                      join_all_algorithms: bool = False,
                      join_all_instances: bool = False,
                      join_all_objectives: bool = False,
-                     join_all_encodings: bool = False) -> None:
+                     join_all_encodings: bool = False) \
+        -> Generator[EndStatistics, None, None]:
     """
     Aggregate statistics over a stream of end results.
 
     :param source: the stream of end results
-    :param consumer: the destination to which the new records will be
-        sent, can be the `append` method of a :class:`list`
     :param join_all_algorithms: should the statistics be aggregated
         over all algorithms
     :param join_all_instances: should the statistics be aggregated
@@ -786,11 +784,10 @@ def from_end_results(source: Iterable[EndResult],
         all objectives?
     :param join_all_encodings: should statistics be aggregated over all
         encodings
+    :returns: iterates over the generated end statistics records
     """
     if not isinstance(source, Iterable):
         raise type_error(source, "source", Iterable)
-    if not callable(consumer):
-        raise type_error(consumer, "consumer", call=True)
     if not isinstance(join_all_algorithms, bool):
         raise type_error(join_all_algorithms,
                          "join_all_algorithms", bool)
@@ -803,7 +800,7 @@ def from_end_results(source: Iterable[EndResult],
 
     if (join_all_algorithms and join_all_instances
             and join_all_objectives and join_all_encodings):
-        consumer(create(source))
+        yield create(source)
         return
 
     sorter: dict[tuple[str, str, str, str], list[EndResult]] = {}
@@ -828,9 +825,9 @@ def from_end_results(source: Iterable[EndResult],
 
     if len(sorter) > 1:
         for key in sorted(sorter.keys()):
-            consumer(create(sorter[key]))
+            yield create(sorter[key])
     else:
-        consumer(create(next(iter(sorter.values()))))
+        yield create(next(iter(sorter.values())))  #: pylint: disable=R1708
 
 
 def to_csv(data: EndStatistics | Iterable[EndStatistics],
@@ -846,16 +843,14 @@ def to_csv(data: EndStatistics | Iterable[EndStatistics],
     logger(f"Writing end result statistics to CSV file {path!r}.")
     path.ensure_parent_dir_exists()
     with path.open_for_write() as wt:
-        consumer: Final[Callable[[str], None]] = line_writer(wt)
-        for r in CsvWriter.write(
-                (data, ) if isinstance(data, EndStatistics) else data):
-            consumer(r)
+        write_lines(CsvWriter.write(
+            (data, ) if isinstance(data, EndStatistics) else data), wt)
 
     logger(f"Done writing end result statistics to CSV file {path!r}.")
     return path
 
 
-def from_csv(file: str) -> Iterator[EndStatistics]:
+def from_csv(file: str) -> Generator[EndStatistics, None, None]:
     """
     Parse a CSV file and collect all encountered :class:`EndStatistics`.
 
@@ -1531,13 +1526,10 @@ def aggregate_over_parameter(
 
     stats: Final[list[EndStatistics]] = []
     for pv in sorted(param_map.keys()):
-        def __make(es: EndStatistics, ppv=pv, ss=stats.append) -> None:
-            ss(__PvEndStatistics(es, ppv))
-
-        from_end_results(
-            param_map[pv], cast(Callable[[EndStatistics], None], __make),
-            join_all_algorithms, join_all_instances, join_all_objectives,
-            join_all_encodings)
+        for ess in from_end_results(
+                param_map[pv], join_all_algorithms, join_all_instances,
+                join_all_objectives, join_all_encodings):
+            stats.append(__PvEndStatistics(ess, pv))
     return cast(Callable[[EndStatistics], int | float],
                 __PvEndStatistics.get_param_value), tuple(stats)
 
@@ -1590,19 +1582,18 @@ if __name__ == "__main__":
     args: Final[argparse.Namespace] = parser.parse_args()
 
     src_path: Final[Path] = args.source
-    end_results: list[EndResult]
+    end_results: Iterable[EndResult]
     if src_path.is_file():
         logger(f"{src_path!r} identifies as file, load as end-results csv")
-        end_results = list(end_results_from_csv(src_path))
+        end_results = end_results_from_csv(src_path)
     else:
         logger(f"{src_path!r} identifies as directory, load it as log files")
-        end_results = list(end_results_from_logs(src_path))
+        end_results = end_results_from_logs(src_path)
 
     end_stats: Final[list[EndStatistics]] = []
-    from_end_results(
-        source=end_results, consumer=end_stats.append,
+    to_csv(from_end_results(
+        source=end_results,
         join_all_algorithms=args.join_algorithms,
         join_all_instances=args.join_instances,
         join_all_objectives=args.join_objectives,
-        join_all_encodings=args.join_encodings)
-    to_csv(end_stats, args.dest)
+        join_all_encodings=args.join_encodings), args.dest)

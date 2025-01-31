@@ -420,10 +420,10 @@ def plot_end_makespans_over_param(
 
     end_stats: Final[list[EndStatistics]] = []
     if plot_single_instances:
-        from_end_results(end_results, end_stats.append)
+        end_stats.extend(from_end_results(end_results))
     if plot_instance_summary:
-        from_end_results(end_results, end_stats.append,
-                         join_all_instances=True)
+        end_stats.extend(from_end_results(
+            end_results, join_all_instances=True))
     if len(end_stats) <= 0:
         raise ValueError("no end statistics records to plot!")
     result: list[Path] = []

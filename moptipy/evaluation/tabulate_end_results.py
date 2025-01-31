@@ -534,8 +534,8 @@ def tabulate_end_results(
                 "then specify algorithm_summary_statistics=None")
 
     # gather the statistics for each algorithm-instance combination
-    algo_inst_list: Final[list[EndStatistics]] = []
-    es_from_end_results(end_results, algo_inst_list.append)
+    algo_inst_list: Final[list[EndStatistics]] = list(es_from_end_results(
+        end_results))
     if len(algo_inst_list) <= 0:
         raise ValueError("no algorithm-instance combinations?")
     # get the sorted lists of algorithms and instances
@@ -587,13 +587,10 @@ def tabulate_end_results(
     algo_dict: Final[dict[str, EndStatistics] | None] = {} \
         if (n_insts > 1) and (algo_getters is not None) else None
     if algo_dict is not None:
-        def __put(es: EndStatistics) -> None:
-            nonlocal algo_dict
+        for es in es_from_end_results(end_results, join_all_instances=True):
             if es.algorithm in algo_dict:
                 raise ValueError(f"already encountered {es.algorithm}?")
             algo_dict[es.algorithm] = es
-        es_from_end_results(end_results, __put, join_all_instances=True)
-        del __put
     del end_results
     if len(algo_dict) != n_algos:
         raise ValueError(f"there are {n_algos} algorithms, but in the "

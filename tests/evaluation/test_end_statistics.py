@@ -30,11 +30,9 @@ def __test_write_read_end_stats(
     max_ms: Final[int | None] = int(random.integers(
         1_000_000, 1_000_000_000)) if has_max_ms else None
     end: Final[EndResults] = EndResults.create(experiment, max_fes, max_ms)
-    stats: Final[list[EndStatistics]] = []
-
-    from_end_results(end.results, stats.append,
-                     join_all_algorithms, join_all_instances,
-                     join_all_objectives, join_all_encodings)
+    stats: Final[list[EndStatistics]] = list(from_end_results(
+        end.results, join_all_algorithms, join_all_instances,
+        join_all_objectives, join_all_encodings))
     assert len(stats) > 0
     loaded: list[EndStatistics] = []
 
