@@ -18,7 +18,7 @@ minimizing the energy:
 
 `F(x) = n² / (n * E(X))`
 
-This problem is different than the other bit-string based problems, because we
+This problem is different from the other bit-string based problems, because we
 only know the optimal solutions for few, smaller instances. For larger
 instances, we only have lower bounds of the energy.
 

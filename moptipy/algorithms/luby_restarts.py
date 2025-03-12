@@ -28,12 +28,12 @@ from moptipy.api.subprocesses import for_fes
 from moptipy.utils.logger import CSV_SEPARATOR, KeyValueLogSection
 
 
-@numba.njit(cache=True)
-def _luby(i: int) -> int:
+@numba.njit(cache=True, inline="always", fastmath=True, boundscheck=False)
+def luby(i: int) -> int:
     """
     Compute the Luby sequence.
 
-    >>> [_luby(ii) for ii in range(1, 65)]
+    >>> [luby(ii) for ii in range(1, 65)]
     [1, 1, 2, 1, 1, 2, 4, 1, 1, 2, 1, 1, 2, 4, 8, 1, 1, 2, 1, 1, 2, 4, 1, \
 1, 2, 1, 1, 2, 4, 8, 16, 1, 1, 2, 1, 1, 2, 4, 1, 1, 2, 1, 1, 2, 4, 8, \
 1, 1, 2, 1, 1, 2, 4, 1, 1, 2, 1, 1, 2, 4, 8, 16, 32, 1]
@@ -48,7 +48,8 @@ def _luby(i: int) -> int:
             return two_by_k_minus_one
         if i >= two_by_k:
             continue
-        return _luby((i - two_by_k_minus_one) + 1)
+        i = (i - two_by_k_minus_one) + 1
+        two_by_k = 1
 
 
 class __LubyAlgorithm(Algorithm):
@@ -98,7 +99,7 @@ class __LubyAlgorithm(Algorithm):
                 restarts.append((process.get_consumed_fes(),
                                  process.get_consumed_time_millis()))
             index = index + 1
-            with for_fes(process, base * _luby(index)) as prc:
+            with for_fes(process, base * luby(index)) as prc:
                 als: Callable[[str, str], None] = prc.add_log_section
 
                 def __als(t: str, c: str, _a=als, _i=index) -> None:
@@ -151,7 +152,7 @@ class __LubyMOAlgorithm(__LubyAlgorithm, MOAlgorithm):
                 restarts.append((process.get_consumed_fes(),
                                  process.get_consumed_time_millis()))
             index = index + 1
-            with for_fes(process, base * _luby(index)) as prc:
+            with for_fes(process, base * luby(index)) as prc:
                 als: Callable[[str, str], None] = prc.add_log_section
 
                 def __als(t: str, c: str, _a=als, _i=index) -> None:
