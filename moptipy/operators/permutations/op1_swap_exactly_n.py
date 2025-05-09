@@ -359,8 +359,8 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
 # This procedure, however, may end up in a dead end. We therefore need to wrap
 # it into a loop that tries until success...  ...but we cannot do that because
 # success may not be possible. Some moves may be impossible to do.
-        i_idx: int = random.integers(0, length)  # Get the first random index.
-        i_src: int = indices[i_idx]  # Pick the actual index at that index.
+        i_idx = random.integers(0, length)  # Get the first random index.
+        i_src = indices[i_idx]  # Pick the actual index at that index.
         indices[0], indices[i_idx] = i_src, indices[0]  # Swap it to 0.
         found: int = 1  # the number of found indices
         tested: int = 1  # the number of tested indices
@@ -368,8 +368,8 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
         continue_after: bool = found < sm1  # continue until step_size-1
         while True:
             i_idx = random.integers(tested, length)  # Get random index.
-            i_dst: int = indices[i_idx]  # Pick the actual index.
-            current: int = x[i_dst]  # Get value at the new index.
+            i_dst = indices[i_idx]  # Pick the actual index.
+            current = x[i_dst]  # Get value at the new index.
             can_end: bool = current != first
             accept: bool = (current != last) and (continue_after or can_end)
             if accept:

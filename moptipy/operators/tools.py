@@ -150,4 +150,5 @@ def inv_exponential_step_size(int_val: int,
         return 1.0
     if int_val <= min_steps:
         return 0.0
-    return log(int_val - min_steps + 1) / log(max_steps - min_steps + 1)
+    return float(log(int_val - min_steps + 1) / log(
+        max_steps - min_steps + 1))

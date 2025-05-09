@@ -31,7 +31,7 @@ def _lb_int(lb: int | float) -> int:
     >>> type(_lb_int(1.4))
     <class 'int'>
     """
-    return lb if isinstance(lb, int) else int(ceil(lb))
+    return lb if isinstance(lb, int) else ceil(lb)
 
 
 def _ub_int(ub: int | float) -> int:
@@ -50,7 +50,7 @@ def _ub_int(ub: int | float) -> int:
     >>> type(_ub_int(1.4))
     <class 'int'>
     """
-    return ub if isinstance(ub, int) else int(floor(ub))
+    return ub if isinstance(ub, int) else floor(ub)
 
 
 def _float_beautify(f: float) -> float:
@@ -60,7 +60,7 @@ def _float_beautify(f: float) -> float:
     :param f: the float
     :return: the beautified number
     """
-    vb: int = int(round(1000.0 * f))
+    vb: int = round(1000.0 * f)
     r1: float = 0.001 * vb
     l1: int = len(str(r1))
 
@@ -317,7 +317,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
                 break
         if not has_defined:
             val = _between(-inf, inf, random)
-            result[random.integers(total)] = val
+            result[int(random.integers(total))] = val
             failed = val is None
         if failed:
             continue
@@ -354,7 +354,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
         while not failed:
             # find random gap
             has_missing: bool = False
-            ofs: int = random.integers(total)
+            ofs: int = int(random.integers(total))
             missing: int = 0
             for i in range(total):
                 missing = (ofs + i) % total
@@ -387,7 +387,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
             if val is None:
                 failed = True
                 break
-            result[random.integers(prev_idx + 1, nxt_idx)] = val
+            result[int(random.integers(prev_idx + 1, nxt_idx))] = val
 
         if failed:
             continue
@@ -444,7 +444,7 @@ def sample_from_attractors(random: Generator,
     while max_trials > 0:
         max_trials -= 1
 
-        chosen_idx = random.integers(al)
+        chosen_idx = int(random.integers(al))
         chosen = attractors[chosen_idx]
         lo = attractors[chosen_idx - 1] if (chosen_idx > 0) else lb
         hi = attractors[chosen_idx + 1] if (chosen_idx < (al - 1)) else ub

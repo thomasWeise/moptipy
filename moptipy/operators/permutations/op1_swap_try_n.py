@@ -60,7 +60,7 @@ def swap_try_n(random: Generator, dest: np.ndarray, x: np.ndarray,
 # Compute the real step size based on the length of the permutation.
     steps: int = exponential_step_size(step_size, 2, remaining)
 
-    ii: int = random.integers(0, remaining)  # Select first random index.
+    ii = random.integers(0, remaining)  # Select first random index.
     i1 = indices[ii]  # Get the actual index.
     remaining = remaining - 1  # There is one less remaining index.
     indices[remaining], indices[ii] = i1, indices[remaining]

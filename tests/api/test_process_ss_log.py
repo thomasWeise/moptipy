@@ -56,7 +56,7 @@ def test_process_ss_log_log() -> None:
                 .set_encoding(encoding)\
                 .set_objective(objective)\
                 .set_algorithm(algorithm)\
-                .set_goal_f(int(round(1.5 * objective.lower_bound())))\
+                .set_goal_f(round(1.5 * objective.lower_bound()))\
                 .set_max_time_millis(60000)\
                 .set_log_file(tf)\
                 .set_log_improvements(True)\

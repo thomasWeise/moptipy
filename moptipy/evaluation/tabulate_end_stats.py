@@ -25,7 +25,7 @@ def tabulate_end_stats(
         Callable[[int | float], str]]] = ((
         es_getter("bestF.mean"),
         r"\bestFmean", True,
-        lambda v: __INT_2_STR(int(round(v)))), ),
+        lambda v: __INT_2_STR(round(v))), ),
         instance_get: Callable[[EndStatistics], str] =
         lambda es: es.instance,
         instance_sort_key: Callable[[str], Any] = lambda x: x,
@@ -203,7 +203,7 @@ def tabulate_end_stats(
     header.append(r"\hline%")
 
     writer.clear()
-    writer.append(instance_header)  # noqa: PIE799
+    writer.append(instance_header)
     writer.extend(f"\\multicolumn{{1}}{{c}}{{{ic[0]}}}"
                   for ic in instance_cols)
     writer.extend(f"\\multicolumn{{{n_stats}}}{{c}}{{{algorithm_name(algo)}}}"

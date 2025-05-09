@@ -70,7 +70,7 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
     x1i: int = 0  # first valid value in x1 is at index 0
     for rr in r:  # repeat until dest is filled, i.e., desti=length
         # randomly chose a source point and pick next operation
-        value: int = x0[x0i] if rr == 0 else x1[x1i]
+        value = x0[x0i] if rr == 0 else x1[x1i]
         dest[desti] = value  # store the value in the destination
         desti = desti + 1  # step destination index
 

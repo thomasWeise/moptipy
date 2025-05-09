@@ -1,7 +1,7 @@
 """
-The ow Autocorrelation Binary Sequence problem.
+The Low Autocorrelation Binary Sequence problem.
 
-The autocorrelations of a bit string `x` are defined as
+The `k`-step autocorrelations of a bit string `x` are defined as
 
 `C_k(x) = sum(i = 0, n - k - 1, 1 if x[i] == x[i + k] else -1)`
 
@@ -54,12 +54,14 @@ Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
 """
+from math import isfinite
 from typing import Callable, Final, Iterator, cast
 
 import numba  # type: ignore
 import numpy as np
 from pycommons.ds.sequences import merge_sorted_and_return_unique
-from pycommons.types import check_int_range
+from pycommons.math.int_math import try_int_div
+from pycommons.types import check_int_range, type_error
 
 from moptipy.examples.bitstrings.bitstring_problem import (
     BitStringProblem,
@@ -1847,6 +1849,150 @@ def labs(x: np.ndarray) -> int:
             sqr += 1 if x[i] == x[i + k] else -1
         result += sqr * sqr
     return result
+
+
+def energy_to_merit(n: int, energy: int) -> int | float:
+    """
+    Convert an energy value to a merit factor.
+
+    :param n: the length of the bit sequence
+    :param energy: the integer energy factor, computed based on :func:`labs`.
+    :returns: a merit factor
+
+    >>> try:
+    ...     energy_to_merit(0, 1)
+    ... except ValueError as ve:
+    ...     print(ve)
+    n=0 is invalid, must be in 3..1000000000.
+
+    >>> try:
+    ...     energy_to_merit(4, 0)
+    ... except ValueError as ve:
+    ...     print(ve)
+    energy=0 is invalid, must be in 1..1000000000.
+    >>> energy_to_merit(3, 1)
+    4.5
+    >>> energy_to_merit(4, 2)
+    4
+    >>> energy_to_merit(5, 2)
+    6.25
+    >>> print(f"{energy_to_merit(6, 7):.4}")
+    2.571
+    >>> print(f"{energy_to_merit(7, 3):.4}")
+    8.167
+    >>> energy_to_merit(8, 8)
+    4
+    >>> print(f"{energy_to_merit(9, 12):.4}")
+    3.375
+    >>> print(f"{energy_to_merit(10, 13):.4}")
+    3.846
+    >>> print(f"{energy_to_merit(11, 5):.4}")
+    12.1
+    >>> print(f"{energy_to_merit(12, 10):.4}")
+    7.2
+    >>> print(f"{energy_to_merit(13, 6):.5}")
+    14.083
+    >>> print(f"{energy_to_merit(14, 19):.4}")
+    5.158
+    >>> print(f"{energy_to_merit(15, 15):.4}")
+    7.5
+    >>> print(f"{energy_to_merit(16, 24):.4}")
+    5.333
+    >>> print(f"{energy_to_merit(17, 32):.4}")
+    4.516
+    >>> print(f"{energy_to_merit(18, 25):.4}")
+    6.48
+    >>> print(f"{energy_to_merit(47, 135):.4}")
+    8.181
+    >>> print(f"{energy_to_merit(66, 257):.4}")
+    8.475
+    >>> print(f"{energy_to_merit(19, 33):.4}")
+    5.47
+    >>> print(f"{energy_to_merit(119, 835):.4}")
+    8.48
+    >>> print(f"{energy_to_merit(401, 11888):.5}")
+    6.7632
+    """
+    n = check_int_range(n, "n", 3)
+    energy = check_int_range(energy, "energy", 1)
+    return try_int_div(n * n, energy + energy)
+
+
+def merit_to_energy(n: int, merit: int | float) -> int:
+    """
+    Convert a merit factor back to an energy.
+
+    :param n: the energy
+    :param merit: the merit factor
+    :returns: the energy
+
+    >>> try:
+    ...     merit_to_energy(0, 1)
+    ... except ValueError as ve:
+    ...     print(ve)
+    n=0 is invalid, must be in 3..1000000000.
+
+    >>> try:
+    ...     merit_to_energy(3, 0)
+    ... except ValueError as ve:
+    ...     print(ve)
+    merit factor cannot be 0.
+
+    >>> try:
+    ...     merit_to_energy(3, "x")
+    ... except TypeError as te:
+    ...     print(str(te)[:50])
+    merit should be an instance of any in {float, int}
+
+    >>> merit_to_energy(3, 4.5)
+    1
+    >>> merit_to_energy(4, 4)
+    2
+    >>> merit_to_energy(5, 6.25)
+    2
+    >>> merit_to_energy(6, 2.571)
+    7
+    >>> merit_to_energy(7, 8.167)
+    3
+    >>> merit_to_energy(8, 4)
+    8
+    >>> merit_to_energy(9, 3.375)
+    12
+    >>> merit_to_energy(10, 3.846)
+    13
+    >>> merit_to_energy(11, 12.100)
+    5
+    >>> merit_to_energy(12, 7.200)
+    10
+    >>> merit_to_energy(13, 14.083)
+    6
+    >>> merit_to_energy(14, 5.158)
+    19
+    >>> merit_to_energy(15, 7.5)
+    15
+    >>> merit_to_energy(16, 5.333)
+    24
+    >>> merit_to_energy(17, 4.516)
+    32
+    >>> merit_to_energy(18, 6.48)
+    25
+    >>> merit_to_energy(47, 8.181)
+    135
+    >>> merit_to_energy(66, 8.475)
+    257
+    >>> merit_to_energy(19, 5.47)
+    33
+    >>> merit_to_energy(119, 8.48)
+    835
+    >>> merit_to_energy(401, 6.7632)
+    11888
+    """
+    n = check_int_range(n, "n", 3)
+    if not isinstance(merit, int | float):
+        raise type_error(merit, "merit", (int, float))
+    if (not isfinite(merit)) or (merit <= 0):
+        raise ValueError(f"merit factor cannot be {merit}.")
+    return int(0.5 + ((n * n) / merit) / 2)
 
 
 #: The lower bounds of the LABS problem, i.e., the objective values of the

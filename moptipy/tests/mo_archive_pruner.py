@@ -55,7 +55,7 @@ def __run_single_test(
 
         collapse_dim: int = -1
         if use_collapse:
-            collapse_dim = random.integers(dim)
+            collapse_dim = int(random.integers(dim))
 
         max_samples: int = 10000
 

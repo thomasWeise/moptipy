@@ -20,7 +20,7 @@ class Op1Flip1(Op1):
         :param x: the existing point in the search space
         """
         np.copyto(dest, x)  # copy source to destination
-        idx: Final[int] = random.integers(len(x))  # get bit index
+        idx: Final = random.integers(len(x))  # get bit index
         dest[idx] = not dest[idx]  # flip bit
 
     def __str__(self) -> str:

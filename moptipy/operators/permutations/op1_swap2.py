@@ -88,10 +88,10 @@ def swap_2(random: Generator, dest: np.ndarray,
     dest[:] = x[:]  # First, we copy `x` to `dest`.
     length: Final[int] = len(dest)  # Get the length of `dest`.
 
-    i1: Final[int] = random.integers(0, length)  # first random index
+    i1: Final = random.integers(0, length)  # first random index
     v1: Final = dest[i1]  # Get the value at the first index.
     while True:  # Repeat until we find a different value.
-        i2: int = random.integers(0, length)  # second random index
+        i2 = random.integers(0, length)  # second random index
         v2 = dest[i2]  # Get the value at the second index.
         if v1 != v2:  # If both values different...
             dest[i2] = v1  # store v1 where v2 was

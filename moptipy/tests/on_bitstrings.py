@@ -504,7 +504,6 @@ def verify_algorithms_equivalent(
             result.clear()
 
         def ff(x, rr=(result, )) -> int:
-            nonlocal evaluate
             rres = evaluate(x)
             rr[0].extend(x)
             return rres

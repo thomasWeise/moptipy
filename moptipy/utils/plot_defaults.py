@@ -209,7 +209,8 @@ def distinct_colors(n: int) -> tuple[tuple[float, float, float], ...]:
     c_norm = colors.Normalize(vmin=0, vmax=n - 1)
     scalar_map = mplcm.ScalarMappable(norm=c_norm, cmap=cm)
     qq = cast(list[tuple[float, float, float]],
-              [tuple(scalar_map.to_rgba(i)[0:3]) for i in np.arange(n)])
+              [tuple(scalar_map.to_rgba(cast(np.ndarray, i))[0:3])
+               for i in np.arange(n)])
     ss = set(qq)
     if len(ss) == n:
         return tuple(qq)

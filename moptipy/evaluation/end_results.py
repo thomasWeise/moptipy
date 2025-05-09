@@ -85,7 +85,7 @@ from moptipy.utils.math import try_float_div, try_int, try_int_div
 #: a description of the random seed
 DESC_RAND_SEED: Final[str] = (
     "the value of the seed of the random number generator used in the run. "
-    f"Random seeds are in 0..{int((1 << (8 * 8)) - 1)} and the random "
+    f"Random seeds are in 0..{((1 << (8 * 8)) - 1)} and the random "
     f"number generators are those from numpy.")
 #: the description of best-F
 DESC_BEST_F: Final[str] = (

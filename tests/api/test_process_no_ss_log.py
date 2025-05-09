@@ -105,7 +105,7 @@ def test_process_no_ss_log_log_all() -> None:
     space: Space = BitStrings(dim)
     objective: Objective = LeadingOnes(dim)
     algorithm: Algorithm = HillClimberWithRestarts(
-        Op0Random(), Op1Flip1(), int(round(dim * 1.6)))
+        Op0Random(), Op1Flip1(), round(dim * 1.6))
 
     with temp_file() as tf:
         assert exists(tf)

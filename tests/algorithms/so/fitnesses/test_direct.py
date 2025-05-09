@@ -24,14 +24,14 @@ def test_direct_on_random() -> None:
                 if rand.integers(2) <= 0 else rand.normal()
             if mix_mode <= 0:
                 def __f(_r=rand, _=def_val) -> int | float:
-                    return _r.integers(-100, 100)
+                    return int(_r.integers(-100, 100))
             elif mix_mode <= 1:
                 def __f(_r=rand, _=def_val) -> int | float:
                     return _r.normal()
             elif mix_mode <= 2:
                 def __f(_r=rand, _=def_val) -> int | float:
                     if _r.integers(2) <= 0:
-                        return _r.integers(-100, 100)
+                        return int(_r.integers(-100, 100))
                     return _r.normal()
             else:
                 def __f(_=rand, v=def_val) -> int | float:  # type: ignore
@@ -39,7 +39,7 @@ def test_direct_on_random() -> None:
 
             for _j in range(i + 1):
                 r = FRecord(None, __f())
-                r.it = rand.integers(1, 1000)
+                r.it = int(rand.integers(1, 1000))
                 lst.append(r)
 
             fitness.assign_fitness(lst, rand)

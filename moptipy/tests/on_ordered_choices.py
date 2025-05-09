@@ -36,15 +36,15 @@ def choices_for_tests(
         choices: list[list[int]] = []
         while (len(choices) <= 0) or (len(done) < 2) or (r.integers(6) > 0):
             if r.integers(2) <= 0 < len(created):
-                choices.append(created[r.integers(len(created))])
+                choices.append(created[int(r.integers(len(created)))])
             else:
                 picked: list[int] = []
                 while (len(picked) <= 0) or (r.integers(6) > 0):
-                    cc = r.integers(-100, 100)
+                    cc = int(r.integers(-100, 100))
                     while cc in done:
                         cc += 1
                     done.add(cc)
-                    picked.append(int(cc))
+                    picked.append(cc)
                 choices.append(picked)
                 created.append(picked)
         pwrs.append(OrderedChoices(choices))

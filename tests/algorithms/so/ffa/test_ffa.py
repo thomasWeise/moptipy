@@ -55,7 +55,7 @@ def test_ffa_on_bit_strings_3() -> None:
         assert isinstance(olb, int)
         oub = f.upper_bound()
         assert isinstance(oub, int)
-        choice: Final[int] = random.integers(1, 4)
+        choice: Final[int] = int(random.integers(1, 4))
 
         if choice in (1, 3):
             while True:

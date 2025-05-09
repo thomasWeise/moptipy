@@ -118,8 +118,8 @@ def rotate(random: Generator, dest: np.ndarray, x: np.ndarray) -> None:
     unchanged: bool = True
     # try to rotate the dest array until something changes
     while unchanged:
-        i1: int = random.integers(0, length)
-        i2: int = random.integers(0, length)
+        i1 = random.integers(0, length)
+        i2 = random.integers(0, length)
         if i1 == i2:  # nothing to be done
             continue  # array will not be changed
 

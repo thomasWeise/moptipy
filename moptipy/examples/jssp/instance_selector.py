@@ -122,7 +122,7 @@ def __is_instance_too_easy(inst: Instance) -> bool:
                                           min_makespan + 4))
     n_diff: Final[int] = len(diff)
     diff_threshold: Final[int] = max(3, int(0.5 + ceil(log2(n_runs))))
-    solved_threshold: Final[int] = int(ceil(n_runs / 3))
+    solved_threshold: Final[int] = ceil(n_runs / 3)
 
     result: Final[bool] = (num_solved >= solved_threshold) \
         or (mean_makespan < mean_threshold) \
@@ -216,7 +216,7 @@ def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
     best: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
     best_f: tuple[int, int, int, int, float]
     total_best: Final[np.ndarray] = np.zeros(n, DEFAULT_INT)
-    total_best_f: tuple[int, int, int, int, float] = (-1, -1, -1, -1, -1)
+    total_best_f: tuple[int, int, int, int, float] = (-1, -1, -1, -1, -1.0)
     run_last_improved: int = 1
     run_current: int = 0
     run_max_none_improved: Final[int] = 4
@@ -250,10 +250,6 @@ def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
         :param sol: the solution
         :return: the objective values
         """
-        nonlocal done  # the number of uses per set
-        nonlocal extreme_groups  # the tuple-tuple with the extreme groups
-        nonlocal extremes  # the extreme groups already picked
-
         # first, we count how often each group has been used
         done.fill(0)
         for group in sol:
@@ -267,8 +263,8 @@ def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
                 if (sol[group[0]] == group[1]) and (group[0] not in extremes):
                     extremes.add(group[0])
                     break
-        return len(extremes), int(np.sum(done > 0)), done.min(), \
-            -done.max(), -np.std(done)
+        return len(extremes), int(np.sum(done > 0)), int(done.min()), \
+            int(-done.max()), float(-np.std(done))
 
     # The outer loop: the restarts of the hill climber.
     # We continue to execute runs until a given number of successive runs did
@@ -301,7 +297,7 @@ def __optimize_clusters(cluster_groups: tuple[tuple[int, ...], ...],
             step_current += 1
             np.copyto(current, best)
             while True:  # perform at least one move
-                i = random.integers(n)
+                i = int(random.integers(n))
                 cg = cluster_groups[i]
                 lcg = len(cg)
                 if lcg <= 1:
@@ -371,8 +367,6 @@ def __optimize_scales(scale_choices: list[list[tuple[int, int]]],
         dist_min: float = inf
         dist_sum: float = 0
         diff_cnt: int = 0
-        nonlocal scale_choices
-        nonlocal n
         for i in range(n):
             a = scale_choices[i][xx[i]]
             for j in range(i):
@@ -401,7 +395,7 @@ def __optimize_scales(scale_choices: list[list[tuple[int, int]]],
 
     for _ in range(int(opt_sum ** 2.35)):
         for ii, sc in enumerate(scale_choices):
-            x_cur_best[ii] = random.integers(len(sc))
+            x_cur_best[ii] = int(random.integers(len(sc)))
         f_cur_best: tuple[float, float, int] = __f(x_cur_best)
         if f_cur_best > f_total_best:
             f_total_best = f_cur_best
@@ -412,7 +406,7 @@ def __optimize_scales(scale_choices: list[list[tuple[int, int]]],
             idx, choicen = opt_idx[random.integers(len(opt_idx))]
             old = x_cur[idx]
             while old == x_cur[idx]:
-                x_cur[idx] = random.integers(choicen)
+                x_cur[idx] = int(random.integers(choicen))
             f_cur = __f(x_cur)
             if f_cur >= f_cur_best:
                 f_cur_best = f_cur

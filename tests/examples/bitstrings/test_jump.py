@@ -35,10 +35,10 @@ def test_jump() -> None:
             worst = opt.copy()
             worst[random.integers(n)] = False
             almost_worst = opt.copy()
-            x1: int = random.integers(n)
+            x1: int = int(random.integers(n))
             x2: int = x1
             while x1 == x2:
-                x2 = random.integers(n)
+                x2 = int(random.integers(n))
             almost_worst[x1] = False
             almost_worst[x2] = False
             local_almost_worst = np.zeros(n, bool)

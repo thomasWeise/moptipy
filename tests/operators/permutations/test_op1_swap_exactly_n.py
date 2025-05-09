@@ -44,7 +44,7 @@ def test_operator_components() -> None:
         dest = perm.create()
         for ss in range(2, min(50, mc + 1)):
             x = permute(perm.blueprint)
-            steps: int = 1 if ri(0, 2) < 1 else ri(1, 1000)
+            steps: int = int(1 if ri(0, 2) < 1 else ri(1, 1000))
             mv = find_move(x, indices, ss, random, steps, temp)
             if not isinstance(mv, np.ndarray):
                 raise type_error(
@@ -138,7 +138,7 @@ def test_op1_swapxn_exact() -> None:
     assert sum(x1 != x2) == len(x2)
 
     for _ in range(1000):
-        steps = random.integers(0, 10001) / 10000
+        steps = int(random.integers(0, 10001)) / 10000
         assert 0.0 <= steps <= 1.0
         changes = exponential_step_size(steps, 2, len(x1))
         assert 2 <= changes <= len(x1)

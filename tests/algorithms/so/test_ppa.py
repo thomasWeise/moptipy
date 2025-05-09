@@ -33,7 +33,7 @@ def test_ppa_on_jssp_random() -> None:
                     else Op1SwapTryN)(search_space),
                    int(random.integers(1, 12)),
                    int(random.integers(1, 12)),
-                   random.integers(0, 11) / 10)
+                   int(random.integers(0, 11)) / 10)
 
     validate_algorithm_on_jssp(create)
 
@@ -79,7 +79,7 @@ def test_ppa_on_onemax_random() -> None:
         random: Generator = default_rng()
         return PPA(Op0Random(), Op1FlipM(),
                    int(random.integers(1, 12)), int(random.integers(1, 12)),
-                   random.integers(0, 11) / 10)
+                   int(random.integers(0, 11)) / 10)
     validate_algorithm_on_onemax(create)
 
 

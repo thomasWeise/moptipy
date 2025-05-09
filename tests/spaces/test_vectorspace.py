@@ -65,7 +65,6 @@ def test_vector_space_1() -> None:
         return x
 
     def _valid(x) -> np.ndarray:
-        nonlocal space
         return np.clip(x, space.lower_bound, space.upper_bound, x)
     validate_space(space, make_element_invalid=_invalid,
                    make_element_valid=_valid)
@@ -125,7 +124,6 @@ def test_vector_space_2() -> None:
         return x
 
     def _valid(x) -> np.ndarray:
-        nonlocal space
         return np.clip(x, space.lower_bound, space.upper_bound, x)
 
     validate_space(space, make_element_invalid=_invalid,
@@ -189,7 +187,6 @@ def test_vector_space_3() -> None:
         return x
 
     def _valid(x) -> np.ndarray:
-        nonlocal space
         return np.clip(x, space.lower_bound, space.upper_bound, x)
 
     validate_space(space, make_element_invalid=_invalid,
@@ -225,7 +222,6 @@ def test_vector_space_5() -> None:
     x[2] = ub[2] + 7
 
     def _test(xx: np.ndarray) -> float:
-        nonlocal space
         space.validate(xx)
         return float(xx[0])
 

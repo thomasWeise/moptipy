@@ -48,7 +48,7 @@ def test_op1_swaptn_exact() -> None:
     assert sum(x1 != x2) == len(x2)
 
     for _ in range(1000):
-        steps = random.integers(0, 10001) / 10000
+        steps = int(random.integers(0, 10001)) / 10000
         assert 0.0 <= steps <= 1.0
         changes = exponential_step_size(steps, 2, len(x1))
         assert 2 <= changes <= len(x1)

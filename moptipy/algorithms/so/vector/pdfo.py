@@ -31,6 +31,7 @@ from typing import Any, Callable, Final, cast
 
 import numpy as np
 import pdfo  # type: ignore
+from packaging import version
 
 # noinspection PyProtectedMember
 from pdfo._bobyqa import bobyqa  # type: ignore  # noqa: PLC2701
@@ -46,17 +47,32 @@ from moptipy.api.subprocesses import (
 from moptipy.spaces.vectorspace import VectorSpace
 from moptipy.utils.logger import KeyValueLogSection
 
+
+def __check_cannot_use_pdfo() -> bool:
+    """
+    Check whether we cannot use pdf.
+
+    :returns: `True` if we cannot use pdfo.
+    """
+    if not hasattr(np, "__version__"):
+        return True
+    if not hasattr(pdfo, "__version__"):
+        return True
+    npv: Final[version.Version] = version.parse(np.__version__)
+    if npv.major >= 2:
+        return True
+    pdv: Final[version.Version] = version.parse(pdfo.__version__)
+    return ((pdv.major <= 1 <= npv.major) and (npv.minor >= 24)
+            and (pdv.minor <= 3))
+
+
 #: pdfo with version 1.3 and below is incompatible with numpy
 #: of version 1.24.0 and above. It will crash with an exception.
 #: So for this case, we will later just invoke a single random sample and
 #: exit. See https://github.com/pdfo/pdfo/issues/55
-#: pdf with version 2.2 is also incompatible with numpy 2.0 and above.
+#: pdfo with version 2.2 is also incompatible with numpy 2.0 and above.
 #: See https://github.com/pdfo/pdfo/issues/112
-_CANNOT_DO_PDFO: Final[bool] = \
-    hasattr(np, "__version__") and hasattr(pdfo, "__version__") \
-    and (((list(map(int, np.__version__.split("."))) >= [1, 24])
-          and (list(map(int, pdfo.__version__.split("."))) <= [1, 3]))
-         or (list(map(int, np.__version__.split("."))) >= [2]))
+_CANNOT_DO_PDFO: Final[bool] = __check_cannot_use_pdfo()
 
 
 class BOBYQA(Algorithm0):

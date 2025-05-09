@@ -84,13 +84,13 @@ def swap_n(random: Generator, dest: np.ndarray,  # +book
     length: Final[int] = len(dest)  # Get the length of `dest`.
     rint: Callable[[int, int], int] = random.integers  # fast call
 
-    i1: int = random.integers(0, length)  # Get the first random index.
+    i1 = rint(0, length)  # Get the first random index.
     last = first = dest[i1]  # Get the value at the first index.
     continue_after: bool = True  # True -> loop at least once.
     while continue_after:  # Repeat until we should stop
         continue_after = rint(0, 2) <= 0  # 50/50 chance
         while True:  # Loop forever until eligible element found.
-            i2: int = rint(0, length)  # new random index.
+            i2 = rint(0, length)  # new random index.
             current = dest[i2]  # Get the value at the new index.
             if current == last:  # If it is the same as the
                 continue  # previous value, continue.

@@ -68,8 +68,6 @@ def _op2_ox2(indices: np.ndarray,
     """
     x1_done.fill(False)  # all values in x1 are available
     length: Final[int] = len(indices)  # get length of string
-    copy_from_x0: int  # the end index of copying from x0
-    value: int  # the current value to be written to dest
 
     # start book
     while True:  # sample the number of values to copy from x0
@@ -82,8 +80,8 @@ def _op2_ox2(indices: np.ndarray,
     mode: bool = True  # mode: True = copy from x0, False = from x1
     x1i: int = 0  # the index of the next unused value from x1
     while True:  # loop until we are finished
-        index_i: int = random.integers(0, i)  # pick a random index-index
-        index: int = indices[index_i]  # load the actual index
+        index_i = random.integers(0, i)  # pick a random index-index
+        index = indices[index_i]  # load the actual index
         i = i - 1  # reduce the number of values
         indices[i], indices[index_i] = index, indices[i]  # swap
 

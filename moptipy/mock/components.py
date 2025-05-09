@@ -45,12 +45,12 @@ def _random_name(namelen: int,
         if index <= 0:
             index += 1
         else:
-            if (index == 2) and (random.integers(2) <= 0):
+            if (index == 2) and (int(random.integers(2)) <= 0):
                 continue
-            index = int((index + 1 + random.integers(2)) % len(namer))
+            index = int((index + 1 + int(random.integers(2))) % len(namer))
             if n_done:
                 while index == 2:
-                    index = 1 - min(1, random.integers(6))
+                    index = 1 - min(1, int(random.integers(6)))
 
     return "".join(name)
 

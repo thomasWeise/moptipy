@@ -120,9 +120,9 @@ def end_result(performance: BasePerformance, seed: int,
         uni: float = -1
         while (uni <= 0) or (uni >= 1):
             uni = abs(random.normal(loc=0, scale=jitter))
-        best_f = int(round(base - uni * (base - jit_start))) \
+        best_f = round(base - uni * (base - jit_start)) \
             if random.uniform(low=0, high=1) < qual else \
-            int(round(base + uni * (jit_end - base)))
+            round(base + uni * (jit_end - base))
 
     # Finally, we need to compute the time we have used.
     fact: float = -1

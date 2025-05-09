@@ -47,7 +47,7 @@ def validate_space(
                          "instances when invoked twice, but returned the "
                          "same object.")
 
-    if type(x1) is not type(x2):  # noqa: PIE789
+    if type(x1) is not type(x2):
         raise ValueError("The create() method must produce instances of "
                          f"the same type, but got {type(x1)} and {type(x2)}.")
 
