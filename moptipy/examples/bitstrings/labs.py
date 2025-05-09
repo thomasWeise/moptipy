@@ -1986,6 +1986,38 @@ def merit_to_energy(n: int, merit: int | float) -> int:
     835
     >>> merit_to_energy(401, 6.7632)
     11888
+    >>> merit_to_energy(181, 8.9316)
+    1834
+    >>> merit_to_energy(201, 8.4876)
+    2380
+    >>> merit_to_energy(215, 8.5888)
+    2691
+    >>> merit_to_energy(221, 8.8544)
+    2758
+    >>> merit_to_energy(241, 8.0668)
+    3600
+    >>> merit_to_energy(249, 8.1323)
+    3812
+    >>> merit_to_energy(259, 8.0918)
+    4145
+    >>> merit_to_energy(261, 7.8517)
+    4338
+    >>> merit_to_energy(271, 7.5386)
+    4871
+    >>> merit_to_energy(281, 7.5058)
+    5260
+    >>> merit_to_energy(283, 7.5088)
+    5333
+    >>> merit_to_energy(301, 7.4827)
+    6054
+    >>> merit_to_energy(303, 7.2462)
+    6335
+    >>> merit_to_energy(341, 6.9397)
+    8378
+    >>> merit_to_energy(381, 7.0893)
+    10238
+    >>> merit_to_energy(401, 6.7632)
+    11888
     """
     n = check_int_range(n, "n", 3)
     if not isinstance(merit, int | float):
@@ -2011,6 +2043,220 @@ _LBS: Final[dict[int, int]] = {
     49: 136, 50: 153, 51: 153, 52: 166, 53: 170, 54: 175, 55: 171, 56: 192,
     57: 188, 58: 197, 59: 205, 60: 218, 61: 226, 62: 235, 63: 207, 64: 208,
     65: 240, 66: 257}
+
+
+#: the internal set of related work solutions
+__RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
+    ("PM2016LABS",
+     "Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary "
+     "Sequences. arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016"): {
+        3: 1, 4: 2, 5: 2, 6: 7, 7: 3, 8: 8, 9: 12, 10: 13, 11: 5, 12: 10,
+        13: 6, 14: 19, 15: 15, 16: 24, 17: 32, 18: 25, 19: 29, 20: 26, 21: 26,
+        22: 39, 23: 47, 24: 36, 25: 36, 26: 45, 27: 37, 28: 50, 29: 62,
+        30: 59, 31: 67, 32: 64, 33: 64, 34: 65, 35: 73, 36: 82, 37: 86,
+        38: 87, 39: 99, 40: 108, 41: 108, 42: 101, 43: 109, 44: 122, 45: 118,
+        46: 131, 47: 135, 48: 140, 49: 136, 50: 153, 51: 153, 52: 166,
+        53: 170, 54: 175, 55: 171, 56: 192, 57: 188, 58: 197, 59: 205,
+        60: 218, 61: 226, 62: 235, 63: 207, 64: 208, 65: 240, 66: 257,
+        67: 241, 69: 282, 71: 275, 73: 348, 75: 341, 77: 358, 79: 407,
+        81: 400, 83: 377, 85: 442, 87: 451, 89: 484, 91: 477, 93: 502,
+        95: 479, 97: 536, 99: 577, 101: 578, 103: 555, 105: 620, 107: 677,
+        109: 662, 111: 687, 113: 752, 115: 745, 117: 786, 119: 835,
+    },
+    ("BBB2017LABSOIMFARPTAT",
+     "Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
+     "Binary Sequences: On Improved Merit Factors and Runtime Predictions"
+     " to Achieve Them. arXiv:1406.5301v6 [cs.DS] 6 May 2017."
+     "https://arxiv.org/pdf/1406.5301"): {
+        181: 1834, 201: 2380, 215: 2691, 221: 2758, 241: 3600, 249: 3812,
+        259: 4145, 261: 4338, 271: 4871, 281: 5260, 283: 5333, 301: 6054,
+        303: 6335, 341: 8378, 381: 10238, 401: 11888,
+        107: merit_to_energy(107, 8.4557), 109: merit_to_energy(109, 8.9736),
+        111: merit_to_energy(111, 8.9672), 113: merit_to_energy(113, 8.49),
+        115: merit_to_energy(115, 8.8758), 117: merit_to_energy(117, 8.708),
+        119: merit_to_energy(119, 8.4796), 121: merit_to_energy(121, 8.6736),
+        141: merit_to_energy(141, 8.8282), 149: merit_to_energy(149, 9.1137),
+        157: merit_to_energy(157, 9.0223), 161: merit_to_energy(161, 8.5718),
+        165: merit_to_energy(165, 9.2351), 169: merit_to_energy(169, 9.3215),
+        173: merit_to_energy(173, 9.3645), 175: merit_to_energy(175, 9.0768),
+        177: merit_to_energy(177, 9.5052), 179: merit_to_energy(179, 9.0974),
+        183: merit_to_energy(183, 9.0073), 189: merit_to_energy(189, 9.0847),
+    },
+    ("MD2015NESFLLABS",
+     "Wai Ho Mow and Ke-Lin Du. New Evolutionary Search for Long Low "
+     "Autocorrelation Binary Sequences. IEEE Transactions on Aerospace and "
+     "Electronic Systems. 51(1):290-303. January 2015. "
+     "doi:10.1109/TAES.2014.130518"): {
+        106: merit_to_energy(106, 5.0295), 107: merit_to_energy(107, 5.1805),
+        108: merit_to_energy(108, 4.6957), 109: merit_to_energy(109, 5.0429),
+        110: merit_to_energy(110, 4.9631), 111: merit_to_energy(111, 5.626),
+        112: merit_to_energy(112, 5.3153), 113: merit_to_energy(113, 4.8514),
+        114: merit_to_energy(114, 4.4114), 115: merit_to_energy(115, 4.8729),
+        116: merit_to_energy(116, 4.3974), 117: merit_to_energy(117, 4.2832),
+        118: merit_to_energy(118, 4.5355), 119: merit_to_energy(119, 4.7235),
+        120: merit_to_energy(120, 5.8632), 121: merit_to_energy(121, 4.4421),
+        122: merit_to_energy(122, 4.6368), 123: merit_to_energy(123, 4.6897),
+        124: merit_to_energy(124, 4.9987), 125: merit_to_energy(125, 4.8646),
+        126: merit_to_energy(126, 5.0272), 127: merit_to_energy(127, 4.8965),
+        128: merit_to_energy(128, 4.8075), 129: merit_to_energy(129, 4.6328),
+        130: merit_to_energy(130, 4.8872), 131: merit_to_energy(131, 4.9627),
+        132: merit_to_energy(132, 4.343), 133: merit_to_energy(133, 4.6995),
+        134: merit_to_energy(134, 4.438), 135: merit_to_energy(135, 4.5134),
+        136: merit_to_energy(136, 4.472), 137: merit_to_energy(137, 4.2273),
+        138: merit_to_energy(138, 4.3341), 139: merit_to_energy(139, 4.6602),
+        140: merit_to_energy(140, 4.6009), 141: merit_to_energy(141, 4.418),
+        142: merit_to_energy(142, 4.4789), 143: merit_to_energy(143, 4.5584),
+        144: merit_to_energy(144, 4.2492), 145: merit_to_energy(145, 4.4696),
+        146: merit_to_energy(146, 4.6239), 147: merit_to_energy(147, 4.3409),
+        148: merit_to_energy(148, 4.3703), 149: merit_to_energy(149, 4.5531),
+        150: merit_to_energy(150, 4.7209), 151: merit_to_energy(151, 4.3663),
+        152: merit_to_energy(152, 5.2509), 153: merit_to_energy(153, 4.8206),
+        154: merit_to_energy(154, 4.2517), 155: merit_to_energy(155, 4.2704),
+        156: merit_to_energy(156, 4.5986), 157: merit_to_energy(157, 4.6368),
+        158: merit_to_energy(158, 4.9473), 159: merit_to_energy(159, 4.7396),
+        160: merit_to_energy(160, 4.878), 161: merit_to_energy(161, 4.7789),
+        162: merit_to_energy(162, 4.5674), 163: merit_to_energy(163, 4.676),
+        164: merit_to_energy(164, 5.0367), 165: merit_to_energy(165, 4.2834),
+        166: merit_to_energy(166, 4.5337), 167: merit_to_energy(167, 4.719),
+        168: merit_to_energy(168, 4.6057), 169: merit_to_energy(169, 4.7099),
+        170: merit_to_energy(170, 4.6598), 171: merit_to_energy(171, 4.4077),
+        172: merit_to_energy(172, 4.7685), 173: merit_to_energy(173, 4.7932),
+        174: merit_to_energy(174, 4.6564), 175: merit_to_energy(175, 4.2832),
+        176: merit_to_energy(176, 4.2549), 177: merit_to_energy(177, 4.3416),
+        178: merit_to_energy(178, 4.1331), 179: merit_to_energy(179, 4.3287),
+        180: merit_to_energy(180, 4.3385), 181: merit_to_energy(181, 4.5832),
+        182: merit_to_energy(182, 4.2347), 183: merit_to_energy(183, 4.4879),
+        184: merit_to_energy(184, 3.9331), 185: merit_to_energy(185, 4.5464),
+        186: merit_to_energy(186, 4.6239), 187: merit_to_energy(187, 4.5285),
+        188: merit_to_energy(188, 4.7176), 189: merit_to_energy(189, 4.809),
+        190: merit_to_energy(190, 4.4645), 191: merit_to_energy(191, 5.0125),
+        192: merit_to_energy(192, 4.795), 193: merit_to_energy(193, 4.5205),
+        194: merit_to_energy(194, 4.4288), 195: merit_to_energy(195, 4.2316),
+        196: merit_to_energy(196, 4.3048), 197: merit_to_energy(197, 4.6267),
+        198: merit_to_energy(198, 4.5052), 199: merit_to_energy(199, 4.4889),
+        200: merit_to_energy(200, 4.5496), 201: merit_to_energy(201, 4.008),
+        202: merit_to_energy(202, 4.3033), 203: merit_to_energy(203, 4.3033),
+        204: merit_to_energy(204, 4.231), 205: merit_to_energy(205, 4.705),
+        206: merit_to_energy(206, 4.1288), 207: merit_to_energy(207, 4.1886),
+        208: merit_to_energy(208, 4.3126), 209: merit_to_energy(209, 4.3542),
+        210: merit_to_energy(210, 4.6392), 211: merit_to_energy(211, 4.2899),
+        212: merit_to_energy(212, 4.3567), 213: merit_to_energy(213, 4.517),
+        214: merit_to_energy(214, 4.4872), 215: merit_to_energy(215, 4.3584),
+        216: merit_to_energy(216, 4.7725), 217: merit_to_energy(217, 4.1364),
+        218: merit_to_energy(218, 4.5373), 219: merit_to_energy(219, 4.7798),
+        220: merit_to_energy(220, 4.6414), 221: merit_to_energy(221, 4.4096),
+        222: merit_to_energy(222, 4.5273), 223: merit_to_energy(223, 4.5216),
+        224: merit_to_energy(224, 4.5253), 225: merit_to_energy(225, 4.6462),
+        226: merit_to_energy(226, 4.599), 227: merit_to_energy(227, 4.5641),
+        228: merit_to_energy(228, 4.6365), 229: merit_to_energy(229, 4.5664),
+        230: merit_to_energy(230, 4.5299), 231: merit_to_energy(231, 4.5819),
+        232: merit_to_energy(232, 4.4556), 233: merit_to_energy(233, 4.5423),
+        234: merit_to_energy(234, 4.3122), 235: merit_to_energy(235, 4.4529),
+        236: merit_to_energy(236, 4.3418), 237: merit_to_energy(237, 4.3488),
+        238: merit_to_energy(238, 4.6992), 239: merit_to_energy(239, 4.5457),
+        240: merit_to_energy(240, 4.6512), 241: merit_to_energy(241, 4.3921),
+        242: merit_to_energy(242, 4.3464), 243: merit_to_energy(243, 4.6415),
+        244: merit_to_energy(244, 4.2224), 245: merit_to_energy(245, 4.3994),
+        246: merit_to_energy(246, 4.498), 247: merit_to_energy(247, 4.7024),
+        248: merit_to_energy(248, 4.4414), 249: merit_to_energy(249, 4.6491),
+        250: merit_to_energy(250, 4.4816), 251: merit_to_energy(251, 4.7291),
+        252: merit_to_energy(252, 4.002), 253: merit_to_energy(253, 4.7163),
+        254: merit_to_energy(254, 4.544), 255: merit_to_energy(255, 4.5902),
+        256: merit_to_energy(256, 4.8075), 257: merit_to_energy(257, 4.8338),
+        258: merit_to_energy(258, 4.3421), 259: merit_to_energy(259, 4.4596),
+        260: merit_to_energy(260, 4.6492), 261: merit_to_energy(261, 4.2672),
+        262: merit_to_energy(262, 4.4557), 263: merit_to_energy(263, 4.3344),
+        264: merit_to_energy(264, 4.6814), 265: merit_to_energy(265, 4.6007),
+        266: merit_to_energy(266, 4.3118), 267: merit_to_energy(267, 4.2652),
+        268: merit_to_energy(268, 4.5912), 269: merit_to_energy(269, 4.5903),
+        270: merit_to_energy(270, 4.3836), 271: merit_to_energy(271, 4.5028),
+        272: merit_to_energy(272, 4.8267), 273: merit_to_energy(273, 4.4617),
+        274: merit_to_energy(274, 4.4683), 275: merit_to_energy(275, 4.3881),
+        276: merit_to_energy(276, 4.5032), 277: merit_to_energy(277, 4.4352),
+        278: merit_to_energy(278, 4.579), 279: merit_to_energy(279, 4.3192),
+        280: merit_to_energy(280, 4.2535), 281: merit_to_energy(281, 4.2325),
+        282: merit_to_energy(282, 4.4273), 283: merit_to_energy(283, 4.4747),
+        284: merit_to_energy(284, 4.4307), 285: merit_to_energy(285, 4.3735),
+        286: merit_to_energy(286, 4.383), 287: merit_to_energy(287, 4.1706),
+        288: merit_to_energy(288, 4.3858), 289: merit_to_energy(289, 4.2981),
+        290: merit_to_energy(290, 4.5622), 291: merit_to_energy(291, 4.5621),
+        292: merit_to_energy(292, 4.641), 293: merit_to_energy(293, 4.7599),
+        294: merit_to_energy(294, 4.3961), 295: merit_to_energy(295, 4.3992),
+        296: merit_to_energy(296, 4.3203), 297: merit_to_energy(297, 4.2953),
+        298: merit_to_energy(298, 4.5771), 299: merit_to_energy(299, 4.4166),
+        300: merit_to_energy(300, 4.4074), 303: merit_to_energy(303, 4.3507),
+        304: merit_to_energy(304, 4.0676), 350: merit_to_energy(350, 3.9458),
+        353: merit_to_energy(353, 4.2075), 400: merit_to_energy(400, 4.3908),
+        449: merit_to_energy(449, 4.0547), 450: merit_to_energy(450, 4.4235),
+        500: merit_to_energy(500, 4.3442), 512: merit_to_energy(512, 4.2656),
+        547: merit_to_energy(547, 4.3408), 550: merit_to_energy(550, 4.0695),
+        600: merit_to_energy(600, 3.6753), 650: merit_to_energy(650, 3.9239),
+        653: merit_to_energy(653, 4.2287), 700: merit_to_energy(700, 4.1524),
+        750: merit_to_energy(750, 3.7603), 751: merit_to_energy(751, 4.1537),
+        800: merit_to_energy(800, 3.7481), 850: merit_to_energy(850, 3.8096),
+        853: merit_to_energy(853, 4.0854), 900: merit_to_energy(900, 3.7623),
+        950: merit_to_energy(950, 4.0438), 953: merit_to_energy(953, 3.8493),
+        1000: merit_to_energy(1000, 3.7873),
+        1019: merit_to_energy(1019, 4.139),
+        1024: merit_to_energy(1024, 3.9683),
+        1500: merit_to_energy(1500, 3.7316),
+        2000: merit_to_energy(2000, 3.6193),
+        2048: merit_to_energy(2048, 3.5387),
+        2197: merit_to_energy(2197, 3.6423),
+        3000: merit_to_energy(3000, 3.3608),
+        4096: merit_to_energy(4096, 3.4589),
+    },
+}
+
+
+def __make_bkses() -> dict[int, tuple[int, tuple[str, str]]]:
+    """Make the BKSes."""
+    d: Final[dict[int, tuple[int, tuple[str, str]]]] = {}
+    for citation, data in __RELATED_WORKS.items():
+        for n, ener in data.items():
+            # We sanity check the BKSes, too.
+            if ((n in _LBS) and (ener < _LBS[n])) or (ener < (n // 2)):
+                raise ValueError("Invalid BKS!")
+            if (n not in d) or (d[n][0] > ener):
+                d[n] = ener, citation
+    return d
+
+
+#: The internal lookup table for best-known solutions
+_BKS: Final[dict[int, tuple[int, tuple[str, str]]]] = __make_bkses()
+del __make_bkses
+
+
+def get_bks(n: int) -> tuple[int, None | tuple[str, str]]:
+    """
+    Get the best currently known solution for the given dimension `n`.
+
+    :param n: the dimension
+    :returns: a tuple of the energy value and a tuple of a citation. If
+        no solution is found in literature, the lower bound is returned and
+        `None` is returned as literature tuple
+
+    >>> try:
+    ...     get_bks(-1)
+    ... except ValueError as ve:
+    ...     print(ve)
+    n=-1 is invalid, must be in 3..1000000000.
+
+    >>> get_bks(20)[0]
+    26
+
+    >>> get_bks(401)[0]
+    11888
+    >>> get_bks(401)[1][0]
+    'BBB2017LABSOIMFARPTAT'
+
+    >>> get_bks(10000)
+    (5000, None)
+    """
+    n = check_int_range(n, "n", 3)
+    if n in _BKS:
+        return _BKS[n]
+    return n // 2, None
 
 
 def is_labs_objective_value_optimal(n: int, f: int) -> bool | None:
@@ -2168,7 +2414,8 @@ class LABS(BitStringProblem):
 
     @classmethod
     def default_instances(
-            cls: type, scale_min: int = 3, scale_max: int = 625) \
+            cls: type, scale_min: int = 3,
+            scale_max: int = max(_BKS.keys())) \
             -> Iterator[Callable[[], "LABS"]]:
         """
         Get the default instances of the :class:`LABS` problem.
@@ -2178,7 +2425,7 @@ class LABS(BitStringProblem):
         :returns: a sequence of default :class:`LABS` instances
 
         >>> len(list(LABS.default_instances()))
-        46
+        88
 
         >>> [x() for x in LABS.default_instances()]
         [labs_3, labs_4, labs_5, labs_6, labs_7, labs_8, labs_9, labs_10, \
@@ -2186,12 +2433,19 @@ labs_11, labs_12, labs_13, labs_14, labs_15, labs_16, labs_17, labs_18, \
 labs_19, labs_20, labs_21, labs_22, labs_23, labs_24, labs_25, labs_26, \
 labs_27, labs_28, labs_29, labs_30, labs_31, labs_32, labs_33, labs_36, \
 labs_40, labs_41, labs_42, labs_44, labs_48, labs_49, labs_50, labs_55, \
-labs_59, labs_60, labs_64, labs_66, labs_100, labs_625]
+labs_59, labs_60, labs_64, labs_66, labs_77, labs_79, labs_81, labs_85, \
+labs_99, labs_100, labs_107, labs_111, labs_121, labs_125, labs_128, \
+labs_144, labs_149, labs_169, labs_170, labs_192, labs_196, labs_199, \
+labs_200, labs_222, labs_225, labs_243, labs_256, labs_269, labs_289, \
+labs_300, labs_341, labs_400, labs_500, labs_512, labs_600, labs_625, \
+labs_700, labs_800, labs_900, labs_1000, labs_1019, labs_1024, labs_1500, \
+labs_2000, labs_2048, labs_2197, labs_3000, labs_4096]
         """
         check_int_range(scale_max, "scale_max", check_int_range(
             scale_min, "scale_min", 1, 1_000_000_000) + 1, 1_000_000_000)
         return (cast(Callable[[], "LABS"], lambda __i=i: cls(__i))
                 for i in merge_sorted_and_return_unique((
-                    16, 64, 100, 625), (j for j in default_scale_sequence(
-                        scale_min, scale_max) if j in _LBS))
+                    16, 64, 100, 625), (k for k in default_scale_sequence(
+                        scale_min, scale_max) if k in _BKS), sorted(
+                        k for k in _BKS if k > 1000))
                 if scale_min <= i <= scale_max)
