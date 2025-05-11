@@ -2206,6 +2206,24 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         3000: merit_to_energy(3000, 3.3608),
         4096: merit_to_energy(4096, 3.4589),
     },
+    ("BB2018AHAFALABSPWOLAHMF",
+     "Borko Bošković and Janez Brest. A Heuristic Algorithm for a Low "
+     "Autocorrelation Binary Sequence Problem with Odd Length and High "
+     "Merit Factor. IEEE Access 6:4127-4134. January 2018. "
+     "doi:10.1109/ACCESS.2018.2789916 "): {
+        191: 1903, 193: 2144, 195: 2105, 197: 2202, 199: 2195, 201: 2220,
+        203: 2317, 205: 2430, 207: 2351, 209: 2528, 211: 2457, 213: 2378,
+        215: 2595, 217: 2684, 219: 2733, 221: 2734, 223: 2751, 225: 2808,
+    },
+    ("BHB2024PSAWALABSP",
+     "Borko Bošković, Jana Herzog, and Janez Brest. Parallel Self-Avoiding "
+     "Walks for a Low-Autocorrelation Binary Sequences Problem. Journal of "
+     "Computational Science 77 (2024) 102260. "
+     "doi:10.1016/j.jocs.2024.102260"): {
+        171: 1669, 185: 1932, 193: 2040, 197: 2162, 199: 2187, 219: 2605,
+        223: 2727, 225: 2768, 229: 2810, 231: 2963, 235: 2965, 237: 3118,
+        239: 3055, 241: 3216, 243: 3233, 245: 3226, 247: 3259,
+    },
 }
 
 
