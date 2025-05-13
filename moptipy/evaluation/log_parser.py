@@ -297,7 +297,7 @@ class ExperimentParser[T](LogParser[T]):
             this :class:`Callable` returns `True`, the file or directory is
             considered for parsing. If it returns `False`, it is skipped.
         """
-        super().__init__(path_filter=path_filter)
+        super().__init__(path_filter)
 
         #: The name of the algorithm to which the current log file belongs.
         self.algorithm: str | None = None

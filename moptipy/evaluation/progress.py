@@ -219,8 +219,9 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
     """The internal log parser class."""
 
     def __init__(self, time_unit: str, f_name: str,
-                 f_standard: dict[str, int | float] | None = None,
-                 only_improvements: bool = True):
+                 f_standard: dict[str, int | float] | None,
+                 only_improvements: bool,
+                 path_filter: Callable[[Path], bool] | None) -> None:
         """
         Create the internal log parser.
 
@@ -229,8 +230,9 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
         :param f_standard: a dictionary mapping instances to standard values
         :param only_improvements: enforce that f-values should be improving
             and time values increasing
+        :param path_filter: the path filter
         """
-        super().__init__()
+        super().__init__(path_filter)
         self.__time_unit = check_time_unit(time_unit)
         self.__f_name = check_f_name(f_name)
         self.__last_fe: int | None = None
@@ -398,7 +400,8 @@ def from_logs(path: str,
               time_unit: str = TIME_UNIT_FES,
               f_name: str = F_NAME_RAW,
               f_standard: dict[str, int | float] | None = None,
-              only_improvements: bool = True) \
+              only_improvements: bool = True,
+              path_filter: Callable[[Path], bool] | None = None) \
         -> Generator[Progress, None, None]:
     """
     Parse a given path and pass yield all progress data found.
@@ -414,6 +417,7 @@ def from_logs(path: str,
     :param f_standard: a dictionary mapping instances to standard values
     :param only_improvements: enforce that f-values should be improving and
         time values increasing
+    :param path_filter: a function to filter paths
     """
     return __InnerLogParser(time_unit, f_name, f_standard,
-                            only_improvements).parse(path)
+                            only_improvements, path_filter).parse(path)

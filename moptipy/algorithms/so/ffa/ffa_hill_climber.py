@@ -1,59 +1,21 @@
 """
-The FFA-based version of the (1+1)-EA: the (1+1)-FEA.
+The FFA-based version of the Hill Climber: The FHC.
 
-This algorithm is based on :class:`~moptipy.algorithms.so.rls.RLS`, i.e., the
-(1+1)-EA, but uses Frequency Fitness Assignment (FFA) as fitness assignment
-process. FFA replaces all objective values with their encounter frequencies in
-the selection decisions. The more often an objective value is encountered, the
-higher gets its encounter frequency. Therefore, local optima are slowly
-receiving worse and worse fitness.
+This algorithm is based on
+:class:`~moptipy.algorithms.so.hill_climber.HillClimber`, i.e., the simple
+Hill Climber, but uses Frequency Fitness Assignment (FFA) as fitness
+assignment process. FFA replaces all objective values with their encounter
+frequencies in the selection decisions. The more often an objective value is
+encountered, the higher gets its encounter frequency. Therefore, local
+optima are slowly receiving worse and worse fitness.
 
-Most of the existing metaheuristic algorithms have in common that they
-maintain a set `Si` of one or multiple solutions and derive a set `Ni` of one
-or multiple new solutions in each iteration `i`. From the joint set
-`Pi = Si + Ni` of old and new solutions, they then select the set `Si+1` of
-solutions to be propagated to the next iteration, and so on. This selection
-decision is undertaken based mainly on the objective values `f(x)` of the
-solutions `x in Pi` and solutions with better objective values tend to be
-preferred over solutions with worse objective values.
-
-Frequency Fitness Assignment (FFA) completely breaks with this most
-fundamental concept of optimization. FFA was first proposed by
-Weise *et al.* as a "plug-in" for metaheuristics intended to prevent
-premature convergence. It therefore maintains a frequency table `H` for
-objective values. Before the metaheuristic chooses the set `Si+1` from `Pi`,
-it increments the encounter frequencies of the objective value of each
-solution in `Pi`, i.e., performs `H[yj] <- H[yj] + 1` for each `xj in Pi`,
-where `yj = f(xj)`. In its selection decisions, the algorithm then uses the
-frequency fitness `H[yj]` instead of the objective values `yj`.
-
-Here we integrate FFA into the randomized local search algorithm
-:class:`~moptipy.algorithms.so.rls.RLS`, which is also known as the
-`(1+1) EA`. In its original form, RLS maintains a single solution and derives
-a slightly modified copy from it in every iteration. If the modified copy is
-not worse than the original solution, it replaces it. "Not worse" here means
-that its objective value needs to be better or equally good, i.e., `<=`, than
-the maintained current best solution. The RLS with FFA (here called
-`(1+1) FEA`) now replaces the comparison of objective values with a comparison
-of the frequencies of the objective values. Of course, following the
-definition of FFA, the frequencies are first incremented (both of the current
-and the new solution) and then compared.
-
-The algorithm is here implemented in two different ways: If the objective
-function is always integer valued and the difference between its upper and
-lower bound is not too high, then we count the frequency fitness by using a
-numpy array. This means that frequency updates and getting frequency values is
-very fast. If the objective function is not always integer or if the
-difference between its maximum and minimum is too large, then we will use
-a :class:`collections.Counter` to back the frequency table instead. This will
-be slower and probably require more memory, but it may be the only way to
-accommodate the frequency table. Of course, this will still fail if there are
-too many different objective values and the memory consumed is simply too
-high.
-
-FFA is also implemented as a fitness assignment process
-(:mod:`~moptipy.algorithms.so.fitness`) in module
-:mod:`~moptipy.algorithms.so.ffa.ffa_fitness`.
+This algorithm is closely related
+:class:`~moptipy.algorithms.so.ffa.fea1plus1.FEA1plus1`.
+The difference is that it accepts new solutions only if their frequency
+fitness is *lower* than the frequency fitness of the current solution.
+:class:`~moptipy.algorithms.so.ffa.fea1plus1.FEA1plus1`, on the other hand,
+accepts solutions if their frequency fitness is *lower or equal*
+than the frequency fitness of the current solution.
 
 1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness
    Assignment: Making Optimization Algorithms Invariant under Bijective
@@ -103,9 +65,9 @@ from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 
 
-class FEA1plus1(Algorithm1):
+class FHC(Algorithm1):
     """
-    The FFA-based version of the (1+1)-EA: the (1+1)-FEA.
+    The FFA-based version of the Hill Climber.
 
     This algorithm applies Frequency Fitness Assignment (FFA).
     This means that it does not select solutions based on whether
@@ -116,12 +78,6 @@ class FEA1plus1(Algorithm1):
     value. Instead, the current best solution is always the one whose
     objective value we have seen the least often.
 
-    In each step, a (1+1)-FEA creates a modified copy `new_x` of the
-    current best solution `best_x`. It then increments the frequency fitness
-    of both solutions by 1. If frequency fitness of `new_x` is not bigger
-    the one of `best_x`, it becomes the new `best_x`.
-    Otherwise, it is discarded.
-
     This algorithm implementation works best if objective values are
     integers and have lower and upper bounds that are not too far
     away from each other. If there are too many possible different objective
@@ -130,13 +86,13 @@ class FEA1plus1(Algorithm1):
 
     def __init__(self, op0: Op0, op1: Op1, log_h_tbl: bool = False) -> None:
         """
-        Create the (1+1)-FEA.
+        Create the FHC.
 
         :param op0: the nullary search operator
         :param op1: the unary search operator
         :param log_h_tbl: should we log the H table?
         """
-        super().__init__("fea1p1", op0, op1)
+        super().__init__("fhc", op0, op1)
         if not isinstance(log_h_tbl, bool):
             raise type_error(log_h_tbl, "log_h_tbl", bool)
         #: True if we should log the H table, False otherwise
@@ -144,7 +100,7 @@ class FEA1plus1(Algorithm1):
 
     def solve(self, process: Process) -> None:
         """
-        Apply the (1+1)-FEA to an optimization problem.
+        Apply the FHC to an optimization problem.
 
         :param process: the black-box process object
         """
@@ -173,7 +129,7 @@ class FEA1plus1(Algorithm1):
 
             h[new_f] += 1  # type: ignore  # Increase the frequency
             h[cur_f] += 1  # type: ignore  # of new_f and cur_f.
-            if h[new_f] <= h[cur_f]:  # type: ignore
+            if h[new_f] < h[cur_f]:  # type: ignore
                 cur_f = new_f  # Store its objective value.
                 cur_x, new_x = new_x, cur_x  # Swap best and new.
 
