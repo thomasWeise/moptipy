@@ -2433,7 +2433,7 @@ class LABS(BitStringProblem):
     @classmethod
     def default_instances(
             cls: type, scale_min: int = 3,
-            scale_max: int = max(_BKS.keys())) \
+            scale_max: int = min(1024, max(_BKS.keys()))) \
             -> Iterator[Callable[[], "LABS"]]:
         """
         Get the default instances of the :class:`LABS` problem.
@@ -2443,7 +2443,7 @@ class LABS(BitStringProblem):
         :returns: a sequence of default :class:`LABS` instances
 
         >>> len(list(LABS.default_instances()))
-        88
+        81
 
         >>> [x() for x in LABS.default_instances()]
         [labs_3, labs_4, labs_5, labs_6, labs_7, labs_8, labs_9, labs_10, \
@@ -2456,14 +2456,12 @@ labs_99, labs_100, labs_107, labs_111, labs_121, labs_125, labs_128, \
 labs_144, labs_149, labs_169, labs_170, labs_192, labs_196, labs_199, \
 labs_200, labs_222, labs_225, labs_243, labs_256, labs_269, labs_289, \
 labs_300, labs_341, labs_400, labs_500, labs_512, labs_600, labs_625, \
-labs_700, labs_800, labs_900, labs_1000, labs_1019, labs_1024, labs_1500, \
-labs_2000, labs_2048, labs_2197, labs_3000, labs_4096]
+labs_700, labs_800, labs_900, labs_1000, labs_1024]
         """
         check_int_range(scale_max, "scale_max", check_int_range(
             scale_min, "scale_min", 1, 1_000_000_000) + 1, 1_000_000_000)
         return (cast(Callable[[], "LABS"], lambda __i=i: cls(__i))
                 for i in merge_sorted_and_return_unique((
                     16, 64, 100, 625), (k for k in default_scale_sequence(
-                        scale_min, scale_max) if k in _BKS), sorted(
-                        k for k in _BKS if k > 1000))
+                        scale_min, scale_max) if k in _BKS))
                 if scale_min <= i <= scale_max)

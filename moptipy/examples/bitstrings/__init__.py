@@ -95,7 +95,7 @@ def default_instances(
         benchmark instances
 
     >>> len(list(default_instances()))
-    1051
+    1044
     """
     return chain(
         BinInt.default_instances(*class_scales(BinInt)),  # type: ignore
