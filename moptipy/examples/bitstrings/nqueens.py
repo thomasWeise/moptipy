@@ -33,7 +33,7 @@ The worst case is if a queen is placed on every single field, i.e., if we have
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
-(应用优化研究所, http://iao.hfuu.edu.cn) of the School of Artificial
+(应用优化研究所) of the School of Artificial
 Intelligence and Big Data (人工智能与大数据学院) at
 Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of

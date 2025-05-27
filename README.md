@@ -2230,10 +2230,9 @@ If you use a shared root folder for experiments and launch the same experiment o
 ### 9.2. Links to other works of our team
 
 1. Our book on optimization algorithms, which is currently work in progress:
-   Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
+   Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, IAO) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
 2. Our old book optimization algorithms:
-   Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](http://iao.hfuu.edu.cn/images/publications/W2009GOEB.pdf).
-3. The website of our Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) is <http://iao.hfuu.edu.cn>.
+   Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](https://www.researchgate.net/publication/200622167).
 
 
 ### 9.3. Other Python Libraries of Optimization Algorithms
@@ -2281,7 +2280,7 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing, using, and experimenting with metaheuristic optimization algorithms.
 Our project is developed for scientific, educational, and industrial applications.
 
-Copyright (C) 2021-2023  [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授)
+Copyright (C) 2021-2023  Thomas Weise (汤卫思教授)
 
 Dr. Thomas Weise (see [Contact](#12-contact)) holds the copyright of this package *except* for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
 
@@ -2300,8 +2299,8 @@ If you have any concerns regarding security, please visit our [security policy](
 ## 12. Contact
 
 If you have any questions or suggestions, please contact
-Prof. Dr. [Thomas Weise](http://iao.hfuu.edu.cn/5) (汤卫思教授) of the 
-Institute of Applied Optimization (应用优化研究所, [IAO](http://iao.hfuu.edu.cn)) of the
+Prof. Dr. Thomas Weis (汤卫思教授) of the 
+Institute of Applied Optimization (应用优化研究所, IAO) of the
 School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd)) at
 [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥大学](http://www.hfuu.edu.cn/)) in
 Hefei, Anhui, China (中国安徽省合肥市) via
