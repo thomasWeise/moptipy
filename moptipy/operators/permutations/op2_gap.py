@@ -72,21 +72,21 @@ def _op2_gap(r: np.ndarray, dest: np.ndarray,
         # randomly chose a source point and pick next operation
         value = x0[x0i] if rr == 0 else x1[x1i]
         dest[desti] = value  # store the value in the destination
-        desti = desti + 1  # step destination index
+        desti += 1  # step destination index
 
         for x0j in range(x0i, length):  # mark value as done in x0
             if (x0[x0j] == value) and (not x0_done[x0j]):  # find
                 x0_done[x0j] = True  # value is found and not done
                 break  # so we mark it as done and break the loop
         while x0_done[x0i]:  # now we find the next not-yet-done
-            x0i = x0i + 1  # value in x0
+            x0i += 1  # value in x0
 
         for x1j in range(x1i, length):  # mark value as done in x1
             if (x1[x1j] == value) and (not x1_done[x1j]):  # find
                 x1_done[x1j] = True  # value is found and not done
                 break  # so we mark it as done and break the loop
         while x1_done[x1i]:  # now we find the next not-yet-done
-            x1i = x1i + 1  # value in x1
+            x1i += 1  # value in x1
 
     dest[desti] = x0[x0i]  # = x1[x1i]: the final missing value
 

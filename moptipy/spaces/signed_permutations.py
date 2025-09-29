@@ -168,7 +168,7 @@ least length 2, but is [1].
         npoints: int = factorial(total)
         rep: int | None = self.__shape.get(minimum)
         for v in self.__shape.values():
-            npoints = npoints // factorial(v)
+            npoints //= factorial(v)
             if v != rep:
                 rep = None
         #: the exact number of different signed permutations

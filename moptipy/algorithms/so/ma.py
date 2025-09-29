@@ -129,10 +129,10 @@ class MA(Algorithm0):
         ls_fes: Final[int] = self.ls_fes  # the number of FEs per ls run
         ls_solve: Final[Callable[[Process], None]] = self.ls.solve  # +book
         forward_ls_op0_to: Final[Callable] = cast(  # forward starting
-            Op0Forward, self.ls.op0).forward_to  # point of ls to...
+            "Op0Forward", self.ls.op0).forward_to  # point of ls to...
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(  # random integers
-            Callable[[int], int], random.integers)
+            "Callable[[int], int]", random.integers)
         # start book
         # create list of mu random+ls records and lambda empty records
         lst: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
@@ -142,7 +142,7 @@ class MA(Algorithm0):
             if i < mu:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we stop now?
-                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
+                    cast("Op0Forward", self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
                 with for_fes(process, ls_fes) as s1, \
                         from_starting_point(s1, x, evaluate(x)) as s2:
@@ -156,7 +156,7 @@ class MA(Algorithm0):
             it += 1  # step iteration counter
             for oi in range(mu, mu_plus_lambda):  # for all offspring
                 if should_terminate():  # should we stop now?
-                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
+                    cast("Op0Forward", self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
                 dest: Record = lst[oi]  # pick destination record
                 x = dest.x  # the destination "x" value

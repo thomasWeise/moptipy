@@ -355,96 +355,96 @@ class AxisRanger:
         if not isinstance(name, str):
             raise type_error(name, "axis name", str)
 
-        __log: bool = False
-        __min: float | None = None
-        __max: float | None = None
-        __data_min: bool = chosen_min is None
-        __data_max: bool = chosen_max is None
+        l_log: bool = False
+        l_min: float | None = None
+        l_max: float | None = None
+        l_data_min: bool = chosen_min is None
+        l_data_max: bool = chosen_max is None
 
-        if name in (TIME_UNIT_MILLIS, KEY_LAST_IMPROVEMENT_TIME_MILLIS,
-                    KEY_TOTAL_TIME_MILLIS, KEY_ERT_TIME_MILLIS):
+        if name in {TIME_UNIT_MILLIS, KEY_LAST_IMPROVEMENT_TIME_MILLIS,
+                    KEY_TOTAL_TIME_MILLIS, KEY_ERT_TIME_MILLIS}:
             if chosen_min is not None:
                 if (chosen_min < 0) or (not isfinite(chosen_min)):
                     raise ValueError("chosen_min must be >= 0 for axis "
                                      f"type {name}, but is {chosen_min}.")
-                __log = (chosen_min > 0)
+                l_log = (chosen_min > 0)
                 if log_scale is not None:
-                    if log_scale and (not __log):
+                    if log_scale and (not l_log):
                         raise ValueError(f"Cannot set log_scale={log_scale} "
                                          f"and chosen_min={chosen_min} for "
                                          f"axis type {name}.")
-                    __log = log_scale
+                    l_log = log_scale
             elif log_scale is None:
-                __log = True
+                l_log = True
             else:
-                __log = log_scale
+                l_log = log_scale
 
-            __min = (1 if __log else 0) if chosen_min is None else chosen_min
+            l_min = (1 if l_log else 0) if chosen_min is None else chosen_min
 
             if use_data_max is not None:
-                __data_max = use_data_max
+                l_data_max = use_data_max
 
-            __data_min = False if use_data_min is None else use_data_min
+            l_data_min = False if use_data_min is None else use_data_min
 
             if chosen_max is not None:
-                __max = chosen_max
+                l_max = chosen_max
 
-            return AxisRanger(__min, __max, __data_min, __data_max,
-                              __log, log_base if __log else None)
+            return AxisRanger(l_min, l_max, l_data_min, l_data_max,
+                              l_log, log_base if l_log else None)
 
-        if name in (TIME_UNIT_FES, KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES,
-                    KEY_ERT_FES):
+        if name in {TIME_UNIT_FES, KEY_LAST_IMPROVEMENT_FE, KEY_TOTAL_FES,
+                    KEY_ERT_FES}:
             if chosen_min is None:
-                __min = 1
+                l_min = 1
             else:
                 if (chosen_min < 1) or (not isfinite(chosen_min)):
                     raise ValueError("chosen_min must be >= 1 for axis "
                                      f"type {name}, but is {chosen_min}.")
-                __min = chosen_min
-            __log = True if (log_scale is None) else log_scale
+                l_min = chosen_min
+            l_log = True if (log_scale is None) else log_scale
 
             if use_data_max is not None:
-                __data_max = use_data_max
+                l_data_max = use_data_max
 
-            __data_min = False if use_data_min is None else use_data_min
+            l_data_min = False if use_data_min is None else use_data_min
 
-            return AxisRanger(__min, chosen_max, __data_min, __data_max,
-                              __log, log_base if __log else None)
+            return AxisRanger(l_min, chosen_max, l_data_min, l_data_max,
+                              l_log, log_base if l_log else None)
 
-        if name in (F_NAME_RAW, KEY_BEST_F):
+        if name in {F_NAME_RAW, KEY_BEST_F}:
             if use_data_max is not None:
-                __data_max = use_data_max
+                l_data_max = use_data_max
             if use_data_min is not None:
-                __data_min = use_data_min
+                l_data_min = use_data_min
             if log_scale is not None:
-                __log = log_scale
-            return AxisRanger(chosen_min, chosen_max, __data_min, __data_max,
-                              __log, log_base if __log else None)
+                l_log = log_scale
+            return AxisRanger(chosen_min, chosen_max, l_data_min, l_data_max,
+                              l_log, log_base if l_log else None)
 
         if name == F_NAME_SCALED:
-            __min = 1
+            l_min = 1
         elif name == F_NAME_NORMALIZED:
             if (log_scale is None) or (not log_scale):
-                __min = 0
+                l_min = 0
         elif name == "ecdf":
             if (log_scale is None) or (not log_scale):
-                __min = 0
-            __max = 1
+                l_min = 0
+            l_max = 1
         else:
             raise ValueError(f"Axis type {name!r} is unknown.")
 
         if chosen_min is not None:
-            __min = chosen_min
+            l_min = chosen_min
 
         if log_scale is not None:
-            __log = log_scale
+            l_log = log_scale
         if use_data_max is not None:
-            __data_max = use_data_max
+            l_data_max = use_data_max
         if use_data_min is not None:
-            __data_min = use_data_min
+            l_data_min = use_data_min
 
-        return AxisRanger(__min, chosen_max, __data_min, __data_max,
-                          __log, log_base if __log else None)
+        return AxisRanger(l_min, chosen_max, l_data_min, l_data_max,
+                          l_log, log_base if l_log else None)
 
     @staticmethod
     def for_axis_func(chosen_min: float | None = None,

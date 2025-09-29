@@ -324,7 +324,7 @@ class InMemoryLogger(Logger):
 
         :return: a list of strings with the logged lines
         """
-        return cast(StringIO, self.__stream).getvalue().splitlines()
+        return cast("StringIO", self.__stream).getvalue().splitlines()
 
 
 class LogSection(AbstractContextManager):
@@ -446,7 +446,7 @@ class CsvLogSection(LogSection):
         txt = (bool_to_str(c) if isinstance(c, bool)  # type: ignore
                else str(c) if isinstance(c, int)
                else (float_to_str(c) if isinstance(c, float) else
-               cast(None, self._logger._error(
+               cast("None", self._logger._error(
                    f"Invalid log value {c} in row {row}")))
                for c in row)
 

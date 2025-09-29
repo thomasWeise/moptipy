@@ -19,7 +19,7 @@ NEGATIVE_INFINITY: Final[int] = 4
 SPECIAL: Final[int] = 5
 
 
-class FormattedStr(str):
+class FormattedStr(str):  # noqa: SLOT000
     """
     A subclass of `str` capable of holding formatting information.
 
@@ -101,14 +101,14 @@ class FormattedStr(str):
         >>> st = "abc"
         >>> type(st)
         <class 'str'>
-        >>> fs = cast(FormattedStr, FormattedStr.add_format(st, bold=True))
+        >>> fs = cast("FormattedStr", FormattedStr.add_format(st, bold=True))
         >>> type(fs)
         <class 'moptipy.utils.formatted_string.FormattedStr'>
         >>> fs.bold
         True
         >>> fs.italic
         False
-        >>> fs = cast(FormattedStr, FormattedStr.add_format(fs, italic=True))
+        >>> fs = cast("FormattedStr", FormattedStr.add_format(fs, italic=True))
         >>> fs.bold
         True
         >>> fs.italic

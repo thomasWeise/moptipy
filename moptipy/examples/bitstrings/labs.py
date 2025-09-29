@@ -2245,7 +2245,7 @@ _BKS: Final[dict[int, tuple[int, tuple[str, str]]]] = __make_bkses()
 del __make_bkses
 
 
-def get_bks(n: int) -> tuple[int, None | tuple[str, str]]:
+def get_bks(n: int) -> tuple[int, tuple[str, str] | None]:
     """
     Get the best currently known solution for the given dimension `n`.
 
@@ -2460,7 +2460,7 @@ labs_700, labs_800, labs_900, labs_1000, labs_1024]
         """
         check_int_range(scale_max, "scale_max", check_int_range(
             scale_min, "scale_min", 1, 1_000_000_000) + 1, 1_000_000_000)
-        return (cast(Callable[[], "LABS"], lambda __i=i: cls(__i))
+        return (cast("Callable[[], LABS]", lambda __i=i: cls(__i))
                 for i in merge_sorted_and_return_unique((
                     16, 64, 100, 625), (k for k in default_scale_sequence(
                         scale_min, scale_max) if k in _BKS))

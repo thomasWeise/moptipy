@@ -58,7 +58,7 @@ def check_time_unit(time_unit: Any) -> str:
     """
     if not isinstance(time_unit, str):
         raise type_error(time_unit, "time_unit", str)
-    if time_unit in (TIME_UNIT_FES, TIME_UNIT_MILLIS):
+    if time_unit in {TIME_UNIT_FES, TIME_UNIT_MILLIS}:
         return time_unit
     raise ValueError(
         f"Invalid time unit {time_unit!r}, only {TIME_UNIT_FES!r} "
@@ -92,7 +92,7 @@ are permitted.
     """
     if not isinstance(f_name, str):
         raise type_error(f_name, "f_name", str)
-    if f_name in (F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED):
+    if f_name in {F_NAME_RAW, F_NAME_SCALED, F_NAME_NORMALIZED}:
         return f_name
     raise ValueError(
         f"Invalid f name {f_name!r}, only {F_NAME_RAW!r}, "
@@ -213,6 +213,14 @@ class EvaluationDataElement:
             are masked out
         """
         return (self.__class__.__name__, )
+
+    def __hash__(self) -> int:
+        """
+        Compute the hash code of this object.
+
+        :returns: the hash code
+        """
+        return hash(self._tuple())
 
     def __eq__(self, other) -> bool:
         """

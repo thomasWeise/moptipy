@@ -122,7 +122,7 @@ def test_process_noss_log() -> None:
             assert p.has_log()
         assert isfile(path)
         assert getsize(path) > 10
-        with open(path, encoding="UTF8") as file:
+        with open(path, encoding="UTF8") as file:  # noqa: FURB101
             result = file.read().splitlines()
         assert len(result) > 5
 
@@ -149,7 +149,7 @@ def test_process_noss_timed_log() -> None:
             assert all(x == lll)
         assert isfile(path)
         assert getsize(path) > 10
-        with open(path, encoding="UTF8") as file:
+        with open(path, encoding="UTF8") as file:  # noqa: FURB101
             result = file.read().splitlines()
         assert len(result) > 5
 

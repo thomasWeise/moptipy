@@ -57,7 +57,7 @@ def test_ffa_on_bit_strings_3() -> None:
         assert isinstance(oub, int)
         choice: Final[int] = int(random.integers(1, 4))
 
-        if choice in (1, 3):
+        if choice in {1, 3}:
             while True:
                 lb = int(random.integers(-SWITCH_TO_MAP_RANGE,
                                          SWITCH_TO_MAP_RANGE))
@@ -71,7 +71,7 @@ def test_ffa_on_bit_strings_3() -> None:
             f.evaluate = lambda x, _l=lb - olb, _o=ofe: (  # type: ignore
                 _o(x) + _l)
 
-        if choice in (2, 3):
+        if choice in {2, 3}:
             f.is_always_integer = lambda: False  # type: ignore
             ofe2 = f.evaluate
             f.evaluate = lambda x, _of=ofe2: float(_of(x))  # type: ignore

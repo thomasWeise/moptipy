@@ -738,6 +738,6 @@ trap_111, trap_121, trap_125, trap_128, trap_144, trap_149, trap_169, \
 trap_170, trap_192, trap_196, trap_199, trap_200, trap_222, trap_225, \
 trap_243, trap_256, trap_269, trap_289, trap_300, trap_324, trap_333]
         """
-        return cast(Iterator[Callable[[], "Trap"]],
+        return cast("Iterator[Callable[[], Trap]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

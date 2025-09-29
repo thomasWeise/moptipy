@@ -75,7 +75,7 @@ def __make_all_names() -> tuple[str, ...]:
     """
     inst = Instance.from_resource("demo")
     space = Permutations.with_repetitions(inst.jobs, inst.machines)
-    return tuple([str(a(inst, space)) for a in ALGORITHMS])
+    return tuple(str(a(inst, space)) for a in ALGORITHMS)
 
 
 #: the list of all algorithm names from the experiment
@@ -196,7 +196,7 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
         for s in names:
             m: Match = re.match(s)
             if m is not None:
-                ns = re.sub(cast(str | Callable[[Match], str], repl), s)
+                ns = re.sub(cast("str | Callable[[Match], str]", repl), s)
                 if (ns is None) or (len(ns) <= 0):
                     raise ValueError(f"{s!r} -> {ns!r}?")
                 if ns == s:
@@ -302,8 +302,8 @@ def compute_end_results(results_dir: str,
 
 def get_end_results(
         file: str,
-        insts: None | set[str] | Callable[[str], bool] = None,
-        algos: None | set[str] | Callable[[str], bool] = None) \
+        insts: set[str] | Callable[[str], bool] | None = None,
+        algos: set[str] | Callable[[str], bool] | None = None) \
         -> list[EndResult]:
     """
     Get a specific set of end results.
@@ -466,7 +466,7 @@ def gantt(end_results: Path, algo: str, dest: Path, source: Path,
         results_dir=source,
         instance_sort_key=instance_sort_key,
         statistic=cast(
-            Callable[[Iterable[int | float]], int | float],
+            "Callable[[Iterable[int | float]], int | float]",
             min if best else median))
 
 
@@ -483,13 +483,13 @@ def progress(algos: list[str], dest: Path, source: Path,
     """
     n: str = f"progress_{algorithm_namer(algos[0])}_"
     if log:
-        n = n + "log_"
+        n += "log_"
     if millis:
         unit = TIME_UNIT_MILLIS
-        n = n + "T"
+        n += "T"
     else:
         unit = TIME_UNIT_FES
-        n = n + "FEs"
+        n += "FEs"
     plot_progresses(results_dir=source,
                     algorithms=algos,
                     name_base=n,
@@ -561,8 +561,7 @@ def evaluate_experiment(results_dir: str = pp.join(".", "results"),
     :param dest_dir: the destination directory
     """
     source: Final[Path] = directory_path(results_dir)
-    dest: Final[Path] = Path(dest_dir if dest_dir else
-                             pp.join(source, "..", "evaluation"))
+    dest: Final[Path] = Path(dest_dir or pp.join(source, "..", "evaluation"))
     dest.ensure_dir_exists()
     logger(f"Beginning evaluation from {source!r} to {dest!r}.")
 

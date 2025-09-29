@@ -168,7 +168,7 @@ class KeepFarthest(MOArchivePruner):
         # Now preserve the selected records by moving them to the front.
         for choseni in chosen:
             archive.insert(selected, archive.pop(choseni))
-            selected = selected + 1
+            selected += 1
             if selected >= n_keep:
                 return
 
@@ -214,7 +214,7 @@ class KeepFarthest(MOArchivePruner):
             # preserve the distance of the element swapped back
             min_dists[max_dist_idx] = min_dists[selected]
             dist_update_start = selected
-            selected = selected + 1
+            selected += 1
 
     def __str__(self):
         """

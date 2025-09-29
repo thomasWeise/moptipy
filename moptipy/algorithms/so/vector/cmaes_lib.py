@@ -90,7 +90,7 @@ def _run_cma(cma: SepCMA | CMA,
             x: np.ndarray = ask()  # sample a point from CMA-ES
             value: int | float = f(x)  # compute its objective value
             append((x, value))  # store the point
-            fes = fes + 1
+            fes += 1
         tell(solutions)  # feed all results back to the CMA
         if run_criterion():
             return fes
@@ -331,7 +331,7 @@ class BiPopCMAES(CMAES):
                     initial_pop_size * pop_size_multiplier ** (
                         random.uniform() ** 2)))
             else:  # else: create the large population
-                large_pop_restarts = large_pop_restarts + 1
+                large_pop_restarts += 1
                 pop_size = initial_pop_size * (2 ** large_pop_restarts)
 
             # Create the new CMA-ES instance.

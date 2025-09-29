@@ -30,10 +30,10 @@ def plot_end_results(
         pd.importance_to_font_size,
         y_grid: bool = True,
         x_grid: bool = True,
-        x_label: None | str | Callable[[str], str] = Lang.translate,
+        x_label: str | Callable[[str], str] | None = Lang.translate,
         x_label_inside: bool = True,
         x_label_location: float = 1.0,
-        y_label: None | str | Callable[[str], str] = Lang.translate,
+        y_label: str | Callable[[str], str] | None = Lang.translate,
         y_label_inside: bool = True,
         y_label_location: float = 0.5,
         legend_pos: str = "best",
@@ -302,7 +302,7 @@ def plot_end_results(
                 continue
             polys: list[Line2D] = boxes[tkey]
             for line in polys:
-                xdata = cast(list, line.get_xdata(True))
+                xdata = cast("list", line.get_xdata(True))
                 if len(xdata) <= 0:
                     line.remove()
                     continue
@@ -317,7 +317,7 @@ def plot_end_results(
                 line.set_markeredgecolor(thecolor)
                 line.set_markerfacecolor("none")
                 line.set_markeredgewidth(width)
-                z_order = z_order + 1
+                z_order += 1
                 line.set_zorder(z_order)
 
     # compute the labels for the x-axis
@@ -361,7 +361,7 @@ def plot_end_results(
 
     z_order += 1
     pu.label_axes(axes=axes,
-                  x_label=cast(str | None, x_label),
+                  x_label=cast("str | None", x_label),
                   x_label_inside=x_label_inside,
                   x_label_location=x_label_location,
                   y_label=y_label(dimension) if callable(y_label) else y_label,

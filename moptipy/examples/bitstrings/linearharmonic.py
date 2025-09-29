@@ -795,6 +795,6 @@ linharm_192, linharm_196, linharm_199, linharm_200, linharm_222, \
 linharm_225, linharm_243, linharm_256, linharm_269, linharm_289, linharm_300, \
 linharm_324, linharm_333]
         """
-        return cast(Iterator[Callable[[], "LinearHarmonic"]],
+        return cast("Iterator[Callable[[], LinearHarmonic]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

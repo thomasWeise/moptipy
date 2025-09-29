@@ -157,7 +157,7 @@ class VectorSpace(NPArraySpace):
         :param func: the function to wrap
         :returns: the wrapped function
         """
-        return cast(Callable[[np.ndarray], int | float],
+        return cast("Callable[[np.ndarray], int | float]",
                     lambda x, lb=self.lower_bound, ub=self.upper_bound,
                     ff=func: ff(clip(x, lb, ub, x)))
 

@@ -91,7 +91,7 @@ class MARLS(Algorithm2):
         ls_fes: Final[int] = self.ls_fes  # the rate at which to use op2
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(  # random integers
-            Callable[[int], int], random.integers)
+            "Callable[[int], int]", random.integers)
         copy: Final[Callable[[Any, Any], None]] = process.copy
 
         # create list of mu random+ls records and lambda empty records

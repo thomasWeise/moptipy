@@ -107,27 +107,27 @@ class GeneralEA(EA):
         br: Final[float] = self.br  # the rate at which to use op2
         should_terminate: Final[Callable] = process.should_terminate
         r01: Final[Callable[[], float]] = cast(  # only if 0<br<1, we
-            Callable[[], float],  # need random floats
+            "Callable[[], float]",  # need random floats
             random.random if 0 < br < 1 else _float_0)
         assign_fitness: Final[Callable[[list[FRecord], Generator], None]] = \
             self.fitness.assign_fitness
         survival_selection: Final[Callable[
             [list[FRecord], Callable, int, Generator], None]] = \
-            cast(Callable[[list[FRecord], Callable, int, Generator],
-                          None], self.survival.select)
+            cast("Callable[[list[FRecord], Callable, "
+                 "int, Generator], None]", self.survival.select)
         mating_selection: Final[Callable[
             [list[FRecord], Callable, int, Generator], None]] = \
-            cast(Callable[[list[FRecord], Callable, int, Generator],
-                          None], self.mating.select)
+            cast("Callable[[list[FRecord], Callable, "
+                 "int, Generator], None]", self.mating.select)
         recs: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
         parents: Final[list] = [None, None]  # mating pool: length 2
         population: Final[list] = [None] * mu_plus_lambda  # whole pop
         parents_clear: Final[Callable[[], None]] = parents.clear
         parents_append: Final[Callable[[FitnessRecord], None]] = \
-            cast(Callable[[FitnessRecord], None], parents.append)
+            cast("Callable[[FitnessRecord], None]", parents.append)
         population_clear: Final[Callable[[], None]] = population.clear
         population_append: Final[Callable[[_Record], None]] = \
-            cast(Callable[[_Record], None], population.append)
+            cast("Callable[[_Record], None]", population.append)
 # start book
         # create list of mu random records and lambda empty records
         f: int | float = 0  # variable to hold objective values
@@ -149,11 +149,11 @@ class GeneralEA(EA):
 # end book
         mating_pool_clear: Final[Callable[[], None]] = mating_pool.clear
         mating_pool_append: Final[Callable[[FitnessRecord], None]] = \
-            cast(Callable[[FitnessRecord], None], mating_pool.append)
+            cast("Callable[[FitnessRecord], None]", mating_pool.append)
 # start book
         it: int = 0  # set the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
-            it = it + 1  # step the iteration counter
+            it += 1  # step the iteration counter
             population_clear()  # clear population
 
             di = 0  # set index of next potential destination
@@ -165,7 +165,7 @@ class GeneralEA(EA):
                     return  # ...have sufficient budget # -book
                 while True:  # get the next non-selected record
                     dest = recs[di]  # get the record
-                    di = di + 1  # step counter
+                    di += 1  # step counter
                     if dest._selected:  # if it was selected
                         dest._selected = False  # mark it as unselected
                         population_append(dest)  # store in population

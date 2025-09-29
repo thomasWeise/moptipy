@@ -210,7 +210,7 @@ class _RA(Algorithm0):
             f = self.f.evaluate(self.y)
             process.register(self.x, f)
             assert process.get_consumed_time_millis() > 0
-            i = i + 1
+            i += 1
             assert process.get_consumed_fes() == i
 
 

@@ -110,8 +110,8 @@ def gantt_min_feasible(jobs: int, machines: int) \
                                       np.int64(machines), dest))
 
     # turn the result into a tuple
-    arr = tuple(sorted([tuple([int(dest[i, j]) for j in range(machines)])
-                        for i in range(jobs)]))
+    arr = tuple(sorted(tuple(int(dest[i, j]) for j in range(machines))
+                       for i in range(jobs)))
     return res, arr
 
 
@@ -176,7 +176,7 @@ def __find_min_feasible(jobs: np.int64, machines: np.int64,
         while True:
             if __next_perm(instance[k], inst_index, k, machines):
                 break
-            k = k - 1
+            k -= 1
             if k < 0:
                 return upper_bound
         for j in range(k + 1, jobs):
@@ -199,7 +199,7 @@ def __check_sorted(instance: np.ndarray,
     arr1: np.ndarray = instance[i]
     while i > 0:
         arr2 = arr1
-        i = i - 1
+        i -= 1
         arr1 = instance[i]
         for j in range(machines):
             if arr1[j] > arr2[j]:
@@ -511,8 +511,8 @@ def make_gantt_space_size_table(
         for j in range(i, len(inst_scales)):
             b = inst_scales[j]
             if (a[-1] and b[-1]) and (a[-3] > b[-3]):
-                inst_scales[i] = b
-                inst_scales[j] = a
+                inst_scales[i] = b  # noqa: B909
+                inst_scales[j] = a  # noqa: B909
                 a = b
 
     text.extend(
@@ -575,8 +575,8 @@ def make_search_space_size_table(
         for j in range(i, len(inst_scales)):
             b = inst_scales[j]
             if (a[-1] and b[-1]) and (a[-2] > b[-2]):
-                inst_scales[i] = b
-                inst_scales[j] = a
+                inst_scales[i] = b  # noqa: B909
+                inst_scales[j] = a  # noqa: B909
                 a = b
     text.extend(f"|{scale[4]}|{scale[0]}|{scale[1]}|{__long_str(scale[2])}|"
                 f"{__long_str(scale[3])}|" for scale in inst_scales)

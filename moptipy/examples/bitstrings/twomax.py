@@ -784,6 +784,6 @@ twomax_144, twomax_149, twomax_169, twomax_170, twomax_192, twomax_196, \
 twomax_199, twomax_200, twomax_222, twomax_225, twomax_243, twomax_256, \
 twomax_269, twomax_289, twomax_300, twomax_324, twomax_333]
         """
-        return cast(Iterator[Callable[[], "TwoMax"]],
+        return cast("Iterator[Callable[[], TwoMax]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

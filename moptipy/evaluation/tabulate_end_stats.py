@@ -199,8 +199,8 @@ def tabulate_end_stats(
     writer.extend("r" for _ in range(n_inst_cols))
     writer.extend(["r"] * n_stats * n_algorithms)
     txt: str = "".join(writer)
-    header.append(f"\\begin{{tabular}}{{{'|'.join([txt] * n_wrap)}}}%")
-    header.append(r"\hline%")
+    header.extend((f"\\begin{{tabular}}{{{'|'.join([txt] * n_wrap)}}}%",
+                   r"\hline%"))
 
     writer.clear()
     writer.append(instance_header)

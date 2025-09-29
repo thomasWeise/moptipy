@@ -53,7 +53,7 @@ def choices_for_tests(
         if not callable(choice_filter):
             raise type_error(choice_filter, "choice_filter", None, call=True)
         pwrs = [p for p in pwrs if choice_filter(p)]
-    r.shuffle(cast(list, pwrs))
+    r.shuffle(cast("list", pwrs))
     return pwrs
 
 

@@ -97,7 +97,7 @@ class SimulatedAnnealing(Algorithm1):
                     r01() < exp((best_f - new_f) / temperature(tau))):
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
-            tau = tau + 1  # Step the iteration index.
+            tau += 1  # Step the iteration index.
 # end book
 
     def __init__(self, op0: Op0, op1: Op1,

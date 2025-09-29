@@ -17,8 +17,8 @@ with temp_dir() as td:
     run_experiment(  # run the JSSP experiment with the following parameters:
         base_dir=td,  # base directory to write all log files to
         algorithms=[  # the set of algorithm generators
-            lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
-            lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
+            lambda _, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # algo 1
+            lambda _, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2())],  # 2
         instances=("demo", "abz7", "la24"),  # we use 3 JSSP instances
         max_fes=10000,  # we grant 10000 FEs per run
         n_runs=4)  # perform 4 runs per algorithm * instance combination

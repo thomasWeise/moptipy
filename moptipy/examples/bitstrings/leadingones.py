@@ -787,6 +787,6 @@ leadingones_3333, leadingones_3364, leadingones_3481, leadingones_3600, \
 leadingones_3671, leadingones_3721, leadingones_3844, leadingones_3969, \
 leadingones_4000, leadingones_4096]
         """
-        return cast(Iterator[Callable[[], "LeadingOnes"]],
+        return cast("Iterator[Callable[[], LeadingOnes]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

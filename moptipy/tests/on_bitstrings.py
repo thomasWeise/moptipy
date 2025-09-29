@@ -39,7 +39,7 @@ def dimensions_for_tests() -> Iterable[int]:
     r = default_rng()
     bs: list[int] = [1, 2, 3, 4, 5, 10, 16, 100,
                      int(r.integers(20, 50)), int(r.integers(200, 300))]
-    r.shuffle(cast(list, bs))
+    r.shuffle(cast("list", bs))
     return bs
 
 

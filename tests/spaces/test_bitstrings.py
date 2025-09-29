@@ -13,7 +13,7 @@ def test_bit_strings() -> None:
     f = BitStrings(12)
     assert isinstance(f, Space)
     assert str(f) == "bits12"
-    validate_space(f, make_element_invalid=lambda x: np.array([1]))
+    validate_space(f, make_element_invalid=lambda _: np.array([1]))
 
     a = f.create()
     assert isinstance(a, np.ndarray)

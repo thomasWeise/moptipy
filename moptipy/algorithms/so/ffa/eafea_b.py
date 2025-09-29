@@ -7,8 +7,8 @@ contexts). Both algorithms get assigned alternating objective function
 evaluations (FEs). The FEA branch remains unchanged, it is never disturbed and
 no information flows from the RLS branch over to it. However, solutions are
 copied from time to time from the FEA branch to the RLS branch. The solution
-is transferred from the FEA branch to the EA branch if its better than the
-current solution in that branch.
+is transferred from the FEA branch to the EA branch if it's better or equally
+good compared to the current solution in that branch.
 
 1. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Sarah Louise
    Thomson, and Thomas Weise. Addressing the Traveling Salesperson Problem

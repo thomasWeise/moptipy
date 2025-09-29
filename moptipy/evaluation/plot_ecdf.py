@@ -62,10 +62,10 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
               pd.importance_to_font_size,
               x_grid: bool = True,
               y_grid: bool = True,
-              x_label: None | str | Callable[[str], str] =
+              x_label: str | Callable[[str], str] | None =
               lambda x: x if isinstance(x, str) else x[0],
               x_label_inside: bool = True,
-              y_label: None | str | Callable[[str], str] =
+              y_label: str | Callable[[str], str] | None =
               Lang.translate_func("ECDF"),
               y_label_inside: bool = True,
               algorithm_priority: float = 5.0,
@@ -175,7 +175,7 @@ def plot_ecdf(ecdfs: Iterable[Ecdf],
                                        name_sort_function=algorithm_sort_key)
     f_dim: str | None = None
     t_dim: str | None = None
-    source: list[Ecdf] = cast(list[Ecdf], ecdfs) \
+    source: list[Ecdf] = cast("list[Ecdf]", ecdfs) \
         if isinstance(ecdfs, list) else list(ecdfs)
     del ecdfs
 

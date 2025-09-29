@@ -27,7 +27,7 @@ with temp_dir() as td:  # create temp directory
         base_dir=td,  # working directory = temporary directory
         algorithms=[  # the set of algorithms to use: we use only 1
             # an algorithm is created via a lambda
-            lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],
+            lambda _, pwr: RLS(Op0Shuffle(pwr), Op1Swap2())],
         instances=("demo",),  # use the demo JSSP instance
         n_runs=1)  # perform exactly one run
     # The random seed is automatically generated based on the instance name.

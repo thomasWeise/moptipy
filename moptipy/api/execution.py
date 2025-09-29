@@ -86,7 +86,7 @@ class Execution:
         self._rand_seed: int | None = None
         self._max_fes: int | None = None
         self._max_time_millis: int | None = None
-        self._goal_f: None | int | float = None
+        self._goal_f: int | float | None = None
         self._log_file: Path | None = None
         self._log_improvements: bool = False
         self._log_all_fes: bool = False

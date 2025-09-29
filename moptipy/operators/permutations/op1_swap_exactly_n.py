@@ -226,10 +226,10 @@ def get_max_changes(blueprint: Iterable[int]) -> int:
                 continue         # in a row. So we skip over it.
             cnt = chosen[0]
             if cnt <= 1:  # How often does this element exist in the list?
-                del counts[idx]  # No more elements of this type.
+                del counts[idx]  # noqa
             else:
-                chosen[0] = cnt - 1  # There is at least one more left over.
-            changes = changes + 1  # Yeah, we can increase the changes.
+                chosen[0] = cnt - 1  # noqa
+            changes += 1  # Yeah, we can increase the changes.
             chosen[1] = changes  # Increase negative priority.
             found = True  # We found an element.
             last = current  # Remember the element.
@@ -386,7 +386,7 @@ def find_move(x: np.ndarray, indices: np.ndarray, step_size: int,
             if tested >= lm1:  # Are we in a dead end?
                 break  # and try again freshly.
             indices[tested], indices[i_idx] = i_dst, indices[tested]
-            tested = tested + 1  # We have tested another value.
+            tested += 1  # We have tested another value.
 
 # If we get here, we did not succeed in creating a complete move this round.
 # However, current_best_size should indicate one possible shorter move.

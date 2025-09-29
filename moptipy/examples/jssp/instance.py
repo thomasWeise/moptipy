@@ -484,7 +484,7 @@ Instance@machines: 15@jobs: 20@makespanLowerBound: 648\
         container: Final = Instance.from_resource
         inst_attr: Final[str] = f"__inst_{name}"
         if hasattr(container, inst_attr):
-            return cast(Instance, getattr(container, inst_attr))
+            return cast("Instance", getattr(container, inst_attr))
         with resources.files(str(__package__)).joinpath(
                 "demo.txt" if (name == "demo")
                 else "instances.txt").open("r", encoding=UTF8) as stream:
@@ -572,7 +572,7 @@ def check_instance(inst: Instance) -> Instance:
         raise ValueError(f"makespan upper bound computed as {msub}, "
                          f"but set to {inst.makespan_upper_bound}"
                          f" for instance {inst.name}.")
-    tub = max([sum(inst[i, :, 1]) for i in range(inst.jobs)])
+    tub = max(sum(inst[i, :, 1]) for i in range(inst.jobs))
     if inst.makespan_lower_bound < tub:
         raise ValueError(f"makespan lower bound {inst.makespan_lower_bound} "
                          f"less then longest job duration {tub}"

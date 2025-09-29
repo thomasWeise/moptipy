@@ -165,7 +165,7 @@ def _crowding_distances(pop: list[_NSGA2Record]) -> None:
 
     dimensions: Final[int] = len(pop[0].fs)
     for dim in range(dimensions):
-        pop.sort(key=cast(Callable[[_NSGA2Record], Any],
+        pop.sort(key=cast("Callable[[_NSGA2Record], Any]",
                           lambda r, d=dim: r.fs[d]))  # sort by dimension
         first = pop[0]  # get the record with the smallest value in the dim
         last = pop[-1]  # get the record with the largest value in the dim

@@ -244,7 +244,7 @@ class LogParser[T](Parser[T]):
                     if len(cur) <= 0:
                         continue
 
-                if state in (0, 2):
+                if state in {0, 2}:
                     if not cur.startswith(sect_start):
                         raise ValueError("Line should start with "
                                          f"{sect_start!r} but is "

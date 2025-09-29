@@ -125,7 +125,7 @@ class SAFEAN(Algorithm1):
                 if sa_no_lt_moves >= sa_max_no_lt_moves:  # Toggle: SA to FEA.
                     sa_max_no_lt_moves += 1  # Increment limit by one.
                     use_ffa = True  # Toggle to FFA.
-            tau = tau + 1  # Step the iteration index.
+            tau += 1  # Step the iteration index.
 
         if not self.__log_h_tbl:
             return  # we are done here

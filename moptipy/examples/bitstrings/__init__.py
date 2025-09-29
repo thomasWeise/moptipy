@@ -62,7 +62,7 @@ Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
 """
 from itertools import chain
-from typing import Callable, Iterator, cast
+from typing import Callable, Iterable, Iterator, cast
 
 from moptipy.examples.bitstrings.binint import BinInt
 from moptipy.examples.bitstrings.bitstring_problem import BitStringProblem
@@ -82,7 +82,7 @@ from moptipy.examples.bitstrings.w_model import WModel
 
 def default_instances(
         class_scales: Callable[[
-            type], Iterator[int]] = lambda s: cast(Iterator[int], ())) \
+            type], Iterable[int]] = lambda _: cast("Iterable[int]", ())) \
         -> Iterator[Callable[[], BitStringProblem]]:
     """
     Get the default bit-string based benchmark instances.
@@ -91,11 +91,23 @@ def default_instances(
         maximimum problem scales on a per-benchmark-function-class
         basis. If this function returns an empty iterator, then the default
         scales are used.
-    :return: an :class:`Iterator` with the default bit-string
+    :return: an :class:`Iterable` with the default bit-string
         benchmark instances
 
     >>> len(list(default_instances()))
     1044
+
+    >>> from moptipy.examples.bitstrings.binint import BinInt
+    >>> from moptipy.examples.bitstrings.bitstring_problem import \
+BitStringNKProblem
+    >>> def clazz_scales(clazz) -> tuple[int, int]:
+    ...     if issubclass(clazz, BinInt):
+    ...         return 2, 30
+    ...     if issubclass(clazz, BitStringNKProblem):
+    ...         return 6, 16
+    ...     return 8, 48
+    >>> len(list(default_instances(clazz_scales)))
+    331
     """
     return chain(
         BinInt.default_instances(*class_scales(BinInt)),  # type: ignore

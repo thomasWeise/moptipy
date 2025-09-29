@@ -84,5 +84,5 @@ def _write_log(log: list[list[int | float]],
                          PROGRESS_TIME_MILLIS,
                          PROGRESS_CURRENT_F]) as csv:
             for row in log:
-                csv.row([row[0], _ns_to_ms(cast(int, row[1]) - start_time),
+                csv.row([row[0], _ns_to_ms(cast("int", row[1]) - start_time),
                          row[2]])

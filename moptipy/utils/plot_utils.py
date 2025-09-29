@@ -452,7 +452,7 @@ def label_box(axes: Axes,
               font_size: float = pd.importance_to_font_size(0),
               may_rotate_text: bool = False,
               z_order: float | None = None,
-              font: None | str | Callable =
+              font: str | Callable | None =
               lambda: Lang.current().font()) -> None:
     """
     Put a label text box near an axis.
@@ -588,22 +588,22 @@ def get_axes(figure: Axes | Figure) -> Axes:
             or isinstance(getattr(type(figure), "axes", None), property):
         try:
             if isinstance(figure.axes, Axes):
-                return cast(Axes, figure.axes)
+                return cast("Axes", figure.axes)
             if isinstance(figure.axes, Sequence):
                 ax = figure.axes[0]
                 if isinstance(ax, Axes):
-                    return cast(Axes, ax)
+                    return cast("Axes", ax)
             elif isinstance(figure.axes, Iterable):
                 for k in figure.axes:
                     if isinstance(k, Axes):
-                        return cast(Axes, k)
+                        return cast("Axes", k)
                     break
         except TypeError:
             pass
         except IndexError:
             pass
     if isinstance(figure, Axes):
-        return cast(Axes, figure)
+        return cast("Axes", figure)
     raise TypeError(
         f"Cannot get Axes of object of type {type_name_of(figure)}.")
 

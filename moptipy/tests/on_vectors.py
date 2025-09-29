@@ -67,7 +67,7 @@ def vectors_for_tests(dims: Iterable[int] = DIMENSIONS_FOR_TESTS) \
 
     random: Final[Generator] = default_rng()
     spaces: Final[list[VectorSpace]] = []
-    for _idx, dim in enumerate(dims):
+    for dim in dims:
         check_int_range(dim, "dimension", 0, 1_000_000)
 
         # allocate bounds arrays

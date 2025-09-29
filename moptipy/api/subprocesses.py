@@ -286,7 +286,7 @@ class __FromStartingPoint(Process):
         self.__fes: int = 0
         mfes: int | None = owner.get_max_fes()
         if mfes is not None:
-            mfes = mfes - owner.get_consumed_fes()
+            mfes -= owner.get_consumed_fes()
         #: the maximum permitted FEs
         self.__max_fes: Final[int | None] = mfes
         #: the fast call to the owner's evaluate method

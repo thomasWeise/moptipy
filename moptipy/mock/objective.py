@@ -50,8 +50,7 @@ class MockObjective(Objective):
         #: the generator for setting up the mock objective
         random: Final[Generator] = default_rng(seed)
         #: the name of this objective function
-        self.name: Final[str] = \
-            f"mock{hex(random.integers(1, 100_000_000))[2:]}"
+        self.name: Final[str] = f"mock{random.integers(1, 100_000_000):x}"
 
         if not isinstance(lb, int | float):
             raise type_error(lb, "lb", (int, float))
@@ -91,8 +90,7 @@ class MockObjective(Objective):
                     break
         else:
             values.extend(fattractors)
-        values.append(fmax)
-        values.append(ub)
+        values.extend((fmax, ub))
 
         values = make_ordered_list(values, is_int, random)
         if values is None:
@@ -107,7 +105,7 @@ class MockObjective(Objective):
         self.fmax: Final[int | float] = values[-2]
         #: the mean value the function actually takes on
         self.fattractors: Final[tuple[int | float, ...]] =\
-            cast(tuple[int | float, ...], tuple(values[2:-2]))
+            cast("tuple[int | float, ...]", tuple(values[2:-2]))
         #: the internal random number generator
         self.__random: Final[Generator] = random
 
@@ -200,7 +198,7 @@ class MockObjective(Objective):
                 use_max = True
         if is_np_int(dtype):
             params["is_int"] = True
-            iix = np.iinfo(cast(Any, dtype))
+            iix = np.iinfo(cast("Any", dtype))
             params["lb"] = lbi = max(int(iix.min), -(1 << 58))
             params["ub"] = ubi = min(int(iix.max), (1 << 58))
             if use_min:

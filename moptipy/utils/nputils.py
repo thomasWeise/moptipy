@@ -1,6 +1,7 @@
 """Utilities for interaction with numpy."""
 from hashlib import sha512
 from math import isfinite, isnan
+from operator import itemgetter
 from typing import Any, Final, cast
 
 import numba  # type: ignore
@@ -20,10 +21,10 @@ from pycommons.types import check_int_range, type_error
 __INTS_AND_RANGES: Final[tuple[tuple[np.dtype, int, int], ...]] = \
     tuple(sorted([
         (dtx, int(np.iinfo(dtx).min), int(np.iinfo(dtx).max))
-        for dtx in cast(set[np.dtype], {np.dtype(bdt) for bdt in [
+        for dtx in cast("set[np.dtype]", {np.dtype(bdt) for bdt in [
             int, np.int8, np.int16, np.uint8, np.uint16,
             np.int32, np.uint32, np.int64, np.uint64]})],
-        key=lambda a: (a[2], a[1])))
+        key=itemgetter(2, 1)))
 
 #: The numpy integer data types.
 INTS: Final[tuple[np.dtype, ...]] = tuple(a[0] for a in __INTS_AND_RANGES)
@@ -64,7 +65,7 @@ def is_np_int(dtype: np.dtype) -> bool:
     >>> print(is_np_int(npx.dtype(npx.float64)))
     False
     """
-    return dtype.kind in ("i", "u")
+    return dtype.kind in {"i", "u"}
 
 
 def is_np_float(dtype: np.dtype) -> bool:
@@ -582,7 +583,7 @@ def rand_seeds_from_str(string: str, n_seeds: int) -> list[int]:
     result.sort()
 
     if len(result) != n_seeds:
-        raise ValueError("Failed to generate {n_seeds} unique seeds.")
+        raise ValueError(f"Failed to generate {n_seeds} unique seeds.")
     return result
 
 
@@ -689,7 +690,7 @@ def array_to_str(data: np.ndarray) -> str:
     if not isinstance(data, np.ndarray):
         raise type_error(data, "data", np.ndarray)
     k: Final[str] = data.dtype.kind
-    if k in ("i", "u"):
+    if k in {"i", "u"}:
         return CSV_SEPARATOR.join(map(str, data))
     if k == "f":
         return CSV_SEPARATOR.join(num_to_str(float(d)) for d in data)

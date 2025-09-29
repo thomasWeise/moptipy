@@ -74,7 +74,7 @@ def test_process_noss_log() -> None:
             assert p.has_log()
         assert isfile(path)
         assert getsize(path) > 10
-        with open(path, encoding="UTF8") as file:
+        with open(path, encoding="UTF8") as file:  # noqa: FURB101
             result = [line.rstrip() for line in file.read().splitlines()]
         assert len(result) > 5
 

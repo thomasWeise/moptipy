@@ -741,6 +741,6 @@ ising1d_60, ising1d_64, ising1d_66, ising1d_70, ising1d_77, ising1d_79, \
 ising1d_80, ising1d_81, ising1d_85, ising1d_88, ising1d_90, ising1d_96, \
 ising1d_99, ising1d_100]
         """
-        return cast(Iterator[Callable[[], "Ising1d"]],
+        return cast("Iterator[Callable[[], Ising1d]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

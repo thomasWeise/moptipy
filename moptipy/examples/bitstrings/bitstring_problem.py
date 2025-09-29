@@ -376,7 +376,7 @@ class BitStringProblem(Objective):
         :param scale_max: the maximum scale
         :return: an :class:`Iterator` with the instances
         """
-        return (cast(Callable[[], "BitStringProblem"],
+        return (cast("Callable[[], BitStringProblem]",
                      lambda __i=i: cls(__i)) for i in default_scale_sequence(
             scale_min, scale_max))
 
@@ -467,7 +467,7 @@ class SquareBitStringProblem(BitStringProblem):
 
         :return: an :class:`Iterator` with the instances
         """
-        return (cast(Callable[[], "SquareBitStringProblem"],
+        return (cast("Callable[[], SquareBitStringProblem]",
                      lambda __i=i: cls(__i))
                 for i in default_square_scale_sequence(scale_min, scale_max))
 
@@ -618,7 +618,7 @@ class BitStringNKProblem(BitStringProblem):
 
         :return: an :class:`Iterator` with the instances
         """
-        return (cast(Callable[[], "BitStringNKProblem"],
+        return (cast("Callable[[], BitStringNKProblem]",
                      lambda __i=i, __j=j: cls(__i, __j))
                 for i in default_scale_sequence(scale_min, scale_max)
                 for j in default_nk_k_sequence(i))

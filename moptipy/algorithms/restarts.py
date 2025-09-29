@@ -68,7 +68,7 @@ class __RestartMOAlgorithm(__RestartAlgorithm, MOAlgorithm):
         st: Final[Callable[[], bool]] = process.should_terminate
         rst: Final[Callable[[], None]] = self.initialize
         sv: Final[Callable[[MOProcess], None]] = cast(
-            MOAlgorithm, self._algo).solve_mo
+            "MOAlgorithm", self._algo).solve_mo
         while not st():
             rst()
             sv(process)

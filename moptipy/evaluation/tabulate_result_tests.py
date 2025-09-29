@@ -312,11 +312,11 @@ def tabulate_result_tests(
     p_flat.append(alpha_prime)
     p_flat_strs: Final[list[FormattedStr | None]] = \
         p_renderer.render(p_flat)
-    alpha_str: FormattedStr = cast(FormattedStr, p_flat_strs[-2])
+    alpha_str: FormattedStr = cast("FormattedStr", p_flat_strs[-2])
     a2 = FormattedStr.number(alpha)
     if len(a2) <= len(alpha_str):
         alpha_str = a2
-    alpha_prime_str: FormattedStr = cast(FormattedStr, p_flat_strs[-1])
+    alpha_prime_str: FormattedStr = cast("FormattedStr", p_flat_strs[-1])
     a2 = FormattedStr.number(alpha_prime)
     if len(a2) <= len(alpha_prime_str):
         alpha_prime_str = a2

@@ -1,5 +1,6 @@
 """A nullary operator filling a bit string with random values."""
 
+
 import numpy as np
 from numpy.random import Generator
 

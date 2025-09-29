@@ -122,7 +122,7 @@ class TournamentWithoutReplacement(Selection):
                 if u == 0:  # if we have used all indices in perm
                     u = m  # then we again at the end
                 i = r0i(u)  # get random integer in 0..u-1
-                u = u - 1  # decrease number of unused indices
+                u -= 1  # decrease number of unused indices
                 chosen = perm[i]  # get the index of the chosen element
                 perm[u], perm[i] = chosen, perm[u]  # swap to the end
                 rec = source[chosen]  # get contestant record

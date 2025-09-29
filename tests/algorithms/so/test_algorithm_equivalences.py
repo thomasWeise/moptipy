@@ -12,9 +12,7 @@ such algorithm equivalences. It makes sense to check them as one way to make
 sure that a more complex or general algorithm is not implemented incorrectly,
 does not behave differently from its special case, the simpler algorithm.
 """
-
-from collections.abc import Callable
-from typing import Final, cast
+from typing import Callable, Final, cast
 
 from numpy.random import Generator, default_rng
 
@@ -54,9 +52,9 @@ def test_opoea_equals_rls() -> None:
     op2: Final[Op2] = Op2Uniform()
 
     verify_algorithms_equivalent([
-        lambda bs, f: RLS(op0, op1),
-        lambda bs, f: EA(op0, op1, op2, 1, 1, 0.0),
-        lambda bs, f: GeneralEA(op0, op1, op2, 1, 1, 0.0),
+        lambda _, __: RLS(op0, op1),
+        lambda _, __: EA(op0, op1, op2, 1, 1, 0.0),
+        lambda _, __: GeneralEA(op0, op1, op2, 1, 1, 0.0),
     ])
 
 
@@ -64,8 +62,8 @@ def test_ea_equals_random_sampling_if_mu_gte_max_fes() -> None:
     """Test whether the EA equals random sampling if max_fes<=mu."""
     op0: Final[Op0] = Op0Random()
     verify_algorithms_equivalent([
-        lambda bs, f: EA(op0, Op1Flip1(), Op2Uniform(), 100, 100, 0.0),
-        lambda bs, f: RandomSampling(op0),
+        lambda _, __: EA(op0, Op1Flip1(), Op2Uniform(), 100, 100, 0.0),
+        lambda _, __: RandomSampling(op0),
     ], max_fes=100)
 
 
@@ -107,10 +105,10 @@ class __EAC(EA):
         br: Final[float] = self.br  # the rate at which to use op2
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(  # only if m > 1, we
-            Callable[[int], int], random.integers  # need random
+            "Callable[[int], int]", random.integers  # need random
             if mu > 1 else _int_0)  # indices
         r01: Final[Callable[[], float]] = cast(  # only if 0<br<1, we
-            Callable[[], float],  # need random floats
+            "Callable[[], float]",  # need random floats
             random.random if 0 < br < 1 else _float_0)
         # create list of mu random records and lambda empty records
         lst: Final[list] = [None] * lst_size  # pre-allocate list
@@ -166,9 +164,9 @@ def test_general_ea_equals_ea() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: __EAC(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: __EAC(  # type: ignore
                 op0, op1, op2, mx, lx, bx),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx),
         ])
 
@@ -179,8 +177,8 @@ def test_general_ea_with_ffa_equals_fea() -> None:
     op1: Final[Op1] = Op1Flip1()
 
     verify_algorithms_equivalent([
-        lambda bs, f: FEA1plus1(op0, op1),
-        lambda bs, f: GeneralEA(op0, op1, fitness=FFA(f)),
+        lambda _, __: FEA1plus1(op0, op1),
+        lambda _, f: GeneralEA(op0, op1, fitness=FFA(f)),
     ])
 
 
@@ -206,9 +204,9 @@ def test_general_ea_under_order_preserving_fitnesses() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=__SDirect()),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=Rank()),
         ])
 
@@ -225,10 +223,10 @@ def test_general_ea_under_order_preserving_fitnesses_and_tournament() -> None:
         br: float = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=__SDirect(),
                 survival=TournamentWithReplacement()),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=Rank(),
                 survival=TournamentWithReplacement()),
         ])
@@ -238,10 +236,10 @@ def test_general_ea_under_order_preserving_fitnesses_and_tournament() -> None:
         br = float(random.uniform(0.1, 0.9))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=__SDirect(),
                 survival=TournamentWithoutReplacement()),
-            lambda bs, f, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, bx=br: GeneralEA(  # type: ignore
                 op0, op1, op2, mx, lx, bx, fitness=Rank(),
                 survival=TournamentWithoutReplacement()),
         ])
@@ -259,9 +257,9 @@ def test_ma_with_rls_vs_marls() -> None:
         ls_fes: int = int(random.integers(1, 16))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: MA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, lsf=ls_fes: MA(  # type: ignore
                 op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes:  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, lsf=ls_fes:  # type: ignore
             MARLS(op0, op1, op2, mx, lx, lsf),
         ])
 
@@ -287,10 +285,10 @@ class __MA(MA):
         ls_fes: Final[int] = self.ls_fes  # the number of FEs per ls run
         ls_solve: Final[Callable[[Process], None]] = self.ls.solve  # +book
         forward_ls_op0_to: Final[Callable] = cast(  # forward starting
-            Op0Forward, self.ls.op0).forward_to  # point of ls to...
+            "Op0Forward", self.ls.op0).forward_to  # point of ls to...
         should_terminate: Final[Callable] = process.should_terminate
         r0i: Final[Callable[[int], int]] = cast(  # random integers
-            Callable[[int], int], random.integers)
+            "Callable[[int], int]", random.integers)
         # start book
         # create list of mu random+ls records and lambda empty records
         lst: Final[list] = [None] * mu_plus_lambda  # pre-allocate list
@@ -300,7 +298,7 @@ class __MA(MA):
             if i < mu:  # only the first mu records are initialized by
                 op0(random, x)  # applying nullary operator = randomize
                 if should_terminate():  # should we stop now?
-                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
+                    cast("Op0Forward", self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
                 with for_fes(process, ls_fes) as s1, \
                         from_starting_point(s1, x, evaluate(x)) as s2:
@@ -317,7 +315,7 @@ class __MA(MA):
             it += 1  # step iteration counter
             for oi in range(mu, mu_plus_lambda):  # for all offspring
                 if should_terminate():  # should we stop now?
-                    cast(Op0Forward, self.ls.op0).stop_forwarding()  # -book
+                    cast("Op0Forward", self.ls.op0).stop_forwarding()  # -book
                     return   # computational budget exhausted -> quit
                 dest: Record = lst[oi]  # pick destination record
                 x = dest.x  # the destination "x" value
@@ -348,8 +346,8 @@ def test_general_ma_equals_ma() -> None:
         ls_fes: int = int(random.integers(1, 16))
 
         verify_algorithms_equivalent([
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes: __MA(  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, lsf=ls_fes: __MA(  # type: ignore
                 op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
-            lambda bs, f, mx=mu, lx=lambda_, lsf=ls_fes:  # type: ignore
+            lambda _, __, mx=mu, lx=lambda_, lsf=ls_fes:  # type: ignore
             GeneralMA(op0, op2, RLS(Op0Forward(), op1), mx, lx, lsf),
         ])

@@ -654,8 +654,8 @@ def _check_log_time(start_time: int, current_time: int,
     last_time: int = -1
     last_fe: int = -1
     for row in log:
-        fes: int = cast(int, row[0])
-        time: int = cast(int, row[1])
+        fes: int = cast("int", row[0])
+        time: int = cast("int", row[1])
         if fes < last_fe:
             raise ValueError(f"fe={fes} after fe={last_fe}?")
         if time < last_time:

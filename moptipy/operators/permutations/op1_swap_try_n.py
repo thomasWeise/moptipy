@@ -62,13 +62,13 @@ def swap_try_n(random: Generator, dest: np.ndarray, x: np.ndarray,
 
     ii = random.integers(0, remaining)  # Select first random index.
     i1 = indices[ii]  # Get the actual index.
-    remaining = remaining - 1  # There is one less remaining index.
+    remaining -= 1  # There is one less remaining index.
     indices[remaining], indices[ii] = i1, indices[remaining]
 
     last = first = dest[i1]  # Get the value at the first index.
     continue_after: bool = True  # True -> loop at least once.
     while continue_after:  # Repeat until we should stop
-        steps = steps - 1
+        steps -= 1
         continue_after = (steps > 1) and (remaining > 1)
         tested: int = remaining  # the indices that we can test.
         while True:  # Loop forever until eligible element found.
@@ -80,11 +80,11 @@ def swap_try_n(random: Generator, dest: np.ndarray, x: np.ndarray,
                 break
             if (current != last) and (
                     continue_after or (current != first)):
-                remaining = remaining - 1
+                remaining -= 1
                 indices[remaining], indices[ii] = \
                     i2, indices[remaining]
                 break  # to stop, then it must be != first value.
-            tested = tested - 1  # Now there is one fewer index.
+            tested -= 1  # Now there is one fewer index.
             indices[tested], indices[ii] = i2, indices[tested]
         dest[i1] = last = current  # Store value for from i2 at i1.
         i1 = i2  # Update i1 to now point to cell of i2.

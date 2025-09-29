@@ -27,7 +27,7 @@ def default_get_int_renderer() -> Callable[[int], str]:
     >>> f(1_000_000)
     "100'0000"
     """
-    return cast(Callable[[int], str], Lang.current().format_int)
+    return cast("Callable[[int], str]", Lang.current().format_int)
 
 
 def default_get_float_format(
@@ -242,7 +242,7 @@ class NumberRenderer:
             self.get_float_format if get_float_format is None
             else get_float_format)
 
-    def render(self, source: int | float | None | Iterable[int | float | None],
+    def render(self, source: int | float | Iterable[int | float | None] | None,
                none_str: FormattedStr | None = None) \
             -> list[FormattedStr | None]:
         r"""
@@ -327,7 +327,7 @@ class NumberRenderer:
 
         # step one: get the raw numerical data
         data: Final[list[int | float | None]] = \
-            cast(list, source) if isinstance(source, list) else list(source)
+            cast("list", source) if isinstance(source, list) else list(source)
         dlen: Final[int] = len(data)
         if dlen <= 0:
             raise ValueError("Data cannot be empty.")
@@ -387,11 +387,11 @@ class NumberRenderer:
         # step four: if all data are integer, we can convert them directly
         if all_is_int:
             # an int render also processing None and special floats
-            def __toint2(value: None | int | float, _ns=none_str,
+            def __toint2(value: int | float | None, _ns=none_str,
                          form=__toint) -> FormattedStr | None:
                 if value is None:
                     return none_str
-                return FormattedStr.number(form(cast(int, value))
+                return FormattedStr.number(form(cast("int", value))
                                            if isfinite(value) else value)
             return [__toint2(i) for i in data]
 

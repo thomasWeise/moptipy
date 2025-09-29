@@ -827,6 +827,6 @@ class Ising2d(SquareBitStringProblem):
         [ising2d_4, ising2d_9, ising2d_16, ising2d_25, ising2d_36, \
 ising2d_49, ising2d_64, ising2d_81, ising2d_100]
         """
-        return cast(Iterator[Callable[[], "Ising2d"]],
+        return cast("Iterator[Callable[[], Ising2d]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

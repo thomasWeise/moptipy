@@ -193,8 +193,8 @@ class OrderedChoices(IntSpace):
         # get the basic permutation numbers now multiply them with the choices
         size = factorial(self.dimension)
         for lst, cnt in self.__counts.items():
-            size = size // factorial(cnt)
-            size = size * (len(lst) ** cnt)
+            size //= factorial(cnt)
+            size *= len(lst) ** cnt
         return size
 
     def __str__(self) -> str:

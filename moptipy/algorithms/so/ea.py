@@ -116,11 +116,11 @@ class EA(Algorithm2):
         op2: Final[Callable] = self.op2.op2  # the binary operator
         br: Final[float] = self.br  # the rate at which to use op2
         should_terminate: Final[Callable] = process.should_terminate
-        r0i: Final[Callable[[int], int]] = cast(   # only if m > 1, we
-            Callable[[int], int], random.integers  # need random
+        r0i: Final[Callable[[int], int]] = cast(     # only if m > 1, we
+            "Callable[[int], int]", random.integers  # need random
             if mu > 1 else _int_0)                 # indices
         r01: Final[Callable[[], float]] = cast(  # only if 0<br<1, we
-            Callable[[], float],                 # need random floats
+            "Callable[[], float]",               # need random floats
             random.random if 0 < br < 1 else _float_0)
         # start nobinary
         # create list of mu random records and lambda empty records

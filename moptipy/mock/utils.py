@@ -1,7 +1,7 @@
 """Utilities for mock objects."""
 
 from math import ceil, floor, inf, isfinite, nextafter
-from typing import Callable, Final, Sequence, cast
+from typing import Callable, Final, Sequence, cast  # pylint: disable=W0611
 
 import numpy as np
 from numpy.random import Generator
@@ -286,25 +286,25 @@ def make_ordered_list(definition: Sequence[int | float | None],
         raise type_error(is_int, "is_int", bool)
 
     if is_int:
-        _before = cast(Callable[[int | float, Generator],
-                                int | float | None], _before_int)
-        _after = cast(Callable[[int | float, Generator],
-                               int | float | None], _after_int)
-        _between = cast(Callable[[int | float, int | float,
-                                  Generator], int | float | None],
+        lbefore = cast("Callable[[int | float, Generator], "
+                       "int | float | None]", _before_int)
+        lafter = cast("Callable[[int | float, Generator], "
+                      "int | float | None]", _after_int)
+        lbetween = cast("Callable[[int | float, int | float, "
+                        "Generator], int | float | None]",
                         _between_int)
     else:
-        _before = cast(Callable[[int | float, Generator],
-                                int | float | None], _before_float)
-        _after = cast(Callable[[int | float, Generator],
-                               int | float | None], _after_float)
-        _between = cast(Callable[[int | float, int | float,
-                                  Generator], int | float | None],
+        lbefore = cast("Callable[[int | float, Generator], "
+                       "int | float | None]", _before_float)
+        lafter = cast("Callable[[int | float, Generator], "
+                      "int | float | None]", _after_float)
+        lbetween = cast("Callable[[int | float, "
+                        "int | float, Generator], int | float | None]",
                         _between_float)
 
     max_trials: int = 1000
     while max_trials > 0:
-        max_trials = max_trials - 1
+        max_trials -= 1
         result = list(definition)
 
         failed: bool = False
@@ -316,7 +316,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
                 has_defined = True
                 break
         if not has_defined:
-            val = _between(-inf, inf, random)
+            val = lbetween(-inf, inf, random)
             result[int(random.integers(total))] = val
             failed = val is None
         if failed:
@@ -327,7 +327,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
             ub = result[i]
             if ub is not None:
                 for j in range(i - 1, -1, -1):
-                    ub = _before(ub, random)
+                    ub = lbefore(ub, random)
                     if ub is None:
                         failed = True
                         break
@@ -341,7 +341,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
             lb = result[i]
             if lb is not None:
                 for j in range(i + 1, total):
-                    lb = _after(lb, random)
+                    lb = lafter(lb, random)
                     if lb is None:
                         failed = True
                         break
@@ -383,7 +383,7 @@ def make_ordered_list(definition: Sequence[int | float | None],
                     break
 
             # generate new value and store at random position in gap
-            val = _between(prev, nxt, random)
+            val = lbetween(prev, nxt, random)
             if val is None:
                 failed = True
                 break

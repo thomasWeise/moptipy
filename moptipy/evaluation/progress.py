@@ -243,7 +243,7 @@ class __InnerLogParser(SetupAndStateParser[Progress]):
         self.__only_improvements = only_improvements
         if (f_standard is not None) and (not isinstance(f_standard, dict)):
             raise type_error(f_standard, "f_standard", dict)
-        self.__f_standard: Final[None | dict[str, int | float]] \
+        self.__f_standard: Final[dict[str, int | float] | None] \
             = f_standard
         self.__state: int = 0
 

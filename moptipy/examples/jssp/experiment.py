@@ -55,17 +55,17 @@ EXPERIMENT_RUNTIME_MS: Final[int] = 5 * 60 * 1000
 #: `inst` and the permutation with repetitions-space `pwr`.
 ALGORITHMS: Final[list[
     Callable[[Instance, Permutations], Algorithm]]] = [
-    lambda inst, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
-    lambda inst, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
-    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
-    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # RLS with swap-2
-    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2()),  # random walk
-    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1SwapN()),  # hill climb.
-    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1SwapN()),  # RLS
-    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1SwapN()),  # random walk
-    lambda inst, pwr: HillClimber(Op0Shuffle(pwr), Op1Insert1()),  # HC
-    lambda inst, pwr: RLS(Op0Shuffle(pwr), Op1Insert1()),  # RLS
-    lambda inst, pwr: RandomWalk(Op0Shuffle(pwr), Op1Insert1()),  # random walk
+    lambda _, pwr: SingleRandomSample(Op0Shuffle(pwr)),  # single sample
+    lambda _, pwr: RandomSampling(Op0Shuffle(pwr)),  # random sampling
+    lambda _, pwr: HillClimber(Op0Shuffle(pwr), Op1Swap2()),  # hill climb.
+    lambda _, pwr: RLS(Op0Shuffle(pwr), Op1Swap2()),  # RLS with swap-2
+    lambda _, pwr: RandomWalk(Op0Shuffle(pwr), Op1Swap2()),  # random walk
+    lambda _, pwr: HillClimber(Op0Shuffle(pwr), Op1SwapN()),  # hill climb.
+    lambda _, pwr: RLS(Op0Shuffle(pwr), Op1SwapN()),  # RLS
+    lambda _, pwr: RandomWalk(Op0Shuffle(pwr), Op1SwapN()),  # random walk
+    lambda _, pwr: HillClimber(Op0Shuffle(pwr), Op1Insert1()),  # HC
+    lambda _, pwr: RLS(Op0Shuffle(pwr), Op1Insert1()),  # RLS
+    lambda _, pwr: RandomWalk(Op0Shuffle(pwr), Op1Insert1()),  # random walk
 ]
 
 
@@ -129,13 +129,13 @@ def run_experiment(base_dir: str = pp.join(".", "results"),
             val: Execution | Algorithm = algor(inst, pwr)
             experiment: Execution
             if isinstance(val, Execution):
-                experiment = cast(Execution, val)
+                experiment = cast("Execution", val)
             else:
                 if not isinstance(val, Algorithm):
                     raise type_error(val, "result of factory function",
                                      Algorithm)
                 experiment = Execution()
-                experiment.set_algorithm(cast(Algorithm, val))
+                experiment.set_algorithm(cast("Algorithm", val))
 
             if max_time is not None:
                 experiment.set_max_time_millis(max_time)

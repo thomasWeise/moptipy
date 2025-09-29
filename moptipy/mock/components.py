@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from math import ceil, isfinite
+from string import digits
 from typing import Any, Final, Iterable
 
 from numpy.random import Generator
@@ -34,7 +35,7 @@ def _random_name(namelen: int,
     """
     check_int_range(namelen, "namelen", 1, 1_000)
     namer: Final[tuple[str, str, str]] = ("bcdfghjklmnpqrstvwxyz", "aeiou",
-                                          "0123456789")
+                                          digits)
     name = ["x"] * namelen
     index: int = 0
     n_done: bool = False
@@ -312,8 +313,7 @@ class Instance:
                     break
                 if (b1 * max(2.0, 0.4 * (10 - trials))) < b2:
                     break
-                limits.append(b1)
-                limits.append(b2)
+                limits.extend((b1, b2))
             attdone.clear()
             attdone.add(b1)
             attdone.add(b2)
@@ -434,7 +434,7 @@ class Algorithm:
                                             "ea", "eda", "ga", "gp", "hc",
                                             "ma", "pso", "rs", "rw", "sa",
                                             "umda")
-        suffixes: Final[tuple[str, ...]] = ("1swap", "2swap", "µ")
+        suffixes: Final[tuple[str, ...]] = ("1swap", "2swap", "µ")  # noqa
 
         max_name_len: int = int(max(2, ceil(n / 6)))
         trials: int = 0

@@ -61,7 +61,7 @@ def default_column_namer(col: str) -> str:
         return "I"
     if col == KEY_ALGORITHM:
         return Lang.translate("setup")
-    if col in (__KEY_LOWER_BOUND, __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
+    if col in {__KEY_LOWER_BOUND, __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F}:
         return "lb(f)"
     if col in "summary":
         return Lang.translate(col)
@@ -89,10 +89,10 @@ def default_column_namer(col: str) -> str:
         stat = "med"
     elif stat == KEY_MINIMUM:
         stat = Lang.translate("best") \
-            if key in (F_NAME_RAW, F_NAME_SCALED) else "min"
+            if key in {F_NAME_RAW, F_NAME_SCALED} else "min"
     elif stat == KEY_MAXIMUM:
         stat = Lang.translate("worst") \
-            if key in (F_NAME_RAW, F_NAME_SCALED) else "max"
+            if key in {F_NAME_RAW, F_NAME_SCALED} else "max"
     else:
         raise ValueError(f"unknown statistic {stat!r} for {col!r}.")
 
@@ -115,8 +115,8 @@ def default_column_namer(col: str) -> str:
 
 def command_column_namer(
         col: str, put_dollars: bool = True,
-        summary_name: Callable[[bool], str] = lambda put_dollars: r"\summary",
-        setup_name: Callable[[bool], str] = lambda put_dollars: r"\setup") \
+        summary_name: Callable[[bool], str] = lambda _: r"\summary",
+        setup_name: Callable[[bool], str] = lambda _: r"\setup") \
         -> str:
     """
     Get the command-based names for columns, but in command format.
@@ -141,7 +141,7 @@ def command_column_namer(
         return r"$\instance$"
     if col == KEY_ALGORITHM:
         return setup_name(put_dollars)
-    if col in (__KEY_LOWER_BOUND, __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
+    if col in {__KEY_LOWER_BOUND, __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F}:
         return r"$\lowerBound(\objf)$" if \
             put_dollars else r"\lowerBound(\objf)"
     if col == "summary":
@@ -260,8 +260,8 @@ def default_column_best(col: str) ->\
     if not isinstance(col, str):
         raise type_error(col, "column name", str)
 
-    if col in (KEY_INSTANCE, KEY_ALGORITHM, __KEY_LOWER_BOUND,
-               __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
+    if col in {KEY_INSTANCE, KEY_ALGORITHM, __KEY_LOWER_BOUND,
+               __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F}:
         return __nan
 
     if SCOPE_SEPARATOR not in col:
@@ -274,10 +274,10 @@ def default_column_best(col: str) ->\
     if stat == "sd":
         return __finite_min
 
-    if key in (KEY_BEST_F_SCALED, F_NAME_SCALED, KEY_BEST_F, F_NAME_RAW):
+    if key in {KEY_BEST_F_SCALED, F_NAME_SCALED, KEY_BEST_F, F_NAME_RAW}:
         return __finite_min
-    if key in (KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
-               KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS):
+    if key in {KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
+               KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS}:
         return __finite_max
 
     return __nan
@@ -302,16 +302,16 @@ def default_number_renderer(col: str) -> NumberRenderer:
     """
     if not isinstance(col, str):
         raise type_error(col, "column name", str)
-    if col not in (KEY_INSTANCE, KEY_ALGORITHM, __KEY_LOWER_BOUND,
-                   __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F):
+    if col not in {KEY_INSTANCE, KEY_ALGORITHM, __KEY_LOWER_BOUND,
+                   __KEY_LOWER_BOUND_SHORT, KEY_GOAL_F}:
         if SCOPE_SEPARATOR not in col:
             raise ValueError(
                 f"statistic {col!r} should contain {SCOPE_SEPARATOR!r}.")
         key, stat = col.split(SCOPE_SEPARATOR)
         if (len(key) <= 0) or (len(stat) <= 0):
             raise ValueError(f"invalid statistic {col!r}.")
-        if key in (KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
-                   KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS):
+        if key in {KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_LAST_IMPROVEMENT_FE,
+                   KEY_TOTAL_FES, KEY_TOTAL_TIME_MILLIS}:
             return __TIME_NUMBER_RENDERER
     return DEFAULT_NUMBER_RENDERER
 
@@ -522,7 +522,7 @@ def tabulate_end_results(
                                       int | float | None] | None] | None] = \
         (None if (algorithm_summary_statistics is None)
          else [None if (d is None) else __getter(d)
-               for d in cast(Iterable, algorithm_summary_statistics)])
+               for d in cast("Iterable", algorithm_summary_statistics)])
     if algo_getters is not None:
         if len(algo_getters) != n_algo_inst_getters:
             raise ValueError(
@@ -576,7 +576,7 @@ def tabulate_end_results(
                 raise ValueError(f"inconsistent lower bounds {bounds} for "
                                  f"instance {inst!r}.")
             lb.append(bounds[0])
-        lower_bounds = cast(list[str], __col_renderer(
+        lower_bounds = cast("list[str]", __col_renderer(
             __KEY_LOWER_BOUND).render(lb))
         del lb
     else:
@@ -616,7 +616,7 @@ def tabulate_end_results(
     algo_cols: list[str | None] | None = \
         None if algo_dict is None else \
         [(None if s is None else __fix_name(s))
-         for s in cast(Iterable, algorithm_summary_statistics)]
+         for s in cast("Iterable", algorithm_summary_statistics)]
     if algo_cols == algo_inst_cols:
         algo_cols = None  # no need to repeat header if it is the same
 
@@ -644,7 +644,7 @@ def tabulate_end_results(
           for inst in insts for algo in algos]
          for getter in algo_inst_getters]
     algo_inst_strs_raw: Final[list[list[str | None]]] = [
-        cast(list[str | None],
+        cast("list[str | None]",
              __col_renderer(ais).render(algo_inst_data_raw[i]))
         for i, ais in enumerate(algorithm_instance_statistics)]
 
@@ -700,8 +700,9 @@ def tabulate_end_results(
             [[None if getter is None else getter(algo_dict[algo])
               for algo in algos]
              for getter in algo_getters]
-        algo_strs = [cast(list[str], __col_renderer(ass).render(algo_data[i]))
-                     for i, ass in enumerate(algorithm_summary_statistics)]
+        algo_strs = [cast("list[str]", __col_renderer(ass).render(
+            algo_data[i])) for i, ass in enumerate(
+            algorithm_summary_statistics)]
 
         # now format the data, i.e., compute the per-section best value
         # of each column and mark it with bold face

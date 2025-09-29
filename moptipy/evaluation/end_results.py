@@ -466,7 +466,7 @@ def to_csv(results: Iterable[EndResult], file: str) -> Path:
 
 def from_csv(file: str,
              filterer: Callable[[EndResult], bool]
-             = lambda x: True) -> Generator[EndResult, None, None]:
+             = lambda _: True) -> Generator[EndResult, None, None]:
     """
     Parse a given CSV file to get :class:`EndResult` Records.
 
@@ -542,12 +542,9 @@ class CsvWriter(CsvWriterBase):
             KEY_ALGORITHM, KEY_INSTANCE, KEY_OBJECTIVE_FUNCTION]
         if self.__needs_encoding:
             data.append(KEY_ENCODING)
-        data.append(KEY_RAND_SEED)
-        data.append(KEY_BEST_F)
-        data.append(KEY_LAST_IMPROVEMENT_FE)
-        data.append(KEY_LAST_IMPROVEMENT_TIME_MILLIS)
-        data.append(KEY_TOTAL_FES)
-        data.append(KEY_TOTAL_TIME_MILLIS)
+        data.extend((KEY_RAND_SEED, KEY_BEST_F, KEY_LAST_IMPROVEMENT_FE,
+                     KEY_LAST_IMPROVEMENT_TIME_MILLIS, KEY_TOTAL_FES,
+                     KEY_TOTAL_TIME_MILLIS))
 
         if self.__needs_goal_f:
             data.append(KEY_GOAL_F)
@@ -568,7 +565,7 @@ class CsvWriter(CsvWriterBase):
         yield data.instance
         yield data.objective
         if self.__needs_encoding:
-            yield data.encoding if data.encoding else ""
+            yield data.encoding or ""
         yield hex(data.rand_seed)
         yield num_to_str(data.best_f)
         yield str(data.last_improvement_fe)
@@ -702,7 +699,7 @@ class CsvReader(CsvReaderBase):
             data[self.__idx_instance],  # instance
             data[self.__idx_objective],  # objective
             csv_str_or_none(data, self.__idx_encoding),  # encoding
-            int((data[self.__idx_seed])[2:], 16),  # rand seed
+            int(data[self.__idx_seed], base=0),  # rand seed
             str_to_num(data[self.__idx_best_f]),  # best_f
             int(data[self.__idx_li_fe]),  # last_improvement_fe
             int(data[self.__idx_li_ms]),  # last_improvement_time_millis
@@ -727,19 +724,19 @@ class EndResultLogParser[T](SetupAndStateParser[T]):
         :returns: the :class:`EndResult` instance
         """
         super()._parse_file(file)
-        return cast(T, EndResult(self.algorithm,
-                                 self.instance,
-                                 self.objective,
-                                 self.encoding,
-                                 self.rand_seed,
-                                 self.best_f,
-                                 self.last_improvement_fe,
-                                 self.last_improvement_time_millis,
-                                 self.total_fes,
-                                 self.total_time_millis,
-                                 self.goal_f,
-                                 self.max_fes,
-                                 self.max_time_millis))
+        return cast("T", EndResult(self.algorithm,
+                                   self.instance,
+                                   self.objective,
+                                   self.encoding,
+                                   self.rand_seed,
+                                   self.best_f,
+                                   self.last_improvement_fe,
+                                   self.last_improvement_time_millis,
+                                   self.total_fes,
+                                   self.total_time_millis,
+                                   self.goal_f,
+                                   self.max_fes,
+                                   self.max_time_millis))
 
 
 def _join_goals(vlimit, vgoal, select):  # noqa
@@ -755,10 +752,10 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
 
     def __init__(
             self,
-            max_fes: int | None | Callable[[str, str], int | None],
-            max_time_millis: int | None | Callable[[str, str], int | None],
-            goal_f: int | float | None | Callable[
-                [str, str], int | float | None],
+            max_fes: int | Callable[[str, str], int | None] | None,
+            max_time_millis: int | Callable[[str, str], int | None] | None,
+            goal_f: int | float | Callable[
+                [str, str], int | float | None] | None,
             path_filter: Callable[[Path], bool] | None = None):
         """
         Create the internal log parser.
@@ -771,12 +768,12 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
         """
         super().__init__(path_filter)
         self.__src_limit_ms: Final[
-            int | None | Callable[[str, str], int | None]] = max_time_millis
+            int | Callable[[str, str], int | None] | None] = max_time_millis
         self.__src_limit_fes: Final[
-            int | None | Callable[[str, str], int | None]] = max_fes
+            int | Callable[[str, str], int | None] | None] = max_fes
         self.__src_limit_f: Final[
-            int | float | None | Callable[
-                [str, str], int | float | None]] = goal_f
+            int | float | Callable[
+                [str, str], int | float | None] | None] = goal_f
 
         self.__limit_ms: int | float = inf
         self.__limit_ms_n: int | None = None
@@ -800,16 +797,16 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
                 "Illegal state, log file must have a "
                 f"{SECTION_PROGRESS!r} section.")
         self.__state = 0
-        __hit_goal = self.__hit_goal
+        l_hit_goal = self.__hit_goal
         stop_fes: int = self.__stop_fes
         stop_ms: int = self.__stop_ms
-        if not __hit_goal:
-            stop_ms = max(stop_ms, cast(int, min(
+        if not l_hit_goal:
+            stop_ms = max(stop_ms, cast("int", min(
                 self.total_time_millis, self.__limit_ms)))
             ul_fes = self.total_fes
             if stop_ms < self.total_time_millis:
-                ul_fes = ul_fes - 1
-            stop_fes = max(stop_fes, cast(int, min(
+                ul_fes -= 1
+            stop_fes = max(stop_fes, cast("int", min(
                 ul_fes, self.__limit_fes)))
 
         return EndResult(
@@ -867,7 +864,7 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
             self.__src_limit_ms if isinstance(self.__src_limit_ms, int)
             else None)
         self.__limit_ms_n = None if time is None else \
-            check_int_range(time, "__limit_ms", 1, 1_000_000_000_000)
+            check_int_range(time, "l_limit_ms", 1, 1_000_000_000_000)
         self.__limit_ms = inf if self.__limit_ms_n is None \
             else self.__limit_ms_n
 
@@ -925,7 +922,7 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
         stop_li_fe: int | None = None
         stop_li_ms: int | None = None
         limit_fes: Final[int | float] = self.__limit_fes
-        __limit_ms: Final[int | float] = self.__limit_ms
+        l_limit_ms: Final[int | float] = self.__limit_ms
         limit_f: Final[int | float] = self.__limit_f
 
         for line in lines[1:]:
@@ -935,7 +932,7 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
             current_ms = check_to_int_range(
                 values[ms_col], "ms", current_ms, 1_000_000_000_00)
             f: int | float = str_to_num(values[f_col])
-            if (current_fes <= limit_fes) and (current_ms <= __limit_ms):
+            if (current_fes <= limit_fes) and (current_ms <= l_limit_ms):
                 if f < current_f:  # can only update best within budget
                     current_f = f
                     current_li_fe = current_fes
@@ -945,7 +942,7 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
                 stop_f = current_f
                 stop_li_fe = current_li_fe
                 stop_li_ms = current_li_ms
-            if (current_fes >= limit_fes) or (current_ms >= __limit_ms) or \
+            if (current_fes >= limit_fes) or (current_ms >= l_limit_ms) or \
                     (current_f <= limit_f):
                 self.__hit_goal = True
                 break  # we can stop parsing the stuff
@@ -960,14 +957,14 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
 
         if current_fes >= limit_fes:
             stop_fes = max(stop_fes, min(
-                cast(int, limit_fes), current_fes))
-        elif current_ms > __limit_ms:
+                cast("int", limit_fes), current_fes))
+        elif current_ms > l_limit_ms:
             stop_fes = max(stop_fes, current_fes - 1)
         else:
             stop_fes = max(stop_fes, current_fes)
 
-        if current_ms >= __limit_ms:
-            stop_ms = max(stop_ms, min(cast(int, __limit_ms), current_ms))
+        if current_ms >= l_limit_ms:
+            stop_ms = max(stop_ms, min(cast("int", l_limit_ms), current_ms))
         else:
             stop_ms = max(stop_ms, current_ms)
 
@@ -980,12 +977,12 @@ class __EndResultProgressLogParser(SetupAndStateParser[EndResult]):
 
 
 def from_logs(
-        path: str, max_fes: int | None | Callable[
-            [str, str], int | None] = None,
-        max_time_millis: int | None | Callable[
-            [str, str], int | None] = None,
-        goal_f: int | float | None | Callable[
-            [str, str], int | float | None] = None,
+        path: str, max_fes: int | Callable[
+            [str, str], int | None] | None = None,
+        max_time_millis: int | Callable[
+            [str, str], int | None] | None = None,
+        goal_f: int | float | Callable[
+            [str, str], int | float | None] | None = None,
         path_filter: Callable[[Path], bool] | None = None) \
         -> Generator[EndResult, None, None]:
     """

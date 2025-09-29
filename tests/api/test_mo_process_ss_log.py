@@ -136,7 +136,7 @@ def test_mo_process_ss_log() -> None:
 
         i = j + 1
         assert data[i] == "BEGIN_ARCHIVE_QUALITIES"
-        i = i + 1
+        i += 1
         assert data[i] == "f;f0;f1"
         i += archive_len + 1
         assert data[i] == "END_ARCHIVE_QUALITIES"
@@ -250,7 +250,7 @@ def test_process_ss_log_all() -> None:
 
         i = j + 1
         assert data[i] == "BEGIN_ARCHIVE_QUALITIES"
-        i = i + 1
+        i += 1
         assert data[i] == "f;f0;f1"
         i += archive_len + 1
         assert data[i] == "END_ARCHIVE_QUALITIES"

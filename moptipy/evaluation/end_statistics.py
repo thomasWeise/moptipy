@@ -11,6 +11,7 @@ runs into a record with the most important statistics.
 import argparse
 import os.path
 from dataclasses import dataclass
+from itertools import starmap
 from math import ceil, inf, isfinite
 from typing import Callable, Final, Generator, Iterable, Iterator, cast
 
@@ -952,7 +953,7 @@ def getter(dimension: str) -> Callable[[EndStatistics], int | float | None]:
                 n = __n(data)
                 return None if (n is None) or (n <= 0) else 0
             return __g2(val)
-        direct = cast(Callable[[EndStatistics], int | float | None],
+        direct = cast("Callable[[EndStatistics], int | float | None]",
                       __combo_sd)
     else:  # any other form of mean or statistic
 
@@ -962,7 +963,7 @@ def getter(dimension: str) -> Callable[[EndStatistics], int | float | None]:
             if (val is None) or (isinstance(val, int | float)):
                 return val
             return __g2(val)
-        direct = cast(Callable[[EndStatistics], int | float | None],
+        direct = cast("Callable[[EndStatistics], int | float | None]",
                       __combo_no_sd)
 
     __STATIC[dimension] = direct
@@ -993,7 +994,7 @@ def _to_csv_writer(
         if v[0] is not None]
     if list.__len__(refined) <= 0:
         return None
-    return StatWriter(data=(from_single_value(v, n) for v, n in refined),
+    return StatWriter(data=starmap(from_single_value, refined),
                       scope=scope, n_not_needed=True, what_short=what_short,
                       what_long=what_long)
 
@@ -1530,7 +1531,7 @@ def aggregate_over_parameter(
                 param_map[pv], join_all_algorithms, join_all_instances,
                 join_all_objectives, join_all_encodings):
             stats.append(__PvEndStatistics(ess, pv))
-    return cast(Callable[[EndStatistics], int | float],
+    return cast("Callable[[EndStatistics], int | float]",
                 __PvEndStatistics.get_param_value), tuple(stats)
 
 

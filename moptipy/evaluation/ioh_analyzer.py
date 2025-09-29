@@ -104,7 +104,7 @@ def moptipy_to_ioh_analyzer(
         dest_dir: str,
         inst_name_to_func_id: Callable[[str], str] = __prefix,
         inst_name_to_dimension: Callable[[str], int] = __int_suffix,
-        inst_name_to_inst_id: Callable[[str], int] = lambda x: 1,
+        inst_name_to_inst_id: Callable[[str], int] = lambda _: 1,
         suite: str = "moptipy",
         f_name: str = F_NAME_RAW,
         f_standard: dict[str, int | float] | None = None) -> None:

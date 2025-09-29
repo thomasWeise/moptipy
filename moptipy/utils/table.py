@@ -56,7 +56,7 @@ class Table(AbstractContextManager):
                 "cols must not be empty to just composed of white space, "
                 f"but is {cols!r}.")
         for c in cols:
-            if c not in ("c", "l", "r"):
+            if c not in {"c", "l", "r"}:
                 raise ValueError("each col must be c, l, or r, but "
                                  f"encountered {c} in {cols}.")
         #: the internal stream

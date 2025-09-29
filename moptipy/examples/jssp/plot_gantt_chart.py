@@ -53,20 +53,20 @@ def plot_gantt_chart(
         markers: Iterable[tuple[str, int | float] | Callable[
             [Gantt], tuple[str, int | float]]] | None = (marker_lb,),
         x_axis: AxisRanger | Callable[[Gantt], AxisRanger] =
-        lambda gantt: AxisRanger(chosen_min=0),
+        lambda _: AxisRanger(chosen_min=0),
         importance_to_line_width_func: Callable[[int], float] =
         pd.importance_to_line_width,
         importance_to_font_size_func: Callable[[int], float] =
         pd.importance_to_font_size,
-        info: None | str | Callable[[Gantt], str] =
+        info: str | Callable[[Gantt], str] | None =
         lambda gantt: Lang.current().format_str("gantt_info", gantt=gantt),
         x_grid: bool = False,
         y_grid: bool = False,
-        x_label: None | str | Callable[[Gantt], str] =
+        x_label: str | Callable[[Gantt], str] | None =
         Lang.translate_call("time"),
         x_label_inside: bool = True,
         x_label_location: float = 1.0,
-        y_label: None | str | Callable[[Gantt], str] =
+        y_label: str | Callable[[Gantt], str] | None =
         Lang.translate_call("machine"),
         y_label_inside: bool = True,
         y_label_location: float = 0.5) -> Axes:
@@ -298,7 +298,7 @@ def plot_gantt_chart(
                   y_label_location=y_label_location,
                   font_size=info_font_size,
                   z_order=z_order)
-    z_order = z_order + 1
+    z_order += 1
 
     if callable(info):
         info = info(gantt)

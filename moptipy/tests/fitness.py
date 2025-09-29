@@ -82,16 +82,16 @@ def validate_fitness(fitness: Fitness, objective: Objective, space: Space,
                 fr.it = fr0.it
                 fr.fitness = fr0.fitness
                 pop3[i] = fr
-        if k in (2, 4):
+        if k in {2, 4}:
             for fr in pop1:
                 if random.integers(2) <= 0:
                     fr.fitness = inf if random.integers(2) <= 0 else -inf
 
         seed: int = rand_seed_generate()
         fitness.initialize()
-        fitness.assign_fitness(cast(list[FRecord], pop1), default_rng(seed))
+        fitness.assign_fitness(cast("list[FRecord]", pop1), default_rng(seed))
         fitness.initialize()
-        fitness.assign_fitness(cast(list[FRecord], pop3), default_rng(seed))
+        fitness.assign_fitness(cast("list[FRecord]", pop3), default_rng(seed))
         pop1.sort(key=lambda r: r.z)
         pop3.sort(key=lambda r: r.z)
 

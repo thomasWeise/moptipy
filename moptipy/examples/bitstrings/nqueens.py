@@ -938,6 +938,6 @@ class NQueens(SquareBitStringProblem):
         [nqueens_16, nqueens_25, nqueens_36, nqueens_49, nqueens_64, \
 nqueens_81, nqueens_100, nqueens_121, nqueens_144]
         """
-        return cast(Iterator[Callable[[], "NQueens"]],
+        return cast("Iterator[Callable[[], NQueens]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

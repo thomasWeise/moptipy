@@ -35,7 +35,7 @@ def jssp_instances_for_tests() -> Iterable[str]:
         "demo", "ft06", "ft10", f"abz{ri(5, 10)}", f"dmu{ri(10, 81)}",
         f"orb0{ri(1, 10)}", f"swv{ri(10, 21)}", f"ta{ri(10, 65)}",
         f"ta{ri(65, 70)}", f"ta{ri(70, 75)}", f"yn{ri(1, 5)}"]
-    r.shuffle(cast(list, insts))
+    r.shuffle(cast("list", insts))
     return insts
 
 
@@ -196,7 +196,7 @@ def validate_mo_algorithm_on_1_jssp(
         raise type_error(instance, "JSSP instance name", (str, None))
     inst = Instance.from_resource(instance)
     if not isinstance(inst, Instance):
-        raise type_error(inst, "loaded JSSP instance '{instance}'", Instance)
+        raise type_error(inst, f"loaded JSSP instance '{instance}'", Instance)
 
     search_space = Permutations.with_repetitions(inst.jobs,
                                                  inst.machines)

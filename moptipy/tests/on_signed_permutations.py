@@ -48,7 +48,7 @@ def signed_permutations_for_tests(
         if not callable(perm_filter):
             raise type_error(perm_filter, "perm_filter", None, call=True)
         pwrs = [p for p in pwrs if perm_filter(p)]
-    r.shuffle(cast(list, pwrs))
+    r.shuffle(cast("list", pwrs))
     return pwrs
 
 

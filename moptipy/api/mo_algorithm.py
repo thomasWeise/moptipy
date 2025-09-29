@@ -32,7 +32,7 @@ class MOAlgorithm(Algorithm):
         """
         if not isinstance(process, MOProcess):
             raise type_error(process, "process", MOProcess)
-        self.solve_mo(cast(MOProcess, process))
+        self.solve_mo(cast("MOProcess", process))
 
     def solve_mo(self, process: MOProcess) -> None:
         """

@@ -56,7 +56,7 @@ class MockMOProblem(WeightedSum):
 
         :return: the internal mock objective functions
         """
-        return cast(tuple[MockObjective, ...], self._objectives)
+        return cast("tuple[MockObjective, ...]", self._objectives)
 
     def sample(self, fs: np.ndarray) -> int | float:
         """
@@ -66,5 +66,5 @@ class MockMOProblem(WeightedSum):
         :returns: the scalarized objective values
         """
         for i, o in enumerate(self._objectives):
-            fs[i] = cast(MockObjective, o).sample()
+            fs[i] = cast("MockObjective", o).sample()
         return self._scalarize(fs)

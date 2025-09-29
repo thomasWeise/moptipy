@@ -89,7 +89,7 @@ def __apply_fun(x_unique: np.ndarray,
         for j in range(stat_dim):  # for all Progress datasets do
             idx = pos_buf[j]  # get the current position
             if x < x_raw[j][idx]:  # if x < then current time value
-                idx = idx - 1  # step back by one
+                idx -= 1  # step back by one
                 pos_buf[j] = idx  # now x >= x_raw[j][idx]
             values_buf[j] = y_raw[j][idx]
         dest_y[i] = stat_func(values_buf)

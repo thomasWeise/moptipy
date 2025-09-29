@@ -2,6 +2,7 @@
 import multiprocessing as mp
 from math import ceil, factorial, inf, log2, sqrt
 from os import sched_getaffinity
+from string import digits
 from typing import Callable, Final
 
 import numpy as np  # type: ignore
@@ -481,7 +482,7 @@ def propose_instances(n: int,
                 i, "value in list returned by get_instances", Instance)
     if n_instances <= n:
         if n_instances == n:  # nothing to do here
-            return tuple(sorted([inst.get_name() for inst in instances]))
+            return tuple(sorted(inst.get_name() for inst in instances))
         raise ValueError(f"{n} instances requested, but only "
                          f"{n_instances} available.")
     logger(f"We will pick {n} instances out of {n_instances}.")
@@ -489,15 +490,15 @@ def propose_instances(n: int,
     random: Final[Generator] = rand_generator(0)  # the random number generator
     random.shuffle(instances)
 
-    inst_names: Final[tuple[str, ...]] = tuple([  # get the instance names
-        inst.get_name() for inst in instances])
+    inst_names: Final[tuple[str, ...]] = tuple(  # get the instance names
+        inst.get_name() for inst in instances)
     inst_sizes: Final[list[tuple[int, int]]] =\
         [(inst.jobs, inst.machines) for inst in instances]
 
     # the group to which the instances belong
-    rm = str.maketrans("", "", "0123456789")
-    inst_groups: Final[tuple[str, ...]] = tuple([  # get the instance groups
-        inst.translate(rm) for inst in inst_names])
+    rm = str.maketrans("", "", digits)
+    inst_groups: Final[tuple[str, ...]] = tuple(  # get the instance groups
+        inst.translate(rm) for inst in inst_names)
 
     # create bi-directional mapping between group names and integer IDs
     group_ids: Final[dict[str, int]] = {}
@@ -586,10 +587,10 @@ def propose_instances(n: int,
            f"clusters to groups.")
 
     # find which groups belong to which cluster
-    cluster_groups: Final[tuple[tuple[int, ...], ...]] = tuple([
+    cluster_groups: Final[tuple[tuple[int, ...], ...]] = tuple(
         tuple(sorted({group_ids[inst_groups[j]]
                       for j in np.where(clusters == i)[0]}))
-        for i in range(n)])
+        for i in range(n))
     logger(f"The groups available per cluster are {cluster_groups}.")
 
     # Now we need to pick the extreme groups.

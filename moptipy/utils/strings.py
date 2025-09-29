@@ -6,7 +6,7 @@ from typing import Final, Iterable, Pattern
 
 from pycommons.strings.chars import superscript
 from pycommons.strings.string_conv import float_to_str, num_to_str, str_to_num
-from pycommons.strings.tools import replace_str
+from pycommons.strings.string_tools import replace_str
 from pycommons.types import type_error
 
 
@@ -89,7 +89,7 @@ def beautify_float_str(s: str | float) -> str:
     if not isinstance(s, str):
         raise type_error(s, "s", str)
     s = s.strip().lower()
-    if s in ("+inf", "inf"):
+    if s in {"+inf", "inf"}:
         return "\u221e"
     if s == "-inf":
         return "-\u221e"

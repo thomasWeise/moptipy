@@ -98,7 +98,7 @@ class __LubyAlgorithm(Algorithm):
             if (index > 1) and (restarts is not None):
                 restarts.append((process.get_consumed_fes(),
                                  process.get_consumed_time_millis()))
-            index = index + 1
+            index += 1
             with for_fes(process, base * luby(index)) as prc:
                 als: Callable[[str, str], None] = prc.add_log_section
 
@@ -142,7 +142,7 @@ class __LubyMOAlgorithm(__LubyAlgorithm, MOAlgorithm):
         st: Final[Callable[[], bool]] = process.should_terminate
         rst: Final[Callable[[], None]] = self.initialize
         sv: Final[Callable[[MOProcess], None]] = cast(
-            MOAlgorithm, self._algo).solve_mo
+            "MOAlgorithm", self._algo).solve_mo
         restarts: Final[list[tuple[int, int]] | None] = \
             [] if self._log_restarts and process.has_log() else None
         base: Final[int] = self._base_fes
@@ -151,7 +151,7 @@ class __LubyMOAlgorithm(__LubyAlgorithm, MOAlgorithm):
             if (index > 1) and (restarts is not None):
                 restarts.append((process.get_consumed_fes(),
                                  process.get_consumed_time_millis()))
-            index = index + 1
+            index += 1
             with for_fes(process, base * luby(index)) as prc:
                 als: Callable[[str, str], None] = prc.add_log_section
 

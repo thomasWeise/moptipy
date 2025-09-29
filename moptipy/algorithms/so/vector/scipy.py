@@ -15,7 +15,7 @@ while piping all their function evaluations through the
 :meth:`~moptipy.api.process.Process`. This way, we can make these external
 algorithms usable within `moptipy` in a transparent manner.
 """
-from typing import Any, Callable, Final, cast
+from typing import Any, Callable, Final, cast  # pylint: disable=W0611
 
 import numpy as np
 from numpy import ndarray
@@ -120,7 +120,7 @@ class SciPyAlgorithmWrapper(Algorithm0):
         """
         # invoke the SciPy algorithm implementation
         without_should_terminate(
-            cast(Callable[[Process], Any], self.__run), process)
+            cast("Callable[[Process], Any]", self.__run), process)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """
@@ -386,7 +386,7 @@ class DE(Algorithm):
         """
         # invoke the SciPy algorithm implementation
         without_should_terminate(
-            cast(Callable[[Process], Any], self.__run), process)
+            cast("Callable[[Process], Any]", self.__run), process)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

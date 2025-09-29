@@ -150,6 +150,6 @@ binint_15, binint_16, binint_17, binint_18, binint_19, binint_20, binint_21, \
 binint_22, binint_23, binint_24, binint_25, binint_26, binint_27, binint_28, \
 binint_29, binint_30]
         """
-        return cast(Iterator[Callable[[], "BinInt"]],
+        return cast("Iterator[Callable[[], BinInt]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

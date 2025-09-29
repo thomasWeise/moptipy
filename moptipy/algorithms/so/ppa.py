@@ -228,11 +228,11 @@ class PPA(Algorithm1):
         create: Final[Callable] = process.create  # create x container
         evaluate: Final[Callable] = process.evaluate  # the objective
         op0: Final[Callable] = self.op0.op0  # the nullary operator
-        op1: Final[Callable] = cast(Op1WithStepSize,
+        op1: Final[Callable] = cast("Op1WithStepSize",
                                     self.op1).op1  # the unary operator
         should_terminate: Final[Callable] = process.should_terminate
         r01: Final[Callable[[], float]] = cast(  # random floats
-            Callable[[], float], random.random)
+            "Callable[[], float]", random.random)
         max_step: Final[float] = self.max_step
         # start book
         # create list of m random records and enough empty records
@@ -249,7 +249,7 @@ class PPA(Algorithm1):
 
         it: int = 0  # the iteration counter
         while True:  # lst: keep 0..mu-1, overwrite mu..mu+lambda-1
-            it = it + 1  # step iteration counter
+            it += 1  # step iteration counter
             fmin = fmax = lst[0].f  # get range of objective values
             for i in range(m):  # iterate over selected individuals
                 fval = lst[i].f  # get objective value
@@ -268,7 +268,7 @@ class PPA(Algorithm1):
                     if should_terminate():  # should we quit?
                         return  # yes - then return
                     dest = lst[total]  # get next destination record
-                    total = total + 1  # remember we have now one more
+                    total += 1  # remember we have now one more
                     dest.it = it  # set iteration counter
                     op1(random, dest.x, x, fit * max_step * r01())
                     dest.f = evaluate(dest.x)  # evaluate new point

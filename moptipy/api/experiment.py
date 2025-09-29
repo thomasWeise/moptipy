@@ -18,7 +18,14 @@ import copy
 import gc
 import os.path
 from os import getpid
-from typing import Any, Callable, Final, Iterable, Sequence, cast
+from typing import (  # pylint: disable=W0611
+    Any,
+    Callable,
+    Final,
+    Iterable,
+    Sequence,  # pylint: disable=W0611
+    cast,
+)  # pylint: disable=W0611
 
 from numpy.random import Generator, default_rng
 from pycommons.ds.cache import str_is_new
@@ -63,7 +70,7 @@ def __run_experiment(base_dir: Path,
     """
     random: Final[Generator] = default_rng()
     cache: Final[Callable[[str], bool]] = str_is_new()
-    for warmup in ([True, False] if perform_pre_warmup else [False]):
+    for warmup in ((True, False) if perform_pre_warmup else (False, )):
         wss: str
         if warmup:
             wss = "pre-warmup"
@@ -74,10 +81,10 @@ def __run_experiment(base_dir: Path,
                 gc.collect()  # one more, to be double-safe
                 gc.freeze()  # whatever survived now, keep it permanently
 
-        for runs in ([1] if warmup else n_runs):  # for each number of runs
+        for runs in ((1, ) if warmup else n_runs):  # for each number of runs
             if not warmup:
                 logger(f"now doing {runs} runs.", thread_id)
-            random.shuffle(cast(Sequence, experiments))  # shuffle experiments
+            random.shuffle(cast("Sequence", experiments))  # shuffle
 
             for setup in experiments:  # for each setup
                 instance = setup[0]()  # load instance
@@ -138,7 +145,8 @@ def __run_experiment(base_dir: Path,
                     exp.set_log_file(log_file)
                     logger(filename, thread_id)
                     with exp.execute() as process:  # run the experiment
-                        on_completion(instance, cast(Path, log_file), process)
+                        on_completion(instance, cast(
+                            "Path", log_file), process)
 
 
 def __no_complete(_: Any, __: Path, ___: Process) -> None:

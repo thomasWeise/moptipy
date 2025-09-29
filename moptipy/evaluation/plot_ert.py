@@ -54,9 +54,9 @@ def plot_ert(erts: Iterable[Ert],
              pd.importance_to_font_size,
              x_grid: bool = True,
              y_grid: bool = True,
-             x_label: None | str | Callable[[str], str] = Lang.translate,
+             x_label: str | Callable[[str], str] | None = Lang.translate,
              x_label_inside: bool = True,
-             y_label: None | str | Callable[[str], str] =
+             y_label: str | Callable[[str], str] | None =
              Lang.translate_func("ERT"),
              y_label_inside: bool = True,
              instance_sort_key: Callable[[str], Any] = lambda x: x,
@@ -169,7 +169,7 @@ def plot_ert(erts: Iterable[Ert],
         name_sort_function=algorithm_sort_key)
     x_dim: str | None = None
     y_dim: str | None = None
-    source: list[Ert] = cast(list[Ert], erts) if isinstance(erts, list) \
+    source: list[Ert] = cast("list[Ert]", erts) if isinstance(erts, list) \
         else list(erts)
     del erts
 

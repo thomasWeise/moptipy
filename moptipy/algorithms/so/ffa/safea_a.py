@@ -104,7 +104,7 @@ class SAFEAA(Algorithm1):
                     r01() < exp((y_c - y_n) / temperature(tau))):  # the SA
                 y_c = y_n
                 x_c, x_n = x_n, x_c
-            tau = tau + 1  # Step the iteration index.
+            tau += 1  # Step the iteration index.
 
         if not self.__log_h_tbl:
             return  # we are done here

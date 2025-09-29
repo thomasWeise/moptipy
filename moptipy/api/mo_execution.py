@@ -128,7 +128,7 @@ class MOExecution(Execution):
         :returns: the instance of :class:`~moptipy.api.mo_process.MOProcess`
             after applying the algorithm.
         """
-        objective: Final[MOProblem] = cast(MOProblem, self._objective)
+        objective: Final[MOProblem] = cast("MOProblem", self._objective)
         solution_space: Final[Space] = check_space(self._solution_space)
         search_space: Final[Space | None] = check_space(
             self._search_space, self._encoding is None)

@@ -759,6 +759,6 @@ onemax_7569, onemax_7744, onemax_7777, onemax_7921, onemax_8000, \
 onemax_8100, onemax_8192]
 
         """
-        return cast(Iterator[Callable[[], "OneMax"]],
+        return cast("Iterator[Callable[[], OneMax]]",
                     super().default_instances(  # type: ignore
                         scale_min, scale_max))

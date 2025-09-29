@@ -105,7 +105,7 @@ def w_model_f(x: np.ndarray) -> int:
     result = 0
     for i, xx in enumerate(x):
         if xx == ((i & 1) == 0):
-            result = result + 1
+            result += 1
     return result
 
 
@@ -150,12 +150,12 @@ def w_model_neutrality(x_in: np.ndarray, mu: int, x_out: np.ndarray) -> None:
     length_out: Final[int] = len(x_out)
     while (i_in < length_in) and (i_out < length_out):
         if x_in[i_in]:
-            ones = ones + 1
-        i_in = i_in + 1
+            ones += 1
+        i_in += 1
         if i_in >= flush:
-            flush = flush + mu
+            flush += mu
             x_out[i_out] = (ones >= threshold_for_1)
-            i_out = i_out + 1
+            i_out += 1
             ones = 0
 
 
@@ -229,13 +229,13 @@ def __w_model_epistasis(x_in: np.ndarray, start: int,
         j: int = end
         while j > start:
             if j != skip:
-                result = result ^ x_in[j]
-            j = j - 1
+                result ^= x_in[j]
+            j -= 1
         x_out[i] = result
-        skip = skip - 1
+        skip -= 1
         if skip < start:
             skip = end
-        i = i - 1
+        i -= 1
 
 
 @numba.njit(nogil=True, cache=True, inline="always")
@@ -252,7 +252,7 @@ def w_model_epistasis(x_in: np.ndarray, nu: int, x_out: np.ndarray) -> None:
     i: int = 0
     while i <= end:
         __w_model_epistasis(x_in, i, nu, x_out)
-        i = i + nu
+        i += nu
     if i < total_len:
         __w_model_epistasis(x_in, i, total_len - i, x_out)
 
@@ -302,23 +302,23 @@ def w_model_create_ruggedness_permutation(
         if (j & 1) != 0:
             r[j] = nopt - k
         else:
-            k = k + 1
+            k += 1
             r[j] = k
-        j = j + 1
+        j += 1
 
     while j <= nopt:
-        k = k + 1
+        k += 1
         r[j] = (nopt - k) if ((start & 1) != 0) else k
-        j = j + 1
+        j += 1
 
     upper: Final[int] = ((gamma - max_gamma) + (
         ((nopt - start - 1) * (nopt - start)) >> 1))
-    j = j - 1
+    j -= 1
     i: int = 1
     while i <= upper:
-        j = j - 1
+        j -= 1
         r[j], r[nopt] = r[nopt], r[j]
-        i = i + 1
+        i += 1
 
 
 @numba.njit(nogil=True, cache=True, inline="always")
@@ -570,7 +570,7 @@ wmodel_19]
         """
         check_int_range(scale_max, "scale_max", check_int_range(
             scale_min, "scale_min", 1, 1_000_000_000) + 1, 1_000_000_000)
-        return (cast(Callable[[], "WModel"],
+        return (cast("Callable[[], WModel]",
                      lambda a=iid, b=z[0], c=z[1], d=z[2], g=z[3]:
                      WModel(b, c, d, g, f"wmodel_{a + 1}"))
                 for iid, z in enumerate([

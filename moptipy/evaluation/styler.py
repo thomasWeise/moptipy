@@ -74,7 +74,7 @@ class Styler:
         self.key_func: Final[Callable] = key_func
         #: The name function of the grouper
         self.name_func: Final[Callable[[Any], str]] = \
-            cast(Callable[[Any], str], __namer)
+            cast("Callable[[Any], str]", __namer)
         #: The base priority of this grouper
         self.priority: float = float(priority)
         #: The internal collection.
@@ -108,15 +108,15 @@ class Styler:
             data.sort()
             if self.has_none:
                 data.insert(0, (None, self.name_func(None)))
-            self.keys = tuple([x[0] for x in data])
-            self.names = tuple([x[1] for x in data])
+            self.keys = tuple(x[0] for x in data)
+            self.names = tuple(x[1] for x in data)
         else:
             data = [(self.name_func(k), k) for k in self.__collection]
-            data.sort(key=cast(Callable, lambda x, nsf2=nsf: nsf2(x[0])))
+            data.sort(key=cast("Callable", lambda x, nsf2=nsf: nsf2(x[0])))
             if self.has_none:
                 data.insert(0, (self.name_func(None), None))
-            self.names = tuple([x[0] for x in data])
-            self.keys = tuple([x[1] for x in data])
+            self.names = tuple(x[0] for x in data)
+            self.keys = tuple(x[1] for x in data)
 
         del self.__collection
         del data

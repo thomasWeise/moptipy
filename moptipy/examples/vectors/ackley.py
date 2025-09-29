@@ -10,6 +10,8 @@ and scalable benchmark function for continuous optimization.
    ISBN: 978-1-4612-9192. doi:10.1007/978-1-4613-199
 """
 
+from math import tau
+
 import numba  # type: ignore
 from numpy import cos, exp, mean, ndarray, sqrt
 
@@ -39,7 +41,7 @@ def ackley(x: ndarray) -> float:
     # 22.718281828459045 equals 20.0 + e
     # 6.283185307179586 equals 2.0 * pi
     res = 22.718281828459045 + (-20.0 * exp(-0.2 * sqrt(
-        mean(x ** 2)))) - exp(mean(cos(6.283185307179586 * x)))
+        mean(x ** 2)))) - exp(mean(cos(tau * x)))
     return 0.0 if res <= 0.0 else float(res)
 
 

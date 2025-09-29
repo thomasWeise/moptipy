@@ -73,7 +73,7 @@ def plot_end_statistics_over_param(
         x_label: str | None = None,
         x_label_inside: bool = True,
         x_label_location: float = 0.5,
-        y_label: None | str | Callable[[str], str] = __make_y_label,
+        y_label: str | Callable[[str], str] | None = __make_y_label,
         y_label_inside: bool = True,
         y_label_location: float = 1.0,
         instance_priority: float = 0.666,
@@ -209,7 +209,7 @@ def plot_end_statistics_over_param(
 
     # the getter for the dimension value
     y_getter: Final[Callable[[EndStatistics], int | float]] \
-        = cast(Callable[[EndStatistics], int | float],
+        = cast("Callable[[EndStatistics], int | float]",
                end_stat_getter(y_dim))
     if not callable(y_getter):
         raise type_error(y_getter, "y-getter", call=True)
@@ -246,33 +246,33 @@ def plot_end_statistics_over_param(
         x_value = x_getter(endstat)
         if not isinstance(x_value, int | float):
             raise type_error(x_value, "x-value", (int, float))
-        _algo = algorithm_getter(endstat)
-        if not ((_algo is None) or isinstance(_algo, str)):
-            raise type_error(_algo, "algorithm name", None, call=True)
-        _inst = instance_getter(endstat)
-        if not ((_inst is None) or isinstance(_inst, str)):
-            raise type_error(_algo, "instance name", None, call=True)
+        l_algo = algorithm_getter(endstat)
+        if not ((l_algo is None) or isinstance(l_algo, str)):
+            raise type_error(l_algo, "algorithm name", None, call=True)
+        l_inst = instance_getter(endstat)
+        if not ((l_inst is None) or isinstance(l_inst, str)):
+            raise type_error(l_algo, "instance name", None, call=True)
         y_value = y_getter(endstat)
         if not isinstance(y_value, int | float):
             raise type_error(y_value, "y-value", (int, float))
-        if _algo in dataset:
-            _dataset = dataset[_algo]
+        if l_algo in dataset:
+            l1_dataset = dataset[l_algo]
         else:
-            dataset[_algo] = _dataset = {}
-        if _inst in _dataset:
-            __dataset = _dataset[_inst]
+            dataset[l_algo] = l1_dataset = {}
+        if l_inst in l1_dataset:
+            l2_dataset = l1_dataset[l_inst]
         else:
-            _dataset[_inst] = __dataset = {}
-        if x_value in __dataset:
+            l1_dataset[l_inst] = l2_dataset = {}
+        if x_value in l2_dataset:
             raise ValueError(
-                f"combination x={x_value}, algo={_algo!r}, inst={_inst!r} "
-                f"already known as value {__dataset[x_value]}, cannot assign "
+                f"combination x={x_value}, algo={l_algo!r}, inst={l_inst!r} "
+                f"already known as value {l2_dataset[x_value]}, cannot assign "
                 f"value {y_value}.")
-        __dataset[x_value] = y_value
+        l2_dataset[x_value] = y_value
         x_axis.register_value(x_value)
         y_axis.register_value(y_value)
-        algorithms.add(_algo)
-        instances.add(_inst)
+        algorithms.add(l_algo)
+        instances.add(l_inst)
     del data, y_getter, x_getter, x_value, y_value
 
     if len(dataset) <= 0:
@@ -316,19 +316,19 @@ def plot_end_statistics_over_param(
     # we will collect all lines to plot in plot_list
     plot_list: list[dict] = []
     for algo in algorithms.keys:
-        _dataset = dataset[algo]
+        l1_dataset = dataset[algo]
         for inst in instances.keys:
-            if inst not in _dataset:
+            if inst not in l1_dataset:
                 raise ValueError(f"instance {inst!r} not in dataset"
                                  f" for algorithm {algo!r}.")
-            __dataset = _dataset[inst]
+            l2_dataset = l1_dataset[inst]
             style = pd.create_line_style()
-            style["x"] = x_vals = sorted(__dataset.keys())
-            style["y"] = [__dataset[x] for x in x_vals]
+            style["x"] = x_vals = sorted(l2_dataset.keys())
+            style["y"] = [l2_dataset[x] for x in x_vals]
             for g in groups:
                 g.add_line_style(inst if g is instances else algo, style)
             plot_list.append(style)
-    del dataset, _dataset, __dataset
+    del dataset, l1_dataset, l2_dataset
 
     # now we have all data, let's move to the actual plotting
     font_size_0: Final[float] = importance_to_font_size_func(0)

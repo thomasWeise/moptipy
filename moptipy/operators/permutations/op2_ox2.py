@@ -82,7 +82,7 @@ def _op2_ox2(indices: np.ndarray,
     while True:  # loop until we are finished
         index_i = random.integers(0, i)  # pick a random index-index
         index = indices[index_i]  # load the actual index
-        i = i - 1  # reduce the number of values
+        i -= 1  # reduce the number of values
         indices[i], indices[index_i] = index, indices[i]  # swap
 
         if mode:  # copy from x0 to dest
@@ -98,9 +98,9 @@ def _op2_ox2(indices: np.ndarray,
             dest[index] = x1[x1i]  # and store it in dest
             if i == 0:  # check if we are done
                 return  # ok, we are finished
-            x1i = x1i + 1  # and move on to the next value
+            x1i += 1  # and move on to the next value
         while x1_done[x1i]:  # step x1i to next unused value
-            x1i = x1i + 1  # increment
+            x1i += 1  # increment
 
 
 class Op2OrderBased(Op2):

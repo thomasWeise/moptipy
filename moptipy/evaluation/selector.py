@@ -19,6 +19,7 @@ result.
 """
 
 from collections import Counter
+from operator import itemgetter
 from typing import Any, Callable, Final, Iterable, TypeVar
 
 from pycommons.io.console import logger
@@ -362,7 +363,7 @@ but is int, namely 234.
     # The data is only sorted by its features and not by any other information
     # attached to it.
     dataset: Final[list[list]] = [[__data_tup(t), t, 0] for t in data]
-    dataset.sort(key=lambda x: x[0])
+    dataset.sort(key=itemgetter(0))
     dataset_size: int = list.__len__(dataset)
     if log:
         logger(f"Found {dataset_size} records of data.")

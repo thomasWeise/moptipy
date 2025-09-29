@@ -136,7 +136,7 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             d: int = domination(fs, ae.fs)
             if d < 0:  # the new solution dominates an archived one
                 if added_to_archive:  # if already added, shrink archive
-                    archive_size = archive_size - 1
+                    archive_size -= 1
                     archive[archive_size], archive[i] = \
                         ae, archive[archive_size]
                 else:  # if not added, overwrite dominated solution
@@ -298,12 +298,12 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             # first we clean the log from potentially dominated entries
             for i in range(loglen - 1, 0, -1):
                 reci = log[i]
-                fi = cast(int | float, reci[2])
-                fsi = cast(np.ndarray, reci[3])
+                fi = cast("int | float", reci[2])
+                fsi = cast("np.ndarray", reci[3])
                 for j in range(i - 1, -1, -1):
                     recj = log[j]
-                    fj = cast(int | float, recj[2])
-                    fsj = cast(np.ndarray, recj[3])
+                    fj = cast("int | float", recj[2])
+                    fsj = cast("np.ndarray", recj[3])
                     if (fj <= fi) and (domination(fsi, fsj) > 0):
                         del log[i]
                         break
@@ -311,14 +311,14 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         header: list[str] = [PROGRESS_FES, PROGRESS_TIME_MILLIS,
                              PROGRESS_CURRENT_F]
         header.extend(f"{PROGRESS_CURRENT_F}{i}" for i in range(
-            len(cast(np.ndarray, log[0])[3])))
+            len(cast("np.ndarray", log[0])[3])))
 
         with logger.csv(SECTION_PROGRESS, header) as csv:
             for row in log:
-                srow = [row[0], _ns_to_ms(cast(int, row[1])
+                srow = [row[0], _ns_to_ms(cast("int", row[1])
                                           - start_time), row[2]]
                 srow.extend([np_to_py_number(n)
-                             for n in cast(np.ndarray, row[3])])
+                             for n in cast("np.ndarray", row[3])])
                 csv.row(srow)
 
     def __str__(self) -> str:

@@ -27,7 +27,7 @@ in the `pdfo` library.
 """
 
 import warnings
-from typing import Any, Callable, Final, cast
+from typing import Any, Callable, Final, cast  # pylint: disable=W0611
 
 import numpy as np
 import pdfo  # type: ignore
@@ -137,7 +137,7 @@ class BOBYQA(Algorithm0):
         """
         # invoke the SciPy algorithm implementation
         without_should_terminate(
-            cast(Callable[[Process], Any], self.__run), process)
+            cast("Callable[[Process], Any]", self.__run), process)
 
     def log_parameters_to(self, logger: KeyValueLogSection) -> None:
         """

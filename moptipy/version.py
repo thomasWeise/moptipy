@@ -2,4 +2,4 @@
 from typing import Final
 
 #: the version string of `moptipy`
-__version__: Final[str] = "0.9.148"
+__version__: Final[str] = "0.9.149"
