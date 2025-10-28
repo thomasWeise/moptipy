@@ -1,0 +1,106 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.bitstrings — moptipy 0.9.150 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=f799f60e"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/bitstrings.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.150 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.bitstrings</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.bitstrings</h1><div class=highlight><pre>
+<span></span><span class=sd>"""An implementation of a bit string based search space."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>str_to_bool</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.nparrayspace</span><span class=w> </span><span class=kn>import</span> <span class=n>NPArraySpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_BOOL</span>
+
+
+<div class=viewcode-block id=BitStrings>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BitStrings</span><span class=p>(</span><span class=n>NPArraySpace</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A space where each element is a bit string (:class:`numpy.ndarray`).</span>
+
+<span class=sd>    With such a space, discrete optimization can be realized.</span>
+
+<span class=sd>    >>> s = BitStrings(5)</span>
+<span class=sd>    >>> print(s.dimension)</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    bool</span>
+<span class=sd>    >>> print(s.create())</span>
+<span class=sd>    [False False False False False]</span>
+<span class=sd>    >>> print(s.to_str(s.create()))</span>
+<span class=sd>    FFFFF</span>
+<span class=sd>    >>> print(s.from_str(s.to_str(s.create())))</span>
+<span class=sd>    [False False False False False]</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the vector-based search space.</span>
+
+<span class=sd>        :param dimension: The dimension of the search space,</span>
+<span class=sd>            i.e., the number of decision variables.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>DEFAULT_BOOL</span><span class=p>)</span>
+
+<div class=viewcode-block id=BitStrings.create>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a bit string filled with `False`.</span>
+
+<span class=sd>        :return: the string</span>
+
+<span class=sd>        >>> from moptipy.spaces.bitstrings import BitStrings</span>
+<span class=sd>        >>> s = BitStrings(8)</span>
+<span class=sd>        >>> v = s.create()</span>
+<span class=sd>        >>> print(s.to_str(v))</span>
+<span class=sd>        FFFFFFFF</span>
+<span class=sd>        >>> print(v.dtype)</span>
+<span class=sd>        bool</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>DEFAULT_BOOL</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStrings.from_str>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.from_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a string to a bit string.</span>
+
+<span class=sd>        :param text: the text</span>
+<span class=sd>        :return: the vector</span>
+<span class=sd>        :raises TypeError: if `text` is not a `str`</span>
+<span class=sd>        :raises ValueError: if `text` cannot be converted to a valid vector</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=nb>str</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=s2>"text"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=n>x</span><span class=p>[:]</span> <span class=o>=</span> <span class=p>[</span><span class=n>str_to_bool</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>text</span><span class=p>]</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>x</span></div>
+
+
+<div class=viewcode-block id=BitStrings.n_points>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the scale of the bit string space.</span>
+
+<span class=sd>        :return: 2 ** dimension</span>
+
+<span class=sd>        >>> print(BitStrings(4).n_points())</span>
+<span class=sd>        16</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>1</span> <span class=o><<</span> <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span>  <span class=c1># = 2 ** self.dimension</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this space.</span>
+
+<span class=sd>        :return: "bits" + dimension</span>
+
+<span class=sd>        >>> print(BitStrings(5))</span>
+<span class=sd>        bits5</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"bits</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}</span><span class=s2>"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.150 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.bitstrings</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2025, Thomas Weise.</div>
