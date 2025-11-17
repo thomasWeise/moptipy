@@ -722,7 +722,7 @@ def linear_harmonic(x: np.ndarray) -> float:
     for xx in x:  # Iterate over all the bits in the array.
         if not xx:  # If the bit is False, then
             result += weight  # add the penalty weight to the result.
-        weight += 1  # Increment the penalty weight by 1.
+        weight += 1  # Increment the penalty weight by 1.  # noqa: SIM113
 
     return result  # Return the result.
 

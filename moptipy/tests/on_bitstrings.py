@@ -489,9 +489,7 @@ def verify_algorithms_equivalent(
     first_name: str = ""
     do_fes: int = -1
     do_res: int | float = -1
-    index: int = -1
-    for algo in algorithms:
-        index += 1
+    for index, algo in enumerate(algorithms):
         if not callable(algo):
             raise type_error(algo, f"algorithms[{index}] for {f}", call=True)
         algorithm: Algorithm = check_algorithm(algo(space, f))
