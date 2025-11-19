@@ -23,7 +23,6 @@ from typing import (  # pylint: disable=W0611
     Callable,
     Final,
     Iterable,
-    Sequence,  # pylint: disable=W0611
     cast,
 )  # pylint: disable=W0611
 
@@ -84,7 +83,7 @@ def __run_experiment(base_dir: Path,
         for runs in ((1, ) if warmup else n_runs):  # for each number of runs
             if not warmup:
                 logger(f"now doing {runs} runs.", thread_id)
-            random.shuffle(cast("Sequence", experiments))  # shuffle
+            random.shuffle(cast("list", experiments))  # shuffle
 
             for setup in experiments:  # for each setup
                 instance = setup[0]()  # load instance
