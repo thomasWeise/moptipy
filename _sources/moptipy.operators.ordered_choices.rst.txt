@@ -1,0 +1,18 @@
+moptipy.operators.ordered\_choices package
+==========================================
+
+.. automodule:: moptipy.operators.ordered_choices
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.operators.ordered\_choices.op0\_choose\_and\_shuffle module
+-------------------------------------------------------------------
+
+.. automodule:: moptipy.operators.ordered_choices.op0_choose_and_shuffle
+   :members:
+   :show-inheritance:
+   :undoc-members:
