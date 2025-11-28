@@ -15,7 +15,7 @@ class Op0Random(Op0):
         Fill the string `dest` with random values.
 
         :param random: the random number generator
-        :param dest: the bit string to fill. Afterwards, its contents will
+        :param dest: the bit string to fill. Afterward, its contents will
             be random.
         """
         np.copyto(dest, random.integers(0, 2, dest.shape, dest.dtype))
