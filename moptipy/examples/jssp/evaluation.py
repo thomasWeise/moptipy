@@ -54,7 +54,7 @@ LETTER_L: Final[str] = "\u03BB"
 
 #: the pre-defined instance sort keys
 __INST_SORT_KEYS: Final[dict[str, int]] = {
-    __n: __i for __i, __n in enumerate(INSTANCES)
+    __n: __i for __i, __n in enumerate(INSTANCES)  # noqa: RUF052
 }
 
 #: the name of the mu+1 EA
@@ -214,7 +214,8 @@ def __make_algo_names() -> tuple[dict[str, int], dict[str, str]]:
         if not found:
             raise ValueError(f"did not find {pattern!r}.")
 
-    return {__n: __i for __i, __n in enumerate(names_new)}, namer
+    return {__n: __i for __i, __n in enumerate(  # noqa: RUF052
+        names_new)}, namer  # noqa: RUF052
 
 
 #: the pre-defined algorithm sort keys and name map
