@@ -1,0 +1,39 @@
+moptipy.operators package
+=========================
+
+.. automodule:: moptipy.operators
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.operators.bitstrings
+   moptipy.operators.intspace
+   moptipy.operators.ordered_choices
+   moptipy.operators.permutations
+   moptipy.operators.signed_permutations
+   moptipy.operators.vectors
+
+Submodules
+----------
+
+moptipy.operators.op0\_forward module
+-------------------------------------
+
+.. automodule:: moptipy.operators.op0_forward
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.tools module
+------------------------------
+
+.. automodule:: moptipy.operators.tools
+   :members:
+   :show-inheritance:
+   :undoc-members:
