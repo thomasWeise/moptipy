@@ -34,12 +34,9 @@ from pycommons.math.sample_statistics import (
     KEY_MEAN_ARITH,
     KEY_STDDEV,
     SampleStatistics,
-    from_samples,
-    from_single_value,
 )
 from pycommons.math.sample_statistics import CsvReader as StatReader
 from pycommons.math.sample_statistics import CsvWriter as StatWriter
-from pycommons.math.sample_statistics import getter as stat_getter
 from pycommons.strings.string_conv import (
     num_or_none_to_str,
     str_to_num,
@@ -742,29 +739,31 @@ def create(source: Iterable[EndResult]) -> EndStatistics:
         objective,
         encoding,
         n,
-        from_samples(best_f),
-        from_samples(last_improvement_fe),
-        from_samples(last_improvement_time_millis),
-        from_samples(total_fes),
-        from_samples(total_time_millis),
+        SampleStatistics.from_samples(best_f),
+        SampleStatistics.from_samples(last_improvement_fe),
+        SampleStatistics.from_samples(last_improvement_time_millis),
+        SampleStatistics.from_samples(total_fes),
+        SampleStatistics.from_samples(total_time_millis),
         None if (goal_f is None)
-        else (goal_f[0] if goal_f_same else from_samples(goal_f)),
+        else (goal_f[0] if goal_f_same else SampleStatistics.from_samples(
+            goal_f)),
         None if (best_f_scaled is None)
-        else from_samples(best_f_scaled),
+        else SampleStatistics.from_samples(best_f_scaled),
         n_success,
         None if (n_success is None) or (n_success <= 0)
-        else from_samples(success_fes),
+        else SampleStatistics.from_samples(success_fes),
         None if (n_success is None) or (n_success <= 0)
-        else from_samples(success_times),
+        else SampleStatistics.from_samples(success_times),
         None if (n_success is None)
         else (inf if (n_success <= 0) else try_int_div(fes, n_success)),
         None if (n_success is None) else
         (inf if (n_success <= 0) else try_int_div(time, n_success)),
         None if max_fes is None else
-        (max_fes[0] if max_fes_same else from_samples(max_fes)),
+        (max_fes[0] if max_fes_same else SampleStatistics.from_samples(
+            max_fes)),
         None if max_time_millis is None
         else (max_time_millis[0] if max_time_same
-              else from_samples(max_time_millis)))
+              else SampleStatistics.from_samples(max_time_millis)))
 
 
 def from_end_results(source: Iterable[EndResult],
@@ -936,9 +935,10 @@ def getter(dimension: str) -> Callable[[EndStatistics], int | float | None]:
         raise ValueError(f"Invalid dimension {names[0]!r} in {dimension!r}.")
     getter_2: Final[Callable[[
         SampleStatistics], int | float | None]] = \
-        stat_getter(names[1] if n_names > 1 else KEY_MEAN_ARITH)
+        SampleStatistics.getter(
+            names[1] if n_names > 1 else KEY_MEAN_ARITH)
 
-    if getter_2 is stat_getter(KEY_STDDEV):  # it is sd
+    if getter_2 is SampleStatistics.getter(KEY_STDDEV):  # it is sd
         n_prop: Final[Callable[[EndStatistics], int | None]] = \
             EndStatistics.get_n_success if __SUCCESS_KEYS(
                 names[0]) else EndStatistics.get_n
@@ -994,9 +994,10 @@ def _to_csv_writer(
         if v[0] is not None]
     if list.__len__(refined) <= 0:
         return None
-    return StatWriter(data=starmap(from_single_value, refined),
-                      scope=scope, n_not_needed=True, what_short=what_short,
-                      what_long=what_long)
+    return StatWriter(
+        data=starmap(SampleStatistics.from_single_value, refined),
+        scope=scope, n_not_needed=True, what_short=what_short,
+        what_long=what_long)
 
 
 class CsvWriter(CsvWriterBase[EndStatistics]):
