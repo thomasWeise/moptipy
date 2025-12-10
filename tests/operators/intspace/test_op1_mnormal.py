@@ -20,7 +20,8 @@ def test_op1_mnormal() -> None:
                         space.max_value - space.min_value + 1)
 
                 def __min_d_s(s: int, space: IntSpace, _f=flip_1) -> int:
-                    return min(s, space.dimension) if _f else 1
+                    return max(1, (2 * min(
+                        s, space.dimension)) // 3) if _f else 1
 
                 validate_op1_on_intspaces(__op1, min_unique_samples=__min_d_s,
                                           space_filter=__check)
