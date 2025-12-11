@@ -1,0 +1,18 @@
+moptipy.mo.archive package
+==========================
+
+.. automodule:: moptipy.mo.archive
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.mo.archive.keep\_farthest module
+----------------------------------------
+
+.. automodule:: moptipy.mo.archive.keep_farthest
+   :members:
+   :show-inheritance:
+   :undoc-members:
