@@ -107,6 +107,7 @@ def check_objective(objective: Any) -> Objective:
     ...     print(te)
     objective function should be an instance of moptipy.api.objective.\
 Objective but is str, namely 'A'.
+
     >>> try:
     ...     check_objective(None)
     ... except TypeError as te:

@@ -221,6 +221,7 @@ def check_algorithm(algorithm: Any) -> Algorithm:
     ...     print(te)
     algorithm should be an instance of moptipy.api.algorithm.\
 Algorithm but is str, namely 'A'.
+
     >>> try:
     ...     check_algorithm(None)
     ... except TypeError as te:

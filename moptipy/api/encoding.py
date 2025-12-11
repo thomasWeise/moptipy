@@ -68,18 +68,21 @@ def check_encoding(encoding: Any, none_is_ok: bool = True) -> Encoding | None:
     ...     print(te)
     encoding should be an instance of moptipy.api.encoding.\
 Encoding but is str, namely 'A'.
+
     >>> try:
     ...     check_encoding('A', True)
     ... except TypeError as te:
     ...     print(te)
     encoding should be an instance of moptipy.api.encoding.\
 Encoding but is str, namely 'A'.
+
     >>> try:
     ...     check_encoding('A', False)
     ... except TypeError as te:
     ...     print(te)
     encoding should be an instance of moptipy.api.encoding.\
 Encoding but is str, namely 'A'.
+
     >>> print(check_encoding(None))
     None
     >>> print(check_encoding(None, True))

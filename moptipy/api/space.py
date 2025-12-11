@@ -216,18 +216,21 @@ def check_space(space: Any, none_is_ok: bool = False) -> Space | None:
     ...     print(te)
     space should be an instance of moptipy.api.space.\
 Space but is str, namely 'A'.
+
     >>> try:
     ...     check_space('A', True)
     ... except TypeError as te:
     ...     print(te)
     space should be an instance of moptipy.api.space.\
 Space but is str, namely 'A'.
+
     >>> try:
     ...     check_space('A', False)
     ... except TypeError as te:
     ...     print(te)
     space should be an instance of moptipy.api.space.\
 Space but is str, namely 'A'.
+
     >>>
     >>> try:
     ...     check_space(None)
@@ -235,6 +238,7 @@ Space but is str, namely 'A'.
     ...     print(te)
     space should be an instance of moptipy.api.space.\
 Space but is None.
+
     >>> print(check_space(None, True))
     None
     >>> try:

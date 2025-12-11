@@ -1870,6 +1870,7 @@ def energy_to_merit(n: int, energy: int) -> int | float:
     ... except ValueError as ve:
     ...     print(ve)
     energy=0 is invalid, must be in 1..1000000000.
+
     >>> energy_to_merit(3, 1)
     4.5
     >>> energy_to_merit(4, 2)

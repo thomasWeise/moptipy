@@ -144,43 +144,51 @@ def int_range_to_dtype(min_value: int, max_value: int,
     ...     print(e)
     Signed integer range cannot exceed -9223372036854775808..922337203685477\
 5807, but 0..18446744073709551615 was specified.
+
     >>> try:
     ...     int_range_to_dtype(0, (2 ** 64) + 1)
     ... except ValueError as e:
     ...     print(e)
     max_value for unsigned integers must be <=18446744073709551615, but is \
 18446744073709551617 for min_value=0.
+
     >>> try:
     ...     int_range_to_dtype(-1, (2 ** 64) - 1)
     ... except ValueError as e:
     ...     print(e)
     Signed integer range cannot exceed -9223372036854775808..922337203685477\
 5807, but -1..18446744073709551615 was specified.
+
     >>> try:
     ...     int_range_to_dtype(-1.0, (2 ** 64) - 1)
     ... except TypeError as e:
     ...     print(e)
     min_value should be an instance of int but is float, namely -1.0.
+
     >>> try:
     ...     int_range_to_dtype(-1, 'a')
     ... except TypeError as e:
     ...     print(e)
     max_value should be an instance of int but is str, namely 'a'.
+
     >>> try:
     ...     int_range_to_dtype(0, 1, 1)
     ... except TypeError as te:
     ...     print(te)
     force_signed should be an instance of bool but is int, namely 1.
+
     >>> try:
     ...     int_range_to_dtype(0, 1, force_unsigned=3)
     ... except TypeError as te:
     ...     print(te)
     force_unsigned should be an instance of bool but is int, namely 3.
+
     >>> try:
     ...     int_range_to_dtype(0, 1, True, True)
     ... except ValueError as ve:
     ...     print(ve)
     force_signed and force_unsigned cannot both be True.
+
     >>> try:
     ...     int_range_to_dtype(-1, 1, force_unsigned=True)
     ... except ValueError as ve:
@@ -285,6 +293,7 @@ def dtype_for_data(always_int: bool,
     ...     print(v)
     max_value for unsigned integers must be <=18446744073709551615, but \
 is 18446744073709551616 for min_value=0.
+
     >>> from math import inf, nan
     >>> print(dtype_for_data(True, 0, inf))
     uint64
@@ -299,21 +308,25 @@ is 18446744073709551616 for min_value=0.
     ... except ValueError as v:
     ...     print(v)
     invalid bounds [1,0].
+
     >>> try:
     ...     dtype_for_data(False, 1, 0)
     ... except ValueError as v:
     ...     print(v)
     invalid bounds [1,0].
+
     >>> try:
     ...     dtype_for_data(True, 1, nan)
     ... except ValueError as v:
     ...     print(v)
     invalid bounds [1,nan].
+
     >>> try:
     ...     dtype_for_data(False, nan, 0)
     ... except ValueError as v:
     ...     print(v)
     invalid bounds [nan,0].
+
     >>> print(dtype_for_data(False, 1, 2))
     float64
     >>> try:
@@ -322,24 +335,28 @@ is 18446744073709551616 for min_value=0.
     ...     print(v)
     upper_bound should be an instance of any in {float, int} but is str, \
 namely '0'.
+
     >>> try:
     ...     dtype_for_data(True, 'x', 0)
     ... except TypeError as v:
     ...     print(v)
     lower_bound should be an instance of any in {float, int} but is str, \
 namely 'x'.
+
     >>> try:
     ...     dtype_for_data(True, 1.0, 2.0)
     ... except TypeError as v:
     ...     print(v)
     finite lower_bound of always_int should be an instance of int but is \
 float, namely 1.0.
+
     >>> try:
     ...     dtype_for_data(True, 0, 2.0)
     ... except TypeError as v:
     ...     print(v)
     finite upper_bound of always_int should be an instance of int but is \
 float, namely 2.0.
+
     >>> try:
     ...     dtype_for_data(3, 0, 2)
     ... except TypeError as v:
@@ -453,6 +470,7 @@ def rand_seed_check(rand_seed: Any) -> int:
     ... except ValueError as ve:
     ...     print(ve)
     rand_seed=-1 is invalid, must be in 0..18446744073709551615.
+
     >>> rand_seed_check(18446744073709551615)
     18446744073709551615
     >>> try:
@@ -461,6 +479,7 @@ def rand_seed_check(rand_seed: Any) -> int:
     ...     print(ve)
     rand_seed=18446744073709551616 is invalid, must be in 0..\
 18446744073709551615.
+
     >>> try:
     ...     rand_seed_check(1.2)
     ... except TypeError as te:

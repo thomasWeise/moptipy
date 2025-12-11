@@ -230,6 +230,7 @@ def check_mo_problem(mo_problem: Any) -> MOProblem:
     ...     print(te)
     multi-objective optimziation problem should be an instance of moptipy.\
 api.mo_problem.MOProblem but is int, namely 1.
+
     >>> try:
     ...     check_mo_problem(None)
     ... except TypeError as te:

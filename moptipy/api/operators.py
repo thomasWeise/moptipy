@@ -76,6 +76,7 @@ def check_op0(op0: Any) -> Op0:
     ...     print(te)
     op0 should be an instance of moptipy.api.operators.Op0 but is \
 str, namely 'A'.
+
     >>> try:
     ...     check_op0(None)
     ... except TypeError as te:
@@ -119,6 +120,7 @@ def check_op1(op1: Any) -> Op1:
     ...     print(te)
     op1 should be an instance of moptipy.api.operators.Op1 but is str, \
 namely 'A'.
+
     >>> try:
     ...     check_op1(None)
     ... except TypeError as te:
@@ -163,6 +165,7 @@ def check_op2(op2: Any) -> Op2:
     ...     print(te)
     op2 should be an instance of moptipy.api.operators.Op2 but is str, \
 namely 'A'.
+
     >>> try:
     ...     check_op2(None)
     ... except TypeError as te:
@@ -241,12 +244,14 @@ def check_op1_with_step_size(op1: Any) -> Op1WithStepSize:
     ...     print(te)
     op1 should be an instance of moptipy.api.operators.Op1WithStepSize \
 but is str, namely 'A'.
+
     >>> try:
     ...     check_op1_with_step_size(Op1())
     ... except TypeError as te:
     ...     print(te)
     op1 should be an instance of moptipy.api.operators.Op1WithStepSize \
 but is moptipy.api.operators.Op1.
+
     >>> try:
     ...     check_op1_with_step_size(None)
     ... except TypeError as te:

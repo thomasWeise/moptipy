@@ -146,6 +146,7 @@ def check_mo_archive_pruner(pruner: Any) -> MOArchivePruner:
     ...     print(te)
     pruner should be an instance of moptipy.api.mo_archive.\
 MOArchivePruner but is str, namely 'A'.
+
     >>> try:
     ...     check_mo_archive_pruner(None)
     ... except TypeError as te:

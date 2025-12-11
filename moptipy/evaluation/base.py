@@ -50,6 +50,7 @@ def check_time_unit(time_unit: Any) -> str:
     ... except TypeError as te:
     ...     print(te)
     time_unit should be an instance of str but is int, namely 1.
+
     >>> try:
     ...     check_time_unit("blabedibla")
     ... except ValueError as ve:
@@ -83,6 +84,7 @@ def check_f_name(f_name: Any) -> str:
     ... except TypeError as te:
     ...     print(te)
     f_name should be an instance of str but is float, namely 1.0.
+
     >>> try:
     ...     check_f_name("oops")
     ... except ValueError as ve:
@@ -134,6 +136,7 @@ def _set_name(dest: object, name: str, what: str,
     ... except TypeError as te:
     ...     print(te)
     algorithm name should be an instance of str but is int, namely 1.
+
     >>> t.algorithm
     'bla'
     >>> try:
@@ -142,6 +145,7 @@ def _set_name(dest: object, name: str, what: str,
     ...     print(ve)
     algorithm name cannot be empty of just consist of white space, but \
 '  ' does.
+
     >>> t.algorithm
     'bla'
     >>> try:
@@ -149,6 +153,7 @@ def _set_name(dest: object, name: str, what: str,
     ... except ValueError as ve:
     ...     print(ve)
     Invalid instance name 'a a'.
+
     >>> print(t.instance)
     None
     >>> try:
@@ -157,6 +162,7 @@ def _set_name(dest: object, name: str, what: str,
     ...     print(ve)
     instance name cannot be empty of just consist of white space, but \
 ' ' does.
+
     >>> print(t.instance)
     None
     """
@@ -447,47 +453,56 @@ class PerRunData(EvaluationDataElement):
     ... except TypeError as te:
     ...     print(te)
     algorithm name should be an instance of str but is int, namely 3.
+
     >>> try:
     ...     PerRunData("@1 2", "i", "f", "e", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid algorithm name '@1 2'.
+
     >>> try:
     ...     PerRunData("x", 3.2, "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
     instance name should be an instance of str but is float, namely 3.2.
+
     >>> try:
     ...     PerRunData("x", "sdf i", "f", "e", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid instance name 'sdf i'.
+
     >>> try:
     ...     PerRunData("a", "i", True, "e", 234)
     ... except TypeError as te:
     ...     print(te)
     objective name should be an instance of str but is bool, namely True.
+
     >>> try:
     ...     PerRunData("x", "i", "d-f", "e", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid objective name 'd-f'.
+
     >>> try:
     ...     PerRunData("x", "i", "f", 54.2, 234)
     ... except TypeError as te:
     ...     print(te)
     encoding name should be an instance of any in {None, str} but is float, \
 namely 54.2.
+
     >>> try:
     ...     PerRunData("y", "i", "f", "x  x", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid encoding name 'x  x'.
+
     >>> try:
     ...     PerRunData("x", "i", "f", "e", 3.3)
     ... except TypeError as te:
     ...     print(te)
     rand_seed should be an instance of int but is float, namely 3.3.
+
     >>> try:
     ...     PerRunData("x", "i", "f", "e", -234)
     ... except ValueError as ve:
@@ -593,49 +608,58 @@ class MultiRunData(EvaluationDataElement):
     ...     print(te)
     algorithm name should be an instance of any in {None, str} but is int, \
 namely 1.
+
     >>> try:
     ...     MultiRunData("x x", "i", "f", "e", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid algorithm name 'x x'.
+
     >>> try:
     ...     MultiRunData("a", 5.5, "f", "e", 234)
     ... except TypeError as te:
     ...     print(te)
     instance name should be an instance of any in {None, str} but is float, \
 namely 5.5.
+
     >>> try:
     ...     MultiRunData("x", "a-i", "f", "e", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid instance name 'a-i'.
+
     >>> try:
     ...     MultiRunData("a", "i", True, "e", 234)
     ... except TypeError as te:
     ...     print(te)
     objective name should be an instance of any in {None, str} but is bool, \
 namely True.
+
     >>> try:
     ...     MultiRunData("xx", "i", "d'@f", "e", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid objective name "d'@f".
+
     >>> try:
     ...     MultiRunData("yy", "i", "f", -9.4, 234)
     ... except TypeError as te:
     ...     print(te)
     encoding name should be an instance of any in {None, str} but is float, \
 namely -9.4.
+
     >>> try:
     ...     MultiRunData("xx", "i", "f", "e-{a", 234)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid encoding name 'e-{a'.
+
     >>> try:
     ...     MultiRunData("x", "i", "f", "e", -1.234)
     ... except TypeError as te:
     ...     print(te)
     n should be an instance of int but is float, namely -1.234.
+
     >>> try:
     ...     MultiRunData("xx", "i", "f", "e", 1_000_000_000_000_000_000_000)
     ... except ValueError as ve:
@@ -727,18 +751,21 @@ class MultiRun2DData(MultiRunData):
     ... except TypeError as te:
     ...     print(te)
     time_unit should be an instance of str but is int, namely 3.
+
     >>> try:
     ...     MultiRun2DData("a", "i", "f", None, 3,
     ...                    "sdfjsdf", F_NAME_SCALED)
     ... except ValueError as ve:
     ...     print(ve)
     Invalid time unit 'sdfjsdf', only 'FEs' and 'ms' are permitted.
+
     >>> try:
     ...     MultiRun2DData("a", "i", "f", None, 3,
     ...                    TIME_UNIT_FES, True)
     ... except TypeError as te:
     ...     print(te)
     f_name should be an instance of str but is bool, namely True.
+
     >>> try:
     ...     MultiRun2DData("a", "i", "f", None, 3,
     ...                    TIME_UNIT_FES, "blablue")

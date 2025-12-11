@@ -86,22 +86,26 @@ def try_int(val: int | float) -> int | float:
     ... except ValueError as ve:
     ...     print(ve)
     Value must be finite, but is inf.
+
     >>> try:
     ...     try_int(-inf)
     ... except ValueError as ve:
     ...     print(ve)
     Value must be finite, but is -inf.
+
     >>> try:
     ...     try_int(nan)
     ... except ValueError as ve:
     ...     print(ve)
     Value must be finite, but is nan.
+
     >>> try:
     ...     try_int("blab")  # noqa  # type: off
     ... except TypeError as te:
     ...     print(te)
     val should be an instance of any in {float, int} but is str, namely \
 'blab'.
+
     >>> type(try_int(9007199254740992.0))
     <class 'int'>
     >>> try_int(9007199254740992.0)
