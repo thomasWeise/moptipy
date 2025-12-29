@@ -47,12 +47,11 @@
 ## 1. Introduction
 
 [`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is a library with implementations of metaheuristic optimization methods in Python&nbsp;3.12 that also offers an environment for replicable experiments.
-The framework, [algorithm implementations](#41-implemented-algorithms), and the library design are accompanied by the book [Optimization Algorithms](https://thomasweise.github.io/oa/).
-The library is structured with performance, ease-of-use, and generality in mind, but also based on an educational and research perspective.
-It is therefore (hopefully) suitable for practical industrial applications, scientific research, and for students who are just entering the field of metaheuristic optimization.
-
 Metaheuristic optimization algorithms are methods for solving hard problems.
 `moptipy` provides an [API](https://thomasweise.github.io/moptipy/moptipy.api.html), several [algorithm implementations](https://thomasweise.github.io/moptipy/moptipy.algorithms.html#module-moptipy.algorithms), as well as [experiment execution](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.experiment) and [evaluation](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation) facilities for metaheuristics.
+[Here](http://thomasweise.github.io/talks/moptipy.pdf) you can find a small presentation outlining some of the concepts of the system.
+[`moptipy`](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf) is structured with performance, ease-of-use, and generality in mind, but also based on an educational and research perspective.
+It is therefore (hopefully) suitable for practical industrial applications, scientific research, and for students who are just entering the field of metaheuristic optimization.
 
 A metaheuristic algorithm can be a black-box method, which can solve problems without deeper knowledge about their nature.
 Such a black-box algorithm only requires methods to [create](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op0) and [modify](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.operators.Op1) points in the [search space](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.space) and to [evaluate their quality](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.objective).
@@ -2219,12 +2218,14 @@ If you use a shared root folder for experiments and launch the same experiment o
 
 ### 9.1. Links regarding the `moptipy` project
 
-- Our project can be found on GitHub at <https://github.com/thomasWeise/moptipy/>
-- The documentation of our project is available at <https://thomasweise.github.io/moptipy/>.
-- Our project can be found on PyPi at <https://pypi.org/project/moptipy/>
-- Our project can be found on Libraries.io at <https://libraries.io/pypi/moptipy>, however, this page usually does not show the most recent version.
-- Our project can be found on snyk.io at <https://snyk.io/advisor/python/moptipy>, however, this page usually does not show the most recent version. 
-- An example data set of experimental results obtained with `moptipy` can be found at <https://thomasweise.github.io/oa_data/>. 
+- A small presentation about `moptipy` is provided at <http://thomasweise.github.io/talks/moptipy.pdf>.
+- Our project can be found on GitHub at <https://github.com/thomasWeise/moptipy>
+- The documentation of our project is available at <https://thomasweise.github.io/moptipy>.
+- A companion project with several classical Operations Research example problem domains can be found on GitHub at <https://github.com/thomasWeise/moptipyapps> and its documentation is given at <https://thomasweise.github.io/moptipyapps>.
+- Our `moptipy` library can be found on PyPi at <https://pypi.org/project/moptipy>
+- Our `moptipy` library can be found on Libraries.io at <https://libraries.io/pypi/moptipy>, however, this page usually does not show the most recent version.
+- Our `moptipy` library can be found on snyk.io at <https://snyk.io/advisor/python/moptipy>, however, this page usually does not show the most recent version. 
+- An old example data set of experimental results obtained with `moptipy` can be found at <https://thomasweise.github.io/oa_data>. 
 
 
 ### 9.2. Links to other works of our team
@@ -2267,12 +2268,18 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 
 
 ## 10. Publications on `moptipy` and Works using `moptipy`
-1. Thomas Weise and Zhize Wu. 2023. Replicable Self-Documenting Experiments with Arbitrary Search Spaces and Algorithms. In *Genetic and Evolutionary Computation Conference Companion* (GECCO'23 Companion), July 15-19, 2023, Lisbon, Portugal. ACM, New York, NY, USA, 9 pages. doi:[10.1145/3583133.3596306](https://doi.org/10.1145/3583133.3596306). ISBN: 979-8-4007-0120-7.
-2. Thomas Weise. *Optimization Algorithms*. 2021-ongoing. <https://thomasweise.github.io/oa>.
-   This is a book introducing metaheuristic optimization methods using `moptipy` as a source for example implementations and [showcase experiments](https://thomasweise.github.io/moptipy/moptipy.examples.jssp.html#module-moptipy.examples.jssp.experiment).
-3. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Thomas Weise. Solving the Traveling Salesperson Problem using Frequency Fitness Assignment. *IEEE Symposium on Foundations of Computational Intelligence (IEEE FOCI'22)*, part of the *IEEE Symposium Series on Computational Intelligence (SSCI'22)*, December 4-7, 2022, Singapore. doi:[10.1109/SSCI51031.2022.10022296](https://doi.org/10.1109/SSCI51031.2022.10022296)
-   This paper investigates Frequency Fitness Assignment ([FFA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.fitnesses.html#module-moptipy.algorithms.so.ffa.ffa_fitness)) on the Traveling Salesperson Problem.
-4. Newsletter of the ACM Special Interest Group on Genetic and Evolutionary Computation. Volume 16, Issue 4, December&nbsp;2023, Software Category. "motipy: the Metaheuristic Optimization in Python Library" <https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4>
+
+- Thomas Weise (汤卫思) and Zhize Wu (吴志泽). *Replicable Self-Documenting Experiments with Arbitrary Search Spaces and Algorithms.* In: Conference on Genetic and Evolutionary Computation (GECCO’2023), Companion Volume. July 15–19, 2023, Lisbon, Portugal. Ed. by Sara Silva and Luís Paquete. New York, NY, USA: Association for Computing Machinery (ACM), 2023, pp. 1891–1899. ISBN: 979-8-4007-0120-7. doi:[10.1145/3583133.3596306](https://doi.org/10.1145/3583133.3596306). 
+- Tianyu Liang (梁天宇), Zhize Wu (吴志泽), Jörg Lässig, Daan van den Berg, and Thomas Weise (汤卫思). *Solving the Traveling Salesperson Problem using Frequency Fitness Assignment.* IEEE Symposium Series on Computational Intelligence (SSCI’2022). Dec. 4–7, 2022, Singapore. Piscataway, NJ, USA: Institute of Electrical and Electronics Engineers (IEEE), 2022. ISBN: 978-1-6654-8769-6. doi:[10.1109/SSCI51031.2022.10022296](https://doi.org/10.1109/SSCI51031.2022.10022296).
+- Newsletter of the ACM Special Interest Group on Genetic and Evolutionary Computation. Volume 16, Issue 4, December&nbsp;2023, Software Category. moptipy:&nbsp;the Metaheuristic Optimization in Python Library. <https://sigevo.hosting.acm.org/public_html/sigevolution/2023/12/04/volume-16-issue-4>.
+- Tianyu Liang (梁天宇), Zhize Wu (吴志泽), Jörg Lässig, Daan van den Berg, Sarah Louise Thomson, and Thomas Weise (汤卫思). *Addressing the Traveling Salesperson Problem with Frequency Fitness Assignment and Hybrid Algorithms.* Soft Computing 28(17-18):9495–9508, July 2024. London, England, UK: Springer Nature Limited. ISSN: 1432-7643. doi:[10.1007/S00500-024-09718-8](https://doi.org/10.1007/S00500-024-09718-8).
+- Rui Zhao (赵睿), Tianyu Liang (梁天宇), Zhize Wu (吴志泽), Daan van den Berg, Matthias Thürer, and Thomas Weise (汤卫思). *Randomized Local Search on the 2D Rectangular Bin Packing Problem with Item Rotation.* In: Genetic and Evolutionary Computation Conference (GECCO’2024). July 14–18, 2024, Melbourne, VIC, Australia. Ed. by Xiaodong Li and Julia Handl. New York, NY, USA: Association for Computing Machinery (ACM), 2024, pp. 235–238. ISBN:979-8-4007-0494-9. doi:[10.1145/3638530.3654139](https://doi.org/10.1145/3638530.3654139).
+- Sarah Louise Thomson, Gabriela Ochoa, Daan van den Berg, Tianyu Liang (梁天宇), and Thomas Weise (汤卫思). *Entropy, Search Trajectories, and Explainability for Frequency Fitness Assignment.* In: Parallel Problem Solving from Nature (PPSN XVIII). Vol. 1. Sept. 14–18, 2024, Hagenberg, Mühlkreis, Austria. Ed. by Michael Affenzeller, Stephan M. Winkler, Anna V. Kononova, Heike Trautmann, Tea Tušar, Penousal Machado, and Thomas Bäck. Vol. 15148 of Lecture Notes in Computer Science (LNCS). Cham, Switzerland: Springer. ISSN: 0302-9743. ISBN: 978-3-031-70054-5. doi:[10.1007/978-3-031-70055-2_23](https://doi.org/10.1007/978-3-031-70055-2_23).
+- Jiayang Chen (陈嘉阳), Zhize Wu (吴志泽), Sarah Louise Thomson, and Thomas Weise (汤卫思). *Frequency Fitness Assignment: Optimization Without Bias for Good Solution Outperforms Randomized Local Search on the Quadratic Assignment Problem.* 16th International Joint Conference on Computational Intelligence (IJCCI’24). Nov. 20–22, 2024, Porto, Portugal. Ed. by Francesco Marcelloni, Kurosh Madani, Niki van Stein, and Joaquim Filipe. Porto, Portugal: SciTePress: Science and Technology Publications, Lda, 2024, pp. 27–37. ISSN: 2184-3236. ISBN: 978-989-758-721-4. doi:[10.5220/0012888600003837](https://doi.org/10.5220/0012888600003837).
+- Tianyu Liang (梁天宇), Zhize Wu (吴志泽), Matthias Thürer, Markus Wagner, and Thomas Weise (汤卫思). *Generating Small Instances with Interesting Features for the Traveling Salesperson Problem.* In: 16th International Joint Conference on Computational Intelligence (IJCCI’24). Nov. 20–22, 2024, Porto, Portugal. Ed. by Francesco Marcelloni, Kurosh Madani, Niki van Stein, and Joaquim Filipe. Porto, Portugal: SciTePress: Science and Technology Publications, Lda, 2024, pp. 173–180. ISSN: 2184-3236. ISBN: 978-989-758-721-4. doi:[10.5220/0012888800003837](https://doi.org/10.5220/0012888800003837).
+- CAO Xiang (曹翔), Zhize Wu (吴志泽), Daan van den Berg, and Thomas Weise (汤卫思). *Randomized Local Search vs. NSGA-II vs. Frequency Fitness Assignment on The Traveling Tournament Problem.* In: 16th International Joint Conference on Computational Intelligence (IJCCI’24). Nov. 20–22, 2024, Porto, Portugal. Ed. by Francesco Marcelloni, Kurosh Madani, Niki van Stein, and Joaquim Filipe. Porto, Portugal: SciTePress: Science and Technology Publications, Lda, 2024, pp. 38–49. ISSN: 2184-3236. ISBN: 978-989-758-721-4. doi:[10.5220/0012891500003837](https://doi.org/10.5220/0012891500003837).
+- Rui Zhao (赵睿), Zhize Wu (吴志泽), Daan van den Berg, Matthias Thürer, Tianyu Liang (梁天宇), Ming Tan (檀明), and Thomas Weise (汤卫思). *Randomized Local Search for Two-Dimensional Bin Packing and a Negative Result for Frequency Fitness Assignment.* In: 16th International Joint Conference on Computational Intelligence (IJCCI’24). Nov. 20–22, 2024, Porto, Portugal. Ed. by Francesco Marcelloni, Kurosh Madani, Niki van Stein, and Joaquim
+Filipe. Porto, Portugal: SciTePress: Science and Technology Publications, Lda, 2024, pp. 15–26. ISSN: 2184-3236. ISBN: 978-989-758-721-4. doi:[10.5220/0012888500003837](https://doi.org/10.5220/0012888500003837).
 
 
 ## 11. License

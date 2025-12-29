@@ -2049,8 +2049,8 @@ _LBS: Final[dict[int, int]] = {
 #: the internal set of related work solutions
 __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
     ("PM2016LABS",
-     "Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary "
-     "Sequences. arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016"): {
+     ("Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary "
+      "Sequences. arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016")): {
         3: 1, 4: 2, 5: 2, 6: 7, 7: 3, 8: 8, 9: 12, 10: 13, 11: 5, 12: 10,
         13: 6, 14: 19, 15: 15, 16: 24, 17: 32, 18: 25, 19: 29, 20: 26, 21: 26,
         22: 39, 23: 47, 24: 36, 25: 36, 26: 45, 27: 37, 28: 50, 29: 62,
@@ -2065,10 +2065,10 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         109: 662, 111: 687, 113: 752, 115: 745, 117: 786, 119: 835,
     },
     ("BBB2017LABSOIMFARPTAT",
-     "Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
-     "Binary Sequences: On Improved Merit Factors and Runtime Predictions"
-     " to Achieve Them. arXiv:1406.5301v6 [cs.DS] 6 May 2017."
-     "https://arxiv.org/pdf/1406.5301"): {
+     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
+      "Binary Sequences: On Improved Merit Factors and Runtime Predictions"
+      " to Achieve Them. arXiv:1406.5301v6 [cs.DS] 6 May 2017."
+      "https://arxiv.org/pdf/1406.5301")): {
         181: 1834, 201: 2380, 215: 2691, 221: 2758, 241: 3600, 249: 3812,
         259: 4145, 261: 4338, 271: 4871, 281: 5260, 283: 5333, 301: 6054,
         303: 6335, 341: 8378, 381: 10238, 401: 11888,
@@ -2084,10 +2084,10 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         183: merit_to_energy(183, 9.0073), 189: merit_to_energy(189, 9.0847),
     },
     ("MD2015NESFLLABS",
-     "Wai Ho Mow and Ke-Lin Du. New Evolutionary Search for Long Low "
-     "Autocorrelation Binary Sequences. IEEE Transactions on Aerospace and "
-     "Electronic Systems. 51(1):290-303. January 2015. "
-     "doi:10.1109/TAES.2014.130518"): {
+     ("Wai Ho Mow and Ke-Lin Du. New Evolutionary Search for Long Low "
+      "Autocorrelation Binary Sequences. IEEE Transactions on Aerospace and "
+      "Electronic Systems. 51(1):290-303. January 2015. "
+      "doi:10.1109/TAES.2014.130518")): {
         106: merit_to_energy(106, 5.0295), 107: merit_to_energy(107, 5.1805),
         108: merit_to_energy(108, 4.6957), 109: merit_to_energy(109, 5.0429),
         110: merit_to_energy(110, 4.9631), 111: merit_to_energy(111, 5.626),
@@ -2208,19 +2208,19 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         4096: merit_to_energy(4096, 3.4589),
     },
     ("BB2018AHAFALABSPWOLAHMF",
-     "Borko Bošković and Janez Brest. A Heuristic Algorithm for a Low "
-     "Autocorrelation Binary Sequence Problem with Odd Length and High "
-     "Merit Factor. IEEE Access 6:4127-4134. January 2018. "
-     "doi:10.1109/ACCESS.2018.2789916 "): {
+     ("Borko Bošković and Janez Brest. A Heuristic Algorithm for a Low "
+      "Autocorrelation Binary Sequence Problem with Odd Length and High "
+      "Merit Factor. IEEE Access 6:4127-4134. January 2018. "
+      "doi:10.1109/ACCESS.2018.2789916")): {
         191: 1903, 193: 2144, 195: 2105, 197: 2202, 199: 2195, 201: 2220,
         203: 2317, 205: 2430, 207: 2351, 209: 2528, 211: 2457, 213: 2378,
         215: 2595, 217: 2684, 219: 2733, 221: 2734, 223: 2751, 225: 2808,
     },
     ("BHB2024PSAWALABSP",
-     "Borko Bošković, Jana Herzog, and Janez Brest. Parallel Self-Avoiding "
-     "Walks for a Low-Autocorrelation Binary Sequences Problem. Journal of "
-     "Computational Science 77 (2024) 102260. "
-     "doi:10.1016/j.jocs.2024.102260"): {
+     ("Borko Bošković, Jana Herzog, and Janez Brest. Parallel Self-Avoiding "
+      "Walks for a Low-Autocorrelation Binary Sequences Problem. Journal of "
+      "Computational Science 77 (2024) 102260. "
+      "doi:10.1016/j.jocs.2024.102260")): {
         171: 1669, 185: 1932, 193: 2040, 197: 2162, 199: 2187, 219: 2605,
         223: 2727, 225: 2768, 229: 2810, 231: 2963, 235: 2965, 237: 3118,
         239: 3055, 241: 3216, 243: 3233, 245: 3226, 247: 3259,

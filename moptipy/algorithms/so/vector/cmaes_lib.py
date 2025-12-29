@@ -342,8 +342,8 @@ class BiPopCMAES(CMAES):
 
         if restarts is not None:  # write the log section
             log: Final[list[str]] = [
-                f"fes{CSV_SEPARATOR}timeMillis{CSV_SEPARATOR}popSize"
-                f"{CSV_SEPARATOR}seed{CSV_SEPARATOR}isSmall"]
+                (f"fes{CSV_SEPARATOR}timeMillis{CSV_SEPARATOR}popSize"
+                 f"{CSV_SEPARATOR}seed{CSV_SEPARATOR}isSmall")]
             log.extend(CSV_SEPARATOR.join(map(
                 bool_or_num_to_str, row)) for row in restarts)
             del restarts
