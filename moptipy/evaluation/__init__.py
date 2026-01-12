@@ -12,7 +12,7 @@ processed to per-algorithm or per-instance statistics using
 """
 
 
-def __lang_setup() -> None:
+def __lang_setup() -> None:  # noqa: RUF067
     """Perform the internal language setup."""
     # pylint: disable=C0415
     import pycommons.math.sample_statistics as ss  # noqa
@@ -62,7 +62,7 @@ def __lang_setup() -> None:
         es.KEY_N_SUCCESS: "#successes",
     })
 
-    DE.extend({
+    DE.extend({  # noqa: RUF067
         "f": "f",
         "bestF": "f",
         "feasible": "realisierbar",
@@ -102,7 +102,7 @@ def __lang_setup() -> None:
         es.KEY_N_SUCCESS: "#erfolgreich",
     })
 
-    ZH.extend({
+    ZH.extend({  # noqa: RUF067
         "f": "f",
         "bestF": "f",
         "feasible": "可行的",
@@ -143,5 +143,5 @@ def __lang_setup() -> None:
     })
 
 
-__lang_setup()  # invoke the language setup
-del __lang_setup  # delete the language setup routine
+__lang_setup()  # invoke the language setup  # noqa: RUF067
+del __lang_setup  # delete the language setup routine  # noqa: RUF067

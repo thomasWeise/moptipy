@@ -57,7 +57,7 @@ with repetitions using the :mod:`~moptipy.examples.jssp.ob_encoding`.
 """
 
 
-def __lang_setup() -> None:
+def __lang_setup() -> None:  # noqa: RUF067
     """Perform the language setup."""
     from moptipy.utils.lang import DE, EN, ZH  # pylint: disable=C0415  # noqa
 
@@ -97,5 +97,5 @@ def __lang_setup() -> None:
     })
 
 
-__lang_setup()  # invoke the language setup
-del __lang_setup  # delete the language setup routine
+__lang_setup()  # invoke the language setup  # noqa: RUF067
+del __lang_setup  # delete the language setup routine  # noqa: RUF067

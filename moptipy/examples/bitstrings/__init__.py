@@ -80,7 +80,7 @@ from moptipy.examples.bitstrings.twomax import TwoMax
 from moptipy.examples.bitstrings.w_model import WModel
 
 
-def default_instances(
+def default_instances(  # noqa: RUF067
         class_scales: Callable[[
             type], Iterable[int]] = lambda _: cast("Iterable[int]", ())) \
         -> Iterator[Callable[[], BitStringProblem]]:

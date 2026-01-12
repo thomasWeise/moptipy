@@ -45,6 +45,10 @@ instances, we only have lower bounds of the energy.
    Sequences: On Improved Merit Factors and Runtime Predictions to Achieve
    Them. Applied Soft Computing. 56:262-285, July 2017.
    doi: https://doi.org/10.1016/j.asoc.2017.02.024
+7. Janez Brest and Borko Boskovic. A Heuristic Algorithm for a Low
+   Autocorrelation Binary Sequence Problem With Odd Length and High Merit
+   Factor. IEEE Access 6:4127-4134. 2018.
+   https://doi.org/10.1109/ACCESS.2018.2789916,
 
 This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),
 a Master's student at the Institute of Applied Optimization
@@ -53,6 +57,95 @@ Intelligence and Big Data (人工智能与大数据学院) at
 Hefei University (合肥大学) in
 Hefei, Anhui, China (中国安徽省合肥市) under the supervision of
 Prof. Dr. Thomas Weise (汤卫思教授).
+
+>>> from moptipy.spaces.bitstrings import BitStrings
+
+>>> def write_labs_values(x: np.ndarray):
+...     labs = LABS(len(x))
+...     energy = labs.evaluate(x)
+...     nn = labs.n
+...     merit = energy_to_merit(nn, energy)
+...     print(f"n: {nn}, energy: {energy}, merit: {merit}")
+
+>>> def write_rle(s: str):
+...     splt = s.split(",")
+...     nn = sum(map(int, splt))
+...     bs = BitStrings(nn)
+...     xx = bs.create()
+...     bs.from_rle_str(xx, f"T:{';'.join(splt)}")
+...     write_labs_values(xx)
+
+Let's check some results from the paper "A Heuristic Algorithm for a Low
+Autocorrelation Binary Sequence Problem With Odd Length and High Merit Factor"
+by Janez Brest and Borko Boskovic in IEEE Access 6:4127-4134. 2018:
+
+>>> write_rle("2,2,3,1,1,2,2,3,1,2,4,3,2,4,3,3,1,1,2,2,3,1,2,1,1,1,2,1,4,1,1,"
+...           "1,3,3,1,4,6,7,1,1,1,1,1,1,3,1,8,1,1,1,1,1,2,1,1,1,1,2,1,1,3,1,"
+...           "2,1,5,1,1,3,5,3,1,2,2,4,1,2,1,2,1,1,2,2,1,2,1,1,2,3,1,2,2,4,1,"
+...           "2,2,1")  # they get: energy=1903, merit=9.5851
+n: 191, energy: 1903, merit: 9.585128744088282
+
+>>> write_rle("2,1,1,1,1,1,3,1,1,5,1,3,1,1,1,1,1,1,2,1,7,2,1,2,2,4,1,1,1,1,1,"
+...           "2,1,1,2,1,2,4,2,1,3,2,1,2,3,1,2,2,1,2,1,2,2,1,1,2,3,4,3,1,2,1,"
+...           "1,2,1,2,4,2,3,3,2,3,1,2,3,2,1,3,2,1,1,2,3,4,7,1,1,2,2,3,2,1,1,"
+...           "1,1,1,3,8,1,3,1,1,1,4,1,7,1")  # energy=2378, merit=9.5393
+n: 213, energy: 2378, merit: 9.539318755256518
+
+>>> write_rle("6,3,6,2,6,2,7,4,1,8,1,4,2,3,8,4,1,3,3,2,1,3,2,3,2,2,1,1,3,4,1,"
+...           "1,1,2,3,3,3,2,1,2,1,2,1,2,5,1,1,2,1,4,2,2,1,2,2,1,3,2,1,2,1,3,"
+...           "1,1,2,1,1,1,1,1,1,2,1,2,2,1,1,3,1,1,1,1,1,1,3,1,1,2,1,1,1,1,1,"
+...           "2,2,1,1,1,1,2,2,1,1,1,1,2,1,2,1,1,1,1,1")  # merit=9.0144
+n: 225, energy: 2808, merit: 9.014423076923077
+
+>>> def write_hex(ll: int, s: str):
+...     bs = BitStrings(ll)
+...     xx = bs.create()
+...     bs.from_hex_string(xx, s)
+...     write_labs_values(xx)
+
+Now let's check some results from the paper "New Evolutionary Search for Long
+Low Autocorrelation Binary Sequences" by Wai Ho Mow and Ke-Lin Du which was
+published in the IEEE Transactions on Aerospace and Electronic Systems
+51(1):290-303. January 2015. https://doi.org/10.1109/TAES.2014.130518.
+
+>>> write_hex(236, "76B3EABB81A847C4DA6B6D204C68407E30"
+...                "5CC22FD9F148372B64587284C")  # they get: merit=4.3418
+n: 236, energy: 6414, merit: 4.3417524165887125
+
+>>> write_hex(300,
+...     "5AAAF7F284E43542CCFFD096BA42E7C784BA0BA6E9CC7DE4FC"
+...     "5E34433349D60837235C11164")  # they get: merit=4.4074
+n: 300, energy: 10210, merit: 4.407443682664055
+
+>>> write_hex(2000,
+...     "9300DC650BB35F244E59742D8848E894E9BC0CB6E07FE3700C1AA19DAB48DE771363"
+...     "D8F8D3CCB7FA78CE77054202A3DE0B087572813A1CB889437130C723FCFFD7E53BDF"
+...     "26CA3A73ADCBF889A612D32BA3AE9112F25E9817FC933E833A50D7EF85916D446F25"
+...     "526C767ECC52CA9E590D2DA7222A97C4FCCA1A64DFD474C018C3DAA150F2286B10EB"
+...     "12A031D07357D53866B24D6C2156109A40AED50D7F388ABF376CEC0D155125070F70"
+...     "C26DF3C76AD94F1531053E29DDD2A02B041C062263BD95698150CC8697DA03B20B2C"
+...     "6689097320BA14FBCD9425121CBC7AB6AFEFE38105571F9A740A03A7895BDE60645E"
+...     "96C607A11C35B0792F588740")  # they get: merit=3.6193
+n: 2000, energy: 552588, merit: 3.619333029309359
+
+>>> write_hex(4096,
+...     "E30A5D894A09A4CE0D11987EFC7E8DC88127C078FBD569A4AD05AB26D86A2D067C1E"
+...     "274783B891CBF64617E0906673F029AED144133B3FF48DF2DB8A18786780075E9C2B"
+...     "0CC46E6D0DA623CF1F50F1DF94177C28076F3CE44BC24C69D242E8D6F49F678E71C2"
+...     "D4D72C9412C828734AA39CA28EA2A7E5891B451ADA9B2408E666BA052C81509DE817"
+...     "897E4AF9FE4F504846D80D6B14CEEBDD9402A35C03AFD4EAE97B7ECB690094681EFD"
+...     "13837398ACECAA9AB5FC10682B00CA74BD15B5C0D7C53BAF35BF70612CB4DDE55EB4"
+...     "CF2F028596ED83823F5D1A73463B9953326AE6950CF1299AB6ACB432887A56E9F042"
+...     "957BAE604C003E982152DFEAFA75968C0D8B0FEAA2ED33FC20DE73FBA4E21F154CB2"
+...     "9129158F8BB5B9977C57B6F77A73634D9164A6FEA9647EAA1E1D63114B6BA1E9F065"
+...     "D66E5F5BF15B0D46EF9CED3216DB9DF0298E1CFBE0AF7596E9EB4BCBBBDA108A2B60"
+...     "88380B8D73797F9E9DB094FCC06FF0544F46E261FE4EF60AABCA0A32A5D1694B818B"
+...     "03A6D5351B28BAF523D1AE65D6048136003CFBA56CF22E0E1A2F2973C81637312722"
+...     "192558261DC2BEC886EBBBD73B5D1EFC29BB7E91F72964943D6D3560C3A8E20D11EC"
+...     "5A81C106E04D5F59218D9FD9D823B118AD4FB1D6C1435461E338D9F171B337E5DD73"
+...     "20CCD9CFE5DC651051E0F6678550BA09F9892E76D6E17C49ECD63F71B71FF351EEAF"
+...     "6DEB")  # they get: merit=3.4589
+n: 4096, energy: 2425236, merit: 3.458883176730017
 """
 from math import isfinite
 from typing import Callable, Final, Iterator, cast
