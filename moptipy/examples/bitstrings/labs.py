@@ -146,6 +146,74 @@ n: 2000, energy: 552588, merit: 3.619333029309359
 ...     "20CCD9CFE5DC651051E0F6678550BA09F9892E76D6E17C49ECD63F71B71FF351EEAF"
 ...     "6DEB")  # they get: merit=3.4589
 n: 4096, energy: 2425236, merit: 3.458883176730017
+
+Now let's test the result included in report "On the Skew-Symmetric Binary
+Sequences and the Merit Factor Problem" by Miroslav Dimitrov to be found at
+arXiv:2106.03377v1 [cs.IT] 7 Jun 2021. https://arxiv.org/pdf/2106.03377.
+
+>>> write_hex(449,
+...     "96f633d86fe825794ed23a9dfd7d4c3abd080cf76cbf9bdab9a7b2533e3161901d19"
+...     "50c774ca8bd012cfd7d5d8123c4f97e285469d327478")  # merit=6.5319
+n: 449, energy: 15432, merit: 6.531914204250907
+
+
+Let's test some results from the paper "Computational Search of Long
+Skew-Symmetric Binary Sequences with High Merit Factors" by Janez Brest and
+Borko Bošković in MENDEL - Soft Computing Journal 28(2):17-24. December 2022.
+doi:10.13164/mendel.202k.k.017.
+These results are skew-symmetric, so we need to expand them.
+
+>>> def write_skew(ll: int, s: str):
+...     bs = BitStrings(ll)
+...     xx = bs.create()
+...     bs.from_hex_string(xx, s)
+...     d = (ll + 1) // 2
+...     for ii in range(1, d):
+...         dmi = d - ii - 1
+...         dpi = d + ii - 1
+...         xx[dpi] = xx[dmi] ^ (ii & 1 != 0)
+...     write_labs_values(xx)
+
+>>> write_skew(201,  # theirs: F=9.0993
+...     "00FC7C04C5DF914630C9E3AF60A741258CB26FB95DECEAD6D4A")
+n: 201, energy: 2220, merit: 9.099324324324325
+
+>>> write_skew(303,  # theirs: F=8.0718
+...     "14A29CEB1AEA5CA5A43D99B1250A3155FEF3433432EA80137D0713"
+...     "998B4787C87EF93EC9F7C1")
+n: 303, energy: 5687, merit: 8.07183049059258
+
+And now we test some results from Borko Bošković, Franc Brglez, and Janez
+Brest. A GitHub Archive for Solvers and Solutions of the LABS Problem.
+https://github.com/borkob/git_labs. January 2016.
+>>> def write_bits(s: str):
+...     ll = len(s.strip())
+...     bs = BitStrings(ll)
+...     xx = bs.create()
+...     for ii, vv in enumerate(s):
+...         xx[ii] = int(vv) > 0
+...     write_labs_values(xx)
+
+>>> write_bits("00011000111111101010110110010")  # merit: 6.7823, energy: 62
+n: 29, energy: 62, merit: 6.782258064516129
+
+>>> write_bits("0000000000000111011110111001000110111001110011001111110011101"
+...            "0010111110011000000000110001110000001000000111101111110101101"
+...            "1000001011010011101101011111111001111001011110101111011110001"
+...            "1010010110110111000110101110111001111011110100010110010001000"
+...            "0011011011100011110000110110100010111110100001101001101010100"
+...            "0001110110000111101011000111110101000101101010001010110110110"
+...            "0101010100110010100001111011001010110011001001101110010001101"
+...            "1101000100101010101010")  # merit: 6.5218, energy: 15456
+n: 449, energy: 15456, merit: 6.521771480331263
+
+>>> write_bits("0010110010011001010101011010011010101011011011001100010101001"
+...            "1101001010000100100110010101011011000110010101111010110101001"
+...            "1011111100101110001010000110100001101000001001000011010100011"
+...            "0000001111101000000110010011100000000110011100010111110000100"
+...            "1111111011001100011100000000011000011111111"
+...            "1100110001100001") # merit: 7.2462, energy: 6335
+n: 303, energy: 6335, merit: 7.2461720599842145
 """
 from math import isfinite
 from typing import Callable, Final, Iterator, cast
@@ -2141,41 +2209,6 @@ _LBS: Final[dict[int, int]] = {
 
 #: the internal set of related work solutions
 __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
-    ("PM2016LABS",
-     ("Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary "
-      "Sequences. arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016")): {
-        3: 1, 4: 2, 5: 2, 6: 7, 7: 3, 8: 8, 9: 12, 10: 13, 11: 5, 12: 10,
-        13: 6, 14: 19, 15: 15, 16: 24, 17: 32, 18: 25, 19: 29, 20: 26, 21: 26,
-        22: 39, 23: 47, 24: 36, 25: 36, 26: 45, 27: 37, 28: 50, 29: 62,
-        30: 59, 31: 67, 32: 64, 33: 64, 34: 65, 35: 73, 36: 82, 37: 86,
-        38: 87, 39: 99, 40: 108, 41: 108, 42: 101, 43: 109, 44: 122, 45: 118,
-        46: 131, 47: 135, 48: 140, 49: 136, 50: 153, 51: 153, 52: 166,
-        53: 170, 54: 175, 55: 171, 56: 192, 57: 188, 58: 197, 59: 205,
-        60: 218, 61: 226, 62: 235, 63: 207, 64: 208, 65: 240, 66: 257,
-        67: 241, 69: 282, 71: 275, 73: 348, 75: 341, 77: 358, 79: 407,
-        81: 400, 83: 377, 85: 442, 87: 451, 89: 484, 91: 477, 93: 502,
-        95: 479, 97: 536, 99: 577, 101: 578, 103: 555, 105: 620, 107: 677,
-        109: 662, 111: 687, 113: 752, 115: 745, 117: 786, 119: 835,
-    },
-    ("BBB2017LABSOIMFARPTAT",
-     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
-      "Binary Sequences: On Improved Merit Factors and Runtime Predictions"
-      " to Achieve Them. arXiv:1406.5301v6 [cs.DS] 6 May 2017."
-      "https://arxiv.org/pdf/1406.5301")): {
-        181: 1834, 201: 2380, 215: 2691, 221: 2758, 241: 3600, 249: 3812,
-        259: 4145, 261: 4338, 271: 4871, 281: 5260, 283: 5333, 301: 6054,
-        303: 6335, 341: 8378, 381: 10238, 401: 11888,
-        107: merit_to_energy(107, 8.4557), 109: merit_to_energy(109, 8.9736),
-        111: merit_to_energy(111, 8.9672), 113: merit_to_energy(113, 8.49),
-        115: merit_to_energy(115, 8.8758), 117: merit_to_energy(117, 8.708),
-        119: merit_to_energy(119, 8.4796), 121: merit_to_energy(121, 8.6736),
-        141: merit_to_energy(141, 8.8282), 149: merit_to_energy(149, 9.1137),
-        157: merit_to_energy(157, 9.0223), 161: merit_to_energy(161, 8.5718),
-        165: merit_to_energy(165, 9.2351), 169: merit_to_energy(169, 9.3215),
-        173: merit_to_energy(173, 9.3645), 175: merit_to_energy(175, 9.0768),
-        177: merit_to_energy(177, 9.5052), 179: merit_to_energy(179, 9.0974),
-        183: merit_to_energy(183, 9.0073), 189: merit_to_energy(189, 9.0847),
-    },
     ("MD2015NESFLLABS",
      ("Wai Ho Mow and Ke-Lin Du. New Evolutionary Search for Long Low "
       "Autocorrelation Binary Sequences. IEEE Transactions on Aerospace and "
@@ -2300,6 +2333,68 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         3000: merit_to_energy(3000, 3.3608),
         4096: merit_to_energy(4096, 3.4589),
     },
+    ("PM2016LABS",
+     ("Tom Packebusch and Stephan Mertens. Low Autocorrelation Binary "
+      "Sequences. arXiv:1512.02475v2 [cond-mat.stat-mech] 24 Mar 2016")): {
+        3: 1, 4: 2, 5: 2, 6: 7, 7: 3, 8: 8, 9: 12, 10: 13, 11: 5, 12: 10,
+        13: 6, 14: 19, 15: 15, 16: 24, 17: 32, 18: 25, 19: 29, 20: 26, 21: 26,
+        22: 39, 23: 47, 24: 36, 25: 36, 26: 45, 27: 37, 28: 50, 29: 62,
+        30: 59, 31: 67, 32: 64, 33: 64, 34: 65, 35: 73, 36: 82, 37: 86,
+        38: 87, 39: 99, 40: 108, 41: 108, 42: 101, 43: 109, 44: 122, 45: 118,
+        46: 131, 47: 135, 48: 140, 49: 136, 50: 153, 51: 153, 52: 166,
+        53: 170, 54: 175, 55: 171, 56: 192, 57: 188, 58: 197, 59: 205,
+        60: 218, 61: 226, 62: 235, 63: 207, 64: 208, 65: 240, 66: 257,
+        67: 241, 69: 282, 71: 275, 73: 348, 75: 341, 77: 358, 79: 407,
+        81: 400, 83: 377, 85: 442, 87: 451, 89: 484, 91: 477, 93: 502,
+        95: 479, 97: 536, 99: 577, 101: 578, 103: 555, 105: 620, 107: 677,
+        109: 662, 111: 687, 113: 752, 115: 745, 117: 786, 119: 835,
+    },
+    ("BBB2016AGAFSASOTLP-2016-labs-skew.txt",
+     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
+      "Borko Bošković, Franc Brglez, and Janez Brest. A GitHub Archive for "
+      "Solvers and Solutions of the LABS Problem. "
+      "https://github.com/borkob/git_labs. January 2016.")): {
+        5: 2, 7: 3, 9: 12, 11: 5, 13: 6, 15: 15, 17: 32, 21: 26, 27: 37,
+        29: 62, 39: 99, 41: 108, 43: 109, 45: 118, 47: 135, 49: 136, 51: 153,
+        53: 170, 55: 171, 57: 188, 59: 205, 67: 241, 71: 275, 77: 358,
+        83: 377, 91: 477, 95: 479, 97: 536, 99: 577, 101: 578, 103: 555,
+        105: 620, 107: 677, 109: 662, 111: 687, 113: 752, 115: 745, 117: 786,
+        119: 835, 121: 844, 123: 893, 125: 846, 127: 887, 129: 920, 131: 913,
+        133: 1010, 135: 1027, 137: 1052, 139: 1133, 141: 1126, 143: 1191,
+        145: 1208, 147: 1265, 149: 1218, 151: 1275, 153: 1340, 155: 1437,
+        157: 1366, 159: 1439, 161: 1520, 163: 1529, 165: 1474, 167: 1563,
+        169: 1532, 171: 1677, 173: 1598, 175: 1687, 177: 1648, 179: 1761,
+        181: 1834, 183: 1859, 185: 2028, 187: 1973, 189: 1966, 191: 2191,
+        193: 2272, 195: 2281, 197: 2218, 199: 2275, 201: 2380, 203: 2421,
+        205: 2662, 207: 2695, 209: 3016, 211: 2801, 213: 2698, 215: 2691,
+        217: 3036, 219: 3189, 221: 2758, 223: 3215, 225: 3416, 227: 3409,
+        229: 3474, 231: 3587, 233: 3692, 235: 3757, 237: 3590, 239: 3711,
+        241: 3600, 243: 4073, 245: 4098, 247: 4291, 249: 3812, 251: 4165,
+        253: 4382, 255: 4463, 257: 4472, 259: 4145, 261: 4338, 263: 4803,
+        265: 4948, 267: 5037, 269: 4950, 271: 4871, 281: 5260, 283: 5333,
+        285: 5790, 301: 6054, 303: 6335, 341: 8378, 381: 10238, 401: 11888,
+        449: 15456,
+    },
+    ("BBB2017LABSOIMFARPTAT",
+     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
+      "Binary Sequences: On Improved Merit Factors and Runtime Predictions"
+      " to Achieve Them. Applied Soft Computing (ASOC) 56:262-285. July 2017."
+      " doi:10.1016/J.ASOC.2017.02.024. See also arXiv:1406.5301v6 [cs.DS] 6 "
+      "May 2017. https://arxiv.org/pdf/1406.5301")): {
+        181: 1834, 201: 2380, 215: 2691, 221: 2758, 241: 3600, 249: 3812,
+        259: 4145, 261: 4338, 271: 4871, 281: 5260, 283: 5333, 301: 6054,
+        303: 6335, 341: 8378, 381: 10238, 401: 11888,
+        107: merit_to_energy(107, 8.4557), 109: merit_to_energy(109, 8.9736),
+        111: merit_to_energy(111, 8.9672), 113: merit_to_energy(113, 8.49),
+        115: merit_to_energy(115, 8.8758), 117: merit_to_energy(117, 8.708),
+        119: merit_to_energy(119, 8.4796), 121: merit_to_energy(121, 8.6736),
+        141: merit_to_energy(141, 8.8282), 149: merit_to_energy(149, 9.1137),
+        157: merit_to_energy(157, 9.0223), 161: merit_to_energy(161, 8.5718),
+        165: merit_to_energy(165, 9.2351), 169: merit_to_energy(169, 9.3215),
+        173: merit_to_energy(173, 9.3645), 175: merit_to_energy(175, 9.0768),
+        177: merit_to_energy(177, 9.5052), 179: merit_to_energy(179, 9.0974),
+        183: merit_to_energy(183, 9.0073), 189: merit_to_energy(189, 9.0847),
+    },
     ("BB2018AHAFALABSPWOLAHMF",
      ("Borko Bošković and Janez Brest. A Heuristic Algorithm for a Low "
       "Autocorrelation Binary Sequence Problem with Odd Length and High "
@@ -2309,10 +2404,75 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         203: 2317, 205: 2430, 207: 2351, 209: 2528, 211: 2457, 213: 2378,
         215: 2595, 217: 2684, 219: 2733, 221: 2734, 223: 2751, 225: 2808,
     },
+    ("BBB2016AGAFSASOTLP-2018-labs-skew.txt",
+     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
+      "Borko Bošković, Franc Brglez, and Janez Brest. A GitHub Archive for "
+      "Solvers and Solutions of the LABS Problem. "
+      "https://github.com/borkob/git_labs. January 2016.")): {
+        5: 2, 7: 3, 9: 12, 11: 5, 13: 6, 15: 15, 17: 32, 21: 26, 27: 37,
+        29: 62, 39: 99, 41: 108, 43: 109, 45: 118, 47: 135, 49: 136, 51: 153,
+        53: 170, 55: 171, 57: 188, 59: 205, 67: 241, 71: 275, 77: 358,
+        83: 377, 91: 477, 95: 479, 97: 536, 99: 577, 101: 578, 103: 555,
+        105: 620, 107: 677, 109: 662, 111: 687, 113: 752, 115: 745, 117: 786,
+        119: 835, 121: 844, 123: 893, 125: 846, 127: 887, 129: 920, 131: 913,
+        133: 1010, 135: 1027, 137: 1052, 139: 1133, 141: 1126, 143: 1191,
+        145: 1208, 147: 1265, 149: 1218, 151: 1275, 153: 1340, 155: 1437,
+        157: 1366, 159: 1439, 161: 1520, 163: 1529, 165: 1474, 167: 1563,
+        169: 1532, 171: 1669, 173: 1598, 175: 1687, 177: 1648, 179: 1761,
+        181: 1834, 183: 1859, 185: 1932, 187: 1973, 189: 1966, 191: 1903,
+        193: 2144, 195: 2105, 197: 2202, 199: 2195, 201: 2220, 203: 2317,
+        205: 2430, 207: 2351, 209: 2528, 211: 2457, 213: 2378, 215: 2595,
+        217: 2684, 219: 2733, 221: 2734, 223: 2751, 225: 2808, 227: 3409,
+        229: 3474, 231: 3587, 233: 3692, 235: 3757, 237: 3590, 239: 3711,
+        241: 3600, 243: 4073, 245: 4098, 247: 4291, 249: 3812, 251: 4165,
+        253: 4382, 255: 4463, 257: 4472, 259: 4145, 261: 4338, 263: 4803,
+        265: 4948, 267: 5037, 269: 4950, 271: 4871, 281: 5260, 283: 5333,
+        285: 5790, 301: 6054, 303: 6335, 341: 8378, 381: 10238, 401: 11888,
+        449: 15456,
+    },
+    ("D2021OTSSBSATMFP",
+     ("Miroslav Dimitrov. On the Skew-Symmetric Binary Sequences and the "
+      "Merit Factor Problem. Digital Signal Processing 156(Part A):104793, "
+      "January 2025, doi:10.1016/j.dsp.2024.104793. See also:  On the "
+      "Skew-Symmetric Binary Sequences and the Merit Factor Problem. "
+      "arXiv:2106.03377v1 [cs.IT] 7 Jun 2021. "
+      "https://arxiv.org/pdf/2106.03377.")): {449: 15432},
+    ("BB2022CSOLSSBSWHMF",
+     ("Janez Brest and Borko Bošković. Computational Search of Long Skew-"
+      "Symmetric Binary Sequences with High Merit Factors. MENDEL - Soft "
+      "Computing Journal 28(2):17-24. December 2022. "
+      "doi:10.13164/mendel.202k.k.017.")): {
+        201: merit_to_energy(201, 9.0993), 203: merit_to_energy(203, 8.8927),
+        205: merit_to_energy(205, 8.7918), 207: merit_to_energy(207, 9.1129),
+        209: merit_to_energy(209, 9.2544), 211: merit_to_energy(211, 9.0600),
+        213: merit_to_energy(213, 9.5393), 215: merit_to_energy(215, 8.9066),
+        217: merit_to_energy(217, 8.9319), 219: merit_to_energy(219, 8.9580),
+        221: merit_to_energy(221, 8.9584), 223: merit_to_energy(223, 9.0383),
+        225: merit_to_energy(225, 9.0144), 227: merit_to_energy(227, 8.8935),
+        229: merit_to_energy(229, 8.8523), 231: merit_to_energy(231, 8.7678),
+        233: merit_to_energy(233, 8.9409), 235: merit_to_energy(235, 8.9044),
+        237: merit_to_energy(237, 8.8039), 239: merit_to_energy(239, 8.6678),
+        241: merit_to_energy(241, 8.6430), 243: merit_to_energy(243, 8.6608),
+        245: merit_to_energy(245, 8.7807), 247: merit_to_energy(247, 8.6784),
+        249: merit_to_energy(249, 8.8573), 251: merit_to_energy(251, 8.7966),
+        253: merit_to_energy(253, 8.7206), 255: merit_to_energy(255, 9.0338),
+        257: merit_to_energy(257, 8.9936), 259: merit_to_energy(259, 8.8056),
+        261: merit_to_energy(261, 8.7740), 263: merit_to_energy(263, 8.5882),
+        265: merit_to_energy(265, 8.5473), 267: merit_to_energy(267, 8.6077),
+        269: merit_to_energy(269, 8.5533), 271: merit_to_energy(271, 8.5496),
+        273: merit_to_energy(273, 8.8221), 275: merit_to_energy(275, 8.5607),
+        277: merit_to_energy(277, 8.6058), 279: merit_to_energy(279, 8.5898),
+        281: merit_to_energy(281, 8.5763), 283: merit_to_energy(283, 8.2925),
+        285: merit_to_energy(285, 8.5789), 287: merit_to_energy(287, 8.3184),
+        289: merit_to_energy(289, 8.1436), 291: merit_to_energy(291, 8.1912),
+        293: merit_to_energy(293, 8.0898), 295: merit_to_energy(295, 8.0534),
+        297: merit_to_energy(297, 8.0190), 299: merit_to_energy(299, 8.1496),
+        301: merit_to_energy(301, 8.3304), 303: merit_to_energy(303, 8.0718),
+    },
     ("BHB2024PSAWALABSP",
      ("Borko Bošković, Jana Herzog, and Janez Brest. Parallel Self-Avoiding "
       "Walks for a Low-Autocorrelation Binary Sequences Problem. Journal of "
-      "Computational Science 77 (2024) 102260. "
+      "Computational Science 77(102260). 2024. "
       "doi:10.1016/j.jocs.2024.102260")): {
         171: 1669, 185: 1932, 193: 2040, 197: 2162, 199: 2187, 219: 2605,
         223: 2727, 225: 2768, 229: 2810, 231: 2963, 235: 2965, 237: 3118,
@@ -2360,7 +2520,7 @@ def get_bks(n: int) -> tuple[int, tuple[str, str] | None]:
     >>> get_bks(401)[0]
     11888
     >>> get_bks(401)[1][0]
-    'BBB2017LABSOIMFARPTAT'
+    'BBB2016AGAFSASOTLP-2016-labs-skew.txt'
 
     >>> get_bks(10000)
     (5000, None)
