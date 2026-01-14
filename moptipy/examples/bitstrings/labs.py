@@ -97,6 +97,33 @@ n: 213, energy: 2378, merit: 9.539318755256518
 ...           "2,2,1,1,1,1,2,2,1,1,1,1,2,1,2,1,1,1,1,1")  # merit=9.0144
 n: 225, energy: 2808, merit: 9.014423076923077
 
+Let's test some solutions from Tom Packebusch and Stephan Mertens. "Low
+Autocorrelation Binary Sequences." arXiv:1512.02475v2 [cond-mat.stat-mech]
+24 Mar 2016.
+
+>>> write_rle("2,1,1,3,1,1,4,1,4,1")  # energy=33, merit=5.470
+n: 19, energy: 33, merit: 5.46969696969697
+
+>>> write_rle("2,1,1,2,1,1,1,2,1,1,2,2,2,11,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,"
+...           "4,5,4,2")  # energy=257, merit=8.475
+n: 66, energy: 257, merit: 8.474708171206226
+
+>>> write_rle("3,1,2,1,6,1,4,1,2,1,2,2,1,2,3,4,1,1,1,2,1,1,1,1,3,1,4,1,1,1,"
+...           "3,2,1,5,1,1,3,1,6,5,1,1,2,1,2,"
+...           "3,2,3,3,1,1,3,1,1,1,1,3,3,1,1")  # energy=835, merit=8.480
+n: 119, energy: 835, merit: 8.479640718562875
+
+And now we check some from Stephan Mertens. Exhaustive search for
+low-autocorrelation binary sequences. Journal of Physics A:
+Mathematical and General. 29(18):L473. September 1996.
+doi:10.1088/0305-4470/29/18/00
+
+>>> write_rle("8,2,1,2,1,1,2,1,2,3,4,3,2,1,1,1,1,1,1,1")  # energy=99
+n: 39, energy: 99, merit: 7.681818181818182
+
+>>> write_rle("3,1,1,1,1,1,1,8,3,2,1,4,3,2,1,2,2,2,1,1,2,1,1,2,1")  # E=140
+n: 48, energy: 140, merit: 8.228571428571428
+
 >>> def write_hex(ll: int, s: str):
 ...     bs = BitStrings(ll)
 ...     xx = bs.create()
@@ -214,6 +241,12 @@ n: 449, energy: 15456, merit: 6.521771480331263
 ...            "1111111011001100011100000000011000011111111"
 ...            "1100110001100001") # merit: 7.2462, energy: 6335
 n: 303, energy: 6335, merit: 7.2461720599842145
+
+Let's check one solution from
+
+>>> write_rle("1,1,1,1,1,1,1,9,1,3,4,2,2,2,2,4,3,1,1,2,3,3,1,2,2,1,3,4,1,1,2,"
+...           "1,2,1,1,2,1,1,2")  # energy=366, merit=8.1
+n: 77, energy: 366, merit: 8.099726775956285
 """
 from math import isfinite
 from typing import Callable, Final, Iterator, cast
@@ -2209,6 +2242,62 @@ _LBS: Final[dict[int, int]] = {
 
 #: the internal set of related work solutions
 __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
+    ("M1996ESFLABS",
+     ("Stephan Mertens. Exhaustive search for low-autocorrelation binary "
+      "sequences. Journal of Physics A: Mathematical and General. "
+      "29(18):L473. September 1996. doi:10.1088/0305-4470/29/18/00.")): {
+        3: 1, 4: 2, 5: 2, 6: 7, 7: 3, 8: 8, 9: 12, 10: 13, 11: 5, 12: 10,
+        13: 6, 14: 19, 15: 15, 16: 24, 17: 32, 18: 25, 19: 29, 20: 26,
+        21: 26, 22: 39, 23: 47, 24: 36, 25: 36, 26: 45, 27: 37, 28: 50,
+        29: 62, 30: 59, 31: 67, 32: 64, 33: 64, 34: 65, 35: 73, 36: 82,
+        37: 86, 38: 87, 39: 99, 40: 108, 41: 108, 42: 101, 43: 109, 44: 122,
+        45: 118, 46: 131, 47: 135, 48: 140,
+    },
+    ("MZB1998ESFLABS",
+     ("Burkhard Militzer, Michele Zamparelli, and Dieter Beule. Evolutionary "
+      "Search for Low Autocorrelated Binary Sequences. IEEE Transactions on "
+      "Evolutionary Computation 2(1):34-39, April 1998. "
+      "doi:10.1109/4235.728212.")): {
+        81: merit_to_energy(81, 8.2), 101: merit_to_energy(101, 8.82),
+        103: merit_to_energy(103, 9.56), 105: merit_to_energy(105, 8.78),
+        107: merit_to_energy(107, 8.46), 109: merit_to_energy(109, 8.97),
+        111: merit_to_energy(111, 8.97), 113: merit_to_energy(113, 8.49),
+        115: merit_to_energy(115, 8.88), 117: merit_to_energy(117, 8.71),
+        119: merit_to_energy(119, 8.02), 121: merit_to_energy(121, 8.67),
+        141: merit_to_energy(141, 8.83), 161: merit_to_energy(161, 8.39),
+        181: merit_to_energy(181, 7.75), 201: merit_to_energy(201, 7.46),
+    },
+    ("GCF2007AMAFTLABSP",
+     ("José E. Gallardo, Carlos Cotta, and Antonio J. Fernández. A Memetic "
+      "Algorithm for the Low Autocorrelation Binary Sequence Problem. 9th "
+      "Annual Conference on Genetic and Evolutionary Computation "
+      "(GECCO'2007), July 7-11, 2007, London, England, UK, pages 1226-1233. "
+      "doi:10.1145/1276958.1277195.")): {
+        39: 99, 40: 108, 41: 108, 42: 101, 43: 109, 44: 122, 45: 118, 46: 131,
+        47: 135, 48: 140, 49: 136, 50: 153, 51: 153, 52: 166, 53: 170,
+        54: 175, 55: 171, 56: 192, 57: 188, 58: 197, 59: 205, 60: 218,
+    },
+    ("HYH2008ESLSFTLABSP",
+     ("Steven Halim, Roland H. C. Yap, and Felix Halim. Engineering "
+      "Stochastic Local Search for the Low Autocorrelation Binary "
+      "Sequence Problem. 14th International Conference on Principles and "
+      "Practice of Constraint Programming (CP'2008), September 14-18, 2008, "
+      "Sydney, Australia, pages 640-645,  Lecture Notes in Computer Science "
+      "(LNPSE), volume 5202. Heidelberg/Berlin: Springer. ISBN: "
+      "978-3-540-85957-4. doi:10.1007/978-3-540-85958-1_57")): {
+        61: 226, 62: 235, 63: 207, 64: 208, 65: 240, 66: 265, 67: 241,
+        68: 250, 69: 274, 70: 295, 71: 275, 72: 300, 73: 308, 74: 349,
+        75: 341, 76: 338, 77: 366,
+    },
+    ("P2013IBABFLABS",
+     ("S. D. Prestwich. Improved Branch-and-Bound for Low Autocorrelation "
+      "Binary Sequences. arXiv:1305.6187v2 [cs.AI] 23 Jul 2013. "
+      "https://arxiv.org/pdf/1305.6187.")): {
+        75: merit_to_energy(75, 8.25), 77: merit_to_energy(77, 8.28),
+        79: merit_to_energy(79, 7.67), 81: merit_to_energy(81, 8.2),
+        83: merit_to_energy(83, 9.14), 85: merit_to_energy(85, 8.17),
+        87: merit_to_energy(87, 8.39), 89: merit_to_energy(89, 8.18),
+    },
     ("MD2015NESFLLABS",
      ("Wai Ho Mow and Ke-Lin Du. New Evolutionary Search for Long Low "
       "Autocorrelation Binary Sequences. IEEE Transactions on Aerospace and "
@@ -2349,10 +2438,9 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         95: 479, 97: 536, 99: 577, 101: 578, 103: 555, 105: 620, 107: 677,
         109: 662, 111: 687, 113: 752, 115: 745, 117: 786, 119: 835,
     },
-    ("BBB2016AGAFSASOTLP-2016-labs-skew.txt",
-     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
-      "Borko Bošković, Franc Brglez, and Janez Brest. A GitHub Archive for "
-      "Solvers and Solutions of the LABS Problem. "
+    ("BBB2016AGAFSASOTLP",
+     ("Borko Bošković, Franc Brglez, and Janez Brest. A GitHub Archive for "
+      "Solvers and Solutions of the LABS Problem. File 2016-labs-skew.txt. "
       "https://github.com/borkob/git_labs. January 2016.")): {
         5: 2, 7: 3, 9: 12, 11: 5, 13: 6, 15: 15, 17: 32, 21: 26, 27: 37,
         29: 62, 39: 99, 41: 108, 43: 109, 45: 118, 47: 135, 49: 136, 51: 153,
@@ -2404,10 +2492,9 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         203: 2317, 205: 2430, 207: 2351, 209: 2528, 211: 2457, 213: 2378,
         215: 2595, 217: 2684, 219: 2733, 221: 2734, 223: 2751, 225: 2808,
     },
-    ("BBB2016AGAFSASOTLP-2018-labs-skew.txt",
-     ("Borko Bošković, Franc Brglez, and Janez Brest. Low-Autocorrelation "
-      "Borko Bošković, Franc Brglez, and Janez Brest. A GitHub Archive for "
-      "Solvers and Solutions of the LABS Problem. "
+    ("BBB2016AGAFSASOTLP",
+     ("Borko Bošković, Franc Brglez, and Janez Brest. A GitHub Archive for "
+      "Solvers and Solutions of the LABS Problem. File 2018-labs-skew.txt. "
       "https://github.com/borkob/git_labs. January 2016.")): {
         5: 2, 7: 3, 9: 12, 11: 5, 13: 6, 15: 15, 17: 32, 21: 26, 27: 37,
         29: 62, 39: 99, 41: 108, 43: 109, 45: 118, 47: 135, 49: 136, 51: 153,
@@ -2429,6 +2516,109 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         265: 4948, 267: 5037, 269: 4950, 271: 4871, 281: 5260, 283: 5333,
         285: 5790, 301: 6054, 303: 6335, 341: 8378, 381: 10238, 401: 11888,
         449: 15456,
+    },
+    ("DBN2020EGOLABS",
+     ("Miroslav Dimitrov, Tsonka Baitcheva, and Nikolay Nikolov. Efficient "
+      "Generation of Low Autocorrelation Binary Sequences. IEEE Signal "
+      "Processing Letters, 27:341-345, 2020. doi:10.1109/LSP.2020.2972127")): {
+        106: merit_to_energy(106, 5.03), 107: merit_to_energy(107, 4.497),
+        108: merit_to_energy(108, 5.533), 109: merit_to_energy(109, 5.636),
+        110: merit_to_energy(110, 5.984), 111: merit_to_energy(111, 5.138),
+        112: merit_to_energy(112, 4.931), 113: merit_to_energy(113, 4.409),
+        114: merit_to_energy(114, 5.375), 115: merit_to_energy(115, 3.952),
+        116: merit_to_energy(116, 3.925), 117: merit_to_energy(117, 4.108),
+        118: merit_to_energy(118, 3.976), 119: merit_to_energy(119, 4.331),
+        120: merit_to_energy(120, 4.639), 121: merit_to_energy(121, 4.141),
+        122: merit_to_energy(122, 3.999), 123: merit_to_energy(123, 3.736),
+        124: merit_to_energy(124, 4.884), 125: merit_to_energy(125, 4.134),
+        126: merit_to_energy(126, 4.544), 127: merit_to_energy(127, 4.815),
+        128: merit_to_energy(128, 4.911), 129: merit_to_energy(129, 3.955),
+        130: merit_to_energy(130, 4.692), 131: merit_to_energy(131, 4.403),
+        132: merit_to_energy(132, 4.431), 133: merit_to_energy(133, 4.323),
+        134: merit_to_energy(134, 3.742), 135: merit_to_energy(135, 3.876),
+        136: merit_to_energy(136, 3.925), 137: merit_to_energy(137, 4.066),
+        138: merit_to_energy(138, 3.771), 139: merit_to_energy(139, 3.808),
+        140: merit_to_energy(140, 4.026), 141: merit_to_energy(141, 3.923),
+        142: merit_to_energy(142, 3.724), 143: merit_to_energy(143, 3.94),
+        144: merit_to_energy(144, 3.886), 145: merit_to_energy(145, 4.477),
+        146: merit_to_energy(146, 3.975), 147: merit_to_energy(147, 4.122),
+        148: merit_to_energy(148, 5.219), 149: merit_to_energy(149, 3.698),
+        150: merit_to_energy(150, 4.329), 151: merit_to_energy(151, 3.999),
+        152: merit_to_energy(152, 4.068), 153: merit_to_energy(153, 3.917),
+        154: merit_to_energy(154, 3.864), 155: merit_to_energy(155, 3.987),
+        156: merit_to_energy(156, 4.713), 157: merit_to_energy(157, 4.241),
+        158: merit_to_energy(158, 4.479), 159: merit_to_energy(159, 4.366),
+        160: merit_to_energy(160, 3.765), 161: merit_to_energy(161, 4.096),
+        162: merit_to_energy(162, 4.408), 163: merit_to_energy(163, 4.104),
+        164: merit_to_energy(164, 4.189), 165: merit_to_energy(165, 4.394),
+        166: merit_to_energy(166, 4.212), 167: merit_to_energy(167, 4.656),
+        168: merit_to_energy(168, 4.324), 169: merit_to_energy(169, 3.636),
+        170: merit_to_energy(170, 4.234), 171: merit_to_energy(171, 4.171),
+        172: merit_to_energy(172, 3.928), 173: merit_to_energy(173, 4.025),
+        174: merit_to_energy(174, 3.797), 175: merit_to_energy(175, 3.923),
+        176: merit_to_energy(176, 3.792), 177: merit_to_energy(177, 4.366),
+        178: merit_to_energy(178, 3.905), 179: merit_to_energy(179, 3.953),
+        180: merit_to_energy(180, 4.147), 181: merit_to_energy(181, 4.143),
+        182: merit_to_energy(182, 4.434), 183: merit_to_energy(183, 3.946),
+        184: merit_to_energy(184, 4.121), 185: merit_to_energy(185, 4.055),
+        186: merit_to_energy(186, 4.052), 187: merit_to_energy(187, 4.899),
+        188: merit_to_energy(188, 3.936), 189: merit_to_energy(189, 4.663),
+        190: merit_to_energy(190, 4.246), 191: merit_to_energy(191, 4.192),
+        192: merit_to_energy(192, 5.236), 193: merit_to_energy(193, 4.272),
+        194: merit_to_energy(194, 4.2), 195: merit_to_energy(195, 3.98),
+        196: merit_to_energy(196, 4.436), 197: merit_to_energy(197, 3.716),
+        198: merit_to_energy(198, 3.959), 199: merit_to_energy(199, 4.012),
+        200: merit_to_energy(200, 4.016), 201: merit_to_energy(201, 4.558),
+        202: merit_to_energy(202, 3.896), 203: merit_to_energy(203, 3.765),
+        204: merit_to_energy(204, 4.13), 205: merit_to_energy(205, 4.511),
+        206: merit_to_energy(206, 4.546), 207: merit_to_energy(207, 4.124),
+        208: merit_to_energy(208, 3.913), 209: merit_to_energy(209, 4.024),
+        210: merit_to_energy(210, 4.416), 211: merit_to_energy(211, 3.853),
+        212: merit_to_energy(212, 4.197), 213: merit_to_energy(213, 4.314),
+        214: merit_to_energy(214, 4.004), 215: merit_to_energy(215, 4.294),
+        216: merit_to_energy(216, 4.16), 217: merit_to_energy(217, 3.999),
+        218: merit_to_energy(218, 4.162), 219: merit_to_energy(219, 4.174),
+        220: merit_to_energy(220, 4.229), 221: merit_to_energy(221, 4.093),
+        222: merit_to_energy(222, 4.046), 223: merit_to_energy(223, 3.743),
+        224: merit_to_energy(224, 4.353), 225: merit_to_energy(225, 4.609),
+        226: merit_to_energy(226, 4.244), 227: merit_to_energy(227, 4.251),
+        228: merit_to_energy(228, 3.988), 229: merit_to_energy(229, 3.719),
+        230: merit_to_energy(230, 3.854), 231: merit_to_energy(231, 3.861),
+        232: merit_to_energy(232, 3.748), 233: merit_to_energy(233, 3.898),
+        234: merit_to_energy(234, 4.009), 235: merit_to_energy(235, 3.830),
+        236: merit_to_energy(236, 3.901), 237: merit_to_energy(237, 4.368),
+        238: merit_to_energy(238, 3.985), 239: merit_to_energy(239, 3.560),
+        240: merit_to_energy(240, 4.179), 241: merit_to_energy(241, 4.170),
+        242: merit_to_energy(242, 4.425), 243: merit_to_energy(243, 4.251),
+        244: merit_to_energy(244, 4.220), 245: merit_to_energy(245, 3.877),
+        246: merit_to_energy(246, 3.756), 247: merit_to_energy(247, 3.966),
+        248: merit_to_energy(248, 4.243), 249: merit_to_energy(249, 4.444),
+        250: merit_to_energy(250, 4.658), 251: merit_to_energy(251, 4.101),
+        252: merit_to_energy(252, 4.033), 253: merit_to_energy(253, 3.966),
+        254: merit_to_energy(254, 4.468), 255: merit_to_energy(255, 3.993),
+        256: merit_to_energy(256, 4.264), 257: merit_to_energy(257, 4.116),
+        258: merit_to_energy(258, 3.962), 259: merit_to_energy(259, 4.534),
+        260: merit_to_energy(260, 4.370), 261: merit_to_energy(261, 3.920),
+        262: merit_to_energy(262, 4.198), 263: merit_to_energy(263, 4.430),
+        264: merit_to_energy(264, 4.264), 265: merit_to_energy(265, 3.928),
+        266: merit_to_energy(266, 4.073), 267: merit_to_energy(267, 4.327),
+        268: merit_to_energy(268, 4.549), 269: merit_to_energy(269, 4.388),
+        270: merit_to_energy(270, 4.237), 271: merit_to_energy(271, 3.838),
+        272: merit_to_energy(272, 4.393), 273: merit_to_energy(273, 4.141),
+        274: merit_to_energy(274, 3.609), 275: merit_to_energy(275, 3.98),
+        276: merit_to_energy(276, 3.563), 277: merit_to_energy(277, 3.912),
+        278: merit_to_energy(278, 4.077), 279: merit_to_energy(279, 3.983),
+        280: merit_to_energy(280, 4.465), 281: merit_to_energy(281, 3.823),
+        282: merit_to_energy(282, 3.949), 283: merit_to_energy(283, 3.844),
+        284: merit_to_energy(284, 3.961), 285: merit_to_energy(285, 4.153),
+        286: merit_to_energy(286, 4.409), 287: merit_to_energy(287, 4.22),
+        288: merit_to_energy(288, 4.002), 289: merit_to_energy(289, 3.803),
+        290: merit_to_energy(290, 3.673), 291: merit_to_energy(291, 4.513),
+        292: merit_to_energy(292, 4.072), 293: merit_to_energy(293, 3.94),
+        294: merit_to_energy(294, 3.87), 295: merit_to_energy(295, 4.341),
+        296: merit_to_energy(296, 4.238), 297: merit_to_energy(297, 3.976),
+        298: merit_to_energy(298, 4.131), 299: merit_to_energy(299, 4.139),
+        300: merit_to_energy(300, 4.365),
     },
     ("D2021OTSSBSATMFP",
      ("Miroslav Dimitrov. On the Skew-Symmetric Binary Sequences and the "
@@ -2478,6 +2668,52 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
         223: 2727, 225: 2768, 229: 2810, 231: 2963, 235: 2965, 237: 3118,
         239: 3055, 241: 3216, 243: 3233, 245: 3226, 247: 3259,
     },
+    ("PMBB2025DSOFBSWHMF",
+     ("Blaž Pšeničnik, Rene Mlinarič, Janez Brest, and Borko Bošković. "
+      "Dual-Step Optimization for Binary Sequences with High Merit Factors. "
+      "Digital Signal Processing 165(1053). October 2025. "
+      "doi:10.1016/j.dsp.2025.105316.")): {
+        450: merit_to_energy(450, 7.023), 451: merit_to_energy(451, 7.2307),
+        452: merit_to_energy(452, 7.3459), 453: merit_to_energy(453, 7.6926),
+        454: merit_to_energy(454, 7.7377), 455: merit_to_energy(455, 7.7835),
+        456: merit_to_energy(456, 7.629), 457: merit_to_energy(457, 7.5082),
+        458: merit_to_energy(458, 7.4295), 459: merit_to_energy(459, 7.4199),
+        460: merit_to_energy(460, 7.5302), 461: merit_to_energy(461, 7.6435),
+        462: merit_to_energy(462, 7.5098), 463: merit_to_energy(463, 7.3885),
+        464: merit_to_energy(464, 7.2617), 465: merit_to_energy(465, 7.3807),
+        466: merit_to_energy(466, 7.412), 467: merit_to_energy(467, 7.4114),
+        468: merit_to_energy(468, 7.508), 469: merit_to_energy(469, 7.5195),
+        470: merit_to_energy(470, 7.4836), 471: merit_to_energy(471, 7.5543),
+        472: merit_to_energy(472, 7.3828), 473: merit_to_energy(473, 7.4916),
+        474: merit_to_energy(474, 7.4273), 475: merit_to_energy(475, 7.3748),
+        476: merit_to_energy(476, 7.3004), 477: merit_to_energy(477, 7.2973),
+        478: merit_to_energy(478, 7.2956), 479: merit_to_energy(479, 7.4152),
+        480: merit_to_energy(480, 7.3922), 481: merit_to_energy(481, 7.3701),
+        482: merit_to_energy(482, 7.4154), 483: merit_to_energy(483, 7.4691),
+        484: merit_to_energy(484, 7.3842), 485: merit_to_energy(485, 7.3024),
+        486: merit_to_energy(486, 7.3266), 487: merit_to_energy(487, 7.4455),
+        488: merit_to_energy(488, 7.4271), 489: merit_to_energy(489, 7.569),
+        490: merit_to_energy(490, 7.4229), 491: merit_to_energy(491, 7.5239),
+        492: merit_to_energy(492, 7.6496), 493: merit_to_energy(493, 7.7791),
+        494: merit_to_energy(494, 7.6247), 495: merit_to_energy(495, 7.478),
+        496: merit_to_energy(496, 7.2941), 497: merit_to_energy(497, 7.3236),
+        498: merit_to_energy(498, 7.3007), 499: merit_to_energy(499, 7.356),
+        500: merit_to_energy(500, 7.3417), 501: merit_to_energy(501, 7.4059),
+        502: merit_to_energy(502, 7.3949), 503: merit_to_energy(503, 7.4471),
+        504: merit_to_energy(504, 7.3688), 505: merit_to_energy(505, 7.5025),
+        506: merit_to_energy(506, 7.3995), 507: merit_to_energy(507, 7.3371),
+        508: merit_to_energy(508, 7.2908), 509: merit_to_energy(509, 7.4629),
+        510: merit_to_energy(510, 7.3115), 511: merit_to_energy(511, 7.2992),
+        512: merit_to_energy(512, 7.2834), 513: merit_to_energy(513, 7.2046),
+        514: merit_to_energy(514, 7.2386), 515: merit_to_energy(515, 7.2605),
+        516: merit_to_energy(516, 7.186), 517: merit_to_energy(517, 7.3198),
+        518: merit_to_energy(518, 7.2072), 519: merit_to_energy(519, 7.2867),
+        520: merit_to_energy(520, 7.2377), 521: merit_to_energy(521, 7.1901),
+        522: merit_to_energy(522, 7.2358), 523: merit_to_energy(523, 7.2297),
+        524: merit_to_energy(524, 7.1393), 525: merit_to_energy(525, 7.2786),
+        526: merit_to_energy(526, 7.2341), 527: merit_to_energy(527, 7.1791),
+        573: merit_to_energy(573, 7.021),
+    },
 }
 
 
@@ -2499,14 +2735,13 @@ _BKS: Final[dict[int, tuple[int, tuple[str, str]]]] = __make_bkses()
 del __make_bkses
 
 
-def get_bks(n: int) -> tuple[int, tuple[str, str] | None]:
+def get_bks(n: int) -> tuple[int, tuple[str, str]] | None:
     """
     Get the best currently known solution for the given dimension `n`.
 
     :param n: the dimension
     :returns: a tuple of the energy value and a tuple of a citation. If
-        no solution is found in literature, the lower bound is returned and
-        `None` is returned as literature tuple
+        no solution is found in literature, then `None` is returned
 
     >>> try:
     ...     get_bks(-1)
@@ -2520,15 +2755,34 @@ def get_bks(n: int) -> tuple[int, tuple[str, str] | None]:
     >>> get_bks(401)[0]
     11888
     >>> get_bks(401)[1][0]
-    'BBB2016AGAFSASOTLP-2016-labs-skew.txt'
+    'BBB2016AGAFSASOTLP'
 
-    >>> get_bks(10000)
-    (5000, None)
+    >>> print(get_bks(10000))
+    None
     """
     n = check_int_range(n, "n", 3)
     if n in _BKS:
         return _BKS[n]
-    return n // 2, None
+    return None
+
+
+def get_bks_references() -> tuple[tuple[str, str], ...]:
+    """
+    Get all the BKS references.
+
+    This function returns the sources from which :func:`get_bks` draws
+    its data.
+
+    :returns: a tuple with the references
+
+    >>> sorted(set(t[0] for t in get_bks_references()))
+    ['BB2018AHAFALABSPWOLAHMF', 'BB2022CSOLSSBSWHMF', 'BBB2016AGAFSASOTLP', \
+'BBB2017LABSOIMFARPTAT', 'BHB2024PSAWALABSP', 'D2021OTSSBSATMFP', \
+'DBN2020EGOLABS', 'GCF2007AMAFTLABSP', 'HYH2008ESLSFTLABSP', 'M1996ESFLABS', \
+'MD2015NESFLLABS', 'MZB1998ESFLABS', 'P2013IBABFLABS', 'PM2016LABS', \
+'PMBB2025DSOFBSWHMF']
+    """
+    return tuple(__RELATED_WORKS.keys())
 
 
 def is_labs_objective_value_optimal(n: int, f: int) -> bool | None:
@@ -2697,7 +2951,7 @@ class LABS(BitStringProblem):
         :returns: a sequence of default :class:`LABS` instances
 
         >>> len(list(LABS.default_instances()))
-        81
+        84
 
         >>> [x() for x in LABS.default_instances()]
         [labs_3, labs_4, labs_5, labs_6, labs_7, labs_8, labs_9, labs_10, \
@@ -2705,12 +2959,13 @@ labs_11, labs_12, labs_13, labs_14, labs_15, labs_16, labs_17, labs_18, \
 labs_19, labs_20, labs_21, labs_22, labs_23, labs_24, labs_25, labs_26, \
 labs_27, labs_28, labs_29, labs_30, labs_31, labs_32, labs_33, labs_36, \
 labs_40, labs_41, labs_42, labs_44, labs_48, labs_49, labs_50, labs_55, \
-labs_59, labs_60, labs_64, labs_66, labs_77, labs_79, labs_81, labs_85, \
-labs_99, labs_100, labs_107, labs_111, labs_121, labs_125, labs_128, \
-labs_144, labs_149, labs_169, labs_170, labs_192, labs_196, labs_199, \
-labs_200, labs_222, labs_225, labs_243, labs_256, labs_269, labs_289, \
-labs_300, labs_341, labs_400, labs_500, labs_512, labs_600, labs_625, \
-labs_700, labs_800, labs_900, labs_1000, labs_1024]
+labs_59, labs_60, labs_64, labs_66, labs_70, labs_77, labs_79, labs_81, \
+labs_85, labs_99, labs_100, labs_107, labs_111, labs_121, labs_125, \
+labs_128, labs_144, labs_149, labs_169, labs_170, labs_192, labs_196, \
+labs_199, labs_200, labs_222, labs_225, labs_243, labs_256, labs_269, \
+labs_289, labs_300, labs_341, labs_400, labs_479, labs_484, labs_500, \
+labs_512, labs_600, labs_625, labs_700, labs_800, labs_900, labs_1000, \
+labs_1024]
         """
         check_int_range(scale_max, "scale_max", check_int_range(
             scale_min, "scale_min", 1, 1_000_000_000) + 1, 1_000_000_000)
