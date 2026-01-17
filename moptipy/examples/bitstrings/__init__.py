@@ -95,7 +95,7 @@ def default_instances(  # noqa: RUF067
         benchmark instances
 
     >>> len(list(default_instances()))
-    1055
+    1059
 
     >>> from moptipy.examples.bitstrings.binint import BinInt
     >>> from moptipy.examples.bitstrings.bitstring_problem import \
