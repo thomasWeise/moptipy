@@ -1,0 +1,18 @@
+moptipy.algorithms.so.vector.surrogate package
+==============================================
+
+.. automodule:: moptipy.algorithms.so.vector.surrogate
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.algorithms.so.vector.surrogate.rbf\_interpolation module
+----------------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.vector.surrogate.rbf_interpolation
+   :members:
+   :show-inheritance:
+   :undoc-members:

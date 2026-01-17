@@ -1,0 +1,16 @@
+moptipy.mo package
+==================
+
+.. automodule:: moptipy.mo
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.mo.archive
+   moptipy.mo.problem
