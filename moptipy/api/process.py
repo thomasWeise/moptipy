@@ -54,6 +54,7 @@ about the `moptipy` API.
 """
 from contextlib import AbstractContextManager
 from math import inf, isnan
+from typing import Self
 
 from numpy.random import Generator
 from pycommons.types import check_int_range, type_error
@@ -472,7 +473,7 @@ class Process(Space, Objective, AbstractContextManager):
         """
         raise ValueError("Never call the initialize() method of a Process!")
 
-    def __enter__(self) -> "Process":
+    def __enter__(self) -> Self:
         """
         Begin a `with` statement.
 

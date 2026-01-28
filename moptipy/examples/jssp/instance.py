@@ -238,9 +238,10 @@ class Instance(Component, np.ndarray):
     #: the upper bound of the makespan of this JSSP instance
     makespan_upper_bound: int
 
-    def __new__(cls, name: str, machines: int, jobs: int,
-                matrix: np.ndarray,
-                makespan_lower_bound: int | None = None) -> "Instance":
+    def __new__(cls, name: str, machines: int, jobs: int,  # noqa: PYI034
+                matrix: np.ndarray,  # noqa: PYI034
+                makespan_lower_bound: int | None = None) -> \
+            "Instance":  # noqa: PYI034
         """
         Create an instance of the Job Shop Scheduling Problem.
 

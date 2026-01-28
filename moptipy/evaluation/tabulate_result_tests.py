@@ -406,7 +406,7 @@ def tabulate_result_tests(
                     for cell in hl:
                         row.cell(cell)
         with table.section() as section:
-            section.cols(cols)
+            section.cols(cols)  # type: ignore
         if summary_row is not None:
             with table.section() as section, section.row() as row:
                 for s in summary_row:

@@ -10,7 +10,7 @@ It supports having multiple objective functions.
 It also provides a single core objective value, which is the scalarized
 result of several objective values.
 """
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Self
 
 import numpy as np
 
@@ -115,7 +115,7 @@ class MOProcess(MOProblem, Process):
         """
         return "mo_process"
 
-    def __enter__(self) -> "MOProcess":
+    def __enter__(self) -> Self:
         """
         Begin a `with` statement.
 

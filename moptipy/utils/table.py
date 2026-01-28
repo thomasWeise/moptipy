@@ -2,7 +2,7 @@
 
 from contextlib import AbstractContextManager
 from io import TextIOBase
-from typing import Callable, Final, Iterable
+from typing import Callable, Final, Iterable, Self
 
 from pycommons.types import check_int_range, type_error
 
@@ -356,7 +356,7 @@ class Table(AbstractContextManager):
         """
         return Section(self)
 
-    def __enter__(self) -> "Table":
+    def __enter__(self) -> Self:
         """
         Enter the table in a `with` statement.
 
@@ -410,7 +410,7 @@ class Rows(AbstractContextManager):
         self._mode: Final[int] = check_int_range(
             mode, "mode", MODE_NORMAL, MODE_SECTION_HEADER)
 
-    def __enter__(self):  # noqa
+    def __enter__(self) -> Self:  # noqa
         """
         Enter the row section in a `with` statement.
 
@@ -531,7 +531,7 @@ class Row(AbstractContextManager):
         # noinspection PyProtectedMember
         self.__owner._cell(text)
 
-    def __enter__(self) -> "Row":
+    def __enter__(self) -> Self:
         """
         Enter the row in a `with` statement.
 

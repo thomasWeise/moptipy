@@ -32,7 +32,7 @@ class Gantt(np.ndarray):
     #: the JSSP instance for which the Gantt chart is created
     instance: Instance
 
-    def __new__(cls, space) -> "Gantt":
+    def __new__(cls, space) -> "Gantt":  # noqa: PYI034
         """
         Create the Gantt chart.
 
