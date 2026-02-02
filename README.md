@@ -72,13 +72,13 @@ What `moptipy` *also* offers is an [experiment execution facility](https://thoma
 The `moptipy` API supports both single-objective and multi-objective optimization.
 A set of "[How-Tos](#3-how-tos)" is given in [Section 3](#3-how-tos) and a longer [list of examples](#7-examples) is given in [Section 7](#7-examples).
 You can also take a look at our [`moptipy` flyer](https://thomasweise.github.io/moptipy/_static/moptipy_flyer.pdf).
-Examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps/) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps/).
+Examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps).
 
 
 ## 2. Installation
 
-In order to use this package and to, e.g., run the example codes, you need to first install it using [`pip`](https://pypi.org/project/pip/) or some other tool that can install packages from [PyPi](https://pypi.org).
-You can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy/) using [`pip`](https://pypi.org/project/pip/) by doing
+In order to use this package and to, e.g., run the example codes, you need to first install it using [`pip`](https://pypi.org/project/pip) or some other tool that can install packages from [PyPi](https://pypi.org).
+You can install the newest version of this library from [PyPi](https://pypi.org/project/moptipy) using [`pip`](https://pypi.org/project/pip) by doing
 
 ```shell
 pip install moptipy
@@ -117,7 +117,7 @@ In [Section 7 on examples](#7-examples), we list all the examples that ship with
 The most basic task that we can do in the domain of optimization is to apply one [algorithm](#41-implemented-algorithms) to one instance of an [optimization problem](#43-implemented-problems).
 In our framework, we refer to this as an "execution."
 You can prepare an execution using the class [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) in the module [moptipy.api.execution](https://thomasweise.github.io/moptipy/moptipy.api.html#module-moptipy.api.execution).
-This class follows the [builder design pattern](https://python-patterns.guide/gang-of-four/builder/).
+This class follows the [builder design pattern](https://python-patterns.guide/gang-of-four/builder).
 A builder is basically an object that allows you to step-by-step set the parameters of another, more complicated object that should be created.
 Once you have set all parameters, you can create the object.
 In our case, the class [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) allows you to compose all the elements necessary for the algorithm run and then it performs it and provides you the end results of that execution.
@@ -159,7 +159,7 @@ This method returns an instance of [`Process`](https://thomasweise.github.io/mop
 From the algorithm perspective, this instance provides all the information and tools that is needed to create, copy, and evaluate solutions, as well as the termination criterion that tells it when to stop.
 For us, the algorithm user, it provides the information about the end result, the consumed FEs, and the end result quality.
 In the code below, we illustrate how to extract these information.
-Notice that you *must* always use the instances of `Process` in a [`with` block](https://peps.python.org/pep-0343/):
+Notice that you *must* always use the instances of `Process` in a [`with` block](https://peps.python.org/pep-0343):
 Once this block is left, the log file will be written.
 If you do not use a `with` block, no log file will be generated.
 
@@ -754,7 +754,7 @@ Such spaces are defined by box-constraints over the *n*-dimensional real numbers
 - The quasi-Newton method by Broyden, Fletcher, Goldfarb, and Shanno ([BFGS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html).
 - The Bound Optimization BY Quadratic Approximation algorithm ([BOBYQA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo)) from the library "Powell's Derivative-Free Optimization solvers" ([pdfo](https://www.pdfo.net)).
 - The Conjugate Gradient ([CG](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.CG)) algorithm, wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-cg.html).
-- The Covariance Matrix Adaptation Evolution Strategies [CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES), [Separable CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.SepCMAES), and [BIPOP-CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES) from the library [cmaes](https://pypi.org/project/cmaes/).
+- The Covariance Matrix Adaptation Evolution Strategies [CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES), [Separable CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.SepCMAES), and [BIPOP-CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES) from the library [cmaes](https://pypi.org/project/cmaes).
 - Differential Evolution ([DE](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html).
 - The Downhill Simplex method based on the [Nelder-Mead](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.NelderMead), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html).
 - [Powell's Algorithm](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.Powell), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-powell.html).
@@ -825,7 +825,7 @@ In other words, they try to minimize multiple [objective functions](https://thom
 Within this package, we implement a subset of basic problems that are useful for testing different aspects of the algorithms and spaces we provide.
 `moptipy` itself is not intended to be a collection of optimization problems, but more a collection of algorithms, spaces, and operators.
 We do need a set of examples to [unit test](#81-unit-tests-and-static-analysis) these components, so a set of [example problems](https://thomasweise.github.io/moptipy/moptipy.examples.html#module-moptipy.examples) is indeed provided.
-More examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps/) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps/).
+More examples and practical applications of `moptipy` can be found in the [`moptipyapps`](https://thomasweise.github.io/moptipyapps) package, which is available on [GitHub](https://github.com/thomasWeise/moptipyapps) and in [`PyPi`](https://pypi.org/project/moptipyapps).
 The `moptipyapps` package is where we will include future examples and benchmark cases, such as for the Quadratic Assignment Problem ([QAP](https://thomasweise.github.io/moptipyapps/#the-quadratic-assignment-problem-qap)), the Traveling Salesperson Problem ([TSP](https://thomasweise.github.io/moptipyapps/#the-traveling-salesperson-problem-tsp)), the Traveling Tournament Problem ([TTP](https://thomasweise.github.io/moptipyapps/#the-traveling-tournament-problem-ttp)), Two-Dimensional [Bin Packing](https://thomasweise.github.io/moptipyapps/#two-dimensional-bin-packing-problem), or [Dynamic Control](https://thomasweise.github.io/moptipyapps/#dynamic-controller-synthesis).
 
 - [Bit Strings](https://thomasweise.github.io/moptipy/moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings) of a fixed length `n`:
@@ -939,7 +939,7 @@ Notice that this section can be long if the algorithm makes many improvements.
 You can also choose if you want to [log all algorithm steps](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes) or [only the improving moves](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements), the latter being the default behavior.
 If you really log all algorithm steps, then your log files will contain one line for every objective function evaluation (FE) you perform.
 It can thus become quite large.
-In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa/) book, for example, we can do several million FEs within the two minutes of runtime granted to each run.
+In our Job Shop Scheduling example in the [Optimization Algorithms](https://thomasweise.github.io/oa) book, for example, we can do several million FEs within the two minutes of runtime granted to each run.
 This then would equate to several millions of lines in the `PROGRESS` section of each log file.
 So normally you would rather only log the improving moves, which would often be between a few ten to a few thousand of lines, which is usually acceptable.
 Notice that even if you do not choose to log the algorithm's progress at all, the [section `STATE`](#5122-the-section-state) with the objective value of the best solution encountered, the FE when it was found, and the consumed runtime, as well as the [`RESULT_*` sections](#5125-the-result-sections) with the best encountered candidate solution and point in the search space, and also the [`SETUP`](#5123-the-section-setup) and [`SYS_INFO`](#5124-the-section-sys_info) still will be included in the log files.
@@ -1741,9 +1741,9 @@ The format is otherwise similar to the End Results CSV format.
 
 #### 6.1.2 Export to IOHanalyzer
 
-We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data/).
+We also support converting our experimental results to the [IOHprofiler data format](https://iohprofiler.github.io/IOHanalyzer/data).
 This can be done by the function [moptipy_to_ioh_analyzer](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.ioh_analyzer), which accepts a source directory in the [`moptipy` structure](#511-file-names-and-folder-structure) and a path to a destination folder where the `IOHprofiler`-formatted data will be stored.
-You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer/).
+You can then analyze it with the [IOHanalyzer](https://iohprofiler.github.io/IOHanalyzer).
 If you have the [`moptipy`](https://thomasweise.github.io/moptipy) package installed, then you can call the module directly from the command line as:
 
 ```shell
@@ -1873,7 +1873,7 @@ This way, we will get a diagram similar to the one below:
 <img alt="Example for an ERT plot of RLS and Random Walk on OneMax with 12 bits." src="https://thomasweise.github.io/moptipy/_static/log_ert_over_f.png" style="width:70%;max-width:70%;min-width:70%" />
 </a>
 
-The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/).
+The (empirically estimated) Expected Running Time (ERT) is nicely explained in the report [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481).
 The ERT plots are implemented in the module [moptipy.evaluation.plot_ert](https://thomasweise.github.io/moptipy/moptipy.evaluation.html#module-moptipy.evaluation.plot_ert).
 
 
@@ -2125,7 +2125,7 @@ They can push you to properly format and document your code, which, too, improve
 They even can detect a set of well-known and frequently-occurring bugs.
 We use the [pycommons unified build process](https://thomasweise.github.io/pycommons/#unified-build-process-pycommons-dev-building) which also run a variety of such tools on our code base.
 
-On git pushes, GitHub also automatically runs [CodeQL](https://codeql.github.com/) to check for common vulnerabilities and coding errors.
+On git pushes, GitHub also automatically runs [CodeQL](https://codeql.github.com) to check for common vulnerabilities and coding errors.
 We also turned on GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/configuring-private-vulnerability-reporting-for-a-repository) and the Dependabot [vulnerability](https://docs.github.com/en/code-security/dependabot/dependabot-alerts/configuring-dependabot-alerts) and [security](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/configuring-dependabot-security-updates) alerts.
 
 Using all of these tools increases the build time.
@@ -2156,7 +2156,7 @@ This should allow to re-create algorithm setups and system configuration.
 Each run of the optimization algorithms on every problem instance is provided with a seeded [random number generator](https://numpy.org/doc/stable/reference/random/generator.html) via [`process.get_random()`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.process.Process.get_random).
 This must be the *only* source of randomness used in the algorithms.
 In other words, every algorithm must be deterministic and make the same decisions on the same problem instance with the same sequence of random numbers provided by this generator.
-The random seed using the generator as well as the [`numpy`](https://numpy.org/) classes of the generator and the `numpy` version are all stored in the [log files](#51-log-files).
+The random seed using the generator as well as the [`numpy`](https://numpy.org) classes of the generator and the `numpy` version are all stored in the [log files](#51-log-files).
 The random seed for a new run can be set via the [`Execution`](https://thomasweise.github.io/moptipy/moptipy.api.html#moptipy.api.execution.Execution) builder object.
 Therefore, if a given algorithm configuration can be re-created on a known instance, it can be started with the same random seed as a known run.
 Since the version information and classes of all involved libraries in the random number generation are stored as well, the same random number sequences can be reproduced.
@@ -2212,7 +2212,7 @@ If you use a shared root folder for experiments and launch the same experiment o
 ### 9.3. Other Python Libraries of Optimization Algorithms
 
 Here we provide a very incomplete list of other Python software packages that can be used for solving optimization problems (in alphabetical order).
-A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io) can be found [here](https://ktafakkori.github.io/blog/optimization-packages-in-python-list/).
+A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io) can be found [here](https://ktafakkori.github.io/blog/optimization-packages-in-python-list).
 
 - [`cmaes`](https://github.com/CyberAgent/cmaes) provides implementations of Covariance Matrix Adaptation Evolution Strategies for solving continuous optimization problems.
   It is maintained by Masashi Shibata and Masahiro Nomura and available at <https://pypi.org/project/cmaes/> and <https://github.com/CyberAgent/cmaes>.
@@ -2220,8 +2220,8 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
 - [`deap`](https://github.com/DEAP/deap) is a novel evolutionary computation framework for rapid prototyping and testing of ideas by Félix-Antoine Fortin, François-Michel De Rainville, Marc-André Gardner, Marc Parizeau, and Christian Gagné.
   It offers a rich set of evolutionary computation-based metaheuristics and a straightforward API.
   You can find it on GitHub at <https://github.com/DEAP/deap>.
-- [`inspyred`](https://pypi.org/project/inspyred) and [`ecspy`](https://pypi.org/project/ecspy/) are open source packages for nature-inspired optimization by Aaron Garrett.
-- [`nevergrad`](https://facebookresearch.github.io/nevergrad/) by Facebook Research offers gradient free optimization and implements a variety of numerical optimization methods and many benchmark problems.
+- [`inspyred`](https://pypi.org/project/inspyred) and [`ecspy`](https://pypi.org/project/ecspy) are open source packages for nature-inspired optimization by Aaron Garrett.
+- [`nevergrad`](https://facebookresearch.github.io/nevergrad) by Facebook Research offers gradient free optimization and implements a variety of numerical optimization methods and many benchmark problems.
 - The library "Powell's Derivative-Free Optimization solvers" ([`pdfo`](https://www.pdfo.net)) provides an implementation of the "Bound Optimization BY Quadratic Approximation" algorithm, or BOBYQA for short, for solving continuous optimization problems. 
   The library is dedicated to the late Professor M. J. D. Powell FRS (1936—2015), maintained by Tom M. Ragonneau and Zaikun Zhang, and available at <https://github.com/pdfo/pdfo> and <https://www.pdfo.net>.
   We wrap its `BOBYQA` implementation into our `moptipy` API in module [`algorithms.so.vector.pdfo`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo).
@@ -2237,7 +2237,7 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
    It is possible to [convert](#612-export-to-iohanalyzer) our `moptipy` [log data](#511-file-names-and-folder-structure) to the format understood by the IOHanalyzer, which allows you to use this software to analyze your optimization results as well.
    You can then upload the data to the online IOHanalyzer service and evaluate it. 
 2. A nice discussion of experimentation with (numerical) optimization methods is:
-   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481/). Research Report RR-7215, INRIA. 2010. inria-00462481
+   Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. [*Real-Parameter Black-Box Optimization Benchmarking 2010: Experimental Setup*](https://hal.inria.fr/inria-00462481). Research Report RR-7215, INRIA. 2010. inria-00462481
 
 
 ## 10. Publications on `moptipy` and Works using `moptipy`
@@ -2281,6 +2281,6 @@ If you have any concerns regarding security, please visit our [security policy](
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](https://thomasweise.github.io) (汤卫思教授) of the 
 School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd)) at
-[Hefei University](http://www.hfuu.edu.cn/english/) ([合肥大学](http://www.hfuu.edu.cn/)) in
+[Hefei University](http://www.hfuu.edu.cn/english) ([合肥大学](http://www.hfuu.edu.cn)) in
 Hefei, Anhui, China (中国安徽省合肥市) via
 email to [tweise@hfuu.edu.cn](mailto:tweise@hfuu.edu.cn) with CC to [tweise@ustc.edu.cn](mailto:tweise@ustc.edu.cn).
