@@ -2140,9 +2140,8 @@ Improving code quality can *never* come later.
 We *always* must maintain high coding and documentation standards from the very beginning.
 While `moptipy` may still be far from achieving these goals, at least we try to get there.
 
-Anyway, you can find our [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html) running all the tests, doing all the static analyses, creating the documentation, and creating and packaging the distribution files [here](https://thomasweise.github.io/moptipy/Makefile.html).
-Besides the [basic `moptipy` dependencies](https://thomasweise.github.io/moptipy/requirements-dev_txt.html), it requires [a set of additional dependencies](https://thomasweise.github.io/moptipy/requirements-dev_txt.html).
-These are all automatically installed during the build procedure.
+Anyway, you can find our [full `make.sh` build script](https://thomasweise.github.io/moptipy/make_sh.html) running all the tests, doing all the static analyses, creating the documentation, and creating and packaging the distribution files [here](https://thomasweise.github.io/moptipy/make_sh.html).
+As said, it basically uses the [pycommons unified build process](https://thomasweise.github.io/pycommons/#unified-build-process-pycommons-dev-building).
 The build only works under Linux.
 
 
@@ -2206,9 +2205,7 @@ If you use a shared root folder for experiments and launch the same experiment o
 
 ### 9.2. Links to other works of our team
 
-1. Our book on optimization algorithms, which is currently work in progress:
-   Thomas Weise. [*Optimization Algorithms*](https://thomasweise.github.io/oa). Institute of Applied Optimization (应用优化研究所, IAO) of the School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd/)) at [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥学院](http://www.hfuu.edu.cn/)) in  Hefei, Anhui, China (中国安徽省合肥市).
-2. Our old book optimization algorithms:
+1. Our old book optimization algorithms:
    Thomas Weise. [*Global Optimization Algorithms - Theory and Application*](https://www.researchgate.net/publication/200622167).
 
 
@@ -2263,7 +2260,7 @@ Filipe. Porto, Portugal: SciTePress: Science and Technology Publications, Lda, 2
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing, using, and experimenting with metaheuristic optimization algorithms.
 Our project is developed for scientific, educational, and industrial applications.
 
-Copyright (C) 2021-2023  [Thomas Weise](https://thomasweise.github.io) (汤卫思教授)
+Copyright (C) 2021-2026  [Thomas Weise](https://thomasweise.github.io) (汤卫思教授)
 
 Dr. [Thomas Weise](https://thomasweise.github.io) (see [Contact](#12-contact)) holds the copyright of this package *except* for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
 
