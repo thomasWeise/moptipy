@@ -5,7 +5,7 @@ import numpy as np
 from pycommons.io.temp import temp_file
 
 # noinspection PyPackageRequirements
-from pytest import raises
+from pytest import raises  # noqa: PT013
 
 from moptipy.api.space import Space
 from moptipy.spaces.vectorspace import VectorSpace

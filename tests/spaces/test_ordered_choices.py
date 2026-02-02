@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import default_rng
 
 # noinspection PyPackageRequirements
-from pytest import raises
+from pytest import raises  # noqa: PT013
 
 from moptipy.spaces.ordered_choices import OrderedChoices
 from moptipy.tests.on_ordered_choices import (

@@ -27,7 +27,6 @@ from typing import (  # pylint: disable=W0611
 )  # pylint: disable=W0611
 
 from numpy.random import Generator, default_rng
-from pycommons.ds.cache import str_is_new
 from pycommons.io.console import logger
 from pycommons.io.path import Path
 from pycommons.types import check_int_range, type_error
@@ -68,7 +67,6 @@ def __run_experiment(base_dir: Path,
         as parameters
     """
     random: Final[Generator] = default_rng()
-    cache: Final[Callable[[str], bool]] = str_is_new()
     for warmup in ((True, False) if perform_pre_warmup else (False, )):
         wss: str
         if warmup:
@@ -115,11 +113,7 @@ def __run_experiment(base_dir: Path,
                     else:
                         log_file = Path(
                             os.path.join(cd, filename + FILE_SUFFIX))
-
-                        skip = True
-                        if cache(log_file):
-                            skip = log_file.ensure_file_exists()
-                        if skip:
+                        if log_file.ensure_file_exists():
                             continue  # run already done
 
                     exp.set_rand_seed(seed)

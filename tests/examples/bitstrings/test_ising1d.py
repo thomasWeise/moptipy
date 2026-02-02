@@ -11,7 +11,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 
 
 def _ising1d(x: np.ndarray, dim: int) -> int:
-    """The comparison implementation of ising1d."""
+    """Provide comparison values for ising1d."""
     s: int = 0
     for i, xx in enumerate(x):
         if x[(i + 1) % dim] == xx:

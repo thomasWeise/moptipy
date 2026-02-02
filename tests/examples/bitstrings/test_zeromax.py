@@ -11,7 +11,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 
 
 def _zeromax(x: np.ndarray, dim: int) -> int:
-    """The comparison implementation of zeromax."""
+    """Provide comparison values for zeromax."""
     s: int = 0
     for xx in x:
         if xx:

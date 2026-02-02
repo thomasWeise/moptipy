@@ -11,7 +11,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 
 
 def _leadingones(x: np.ndarray, dim: int) -> int:
-    """The comparison implementation of leadingones."""
+    """Provide comparison values for leadingones."""
     s: int = 0
     for xx in x:
         if not xx:

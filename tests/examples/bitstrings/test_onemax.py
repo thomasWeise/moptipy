@@ -11,7 +11,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 
 
 def _onemax(x: np.ndarray, dim: int) -> int:
-    """The comparison implementation of onemax."""
+    """Provide comparison values for onemax."""
     s: int = 0
     for xx in x:
         if xx:

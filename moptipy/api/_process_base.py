@@ -570,27 +570,27 @@ class _ProcessBase(Process):
         log_error: Exception | None = None  # error while logging?
         try:
             self._solution_space.validate(self._current_best_y)
-        except Exception as be:  # noqa: BLE001
+        except Exception as be:  # noqa
             y_error = be
         if self._current_fes > 0:
             try:
                 self._validate_best_f()
-            except Exception as be:  # noqa: BLE001
+            except Exception as be:  # noqa
                 v_error = be
             try:
                 self._validate_x()
-            except Exception as be:  # noqa: BLE001
+            except Exception as be:  # noqa
                 x_error = be
         try:
             self._check_timing()
-        except Exception as be:  # noqa: BLE001
+        except Exception as be:  # noqa
             t_error = be
 
         if self.__log_file is not None:
             with FileLogger(self.__log_file) as logger:
                 try:
                     self._write_log(logger)
-                except Exception as be:  # noqa: BLE001
+                except Exception as be:  # noqa
                     log_error = be
 
                 if self._caught is not None:

@@ -205,7 +205,7 @@ def test_process_with_error() -> None:
         exp.set_log_file(path)
         exp.set_max_fes(500)
         exp.set_log_improvements()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError):  # noqa
             with exp.execute() as p:
                 assert p.has_best()
                 assert p.has_log()

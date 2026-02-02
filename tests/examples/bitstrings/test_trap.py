@@ -11,7 +11,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 
 
 def _trap(x: np.ndarray, dim: int) -> int:
-    """The comparison implementation of trap."""
+    """Provide comparison values for trap."""
     s: int = 0
     for xx in x:
         if xx:

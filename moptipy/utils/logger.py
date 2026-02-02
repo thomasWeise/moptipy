@@ -36,7 +36,7 @@ from math import isfinite
 from re import sub
 from typing import Any, Callable, Final, Iterable, cast
 
-from pycommons.ds.cache import str_is_new
+from pycommons.ds.cache import is_new
 from pycommons.io.csv import COMMENT_START, CSV_SEPARATOR
 from pycommons.io.path import Path, line_writer
 from pycommons.strings.string_conv import bool_to_str, float_to_str
@@ -90,7 +90,7 @@ class Logger(AbstractContextManager):
         self._closer: Callable[[], Any] | None = closer
         self.__section: str | None = None
         self.__log_name: str = name
-        self.__sections: Callable = str_is_new()
+        self.__sections: Callable = is_new()
         self.__closer: str | None = None
 
     def __enter__(self):
@@ -501,7 +501,7 @@ class KeyValueLogSection(LogSection):
         self._prefix: Final[str] = prefix
         self.__done: Callable
         if done is None:
-            self.__done = str_is_new()
+            self.__done = is_new()
             self.__done(prefix)
         else:
             self.__done = done

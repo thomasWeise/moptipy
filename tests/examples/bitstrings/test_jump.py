@@ -11,7 +11,7 @@ from moptipy.tests.on_bitstrings import random_bit_string
 
 
 def _jump(x: np.ndarray, n: int, k: int) -> int:
-    """The comparison implementation of jump."""
+    """Provide comparison values for jump."""
     s: int = 0
     for xx in x:
         if xx:

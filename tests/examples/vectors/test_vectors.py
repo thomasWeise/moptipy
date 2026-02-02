@@ -12,7 +12,7 @@ from moptipy.tests.objective import validate_objective
 
 
 def _sphere(x: np.ndarray, ub: float) -> float:
-    """The comparison implementation of sphere."""
+    """Provide comparison values for sphere."""
     s: float = 0.0
     for xx in x:
         if xx:

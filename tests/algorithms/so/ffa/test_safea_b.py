@@ -22,12 +22,12 @@ from moptipy.tests.on_jssp import validate_algorithm_on_jssp
 
 
 def __lb() -> int:
-    """A mock lower bound."""
+    """Get a mock lower bound."""
     return -1_000_000_000_000_000
 
 
 def __ub() -> int:
-    """A mock upper bound."""
+    """Get a mock upper bound."""
     return 1_000_000_000_000_000
 
 

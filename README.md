@@ -99,12 +99,6 @@ pip install moptipy
 ```
 
 This may sometimes work better if you are having trouble reaching GitHub via `https` or `http`.
-
-You can also clone the repository and then run a [`make` build](https://thomasweise.github.io/moptipy/Makefile.html), which will automatically install all dependencies, run all the tests, and then install the package on your system, too.
-This will work only on Linux, though.
-It also installs the [dependencies for building](https://thomasweise.github.io/moptipy/requirements-dev_txt.html), which include, e.g., those for [unit testing and static analysis](#81-unit-tests-and-static-analysis).
-If this build completes successful, you can be sure that [`moptipy`](https://thomasweise.github.io/moptipy) will work properly on your machine.
-
 All dependencies for using and running `moptipy` are listed at [here](https://thomasweise.github.io/moptipy/requirements_txt.html).
 The additional dependencies for a [full `make` build](https://thomasweise.github.io/moptipy/Makefile.html), including unit tests, static analysis, and the generation of documentation are listed [here](https://thomasweise.github.io/moptipy/requirements-dev_txt.html).
 
@@ -2129,26 +2123,7 @@ It can tell you if you perform some security-wise unsafe operations (which is le
 Code analysis tools can also help you to enforce best practices, which are good for performance, readability, and maintainability.
 They can push you to properly format and document your code, which, too, improve readability, maintainability, and usability.
 They even can detect a set of well-known and frequently-occurring bugs.
-We therefore also run a variety of such tools on our code base, including (in alphabetical order):
-
-- [`autoflake`](https://pypi.org/project/autoflake/), a tool for finding unused imports and variables
-- [`bandit`](https://pypi.org/project/bandit/), a linter for finding security issues
-- [`dodgy`](https://pypi.org/project/dodgy/), for checking for dodgy looking values in the code
-- [`flake8`](https://pypi.org/project/flake8/), a collection of linters
-- [`flake8-bugbear`](http://pypi.org/project/flake8-bugbear), for finding common bugs
-- [`flake8-eradicate`](http://pypi.org/project/flake8-eradicate), for finding commented-out code
-- [`flake8-use-fstring`](http://pypi.org/project/flake8-use-fstring), for checking the correct use of f-strings
-- [`mypy`](https://pypi.org/project/mypy/), for checking types and type annotations
-- [`pycodestyle`](https://pypi.org/project/pycodestyle/), for checking the formatting and coding style of the source
-- [`pydocstyle`](https://pypi.org/project/pydocstyle/), for checking the format of the docstrings
-- [`pyflakes`](https://pypi.org/project/pyflakes/), for detecting some errors in the code
-- [`pylint`](https://pypi.org/project/pylint/), another static analysis tool
-- [`pyroma`](https://pypi.org/project/pyroma/), for checking whether the code complies with various best practices
-- [`ruff`](https://pypi.org/project/ruff/), a static analysis tool checking a wide range of coding conventions
-- [`semgrep`](https://pypi.org/project/semgrep/), another static analyzer for finding bugs and problems
-- [`tryceratops`](https://pypi.org/project/tryceratops/), for checking against exception handling anti-patterns
-- [`unimport`](https://pypi.org/project/unimport/), for checking against unused import statements
-- [`vulture`](https://pypi.org/project/vulture/), for finding dead code
+We use the [pycommons unified build process](https://thomasweise.github.io/pycommons/#unified-build-process-pycommons-dev-building) which also run a variety of such tools on our code base.
 
 On git pushes, GitHub also automatically runs [CodeQL](https://codeql.github.com/) to check for common vulnerabilities and coding errors.
 We also turned on GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/configuring-private-vulnerability-reporting-for-a-repository) and the Dependabot [vulnerability](https://docs.github.com/en/code-security/dependabot/dependabot-alerts/configuring-dependabot-alerts) and [security](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/configuring-dependabot-security-updates) alerts.
@@ -2288,9 +2263,9 @@ Filipe. Porto, Portugal: SciTePress: Science and Technology Publications, Lda, 2
 [`moptipy`](https://thomasweise.github.io/moptipy) is a library for implementing, using, and experimenting with metaheuristic optimization algorithms.
 Our project is developed for scientific, educational, and industrial applications.
 
-Copyright (C) 2021-2023  Thomas Weise (汤卫思教授)
+Copyright (C) 2021-2023  [Thomas Weise](https://thomasweise.github.io) (汤卫思教授)
 
-Dr. Thomas Weise (see [Contact](#12-contact)) holds the copyright of this package *except* for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
+Dr. [Thomas Weise](https://thomasweise.github.io) (see [Contact](#12-contact)) holds the copyright of this package *except* for the JSSP instance data in file [`moptipy/examples/jssp/instances.txt`](https://github.com/thomasWeise/moptipy/blob/main/moptipy/examples/jssp/instances.txt).
 
 `moptipy` is provided to the public as open source software under the [GNU GENERAL PUBLIC LICENSE, Version 3, 29 June 2007](https://thomasweise.github.io/moptipy/LICENSE.html).
 Terms for other licenses, e.g., for specific industrial applications, can be negotiated with Dr. Thomas Weise (who can be reached via the [contact information](#12-contact) below).
@@ -2307,7 +2282,7 @@ If you have any concerns regarding security, please visit our [security policy](
 ## 12. Contact
 
 If you have any questions or suggestions, please contact
-Prof. Dr. Thomas Weis (汤卫思教授) of the 
+Prof. Dr. [Thomas Weise](https://thomasweise.github.io) (汤卫思教授) of the 
 School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd)) at
 [Hefei University](http://www.hfuu.edu.cn/english/) ([合肥大学](http://www.hfuu.edu.cn/)) in
 Hefei, Anhui, China (中国安徽省合肥市) via
