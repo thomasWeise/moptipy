@@ -48,9 +48,8 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
 __DEPENDENCIES: set[str] | None = {
     "cmaes", "contourpy", "cycler", "fonttools", "intel-cmplr-lib-rt",
     "joblib", "kiwisolver", "llvmlite", "matplotlib", "moptipy", "numba",
-    "numpy", "packaging", "pdfo", "pillow", "psutil", "pycommons",
-    "pyparsing", "python-dateutil", "scikit-learn", "scipy", "setuptools",
-    "six", "threadpoolctl"}
+    "numpy", "packaging", "pillow", "psutil", "pycommons", "pyparsing",
+    "python-dateutil", "scipy", "setuptools", "six", "threadpoolctl"}
 
 
 def add_dependency(dependency: str,
@@ -330,13 +329,11 @@ def get_sys_info() -> str:
     version.numba
     version.numpy
     version.packaging
-    version.pdfo
     version.pillow
     version.psutil
     version.pycommons
     version.pyparsing
     version.pythondateutil
-    version.scikitlearn
     version.scipy
     version.setuptools
     version.six

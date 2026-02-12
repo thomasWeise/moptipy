@@ -35,15 +35,11 @@ matplotlib == 3.10.8
 
 # psutil is used for getting information about the system configuration which
 # is stored in the log files (see moptipy.utils.sys_info.py).
-psutil == 7.2.1
+psutil == 7.2.2
 
 # pycommons offers many of the tools and utilities used in moptipy that are
 # not related to optimization.
-pycommons == 0.8.86
-
-# scikit-learn is used to obtain some clusters of JSSP instances for our
-# experiments.
-scikit-learn == 1.8.0
+pycommons == 0.8.88
 
 # scipy provides statistical tests *and* numerical optimization methods that
 # we wrap into our API.
@@ -52,4 +48,3 @@ scipy == 1.17.0
 # These are packages that provide more numerical optimization methods that we
 # wrap into our API as well.
 cmaes == 0.12.0  # for, well, CMA-ES
-pdfo == 2.2.0  # for BOBYQA

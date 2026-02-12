@@ -51,7 +51,6 @@ def __check_sys_info() -> None:
     assert "version.psutil" in values
     assert "version.pyparsing" in values
     assert "version.pythondateutil" in values
-    assert "version.scikitlearn" in values
     assert "version.scipy" in values
     assert "version.six" in values
     assert "hardware.nPhysicalCpus" in values

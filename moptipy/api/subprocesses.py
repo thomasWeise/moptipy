@@ -600,8 +600,7 @@ def without_should_terminate(algorithm: Callable[[T], Any], process: T) \
     still force them to terminate when they should.
 
     Some algorithms using this system are implemented in
-    :mod:`~moptipy.algorithms.so.vector.scipy` and
-    :mod:`~moptipy.algorithms.so.vector.pdfo`. These modules import external
+    :mod:`~moptipy.algorithms.so.vector.scipy`. These modules import external
     algorithms from other libraries which, of course, know nothing about how
     our `moptipy` works. They only accept the objective function and cannot
     handle the beautiful

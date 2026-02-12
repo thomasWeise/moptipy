@@ -4,33 +4,8 @@
 # In this file we list all the libraries that are required to develop
 # `moptipy` code. This means that you want to run the complete `make` process,
 # including all the unit tests, the static analysis, and building the
-# documentation. Notice that none of this is necessary if you just want to use
-# `moptipy` or even just want to implement an algorithm or problem for your
-# own purposes. Only if you want to do all the checks and the whole build
-# process, maybe because you want to submit code to the `moptipy` project,
-# then you need all of these dependencies. For only using `moptipy`, it is
-# sufficient to load the dependencies specified in `requirements.txt`.
-# Nevertheless, I think even then it may still be a good idea to use the full
-# `make` process, because the static analysis and unit tests are, indeed,
-# useful. They enforce a uniform coding style, help you to find bugs, and kind
-# of push you to use best practices. I personally learned a lot from the
-# static analysis and the unit tests indeed revealed errors.
-#
-# For developing or contributing to `moptipy`, you should install the
-# dependencies below. You can do this via
-# `pip install --no-input --timeout 360 --retries 100 -r requirements-dev.txt`
-# with a text file `requirements-dev.txt` that has the exact same contents as
-# this file here.
-#
-# `moptipy` is available at https://thomasweise.github.io/moptipy.
-# This file is available at https://github.com/thomasWeise/moptipy.
-#
-# Below, we list each library required for development and specify the reason
-# why it is needed. Notice that these libraries may, in turn, depend on other
-# libraries. We cannot maintain a full list of these recursive dependencies.
-# Here we only list the top-level dependencies that are actually used in the
-# `moptipy` build process.
+# documentation.
 #
 
-# pycommons provides lots of utilities
-pycommons[dev] == 0.8.86
+# We use the unified build process offered by pycommons.
+pycommons[dev] == 0.8.88

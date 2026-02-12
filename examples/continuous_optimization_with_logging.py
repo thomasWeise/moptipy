@@ -28,7 +28,6 @@ from moptipy.algorithms.so.vector.cmaes_lib import (
     BiPopCMAES,  # the Bi-Population CMA-ES
     SepCMAES,  # the separable CMA-ES
 )
-from moptipy.algorithms.so.vector.pdfo import BOBYQA  # Powell's BOBYQA
 from moptipy.algorithms.so.vector.scipy import (
     BGFS,  # Broyden/Fletcher/Goldfarb/Shanno from SciPy
     CG,  # conjugate gradient method from SciPy
@@ -71,7 +70,6 @@ with temp_dir() as td:  # create temporary directory `td`
     # Perform one run for a variety of different optimization algorithms.
     for algorithm in [BGFS(op0, space),  # Broyden/Fletcher/Goldfarb/Shanno
                       BiPopCMAES(space),  # the bi-population CMA-ES
-                      BOBYQA(op0, space),  # Bound Optimiz. by Quadrat. Apprx.
                       CG(op0, space),  # conjugate gradient method
                       CMAES(space),  # covariance matrix adaptation ES
                       DE(space),  # differential evolution

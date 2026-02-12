@@ -1,7 +1,7 @@
 [![make build](https://github.com/thomasWeise/moptipy/actions/workflows/build.yml/badge.svg)](https://github.com/thomasWeise/moptipy/actions/workflows/build.yml)
 [![pypi version](https://img.shields.io/pypi/v/moptipy)](https://pypi.org/project/moptipy)
 [![pypi downloads](https://img.shields.io/pypi/dw/moptipy.svg)](https://pypistats.org/packages/moptipy)
-[![coverage report](https://thomasweise.github.io/moptipy/tc/badge.svg)](https://thomasweise.github.io/moptipy/tc/index.html)
+[![coverage report](https://shields.io/badge/pytest-coverage-009000)](https://thomasweise.github.io/moptipy/tc/index.html)
 [![https://thomasweise.github.io](https://shields.io/badge/home-thomasweise.github.io-009000)](https://thomasweise.github.io)
 
 
@@ -752,7 +752,6 @@ They *only* work with search spaces that are instances of [`VectorSpace`](https:
 Such spaces are defined by box-constraints over the *n*-dimensional real numbers.
 
 - The quasi-Newton method by Broyden, Fletcher, Goldfarb, and Shanno ([BFGS](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-bfgs.html).
-- The Bound Optimization BY Quadratic Approximation algorithm ([BOBYQA](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo)) from the library "Powell's Derivative-Free Optimization solvers" ([pdfo](https://www.pdfo.net)).
 - The Conjugate Gradient ([CG](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.CG)) algorithm, wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/optimize.minimize-cg.html).
 - The Covariance Matrix Adaptation Evolution Strategies [CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES), [Separable CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.SepCMAES), and [BIPOP-CMA-ES](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES) from the library [cmaes](https://pypi.org/project/cmaes).
 - Differential Evolution ([DE](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE)), wrapped from [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html).
@@ -1192,7 +1191,6 @@ version.numpy: 1.21.5
 version.numba: 0.55.1
 version.matplotlib: 3.5.1
 version.psutil: 5.9.0
-version.scikitlearn: 1.0.2
 hardware.machine: x86_64
 hardware.nPhysicalCpus: 8
 hardware.nLogicalCpus: 16
@@ -1405,12 +1403,10 @@ version.matplotlib: 3.7.0
 version.numba: 0.56.4
 version.numpy: 1.23.5
 version.packaging: 21.3
-version.pdfo: 1.2
 version.Pillow: 9.4.0
 version.psutil: 5.9.4
 version.pyparsing: 3.0.9
 version.pythondateutil: 2.8.2
-version.scikitlearn: 1.2.1
 version.scipy: 1.10.0
 version.six: 1.16.0
 version.threadpoolctl: 3.1.0
@@ -2222,9 +2218,6 @@ A much better list maintained by [Keivan Tafakkori](https://ktafakkori.github.io
   You can find it on GitHub at <https://github.com/DEAP/deap>.
 - [`inspyred`](https://pypi.org/project/inspyred) and [`ecspy`](https://pypi.org/project/ecspy) are open source packages for nature-inspired optimization by Aaron Garrett.
 - [`nevergrad`](https://facebookresearch.github.io/nevergrad) by Facebook Research offers gradient free optimization and implements a variety of numerical optimization methods and many benchmark problems.
-- The library "Powell's Derivative-Free Optimization solvers" ([`pdfo`](https://www.pdfo.net)) provides an implementation of the "Bound Optimization BY Quadratic Approximation" algorithm, or BOBYQA for short, for solving continuous optimization problems. 
-  The library is dedicated to the late Professor M. J. D. Powell FRS (1936—2015), maintained by Tom M. Ragonneau and Zaikun Zhang, and available at <https://github.com/pdfo/pdfo> and <https://www.pdfo.net>.
-  We wrap its `BOBYQA` implementation into our `moptipy` API in module [`algorithms.so.vector.pdfo`](https://thomasweise.github.io/moptipy/moptipy.algorithms.so.vector.html#module-moptipy.algorithms.so.vector.pdfo).
 - [`pgapy`](https://github.com/schlatterbeck/pgapy) by Ralf Schlatterbeck provides a Python wrapper the [PGAPack](https://github.com/schlatterbeck/pgapack) Parallel Genetic Algorithm Library.
   It can be found on GitHub at <https://github.com/schlatterbeck/pgapy>.
 - [`scipy`](https://scipy.org) offers a set of well-established mathematical optimization techniques for continuous optimization via the function [`scipy.optimize.minimize`](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html).
@@ -2277,7 +2270,6 @@ If you have any concerns regarding security, please visit our [security policy](
 
 
 ## 12. Contact
-
 If you have any questions or suggestions, please contact
 Prof. Dr. [Thomas Weise](https://thomasweise.github.io) (汤卫思教授) of the 
 School of Artificial Intelligence and Big Data ([人工智能与大数据学院](http://www.hfuu.edu.cn/aibd)) at
