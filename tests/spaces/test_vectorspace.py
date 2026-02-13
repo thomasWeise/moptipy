@@ -20,8 +20,8 @@ def test_vector_space_1() -> None:
     assert str(space) == "r12d"
     assert space.lower_bound_all_same
     assert space.upper_bound_all_same
-    assert all(space.lower_bound == 0.0)
-    assert all(space.upper_bound == 1.0)
+    assert all(space.lower_bound == 0.0)  # noqa: RUF069
+    assert all(space.upper_bound == 1.0)  # noqa: RUF069
 
     a = space.create()
     assert isinstance(a, np.ndarray)
@@ -79,7 +79,7 @@ def test_vector_space_2() -> None:
     assert str(space) == "r3d"
     assert not space.lower_bound_all_same
     assert space.upper_bound_all_same
-    assert all(space.upper_bound == 4.0)
+    assert all(space.upper_bound == 4.0)  # noqa: RUF069
     assert all(space.lower_bound == np.array([1.0, 2.0, 3.0]))
 
     a = space.create()
@@ -139,7 +139,7 @@ def test_vector_space_3() -> None:
     assert str(space) == "r3d"
     assert space.lower_bound_all_same
     assert not space.upper_bound_all_same
-    assert all(space.lower_bound == -1.0)
+    assert all(space.lower_bound == -1.0)  # noqa: RUF069
     assert all(space.upper_bound == np.array([4.0, 2.3, 7.0]))
 
     a = space.create()

@@ -305,7 +305,7 @@ class PPA(Algorithm1):
         self.max_step: Final[float] = max_step
 
         name = f"{name}{PART_SEPARATOR}{m}{PART_SEPARATOR}{nmax}"
-        if max_step != 1.0:
+        if max_step != 1.0:  # noqa: RUF069
             name = f"{name}{PART_SEPARATOR}{num_to_str_for_name(max_step)}"
         super().__init__(name, op0, op1)
 

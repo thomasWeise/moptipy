@@ -184,32 +184,32 @@ class EA(Algorithm2):
             op1 = Op1()
             if br is None:
                 br = 1.0
-            elif br != 1.0:
+            elif br != 1.0:  # noqa: RUF069
                 raise ValueError(
                     f"if op1==None, br must be None or 1.0, but is {br}.")
         elif op1.__class__ is Op1:
             if br is None:
                 br = 1.0
-            elif br != 1.0:
+            elif br != 1.0:  # noqa: RUF069
                 raise ValueError(
                     f"if op1 is Op1, br must be None or 1.0, but is {br}.")
-        elif (br is not None) and (br == 1.0):
+        elif (br is not None) and (br == 1.0):  # noqa: RUF069
             op1 = Op1()
 
         if op2 is None:
             op2 = Op2()
             if br is None:
                 br = 0.0
-            elif br != 0.0:
+            elif br != 0.0:  # noqa: RUF069
                 raise ValueError(
                     f"if op2==None, br must be None or 0.0, but is {br}.")
         elif op2.__class__ is Op2:
             if br is None:
                 br = 0.0
-            elif br != 0.0:
+            elif br != 0.0:  # noqa: RUF069
                 raise ValueError(
                     f"if op2 is Op2, br must be None or 0.0, but is {br}.")
-        elif (br is not None) and (br == 0.0):
+        elif (br is not None) and (br == 0.0):  # noqa: RUF069
             op2 = Op2()
         elif (mu == 1) and (br is None):
             br = 0.0
